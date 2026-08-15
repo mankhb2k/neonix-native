@@ -52,7 +52,7 @@ export const SINGLE_ROOT = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 0, duration: 5 },
       payload: {
-        content: { kind: "plain", text: "Hello MotiClip" },
+        text: "Hello MotiClip" ,
         fontSize: 64,
         color: "#000000",
         alignment: "center",
@@ -105,7 +105,7 @@ export const DEPTH_DEMO = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 1, duration: 3 },
       payload: {
-        content: { kind: "plain", text: "Parallax title" },
+        text: "Parallax title" ,
         fontSize: 48,
         color: "#0f1419",
         alignment: "center",
@@ -145,7 +145,7 @@ export const AUDIO_FADE = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 0, duration: 6 },
       payload: {
-        content: { kind: "plain", text: "With music" },
+        text: "With music" ,
         fontSize: 56,
         color: "#0f1419",
         alignment: "center",
@@ -181,7 +181,7 @@ export const INVALID_TRANSFORM_Z = {
       frame: { width: 200, height: 80 },
       timing: { start: 0, duration: 3 },
       payload: {
-        content: { kind: "plain", text: "nope" },
+        text: "nope" ,
         fontSize: 32,
         color: "#000000",
         alignment: "center",
@@ -218,7 +218,7 @@ export const INVALID_DUPLICATE_ID = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 0, duration: 3 },
       payload: {
-        content: { kind: "plain", text: "A" },
+        text: "A" ,
         fontSize: 32,
         color: "#000000",
         alignment: "center",
@@ -236,7 +236,7 @@ export const INVALID_DUPLICATE_ID = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 0, duration: 3 },
       payload: {
-        content: { kind: "plain", text: "B" },
+        text: "B" ,
         fontSize: 32,
         color: "#000000",
         alignment: "center",

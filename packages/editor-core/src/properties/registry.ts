@@ -395,7 +395,7 @@ const textAlign: PropertyDefinition<string> = {
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
       const node = findNode(ctx.project, t.sceneId, t.layerId);
-      return node?.type === "text" ? (node.payload.align ?? "left") : "left";
+      return node?.type === "text" ? (node.payload.alignment ?? "left") : "left";
     });
     return readUniform(values);
   },

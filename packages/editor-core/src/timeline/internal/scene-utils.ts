@@ -190,8 +190,8 @@ function nodeFromDraft(
     payload: {
       text: draft.text || draft.name,
       fontSize: 64,
-      fontWeight: 600,
-      align: "center",
+      color: "#111111",
+      alignment: "center",
     },
   };
 }

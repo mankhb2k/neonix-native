@@ -73,7 +73,7 @@ export function createDemoMotionProject(): MotionProjectV1 {
             timing: { start: 0, duration: 3 },
             ...visualLayerAtoms({ x: 0, y: -60, width: 560, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
             payload: {
-              content: { kind: "plain", text: "MotiClip AI Studio" },
+              text: "MotiClip AI Studio" ,
               fontSize: 56,
               color: "#0f1419",
               alignment: "center",

@@ -72,7 +72,7 @@
       "target": {
         "type": "layer",
         "layerId": "headline",
-        "property": "payload.content.text"
+        "property": "payload.text"
       }
     }
   ],
@@ -103,13 +103,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Welcome"
-        },
         "fontSize": 64,
         "color": "#111111",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Welcome"
       },
       "zIndex": 0,
       "timing": {
@@ -151,13 +148,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "This is body content"
-        },
         "fontSize": 48,
         "color": "#333333",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "This is body content"
       },
       "zIndex": 1,
       "timing": {
@@ -199,13 +193,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Thank you!"
-        },
         "fontSize": 56,
         "color": "#1877f2",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Thank you!"
       },
       "zIndex": 2,
       "timing": {

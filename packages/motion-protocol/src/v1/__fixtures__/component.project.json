@@ -91,7 +91,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "cta-label-node",
-            "property": "payload.content.text"
+            "property": "payload.text"
           }
         },
         {
@@ -173,13 +173,10 @@
             }
           },
           "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Click me"
-            },
             "fontSize": 40,
             "color": "#ffffff",
-            "alignment": "center"
+            "alignment": "center",
+            "text": "Click me"
           },
           "frame": {
             "width": 500,
@@ -239,13 +236,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Welcome to MotiClip"
-        },
         "fontSize": 56,
         "color": "#111111",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Welcome to MotiClip"
       },
       "zIndex": 0,
       "timing": {

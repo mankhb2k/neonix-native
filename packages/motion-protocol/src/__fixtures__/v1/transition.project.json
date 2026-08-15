@@ -66,15 +66,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "First Scene"
-        },
         "fontSize": 64,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "First Scene"
       },
       "timing": {
         "start": 0,
@@ -123,15 +120,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Second Scene"
-        },
         "fontSize": 64,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "Second Scene"
       },
       "timing": {
         "start": 0,

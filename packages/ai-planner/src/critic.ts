@@ -217,7 +217,7 @@ export function applyCriticRepair(
           visible: true,
         }),
         payload: {
-          content: { kind: "plain", text: "Continue" },
+          text: "Continue" ,
           fontSize: 48,
           alignment: "center",
         },

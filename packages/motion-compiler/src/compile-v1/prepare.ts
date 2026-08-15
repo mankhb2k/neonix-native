@@ -49,12 +49,13 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
       return {
         ...base,
         payload: {
-          content: clone(payload.content),
+          text: payload.text,
           ...(payload.fontAssetId !== undefined
             ? { fontAssetId: payload.fontAssetId }
             : {}),
           fontSize: payload.fontSize,
-          align: payload.alignment,
+          ...(payload.color !== undefined ? { color: payload.color } : {}),
+          alignment: payload.alignment,
           wrap: payload.wrap,
           ...(payload.lineHeight !== undefined
             ? { lineHeight: payload.lineHeight }

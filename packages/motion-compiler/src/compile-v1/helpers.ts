@@ -28,7 +28,7 @@ export function setPropertyPath(
 
 /** Map a V1 authoring property path to its runtime IR equivalent. */
 export function toRuntimeProperty(property: string): string {
-  return property === "payload.text" ? "payload.content.text" : property;
+  return property;
 }
 
 export function pixelFormatHasAlpha(pixelFormat: string): boolean {

@@ -162,7 +162,7 @@ function artworkLayer(
         ...base,
         type: "text",
         payload: {
-          content: { kind: "plain", text: "MASK" },
+          text: "MASK" ,
           fontSize: 120,
           color: CLIP_ARTWORK_COLOR,
           alignment: "center",

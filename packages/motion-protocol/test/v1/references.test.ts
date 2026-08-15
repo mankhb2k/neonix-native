@@ -21,7 +21,7 @@ function textLayer(
     timing: { start: 0, duration: 4 },
     ...ATOMS,
     payload: {
-      content: { kind: "plain", text: "Label" },
+      text: "Label" ,
       fontSize: 24,
       color: "#111111",
       alignment: "center",
@@ -67,7 +67,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
             target: {
               kind: "layerProperty",
               layerId: "child-label",
-              property: "payload.content.text",
+              property: "payload.text",
             },
           },
         ],
@@ -445,7 +445,7 @@ describe("V1 component / binding / keyframe references", () => {
               target: {
                 type: "layer",
                 layerId: "headline",
-                property: "payload.content.text",
+                property: "payload.text",
               },
             },
           ],

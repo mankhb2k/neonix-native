@@ -66,15 +66,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Animated Title"
-        },
         "fontSize": 64,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "Animated Title"
       },
       "timing": {
         "start": 0,
@@ -123,15 +120,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Property track clip"
-        },
         "fontSize": 32,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "Property track clip"
       },
       "timing": {
         "start": 0,

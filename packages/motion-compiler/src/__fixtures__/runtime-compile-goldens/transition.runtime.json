@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a2ab77f10b5ee25e490c7a8cdc4e88ee",
+  "runtimeHash": "a9d51f1587b83ee59f20e7d89178cbeb",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -76,12 +76,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "First Scene"
-        },
+        "text": "First Scene",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -133,12 +131,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Second Scene"
-        },
+        "text": "Second Scene",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },

@@ -250,8 +250,6 @@ const NODE_PROPERTIES: Readonly<
 > = Object.freeze({
   text: {
     "payload.text": cap("string"),
-    "payload.content": cap("json"),
-    "payload.content.text": cap("string"),
     "payload.fontAssetId": cap("asset", {
       animatable: false,
       runtimeSupport: "compile-time",

@@ -65,7 +65,7 @@ describe("motion-protocol R2–R5 contract", () => {
   });
 
   it("treats capability bindable as the binding allowlist", () => {
-    expect(isLayerPropertyBindable("text", "payload.content.text")).toBe(true);
+    expect(isLayerPropertyBindable("text", "payload.text")).toBe(true);
     expect(isLayerPropertyBindable("text", "payload.notAField")).toBe(false);
     expect(isLayerPropertyBindable("text", "payload.counterProgress")).toBe(
       false,
@@ -98,7 +98,7 @@ describe("motion-protocol R2–R5 contract", () => {
     ).toBeUndefined();
     expect(
       publicMotionPropertyCapabilities("text").some(
-        (entry) => entry.property === "payload.content.text",
+        (entry) => entry.property === "payload.text",
       ),
     ).toBe(true);
   });

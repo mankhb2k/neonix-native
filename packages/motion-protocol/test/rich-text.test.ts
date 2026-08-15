@@ -2,46 +2,51 @@ import { describe, expect, it } from "vitest";
 import {
   getTextPayloadPlain,
   normalizeTextPayloadInput,
-  TextContentSchema,
   TextPayloadSchema,
 } from "../src/v1/layers/text-content";
 import { parseMotionProjectV1 } from "../src/v1";
 import { visualLayerAtoms } from "../src/v1/layer-atoms";
 
-describe("rich text content", () => {
-  it("normalizes legacy payload.text to content.plain", () => {
-    const normalized = normalizeTextPayloadInput({
-      text: "Hello",
-      fontSize: 42,
-    });
-    expect(normalized).toEqual({
-      content: { kind: "plain", text: "Hello" },
-      fontSize: 42,
-    });
+describe("V1 text payload", () => {
+  it("parses payload.text as the canonical string", () => {
     const parsed = TextPayloadSchema.parse({ text: "Hello", fontSize: 42 });
-    expect(parsed.content).toEqual({ kind: "plain", text: "Hello" });
+    expect(parsed.text).toBe("Hello");
     expect(getTextPayloadPlain(parsed)).toBe("Hello");
   });
 
-  it("rejects duplicate run ids", () => {
+  it("lifts legacy content.plain to payload.text", () => {
+    const normalized = normalizeTextPayloadInput({
+      content: { kind: "plain", text: "Hello" },
+      fontSize: 42,
+    });
+    expect(normalized).toEqual({
+      text: "Hello",
+      fontSize: 42,
+    });
+  });
+
+  it("rejects rich text runs", () => {
     expect(() =>
-      TextContentSchema.parse({
-        kind: "runs",
-        runs: [
-          { id: "a", text: "Hi" },
-          { id: "a", text: "!" },
-        ],
+      TextPayloadSchema.parse({
+        content: {
+          kind: "runs",
+          runs: [
+            { id: "a", text: "Hi" },
+            { id: "b", text: "!" },
+          ],
+        },
+        fontSize: 24,
       }),
     ).toThrow();
   });
 
-  it("parses project with rich text runs", () => {
+  it("parses a project with a single-style text layer", () => {
     const project = parseMotionProjectV1({
       format: "motion-project",
       formatVersion: 1,
       metadata: {
         id: "p1",
-        name: "Rich",
+        name: "Text",
         locale: "vi-VN",
       },
       composition: { width: 1080, height: 1920, fps: 30 },
@@ -65,28 +70,20 @@ describe("rich text content", () => {
             originY: 0,
           }),
           payload: {
-            content: {
-              kind: "runs",
-              runs: [
-                {
-                  id: "r1",
-                  text: "Hello ",
-                  style: { fill: "#ffffff", fontWeight: 700 },
-                },
-                { id: "r2", text: "World", style: { fill: "#00ff00" } },
-              ],
-            },
+            text: "Hello world",
             fontSize: 48,
+            color: "#111111",
+            alignment: "left",
+            wrap: "word",
+            overflow: "clip",
           },
         },
       ],
-      bindings: [],
-      extensions: {},
     });
-    const node = project.layers[0]!;
-    expect(node.type).toBe("text");
-    if (node.type === "text") {
-      expect(getTextPayloadPlain(node.payload)).toBe("Hello World");
+    const node = project.layers[0];
+    expect(node?.type).toBe("text");
+    if (node?.type === "text") {
+      expect(getTextPayloadPlain(node.payload)).toBe("Hello world");
     }
   });
 });

@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "e1264d8547e6eff3cb13c25a76e95dfb",
+  "runtimeHash": "d3eb4078efc187ec18c3aa51622a9d46",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -76,12 +76,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Animated Title"
-        },
+        "text": "Animated Title",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -133,12 +131,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Property track clip"
-        },
+        "text": "Property track clip",
         "fontSize": 32,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },

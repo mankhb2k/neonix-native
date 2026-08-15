@@ -2102,123 +2102,8 @@
                         "payload": {
                           "type": "object",
                           "properties": {
-                            "content": {
-                              "anyOf": [
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "kind": {
-                                      "type": "string",
-                                      "const": "plain"
-                                    },
-                                    "text": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": [
-                                    "kind",
-                                    "text"
-                                  ],
-                                  "additionalProperties": false
-                                },
-                                {
-                                  "type": "object",
-                                  "properties": {
-                                    "kind": {
-                                      "type": "string",
-                                      "const": "runs"
-                                    },
-                                    "runs": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "object",
-                                        "properties": {
-                                          "id": {
-                                            "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                                          },
-                                          "text": {
-                                            "type": "string"
-                                          },
-                                          "style": {
-                                            "type": "object",
-                                            "properties": {
-                                              "fill": {
-                                                "type": "string",
-                                                "minLength": 1
-                                              },
-                                              "fontAssetId": {
-                                                "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                                              },
-                                              "fontWeight": {
-                                                "type": "integer",
-                                                "minimum": 1,
-                                                "maximum": 1000
-                                              },
-                                              "fontStyle": {
-                                                "type": "string",
-                                                "enum": [
-                                                  "normal",
-                                                  "italic"
-                                                ]
-                                              },
-                                              "fontScale": {
-                                                "type": "number",
-                                                "exclusiveMinimum": true,
-                                                "minimum": 0,
-                                                "maximum": 4
-                                              },
-                                              "letterSpacing": {
-                                                "$ref": "#/definitions/JsonValue/anyOf/1"
-                                              },
-                                              "highlight": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "fill": {
-                                                    "type": "string",
-                                                    "minLength": 1
-                                                  },
-                                                  "paddingX": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 128
-                                                  },
-                                                  "paddingY": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 128
-                                                  },
-                                                  "radius": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 128
-                                                  }
-                                                },
-                                                "required": [
-                                                  "fill"
-                                                ],
-                                                "additionalProperties": false
-                                              }
-                                            },
-                                            "additionalProperties": false
-                                          }
-                                        },
-                                        "required": [
-                                          "id",
-                                          "text"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      "minItems": 1,
-                                      "maxItems": 64
-                                    }
-                                  },
-                                  "required": [
-                                    "kind",
-                                    "runs"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              ]
+                            "text": {
+                              "type": "string"
                             },
                             "fontAssetId": {
                               "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
@@ -2272,11 +2157,11 @@
                                 "clip",
                                 "ellipsis"
                               ],
-                              "default": "visible"
+                              "default": "clip"
                             }
                           },
                           "required": [
-                            "content",
+                            "text",
                             "fontSize"
                           ],
                           "additionalProperties": false

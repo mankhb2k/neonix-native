@@ -43,7 +43,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
     zIndex: 0,
     ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
-      content: { kind: "plain", text: "" },
+      text: "" ,
       fontSize: 12,
       color: "#000000",
       alignment: "left",

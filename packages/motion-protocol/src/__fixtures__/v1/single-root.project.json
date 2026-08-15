@@ -66,15 +66,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Hello MotiClip"
-        },
         "fontSize": 64,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "Hello MotiClip"
       },
       "timing": {
         "start": 0,

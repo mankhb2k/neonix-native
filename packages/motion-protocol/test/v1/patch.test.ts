@@ -17,7 +17,7 @@ function textLayer(id: string, zIndex = 0) {
     timing: { start: 0, duration: 3 },
             ...ATOMS,
     payload: {
-      content: { kind: "plain" as const, text: "Hello" },
+      text: "Hello" ,
       fontSize: 24,
       color: "#000000",
       alignment: "left" as const,
@@ -303,7 +303,7 @@ describe("V1 patch contract", () => {
               target: {
                 kind: "layerProperty",
                 layerId: "label-node",
-                property: "payload.content.text",
+                property: "payload.text",
               },
             },
           ],

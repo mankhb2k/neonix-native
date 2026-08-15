@@ -423,10 +423,6 @@
             }
           },
           "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Hello MotiClip V1"
-            },
             "fontAssetId": "asset-font-display",
             "fontSize": 64,
             "color": "#ffffff",
@@ -435,7 +431,8 @@
             "lineHeight": 1.2,
             "letterSpacing": 1,
             "maxLines": 2,
-            "overflow": "ellipsis"
+            "overflow": "ellipsis",
+            "text": "Hello MotiClip V1"
           },
           "frame": {
             "width": 800,

@@ -195,7 +195,7 @@ describe("export temporal parity (local-time bake)", () => {
           zIndex: 0,
           ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
           payload: {
-            content: { kind: "plain" as const, text: id },
+            text: id ,
             fontSize: 20,
             color: "#000000",
             alignment: "left" as const,

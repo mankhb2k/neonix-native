@@ -20,9 +20,9 @@ function runtimeLayer(id = "title"): Record<string, unknown> {
     timing: { start: 0, duration: 5 },
     ...visualLayerAtoms({ x: 960, y: 540, width: 800, height: 120, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
-      content: { kind: "plain", text: "Hello MotiClip" },
+      text: "Hello MotiClip" ,
       fontSize: 64,
-      align: "center",
+      alignment: "center",
     },
   };
 }

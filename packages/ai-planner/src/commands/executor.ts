@@ -447,7 +447,7 @@ function applyOne(
             parentLayerId,
             ...atoms,
             payload: {
-              content: { kind: "plain" as const, text: command.text ?? "" },
+              text: command.text ?? "" ,
               fontSize: command.fontSize ?? 48,
               color: command.fill ?? "#ffffff",
               alignment: "center" as const,

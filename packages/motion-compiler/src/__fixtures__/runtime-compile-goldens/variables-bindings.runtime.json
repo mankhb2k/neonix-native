@@ -23,7 +23,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a73c8e3be02258f58ee6c08682982be7",
+  "runtimeHash": "9220ba96a9d52364312e0f6031c8d79d",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -114,12 +114,10 @@
         "duration": 5
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Mark Zuckerberg"
-        },
+        "text": "Mark Zuckerberg",
         "fontSize": 48,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },

@@ -59,7 +59,7 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
         zIndex: 0,
         ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
         payload: {
-          content: { kind: "plain", text: "" },
+          text: "" ,
           fontSize: 64,
           color: "#000000",
           alignment: "center",
@@ -89,9 +89,9 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
   if (deficit > 0) {
     (
       skeleton.layers[0] as {
-        payload: { content: { text: string } };
+        payload: { text: string };
       }
-    ).payload.content.text = "x".repeat(deficit);
+    ).payload.text = "x".repeat(deficit);
     json = JSON.stringify(envelope);
   }
   return json;

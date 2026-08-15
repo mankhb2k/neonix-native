@@ -28,7 +28,7 @@
       "target": {
         "type": "layer",
         "layerId": "node-text",
-        "property": "payload.content.text"
+        "property": "payload.text"
       }
     }
   ],
@@ -103,12 +103,9 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Hello"
-        },
         "fontSize": 32,
-        "fontAssetId": "font-missing"
+        "fontAssetId": "font-missing",
+        "text": "Hello"
       },
       "zIndex": 1,
       "timing": {

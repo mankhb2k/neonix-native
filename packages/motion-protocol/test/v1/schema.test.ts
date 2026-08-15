@@ -336,7 +336,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -369,7 +369,7 @@ describe("v1 schema — reject old contract", () => {
                 zIndex: 0,
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -403,7 +403,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "A" },
+                  text: "A" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -417,7 +417,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "B" },
+                  text: "B" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -451,7 +451,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 3 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -580,7 +580,7 @@ describe("v1 schema — reject old contract", () => {
               transform: ATOMS.transform,
               appearance: ATOMS.appearance,
               payload: {
-                content: { kind: "plain", text: "Hi" },
+                text: "Hi" ,
                 fontSize: 24,
                 color: "#111111",
                 alignment: "center",
@@ -612,7 +612,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -658,7 +658,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -714,7 +714,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  content: { kind: "plain", text: "Hi" },
+                  text: "Hi" ,
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",

@@ -26,7 +26,7 @@ const NUMBER_LEAVES = new Set([
 
 const BOOLEAN_LEAVES = new Set(["appearance.visible"]);
 
-const STRING_LEAVES = new Set(["payload.content.text"]);
+const STRING_LEAVES = new Set(["payload.text"]);
 
 const COLOR_LEAVES = new Set([
   "payload.color",
@@ -34,7 +34,7 @@ const COLOR_LEAVES = new Set([
   "style.stroke",
 ]);
 
-const ASSET_LEAVES = new Set(["payload.assetId"]);
+const ASSET_LEAVES = new Set(["payload.assetId", "payload.fontAssetId"]);
 
 const CHOICE_LEAVES = new Set([
   "layout.mode",

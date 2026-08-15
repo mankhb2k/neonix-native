@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "51e40c00be58415c7bd93eed33527f30",
+  "runtimeHash": "9222aff0eb750a17176c59a2797c812e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -78,12 +78,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Captioned Video"
-        },
+        "text": "Captioned Video",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -172,14 +170,12 @@
         "duration": 1.2
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Xin chào"
-        },
+        "text": "Xin chào",
         "fontSize": 48,
-        "align": "center",
+        "color": "#ffffff",
+        "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "clip"
       },
       "style": {
         "fill": "#ffffff"
@@ -225,14 +221,12 @@
         "duration": 1.2
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "MotiClip"
-        },
+        "text": "MotiClip",
         "fontSize": 48,
-        "align": "center",
+        "color": "#ffffff",
+        "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "clip"
       },
       "style": {
         "fill": "#ffffff"

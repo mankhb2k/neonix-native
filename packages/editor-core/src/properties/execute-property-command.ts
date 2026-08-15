@@ -192,10 +192,7 @@ function applyText(node: MotionLayer, patch: TextPayloadPatch): MotionLayer | nu
       node.type,
     );
   }
-  if (patch.fontWeight !== undefined) {
-    payload.fontWeight = Math.min(1000, Math.max(1, Math.round(patch.fontWeight)));
-  }
-  if (patch.align !== undefined) payload.align = patch.align;
+  if (patch.align !== undefined) payload.alignment = patch.align;
   if (patch.lineHeight !== undefined) {
     payload.lineHeight = Math.max(Number.EPSILON, patch.lineHeight);
   }

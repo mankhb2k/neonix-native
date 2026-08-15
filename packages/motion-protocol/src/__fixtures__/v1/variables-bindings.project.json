@@ -57,7 +57,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "subtitle",
-            "property": "payload.content.text"
+            "property": "payload.text"
           }
         }
       ],
@@ -68,32 +68,60 @@
           "parentLayerId": null,
           "zIndex": 0,
           "transform": {
-            "translate": { "x": 960, "y": 600 },
-            "rotate": { "z": 0 },
-            "scale": { "x": 1, "y": 1 },
-            "skew": { "x": 0, "y": 0 },
-            "origin": { "x": 0.5, "y": 0.5 }
+            "translate": {
+              "x": 960,
+              "y": 600
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Founder" },
             "fontSize": 48,
             "color": "#000000",
             "alignment": "center",
             "wrap": "word",
-            "overflow": "visible"
+            "overflow": "visible",
+            "text": "Founder"
           },
-          "timing": { "start": 0, "duration": 5 },
-          "frame": { "width": 800, "height": 100 },
-          "appearance": { "visible": true, "opacity": 100 }
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
+          "frame": {
+            "width": 800,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
         }
       ]
     }
   ],
-  "timeline": { "duration": 5 },
+  "timeline": {
+    "duration": 5
+  },
   "bindings": [
     {
       "id": "binding-founder-name",
-      "source": { "kind": "variable", "variableId": "founder-name" },
+      "source": {
+        "kind": "variable",
+        "variableId": "founder-name"
+      },
       "target": {
         "type": "prop",
         "layerId": "card",
@@ -109,16 +137,41 @@
       "parentLayerId": null,
       "zIndex": 0,
       "transform": {
-        "translate": { "x": 0, "y": 0 },
-        "rotate": { "z": 0 },
-        "scale": { "x": 1, "y": 1 },
-        "skew": { "x": 0, "y": 0 },
-        "origin": { "x": 0.5, "y": 0.5 }
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
       },
-      "payload": { "componentId": "name-card" },
-      "timing": { "start": 0, "duration": 5 },
-      "frame": { "width": 800, "height": 120 },
-      "appearance": { "visible": true, "opacity": 100 }
+      "payload": {
+        "componentId": "name-card"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
     }
   ]
 }

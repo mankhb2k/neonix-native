@@ -55,7 +55,7 @@ Project binding dừng ở prop. Owner mới nối vào leaf protocol:
 | --- | --- |
 | number | `frame.width/height`, `transform.translate/scale/rotate.z/skew/depth/origin`, `appearance.opacity`, `effects.<id>` số, `layout.gap`, `layoutItem` min/max |
 | boolean | `appearance.visible` |
-| string | `payload.content.text` |
+| string | `payload.text` |
 | color | `payload.color`, `style.fill`, `style.stroke`, `effects.<id>.color` |
 | asset | `payload.assetId` (`assetKind` khớp) |
 | choice | `layout.mode/justify/align`, `layoutItem.width/height/alignSelf` |

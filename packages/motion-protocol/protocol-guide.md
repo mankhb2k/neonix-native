@@ -131,7 +131,7 @@ Catalog (definition). Instance layer ở `layers/component.ts`.
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Definition: props, variants (props-only preset), owner `propBindings`, internals. |
-| `prop-values.ts` | Static \| variable \| keyframes (`value`, không track `v`). Keyframes = public signal, không wrapper. |
+| `prop-values.ts` | Literal \| keyframes (`value`, không track `v`). Không inline variable ref. Keyframes = public signal, không wrapper. |
 
 ### 2.8 `src/v1/layers/`
 
@@ -151,7 +151,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `structural.ts` | `group` (phải có children), `bone`, `solid`, `adjustment`. |
 | `structural-types.ts` | `z.infer` structural. |
 | `text.ts` | `TextLayerV1Schema`. |
-| `text-content.ts` | Rich text payload + helpers. |
+| `text-content.ts` | Payload chữ phẳng: `text` + typography. Không runs. |
 | `flatten.ts` | `flattenLayerTree`. |
 
 ### 2.9 `src/v1/animation/`

@@ -16,7 +16,7 @@ function textLayer(
     timing: { start, duration },
     ...visualLayerAtoms({ x: 540, y: 960, width: 900, height: 180, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
-      content: { kind: "plain" as const, text },
+      text,
       fontSize: 64,
       color: "#FFFFFF",
       alignment: "center" as const,

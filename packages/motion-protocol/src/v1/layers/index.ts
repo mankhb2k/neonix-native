@@ -28,15 +28,10 @@ export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {
   segmentTextUnits,
-  TextContentSchema,
-  RichTextRunSchema,
   TextPayloadSchema,
-  textContentPlain,
   getTextPayloadPlain,
   setTextPayloadPlain,
   normalizeTextPayloadInput,
-  type TextContent,
-  type RichTextRun,
   type TextLayerPayload,
 } from "./text-content";
 export {

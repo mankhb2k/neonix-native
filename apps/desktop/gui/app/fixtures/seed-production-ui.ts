@@ -76,7 +76,7 @@ function withSceneClip(
               zIndex: 0,
               ...visualLayerAtoms({ x: 80, y: 60, width: 240, height: 48, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
               payload: {
-                content: { kind: "plain", text: name },
+                text: name ,
                 fontSize: 28,
                 color: "#000000",
                 alignment: "left",

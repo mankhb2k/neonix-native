@@ -490,7 +490,7 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | File | Vai trò |
 | --- | --- |
 | `src/v1/components/index.ts` | Definition, PropKind, propBindings |
-| `src/v1/components/prop-values.ts` | Static / variable / keyframes |
+| `src/v1/components/prop-values.ts` | Literal / keyframes. Không inline variable ref. |
 | `src/v1/layers/component.ts` | Instance `payload.props` |
 | `src/v1/references/project.ts` | Validation |
 | `motion-compiler/compile-v1.ts` | Resolve + fan-out + keyframe tracks |

@@ -1,5 +1,5 @@
 /**
- * Layer chữ V1. Nội dung rich text (plain | runs). color/alignment trên payload.
+ * Layer chữ V1. Một hộp, một đoạn, một style trên payload.
  */
 import { z } from "zod";
 import { TextPayloadSchema } from "./text-content";

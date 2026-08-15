@@ -100,13 +100,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Opening Scene"
-        },
         "fontSize": 56,
         "color": "#ffffff",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Opening Scene"
       },
       "zIndex": 0,
       "timing": {
@@ -148,13 +145,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Main Content with Voiceover"
-        },
         "fontSize": 48,
         "color": "#ffffff",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Main Content with Voiceover"
       },
       "zIndex": 1,
       "timing": {

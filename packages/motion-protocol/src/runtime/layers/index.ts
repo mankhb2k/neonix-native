@@ -22,15 +22,10 @@ export {
 export {
   segmentTextUnits,
   TextLayerSchema,
-  TextContentSchema,
-  RichTextRunSchema,
   TextPayloadSchema,
-  textContentPlain,
   getTextPayloadPlain,
   setTextPayloadPlain,
   normalizeTextPayloadInput,
-  type TextContent,
-  type RichTextRun,
   type TextLayerPayload,
 } from "./text";
 export {

@@ -171,7 +171,7 @@ describe("compose + evaluate smoke", () => {
               zIndex: 0,
               ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
               payload: {
-                content: { kind: "plain", text: "Hello" },
+                text: "Hello" ,
                 fontSize: 64,
                 color: "#111111",
                 alignment: "center",

@@ -214,15 +214,10 @@ export {
   PaintStyleSchema,
   type MotionPaintStyle,
   segmentTextUnits,
-  TextContentSchema,
-  RichTextRunSchema,
   TextPayloadSchema,
-  textContentPlain,
   getTextPayloadPlain,
   setTextPayloadPlain,
   normalizeTextPayloadInput,
-  type TextContent,
-  type RichTextRun,
   type TextLayerPayload,
 } from "./v1/layers";
 

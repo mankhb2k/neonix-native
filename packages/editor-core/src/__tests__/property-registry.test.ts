@@ -246,7 +246,7 @@ describe("Logic-2 property domain depth", () => {
     if (node.type !== "text") return;
     expect(getTextPayloadPlain(node.payload)).toBe("Hello");
     expect(node.payload.fontSize).toBe(42);
-    expect(node.payload.align).toBe("center");
+    expect(node.payload.alignment).toBe("center");
   });
 
   it("patches audio track volume and fades", () => {

@@ -1,7 +1,7 @@
 /**
  * Chuẩn hóa input V1 trước khi parse Zod.
  *
- * Payload chữ { text } → { content: { kind: "plain" } }.
+ * Payload chữ legacy `{ content: { kind: "plain" } }` → `{ text }`.
  */
 import { normalizeTextPayloadInput } from "./layers/text-content";
 
