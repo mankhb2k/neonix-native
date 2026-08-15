@@ -1,7 +1,7 @@
 /**
  * Union layer V1. Discriminator luôn là type (không dùng kind).
  *
- * Chỉ group có children. component = instance niêm phong. audio = lá root, zIndex âm.
+ * Chỉ group có children (ít nhất một). component = instance niêm phong. audio = lá root, zIndex âm.
  */
 import { z } from "zod";
 import { TextLayerV1Schema } from "./text";
@@ -89,7 +89,7 @@ export type LayerV1 =
 export const LayerV1Schema: z.ZodType<LayerV1> = z.lazy(() =>
   z.discriminatedUnion("type", [
     GroupLayerV1BaseSchema.extend({
-      children: z.array(LayerV1Schema).default([]),
+      children: z.array(LayerV1Schema).min(1),
     }),
     BoneLayerV1Schema,
     TextLayerV1Schema,

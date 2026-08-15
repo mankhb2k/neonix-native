@@ -34,9 +34,9 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `index.ts` | Barrel V1 — layers, assets, components, patch, MCP. Không export captions / motion-clip units. |
 | `common.ts` | Primitive: `IdSchema`, `FiniteNumberSchema`, `PercentSchema` (0..100 int), `ColorAdjustPercentSchema` (0..200 int), `HueRotateSchema` (−180..180), `ratioFromPercent`, `MOTION_PROJECT_V1_FORMAT_VERSION`. |
 | `values.ts` | `JsonValueSchema`, `ResolvableValueSchema`, `ValueKindSchema`, `VariableReferenceSchema`. |
-| `frame.ts` | `FrameSchema` — `{ width, height }` trước scale/rotate. |
+| `frame.ts` | `FrameSchema` — `{ width, height }` size box trước transform. Bắt buộc mọi visual layer; cấm audio/camera. |
 | `layer-atoms.ts` | Helper test/fixture `visualLayerAtoms()` / `defaultTransform()`. |
-| `layout.ts` | Repeater — không nhầm với `frame`. |
+| `layout.ts` | Repeater (khác `frame`) + `layout` / `layoutItem` native (`mode` row/column/grid). |
 | `modifiers.ts` | `MotionModifierSchema` (motion-path, …). |
 | `canonical-hash.ts` | Hash deterministic (`projectHash` / `runtimeHash`). Exclude timestamp/provenance/extensions. |
 | `capabilities.ts` | Capability requirements project (`required` / `optional` / `experimental`). |
@@ -135,12 +135,12 @@ Catalog (definition). Instance layer ở `layers/component.ts`.
 
 ### 2.8 `src/v1/layers/`
 
-Discriminator luôn `type`. Chỉ `group` có `children`. `audio` root-only (zIndex âm).
+Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `audio` root-only (zIndex âm).
 
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
-| `base.ts` | `LayerBaseV1Schema` — frame, transform, appearance, compositing, effects, modifiers, inheritFlags. |
+| `base.ts` | `LayerBaseV1Schema` — required zIndex + timing; frame, transform, appearance, compositing, effects, modifiers, inheritFlags. No `locked`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
 | `component.ts` | `type: "component"` — `payload.componentId`, `variantId?`, `props`. |
 | `audio.ts` | `AudioLayerV1Schema` — payload trim/fade/volume (0..100)/loop. |
@@ -148,7 +148,7 @@ Discriminator luôn `type`. Chỉ `group` có `children`. `audio` root-only (zIn
 | `geometry.ts` | `shape` + `path`. |
 | `geometry-types.ts` | `z.infer` shape/path. |
 | `paint.ts` | `FitSchema`, `CropSchema`, `PaintStyleSchema`. |
-| `structural.ts` | `group` (base), `bone`, `solid`, `adjustment` (payload 0..200 / hue-rotate). |
+| `structural.ts` | `group` (phải có children), `bone`, `solid`, `adjustment`. |
 | `structural-types.ts` | `z.infer` structural. |
 | `text.ts` | `TextLayerV1Schema`. |
 | `text-content.ts` | Rich text payload + helpers. |
@@ -200,7 +200,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | `common.ts` | Re-export primitive V1 + hằng format version runtime. |
 | `assets.ts` | Asset IR (cùng mime image png/jpeg/webp). |
 | `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
-| `layout.ts` | Repeater / layout constraint. |
+| `layout.ts` | Repeater + native `layout` / `layoutItem` (compile bake, không giữ trên runtime node). |
 | `modifiers.ts` | Motion modifiers trên runtime node. |
 | `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
 | `project.ts` | `MotionRuntimeProjectSchema`. |

@@ -12,15 +12,15 @@ Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm
 | --- | --- |
 | `timeline.duration` | Độ dài MP4 (giây). Optional lúc authoring; bắt buộc ở canonical/export. Derive từ `root.timing.start + duration` |
 | `workArea` / `markers` | Optional project helpers; phải nằm trong `duration` |
-| `project.layers[]` | Root layers = timeline lanes. `zIndex` unique: `>= 0` visual, `< 0` audio |
-| `group.children[]` | Cây lồng nhau. Timing con là **local** so với parent |
+| `project.layers[]` | Root layers = timeline lanes. Every layer requires `zIndex`: `>= 0` visual, `< 0` audio at root; nested always `>= 0`; unique among siblings |
+| `group.children[]` | ≥1 child. Timing con **bắt buộc**, local so với parent, không vượt `parent.timing.duration`. Group không clip mặc định. |
 
 Authoring **không** có `scenes`, `visualTracks`, `audioTracks`, `captionTracks`. Extra keys bị strict reject.
 
 ```jsonc
 {
   "layers": [
-    { "id": "main", "type": "group", "parentLayerId": null, "zIndex": 0, "timing": { "start": 0, "duration": 8 } },
+    { "id": "main", "type": "group", "parentLayerId": null, "zIndex": 0, "timing": { "start": 0, "duration": 8 }, "children": [{ "id": "title", "type": "text", "parentLayerId": "main", "zIndex": 0, "timing": { "start": 0, "duration": 8 }, "frame": { "width": 800, "height": 120 } }] },
     { "id": "music", "type": "audio", "parentLayerId": null, "zIndex": -1, "timing": { "start": 0, "duration": 8 } }
   ],
   "timeline": { "duration": 8 }
@@ -62,8 +62,8 @@ Canonicalize snap frame-grid theo `composition.fps`, rồi điền `timeline.dur
 | Term | Nghĩa |
 | --- | --- |
 | Root layer | Lane trên timeline (`parentLayerId: null`) |
-| `zIndex` | Thứ tự lane; unique ở root |
-| Group | Wrapper; chỉ `group` được có `children` |
+| `zIndex` | Bắt buộc. Root = lane order. Nested = sibling paint order (`>= 0`). Unique per parent |
+| Group | Visual container; `children` ≥1; không clip mặc định; xem [v1-group-guide.md](v1-group-guide.md) |
 | Audio | `type: "audio"`, root-only leaf, `zIndex < 0` |
 | Caption | Group + text children — UI lane, không phải protocol type |
 | Component | Instance leaf `type: "component"` trên cây project |

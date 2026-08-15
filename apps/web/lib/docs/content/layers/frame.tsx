@@ -16,13 +16,14 @@ export function framePage(): DocsPageView {
     body: (
       <AtomPage
         title="Frame"
-        human="Size box before scale/rotate."
+        human="Local size box of this layer, before transform."
         jsonPath="frame"
-        lede="frame.width and frame.height are the layer box. They are not transform.scale and not composition size."
+        lede="frame.width and frame.height are how big this layer is in local space. Transform moves or scales that box. Frame is not a timeline unit, not a group, and not a clip."
         quick={ATOM_FRAME}
         meaning={[
-          "Width/height in pixels, before scale.",
-          "Not translate. Not composition.width.",
+          "Width/height in pixels, before translate/scale/rotate.",
+          "Used for text wrap, media fit/crop, shape box, hit-test, mask/effect bounds.",
+          "Does not control children, stacking, or timing. Required on group; that box does not clip.",
         ]}
         authoringExample={{ frame: { width: 800, height: 120 } }}
         valid={SINGLE_ROOT}
@@ -38,11 +39,13 @@ export function framePage(): DocsPageView {
         }}
         mistakes={[
           "Do not put size on transform.width/height.",
-          "Do not use scale as a substitute for layout size unless you mean scale.",
+          "Do not use scale as the layout size unless you mean scale.",
+          "Do not treat frame as a clip rect or as a group.",
         ]}
         ai={[
-          "Use frame.width / frame.height for the size box.",
-          "Use transform.scale only to scale that box.",
+          "If the layer is visual (including group), always set frame.",
+          "Group frame is required and does not clip children. Never derive it from children in canonical JSON.",
+          "Audio and camera must not have frame.",
         ]}
       />
     ),

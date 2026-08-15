@@ -145,8 +145,7 @@ describe("ai-planner R1 commands", () => {
           type: "setLayoutConstraint",
           sceneId: "scene.1",
           layerId: "stack",
-          modifierId: "lay",
-          constraint: { kind: "stack", direction: "vertical", gap: 8 },
+          constraint: { mode: "column", gap: 8 },
         },
         {
           type: "setCamera",

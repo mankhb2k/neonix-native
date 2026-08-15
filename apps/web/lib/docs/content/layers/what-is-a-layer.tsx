@@ -13,37 +13,67 @@ export function whatIsALayerPage(): DocsPageView {
     title: "What is a layer",
     previewProject: AUDIO_FADE,
     toc: [
+      { id: "primitive", title: "The authoring primitive" },
       { id: "roots", title: "Root lanes" },
+      { id: "metadata", title: "semantic vs locked" },
       { id: "timeline", title: "Timeline" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
       <article className="pb-20">
         <HumanName title="What is a layer" jsonPath="layers[]" />
+        <H2 id="primitive">The authoring primitive</H2>
         <P>
-          Root layers are timeline lanes. Nesting is <code>group.children</code>
-          . Audio is a root-only leaf: no transform, negative zIndex, required
-          timing.
+          A layer is the only picture/sound object you author. Nesting is{" "}
+          <code>group.children</code>. Audio is a root-only leaf: no transform,
+          negative <code>zIndex</code>, required timing.
         </P>
         <H2 id="roots">Root lanes</H2>
         <JsonBlock
           code={JSON.stringify(
             {
               layers: [
-                { id: "bg", type: "solid", parentLayerId: null, zIndex: 0 },
-                { id: "title", type: "text", parentLayerId: null, zIndex: 1 },
-                { id: "music", type: "audio", parentLayerId: null, zIndex: -1 },
+                {
+                  id: "bg",
+                  type: "solid",
+                  parentLayerId: null,
+                  zIndex: 0,
+                  timing: { start: 0, duration: 8 },
+                },
+                {
+                  id: "title",
+                  type: "text",
+                  parentLayerId: null,
+                  zIndex: 1,
+                  timing: { start: 0.5, duration: 4 },
+                },
+                {
+                  id: "music",
+                  type: "audio",
+                  parentLayerId: null,
+                  zIndex: -1,
+                  timing: { start: 0, duration: 8 },
+                },
               ],
             },
             null,
             2,
           )}
         />
+        <H2 id="metadata">semantic vs locked</H2>
+        <P>
+          <code>semantic</code> is optional tagging for search, AI, and humans.
+          It does not change how the layer paints. Do not emit{" "}
+          <code>locked</code> in authoring JSON — that is editor UI state, not
+          scene data.
+        </P>
         <TimelineStrip lanes={strip.lanes} duration={strip.duration} />
         <AiWritingGuide
           items={[
-            "Give every root layer a unique zIndex.",
+            "Give every layer unique sibling zIndex and required timing.",
             "Do not parent audio under a group.",
+            "Skip locked. Use semantic only as labels, never as render hints.",
+            "Pack children with group.layout and child.layoutItem, not modifiers.",
           ]}
         />
       </article>

@@ -4,7 +4,6 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema } from "./common";
-import { LayoutConstraintSchema, LayoutItemPolicySchema } from "./layout";
 import { ResolvableValueSchema } from "./values";
 
 export const MotionModifierSchema = z.discriminatedUnion("type", [
@@ -82,20 +81,6 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
       factor: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .max(MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .default(1),
-    })
-    .strict(),
-  z
-    .object({
-      id: IdSchema,
-      type: z.literal("layout"),
-      constraint: LayoutConstraintSchema,
-    })
-    .strict(),
-  z
-    .object({
-      id: IdSchema,
-      type: z.literal("layout-item"),
-      policy: LayoutItemPolicySchema.default({}),
     })
     .strict(),
 ]);

@@ -32,8 +32,8 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   };
   if (node.frame) base.frame = clone(node.frame);
   if (node.name) base.name = node.name;
-  if (node.zIndex !== undefined) base.zIndex = node.zIndex;
-  if (node.timing) base.timing = clone(node.timing);
+  base.zIndex = node.zIndex;
+  base.timing = clone(node.timing);
   if (node.semantic) base.semantic = node.semantic;
   if (node.effects && node.effects.length > 0)
     base.effects = clone(node.effects);
@@ -186,7 +186,6 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
     zIndex: layer.zIndex,
     timing: clone(layer.timing),
     appearance: clone(layer.appearance),
-    locked: layer.locked,
     payload: clone(layer.payload),
   };
 }

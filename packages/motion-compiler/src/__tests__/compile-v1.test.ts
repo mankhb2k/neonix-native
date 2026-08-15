@@ -76,7 +76,6 @@ describe("compileMotionProjectV1", () => {
       parentLayerId: null,
       zIndex: maxZ + 1,
       timing: { start: 0, duration: 4 },
-      locked: false,
       ...visualLayerAtoms({ x: 100, y: 200, width: 256, height: 256, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
       payload: {
         componentId: "logo-reveal",

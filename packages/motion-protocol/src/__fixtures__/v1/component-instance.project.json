@@ -85,6 +85,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 4
           }
         }
       ]

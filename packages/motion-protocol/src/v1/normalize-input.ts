@@ -15,6 +15,7 @@ export function normalizeMotionProjectInput(input: unknown): unknown {
     return layers.map((node) => {
       if (!node || typeof node !== "object" || Array.isArray(node)) return node;
       const next = { ...(node as Record<string, unknown>) };
+      delete next.locked;
       if (next.type === "text" && next.payload != null) {
         next.payload = normalizeTextPayloadInput(next.payload);
       }

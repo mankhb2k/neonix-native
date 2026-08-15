@@ -36,7 +36,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 ### 2) `src/v1/timeline/schema.ts` — Timeline metadata
 
 - `timeline` chỉ giữ clock: `duration?`, `workArea?`, `markers?`.
-- Nội dung phát nằm trên `project.layers`. Root layer = lane; `zIndex` unique.
+- Nội dung phát nằm trên `project.layers`. Root layer = lane. Mọi layer bắt buộc `zIndex` (unique trong siblings) và `timing`. Nested `zIndex >= 0`. Group phải có ≥1 child. Không field `locked`.
 - Discriminator layer luôn là `type` (không `kind`). Binding target cũng `type`.
 
 ### 2b) `src/v1/layers/component.ts` — Component layer (instance)

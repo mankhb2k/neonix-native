@@ -38,7 +38,8 @@ export function timelinePage(): DocsPageView {
         </P>
         <H2 id="bounds">Bounds</H2>
         <P>
-          A root layer must not end after <code>timeline.duration</code>.{" "}
+          A root layer must not end after <code>timeline.duration</code>. Child
+          timing is local to the parent and does not extend the MP4 length.{" "}
           <code>workArea</code> and markers must sit inside that duration.
         </P>
         <H2 id="strip">Three lanes</H2>
@@ -59,6 +60,7 @@ export function timelinePage(): DocsPageView {
           items={[
             "Do not create visualTracks, audioTracks, or captionTracks.",
             "Caption = group + text layers, not a timeline track type.",
+            "Derive duration from root layer timing only.",
           ]}
         />
       </article>

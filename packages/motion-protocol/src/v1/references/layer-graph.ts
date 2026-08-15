@@ -7,6 +7,9 @@ import { flattenLayerTree } from "../layers";
 import { duplicates } from "./helpers";
 import type { ReferenceIssue } from "./types";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
+import {
+  FRAME_FORBIDDEN_LAYER_TYPES,
+} from "../frame";
 
 export function validateLayerGraphV1(
   roots: LayerV1[],
@@ -49,18 +52,46 @@ export function validateLayerGraphV1(
       }
     }
 
-    if (node.type !== "audio" && node.type !== "camera") {
-      if (!("frame" in node) || !node.frame) {
-        issues.push({
-          path: `${prefix}.${node.id}.frame`,
-          message: `Visual layer ${node.id} requires frame.width and frame.height`,
-        });
-      }
+    if (node.type === "group" && node.children.length === 0) {
+      issues.push({
+        path: `${prefix}.${node.id}.children`,
+        message: `Group layer ${node.id} must have at least one child`,
+      });
     }
-    if (node.type === "camera" && "frame" in node && node.frame) {
+
+    const forbidsFrame = (
+      FRAME_FORBIDDEN_LAYER_TYPES as readonly string[]
+    ).includes(node.type);
+    const hasFrame = "frame" in node && Boolean(node.frame);
+
+    if (!forbidsFrame && !hasFrame) {
       issues.push({
         path: `${prefix}.${node.id}.frame`,
-        message: `Camera layer ${node.id} must not have frame`,
+        message: `Layer ${node.id} of type "${node.type}" requires frame.width and frame.height`,
+      });
+    }
+    if (forbidsFrame && hasFrame) {
+      issues.push({
+        path: `${prefix}.${node.id}.frame`,
+        message: `Layer ${node.id} of type "${node.type}" must not have frame`,
+      });
+    }
+
+    if (node.type !== "group" && "layout" in node && node.layout) {
+      issues.push({
+        path: `${prefix}.${node.id}.layout`,
+        message: `Only group layers may have layout; "${node.type}" cannot`,
+      });
+    }
+
+    if (
+      "layoutItem" in node &&
+      node.layoutItem &&
+      node.parentLayerId === null
+    ) {
+      issues.push({
+        path: `${prefix}.${node.id}.layoutItem`,
+        message: `Root layer ${node.id} cannot have layoutItem`,
       });
     }
 
@@ -182,7 +213,7 @@ function checkUniqueZIndexPerParent(
   for (const siblings of byParent.values()) {
     const seen = new Map<number, string>();
     for (const node of siblings) {
-      const z = node.zIndex ?? 0;
+      const z = node.zIndex;
       const prev = seen.get(z);
       if (prev !== undefined) {
         issues.push({

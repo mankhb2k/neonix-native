@@ -46,7 +46,6 @@ export const AudioLayerV1Schema = z
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,
     appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
-    locked: z.boolean().default(false),
     payload: AudioLayerPayloadV1Schema,
   })
   .strict();

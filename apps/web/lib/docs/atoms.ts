@@ -13,10 +13,10 @@ export type QuickRef = {
 export const ATOM_FRAME: QuickRef = {
   path: "frame",
   type: "{ width, height }",
-  defaultValue: "optional on visual layers",
+  defaultValue: "required for sized leaves; optional on group",
   animatable: "width/height: yes (compiled tracks)",
-  appliesTo: "visual layers",
-  doesNotApplyTo: "audio",
+  appliesTo: "text, image, svg, video, shape, path, solid, component; optional group/bone/adjustment",
+  doesNotApplyTo: "audio, camera",
   range: `0..${MOTION_PROTOCOL_LIMITS.layerDimension}`,
 };
 

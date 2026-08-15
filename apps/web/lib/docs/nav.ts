@@ -41,11 +41,12 @@ export const DOCS_NAV: DocsNavGroup[] = [
     items: [
       { href: "/docs/layer", label: "What is a layer" },
       { href: "/docs/layers/tree", label: "Layer tree" },
-      { href: "/docs/layers/root-zindex", label: "Root layers and zIndex" },
+      { href: "/docs/layers/root-zindex", label: "zIndex" },
       { href: "/docs/layers/timing", label: "Layer timing" },
       { href: "/docs/frame", label: "Frame" },
       { href: "/docs/layers", label: "Layer types overview" },
       { href: "/docs/layers/group", label: "Group" },
+      { href: "/docs/layers/layout", label: "Layout" },
       { href: "/docs/layers/text", label: "Text" },
       { href: "/docs/layers/image", label: "Image" },
       { href: "/docs/layers/video", label: "Video" },

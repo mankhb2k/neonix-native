@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a2c41bf69986fea94da2247069a2d736",
+  "runtimeHash": "abd1ebadd04cdc86c959f14ff786fa07",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -347,7 +347,6 @@
         "visible": true,
         "opacity": 100
       },
-      "locked": false,
       "payload": {
         "assetId": "bgm",
         "trimStart": 0,

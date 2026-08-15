@@ -1,92 +1,68 @@
 # Review Schema — AI Authoring Guide
 
-Kế hoạch xây dựng bộ guide cho AI tạo JSON, ưu tiên theo thứ tự từ dưới lên.
+Kế hoạch bộ guide cho AI tạo JSON. Các mục **đã chốt** trỏ thẳng vào guide hiện hành — đừng viết lại semantic cũ.
 
 ---
 
-## 1. Layers
+## 1. Layers — đã chốt một phần
 
-> Nên là guide đầu tiên, vì toàn bộ V1 là **layers-only**.
+V1 là **layers-only**. Nguồn:
 
-Cần chốt thật rõ:
+- [docs/guide/v1-format-guide.md](docs/guide/v1-format-guide.md)
+- [docs/guide/v1-timeline-guide.md](docs/guide/v1-timeline-guide.md)
+- [docs/guide/v1-group-guide.md](docs/guide/v1-group-guide.md)
 
-- Mỗi `layer.type` dùng khi nào
-- Field bắt buộc / tùy chọn
-- Sự khác biệt giữa **root layer** và **nested layer**
-- Cách `zIndex`, `parentLayerId`, `timing`, `frame` hoạt động
-- Loại nào **production-safe**, loại nào còn **partial**
+Đã chốt:
 
-> **Lý do:** AI tạo JSON chủ yếu sẽ _"nghĩ bằng layer"_, không nghĩ bằng component hay effect trước.
+- Mọi layer: `zIndex` + `timing` bắt buộc. Nested `zIndex >= 0`. Unique trong siblings.
+- Child timing local to parent; effective = giao cửa sổ.
+- `frame` = size box local trước transform. Required trên sized leaves; optional trên group; cấm audio/camera. Không clip, không điều khiển subtree.
+- `group` = visual container, ≥1 child, không clip mặc định.
+- `semantic` = metadata, không đổi paint.
+- Không emit `locked` trong JSON authoring.
+
+Còn mở (không dạy AI mặc định): `inheritFlags`, `modifiers` safe subset, production matrix preview/export.
 
 ---
 
 ## 2. Properties / Atoms
 
-Sau khi có layer guide, bổ sung guide cho các atom chung:
+Sau layer, bổ sung vocabulary đóng:
 
 - `transform`
 - `appearance`
 - `compositing`
 - `effects`
-- `timing`
-- `modifiers`
+- `modifiers` (chưa có safe subset)
 
-**Mục tiêu:** biến chúng thành _"vocabulary đóng"_ cho AI:
-
-- Property nào hợp lệ
-- Property nào **animatable**
-- Property nào **bindable**
-- Giá trị hợp lệ là gì
-- Ví dụ tối thiểu và ví dụ sai
+**Mục tiêu:** property nào hợp lệ / animatable / bindable, ví dụ đúng và sai.
 
 ---
 
 ## 3. Variables & Bindings
 
-Guide rất quan trọng cho AI authoring production, vì nó quyết định JSON có **reusable** hay không.
+Đã có [docs/guide/v1-component-guide.md](docs/guide/v1-component-guide.md). Còn cần guide riêng cho AI:
 
-Cần làm rõ:
-
-- Khi nào dùng **literal**, khi nào dùng **variable**
-- `binding` vào layer khác gì `componentLayer`
-- Mapping **type-safe** giữa variable type và property kind
-- Các lỗi phổ biến và cách sửa
+- Literal vs variable
+- `target.type: layer` vs `componentLayer`
+- Lỗi type-mismatch thường gặp
 
 ---
 
 ## 4. Safe Animation
 
-Tiếp theo mới đến animation:
-
-- `keyframes`
-- `easing`
-- `tracks`
-- `drivers`
-- Local time vs global time
-- Subset nào AI nên dùng mặc định
-
-> Sẽ giữ scope chặt: trước hết dạy AI _"animate an toàn"_, chưa cần mở rộng hết mọi driver/modifier.
+- `keyframes`, `easing`, `tracks`
+- Local time vs global time (`0..layer.timing.duration`)
+- Subset AI nên dùng mặc định
 
 ---
 
 ## 5. Asset Authoring
 
-Guide storage hiện nói về lưu trữ là tốt, nhưng AI còn cần guide ở mức **authoring**:
-
-- Asset nào cần metadata gì
-- `image` / `svg` / `video` / `audio` khác nhau thế nào trong JSON
-- `crop` / `fit` / `trim` dùng ra sao
-- Đâu là **export-safe**, đâu còn **partial**
+[docs/guide/asset-format-storage.md](docs/guide/asset-format-storage.md) nói storage. AI còn cần authoring: metadata theo `image` / `svg` / `video` / `audio`, `crop` / `fit` / `payload.trim*`.
 
 ---
 
 ## 6. Production Support Matrix
 
-Ngay sau các guide trên, thêm một guide riêng kiểu:
-
-- `schema-valid`
-- `preview-safe`
-- `export-safe`
-- `not recommended for AI`
-
-Guide này cực kỳ đáng làm sớm, vì repo hiện có nhiều capability partial.
+- `schema-valid` / `preview-safe` / `export-safe` / `not recommended for AI`

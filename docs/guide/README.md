@@ -1,0 +1,63 @@
+# Bản đồ guide MotiClip V1
+
+> Trạng thái: bản đồ nháp cho bề mặt authoring V1.
+>
+> Mục tiêu: nhìn hết các guide cần có để AI viết JSON đúng contract.
+
+---
+
+## Guide cốt lõi đang dùng
+
+Các file này đã có và là nguồn sự thật đang chạy:
+
+- [v1-format-guide.md](./v1-format-guide.md)
+- [v1-timeline-guide.md](./v1-timeline-guide.md)
+- [v1-component-guide.md](./v1-component-guide.md)
+- [v1-group-guide.md](./v1-group-guide.md)
+- [asset-format-storage.md](./asset-format-storage.md)
+
+---
+
+## Guide theo từng domain
+
+Các file này tách từng miền để AI không nhồi mọi thứ vào một tài liệu.
+
+| File | Phạm vi | Trạng thái |
+| --- | --- | --- |
+| [v1-layer-guide.md](./v1-layer-guide.md) | Mô hình layer chung | Nháp |
+| [v1-frame-guide.md](./v1-frame-guide.md) | `frame` là size box | Nháp |
+| [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | Nháp |
+| [v1-appearance-guide.md](./v1-appearance-guide.md) | Hiện/ẩn và độ mờ | Nháp |
+| [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | Nháp |
+| [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | Nháp |
+| [v1-shape-guide.md](./v1-shape-guide.md) | Layer hình học primitive | Nháp |
+| [v1-path-guide.md](./v1-path-guide.md) | Layer path và hành vi hình học | Nháp |
+| [v1-text-guide.md](./v1-text-guide.md) | Chữ và hộp chữ | Nháp |
+| [v1-image-guide.md](./v1-image-guide.md) | Layer ảnh | Nháp |
+| [v1-video-guide.md](./v1-video-guide.md) | Layer video | Nháp |
+| [v1-audio-guide.md](./v1-audio-guide.md) | Layer audio | Nháp |
+| [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |
+| [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | Nháp |
+| [v1-production-surface-guide.md](./v1-production-surface-guide.md) | Bề mặt AI mặc định / nâng cao | Nháp |
+
+---
+
+## Quyết định đã chốt
+
+- `modifier` không thuộc bề mặt authoring ưu tiên.
+- Hành vi hình học, layout, media nằm trên object sở hữu chúng, không nhét generic modifier.
+- `frame` là size box, không phải khái niệm container.
+- `group` là visual container có children, không phải clipping box.
+- Không ghi `locked` vào JSON authoring.
+- `semantic` chỉ là metadata, không đổi cách vẽ.
+- Mọi layer bắt buộc `zIndex` và `timing`.
+- Child timing tính local theo cha; cửa sổ hiệu lực là phần giao.
+- `layout` chỉ trên `group`; `layoutItem` trên child visual. Không phải modifier.
+
+---
+
+## Thứ tự thảo luận tiếp
+
+1. Path native (`trim` / `morph` trên payload) vs SVG asset
+2. Guide text / media / audio
+3. Bề mặt production allowlist còn lại

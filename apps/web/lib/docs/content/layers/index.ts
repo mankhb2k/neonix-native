@@ -3,6 +3,7 @@ import { audioLayerPage } from "./audio";
 import { componentLayerPage } from "./component";
 import { framePage } from "./frame";
 import { groupLayerPage } from "./group";
+import { layoutPage } from "./layout";
 import { imageLayerPage } from "./image";
 import { layerTypesOverviewPage } from "./overview";
 import { rootZIndexPage } from "./root-zindex";
@@ -20,6 +21,7 @@ export type LayersSlug =
   | "frame"
   | "layers"
   | "layers/group"
+  | "layers/layout"
   | "layers/text"
   | "layers/image"
   | "layers/video"
@@ -34,6 +36,7 @@ const LAYERS_SLUGS = new Set<string>([
   "frame",
   "layers",
   "layers/group",
+  "layers/layout",
   "layers/text",
   "layers/image",
   "layers/video",
@@ -61,6 +64,8 @@ export function getLayersPage(slug: LayersSlug): DocsPageView {
       return layerTypesOverviewPage();
     case "layers/group":
       return groupLayerPage();
+    case "layers/layout":
+      return layoutPage();
     case "layers/text":
       return textLayerPage();
     case "layers/image":

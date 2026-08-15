@@ -153,10 +153,8 @@ export class StubModelGateway implements ModelGateway {
                 type: "setLayoutConstraint",
                 sceneId: match[1]!,
                 layerId: `group.${match[1]}`,
-                modifierId: `lay.repair.${match[1]}`,
                 constraint: {
-                  kind: "stack",
-                  direction: "vertical",
+                  mode: "column",
                   gap: 24,
                   padding: 16,
                   align: "center",

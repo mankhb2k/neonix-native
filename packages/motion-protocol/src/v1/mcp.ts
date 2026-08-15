@@ -207,9 +207,9 @@ export interface MCPInspectTimelineResult extends MCPBaseResult {
   layers: Array<{
     id: string;
     type: string;
-    zIndex: number | undefined;
-    start?: number;
-    duration?: number;
+    zIndex: number;
+    start: number;
+    duration: number;
   }>;
 }
 
@@ -382,7 +382,7 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "inspect_timeline",
     description:
-      "Inspect a project's timeline — root layers, zIndex lanes, timings, markers",
+      "Inspect a project's timeline — root layers, required zIndex lanes, required timings, markers",
     inputSchema: { $ref: "#/definitions/MCPInspectTimelineInput" },
     category: "inspect",
     requiredCapabilities: [],
@@ -655,12 +655,11 @@ export function inspectTimeline(
     id: layer.id,
     type: layer.type,
     zIndex: layer.zIndex,
-    start: layer.timing?.start,
-    duration: layer.timing?.duration,
+    start: layer.timing.start,
+    duration: layer.timing.duration,
   }));
 
   const totalDuration = layers.reduce((max, layer) => {
-    if (layer.start === undefined || layer.duration === undefined) return max;
     return Math.max(max, layer.start + layer.duration);
   }, 0);
 

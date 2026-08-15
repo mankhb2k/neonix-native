@@ -1469,7 +1469,8 @@
                           ]
                         },
                         "zIndex": {
-                          "type": "integer"
+                          "type": "integer",
+                          "minimum": 0
                         },
                         "frame": {
                           "type": "object",
@@ -1701,6 +1702,53 @@
                           ],
                           "additionalProperties": false
                         },
+                        "layoutItem": {
+                          "type": "object",
+                          "properties": {
+                            "width": {
+                              "type": "string",
+                              "enum": [
+                                "fixed",
+                                "hug",
+                                "fill"
+                              ]
+                            },
+                            "height": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem/properties/width"
+                            },
+                            "alignSelf": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "start",
+                                "center",
+                                "end",
+                                "stretch"
+                              ]
+                            },
+                            "minWidth": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "maxWidth": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "minHeight": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "maxHeight": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
                         },
@@ -1882,10 +1930,6 @@
                             }
                           },
                           "additionalProperties": false
-                        },
-                        "locked": {
-                          "type": "boolean",
-                          "default": false
                         },
                         "modifiers": {
                           "type": "array",
@@ -2156,268 +2200,161 @@
                                   "type"
                                 ],
                                 "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "layout"
-                                  },
-                                  "constraint": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "kind": {
-                                            "type": "string",
-                                            "const": "stack"
-                                          },
-                                          "direction": {
-                                            "type": "string",
-                                            "enum": [
-                                              "horizontal",
-                                              "vertical"
-                                            ]
-                                          },
-                                          "gap": {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "default": 0
-                                          },
-                                          "padding": {
-                                            "anyOf": [
-                                              {
-                                                "type": "number",
-                                                "minimum": 0,
-                                                "maximum": 32768
-                                              },
-                                              {
-                                                "type": "object",
-                                                "properties": {
-                                                  "top": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 32768
-                                                  },
-                                                  "right": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 32768
-                                                  },
-                                                  "bottom": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 32768
-                                                  },
-                                                  "left": {
-                                                    "type": "number",
-                                                    "minimum": 0,
-                                                    "maximum": 32768
-                                                  }
-                                                },
-                                                "required": [
-                                                  "top",
-                                                  "right",
-                                                  "bottom",
-                                                  "left"
-                                                ],
-                                                "additionalProperties": false
-                                              }
-                                            ],
-                                            "default": 0
-                                          },
-                                          "align": {
-                                            "type": "string",
-                                            "enum": [
-                                              "start",
-                                              "center",
-                                              "end",
-                                              "stretch"
-                                            ],
-                                            "default": "start"
-                                          },
-                                          "justify": {
-                                            "type": "string",
-                                            "enum": [
-                                              "start",
-                                              "center",
-                                              "end",
-                                              "space-between"
-                                            ],
-                                            "default": "start"
-                                          },
-                                          "wrap": {
-                                            "type": "string",
-                                            "enum": [
-                                              "none",
-                                              "wrap"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "kind",
-                                          "direction"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "kind": {
-                                            "type": "string",
-                                            "const": "grid"
-                                          },
-                                          "columns": {
-                                            "type": "integer",
-                                            "exclusiveMinimum": true,
-                                            "minimum": 0,
-                                            "maximum": 32
-                                          },
-                                          "gapX": {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "default": 0
-                                          },
-                                          "gapY": {
-                                            "type": "number",
-                                            "minimum": 0,
-                                            "default": 0
-                                          }
-                                        },
-                                        "required": [
-                                          "kind",
-                                          "columns"
-                                        ],
-                                        "additionalProperties": false
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "kind": {
-                                            "type": "string",
-                                            "const": "align"
-                                          },
-                                          "axis": {
-                                            "type": "string",
-                                            "enum": [
-                                              "x",
-                                              "y",
-                                              "both"
-                                            ]
-                                          },
-                                          "align": {
-                                            "type": "string",
-                                            "enum": [
-                                              "start",
-                                              "center",
-                                              "end"
-                                            ]
-                                          }
-                                        },
-                                        "required": [
-                                          "kind",
-                                          "axis",
-                                          "align"
-                                        ],
-                                        "additionalProperties": false
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "constraint"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "layout-item"
-                                  },
-                                  "policy": {
-                                    "type": "object",
-                                    "properties": {
-                                      "width": {
-                                        "type": "string",
-                                        "enum": [
-                                          "fixed",
-                                          "content",
-                                          "fill"
-                                        ]
-                                      },
-                                      "height": {
-                                        "type": "string",
-                                        "enum": [
-                                          "fixed",
-                                          "content",
-                                          "fill"
-                                        ]
-                                      },
-                                      "grow": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 100
-                                      },
-                                      "shrink": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 100
-                                      },
-                                      "alignSelf": {
-                                        "type": "string",
-                                        "enum": [
-                                          "auto",
-                                          "start",
-                                          "center",
-                                          "end",
-                                          "stretch"
-                                        ]
-                                      },
-                                      "minWidth": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 32768
-                                      },
-                                      "maxWidth": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 32768
-                                      },
-                                      "minHeight": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 32768
-                                      },
-                                      "maxHeight": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 32768
-                                      }
-                                    },
-                                    "additionalProperties": false,
-                                    "default": {}
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type"
-                                ],
-                                "additionalProperties": false
                               }
                             ]
                           },
                           "maxItems": 32
+                        },
+                        "layout": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "row"
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 32768
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "top": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "right": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "bottom": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "left": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        }
+                                      },
+                                      "required": [
+                                        "top",
+                                        "right",
+                                        "bottom",
+                                        "left"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ],
+                                  "default": 0
+                                },
+                                "align": {
+                                  "type": "string",
+                                  "enum": [
+                                    "start",
+                                    "center",
+                                    "end",
+                                    "stretch"
+                                  ],
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "type": "string",
+                                  "enum": [
+                                    "start",
+                                    "center",
+                                    "end",
+                                    "space-between"
+                                  ],
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "column"
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
+                                  "default": 0
+                                },
+                                "align": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "grid"
+                                },
+                                "columns": {
+                                  "type": "integer",
+                                  "exclusiveMinimum": true,
+                                  "minimum": 0,
+                                  "maximum": 32
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
+                                  "default": 0
+                                },
+                                "align": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode",
+                                "columns"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
                         },
                         "payload": {
                           "type": "object",
@@ -2429,14 +2366,18 @@
                           "items": {
                             "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items"
                           },
-                          "default": []
+                          "minItems": 1
                         }
                       },
                       "required": [
                         "id",
                         "type",
                         "parentLayerId",
-                        "transform"
+                        "zIndex",
+                        "frame",
+                        "transform",
+                        "timing",
+                        "children"
                       ],
                       "additionalProperties": false
                     },
@@ -2474,6 +2415,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -2482,9 +2426,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -2528,7 +2469,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -2567,6 +2511,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -2575,9 +2522,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -2769,7 +2713,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -2808,6 +2755,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -2816,9 +2766,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3062,7 +3009,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3101,6 +3051,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3109,9 +3062,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3235,7 +3185,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3274,6 +3227,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3282,9 +3238,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3349,7 +3302,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3388,6 +3344,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3396,9 +3355,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3411,7 +3367,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3450,6 +3409,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3458,9 +3420,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3514,7 +3473,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3538,9 +3500,6 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
-                        "frame": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
-                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
@@ -3553,6 +3512,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3561,9 +3523,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3618,7 +3577,9 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3657,6 +3618,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3665,9 +3629,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3687,7 +3648,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3726,6 +3690,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3734,9 +3701,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3764,7 +3728,10 @@
                         "id",
                         "type",
                         "parentLayerId",
-                        "transform"
+                        "zIndex",
+                        "frame",
+                        "transform",
+                        "timing"
                       ],
                       "additionalProperties": false
                     },
@@ -3802,6 +3769,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3810,9 +3780,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "locked": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
                         },
                         "modifiers": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
@@ -3844,7 +3811,10 @@
                         "id",
                         "type",
                         "parentLayerId",
+                        "zIndex",
+                        "frame",
                         "transform",
+                        "timing",
                         "payload"
                       ],
                       "additionalProperties": false
@@ -3880,10 +3850,6 @@
                             "visible": true,
                             "opacity": 100
                           }
-                        },
-                        "locked": {
-                          "type": "boolean",
-                          "default": false
                         },
                         "payload": {
                           "type": "object",

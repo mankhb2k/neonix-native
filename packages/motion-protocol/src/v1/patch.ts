@@ -200,14 +200,10 @@ function trimLayer(
 ): LayerV1[] {
   return nodes.map((node) => {
     if (node.id === layerId) {
-      const timing = node.timing
-        ? {
-            start: start ?? node.timing.start,
-            duration: duration ?? node.timing.duration,
-          }
-        : start !== undefined && duration !== undefined
-          ? { start, duration }
-          : node.timing;
+      const timing = {
+        start: start ?? node.timing.start,
+        duration: duration ?? node.timing.duration,
+      };
       return { ...node, timing } as LayerV1;
     }
     if (node.type === "group") {

@@ -18,6 +18,7 @@ function textLayer(
     type: "text",
     parentLayerId,
     zIndex,
+    timing: { start: 0, duration: 4 },
     ...ATOMS,
     payload: {
       content: { kind: "plain", text: "Label" },
@@ -110,6 +111,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
             type: "component",
             parentLayerId: null,
             zIndex: 0,
+            timing: { start: 0, duration: 4 },
             ...ATOMS,
             payload: { componentId: "child-btn" },
           },
@@ -366,6 +368,7 @@ describe("V1 component / binding / keyframe references", () => {
                   type: "component",
                   parentLayerId: null,
                   zIndex: 0,
+                  timing: { start: 0, duration: 4 },
                   ...ATOMS,
                   payload: {
                     componentId: "child-btn",
@@ -481,6 +484,7 @@ describe("V1 component / binding / keyframe references", () => {
                 type: "component",
                 parentLayerId: null,
                 zIndex: 0,
+                timing: { start: 0, duration: 4 },
                 ...ATOMS,
                 payload: {
                   componentId: "child-btn",
@@ -567,6 +571,7 @@ describe("V1 component / binding / keyframe references", () => {
                   type: "component",
                   parentLayerId: null,
                   zIndex: 0,
+                  timing: { start: 0, duration: 4 },
                   ...ATOMS,
                   payload: {
                     componentId: "child-btn",

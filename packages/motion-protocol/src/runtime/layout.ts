@@ -31,12 +31,24 @@ export const EdgeInsetsSchema = z
   })
   .strict();
 
+export const LayoutSizeModeSchema = z.enum(["fixed", "hug", "fill"]);
+export const LayoutJustifySchema = z.enum([
+  "start",
+  "center",
+  "end",
+  "space-between",
+]);
+export const LayoutAlignSchema = z.enum([
+  "start",
+  "center",
+  "end",
+  "stretch",
+]);
+
 export const LayoutItemPolicySchema = z
   .object({
-    width: z.enum(["fixed", "content", "fill"]).optional(),
-    height: z.enum(["fixed", "content", "fill"]).optional(),
-    grow: FiniteNumberSchema.nonnegative().max(100).optional(),
-    shrink: FiniteNumberSchema.nonnegative().max(100).optional(),
+    width: LayoutSizeModeSchema.optional(),
+    height: LayoutSizeModeSchema.optional(),
     alignSelf: z.enum(["auto", "start", "center", "end", "stretch"]).optional(),
     minWidth: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.layerDimension).optional(),
     maxWidth: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.layerDimension).optional(),
@@ -50,45 +62,33 @@ const PaddingSchema = z.union([
   EdgeInsetsSchema,
 ]);
 
-export const LayoutConstraintSchema = z.discriminatedUnion("kind", [
+export const LayoutConstraintSchema = z.discriminatedUnion("mode", [
   z
     .object({
-      kind: z.literal("stack"),
-      direction: z.enum(["horizontal", "vertical"]),
+      mode: z.literal("row"),
       gap: FiniteNumberSchema.nonnegative().default(0),
       padding: PaddingSchema.default(0),
-      align: z.enum(["start", "center", "end", "stretch"]).default("start"),
-      justify: z.enum(["start", "center", "end", "space-between"]).default("start"),
-      wrap: z.enum(["none", "wrap"]).optional(),
+      align: LayoutAlignSchema.default("start"),
+      justify: LayoutJustifySchema.default("start"),
     })
     .strict(),
   z
     .object({
-      kind: z.literal("grid"),
+      mode: z.literal("column"),
+      gap: FiniteNumberSchema.nonnegative().default(0),
+      padding: PaddingSchema.default(0),
+      align: LayoutAlignSchema.default("start"),
+      justify: LayoutJustifySchema.default("start"),
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal("grid"),
       columns: FiniteNumberSchema.int().positive().max(32),
-      gapX: FiniteNumberSchema.nonnegative().default(0),
-      gapY: FiniteNumberSchema.nonnegative().default(0),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("align"),
-      axis: z.enum(["x", "y", "both"]),
-      align: z.enum(["start", "center", "end"]),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("distribute"),
-      axis: z.enum(["x", "y"]),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("anchor"),
-      targetLayerId: IdSchema,
-      offsetX: FiniteNumberSchema.default(0),
-      offsetY: FiniteNumberSchema.default(0),
+      gap: FiniteNumberSchema.nonnegative().default(0),
+      padding: PaddingSchema.default(0),
+      align: LayoutAlignSchema.default("start"),
+      justify: LayoutJustifySchema.default("start"),
     })
     .strict(),
 ]);

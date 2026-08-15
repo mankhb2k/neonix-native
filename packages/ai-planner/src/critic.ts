@@ -149,7 +149,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
             severity: "warning",
             path: `scenes.${scene.id}.layers`,
             message: `Text layers ${a.id} and ${b.id} overlap`,
-            repairHint: "setLayoutConstraint stack or adjust transforms",
+            repairHint: "setLayoutConstraint column or adjust transforms",
           });
           score -= 4;
         }

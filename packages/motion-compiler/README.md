@@ -36,5 +36,6 @@ const runtime = compileMotionProject(project, { components });
 
 ## Docs
 
-- [`docs/motion-format-v1.md`](../../docs/motion-format-v1.md)
-- Runtime goldens: `pnpm validate:v1-source-of-truth`
+- [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
+- [`docs/guide/v1-timeline-guide.md`](../../docs/guide/v1-timeline-guide.md)
+- [`docs/guide/v1-group-guide.md`](../../docs/guide/v1-group-guide.md)

@@ -123,6 +123,10 @@
           "type": "solid",
           "parentLayerId": null,
           "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
           "transform": {
             "translate": {
               "x": 0,
@@ -198,6 +202,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ]

@@ -51,9 +51,9 @@ function img(
 // ── resolveEffectiveTiming unit tests ──────────────────────────────────
 
 describe("resolveEffectiveTiming", () => {
-  it("root node without timing gets full scene duration", () => {
+  it("root node with explicit timing covering the scene", () => {
     const layers: RuntimeNode[] = [
-      g("a", { parentLayerId: null }),
+      g("a", { parentLayerId: null, timing: { start: 0, duration: 10 } }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
     const t = result.get("a")!;
@@ -102,10 +102,13 @@ describe("resolveEffectiveTiming", () => {
     expect(ct.effectiveDuration).toBe(1);
   });
 
-  it("missing child timing = full parent duration", () => {
+  it("child matching parent duration fills the parent window", () => {
     const layers: RuntimeNode[] = [
       g("parent", { parentLayerId: null, timing: { start: 3, duration: 5 } }),
-      img("child", { parentLayerId: "parent" }),
+      img("child", {
+        parentLayerId: "parent",
+        timing: { start: 0, duration: 5 },
+      }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;

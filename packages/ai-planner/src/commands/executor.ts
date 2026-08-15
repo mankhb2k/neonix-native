@@ -808,34 +808,29 @@ function applyOne(
             },
           };
         }
-        const modifiers = [...(node.modifiers ?? [])].filter(
-          (modifier) => modifier.id !== command.modifierId,
-        );
-        modifiers.push({
-          id: command.modifierId,
-          type: "layout",
-          // Command schema allows optional stack fields; layout modifier requires defaults at compile.
-          constraint: {
-            ...command.constraint,
-            ...(command.constraint.kind === "stack"
-              ? {
-                  gap: command.constraint.gap ?? 0,
-                  padding: command.constraint.padding ?? 0,
-                  align: command.constraint.align ?? "start",
-                }
-              : {}),
-            ...(command.constraint.kind === "grid"
-              ? {
-                  gapX: command.constraint.gapX ?? 0,
-                  gapY: command.constraint.gapY ?? 0,
-                }
-              : {}),
-          } as Extract<
-            NonNullable<MotionLayer["modifiers"]>[number],
-            { type: "layout" }
-          >["constraint"],
-        });
-        node.modifiers = modifiers;
+        if (node.type !== "group") {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic(
+                  "invalid_target",
+                  `layers.${command.layerId}.layout`,
+                  "Layout can only be applied to group layers",
+                ),
+              ],
+            },
+          };
+        }
+        node.layout = {
+          ...command.constraint,
+          gap: command.constraint.gap ?? 0,
+          padding: command.constraint.padding ?? 0,
+          align: command.constraint.align ?? "start",
+          justify: command.constraint.justify ?? "start",
+        };
         changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),

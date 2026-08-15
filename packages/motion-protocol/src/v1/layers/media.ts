@@ -41,7 +41,7 @@ export const VideoLayerV1Schema = LayerBaseV1Schema.extend({
   }),
 }).strict();
 
-export const CameraLayerV1Schema = LayerBaseV1Schema.extend({
+export const CameraLayerV1Schema = LayerBaseV1Schema.omit({ frame: true }).extend({
   type: z.literal("camera"),
   payload: z
     .object({

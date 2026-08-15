@@ -16,6 +16,8 @@ ValidatedCommandBatch → executeCommandBatch
 MotionProject V1 (+ generation provenance, outside Runtime IR)
 ```
 
+Planner commands may say “scene” internally. **Emitted JSON is layers-only** (`project.layers`, required `zIndex` + `timing`). Do not write `scenes` / `visualTracks` onto the project file.
+
 Default mode is **from-scratch**. Templates are optional retrieval priors (`mode: "template"`).
 
 ## API

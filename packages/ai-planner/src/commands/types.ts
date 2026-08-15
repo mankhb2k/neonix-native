@@ -52,11 +52,10 @@ export const AuthoringKeyframeSchema = z
   })
   .strict();
 
-export const LayoutConstraintCommandSchema = z.discriminatedUnion("kind", [
+export const LayoutConstraintCommandSchema = z.discriminatedUnion("mode", [
   z
     .object({
-      kind: z.literal("stack"),
-      direction: z.enum(["horizontal", "vertical"]),
+      mode: z.literal("row"),
       gap: Finite.nonnegative().optional(),
       padding: z
         .union([
@@ -73,36 +72,49 @@ export const LayoutConstraintCommandSchema = z.discriminatedUnion("kind", [
         .optional(),
       align: z.enum(["start", "center", "end", "stretch"]).optional(),
       justify: z.enum(["start", "center", "end", "space-between"]).optional(),
-      wrap: z.enum(["none", "wrap"]).optional(),
     })
     .strict(),
   z
     .object({
-      kind: z.literal("grid"),
+      mode: z.literal("column"),
+      gap: Finite.nonnegative().optional(),
+      padding: z
+        .union([
+          Finite.nonnegative(),
+          z
+            .object({
+              top: Finite.nonnegative(),
+              right: Finite.nonnegative(),
+              bottom: Finite.nonnegative(),
+              left: Finite.nonnegative(),
+            })
+            .strict(),
+        ])
+        .optional(),
+      align: z.enum(["start", "center", "end", "stretch"]).optional(),
+      justify: z.enum(["start", "center", "end", "space-between"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal("grid"),
       columns: z.number().int().positive().max(32),
-      gapX: Finite.nonnegative().optional(),
-      gapY: Finite.nonnegative().optional(),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("align"),
-      axis: z.enum(["x", "y", "both"]),
-      align: z.enum(["start", "center", "end"]),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("distribute"),
-      axis: z.enum(["x", "y"]),
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("anchor"),
-      targetLayerId: Id,
-      offsetX: Finite.optional(),
-      offsetY: Finite.optional(),
+      gap: Finite.nonnegative().optional(),
+      padding: z
+        .union([
+          Finite.nonnegative(),
+          z
+            .object({
+              top: Finite.nonnegative(),
+              right: Finite.nonnegative(),
+              bottom: Finite.nonnegative(),
+              left: Finite.nonnegative(),
+            })
+            .strict(),
+        ])
+        .optional(),
+      align: z.enum(["start", "center", "end", "stretch"]).optional(),
+      justify: z.enum(["start", "center", "end", "space-between"]).optional(),
     })
     .strict(),
 ]);
@@ -199,7 +211,6 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("setLayoutConstraint"),
       sceneId: Id,
       layerId: Id,
-      modifierId: Id,
       constraint: LayoutConstraintCommandSchema,
     })
     .strict(),

@@ -126,8 +126,8 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     notes: "Text layers on the stack; not captionTracks",
   },
   {
-    id: "layout.stack-advanced",
-    label: "Stack EdgeInsets/justify/content sizing",
+    id: "layout.native",
+    label: "Native group.layout + child.layoutItem (row/column/grid)",
     phase: 4,
     columns: {
       schema: "yes",

@@ -21,7 +21,9 @@ export function aiMcpPage(): DocsPageView {
           <li>Emit a full MotionProjectV1, not a scene graph or partial clip.</li>
           <li>
             Root layers need <code>parentLayerId: null</code> and unique{" "}
-            <code>zIndex</code> (visual ≥ 0, audio &lt; 0).
+            <code>zIndex</code> (visual ≥ 0, audio &lt; 0). Nested layers also
+            need unique sibling <code>zIndex &gt;= 0</code> and{" "}
+            <code>timing</code>.
           </li>
           <li>
             Opacity is <code>appearance.opacity</code> integer 0..100, not

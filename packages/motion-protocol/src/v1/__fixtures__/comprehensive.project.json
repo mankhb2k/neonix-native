@@ -264,6 +264,7 @@
           "id": "lt-bg",
           "type": "solid",
           "parentLayerId": null,
+          "zIndex": 0,
           "transform": {
             "translate": {
               "x": 0,
@@ -295,6 +296,10 @@
           "appearance": {
             "visible": true,
             "opacity": 90
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ],
@@ -485,6 +490,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         },
         {
@@ -527,6 +536,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         },
         {
@@ -570,6 +583,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ],

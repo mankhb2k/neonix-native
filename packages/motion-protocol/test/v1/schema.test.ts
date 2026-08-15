@@ -38,6 +38,18 @@ function baseProject(overrides: Record<string, unknown> = {}): Record<string, un
 
 const ATOMS = visualLayerAtoms({ width: 100, height: 100 });
 
+function solidChild(parentId: string, id = "child") {
+  return {
+    id,
+    type: "solid" as const,
+    parentLayerId: parentId,
+    zIndex: 0,
+    timing: { start: 0, duration: 1 },
+    ...ATOMS,
+    payload: { color: "#111111" },
+  };
+}
+
 describe("v1 schema — positive fixtures", () => {
   it("parses minimal-empty project", () => {
     const project = MotionProjectV1Schema.parse(loadFixture("minimal-empty.project.json"));
@@ -286,6 +298,281 @@ describe("v1 schema — reject old contract", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects nested layer missing zIndex", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 4 },
+            ...ATOMS,
+            children: [
+              {
+                id: "title",
+                type: "text",
+                parentLayerId: "main",
+                timing: { start: 0, duration: 1 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects nested layer missing timing", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 4 },
+            ...ATOMS,
+            children: [
+              {
+                id: "title",
+                type: "text",
+                parentLayerId: "main",
+                zIndex: 0,
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate sibling zIndex under a group", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 4 },
+            ...ATOMS,
+            children: [
+              {
+                id: "a",
+                type: "text",
+                parentLayerId: "main",
+                zIndex: 0,
+                timing: { start: 0, duration: 1 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "A" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+              {
+                id: "b",
+                type: "text",
+                parentLayerId: "main",
+                zIndex: 0,
+                timing: { start: 0, duration: 1 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "B" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects child timing that exceeds parent duration", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 2 },
+            ...ATOMS,
+            children: [
+              {
+                id: "title",
+                type: "text",
+                parentLayerId: "main",
+                zIndex: 0,
+                timing: { start: 0, duration: 3 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("strips legacy locked from authoring JSON", () => {
+    const project = parseMotionProjectV1(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            locked: true,
+            ...ATOMS,
+            children: [solidChild("main")],
+          },
+        ],
+      }),
+    );
+    expect("locked" in project.layers[0]!).toBe(false);
+  });
+
+  it("rejects an empty group", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "main",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            children: [],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a group without frame", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              id: "main",
+              type: "group",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              transform: ATOMS.transform,
+              appearance: ATOMS.appearance,
+              children: [solidChild("main")],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/requires frame/);
+  });
+
+  it("rejects layout wrap and layoutItem grow", () => {
+    expect(
+      MotionProjectV1Schema.safeParse(
+        baseProject({
+          layers: [
+            {
+              id: "stack",
+              type: "group",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              ...ATOMS,
+              layout: { mode: "column", wrap: "wrap" },
+              children: [solidChild("stack")],
+            },
+          ],
+        }),
+      ).success,
+    ).toBe(false);
+    expect(
+      MotionProjectV1Schema.safeParse(
+        baseProject({
+          layers: [
+            {
+              id: "stack",
+              type: "group",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              ...ATOMS,
+              layout: { mode: "column" },
+              children: [
+                { ...solidChild("stack"), layoutItem: { grow: 1 } },
+              ],
+            },
+          ],
+        }),
+      ).success,
+    ).toBe(false);
+  });
+
+  it("rejects text without frame", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              id: "title",
+              type: "text",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              transform: ATOMS.transform,
+              appearance: ATOMS.appearance,
+              payload: {
+                content: { kind: "plain", text: "Hi" },
+                fontSize: 24,
+                color: "#111111",
+                alignment: "center",
+              },
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/requires frame/);
+  });
+
   it("rejects component actions (props-only surface)", () => {
     const result = MotionProjectV1Schema.safeParse(
       baseProject({
@@ -304,6 +591,7 @@ describe("v1 schema — reject old contract", () => {
                 type: "text",
                 parentLayerId: null,
                 zIndex: 0,
+                timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
                   content: { kind: "plain", text: "Hi" },
@@ -330,5 +618,71 @@ describe("v1 schema — reject old contract", () => {
       }),
     );
     expect(result.success).toBe(false);
+  });
+
+  it("accepts native group.layout and child.layoutItem hug", () => {
+    const project = MotionProjectV1Schema.parse(
+      baseProject({
+        layers: [
+          {
+            id: "stack",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            layout: { mode: "column", gap: 8, align: "stretch" },
+            children: [
+              {
+                ...solidChild("stack"),
+                layoutItem: { width: "fill", height: "hug" },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(project.layers[0]?.type).toBe("group");
+  });
+
+  it("rejects layout on a non-group layer", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "box",
+            type: "solid",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            layout: { mode: "row" },
+            payload: { color: "#111111" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects layoutItem on a root layer", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              id: "box",
+              type: "solid",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              ...ATOMS,
+              layoutItem: { width: "fill" },
+              payload: { color: "#111111" },
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/layoutItem/);
   });
 });

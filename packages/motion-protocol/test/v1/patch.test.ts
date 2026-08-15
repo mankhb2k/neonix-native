@@ -35,7 +35,13 @@ function groupLayer(id: string, zIndex = 0) {
     zIndex,
     timing: { start: 0, duration: 3 },
             ...ATOMS,
-    children: [],
+    children: [
+      {
+        ...textLayer(`${id}-label`),
+        parentLayerId: id,
+        zIndex: 0,
+      },
+    ],
   };
 }
 
@@ -244,7 +250,7 @@ describe("V1 patch contract", () => {
       operations: [
         {
           op: "addLayer",
-          layer: { ...textLayer("title"), parentLayerId: "main", zIndex: 0 },
+          layer: { ...textLayer("title"), parentLayerId: "main", zIndex: 1 },
         },
       ],
     });
@@ -253,8 +259,7 @@ describe("V1 patch contract", () => {
     const group = nested.project!.layers[0]!;
     expect(group.type).toBe("group");
     if (group.type === "group") {
-      expect(group.children).toHaveLength(1);
-      expect(group.children[0]!.id).toBe("title");
+      expect(group.children.map((child) => child.id)).toContain("title");
     }
   });
 

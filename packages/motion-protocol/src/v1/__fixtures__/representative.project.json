@@ -184,7 +184,12 @@
           "appearance": {
             "visible": true,
             "opacity": 100
-          }
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
+          "zIndex": 0
         }
       ]
     }

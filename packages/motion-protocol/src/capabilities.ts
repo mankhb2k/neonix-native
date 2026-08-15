@@ -142,7 +142,6 @@ function cap(
 
 const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
-    locked: cap("boolean", { animatable: false, runtimeSupport: "compile-time" }),
     "appearance.visible": cap("boolean"),
     "appearance.opacity": cap("number", { min: 0, max: 100 }),
     "frame.width": cap("number", {

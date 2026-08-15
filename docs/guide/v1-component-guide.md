@@ -7,7 +7,7 @@
 | **Prop** | Một **tín hiệu public** — nút chỉnh mà user/AI được đụng |
 | **PropBindings** | Các **dây nối** tín hiệu đó vào bên trong component |
 | **Prop value** | Giá trị gắn lên tín hiệu (màu tĩnh, biến, hoặc keyframes) |
-| **Instance** | Bản dùng component trên `project.layers` — chỉ set `payload.props` |
+| **Instance** | Layer `type: "component"` trên `project.layers` — wrapper có `zIndex` / `timing` / `transform` / `frame`; nội dung chỉ qua `payload.props` |
 
 ```text
 User chỉnh props
@@ -420,6 +420,10 @@ flowchart TD
 {
   "id": "badge-1",
   "type": "component",
+  "parentLayerId": null,
+  "zIndex": 2,
+  "timing": { "start": 0, "duration": 4 },
+  "frame": { "width": 256, "height": 256 },
   "payload": {
     "componentId": "promo-badge",
     "props": { "brandColor": "#00ff88" }
@@ -431,7 +435,7 @@ flowchart TD
 
 ## 8. Timeline reminder
 
-Component instance = `type: "component"` layer trên **project layer tree**. Không còn visual clip / `source.kind: "scene"`. Timing instance nằm ở `layer.timing`.
+Component instance = `type: "component"` layer trên **project layer tree**. Không còn visual clip / `source.kind: "scene"`. Instance có `timing`, `zIndex`, `transform`, `frame` riêng; internals sealed. Timing instance nằm ở `layer.timing`.
 
 ---
 
@@ -466,4 +470,4 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 | `src/v1/references/project.ts` | Validation |
 | `motion-compiler/compile-v1.ts` | Resolve + fan-out + keyframe tracks |
 
-Xem thêm: [v1-format-guide.md](v1-format-guide.md), [v1-timeline-guide.md](v1-timeline-guide.md).
+Xem thêm: [v1-format-guide.md](v1-format-guide.md), [v1-timeline-guide.md](v1-timeline-guide.md), [v1-group-guide.md](v1-group-guide.md).

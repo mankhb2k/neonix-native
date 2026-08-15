@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "1c3b0aad8951df0fe2c00aa53ea1990c",
+  "runtimeHash": "1986a868a0a98dbc321df5af4ce6b2f0",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -107,6 +107,10 @@
       "appearance": {
         "visible": true,
         "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 4
       },
       "inheritPosition": true,
       "inheritRotation": true,

@@ -412,7 +412,7 @@ function validateComponentLayerReferences(
           variableById,
           assetById,
           `${path}.payload.props.${propId}`,
-          layer.timing?.duration,
+          layer.timing.duration,
         ),
       );
     }

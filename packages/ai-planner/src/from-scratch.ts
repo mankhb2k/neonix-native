@@ -179,8 +179,12 @@ export function buildBlankProjectCommands(input: {
         type: "setLayoutConstraint",
         sceneId: design.sceneBriefId,
         layerId: groupId,
-        modifierId: `lay.${groupId}`,
-        constraint: { kind: "stack", direction: "vertical", gap: 24, padding: 16, align: "center" },
+        constraint: {
+          mode: "column",
+          gap: 24,
+          padding: 16,
+          align: "center",
+        },
       });
     }
     for (const node of design.layers) {

@@ -19,6 +19,8 @@ describe("motion-protocol R2–R5 contract", () => {
         id: "grade",
         type: "adjustment",
         parentLayerId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 1 },
         ...ATOMS,
         payload: { brightness: 110, contrast: 110, saturation: 100 },
       }).type,
@@ -118,6 +120,8 @@ describe("motion-protocol R2–R5 contract", () => {
       id: "plate",
       type: "solid",
       parentLayerId: null,
+      zIndex: 0,
+      timing: { start: 0, duration: 1 },
       ...visualLayerAtoms({
         width: 100,
         height: 100,
