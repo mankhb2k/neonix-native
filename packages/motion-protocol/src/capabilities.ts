@@ -101,7 +101,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.7";
+export const CAPABILITY_MANIFEST_VERSION = "2.8";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -340,7 +340,11 @@ const NODE_PROPERTIES: Readonly<
     "payload.color": cap("color"),
   },
   svg: {
-    ...MEDIA_PAYLOAD_PROPERTIES,
+    "payload.assetId": cap("asset"),
+    "payload.fit": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "style.fill": cap("color", {
       animatable: false,
       runtimeSupport: "compile-time",

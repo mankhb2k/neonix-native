@@ -33,7 +33,8 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-shape-guide.md](./v1-shape-guide.md) | Rectangle / ellipse / polygon; paint trên style | v1 |
 | [v1-path-guide.md](./v1-path-guide.md) | Vector tự do: contours, fillRule, paint trên style | v1 |
 | [v1-text-guide.md](./v1-text-guide.md) | Một hộp, một đoạn, một style | v1 |
-| [v1-image-guide.md](./v1-image-guide.md) | Layer ảnh | Nháp |
+| [v1-image-guide.md](./v1-image-guide.md) | Ảnh: assetId, fit, crop 0..1; không style | v1 |
+| [v1-svg-guide.md](./v1-svg-guide.md) | SVG asset: fit + style.fill recolor; không internals | v1 |
 | [v1-video-guide.md](./v1-video-guide.md) | Layer video | Nháp |
 | [v1-audio-guide.md](./v1-audio-guide.md) | Audio root-only, không visual | v1 |
 | [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |

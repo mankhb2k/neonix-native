@@ -7,6 +7,13 @@ import { FiniteNumberSchema, IdSchema } from "../common";
 
 export const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
 
+/** SVG V1: chỉ recolor đơn giản, không stroke / gradient. */
+export const SvgStyleSchema = z
+  .object({
+    fill: z.string().min(1),
+  })
+  .strict();
+
 export const CropSchema = z
   .object({
     x: FiniteNumberSchema.min(0).max(1),

@@ -179,6 +179,7 @@ The detailed meaning of each field family now lives in dedicated guides:
   - [v1-path-guide.md](./v1-path-guide.md)
   - [v1-text-guide.md](./v1-text-guide.md)
   - [v1-image-guide.md](./v1-image-guide.md)
+  - [v1-svg-guide.md](./v1-svg-guide.md)
   - [v1-video-guide.md](./v1-video-guide.md)
   - [v1-audio-guide.md](./v1-audio-guide.md)
 

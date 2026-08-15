@@ -16,5 +16,7 @@ export const AI_GLOBAL = [
   "Prefer payload.props literals or project.bindings type prop. Do not emit inline variable refs on props. Do not emit component.variables.",
   "A shape layer is a formula primitive: rectangle, ellipse, or polygon. frame is the box, payload is the formula, style is paint. Put color on style.fill/stroke. Never payload.color. Polygon points are 0..1 inside the frame. Path is freeform vector, not shape.",
   "A path layer is freeform vector: frame box, payload.contours (line/cubic), style paint. fillRule nonzero|evenodd. Never payload.color. morphTargets are advanced and must match base topology.",
+  "An image layer shows one image asset. frame is the display box, payload.assetId is the source, payload.fit is contain|cover|fill|none (default cover), optional payload.crop is 0..1 on the source. No style, fill, stroke, object-position, or payload radius. Fit uses the full asset rectangle, including transparent PNG pixels. Do not auto-trim empty alpha.",
+  "An svg layer places a vector asset. frame is the box, payload.assetId is the SVG, payload.fit is contain|cover|fill|none (default contain). Optional style.fill is a simple recolor only. Not shape or path. No crop, payload.color, stroke, internals, or node selectors.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

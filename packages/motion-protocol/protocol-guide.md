@@ -144,10 +144,10 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `timing.ts` | `LayerTimingSchema` — in/out. |
 | `component.ts` | Sealed instance leaf. Wrapper atoms + `payload.componentId` / `variantId?` / `props`. Compiler expand. |
 | `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
-| `media.ts` | `image` / `svg` / `video` / `camera`. Image+svg: `{ assetId, fit, crop? }`. |
+| `media.ts` | `image`: `{ assetId, fit` default `cover`, `crop?` `}`. `svg`: `{ assetId, fit` default `contain` `}` + `style.fill?`. Không crop/stroke trên svg. `video`/`camera` riêng. |
 | `geometry.ts` | `shape` (rectangle/ellipse/polygon, points 0..1) + `path` (`contours`, `fillRule`, `morphTargets?`). Không `payload.color`. |
 | `geometry-types.ts` | `z.infer` shape/path. |
-| `paint.ts` | `FitSchema`, `CropSchema`, `PaintStyleSchema`. |
+| `paint.ts` | `FitSchema`, `CropSchema`, `PaintStyleSchema`, `SvgStyleSchema` (chỉ fill). |
 | `structural.ts` | `group` (phải có children), `bone`, `solid`, `adjustment`. |
 | `structural-types.ts` | `z.infer` structural. |
 | `text.ts` | `TextLayerV1Schema`. |

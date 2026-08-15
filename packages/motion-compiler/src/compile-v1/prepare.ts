@@ -71,15 +71,28 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
         style: { fill: payload.color },
       };
     case "image":
-    case "svg":
       return {
         ...base,
         payload: {
           assetId: payload.assetId,
-          ...(payload.fit !== undefined ? { fit: payload.fit } : {}),
+          fit: payload.fit ?? "cover",
           ...(payload.crop !== undefined ? { crop: clone(payload.crop) } : {}),
         },
       };
+    case "svg": {
+      const style =
+        node.type === "svg" && node.style
+          ? { fill: node.style.fill }
+          : undefined;
+      return {
+        ...base,
+        payload: {
+          assetId: payload.assetId,
+          fit: payload.fit ?? "contain",
+        },
+        ...(style ? { style } : {}),
+      };
+    }
     case "video":
       return {
         ...base,

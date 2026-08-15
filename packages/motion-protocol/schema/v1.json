@@ -2729,7 +2729,8 @@
                                 "cover",
                                 "fill",
                                 "none"
-                              ]
+                              ],
+                              "default": "cover"
                             },
                             "crop": {
                               "type": "object",
@@ -2831,7 +2832,33 @@
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload"
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
+                            },
+                            "fit": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload/properties/fit",
+                              "default": "contain"
+                            }
+                          },
+                          "required": [
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "style": {
+                          "type": "object",
+                          "properties": {
+                            "fill": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "fill"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [

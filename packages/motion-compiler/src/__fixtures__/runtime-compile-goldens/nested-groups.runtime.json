@@ -34,7 +34,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "d2a7124c52b57401a7f6ce954f48ee37",
+  "runtimeHash": "ee829110bc5b23d7045cc528ad754bf6",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -221,7 +221,8 @@
         "duration": 1
       },
       "payload": {
-        "assetId": "asset.head"
+        "assetId": "asset.head",
+        "fit": "cover"
       }
     }
   ],

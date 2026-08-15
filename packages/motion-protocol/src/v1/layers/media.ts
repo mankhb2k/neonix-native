@@ -1,12 +1,29 @@
 /**
- * Layer media + camera. Payload media: { assetId, fit, crop? }.
- * image/svg cùng shape; khác assetType. video thêm trim/loop/muted.
+ * Layer media + camera. Image: assetId + fit + crop. SVG: assetId + fit + style.fill.
+ * Video thêm trim/loop/muted. Camera không frame.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { CropSchema, FitSchema } from "./paint";
+import { CropSchema, FitSchema, SvgStyleSchema } from "./paint";
 import { IdSchema, PositiveNumberSchema } from "../common";
 import { LayerBaseV1Schema } from "./base";
+
+/** Image V1: nguồn + fit trong frame + crop nguồn tùy chọn. Default fit = cover. */
+export const ImagePayloadSchema = z
+  .object({
+    assetId: IdSchema,
+    fit: FitSchema.default("cover"),
+    crop: CropSchema.optional(),
+  })
+  .strict();
+
+/** SVG V1: asset vector + fit. Default fit = contain. Không crop. */
+export const SvgPayloadSchema = z
+  .object({
+    assetId: IdSchema,
+    fit: FitSchema.default("contain"),
+  })
+  .strict();
 
 const MediaPayloadSchema = z
   .object({
@@ -18,12 +35,13 @@ const MediaPayloadSchema = z
 
 export const ImageLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("image"),
-  payload: MediaPayloadSchema,
+  payload: ImagePayloadSchema,
 }).strict();
 
 export const SvgLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("svg"),
-  payload: MediaPayloadSchema,
+  payload: SvgPayloadSchema,
+  style: SvgStyleSchema.optional(),
 }).strict();
 
 export const VideoLayerV1Schema = LayerBaseV1Schema.extend({

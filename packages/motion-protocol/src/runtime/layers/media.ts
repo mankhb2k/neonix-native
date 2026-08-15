@@ -2,29 +2,19 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { LayerBaseSchema } from "./base";
-import { CropSchema, FitSchema, PaintStyleSchema } from "./paint";
+import { FitSchema } from "./paint";
+import { ImagePayloadSchema, SvgPayloadSchema } from "../../v1/layers/media";
+import { SvgStyleSchema } from "../../v1/layers/paint";
 
 export const ImageLayerSchema = LayerBaseSchema.extend({
   type: z.literal("image"),
-  payload: z
-    .object({
-      assetId: IdSchema,
-      fit: FitSchema.optional(),
-      crop: CropSchema.optional(),
-    })
-    .strict(),
+  payload: ImagePayloadSchema,
 }).strict();
 
 export const SvgLayerSchema = LayerBaseSchema.extend({
   type: z.literal("svg"),
-  payload: z
-    .object({
-      assetId: IdSchema,
-      fit: FitSchema.optional(),
-      crop: CropSchema.optional(),
-    })
-    .strict(),
-  style: PaintStyleSchema.optional(),
+  payload: SvgPayloadSchema,
+  style: SvgStyleSchema.optional(),
 }).strict();
 
 export const VideoLayerSchema = LayerBaseSchema.extend({

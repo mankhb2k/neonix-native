@@ -30,6 +30,8 @@
 - Appearance: chỉ `visible` + `opacity` trên visual layer. Integer opacity `0..100`. Không hit-test. Audio không có `appearance`; mute/volume trên payload.
 - Compositing: `blend-mode` + `isolation` + `mask`. Tách khỏi appearance/effects. Blend 7 mode hiện tại là production-safe, không mở rộng. AI mặc định mask: `clip`/`alpha` + `mask-only`. Không emit `isolation` trừ khi cần `isolate`. `inverse-alpha` / `luma` / `inverse-luma` / `content-and-mask` là nâng cao.
 - Component: instance leaf với đủ wrapper atoms. Default AI set `payload.props` (+ `variantId`) bằng literal/keyframes. Variant chỉ override props. `project.bindings` chỉ `type: "prop"`. Nested chỉ `childProp`. Không `component.variables`, không inline variable ref.
+- Image: một asset ảnh trong `frame`. `payload.assetId` + `payload.fit` (`contain`/`cover`/`fill`/`none`, mặc định `cover`) + `payload.crop?` (0..1 trên nguồn). Không `style`. Fit theo full asset rectangle, kể cả PNG trong suốt. Không auto-trim alpha.
+- SVG: asset vector placement, không phải shape/path. `payload.assetId` + `payload.fit` (mặc định `contain`) + `style.fill?` recolor đơn giản. Không crop, không `payload.color`, không stroke, không sửa internals.
 - Path: vector tự do. `frame` + `payload.contours` / `fillRule` + `style`. Không `payload.color`. Segment `line` \| `cubic`. `morphTargets` nâng cao, topology phải khớp base. AI mặc định `style.fill` / `stroke` / `strokeWidth`.
 - Shape: rectangle / ellipse / polygon. `frame` + `payload` geometry + `style` paint. Không `payload.color`. AI mặc định `style.fill` / `stroke` / `strokeWidth`. Polygon `points` 0..1 theo frame.
 - Text: một hộp, một `payload.text`, một style. Không runs / rich text. String sink: `payload.text`.

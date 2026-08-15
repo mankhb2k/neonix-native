@@ -24,7 +24,7 @@ import type { AudioLayerV1 } from "./audio";
 
 export { LayerBaseV1Schema, InheritFlagsSchema } from "./base";
 export { LayerTimingSchema, type LayerTiming } from "./timing";
-export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
+export { PaintStyleSchema, SvgStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {
   segmentTextUnits,
