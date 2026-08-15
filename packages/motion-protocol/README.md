@@ -12,7 +12,7 @@ Three package entries:
 
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
-> **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind via `target.type` (`layer` | `componentLayer`). Component internals are sealed — consumers only set public props. Runtime IR is produced by `@motionvideo/motion-compiler`.
+> **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind only `target.type: "prop"` (`layerId` + `propId`). Component internals are sealed. Runtime IR is produced by `@motionvideo/motion-compiler`.
 
 ---
 
@@ -62,10 +62,8 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and
 ### Bindings (`ProjectBindingV1Schema`)
 
 ```text
-target.type:
-  layer          → project-tree layer property
-  componentLayer → one project-tree component instance (layerId + propId)
-nested-in-definition → childProp only
+target.type: prop → one project-tree component instance (layerId + propId)
+nested-in-definition → owner childProp / layerProperty only
 ```
 
 See [docs/guide/v1-component-guide.md](../../docs/guide/v1-component-guide.md).

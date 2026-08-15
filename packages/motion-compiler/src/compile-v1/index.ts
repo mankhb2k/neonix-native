@@ -44,7 +44,7 @@ import {
   type CompileResult,
 } from "../compile-result";
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
-import { clone, deriveAspectRatio, toRuntimeProperty, type JsonRecord } from "./helpers";
+import { clone, deriveAspectRatio, type JsonRecord } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
@@ -249,91 +249,48 @@ export function compileMotionProjectV1(
       normalized.components.map((c) => [c.id, c] as const),
     );
 
-    const runtimeBindings: Array<{
-      id: string;
-      source: { variableId: string };
-      target: { graphId: string; layerId: string; property: string };
-    }> = [];
     for (const binding of normalized.bindings) {
       const target = binding.target;
-      if (target.type === "layer") {
-        runtimeBindings.push({
-          id: binding.id,
-          source: { variableId: binding.source.variableId },
-          target: {
-            graphId: "root",
-            layerId: target.layerId,
-            property: toRuntimeProperty(target.property),
+      if (target.type !== "prop") continue;
+      const instance = componentInstances.get(target.layerId);
+      if (!instance) {
+        collector.warn(
+          "CMP_UNRESOLVED_COMPONENT",
+          `Binding "${binding.id}" targets prop on "${target.layerId}" but no component instance exists at that layer`,
+          {
+            path: ["bindings", binding.id],
+            details: { bindingId: binding.id, layerId: target.layerId },
           },
-        });
+        );
         continue;
       }
-      if (target.type === "componentLayer") {
-        const instance = componentInstances.get(target.layerId);
-        if (!instance) {
-          collector.warn(
-            "CMP_UNRESOLVED_COMPONENT",
-            `Binding "${binding.id}" targets component layer "${target.layerId}" but no component instance exists at that layer`,
-            {
-              path: ["bindings", binding.id],
-              details: { bindingId: binding.id, layerId: target.layerId },
+      const component = components.get(instance.componentId);
+      const leaves = component
+        ? resolvePropTargets(
+            components,
+            component,
+            target.propId,
+            instance.componentLayerId,
+          )
+        : [];
+      if (leaves.length === 0) {
+        collector.error(
+          "CMP_PRIVATE_COMPONENT_ACCESS",
+          `Binding "${binding.id}" targets "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              componentId: instance.componentId,
+              propId: target.propId,
             },
-          );
-          continue;
-        }
-        const component = components.get(instance.componentId);
-        const leaves = component
-          ? resolvePropTargets(
-              components,
-              component,
-              target.propId,
-              instance.componentLayerId,
-            )
-          : [];
-        if (leaves.length === 0) {
-          collector.error(
-            "CMP_PRIVATE_COMPONENT_ACCESS",
-            `Binding "${binding.id}" targets component layer "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
-            {
-              path: ["bindings", binding.id],
-              details: {
-                bindingId: binding.id,
-                componentId: instance.componentId,
-                propId: target.propId,
-              },
-            },
-          );
-          continue;
-        }
-        continue;
+          },
+        );
       }
-      // Only layer | componentLayer are valid binding targets.
-      continue;
     }
 
-    // Fail early if binding resolution produced errors.
     if (collector.hasErrors) {
       return compileFailure([...collector.diagnostics]);
-    }
-
-    for (const binding of runtimeBindings) {
-      const layers = (graph.layers ?? []) as Array<Record<string, unknown>>;
-      const target = layers.find(
-        (n: Record<string, unknown>) => n.id === binding.target.layerId,
-      );
-      if (target && projectVariables.has(binding.source.variableId)) {
-        const parts = binding.target.property.split(".");
-        let cursor: Record<string, unknown> = target;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i]!;
-          if (!cursor[part] || typeof cursor[part] !== "object") {
-            cursor[part] = {};
-          }
-          cursor = cursor[part] as Record<string, unknown>;
-        }
-        const last = parts[parts.length - 1]!;
-        cursor[last] = projectVariables.get(binding.source.variableId);
-      }
     }
 
     const duration = normalized.timeline.duration ?? 0;

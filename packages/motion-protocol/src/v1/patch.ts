@@ -327,7 +327,7 @@ export function applyMotionProjectV1Patch(
           layers: removeLayer(next.layers, op.layerId),
           bindings: next.bindings.filter((binding) => {
             const target = binding.target;
-            if (target.type === "layer" || target.type === "componentLayer") {
+            if (target.type === "prop") {
               return target.layerId !== op.layerId;
             }
             return true;

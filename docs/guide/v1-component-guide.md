@@ -13,9 +13,9 @@
 3. Bên ngoài **không** được chỉnh: `layers`, `propBindings`, property internal, nested internals trực tiếp. Không bind/animate/patch vào ruột từ project consumer.
 4. `props` là public signals điều khiển ruột. Wrapper atoms điều khiển cả khối như một object.
 5. `variant` chỉ là preset override **props**. Không đổi tree, bindings, hay layout graph.
-6. Default AI: `payload.props` (+ `variantId`). `project.bindings` → `componentLayer.propId` là **advanced**. Nested chỉ nhận giá trị qua `childProp`; không skip-level.
+6. Default AI: `payload.props` (+ `variantId`). `project.bindings` chỉ `type: "prop"` (`layerId` + `propId`). Nested chỉ nhận giá trị qua `childProp`; không skip-level.
 
-**Câu chốt:** vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Binding project tới prop = advanced.
+**Câu chốt:** vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Binding project chỉ tới prop.
 
 ---
 
@@ -52,7 +52,7 @@ Timeline **không biết** component. Root/group đặt instance. Definition mô
 > Definition = sealed template. Component layer = instance leaf. Compiler expand = wrapper + internals.  
 > Wrapper atoms điều khiển vỏ. Props điều khiển ruột public. Variant chỉ override props.  
 > Prop keyframes animate public signal, không animate wrapper.  
-> Nested chỉ `childProp`. Project `componentLayer` binding là advanced.
+> Nested chỉ `childProp`. Project binding chỉ `type: "prop"`.
 
 ---
 
@@ -353,11 +353,11 @@ Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child defini
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Layer wrapper property (`layer`) hoặc **một** instance (`componentLayer` = `layerId` + `propId`) |
+| `project.bindings` | Project | **Một** instance: `type: "prop"` + `layerId` + `propId` |
 
-Default AI **không** dùng `project.bindings` để set prop. Dùng `payload.props`. Binding `componentLayer` giữ trong protocol cho hệ thống/app.
+Default AI **không** dùng `project.bindings` để set prop. Dùng `payload.props`. Binding `prop` giữ trong protocol cho hệ thống/app chia sẻ variable.
 
-Global bulk `target.type: "component"` **đã gỡ**. Nested Button trong Card không nhận project binding — parent phải `childProp`. Không skip-level vào nested internals.
+Global bulk `target.type: "component"` **đã gỡ**. Không bind layer field. Nested Button trong Card không nhận project binding — parent phải `childProp`.
 
 Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
 
@@ -383,7 +383,7 @@ Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 2. `variant.props`
 3. `payload.props`
 4. parent forwarded prop (`childProp`)
-5. project binding (`target.type: "componentLayer"`)
+5. project binding (`target.type: "prop"`)
 
 Nested instance không nhận project binding. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
@@ -463,13 +463,13 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | ❌ Sai | ✅ Đúng |
 | --- | --- |
 | User sửa `layers` / `propBindings` | User set wrapper atoms + `payload.props` |
-| Bind thẳng internals từ project | Advanced: `componentLayer` + `propId`; default: `payload.props` |
+| Bind thẳng internals từ project | Cấm. Chỉ `type: "prop"`; default AI: `payload.props` |
+| Global bulk binding mọi instance cùng `componentId` | Từng instance `prop`; nested qua `childProp` |
+| `target.type: "layer"` / `"componentLayer"` / `"component"` | `target.type: "prop"` |
 | Animate internal bằng track ngoài | Prop keyframes hoặc wrapper atoms trên instance |
 | Variant đổi tree / bindings | Variant chỉ `props` |
 | Skip-level vào nested child | `childProp` từng tầng |
-| Global bulk binding mọi instance cùng `componentId` | `componentLayer` từng instance; nested qua `childProp` |
 | `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
-| `target.kind` / `target.type: "component"` | `target.type: "layer"` \| `"componentLayer"` |
 | `PublicParamSchema` / `ComponentBindingSchema` | `ComponentPropV1Schema` + `propBindings` |
 
 ---

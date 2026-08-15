@@ -460,6 +460,39 @@ export function motionPropertyCapability(
   }
   const layerBase = LAYER_BASE_PROPERTIES[property];
   if (layerBase) return layerBase;
+  if (nodeType === "group") {
+    if (property === "layout.gap")
+      return cap("number", {
+        min: 0,
+        max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      });
+    if (
+      property === "layout.mode" ||
+      property === "layout.justify" ||
+      property === "layout.align"
+    )
+      return cap("string", {
+        animatable: false,
+        runtimeSupport: "compile-time",
+      });
+  }
+  if (nodeType !== "audio" && nodeType !== "camera") {
+    if (property === "layoutItem.minWidth" || property === "layoutItem.maxWidth" ||
+        property === "layoutItem.minHeight" || property === "layoutItem.maxHeight")
+      return cap("number", {
+        min: 0,
+        max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      });
+    if (
+      property === "layoutItem.width" ||
+      property === "layoutItem.height" ||
+      property === "layoutItem.alignSelf"
+    )
+      return cap("string", {
+        animatable: false,
+        runtimeSupport: "compile-time",
+      });
+  }
   if (nodeType !== "audio") {
     const transform = TRANSFORM_PROPERTIES[property];
     if (transform) return transform;
@@ -656,7 +689,7 @@ export function motionPropKindFitsValueKind(
 ): boolean {
   if (valueKind === "json") return true;
   switch (propKind) {
-    case "text":
+    case "string":
     case "choice":
       return valueKind === "string";
     case "number":

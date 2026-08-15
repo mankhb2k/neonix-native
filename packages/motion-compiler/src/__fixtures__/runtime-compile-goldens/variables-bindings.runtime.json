@@ -12,7 +12,7 @@
       "name": "Variables And Bindings",
       "primaryColor": "#1877f2"
     },
-    "description": "Project with variables and project bindings"
+    "description": "Project variable bound to a public component prop"
   },
   "assets": [],
   "composition": {
@@ -23,29 +23,29 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "87403d44019d37a5cc584cf9e26ae523",
+  "runtimeHash": "a73c8e3be02258f58ee6c08682982be7",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
     "layers": {
-      "title": "layers:title",
-      "subtitle": "layers:subtitle"
+      "card__instance": "layers:card__instance",
+      "card__subtitle": "layers:card__subtitle"
     }
   },
   "layers": [
     {
-      "id": "title",
-      "type": "text",
+      "id": "card__instance",
+      "type": "group",
       "parentLayerId": null,
-      "zIndex": 1,
+      "zIndex": 0,
       "frame": {
         "width": 800,
         "height": 120
       },
       "transform": {
         "translate": {
-          "x": 960,
-          "y": 400
+          "x": 0,
+          "y": 0
         },
         "scale": {
           "x": 1,
@@ -66,35 +66,19 @@
       },
       "appearance": {
         "visible": true,
-        "opacity": 90
+        "opacity": 100
       },
       "timing": {
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
-      "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Founder:"
-        },
-        "fontSize": 64,
-        "align": "center",
-        "wrap": "word",
-        "overflow": "visible"
-      },
-      "style": {
-        "fill": "#000000"
-      }
+      "payload": {}
     },
     {
-      "id": "subtitle",
+      "id": "card__subtitle",
       "type": "text",
-      "parentLayerId": null,
-      "zIndex": 2,
+      "parentLayerId": "card__instance",
+      "zIndex": 0,
       "frame": {
         "width": 800,
         "height": 100
@@ -129,10 +113,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "content": {
           "kind": "plain",

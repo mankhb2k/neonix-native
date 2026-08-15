@@ -18,7 +18,8 @@ export function propsPage(): DocsPageView {
         <HumanName title="Component props" jsonPath="components[].props" />
         <H2 id="public">Public API</H2>
         <P>
-          Definitions expose props and variants. Instances are{" "}
+          Definitions expose props and variants. Allowed kinds: string,
+          number, boolean, color, asset, choice. Instances are{" "}
           <code>type: &quot;component&quot;</code> layers with{" "}
           <code>payload.componentId</code> and <code>payload.props</code>.
           Internals are sealed. Prop keyframes animate a public signal, not

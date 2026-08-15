@@ -1,52 +1,19 @@
 /**
- * Variable và binding project V1.
+ * Variable và project binding V1.
  *
- * Binding nhắm layer (wrapper property) hoặc componentLayer.propId (advanced).
- * Default AI: set payload.props. Nested internals chỉ nhận childProp.
+ * Binding chỉ nối project.variables → public prop.
+ * Target duy nhất: { type: "prop", layerId, propId }.
+ * Không bind layer field, internals, hay computed value.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import {
-  FiniteNumberSchema,
-  IdSchema,
-  PropertyPathSchema,
-  SemanticSchema,
-} from "./common";
-import { JsonValueSchema } from "./values";
+import { ColorHexSchema, FiniteNumberSchema, IdSchema, SemanticSchema } from "./common";
 
 const ScalarVariableBaseSchema = z.object({
   id: IdSchema,
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   semantic: SemanticSchema.optional(),
 });
-
-export type ListField = {
-  type: "string" | "color" | "number" | "boolean" | "asset" | "enum" | "list";
-  options?: string[];
-  itemSchema?: ListField;
-};
-
-export const ListFieldSchema: z.ZodType<ListField> = z.lazy(() =>
-  z
-    .object({
-      type: z.enum([
-        "string",
-        "color",
-        "number",
-        "boolean",
-        "asset",
-        "enum",
-        "list",
-      ]),
-      options: z
-        .array(z.string())
-        .min(1)
-        .max(MOTION_PROTOCOL_LIMITS.enumOptions)
-        .optional(),
-      itemSchema: z.lazy(() => ListFieldSchema).optional(),
-    })
-    .strict(),
-);
 
 export const ProjectVariableV1Schema = z.discriminatedUnion("type", [
   ScalarVariableBaseSchema.extend({
@@ -55,7 +22,7 @@ export const ProjectVariableV1Schema = z.discriminatedUnion("type", [
   }).strict(),
   ScalarVariableBaseSchema.extend({
     type: z.literal("color"),
-    value: z.string().min(1),
+    value: ColorHexSchema,
   }).strict(),
   ScalarVariableBaseSchema.extend({
     type: z.literal("number"),
@@ -73,18 +40,9 @@ export const ProjectVariableV1Schema = z.discriminatedUnion("type", [
     value: IdSchema,
   }).strict(),
   ScalarVariableBaseSchema.extend({
-    type: z.literal("enum"),
+    type: z.literal("choice"),
     value: z.string(),
     options: z.array(z.string()).min(1).max(MOTION_PROTOCOL_LIMITS.enumOptions),
-  }).strict(),
-  ScalarVariableBaseSchema.extend({
-    type: z.literal("list"),
-    itemSchema: z
-      .object({ type: z.literal("object"), fields: z.record(ListFieldSchema) })
-      .strict(),
-    value: z
-      .array(z.record(JsonValueSchema))
-      .max(MOTION_PROTOCOL_LIMITS.listItems),
   }).strict(),
 ]);
 
@@ -98,33 +56,17 @@ export const ProjectBindingV1Schema = z
   .object({
     id: IdSchema,
     source: VariableBindingSourceSchema,
-    target: z.discriminatedUnion("type", [
-      z
-        .object({
-          type: z.literal("layer"),
-          layerId: IdSchema,
-          property: PropertyPathSchema,
-        })
-        .strict(),
-      z
-        .object({
-          type: z.literal("componentLayer"),
-          layerId: IdSchema,
-          /** Public prop id. Advanced surface — default AI uses payload.props. */
-          propId: IdSchema,
-        })
-        .strict(),
-    ]),
+    target: z
+      .object({
+        type: z.literal("prop"),
+        layerId: IdSchema,
+        propId: IdSchema,
+      })
+      .strict(),
   })
   .strict();
 
 export type ProjectBindingV1 = z.infer<typeof ProjectBindingV1Schema>;
-
-// ── Public canonical variable schema ──────────────────────────────────
-//
-// VariableSchema is the canonical V1 variable type used by both project
-// variables and component variables. Supports `semantic` tagging,
-// `list` variables with structured item schemas, and all scalar types.
 
 export const VariableSchema = ProjectVariableV1Schema;
 

@@ -15,6 +15,10 @@ import { flattenLayerTree } from "../layers";
 import { isVariableReference } from "../values";
 import type { ProjectVariableV1 } from "../variables";
 import {
+  isOwnerPropSink,
+  variableTypeMatchesPropKind,
+} from "../prop-sinks";
+import {
   defaultAnimatableForPropKind,
   defaultInterpolationForPropKind,
   type ComponentPropV1,
@@ -46,7 +50,7 @@ function assetTypeMatchesAssetKind(
 
 function literalMatchesPropKind(value: unknown, propKind: string): boolean {
   switch (propKind) {
-    case "text":
+    case "string":
     case "color":
     case "asset":
     case "choice":
@@ -60,33 +64,8 @@ function literalMatchesPropKind(value: unknown, propKind: string): boolean {
   }
 }
 
-function variableTypeMatchesPropKind(
-  variableType: string,
-  propKind: string,
-): boolean {
-  switch (propKind) {
-    case "text":
-      return variableType === "string" || variableType === "enum";
-    case "choice":
-      return variableType === "enum" || variableType === "string";
-    case "color":
-      return variableType === "color";
-    case "number":
-      return variableType === "number";
-    case "boolean":
-      return variableType === "boolean";
-    case "asset":
-      return variableType === "asset";
-    default:
-      return true;
-  }
-}
-
 function propKindsCompatible(parentKind: string, childKind: string): boolean {
-  if (parentKind === childKind) return true;
-  if (parentKind === "choice" && childKind === "text") return true;
-  if (parentKind === "text" && childKind === "choice") return true;
-  return false;
+  return parentKind === childKind;
 }
 
 function allowedKeyframeInterpolations(propKind: string): Set<string> {
@@ -143,20 +122,20 @@ function validateVariableAgainstProp(
   }
 
   if (prop.kind === "choice" && prop.options) {
-    if (variable.type === "enum") {
+    if (variable.type === "choice") {
       const extra = variable.options.filter(
         (option) => !prop.options!.includes(option),
       );
       if (extra.length > 0) {
         issues.push({
           path,
-          message: `props "${prop.id}" enum variable "${variable.id}" has options not in prop options: ${extra.join(", ")}`,
+          message: `props "${prop.id}" choice variable "${variable.id}" has options not in prop options: ${extra.join(", ")}`,
         });
       }
       if (!prop.options.includes(variable.value)) {
         issues.push({
           path,
-          message: `props "${prop.id}" enum variable "${variable.id}" value "${variable.value}" is not in options`,
+          message: `props "${prop.id}" choice variable "${variable.id}" value "${variable.value}" is not in options`,
         });
       }
     } else if (
@@ -466,48 +445,43 @@ export function validateMotionProjectV1References(
         message: `Unknown variable: ${binding.source.variableId}`,
       });
     }
-    if (bindingTarget.type === "layer") {
-      // Binding thẳng vào layer trên cây project — không phải instance component.
-      const layer = layerById.get(bindingTarget.layerId);
-      if (!layer) {
-        issues.push({
-          path: `${path}.target.layerId`,
-          message: `Unknown layer: ${bindingTarget.layerId}`,
-        });
-      } else if (!isPropBindingPropertyValid(layer, bindingTarget.property)) {
-        // Chặn path giả (vd. payload.notAField) kẻo compiler tự tạo object dọc path.
-        issues.push({
-          path: `${path}.target.property`,
-          message: `Binding targets unsupported property "${bindingTarget.property}" on ${layer.type} layer "${layer.id}"`,
-        });
-      }
+    const layer = layerById.get(bindingTarget.layerId);
+    if (!layer) {
+      issues.push({
+        path: `${path}.target.layerId`,
+        message: `Unknown layer: ${bindingTarget.layerId}`,
+      });
+    } else if (layer.type !== "component") {
+      issues.push({
+        path: `${path}.target.layerId`,
+        message: `Layer "${bindingTarget.layerId}" is not a component layer (type "${layer.type}")`,
+      });
     } else {
-      // target.type === "componentLayer": chỉ được bind qua propId public.
-      const layer = layerById.get(bindingTarget.layerId);
-      if (!layer) {
+      const component = componentById.get(layer.payload.componentId);
+      if (!component) {
         issues.push({
           path: `${path}.target.layerId`,
-          message: `Unknown layer: ${bindingTarget.layerId}`,
-        });
-      } else if (layer.type !== "component") {
-        issues.push({
-          path: `${path}.target.layerId`,
-          message: `Layer "${bindingTarget.layerId}" is not a component layer (type "${layer.type}")`,
+          message: `Component layer "${bindingTarget.layerId}" references unknown component "${layer.payload.componentId}"`,
         });
       } else {
-        const component = componentById.get(layer.payload.componentId);
-        if (!component) {
-          issues.push({
-            path: `${path}.target.layerId`,
-            message: `Component layer "${bindingTarget.layerId}" references unknown component "${layer.payload.componentId}"`,
-          });
-        } else if (
-          !component.props.some((p) => p.id === bindingTarget.propId)
-        ) {
+        const prop = component.props.find((p) => p.id === bindingTarget.propId);
+        if (!prop) {
           issues.push({
             path: `${path}.target.propId`,
             message: `Component "${layer.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
           });
+        } else {
+          const variable = projectVariableById.get(binding.source.variableId);
+          if (variable) {
+            issues.push(
+              ...validateVariableAgainstProp(
+                variable,
+                prop,
+                assetById,
+                `${path}.target.propId`,
+              ),
+            );
+          }
         }
       }
     }
@@ -634,6 +608,11 @@ export function validateMotionProjectV1References(
           issues.push({
             path: `components.${component.id}.propBindings`,
             message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${layer.type} layer "${layer.id}"`,
+          });
+        } else if (!isOwnerPropSink(prop.kind, target.property)) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `propBinding for "${binding.propId}" targets "${target.property}" which is not a V1 ${prop.kind} sink`,
           });
         } else {
           const expected = motionPropertyCapability(

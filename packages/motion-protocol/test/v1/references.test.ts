@@ -56,7 +56,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
           {
             id: "label",
             name: "Label",
-            kind: "text",
+            kind: "string",
             default: "Click",
           },
         ],
@@ -82,7 +82,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
           {
             id: "title",
             name: "Title",
-            kind: "text",
+            kind: "string",
             default: "Card",
           },
           {
@@ -139,7 +139,7 @@ function baseProject(overrides: Record<string, unknown> = {}) {
 }
 
 describe("V1 component / binding / keyframe references", () => {
-  it("accepts nested childProp wiring and project componentLayer binding", () => {
+  it("accepts nested childProp wiring and project prop binding", () => {
     const project = parseMotionProjectV1(
       baseProject({
         bindings: [
@@ -147,7 +147,7 @@ describe("V1 component / binding / keyframe references", () => {
             id: "bind-title",
             source: { kind: "variable", variableId: "cta-label" },
             target: {
-              type: "componentLayer",
+              type: "prop",
               layerId: "card-instance",
               propId: "title",
             },
@@ -156,7 +156,7 @@ describe("V1 component / binding / keyframe references", () => {
       }),
     );
     expect(project.bindings[0]?.target).toEqual({
-      type: "componentLayer",
+      type: "prop",
       layerId: "card-instance",
       propId: "title",
     });
@@ -167,7 +167,7 @@ describe("V1 component / binding / keyframe references", () => {
     });
   });
 
-  it("rejects project binding target.type component (componentLayer only)", () => {
+  it("rejects project binding that is not type prop", () => {
     expect(() =>
       parseMotionProjectV1(
         baseProject({
@@ -176,8 +176,8 @@ describe("V1 component / binding / keyframe references", () => {
               id: "bind-def",
               source: { kind: "variable", variableId: "cta-label" },
               target: {
-                type: "component",
-                componentId: "parent-card",
+                type: "componentLayer",
+                layerId: "card-instance",
                 propId: "title",
               },
             },
@@ -301,7 +301,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "label",
                   name: "Label",
-                  kind: "text",
+                  kind: "string",
                   default: "Click",
                 },
               ],
@@ -327,7 +327,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "title",
                   name: "Title",
-                  kind: "text",
+                  kind: "string",
                   default: {
                     ref: { kind: "variable", id: "internal-title" },
                   },
@@ -417,7 +417,7 @@ describe("V1 component / binding / keyframe references", () => {
               {
                 id: "label",
                 name: "Label",
-                kind: "text",
+                kind: "string",
                 default: "Click",
               },
             ],
@@ -443,7 +443,7 @@ describe("V1 component / binding / keyframe references", () => {
               {
                 id: "title",
                 name: "Title",
-                kind: "text",
+                kind: "string",
                 default: {
                   ref: { kind: "variable", id: "internal-title" },
                 },
@@ -516,7 +516,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "label",
                   name: "Label",
-                  kind: "text",
+                  kind: "string",
                   default: "Click",
                 },
               ],
@@ -549,7 +549,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "title",
                   name: "Title",
-                  kind: "text",
+                  kind: "string",
                   default: "Card",
                 },
               ],
@@ -603,7 +603,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "label",
                   name: "Label",
-                  kind: "text",
+                  kind: "string",
                   default: "Click",
                 },
               ],
@@ -658,7 +658,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "label",
                   name: "Label",
-                  kind: "text",
+                  kind: "string",
                   default: "Click",
                 },
               ],
@@ -719,7 +719,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "title",
                   name: "Title",
-                  kind: "text",
+                  kind: "string",
                   default: "X",
                 },
               ],
@@ -754,7 +754,7 @@ describe("V1 component / binding / keyframe references", () => {
     ).toThrow(/not a component layer/);
   });
 
-  it("rejects propBinding that wires a text prop to a numeric layer property", () => {
+  it("rejects propBinding that wires a string prop to a numeric layer property", () => {
     expect(() =>
       parseMotionProjectV1(
         baseProject({
@@ -767,7 +767,7 @@ describe("V1 component / binding / keyframe references", () => {
                 {
                   id: "title",
                   name: "Title",
-                  kind: "text",
+                  kind: "string",
                   default: "Hello",
                 },
               ],
@@ -799,10 +799,10 @@ describe("V1 component / binding / keyframe references", () => {
           ],
         }),
       ),
-    ).toThrow(/propBinding kind mismatch: prop "title" \(text\) → transform.translate.x \(number\)/);
+    ).toThrow(/not a V1 string sink/);
   });
 
-  it("rejects project layer binding to a property invalid for that layer type", () => {
+  it("rejects project binding to a layer field", () => {
     expect(() =>
       parseMotionProjectV1(
         baseProject({
@@ -819,45 +819,42 @@ describe("V1 component / binding / keyframe references", () => {
               target: {
                 type: "layer",
                 layerId: "headline",
-                property: "payload.notAField",
+                property: "payload.content.text",
               },
             },
           ],
         }),
       ),
-    ).toThrow(/unsupported property "payload.notAField"/);
+    ).toThrow();
   });
 
-  it("accepts project layer binding to a public property on that layer", () => {
-    const project = parseMotionProjectV1(
-      baseProject({
-        layers: [
-          {
-            ...textLayer("headline", null, 1),
-            timing: { start: 0, duration: 2 },
-          },
-        ],
-        bindings: [
-          {
-            id: "bind-text",
-            source: { kind: "variable", variableId: "cta-label" },
-            target: {
-              type: "layer",
-              layerId: "headline",
-              property: "payload.content.text",
+  it("rejects project binding onto a non-component layer", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              ...textLayer("headline", null, 1),
+              timing: { start: 0, duration: 2 },
             },
-          },
-        ],
-      }),
-    );
-    expect(project.bindings[0]?.target).toEqual({
-      type: "layer",
-      layerId: "headline",
-      property: "payload.content.text",
-    });
+          ],
+          bindings: [
+            {
+              id: "bind-text",
+              source: { kind: "variable", variableId: "cta-label" },
+              target: {
+                type: "prop",
+                layerId: "headline",
+                propId: "title",
+              },
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/not a component layer/);
   });
 
-  it("rejects type layer binding into component payload.props (use componentLayer)", () => {
+  it("rejects type layer binding into component payload.props", () => {
     expect(() =>
       parseMotionProjectV1(
         baseProject({
@@ -874,7 +871,7 @@ describe("V1 component / binding / keyframe references", () => {
           ],
         }),
       ),
-    ).toThrow(/unsupported property "payload.props.title"/);
+    ).toThrow();
   });
 
   it("rejects stale scenes / visualTracks on authoring projects", () => {

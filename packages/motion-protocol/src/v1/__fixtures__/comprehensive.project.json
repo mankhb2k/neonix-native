@@ -138,33 +138,12 @@
     {
       "id": "var-theme",
       "name": "Theme",
-      "type": "enum",
+      "type": "choice",
       "value": "dark",
       "options": [
         "light",
         "dark",
         "auto"
-      ]
-    },
-    {
-      "id": "var-data-rows",
-      "name": "Data rows",
-      "type": "list",
-      "itemSchema": {
-        "type": "object",
-        "fields": {
-          "value": {
-            "type": "number"
-          }
-        }
-      },
-      "value": [
-        {
-          "value": 1.2
-        },
-        {
-          "value": 4.5
-        }
       ]
     }
   ],
@@ -242,7 +221,7 @@
         {
           "id": "title",
           "name": "Title",
-          "kind": "text",
+          "kind": "string",
           "default": ""
         },
         {
@@ -326,7 +305,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "lt-bg",
-            "property": "payload.height"
+            "property": "frame.height"
           }
         }
       ]
@@ -347,37 +326,13 @@
   },
   "bindings": [
     {
-      "id": "binding-company-name",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-company"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "node-title",
-        "property": "payload.content.text"
-      }
-    },
-    {
-      "id": "binding-opacity",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-title-opacity"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "node-title",
-        "property": "appearance.opacity"
-      }
-    },
-    {
       "id": "binding-component",
       "source": {
         "kind": "variable",
         "variableId": "var-brand-color"
       },
       "target": {
-        "type": "componentLayer",
+        "type": "prop",
         "layerId": "node-lower-third",
         "propId": "bgColor"
       }

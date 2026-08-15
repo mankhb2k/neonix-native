@@ -16,7 +16,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components/`              | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
-| 4   | `src/v1/variables.ts`             | **Binding model** — `target.type`: `layer` | `componentLayer`; consumer không chạm internals. |
+| 4   | `src/v1/variables.ts`             | **Binding model** — `target.type: "prop"` (`layerId` + `propId`); consumer không chạm internals. |
 | 5   | `src/v1/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `test/v1/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
@@ -52,13 +52,13 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - `payload.props` trên project instance chỉ ref `project.variables`. `component.variables` chỉ cho default / variant / nested instance trong definition.
 - Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
-- Project-level `componentLayer` binding là advanced; nested chỉ `childProp`.
+- Project binding chỉ `type: "prop"`; nested chỉ `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
 
-- Phân biệt **layer binding** vs **componentLayer binding**. Không còn bulk `target.type: "component"`.
-- Consumer bắt buộc dùng `propId` — không lách `layerId` + property nội bộ component.
-- Canonical: `ProjectBindingV1Schema` (`target.type`: `layer` | `componentLayer`). Source of truth prop = `ComponentPropV1Schema` + `propBindings` (đã gỡ `PublicParamSchema` / `ComponentBindingSchema`).
+- Chỉ `target.type: "prop"` (`layerId` + `propId`). Không bind layer field.
+- Consumer bắt buộc dùng `propId` — không lách internals.
+- Canonical: `ProjectBindingV1Schema`. Prop kinds: string, number, boolean, color, asset, choice. Owner sinks ở `prop-sinks.ts`.
 
 ### 5) `src/v1/references/project.ts` — Semantic validation
 
@@ -66,7 +66,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - `propBindings` có trỏ tới layer thật (`layerProperty.layerId`) / child component trực tiếp (`childProp`) không.
 - Binding có đi qua public API không, hay lách vào internal.
 - `component.variables` không được merge vào lookup global (`variableById`).
-- Project binding `target.type: "layer"` phải `isLayerPropertyBindable` (capability table `bindable`, không whitelist riêng trong references).
+- Project binding `target.type: "prop"` phải khớp prop public + type variable.
 
 ### 6) `src/v1/parse.ts` — Parse path thực tế
 
@@ -115,7 +115,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc `target.type: "componentLayer"` với `layerId` + `propId` — không lách internal property. Nested instance chỉ nhận value qua parent `childProp`. Không còn bulk `target.type: "component"`.
+- **Mong đợi:** Có. Bind bắt buộc `target.type: "prop"` với `layerId` + `propId`. Nested instance chỉ nhận value qua parent `childProp`. Không bind layer field.
 
 ### 4.4 Public target type-check
 

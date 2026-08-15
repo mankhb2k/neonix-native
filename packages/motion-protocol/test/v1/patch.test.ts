@@ -287,18 +287,46 @@ describe("V1 patch contract", () => {
     expect(result.project!.layers[0]!.zIndex).toBe(-1);
   });
 
-  it("adds a variable and a layer binding", () => {
-    const project = minimalProject();
-    const withLayer = applyMotionProjectV1Patch(project, {
+  it("adds a variable and a prop binding", () => {
+    const project: MotionProjectV1 = {
+      ...minimalProject(),
+      components: [
+        {
+          id: "btn",
+          version: "1.0.0",
+          integrity: "sha256:btn",
+          props: [{ id: "label", kind: "string", default: "Hi" }],
+          variants: [],
+          propBindings: [
+            {
+              propId: "label",
+              target: {
+                kind: "layerProperty",
+                layerId: "label-node",
+                property: "payload.content.text",
+              },
+            },
+          ],
+          variables: [],
+          layers: [textLayer("label-node")],
+        },
+      ],
+      layers: [
+        {
+          id: "cta",
+          type: "component",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 3 },
+          ...ATOMS,
+          payload: { componentId: "btn" },
+        },
+      ],
+    };
+    const add = applyMotionProjectV1Patch(project, {
       format: "motion-project-patch",
       formatVersion: 1,
       baseRevision: 0,
-      operations: [{ op: "addLayer", layer: textLayer("title") }],
-    });
-    const add = applyMotionProjectV1Patch(withLayer.project!, {
-      format: "motion-project-patch",
-      formatVersion: 1,
-      baseRevision: 1,
       operations: [
         {
           op: "addVariable",
@@ -315,9 +343,9 @@ describe("V1 patch contract", () => {
             id: "bind-1",
             source: { kind: "variable", variableId: "headline-text" },
             target: {
-              type: "layer",
-              layerId: "title",
-              property: "payload.content.text",
+              type: "prop",
+              layerId: "cta",
+              propId: "label",
             },
           },
         },
@@ -326,9 +354,9 @@ describe("V1 patch contract", () => {
     expect(add.diagnostics).toHaveLength(0);
     expect(add.project!.variables).toHaveLength(1);
     expect(add.project!.bindings[0]!.target).toEqual({
-      type: "layer",
-      layerId: "title",
-      property: "payload.content.text",
+      type: "prop",
+      layerId: "cta",
+      propId: "label",
     });
   });
 

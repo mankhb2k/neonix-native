@@ -43,9 +43,10 @@ export function detectScheduleCycles(
 
 function expectedVariableTypesForPropKind(kind: string): string[] {
   switch (kind) {
-    case "text":
+    case "string":
+      return ["string"];
     case "choice":
-      return ["string", "enum"];
+      return ["choice"];
     case "color":
       return ["color"];
     case "number":
@@ -57,33 +58,6 @@ function expectedVariableTypesForPropKind(kind: string): string[] {
     default:
       return [];
   }
-}
-
-function expectedVariableTypeForProperty(property: string): string | undefined {
-  // Exact segment matching — avoid false positives from substring matches.
-  const segments = property.toLowerCase().split(".");
-  const last = segments[segments.length - 1];
-  if (!last) return undefined;
-  if (last === "text" || last === "label" || last === "name") return "string";
-  if (last.includes("color")) return "color";
-  if (
-    last === "visible" ||
-    last === "enabled" ||
-    last === "muted" ||
-    last === "loop"
-  )
-    return "boolean";
-  if (
-    /^(?:opacity|width|height|scalex|scaley|rotation|x|y|z|fontsize|letterspacing|lineheight|rate|volume|duration|start|end|progress|radius|length|fov|zoom|near|far)$/.test(
-      last,
-    ) ||
-    segments.some((s) =>
-      /^(?:opacity|width|height|scale|rotation|fontsize)$/.test(s),
-    )
-  )
-    return "number";
-  if (last === "assetid") return "asset";
-  return undefined;
 }
 
 export function validateV1Semantics(
@@ -118,7 +92,7 @@ export function validateV1Semantics(
     // Resolve the property path a binding targets, then type-check the
     // bound variable against it.
     const target = binding.target;
-    if (target.type === "componentLayer") {
+    if (target.type === "prop") {
       const node = V1.flattenLayerTree(project.layers).find(
         (candidate) => candidate.id === target.layerId,
       );
@@ -134,7 +108,7 @@ export function validateV1Semantics(
       if (expected.length > 0 && !expected.includes(variable.type)) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component layer "${target.layerId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${target.layerId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
           {
             path: ["bindings", binding.id],
             details: {
@@ -142,23 +116,6 @@ export function validateV1Semantics(
               variableType: variable.type,
               componentId: component?.id,
               propId: target.propId,
-              expected,
-            },
-          },
-        );
-      }
-    } else {
-      const expected = expectedVariableTypeForProperty(target.property);
-      if (expected && variable.type !== expected) {
-        collector.error(
-          "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${target.property}" which expects ${expected}`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              variableType: variable.type,
-              property: target.property,
               expected,
             },
           },

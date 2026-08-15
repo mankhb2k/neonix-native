@@ -17,23 +17,23 @@ export function bindingsPage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="Prop bindings"
-          human="Owner wires public props into internals. Project bindings to props are advanced."
-          jsonPath="components[].propBindings"
+          human="Owner wires public props into internals. Project bindings only target props."
+          jsonPath="project.bindings"
         />
         <H2 id="owner">Owner wiring</H2>
         <P>
           <code>propBindings</code> live on the definition.{" "}
-          <code>layerProperty</code> targets an internal layer.{" "}
+          <code>layerProperty</code> targets an allowed primitive sink.{" "}
           <code>childProp</code> forwards to a direct nested instance. No
           skip-level into a grandchild&apos;s internals.
         </P>
         <H2 id="project">Project bindings</H2>
         <P>
-          Default AI sets <code>payload.props</code>.{" "}
-          <code>project.bindings</code> with{" "}
-          <code>target.type: &quot;componentLayer&quot;</code> and{" "}
-          <code>propId</code> stays in the protocol for apps. It does not
-          reach nested internals; those only receive <code>childProp</code>.
+          Binding is one-way from <code>project.variables</code> to a public
+          prop. The only target is <code>type: &quot;prop&quot;</code> with{" "}
+          <code>layerId</code> and <code>propId</code>. Variable type must
+          match the prop kind. Default AI still prefers{" "}
+          <code>payload.props</code>.
         </P>
         <JsonBlock
           code={JSON.stringify(
@@ -41,7 +41,7 @@ export function bindingsPage(): DocsPageView {
               id: "bind-label",
               source: { kind: "variable", variableId: "cta-text" },
               target: {
-                type: "componentLayer",
+                type: "prop",
                 layerId: "cta",
                 propId: "label",
               },
@@ -52,8 +52,9 @@ export function bindingsPage(): DocsPageView {
         />
         <AiWritingGuide
           items={[
-            "Prefer payload.props. Use project.bindings to a propId only when the app needs a shared variable.",
-            "Never bind a project target to an internal layer id inside a component.",
+            "Bind only type prop. Never target a layer property path.",
+            "Use payload.props unless the app needs a shared project variable.",
+            "Prop kinds in v1: string, number, boolean, color, asset, choice.",
           ]}
         />
       </article>

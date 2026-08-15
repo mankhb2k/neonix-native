@@ -53,7 +53,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `provenance.ts` | Debug/trace — exclude hash. |
 | `source-ref.ts` | Click-to-edit: `layer` \| `text-run`. |
 | `types.ts` | Aggregate `MotionProjectV1` viết tay. |
-| `variables.ts` | `ProjectVariableV1Schema`, `ProjectBindingV1Schema` (`layer` \| `componentLayer`). |
+| `variables.ts` | `ProjectVariableV1Schema`, `ProjectBindingV1Schema` (`type: "prop"`). |
 
 **Property path (cũ → mới, không alias):**
 

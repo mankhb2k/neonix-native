@@ -205,13 +205,8 @@ describe("committed JSON schemas", () => {
     };
 
     assertClosed(schema.definitions.JsonValue, "JsonValue");
-    assertClosed(schema.definitions.ListField, "ListField");
     assertClosed(schema.definitions.ComponentPropValue, "ComponentPropValue");
     assertClosed(schema.definitions.PropKeyframesValue, "PropKeyframesValue");
-    assertClosed(
-      getByPointer(schema, "#/definitions/ListField/properties/itemSchema"),
-      "ListField.itemSchema",
-    );
     assertClosed(
       getByPointer(
         schema,

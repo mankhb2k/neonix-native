@@ -56,7 +56,8 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 - `appearance` chỉ `visible` + `opacity` trên visual layer. Audio không có appearance. Protocol không định nghĩa hit-test.
 - `compositing` tách khỏi appearance/effects: `blend-mode`, `isolation`, `mask`. AI mặc định: blend khi cần; mask `clip`/`alpha` + `mask-only`; không emit isolation.
-- Component instance = leaf + wrapper atoms. Props = ruột public. Variant = preset props. Project binding tới propId = advanced.
+- Component instance = leaf + wrapper atoms. Props = ruột public. Variant = preset props. Project binding chỉ `type: "prop"`.
+- Binding = variable → public prop. Kinds: string, number, boolean, color, asset, choice.
 - Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow không intensity. Không effects trên camera/audio.
 
 ---

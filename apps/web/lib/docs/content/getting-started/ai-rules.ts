@@ -12,7 +12,8 @@ export const AI_GLOBAL = [
   "Use zIndex for stacking, not depth.",
   "Do not emit locked. semantic is optional tagging and does not change paint.",
   "Do not emit modifiers.",
-  "A component layer is a sealed instance. Set wrapper atoms plus payload.props. Do not edit internals. Prefer payload.props over project.bindings. Variants only override props.",
+  "A component layer is a sealed instance. Set wrapper atoms plus payload.props. Do not edit internals. Prefer payload.props over project.bindings. Bind only target.type prop to a public propId. Variants only override props.",
+  "Project bindings never target layer fields. Prop kinds are string, number, boolean, color, asset, and choice.",
   "Effects are an ordered pixel stack with stable ids. Animate effects.<id>.radius not by index. Do not animate effect color. Do not emit glow.intensity. No effects on audio or camera.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

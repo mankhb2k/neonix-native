@@ -59,7 +59,7 @@
         {
           "id": "label",
           "name": "Button label",
-          "kind": "text",
+          "kind": "string",
           "default": "Click me"
         },
         {
@@ -220,7 +220,7 @@
         "variableId": "cta-text"
       },
       "target": {
-        "type": "componentLayer",
+        "type": "prop",
         "layerId": "cta-instance",
         "propId": "label"
       }
