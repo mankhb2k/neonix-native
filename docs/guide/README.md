@@ -28,7 +28,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-frame-guide.md](./v1-frame-guide.md) | `frame` là size box | Nháp |
 | [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | v1 |
 | [v1-appearance-guide.md](./v1-appearance-guide.md) | `visible` + `opacity` (visual only) | v1 |
-| [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | Nháp |
+| [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | v1 |
 | [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | Nháp |
 | [v1-shape-guide.md](./v1-shape-guide.md) | Layer hình học primitive | Nháp |
 | [v1-path-guide.md](./v1-path-guide.md) | Layer path và hành vi hình học | Nháp |
@@ -55,6 +55,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - `layout` chỉ trên `group`; `layoutItem` trên child visual. Không phải modifier.
 - `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 - `appearance` chỉ `visible` + `opacity` trên visual layer. Audio không có appearance. Protocol không định nghĩa hit-test.
+- `compositing` tách khỏi appearance/effects: `blend-mode`, `isolation`, `mask`. AI mặc định: blend khi cần; mask `clip`/`alpha` + `mask-only`; không emit isolation.
 
 ---
 

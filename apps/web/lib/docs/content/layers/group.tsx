@@ -79,6 +79,7 @@ export function groupLayerPage(): DocsPageView {
             "Never emit an empty group.",
             "Give every child zIndex and timing. Child timing stays inside the group window.",
             "Always set group.frame. It is the layout box, not a clip rect.",
+            "Use compositing.mask to cut. Prefer mode clip or alpha and source-visibility mask-only.",
             "Use group.layout plus child.layoutItem to pack children.",
           ]}
         />

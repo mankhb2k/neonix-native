@@ -11,6 +11,7 @@
 - Effect là xử lý pixel, không đổi geometry của layer.
 - Họ hiện tại: `blur`, `shadow`, `glow`, `color-adjust`.
 - Effect không định nghĩa `layer.type` và không thay compositing.
+- Không đặt effect vào `compositing`. Blend / mask / isolation ở [v1-compositing-guide.md](./v1-compositing-guide.md).
 - Color-adjust brightness/contrast/saturation: số nguyên `0..200` (100 = bình thường). `hue-rotate`: `-180..180` độ.
 - Glow / shadow opacity: số nguyên `0..100`.
 

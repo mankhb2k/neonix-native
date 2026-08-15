@@ -98,10 +98,10 @@ Lớp hiển thị tối thiểu của visual layer — không phải compositin
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | `CompositingSchema` — `blend-mode`, `isolation`, `mask`. |
-| `blend-mode.ts` | Key JSON `blend-mode`. |
-| `isolation.ts` | `auto` \| `isolate`. |
-| `mask.ts` | Clip source + `source-visibility`. |
+| `index.ts` | `CompositingSchema` — `blend-mode`, `isolation`, `mask`. Tách appearance/effects. |
+| `blend-mode.ts` | 7 mode: normal, multiply, screen, add, darken, lighten, overlay. Không mở rộng. |
+| `isolation.ts` | `auto` \| `isolate`. Advanced; mặc định `auto`. |
+| `mask.ts` | `sourceLayerId`, mode, `source-visibility`. Graph: path/shape/solid/group/component. |
 
 ### 2.5 `src/v1/effects/`
 
