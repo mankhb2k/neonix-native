@@ -26,7 +26,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | --- | --- | --- |
 | [v1-layer-guide.md](./v1-layer-guide.md) | Mô hình layer chung | Nháp |
 | [v1-frame-guide.md](./v1-frame-guide.md) | `frame` là size box | Nháp |
-| [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | Nháp |
+| [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | v1 |
 | [v1-appearance-guide.md](./v1-appearance-guide.md) | Hiện/ẩn và độ mờ | Nháp |
 | [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | Nháp |
 | [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | Nháp |
@@ -53,6 +53,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - Mọi layer bắt buộc `zIndex` và `timing`.
 - Child timing tính local theo cha; cửa sổ hiệu lực là phần giao.
 - `layout` chỉ trên `group`; `layoutItem` trên child visual. Không phải modifier.
+- `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 
 ---
 

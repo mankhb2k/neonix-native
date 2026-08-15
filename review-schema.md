@@ -16,7 +16,8 @@ V1 là **layers-only**. Nguồn:
 
 - Mọi layer: `zIndex` + `timing` bắt buộc. Nested `zIndex >= 0`. Unique trong siblings.
 - Child timing local to parent; effective = giao cửa sổ.
-- `frame` = size box local trước transform. Required trên sized leaves; optional trên group; cấm audio/camera. Không clip, không điều khiển subtree.
+- `frame` = size box local trước transform. Bắt buộc mọi visual layer (kể cả group); không clip; không suy từ children. Cấm audio/camera.
+- `transform` = hình học visual chung. Audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 - `group` = visual container, ≥1 child, không clip mặc định.
 - `semantic` = metadata, không đổi paint.
 - Không emit `locked` trong JSON authoring.

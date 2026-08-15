@@ -35,6 +35,7 @@
   - `layout` chỉ trên `group`
   - `layoutItem` trên child visual trong group
 - `frame` bắt buộc trên mọi visual layer, kể cả group. Cấm audio/camera. Canonical JSON không suy group.frame từ children.
+- `transform` bắt buộc trên mọi visual layer, cùng một cấu trúc. Audio không có transform. Scale âm = lật. `depth` ≠ `zIndex`.
 
 ---
 
@@ -89,3 +90,4 @@ Với group: cả subtree nằm trong slot `zIndex` của group ở scope ngoài
 - [v1-group-guide.md](./v1-group-guide.md)
 - [v1-frame-guide.md](./v1-frame-guide.md)
 - [v1-layout-guide.md](./v1-layout-guide.md)
+- [v1-transform-guide.md](./v1-transform-guide.md)

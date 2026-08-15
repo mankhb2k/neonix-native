@@ -7,7 +7,7 @@ export const AI_GLOBAL = [
   "group is a visual container and must have children and frame. group.frame does not clip. Use a mask to cut.",
   "Use appearance.opacity for opacity (integer 0..100).",
   "Layout lives on group.layout (mode row|column|grid). Children use layoutItem (fixed|hug|fill). Not a modifier. Do not emit wrap, grow, shrink, or grid span.",
-  "Use transform.depth for parallax. Never invent transform.z.",
+  "Every visual layer has the same transform: translate, scale, rotate.z, skew, origin, depth. Flip with negative scale. Prefer origin 0, 0.5, or 1. Never invent transform.z, flipX, or flipY.",
   "Use zIndex for stacking, not depth.",
   "Do not emit locked. semantic is optional tagging and does not change paint.",
   "Write the project file. Do not write JSON for a preview surface.",

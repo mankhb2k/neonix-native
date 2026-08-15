@@ -72,7 +72,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 Geometry only. Không size, opacity, zoom.
 
-**MVP 2.5D:** `translate.x/y`, `depth`, `rotate.z`, `scale.x/y`, `skew.x/y`, `origin.x/y`. `depth > 0` gần người xem, `< 0` xa hơn, `0` mặt phẳng thường. Keyframe được. Không phải `zIndex`. Không có perspective / rotate.x/y / scale.z / transform-style.
+**MVP 2.5D (V1 chốt):** cùng một `TransformSchema` cho mọi visual layer. `translate.x/y`, `scale.x/y` (âm = lật), `rotate.z`, `skew.x/y`, `origin.x/y` (0..1; AI ưu tiên 0 / 0.5 / 1), `depth`. `depth > 0` gần người xem. Không phải `zIndex`. Không flipX/Y, matrix, perspective, rotate.x/y, scale.z.
 
 | File | Nhiệm vụ |
 | --- | --- |

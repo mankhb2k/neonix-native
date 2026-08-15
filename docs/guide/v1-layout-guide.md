@@ -17,6 +17,7 @@
 - Child: `width` / `height` = `fixed` | `hug` | `fill`; `alignSelf`; min/max.
 - min/max clamp **sau** fixed/hug/fill.
 - Layout đọc `group.frame` (bắt buộc). Không suy box group từ children.
+- Layout tính placement trước; `transform` áp sau.
 
 **Không thuộc v1:** `wrap`, `grow`, `shrink` — schema reject.
 
@@ -59,3 +60,4 @@
 - [v1-frame-guide.md](./v1-frame-guide.md)
 - [v1-group-guide.md](./v1-group-guide.md)
 - [v1-layer-guide.md](./v1-layer-guide.md)
+- [v1-transform-guide.md](./v1-transform-guide.md)

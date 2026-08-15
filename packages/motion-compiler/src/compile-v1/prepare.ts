@@ -30,7 +30,7 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
     transform: clone(node.transform),
     appearance: clone(node.appearance),
   };
-  if (node.frame) base.frame = clone(node.frame);
+  if ("frame" in node && node.frame) base.frame = clone(node.frame);
   if (node.name) base.name = node.name;
   base.zIndex = node.zIndex;
   base.timing = clone(node.timing);

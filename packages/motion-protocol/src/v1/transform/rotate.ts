@@ -1,5 +1,5 @@
 /**
- * Xoay 2D theo độ — chỉ rotate.z. rotate.x/y không thuộc MVP.
+ * Xoay 2D theo độ — chỉ rotate.z. Không rotate.x/y, không 3D thật.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

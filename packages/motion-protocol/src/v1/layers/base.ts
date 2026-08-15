@@ -1,7 +1,7 @@
 /**
  * Nền node V1 — danh tính + nhóm atom.
  *
- * Size ở frame. Hình học ở transform. Opacity ở appearance.
+ * Size ở frame. Hình học ở transform (mọi visual layer cùng contract).
  * Blend/mask/isolation ở compositing.
  */
 import { z } from "zod";

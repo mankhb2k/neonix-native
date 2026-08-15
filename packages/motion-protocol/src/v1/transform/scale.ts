@@ -1,6 +1,6 @@
 /**
- * Tỷ lệ 2D { x, y }. Giá trị âm lật trục (thay flipX / flipY).
- * scale.z không thuộc MVP.
+ * Tỷ lệ 2D { x, y }. 1 = kích thước gốc. Âm = lật trục (không có flipX / flipY).
+ * scale.z không thuộc V1.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

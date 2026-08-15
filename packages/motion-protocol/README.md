@@ -45,7 +45,8 @@ Three package entries:
 - `project.layers[]` = root lanes; every layer requires `zIndex` (root visual `>= 0`, audio `< 0`, nested `>= 0`, unique among siblings)
 - Nesting via `group.children[]` (at least one child); child timing is local to parent and must fit inside the parent duration
 - Audio is a root-only leaf (`type: "audio"`)
-- `frame` = local size box before transform. Required on sized leaves; optional on group (does not clip); forbidden on audio/camera
+- `frame` = local size box before transform. Required on every visual layer including group (does not clip, not derived from children). Forbidden on audio/camera
+- `transform` = shared visual geometry (`translate`, `scale`, `rotate.z`, `skew`, `origin`, `depth`). Audio has none. Negative scale flips. `depth` is not `zIndex`.
 
 See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and [docs/guide/v1-group-guide.md](../../docs/guide/v1-group-guide.md).
 

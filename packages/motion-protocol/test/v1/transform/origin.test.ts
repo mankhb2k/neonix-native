@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { OriginSchema } from "../../../src/v1/transform/origin";
 
 describe("OriginSchema", () => {
-  it("defaults to frame center on xy", () => {
-    expect(OriginSchema.parse({})).toEqual({ x: 0.5, y: 0.5 });
+  it("accepts canonical origin corners and center", () => {
+    expect(OriginSchema.parse({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(OriginSchema.parse({ x: 0.5, y: 0.5 })).toEqual({ x: 0.5, y: 0.5 });
+    expect(OriginSchema.parse({ x: 1, y: 1 })).toEqual({ x: 1, y: 1 });
   });
 
   it("rejects origin.z and values outside 0–1", () => {

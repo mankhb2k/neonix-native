@@ -22,5 +22,9 @@ describe("TransformSchema", () => {
     expect(TransformSchema.safeParse({ rotate: { x: 10, z: 0 } }).success).toBe(
       false,
     );
+    expect(TransformSchema.safeParse({ flipX: true }).success).toBe(false);
+    expect(TransformSchema.safeParse({ matrix: [1, 0, 0, 1, 0, 0] }).success).toBe(
+      false,
+    );
   });
 });

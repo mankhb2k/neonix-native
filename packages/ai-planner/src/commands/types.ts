@@ -12,14 +12,12 @@ export const TransformPatchSchema = z
     width: Finite.nonnegative().optional(),
     height: Finite.nonnegative().optional(),
     rotation: Finite.optional(),
-    scaleX: Finite.nonnegative().optional(),
-    scaleY: Finite.nonnegative().optional(),
+    scaleX: Finite.optional(),
+    scaleY: Finite.optional(),
     anchorX: Finite.min(0).max(1).optional(),
     anchorY: Finite.min(0).max(1).optional(),
     opacity: Finite.int().min(0).max(100).optional(),
     visible: z.boolean().optional(),
-    flipX: z.boolean().optional(),
-    flipY: z.boolean().optional(),
   })
   .strict();
 

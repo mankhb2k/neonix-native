@@ -6,7 +6,7 @@ import {
   type TextMeasurementProvider,
 } from "./text-layout";
 
-type VisualLayer = Exclude<MotionLayer, { type: "audio" }>;
+type VisualLayer = Exclude<MotionLayer, { type: "audio" | "camera" }>;
 type GroupLayer = Extract<VisualLayer, { type: "group" }>;
 type LayoutConstraint = NonNullable<GroupLayer["layout"]>;
 type LayoutItemPolicy = NonNullable<VisualLayer["layoutItem"]>;
@@ -14,7 +14,7 @@ type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 type MutableNode = VisualLayer;
 
 function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
-  return layer.type !== "audio";
+  return layer.type !== "audio" && layer.type !== "camera";
 }
 
 function frameWidth(node: VisualLayer): number {

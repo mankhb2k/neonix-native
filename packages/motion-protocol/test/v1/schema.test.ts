@@ -503,7 +503,7 @@ describe("v1 schema — reject old contract", () => {
           ],
         }),
       ),
-    ).toThrow(/requires frame/);
+    ).toThrow(/frame/);
   });
 
   it("rejects layout wrap and layoutItem grow", () => {
@@ -570,7 +570,7 @@ describe("v1 schema — reject old contract", () => {
           ],
         }),
       ),
-    ).toThrow(/requires frame/);
+    ).toThrow(/frame/);
   });
 
   it("rejects component actions (props-only surface)", () => {

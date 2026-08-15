@@ -26,6 +26,7 @@
 - `semantic` tùy chọn; không dùng để “vẽ khác”.
 - `inheritFlags` và `modifiers` không dùng trừ khi user/tool cố ý.
 - Layout: chỉ `group.layout` + child `layoutItem`. Field: `mode`, `gap`, `padding`, `justify`, `align`, size `fixed|hug|fill`, `alignSelf`, min/max. Grid cần `columns`. Không `wrap` / `grow` / `shrink` / span.
+- Transform: mọi visual layer cùng `{ translate, scale, rotate.z, skew, origin, depth }`. Lật bằng scale âm. Origin AI: `0` \| `0.5` \| `1`. Không `flipX/Y`, không `transform.z`.
 
 ---
 
