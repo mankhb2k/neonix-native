@@ -1,149 +1,263 @@
 # MotiClip V1 Path
 
-> Trạng thái: nháp
+> Trạng thái: v1
 >
-> Mục tiêu: chốt `path` là layer vector tự do và đặt hành vi hình học vào `payload.geometry`.
+> Mục tiêu: layer vector tự do — hộp, contour, tô.
 
 ---
 
-## Path là gì
+## Khái niệm
 
-`path` là layer hình học vector tự do.
+`path` là visual leaf dựng từ **điểm và đoạn vector**.
 
-Khác với `shape`:
+Khác `shape`:
 
-- `shape` dùng cho primitive chuẩn: rectangle, ellipse, polygon. Xem [v1-shape-guide.md](./v1-shape-guide.md).
-- `path` dùng cho hình được mô tả bằng các điểm và các đoạn path
+| | `shape` | `path` |
+| --- | --- | --- |
+| Là gì | Hình có công thức sẵn | Hình tự vẽ |
+| Loại | rectangle / ellipse / polygon | contours + segments |
+| Dùng khi | Box, vòng, tam giác… | Icon, Bezier, lỗ, nhiều sub-path |
 
-Nói ngắn:
+Dùng `path` khi cần:
 
-- `shape` = hình có công thức sẵn
-- `path` = hình được dựng từ đường vector
+- icon / vector tự do
+- đường cong Bezier
+- contour phức tạp
+- nhiều sub-path trong cùng một layer (ví dụ chữ O)
 
-`path` chỉ nên chịu trách nhiệm cho:
-
-- hình học vector của chính nó
-- style fill/stroke của chính nó
-- các hành vi native của path nếu cần
-
-`path` không nên ôm:
-
-- layout
-- media playback
-- relationship logic chung
-- generic `modifier`
+Không dùng `path` cho hình chuẩn — dùng `shape`. Xem [v1-shape-guide.md](./v1-shape-guide.md).
 
 ---
 
-## Payload là gì
+## Ba phần của một path
 
-`payload` là phần dữ liệu riêng của `path`.
+| Phần | Việc |
+| --- | --- |
+| `frame` | Hộp kích thước trước transform |
+| `payload` | Hình vector (`contours`, `fillRule`, `morphTargets?`) |
+| `style` | Tô (`fill` / `stroke`) |
 
-Field chung của layer ở bên ngoài:
+`transform` / `appearance` / `timing` / `zIndex` giống mọi visual layer.
 
-- `timing`
-- `zIndex`
-- `frame`
-- `transform`
-- `appearance`
-- `compositing`
-- `effects`
-
-Field riêng của `path` ở trong `payload`.
+Không có `payload.geometry`. Contour nằm thẳng trên `payload`.
 
 ---
 
-## Geometry là gì
+## Rule chốt: không `payload.color`
 
-Trong `path`, dữ liệu hình học nên nằm trong `payload.geometry`.
+Màu path **chỉ** nằm ở:
 
-Lý do:
+- `style.fill`
+- `style.stroke`
 
-- `contours` là hình học
-- `trim` là hành vi hình học của path
-- nếu sau này giữ `morph` hay `bend`, đó cũng là hành vi hình học
-
-Vì vậy `geometry` là nơi đúng nhất để chứa những thứ này.
+Giống shape. `payload.color` dành cho text / solid.
 
 ---
 
-## Đã chốt
+## Payload
 
-- `path` là layer vector tự do.
-- `path` không dùng generic `modifier` trong authoring surface.
-- `payload` là nơi chứa dữ liệu riêng của `path`.
-- Hình học path nằm trong `payload.geometry`.
-- `payload.geometry.contours` là dữ liệu hình học cốt lõi.
-- `trim`, nếu giữ, thuộc về `payload.geometry`.
-- `frame` vẫn là size box của path layer.
-
----
-
-## Shape dữ liệu đang hướng tới
-
-```jsonc
+```json
 {
-  "type": "path",
-  "frame": { "width": 400, "height": 200 },
-  "payload": {
-    "geometry": {
-      "contours": [
-        /* ... */
+  "contours": [
+    {
+      "id": "c1",
+      "start": { "x": 20, "y": 20 },
+      "segments": [
+        { "kind": "line", "to": { "x": 180, "y": 20 } },
+        { "kind": "line", "to": { "x": 180, "y": 100 } },
+        { "kind": "line", "to": { "x": 20, "y": 100 } }
       ],
-      "trim": {
-        "start": 0,
-        "end": 1,
-        "offset": 0
-      }
+      "closed": true
     }
+  ],
+  "fillRule": "nonzero"
+}
+```
+
+| Field | Vai trò |
+| --- | --- |
+| `contours` | Các đường con trong cùng layer. Tối thiểu 1. `id` unique. |
+| `fillRule` | `nonzero` (mặc định) hoặc `evenodd` |
+| `morphTargets` | Advanced. Không dùng trong ví dụ AI mặc định |
+
+Điểm path (`start`, `to`, `control1`, `control2`) là tọa độ **local pixel trong frame**, không phải 0..1 như polygon.
+
+---
+
+## Contour
+
+Một contour = một nét liên tục.
+
+- `start` — điểm bắt đầu
+- `segments` — các đoạn nối tiếp sau `start` (tối thiểu 1)
+- `closed` — `true` khép kín, `false` hở
+
+Một path có thể có một hoặc nhiều contour (lỗ, icon nhiều mảng).
+
+### Segment V1
+
+**Line**
+
+```json
+{ "kind": "line", "to": { "x": 100, "y": 0 } }
+```
+
+**Cubic Bezier**
+
+```json
+{
+  "kind": "cubic",
+  "control1": { "x": 40, "y": 0 },
+  "control2": { "x": 60, "y": 100 },
+  "to": { "x": 100, "y": 100 }
+}
+```
+
+Không có quadratic / arc riêng trong V1 — xấp xỉ bằng cubic nếu cần.
+
+---
+
+## fillRule
+
+- `nonzero` — mặc định, winding rule
+- `evenodd` — lỗ xen kẽ
+
+Đây là khái niệm vector chuẩn, thuộc V1 canonical.
+
+---
+
+## Style
+
+AI mặc định:
+
+- `fill`
+- `stroke`
+- `strokeWidth`
+
+Nâng cao (schema vẫn nhận): `fillOpacity`, `strokeOpacity`, `lineCap`, `lineJoin`, `miterLimit`, `dash`, `dashOffset`, gradient fill.
+
+Path hở thường chỉ `stroke` + `strokeWidth`, không `fill`.
+
+---
+
+## Ví dụ
+
+### Path kín, fill + stroke
+
+```json
+{
+  "id": "path_1",
+  "type": "path",
+  "parentLayerId": null,
+  "zIndex": 1,
+  "timing": { "start": 0, "duration": 90 },
+  "frame": { "width": 200, "height": 120 },
+  "transform": {
+    "translate": { "x": 300, "y": 140 },
+    "scale": { "x": 1, "y": 1 },
+    "rotate": { "z": 0 },
+    "skew": { "x": 0, "y": 0 },
+    "origin": { "x": 0.5, "y": 0.5 },
+    "depth": 0
+  },
+  "appearance": { "visible": true, "opacity": 100 },
+  "payload": {
+    "contours": [
+      {
+        "id": "c1",
+        "start": { "x": 20, "y": 20 },
+        "segments": [
+          { "kind": "line", "to": { "x": 180, "y": 20 } },
+          { "kind": "line", "to": { "x": 180, "y": 100 } },
+          { "kind": "line", "to": { "x": 20, "y": 100 } }
+        ],
+        "closed": true
+      }
+    ],
+    "fillRule": "nonzero"
   },
   "style": {
-    "stroke": "#ffffff",
+    "fill": "#FF7A00",
+    "stroke": "#111111",
     "strokeWidth": 4
+  }
+}
+```
+
+### Path hở, chỉ stroke (cubic)
+
+```json
+{
+  "id": "curve_1",
+  "type": "path",
+  "parentLayerId": null,
+  "zIndex": 2,
+  "timing": { "start": 0, "duration": 90 },
+  "frame": { "width": 240, "height": 140 },
+  "transform": {
+    "translate": { "x": 600, "y": 160 },
+    "scale": { "x": 1, "y": 1 },
+    "rotate": { "z": 0 },
+    "skew": { "x": 0, "y": 0 },
+    "origin": { "x": 0.5, "y": 0.5 },
+    "depth": 0
+  },
+  "appearance": { "visible": true, "opacity": 100 },
+  "payload": {
+    "contours": [
+      {
+        "id": "c1",
+        "start": { "x": 20, "y": 100 },
+        "segments": [
+          {
+            "kind": "cubic",
+            "control1": { "x": 60, "y": 20 },
+            "control2": { "x": 160, "y": 20 },
+            "to": { "x": 220, "y": 100 }
+          }
+        ],
+        "closed": false
+      }
+    ],
+    "fillRule": "nonzero"
+  },
+  "style": {
+    "stroke": "#00C2FF",
+    "strokeWidth": 6
   }
 }
 ```
 
 ---
 
-## Trim là gì
+## Morph (advanced)
 
-`trim` là cách chỉ hiển thị một đoạn của path thay vì toàn bộ path.
+`morphTargets` được phép trong schema. Không đưa vào ví dụ AI mặc định.
 
-Ví dụ:
+Mỗi target là một bộ `contours` thay thế. Morph hợp lệ khi topology khớp **base**:
 
-- `start = 0`
-- `end = 0.5`
+- cùng số contour
+- cùng thứ tự (cùng `id` theo index)
+- cùng `closed` từng contour
+- cùng số segment
+- cùng `kind` segment tại từng vị trí
 
-thì chỉ hiện nửa đầu của path.
-
-`trim` là path-native behavior:
-
-- không đổi layer type
-- không phải transform
-- không phải effect
-- không phải concept generic
-
-Nó hợp với các case:
-
-- line reveal
-- draw-on
-- loading ring
-- path write-on
+Điểm (`start` / `to` / control) được nội suy; cấu trúc đoạn thì không.
 
 ---
 
-## Còn mở
+## Không thuộc V1 authoring mặc định
 
-- Shape cuối cùng của `payload.geometry.trim`.
-- `morph` sẽ được chốt sau.
-- `bend` sẽ được chốt sau.
-- `style` sẽ tiếp tục ở ngoài hay gom cách khác trong guide shape/path chung.
+- `payload.geometry` wrapper
+- `trim` trên payload (nếu có, thuộc runtime / nâng cao sau)
+- `payload.color`
+- quadratic / arc segment
+- generic `modifier`
 
 ---
 
 ## Xem thêm
 
-- [v1-layer-guide.md](./v1-layer-guide.md)
-- [v1-frame-guide.md](./v1-frame-guide.md)
 - [v1-shape-guide.md](./v1-shape-guide.md)
+- [v1-frame-guide.md](./v1-frame-guide.md)
+- [v1-layer-guide.md](./v1-layer-guide.md)

@@ -13,8 +13,7 @@ import { PaintStyleSchema } from "./paint";
 import {
   PointSchema,
   NormalizedPointSchema,
-  PathContourSchema,
-  PathMorphTargetSchema,
+  PathPayloadSchema,
 } from "../../v1/layers/geometry";
 export {
   PointSchema,
@@ -60,18 +59,6 @@ export const ShapeLayerSchema = LayerBaseSchema.extend({
 // Path node (runtime LayerBaseSchema, has fillRule)
 export const PathLayerSchema = LayerBaseSchema.extend({
   type: z.literal("path"),
-  payload: z
-    .object({
-      contours: z
-        .array(PathContourSchema)
-        .min(1)
-        .max(MOTION_PROTOCOL_LIMITS.pathContours),
-      fillRule: z.enum(["nonzero", "evenodd"]).default("nonzero"),
-      morphTargets: z
-        .array(PathMorphTargetSchema)
-        .max(MOTION_PROTOCOL_LIMITS.pathMorphTargets)
-        .optional(),
-    })
-    .strict(),
+  payload: PathPayloadSchema,
   style: PaintStyleSchema.optional(),
 }).strict();

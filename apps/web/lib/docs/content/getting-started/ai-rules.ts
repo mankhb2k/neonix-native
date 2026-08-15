@@ -15,5 +15,6 @@ export const AI_GLOBAL = [
   "A component layer is a sealed instance. Set wrapper atoms plus payload.props. Do not edit internals. Prefer payload.props over project.bindings. Bind only target.type prop to a public propId. Variants only override props.",
   "Prefer payload.props literals or project.bindings type prop. Do not emit inline variable refs on props. Do not emit component.variables.",
   "A shape layer is a formula primitive: rectangle, ellipse, or polygon. frame is the box, payload is the formula, style is paint. Put color on style.fill/stroke. Never payload.color. Polygon points are 0..1 inside the frame. Path is freeform vector, not shape.",
+  "A path layer is freeform vector: frame box, payload.contours (line/cubic), style paint. fillRule nonzero|evenodd. Never payload.color. morphTargets are advanced and must match base topology.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

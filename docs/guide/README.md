@@ -31,7 +31,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | v1 |
 | [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | v1 |
 | [v1-shape-guide.md](./v1-shape-guide.md) | Rectangle / ellipse / polygon; paint trên style | v1 |
-| [v1-path-guide.md](./v1-path-guide.md) | Layer path và hành vi hình học | Nháp |
+| [v1-path-guide.md](./v1-path-guide.md) | Vector tự do: contours, fillRule, paint trên style | v1 |
 | [v1-text-guide.md](./v1-text-guide.md) | Một hộp, một đoạn, một style | v1 |
 | [v1-image-guide.md](./v1-image-guide.md) | Layer ảnh | Nháp |
 | [v1-video-guide.md](./v1-video-guide.md) | Layer video | Nháp |

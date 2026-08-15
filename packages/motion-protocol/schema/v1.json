@@ -2615,6 +2615,14 @@
                               "minItems": 1,
                               "maxItems": 64
                             },
+                            "fillRule": {
+                              "type": "string",
+                              "enum": [
+                                "nonzero",
+                                "evenodd"
+                              ],
+                              "default": "nonzero"
+                            },
                             "morphTargets": {
                               "type": "array",
                               "items": {

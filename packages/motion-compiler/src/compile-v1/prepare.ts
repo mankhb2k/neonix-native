@@ -161,7 +161,10 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
     case "path":
       return {
         ...base,
-        payload: clone(node.payload),
+        payload: {
+          ...clone(node.payload),
+          fillRule: node.payload.fillRule ?? "nonzero",
+        },
         ...(node.style ? { style: clone(node.style) } : {}),
       };
     case "component":

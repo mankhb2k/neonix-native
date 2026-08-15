@@ -57,6 +57,7 @@ export {
   PathSegmentSchema,
   PathContourSchema,
   PathMorphTargetSchema,
+  PathPayloadSchema,
   type MotionPoint,
   type NormalizedPoint,
   type MotionPathSegment,

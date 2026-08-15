@@ -56,7 +56,7 @@ Project binding dừng ở prop. Owner mới nối vào leaf protocol:
 | number | `frame.width/height`, `transform.translate/scale/rotate.z/skew/depth/origin`, `appearance.opacity`, `effects.<id>` số, `layout.gap`, `layoutItem` min/max, `payload.cornerRadius` |
 | boolean | `appearance.visible` |
 | string | `payload.text` |
-| color | `payload.color` (text / solid), `style.fill`, `style.stroke`, `effects.<id>.color`. Shape không có `payload.color`. |
+| color | `payload.color` (text / solid), `style.fill`, `style.stroke`, `effects.<id>.color`. Shape và path không có `payload.color`. |
 | asset | `payload.assetId` (`assetKind` khớp) |
 | choice | `layout.mode/justify/align`, `layoutItem.width/height/alignSelf` |
 
