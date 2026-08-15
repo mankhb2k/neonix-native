@@ -52,7 +52,7 @@ export function TransportBar({
 }: Props) {
   return (
     <div
-      className="grid shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3"
+      className="grid shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3"
       style={{ height: TIMELINE_TRANSPORT_HEIGHT_PX }}
       data-testid="timeline-transport-bar"
     >
@@ -91,6 +91,7 @@ export function TransportBar({
         <CurrentTimeDisplay currentTime={currentTime} fps={fps} />
         <button
           type="button"
+          data-testid="timeline-play"
           aria-label={isPlaying ? "Pause" : "Play"}
           onClick={onTogglePlay}
           className="inline-flex h-7 w-7 cursor-pointer items-center justify-center justify-self-center rounded-md border-0 bg-transparent text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"

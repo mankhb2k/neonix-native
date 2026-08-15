@@ -11,8 +11,8 @@ export function middleware(request: NextRequest) {
   const hostname = getHostname(request.headers.get("host"));
   const { pathname } = request.nextUrl;
 
-  // API routes stay at /api/* on every host
-  if (pathname.startsWith("/api/")) {
+  // API and docs stay on this host (no /app rewrite)
+  if (pathname.startsWith("/api/") || pathname.startsWith("/docs")) {
     return NextResponse.next();
   }
 

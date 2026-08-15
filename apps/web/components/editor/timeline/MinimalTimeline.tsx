@@ -118,7 +118,7 @@ export function MinimalTimeline() {
         <div
           ref={trackRef}
           data-testid="timeline-scene-strip"
-          className="relative h-12 w-full cursor-ew-resize select-none overflow-hidden rounded-md border border-[var(--border-subtle)] bg-[var(--bg-app)]"
+          className="relative h-12 w-full cursor-ew-resize select-none overflow-hidden rounded-md border border-[var(--border-subtle)] bg-[var(--bg-site)]"
           onPointerDown={onPointerDown}
         >
           <div className="absolute inset-0 flex">

@@ -51,6 +51,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   const fps = project ? compositionFps(project) : 30;
   const fpsRef = useRef(fps);
   fpsRef.current = fps;
+  const playbackMode = usePlaybackClock((s) => s.mode);
 
   const projectRef = useRef(project);
   const clipsRef = useRef(clips);
@@ -158,13 +159,38 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   }, [scale]);
 
   useEffect(() => {
+    rendererRef.current?.setPlaying?.(playbackMode === "playing");
+  }, [playbackMode, projectAvailable]);
+
+  useEffect(() => {
     if (!projectAvailable) return undefined;
     let last = -1;
+    let lastPlaying = false;
     return usePlaybackClock.subscribe((state) => {
+      const playing = state.mode === "playing";
+      const renderer = rendererRef.current;
+      if (playing !== lastPlaying) {
+        lastPlaying = playing;
+        renderer?.setPlaying?.(playing);
+        if (!playing) {
+          const frame = playbackFrameIndex(
+            state.currentTime,
+            fpsRef.current,
+          );
+          last = frame;
+          renderer?.paintFrame(frame);
+          syncOverlayFromRenderer();
+          return;
+        }
+      }
+      if (playing) {
+        renderer?.syncPlayhead?.(state.currentTime);
+        return;
+      }
       const frame = playbackFrameIndex(state.currentTime, fpsRef.current);
       if (frame === last) return;
       last = frame;
-      rendererRef.current?.paintFrame(frame);
+      renderer?.paintFrame(frame);
       syncOverlayFromRenderer();
     });
   }, [projectAvailable]);
@@ -190,6 +216,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
         <div
           className="preview-stage__viewport overflow-hidden"
           ref={mountRef}
+          data-testid="preview-stage-surfaces"
         />
         <div className="absolute inset-0">
           <InteractionOverlay

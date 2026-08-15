@@ -41,7 +41,7 @@ export function EditorShell({ initialSnapshot }: Props) {
     <div
       data-surface="editor"
       data-testid="editor-shell"
-      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:radial-gradient(ellipse_80%_50%_at_50%_-5%,rgba(13,148,136,0.06)_0%,transparent_55%),var(--bg-app)] [grid-template-areas:'header_header_header'_'sidebar_stage_inspector'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
+      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:radial-gradient(ellipse_80%_50%_at_50%_-5%,rgba(13,148,136,0.06)_0%,transparent_55%),var(--bg-site)] [grid-template-areas:'header_header_header'_'sidebar_stage_inspector'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
     >
       <EditorHeader projectName={name} projectId={active.metadata.id} />
       <Sidebar />

@@ -10,21 +10,27 @@ import {
 } from "@/lib/editor/project-storage";
 
 const hubBg =
-  "min-h-screen text-[var(--fg-primary)] [background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-app)]";
+  "min-h-screen text-[var(--fg-primary)] [background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-site)]";
 
 export default function EditorPage() {
   const params = useParams<{ projectId: string }>();
+  const projectId = Array.isArray(params.projectId)
+    ? params.projectId[0]
+    : params.projectId;
   const [snapshot, setSnapshot] = useState<EditorProjectSnapshot | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    const found = loadEditorProjectSnapshot(params.projectId);
+    if (!projectId) return;
+    const found = loadEditorProjectSnapshot(decodeURIComponent(projectId));
     if (!found) {
       setMissing(true);
+      setSnapshot(null);
       return;
     }
+    setMissing(false);
     setSnapshot(found);
-  }, [params.projectId]);
+  }, [projectId]);
 
   if (missing) {
     return (

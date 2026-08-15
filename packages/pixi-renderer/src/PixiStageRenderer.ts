@@ -30,6 +30,8 @@ export type PixiStageRenderer = EvaluatedFramePainter & {
   setQuality(tier: "interactive" | "high"): void;
   setBackground(color: string): void;
   setGraphId(graphId: string | undefined): void;
+  /** Stop the Pixi ticker during buffered RAM-preview playback. */
+  setTickerEnabled(enabled: boolean): void;
   dispose(): void;
 };
 
@@ -115,6 +117,17 @@ export function createPixiStageRenderer(): PixiStageRenderer {
       graphId = id;
       void graphId;
       void runtime;
+    },
+
+    setTickerEnabled(enabled) {
+      if (!app) return;
+      if (enabled) {
+        app.ticker.start();
+        painter.setPaused(false);
+      } else {
+        app.ticker.stop();
+        painter.setPaused(true);
+      }
     },
 
     dispose() {

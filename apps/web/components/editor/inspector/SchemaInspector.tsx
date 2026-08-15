@@ -226,7 +226,7 @@ function PropertyControl({
     ) : null;
 
   const inputClass =
-    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
+    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
 
   const lockBtn =
     target != null ? (

@@ -77,7 +77,7 @@ export function TimelineShell() {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col bg-[var(--bg-panel)]"
+      className="flex h-full min-h-0 flex-col bg-[var(--bg-editor)]"
       data-testid="editor-timeline"
     >
       <TransportBar

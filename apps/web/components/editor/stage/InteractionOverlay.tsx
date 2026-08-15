@@ -16,6 +16,7 @@ import {
   selectionNode,
   visualTracksToTimelineClips,
 } from "@motionvideo/editor-core";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
@@ -244,6 +245,10 @@ export function InteractionOverlay({
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent) => {
+      if (usePlaybackClock.getState().mode === "playing") {
+        usePlaybackClock.getState().pause();
+        return;
+      }
       if (!snapshot) return;
       const point = toCompositionPoint(event.clientX, event.clientY);
       if (!point) return;
@@ -375,7 +380,7 @@ export function InteractionOverlay({
                 data-handle={handle}
                 data-testid={`resize-handle-${handle}`}
                 aria-label={`Resize ${handle}`}
-                className="absolute h-2 w-2 cursor-pointer border border-[var(--bg-app)] bg-[var(--accent)] p-0"
+                className="absolute h-2 w-2 cursor-pointer border border-[var(--bg-site)] bg-[var(--accent)] p-0"
                 style={{ ...pos, pointerEvents: "auto" }}
               />
             );
@@ -385,7 +390,7 @@ export function InteractionOverlay({
             data-handle="rotate"
             data-testid="rotate-handle"
             aria-label="Rotate"
-            className="absolute left-[calc(50%-4px)] h-2 w-2 cursor-pointer rounded-full border border-[var(--bg-app)] bg-[var(--accent-text)] p-0"
+            className="absolute left-[calc(50%-4px)] h-2 w-2 cursor-pointer rounded-full border border-[var(--bg-site)] bg-[var(--accent-text)] p-0"
             style={{ top: "-18px", pointerEvents: "auto" }}
           />
         </div>

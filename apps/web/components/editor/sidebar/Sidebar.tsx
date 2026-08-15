@@ -19,9 +19,9 @@ function LayerTree() {
     [project],
   );
   const scene =
-    preview?.project.scenes.find((s) => s.id === preview.sceneId) ??
-    preview?.project.scenes[0];
-  const layers = scene?.layers ?? [];
+    preview?.project.scenes?.find((s) => s.id === preview.sceneId) ??
+    preview?.project.scenes?.[0];
+  const layers = scene?.layers ?? preview?.project.layers ?? [];
 
   return (
     <div className="space-y-1 p-2" data-testid="layer-tree">

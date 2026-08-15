@@ -32,19 +32,12 @@ function makeRuntime(
   extraLayers: number = 0,
 ): MotionRuntimeProject {
   const transform = {
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-    rotation: 0,
-    opacity: 1,
-    visible: true,
-    anchorX: 0,
-    anchorY: 0,
-    scaleX: 1,
-    scaleY: 1,
-    flipX: false,
-    flipY: false,
+    translate: { x: 0, y: 0 },
+    rotate: { z: 0 },
+    scale: { x: 1, y: 1 },
+    skew: { x: 0, y: 0 },
+    origin: { x: 0.5, y: 0.5 },
+    depth: 0,
   };
   const layers: MotionRuntimeProject["layers"] = [
     {
@@ -52,7 +45,9 @@ function makeRuntime(
       id: "n1",
       parentLayerId: null,
       zIndex: 0,
+      frame: { width: 100, height: 100 },
       transform,
+      appearance: { visible: true, opacity: 100 },
       payload: {},
     } as MotionRuntimeProject["layers"][number],
   ];
@@ -62,7 +57,9 @@ function makeRuntime(
       id: `n_extra_${i}`,
       parentLayerId: null,
       zIndex: i + 1,
+      frame: { width: 100, height: 100 },
       transform,
+      appearance: { visible: true, opacity: 100 },
       payload: {},
     } as MotionRuntimeProject["layers"][number]);
   }

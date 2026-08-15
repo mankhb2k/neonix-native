@@ -53,7 +53,7 @@ export const TimeRuler = memo(function TimeRuler({
 
   return (
     <div
-      className="relative w-full shrink-0 cursor-default select-none overflow-hidden bg-[var(--bg-panel)]"
+      className="relative w-full shrink-0 cursor-default select-none overflow-hidden bg-[var(--bg-editor)]"
       style={{ height: TIMELINE_RULER_HEIGHT_PX }}
       data-testid="timeline-ruler"
       onPointerDown={(event) => {
@@ -81,7 +81,7 @@ export const TimeRuler = memo(function TimeRuler({
             />
             {labeled ? (
               <span className="mt-px select-none whitespace-nowrap pt-px text-[10px] leading-none tabular-nums tracking-tight text-[var(--timeline-ruler-label)]">
-                {formatRulerLabel(frame, safeFps, labelEveryFrames)}
+                {formatRulerLabel(frame, safeFps)}
               </span>
             ) : null}
           </div>

@@ -51,7 +51,7 @@ export function resolvePropertyTargets(
             firstEditableNodeId,
           )
         : firstEditableNodeId(scene);
-    if (!nodeId) continue;
+    if (!layerId) continue;
     const key = `${sceneId}::${layerId}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -68,7 +68,7 @@ export function resolvePropertyTargets(
       project,
       firstEditableNodeId,
     );
-    if (sceneId && nodeId) targets.push({ sceneId, layerId });
+    if (sceneId && layerId) targets.push({ sceneId, layerId });
   }
 
   return targets;

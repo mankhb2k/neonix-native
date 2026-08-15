@@ -23,12 +23,14 @@ export function visualTracksToTimelineClips(project: MotionProject): {
   lanes: TimelineLane[];
   clips: TimelineClip[];
 } {
-  const scenesById = new Map(project.scenes.map((s) => [s.id, s] as const));
+  const scenesById = new Map(
+    (project.scenes ?? []).map((s) => [s.id, s] as const),
+  );
   const lanes: TimelineLane[] = [];
   const clips: TimelineClip[] = [];
 
   // ── Visual tracks → lanes + scene clips ──
-  const visualTracks = project.timeline.visualTracks;
+  const visualTracks = project.timeline.visualTracks ?? [];
 
   for (const track of visualTracks) {
     const role: "base" | "overlay" =
@@ -60,7 +62,7 @@ export function visualTracksToTimelineClips(project: MotionProject): {
   }
 
   // ── Audio tracks → audio clips (shared lane) ──
-  const audioTracks = project.timeline.audioTracks;
+  const audioTracks = project.timeline.audioTracks ?? [];
   if (audioTracks.length > 0) {
     const audioLaneId = _uid("lane_audio");
     const audioLane: TimelineLane = {

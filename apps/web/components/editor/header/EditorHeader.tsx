@@ -75,7 +75,7 @@ export function EditorHeader({ projectName, projectId }: Props) {
     .join(" · ");
 
   return (
-    <header className="flex h-[var(--editor-chrome-h)] items-center gap-2 border-b-2 border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3 shadow-sm [grid-area:header]">
+    <header className="flex h-[var(--editor-chrome-h)] items-center gap-2 border-b-2 border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3 shadow-sm [grid-area:header]">
       <div className="flex shrink-0 items-center gap-0.5">
         <AppLink
           href="/"

@@ -160,7 +160,7 @@ export function AskAIBar() {
         ) : null}
       </div>
 
-      <div className="shrink-0 bg-[var(--bg-panel)] p-3">
+      <div className="shrink-0 bg-[var(--bg-editor)] p-3">
         <div className="flex flex-col overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] focus-within:border-[var(--border-focus)]">
           <textarea
             value={prompt}

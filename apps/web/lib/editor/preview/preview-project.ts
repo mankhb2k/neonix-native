@@ -23,10 +23,10 @@ export function firstSceneId(project: MotionProject): string | null {
       if (first && first.source.kind === "scene") return first.source.sceneId;
     }
   }
-  return project.scenes[0]?.id ?? null;
+  return project.scenes?.[0]?.id ?? null;
 }
 
-/** Project used for stage preview + hit-test (Facebook History when blank). */
+/** Project used for stage preview + hit-test. */
 export function resolvePreviewProject(project: MotionProject): {
   project: MotionProject;
   usingDemo: boolean;
@@ -36,12 +36,19 @@ export function resolvePreviewProject(project: MotionProject): {
   if (sceneId) {
     return { project, usingDemo: false, sceneId };
   }
-  const demo = createFacebookHistoryDemoProject();
-  return {
-    project: demo,
-    usingDemo: true,
-    sceneId: FB_HISTORY_SCENE_IDS.hook,
-  };
+  if (Array.isArray(project.layers) && project.layers.length > 0) {
+    return { project, usingDemo: false, sceneId: "root" };
+  }
+  try {
+    const demo = createFacebookHistoryDemoProject();
+    return {
+      project: demo,
+      usingDemo: true,
+      sceneId: FB_HISTORY_SCENE_IDS.hook,
+    };
+  } catch {
+    return { project, usingDemo: false, sceneId: "root" };
+  }
 }
 
 export function buildPreviewSnapshot(

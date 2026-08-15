@@ -26,10 +26,27 @@ import {
   compositionFps,
 } from "@/lib/runtime/project-composition";
 
+export type { StageRendererBackend, StageRendererPort };
+
+function readClientStageOverride(): StageRendererBackend | null {
+  if (typeof window === "undefined") return null;
+  const query = new URLSearchParams(window.location.search).get("stage");
+  if (query === "blit" || query === "pixi" || query === "dom") return query;
+  try {
+    const stored = window.sessionStorage.getItem("MOTICLIP_STAGE_RENDERER");
+    if (stored === "blit" || stored === "pixi" || stored === "dom") return stored;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export function resolveStageRendererBackend(): StageRendererBackend {
+  const client = readClientStageOverride();
+  if (client) return client;
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
   if (raw === "dom") return "dom";
-  // pixi is default; remotion is handled outside this factory
+  if (raw === "blit") return "blit";
   return "pixi";
 }
 
@@ -41,6 +58,12 @@ export async function createStageRenderer(
   host: HTMLElement,
   backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
 ): Promise<StageRendererPort> {
+  if (backend === "blit") {
+    const { createBlitStageRenderer } = await import(
+      "@/lib/editor/stage/blit-stage-renderer"
+    );
+    return createBlitStageRenderer(host);
+  }
   if (backend === "pixi") {
     const pixi = createPixiStageRenderer();
     await pixi.mount(host);

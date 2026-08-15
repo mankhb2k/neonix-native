@@ -57,12 +57,20 @@ export default function MarketingHomePage() {
         Logo, màu brand, kịch bản tiếng Việt — ra timeline chỉnh được, không cần
         After Effects.
       </p>
+      <div className="flex flex-wrap gap-3">
       <a
         href={appUrl("/")}
         className="inline-flex h-10 items-center justify-center rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] no-underline shadow-[0_6px_18px_rgba(13,148,136,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(13,148,136,0.34)]"
       >
         Mở app
       </a>
+      <a
+        href="/docs"
+        className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-subtle,#e4e4e7)] bg-white px-4 font-semibold text-[var(--fg-primary)] no-underline"
+      >
+        Docs
+      </a>
+      </div>
     </main>
   );
 }

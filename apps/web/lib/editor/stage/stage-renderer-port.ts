@@ -45,9 +45,13 @@ export type StageRendererPort = StageRendererPortShape & {
     clips: TimelineClip[];
     lanes: TimelineLane[];
   }): void;
+  /** Dual-path blit: switch Pixi live vs worker RAM-preview. */
+  setPlaying?(playing: boolean): void;
+  /** Dual-path blit: drive worker present/top-up from the host clock. */
+  syncPlayhead?(time: number): void;
 };
 
-export type StageRendererBackend = "dom" | "pixi";
+export type StageRendererBackend = "dom" | "pixi" | "blit";
 
 function nodeDomKey(clipId: string, layerId: string): string {
   return `${clipId}\0${layerId}`;

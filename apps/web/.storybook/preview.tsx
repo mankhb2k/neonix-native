@@ -21,7 +21,7 @@ const preview: Preview = {
         data-theme="light"
         style={{
           padding: "20px",
-          background: "var(--bg-app)",
+          background: "var(--bg-site)",
           color: "var(--fg-primary)",
           borderRadius: "12px",
           minHeight: "100px",

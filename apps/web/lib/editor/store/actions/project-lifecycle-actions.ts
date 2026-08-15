@@ -80,7 +80,10 @@ export function createProjectLifecycleActions(
 
       // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
       usePlaybackClock.getState().reset({
-        duration: clipsContentEndSeconds(clips),
+        duration: Math.max(
+          clipsContentEndSeconds(clips),
+          project.timeline.duration ?? 0,
+        ),
         currentTime: 0,
       });
     },

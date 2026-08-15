@@ -64,3 +64,9 @@ export {
   computePaintItemFingerprint,
   computePaintResourceFingerprint,
 } from "./paint-item-fingerprint";
+export {
+  replayPaintCommands2D,
+  type Canvas2DReplayContext,
+  type ReplayPaint2DOptions,
+  type Replay2DImageSource,
+} from "./replay-2d";
