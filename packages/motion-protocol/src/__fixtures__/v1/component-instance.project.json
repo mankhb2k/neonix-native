@@ -40,7 +40,6 @@
       "version": "1.0.0",
       "integrity": "sha256:logo-reveal-1.0.0",
       "props": [],
-      "variables": [],
       "layers": [
         {
           "id": "logo",

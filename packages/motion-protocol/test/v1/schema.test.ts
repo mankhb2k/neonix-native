@@ -603,7 +603,6 @@ describe("v1 schema — reject old contract", () => {
             props: [],
             variants: [],
             propBindings: [],
-            variables: [],
             layers: [
               {
                 id: "label",
@@ -650,7 +649,6 @@ describe("v1 schema — reject old contract", () => {
             props: [],
             variants: [],
             propBindings: [],
-            variables: [],
             layers: [
               {
                 id: "label",
@@ -707,7 +705,6 @@ describe("v1 schema — reject old contract", () => {
               },
             ],
             propBindings: [],
-            variables: [],
             layers: [
               {
                 id: "label",

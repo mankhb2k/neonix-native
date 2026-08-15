@@ -71,7 +71,6 @@ function baseProject(overrides: Record<string, unknown> = {}) {
             },
           },
         ],
-        variables: [],
         layers: [textLayer("child-label")],
       },
       {
@@ -104,7 +103,6 @@ function baseProject(overrides: Record<string, unknown> = {}) {
             },
           },
         ],
-        variables: [],
         layers: [
           {
             id: "nested-btn",
@@ -288,100 +286,10 @@ describe("V1 component / binding / keyframe references", () => {
     expect(project.layers[0]?.type).toBe("component");
   });
 
-  it("rejects project instance payload.props that reference component.variables", () => {
+  it("rejects inline variable refs on payload.props", () => {
     expect(() =>
       parseMotionProjectV1(
         baseProject({
-          components: [
-            {
-              id: "child-btn",
-              version: "1.0.0",
-              integrity: "sha256:child-btn",
-              props: [
-                {
-                  id: "label",
-                  name: "Label",
-                  kind: "string",
-                  default: "Click",
-                },
-              ],
-              variants: [],
-              propBindings: [
-                {
-                  propId: "label",
-                  target: {
-                    kind: "layerProperty",
-                    layerId: "child-label",
-                    property: "payload.content.text",
-                  },
-                },
-              ],
-              variables: [],
-              layers: [textLayer("child-label")],
-            },
-            {
-              id: "parent-card",
-              version: "1.0.0",
-              integrity: "sha256:parent-card",
-              props: [
-                {
-                  id: "title",
-                  name: "Title",
-                  kind: "string",
-                  default: {
-                    ref: { kind: "variable", id: "internal-title" },
-                  },
-                },
-              ],
-              variants: [
-                {
-                  id: "promo",
-                  name: "Promo",
-                  props: {
-                    title: {
-                      ref: { kind: "variable", id: "internal-title" },
-                    },
-                  },
-                },
-              ],
-              propBindings: [
-                {
-                  propId: "title",
-                  target: {
-                    kind: "childProp",
-                    childLayerId: "nested-btn",
-                    propId: "label",
-                  },
-                },
-              ],
-              variables: [
-                {
-                  id: "internal-title",
-                  name: "Internal Title",
-                  type: "string",
-                  value: "Inside",
-                },
-              ],
-              layers: [
-                {
-                  id: "nested-btn",
-                  type: "component",
-                  parentLayerId: null,
-                  zIndex: 0,
-                  timing: { start: 0, duration: 4 },
-                  ...ATOMS,
-                  payload: {
-                    componentId: "child-btn",
-                    props: {
-                      label: {
-                        ref: { kind: "variable", id: "internal-title" },
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          ],
           layers: [
             {
               id: "card-instance",
@@ -393,317 +301,37 @@ describe("V1 component / binding / keyframe references", () => {
               payload: {
                 componentId: "parent-card",
                 props: {
-                  title: {
-                    ref: { kind: "variable", id: "internal-title" },
-                  },
+                  title: { ref: { kind: "variable", id: "cta-label" } },
                 },
               },
             },
           ],
         }),
       ),
-    ).toThrow(/unknown variable "internal-title"/);
+    ).toThrow();
   });
 
-  it("accepts owner default, variant, and nested payload.props bound to component.variables", () => {
-    const project = parseMotionProjectV1(
-      baseProject({
-        components: [
-          {
-            id: "child-btn",
-            version: "1.0.0",
-            integrity: "sha256:child-btn",
-            props: [
-              {
-                id: "label",
-                name: "Label",
-                kind: "string",
-                default: "Click",
-              },
-            ],
-            variants: [],
-            propBindings: [
-              {
-                propId: "label",
-                target: {
-                  kind: "layerProperty",
-                  layerId: "child-label",
-                  property: "payload.content.text",
-                },
-              },
-            ],
-            variables: [],
-            layers: [textLayer("child-label")],
-          },
-          {
-            id: "parent-card",
-            version: "1.0.0",
-            integrity: "sha256:parent-card",
-            props: [
-              {
-                id: "title",
-                name: "Title",
-                kind: "string",
-                default: {
-                  ref: { kind: "variable", id: "internal-title" },
-                },
-              },
-            ],
-            variants: [
-              {
-                id: "promo",
-                name: "Promo",
-                props: {
-                  title: {
-                    ref: { kind: "variable", id: "internal-title" },
-                  },
-                },
-              },
-            ],
-            propBindings: [
-              {
-                propId: "title",
-                target: {
-                  kind: "childProp",
-                  childLayerId: "nested-btn",
-                  propId: "label",
-                },
-              },
-            ],
-            variables: [
-              {
-                id: "internal-title",
-                name: "Internal Title",
-                type: "string",
-                value: "Inside",
-              },
-            ],
-            layers: [
-              {
-                id: "nested-btn",
-                type: "component",
-                parentLayerId: null,
-                zIndex: 0,
-                timing: { start: 0, duration: 4 },
-                ...ATOMS,
-                payload: {
-                  componentId: "child-btn",
-                  props: {
-                    label: {
-                      ref: { kind: "variable", id: "internal-title" },
-                    },
-                  },
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    expect(project.components[1]?.variables[0]?.id).toBe("internal-title");
-  });
-
-  it("rejects nested instance props that reference a child component's variables", () => {
+  it("rejects component.variables on a definition", () => {
+    const child = baseProject().components[0] as Record<string, unknown>;
     expect(() =>
       parseMotionProjectV1(
         baseProject({
           components: [
             {
-              id: "child-btn",
-              version: "1.0.0",
-              integrity: "sha256:child-btn",
-              props: [
-                {
-                  id: "label",
-                  name: "Label",
-                  kind: "string",
-                  default: "Click",
-                },
-              ],
-              variants: [],
-              propBindings: [
-                {
-                  propId: "label",
-                  target: {
-                    kind: "layerProperty",
-                    layerId: "child-label",
-                    property: "payload.content.text",
-                  },
-                },
-              ],
+              ...child,
               variables: [
                 {
-                  id: "child-secret",
-                  name: "Child Secret",
+                  id: "internal",
+                  name: "Internal",
                   type: "string",
-                  value: "nope",
-                },
-              ],
-              layers: [textLayer("child-label")],
-            },
-            {
-              id: "parent-card",
-              version: "1.0.0",
-              integrity: "sha256:parent-card",
-              props: [
-                {
-                  id: "title",
-                  name: "Title",
-                  kind: "string",
-                  default: "Card",
-                },
-              ],
-              variants: [],
-              propBindings: [
-                {
-                  propId: "title",
-                  target: {
-                    kind: "childProp",
-                    childLayerId: "nested-btn",
-                    propId: "label",
-                  },
-                },
-              ],
-              variables: [],
-              layers: [
-                {
-                  id: "nested-btn",
-                  type: "component",
-                  parentLayerId: null,
-                  zIndex: 0,
-                  timing: { start: 0, duration: 4 },
-                  ...ATOMS,
-                  payload: {
-                    componentId: "child-btn",
-                    props: {
-                      label: {
-                        ref: { kind: "variable", id: "child-secret" },
-                      },
-                    },
-                  },
+                  value: "x",
                 },
               ],
             },
           ],
         }),
       ),
-    ).toThrow(/unknown variable "child-secret"/);
-  });
-
-  it("rejects component.variables that collide with project.variables", () => {
-    expect(() =>
-      parseMotionProjectV1(
-        baseProject({
-          components: [
-            {
-              id: "child-btn",
-              version: "1.0.0",
-              integrity: "sha256:child-btn",
-              props: [
-                {
-                  id: "label",
-                  name: "Label",
-                  kind: "string",
-                  default: "Click",
-                },
-              ],
-              variants: [],
-              propBindings: [
-                {
-                  propId: "label",
-                  target: {
-                    kind: "layerProperty",
-                    layerId: "child-label",
-                    property: "payload.content.text",
-                  },
-                },
-              ],
-              variables: [
-                {
-                  id: "cta-label",
-                  name: "Shadowed",
-                  type: "string",
-                  value: "leak",
-                },
-              ],
-              layers: [textLayer("child-label")],
-            },
-          ],
-          layers: [
-            {
-              id: "btn-instance",
-              type: "component",
-              parentLayerId: null,
-              zIndex: 0,
-              timing: { start: 0, duration: 1 },
-              ...ATOMS,
-              payload: { componentId: "child-btn" },
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/collides with project.variables/);
-  });
-
-  it("rejects duplicate ids inside component.variables", () => {
-    expect(() =>
-      parseMotionProjectV1(
-        baseProject({
-          components: [
-            {
-              id: "child-btn",
-              version: "1.0.0",
-              integrity: "sha256:child-btn",
-              props: [
-                {
-                  id: "label",
-                  name: "Label",
-                  kind: "string",
-                  default: "Click",
-                },
-              ],
-              variants: [],
-              propBindings: [
-                {
-                  propId: "label",
-                  target: {
-                    kind: "layerProperty",
-                    layerId: "child-label",
-                    property: "payload.content.text",
-                  },
-                },
-              ],
-              variables: [
-                {
-                  id: "dup-var",
-                  name: "A",
-                  type: "string",
-                  value: "a",
-                },
-                {
-                  id: "dup-var",
-                  name: "B",
-                  type: "string",
-                  value: "b",
-                },
-              ],
-              layers: [textLayer("child-label")],
-            },
-          ],
-          layers: [
-            {
-              id: "btn-instance",
-              type: "component",
-              parentLayerId: null,
-              zIndex: 0,
-              timing: { start: 0, duration: 1 },
-              ...ATOMS,
-              payload: { componentId: "child-btn" },
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/Duplicate variable id: dup-var/);
+    ).toThrow();
   });
 
   it("rejects childProp pointing at a non-component layer", () => {
@@ -734,7 +362,6 @@ describe("V1 component / binding / keyframe references", () => {
                   },
                 },
               ],
-              variables: [],
               layers: [textLayer("not-a-component")],
             },
           ],
@@ -782,7 +409,6 @@ describe("V1 component / binding / keyframe references", () => {
                   },
                 },
               ],
-              variables: [],
               layers: [textLayer("label")],
             },
           ],

@@ -7,8 +7,7 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { VariableSchema } from "../variables";
-import { JsonValueSchema } from "../values";
+import { LiteralValueSchema } from "../values";
 import {
   IdSchema,
   PropertyPathSchema,
@@ -61,7 +60,7 @@ export const ComponentPropV1Schema = z
     id: IdSchema,
     name: z.string().min(1).optional(),
     kind: ComponentPropKindSchema,
-    default: JsonValueSchema,
+    default: LiteralValueSchema,
     /** When omitted, inferred: choice/asset → false; others → true. */
     animatable: z.boolean().optional(),
     /** Required when kind === "asset". */
@@ -159,11 +158,6 @@ export const ComponentDefinitionV1Schema = z
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
 
-    // ── Nội bộ owner (niêm phong với consumer) ─────────────────────
-    variables: z
-      .array(VariableSchema)
-      .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
-      .default([]),
     layers: z
       .array(LayerV1Schema)
       .min(1)

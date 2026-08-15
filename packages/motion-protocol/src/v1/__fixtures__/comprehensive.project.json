@@ -237,7 +237,6 @@
           "default": 80
         }
       ],
-      "variables": [],
       "layers": [
         {
           "id": "lt-bg",

@@ -49,14 +49,14 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 - Owner sở hữu toàn bộ internals (layers). Public props là luồng drive duy nhất từ ngoài vào trong.
 - Consumer: wrapper atoms + public `props` / `variantId`. Wiring owner = `propBindings`. Variant chỉ override props.
-- Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
-- `payload.props` trên project instance chỉ ref `project.variables`. `component.variables` chỉ cho default / variant / nested instance trong definition.
+- Prop values: static literal | keyframes (chỉ khi `animatable`). Không inline `{ ref: variable }`. Variable chỉ vào prop qua `project.bindings`.
+- Không có `component.variables`.
 - Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
 - Project binding chỉ `type: "prop"`; nested chỉ `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
 
-- Chỉ `target.type: "prop"` (`layerId` + `propId`). Không bind layer field.
+- Chỉ `target.type: "prop"` (`layerId` + `propId`). Không bind layer field. Không inline variable ref trên prop value.
 - Consumer bắt buộc dùng `propId` — không lách internals.
 - Canonical: `ProjectBindingV1Schema`. Prop kinds: string, number, boolean, color, asset, choice. Owner sinks ở `prop-sinks.ts`.
 
@@ -65,7 +65,6 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Sau khi Zod parse xong, reference validation chạy gì: id tồn tại, asset type đúng, property path đúng layer type.
 - `propBindings` có trỏ tới layer thật (`layerProperty.layerId`) / child component trực tiếp (`childProp`) không.
 - Binding có đi qua public API không, hay lách vào internal.
-- `component.variables` không được merge vào lookup global (`variableById`).
 - Project binding `target.type: "prop"` phải khớp prop public + type variable.
 
 ### 6) `src/v1/parse.ts` — Parse path thực tế

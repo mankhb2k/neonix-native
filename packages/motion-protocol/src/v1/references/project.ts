@@ -12,7 +12,6 @@ import {
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
 import { flattenLayerTree } from "../layers";
-import { isVariableReference } from "../values";
 import type { ProjectVariableV1 } from "../variables";
 import {
   isOwnerPropSink,
@@ -170,7 +169,6 @@ function validateVariableAgainstProp(
 function validatePropValue(
   value: unknown,
   prop: ComponentPropV1,
-  variableById: Map<string, ProjectVariableV1>,
   assetById: Map<string, AssetLike> | undefined,
   path: string,
   propDuration?: number,
@@ -221,29 +219,11 @@ function validatePropValue(
         ...validatePropValue(
           key.value,
           prop,
-          variableById,
           assetById,
           `${path}.keys.${i}.value`,
         ),
       );
     }
-    return issues;
-  }
-
-  if (isVariableReference(value)) {
-    const refId = extractVariableReferenceId(value);
-    if (!refId) return issues;
-    const variable = variableById.get(refId);
-    if (!variable) {
-      issues.push({
-        path,
-        message: `props "${prop.id}" references unknown variable "${refId}"`,
-      });
-      return issues;
-    }
-    issues.push(
-      ...validateVariableAgainstProp(variable, prop, assetById, path),
-    );
     return issues;
   }
 
@@ -320,36 +300,13 @@ function detectComponentCycles(
   return issues;
 }
 
-/** Extract the variable id from a top-level `{ ref: { kind: "variable", id } }` shape. */
-function extractVariableReferenceId(value: unknown): string | undefined {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  const ref = (value as Record<string, unknown>).ref;
-  if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
-    return undefined;
-  }
-  const record = ref as Record<string, unknown>;
-  if (record.kind === "variable" && typeof record.id === "string") {
-    return record.id;
-  }
-  return undefined;
-}
-
 /**
  * Kiểm tra instance `type: "component"` trên một cây layer.
- *
- * `variableById` do caller chọn phạm vi:
- * - cây `project.layers` → chỉ `project.variables` (consumer)
- * - cây `component.layers` → chỉ `component.variables` của owner đó
- *
- * `payload.props` phải khớp prop đã khai báo. Keyframe `t` là local theo
- * `layer.timing.duration` của instance.
+ * `payload.props` là literal hoặc keyframes — không inline variable ref.
  */
 function validateComponentLayerReferences(
   layers: LayerV1[],
   componentById: Map<string, import("../components").ComponentDefinitionV1>,
-  variableById: Map<string, ProjectVariableV1>,
   assetById: Map<string, AssetLike>,
   pathPrefix: string,
 ): ReferenceIssue[] {
@@ -388,7 +345,6 @@ function validateComponentLayerReferences(
         ...validatePropValue(
           value,
           prop,
-          variableById,
           assetById,
           `${path}.payload.props.${propId}`,
           layer.timing.duration,
@@ -497,36 +453,12 @@ export function validateMotionProjectV1References(
     ...validateComponentLayerReferences(
       projectLayers,
       componentById,
-      projectVariableById,
       assetById,
       "layers",
     ),
   );
 
   for (const component of project.components) {
-    // Biến nội bộ owner — không gộp vào project.variables.
-    const ownerVariableById = new Map<string, ProjectVariableV1>();
-    for (const dupId of new Set(
-      duplicates(component.variables.map((variable) => variable.id)),
-    )) {
-      issues.push({
-        path: `components.${component.id}.variables`,
-        message: `Duplicate variable id: ${dupId}`,
-      });
-    }
-    for (const variable of component.variables) {
-      if (variableIds.has(variable.id)) {
-        issues.push({
-          path: `components.${component.id}.variables.${variable.id}`,
-          message: `Component variable "${variable.id}" collides with project.variables — owner internals must stay scoped`,
-        });
-        continue;
-      }
-      if (!ownerVariableById.has(variable.id)) {
-        ownerVariableById.set(variable.id, variable);
-      }
-    }
-
     const componentLayers = flattenLayerTree(component.layers);
     issues.push(
       ...validateLayerGraphV1(
@@ -545,7 +477,6 @@ export function validateMotionProjectV1References(
       ...validateComponentLayerReferences(
         componentLayers,
         componentById,
-        ownerVariableById,
         assetById,
         `components.${component.id}.layers`,
       ),
@@ -567,7 +498,6 @@ export function validateMotionProjectV1References(
         ...validatePropValue(
           prop.default,
           prop,
-          ownerVariableById,
           assetById,
           `components.${component.id}.props.${prop.id}.default`,
         ),
@@ -713,7 +643,6 @@ export function validateMotionProjectV1References(
           ...validatePropValue(
             value,
             prop,
-            ownerVariableById,
             assetById,
             `components.${component.id}.variants.${variant.id}.props.${propId}`,
           ),

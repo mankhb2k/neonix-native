@@ -33,7 +33,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | --- | --- |
 | `index.ts` | Barrel V1 — layers, assets, components, patch, MCP. Không export captions / motion-clip units. |
 | `common.ts` | Primitive: `IdSchema`, `FiniteNumberSchema`, `PercentSchema` (0..100 int), `ColorAdjustPercentSchema` (0..200 int), `HueRotateSchema` (−180..180), `ratioFromPercent`, `MOTION_PROJECT_V1_FORMAT_VERSION`. |
-| `values.ts` | `JsonValueSchema`, `ResolvableValueSchema`, `ValueKindSchema`, `VariableReferenceSchema`. |
+| `values.ts` | `JsonValueSchema`, `LiteralValueSchema`. Prop values không dùng `VariableReferenceSchema`. |
 | `frame.ts` | `FrameSchema` — `{ width, height }` size box trước transform. Bắt buộc mọi visual layer; cấm audio/camera. |
 | `layer-atoms.ts` | Helper test/fixture `visualLayerAtoms()` / `defaultTransform()`. |
 | `layout.ts` | Repeater (khác `frame`) + `layout` / `layoutItem` native (`mode` row/column/grid). |

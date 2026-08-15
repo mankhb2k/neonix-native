@@ -103,20 +103,6 @@
           }
         }
       ],
-      "variables": [
-        {
-          "id": "cta-label",
-          "name": "CTA Label",
-          "type": "string",
-          "value": "Click me"
-        },
-        {
-          "id": "cta-color",
-          "name": "CTA Color",
-          "type": "color",
-          "value": "#1877f2"
-        }
-      ],
       "layers": [
         {
           "id": "cta-bg",

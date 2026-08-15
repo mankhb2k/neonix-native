@@ -265,7 +265,6 @@ function componentDefs() {
       props: [],
       variants: [],
       propBindings: [],
-      variables: [],
       layers: [
         {
           id: "comp-fill",
@@ -355,7 +354,6 @@ export function clipMaskComponentInternalProject() {
       props: [],
       variants: [],
       propBindings: [],
-      variables: [],
       layers: [
         {
           id: "comp-fill",

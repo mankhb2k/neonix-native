@@ -216,19 +216,19 @@ flowchart LR
 ## 3. PropKind
 
 ```ts
-type PropKind = "text" | "number" | "boolean" | "color" | "choice" | "asset";
+type PropKind = "string" | "number" | "boolean" | "color" | "choice" | "asset";
 ```
 
 | Kind | Dùng cho | Default `animatable` | Keyframe interpolation |
 | --- | --- | --- | --- |
-| `text` | title, label | `true` | step |
+| `string` | title, label | `true` | step |
 | `number` | opacity, progress, size | `true` | linear / easing |
 | `boolean` | showIcon, visible | `true` | step |
 | `color` | brandColor, fill | `true` | color |
 | `choice` | style, layout, mode | `false` (`animatable: true` được) | step |
 | `asset` | image, video, font… | `false` (`animatable: true` được) | step |
 
-Không dùng `string` / `enum` / `list` trên public API (`text` thay string, `choice` thay enum).
+Không dùng `text` / `enum` / `list` trên public API (`string` thay text, `choice` thay enum).
 
 ### Ví dụ definition
 
@@ -271,14 +271,19 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 
 ### Variable-bound
 
-Instance trên `project.layers` chỉ được ref **`project.variables`**.  
-`component.variables` là biến local của owner — dùng cho `props.default`, `variants[].props`, và nested `payload.props` trong `component.layers`. Consumer không được trỏ vào đó.
+Chỉ một đường: `project.bindings` với `target.type: "prop"`.  
+Không ghi `{ ref: { kind: "variable" } }` trong `payload.props`, `prop.default`, hay `variant.props`.  
+Không có `component.variables`.
 
 ```jsonc
 {
-  "props": {
-    "label": { "ref": { "kind": "variable", "id": "cta-text" } }
-  }
+  "bindings": [
+    {
+      "id": "bind-label",
+      "source": { "kind": "variable", "variableId": "cta-text" },
+      "target": { "type": "prop", "layerId": "cta", "propId": "label" }
+    }
+  ]
 }
 ```
 
@@ -303,10 +308,10 @@ Instance trên `project.layers` chỉ được ref **`project.variables`**.
 - `t` là **local time của component instance layer** — `0..layer.timing.duration`
 - `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ layer.timing.duration`**
 - `number` / `color`: interpolate được
-- `text` / `boolean` / `choice` / `asset`: chỉ **step**
+- `string` / `boolean` / `choice` / `asset`: chỉ **step**
 - `animatable: false` (hoặc omitted trên choice/asset) + keyframes → **reject**
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
-- Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
+- Asset / choice: mỗi key phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
 - Không animate `payload.props.<propId>` qua animation track bên ngoài. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`.
 

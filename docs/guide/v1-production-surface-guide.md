@@ -29,7 +29,7 @@
 - Transform: mọi visual layer cùng `{ translate, scale, rotate.z, skew, origin, depth }`. Lật bằng scale âm. Origin AI: `0` \| `0.5` \| `1`. Không `flipX/Y`, không `transform.z`.
 - Appearance: chỉ `visible` + `opacity` trên visual layer. Integer opacity `0..100`. Không hit-test. Audio không có `appearance`; mute/volume trên payload.
 - Compositing: `blend-mode` + `isolation` + `mask`. Tách khỏi appearance/effects. Blend 7 mode hiện tại là production-safe, không mở rộng. AI mặc định mask: `clip`/`alpha` + `mask-only`. Không emit `isolation` trừ khi cần `isolate`. `inverse-alpha` / `luma` / `inverse-luma` / `content-and-mask` là nâng cao.
-- Component: instance leaf với đủ wrapper atoms. Default AI set `payload.props` (+ `variantId`). Variant chỉ override props. `project.bindings` chỉ `type: "prop"`. Nested chỉ `childProp`.
+- Component: instance leaf với đủ wrapper atoms. Default AI set `payload.props` (+ `variantId`) bằng literal/keyframes. Variant chỉ override props. `project.bindings` chỉ `type: "prop"`. Nested chỉ `childProp`. Không `component.variables`, không inline variable ref.
 - Binding: variable → public prop. Prop kinds V1: string, number, boolean, color, asset, choice. Không bind layer field / internals.
 - Effects: mảng có thứ tự, id unique. `blur` / outer `shadow` / outer `glow` / `color-adjust`. Animate numeric leaf theo `effects.<id>.*`. Không animate color. Glow không `intensity`. Không effects trên audio/camera.
 

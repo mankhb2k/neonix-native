@@ -17,6 +17,7 @@
 - Type variable phải khớp type prop (kể cả `assetKind` và choice options ⊆ prop options).
 - Owner nối prop vào leaf nội bộ (`propBindings`). Một prop có thể fan-out nhiều field.
 - Nested internals chỉ nhận `childProp`. AI/user không skip-level.
+- Không inline `{ ref: { kind: "variable" } }` trên prop. Không `component.variables`.
 
 **Câu chốt:** Binding chỉ nối từ project variable tới public prop. Prop là binding target duy nhất trong V1.
 

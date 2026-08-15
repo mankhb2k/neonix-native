@@ -307,7 +307,6 @@ describe("V1 patch contract", () => {
               },
             },
           ],
-          variables: [],
           layers: [textLayer("label-node")],
         },
       ],
