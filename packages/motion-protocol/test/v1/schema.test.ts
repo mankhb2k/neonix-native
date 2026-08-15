@@ -685,4 +685,51 @@ describe("v1 schema — reject old contract", () => {
       ),
     ).toThrow(/layoutItem/);
   });
+
+  it("rejects layoutItem when the parent group has no layout", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              id: "stack",
+              type: "group",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              ...ATOMS,
+              children: [
+                {
+                  ...solidChild("stack"),
+                  layoutItem: { width: "fill" },
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/layoutItem/);
+  });
+
+  it("rejects modifiers on authoring layers", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "box",
+            type: "solid",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            modifiers: [
+              { id: "m1", type: "parallax", factor: 1 },
+            ],
+            payload: { color: "#111111" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
 });

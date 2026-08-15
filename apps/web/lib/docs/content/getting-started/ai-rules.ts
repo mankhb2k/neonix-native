@@ -10,5 +10,6 @@ export const AI_GLOBAL = [
   "Every visual layer has the same transform: translate, scale, rotate.z, skew, origin, depth. Flip with negative scale. Prefer origin 0, 0.5, or 1. Never invent transform.z, flipX, or flipY.",
   "Use zIndex for stacking, not depth.",
   "Do not emit locked. semantic is optional tagging and does not change paint.",
+  "Do not emit modifiers.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

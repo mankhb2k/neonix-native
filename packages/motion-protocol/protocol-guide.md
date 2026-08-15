@@ -37,7 +37,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `frame.ts` | `FrameSchema` — `{ width, height }` size box trước transform. Bắt buộc mọi visual layer; cấm audio/camera. |
 | `layer-atoms.ts` | Helper test/fixture `visualLayerAtoms()` / `defaultTransform()`. |
 | `layout.ts` | Repeater (khác `frame`) + `layout` / `layoutItem` native (`mode` row/column/grid). |
-| `modifiers.ts` | `MotionModifierSchema` (motion-path, …). |
+| `modifiers.ts` | Legacy authoring file — not on V1 layer JSON. Runtime uses `src/runtime/modifiers.ts`. |
 | `canonical-hash.ts` | Hash deterministic (`projectHash` / `runtimeHash`). Exclude timestamp/provenance/extensions. |
 | `capabilities.ts` | Capability requirements project (`required` / `optional` / `experimental`). |
 | `captions.ts` | Legacy caption tokens — không thuộc `project.layers`; export qua `internal`. |
@@ -140,7 +140,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
-| `base.ts` | `LayerBaseV1Schema` — required zIndex + timing; frame, transform, appearance, compositing, effects, modifiers, inheritFlags. No `locked`. |
+| `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`, no `modifiers`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
 | `component.ts` | `type: "component"` — `payload.componentId`, `variantId?`, `props`. |
 | `audio.ts` | `AudioLayerV1Schema` — payload trim/fade/volume (0..100)/loop. |
@@ -200,7 +200,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | `common.ts` | Re-export primitive V1 + hằng format version runtime. |
 | `assets.ts` | Asset IR (cùng mime image png/jpeg/webp). |
 | `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
-| `layout.ts` | Repeater + native `layout` / `layoutItem` (compile bake, không giữ trên runtime node). |
+| `layout.ts` | Repeater + native `layout` / `layoutItem` (same fields as V1; compiler normally bakes then strips). |
 | `modifiers.ts` | Motion modifiers trên runtime node. |
 | `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
 | `project.ts` | `MotionRuntimeProjectSchema`. |
@@ -211,7 +211,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Runtime node union theo `type`. |
-| `base.ts` | `LayerBaseSchema` — frame + V1 transform/appearance/compositing/effects. |
+| `base.ts` | `LayerBaseSchema` — required frame (except camera/audio), layoutItem, V1 transform/appearance/compositing/effects; modifiers remain runtime-only. |
 | `audio.ts` | Runtime audio leaf. |
 | `geometry.ts` | Shape/path (primitive từ V1). |
 | `media.ts` | Image / svg / video. |

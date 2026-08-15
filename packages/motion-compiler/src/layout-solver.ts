@@ -18,11 +18,11 @@ function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
 }
 
 function frameWidth(node: VisualLayer): number {
-  return node.frame?.width ?? 0;
+  return node.frame.width;
 }
 
 function frameHeight(node: VisualLayer): number {
-  return node.frame?.height ?? 0;
+  return node.frame.height;
 }
 
 function setFrameSize(node: MutableNode, width: number, height: number): void {

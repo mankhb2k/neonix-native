@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, SemanticSchema } from "../common";
-import { RepeaterSchema } from "../layout";
+import { LayoutItemPolicySchema, RepeaterSchema } from "../layout";
 import { EffectSchema } from "../../v1/effects";
 import { MotionModifierSchema } from "../modifiers";
 import { TransformSchema } from "../../v1/transform";
@@ -30,11 +30,12 @@ export const LayerBaseSchema = z
     name: z.string().min(1).optional(),
     parentLayerId: IdSchema.nullable(),
     zIndex: FiniteNumberSchema.int().nonnegative(),
-    frame: FrameSchema.optional(),
+    frame: FrameSchema,
     transform: TransformSchema,
     appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
     compositing: CompositingSchema.optional(),
     timing: LayerTimingSchema,
+    layoutItem: LayoutItemPolicySchema.optional(),
     semantic: SemanticSchema.optional(),
     repeat: RepeaterSchema.optional(),
     modifiers: z

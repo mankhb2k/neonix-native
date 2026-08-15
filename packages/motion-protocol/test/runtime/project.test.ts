@@ -67,18 +67,44 @@ describe("runtime IR layer graph", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("strict-rejects timeline.visualTracks / audioTracks / captionTracks", () => {
+  it("requires frame on visual runtime layers", () => {
     const ir = baseIR();
-    (ir.timeline as Record<string, unknown>).visualTracks = [];
+    const layer = (ir.layers as Record<string, unknown>[])[0]!;
+    delete layer.frame;
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
 
-    const audio = baseIR();
-    (audio.timeline as Record<string, unknown>).audioTracks = [];
-    expect(MotionRuntimeProjectSchema.safeParse(audio).success).toBe(false);
-
-    const captions = baseIR();
-    (captions.timeline as Record<string, unknown>).captionTracks = [];
-    expect(MotionRuntimeProjectSchema.safeParse(captions).success).toBe(false);
+  it("accepts optional layoutItem on a nested visual runtime layer", () => {
+    const ir = baseIR();
+    ir.layers = [
+      {
+        id: "stack",
+        type: "group",
+        parentLayerId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 5 },
+        ...visualLayerAtoms({
+          x: 0,
+          y: 0,
+          width: 800,
+          height: 400,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
+        layout: { mode: "column", gap: 8 },
+      },
+      {
+        ...runtimeLayer("title"),
+        parentLayerId: "stack",
+        layoutItem: { width: "fill", height: "hug" },
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });
 

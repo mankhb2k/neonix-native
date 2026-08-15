@@ -8,7 +8,6 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { EffectSchema } from "../effects";
 import { LayoutItemPolicySchema } from "../layout";
-import { MotionModifierSchema } from "../modifiers";
 import { LayerTimingSchema } from "./timing";
 import { TransformSchema } from "../transform";
 import { FrameSchema } from "../frame";
@@ -44,9 +43,5 @@ export const LayerBaseV1Schema = z
       .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)
       .optional(),
     inheritFlags: InheritFlagsSchema.optional(),
-    modifiers: z
-      .array(MotionModifierSchema)
-      .max(MOTION_PROTOCOL_LIMITS.modifiersPerLayer)
-      .optional(),
   })
   .strict();

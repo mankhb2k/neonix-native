@@ -9,7 +9,7 @@
 ## Đã chốt
 
 - Chỉ **`group`** có `layout`.
-- Child visual (không root, không audio) có `layoutItem`.
+- Child visual trong group có `layout` mới được `layoutItem` (không root, không audio, không camera).
 - Không `modifiers`.
 - Compiler nướng thành `frame` + `translate`, rồi xóa `layout` / `layoutItem` trước runtime.
 - Container: `mode: "row" | "column" | "grid"`, `gap`, `padding`, `justify`, `align`.

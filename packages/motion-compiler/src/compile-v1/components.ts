@@ -374,7 +374,6 @@ function expandOneComponentInstance(
     ...(instanceNode.inheritFlags
       ? { inheritFlags: clone(instanceNode.inheritFlags) }
       : {}),
-    ...(instanceNode.modifiers ? { modifiers: clone(instanceNode.modifiers) } : {}),
   } as V1.LayerV1;
 
   return { layers: [wrapper, ...expandedInternals], wrapperId, propMotionUnits };

@@ -1931,280 +1931,6 @@
                           },
                           "additionalProperties": false
                         },
-                        "modifiers": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "motion-path"
-                                  },
-                                  "pathNodeId": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "contourId": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "progress": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                  },
-                                  "orientToPath": {
-                                    "type": "boolean"
-                                  },
-                                  "rotationOffset": {
-                                    "$ref": "#/definitions/JsonValue/anyOf/1"
-                                  },
-                                  "startOffset": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                    "default": 0
-                                  },
-                                  "endOffset": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                    "default": 1
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "pathNodeId",
-                                  "contourId",
-                                  "progress",
-                                  "orientToPath",
-                                  "rotationOffset"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "path-morph"
-                                  },
-                                  "from": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "const": "base"
-                                      },
-                                      {
-                                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                      }
-                                    ]
-                                  },
-                                  "to": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "progress": {
-                                    "anyOf": [
-                                      {
-                                        "$ref": "#/definitions/JsonValue"
-                                      },
-                                      {
-                                        "$ref": "#/definitions/ComponentPropValue/anyOf/1"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "from",
-                                  "to",
-                                  "progress"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "secondary-motion"
-                                  },
-                                  "driverNodeId": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "chainLayerIds": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                    },
-                                    "minItems": 1,
-                                    "maxItems": 32
-                                  },
-                                  "stiffness": {
-                                    "type": "number",
-                                    "exclusiveMinimum": true,
-                                    "minimum": 0
-                                  },
-                                  "damping": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "lag": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 86400
-                                  },
-                                  "amplitude": {
-                                    "$ref": "#/definitions/JsonValue/anyOf/1"
-                                  },
-                                  "axis": {
-                                    "type": "string",
-                                    "const": "rotation"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "driverNodeId",
-                                  "chainLayerIds",
-                                  "stiffness",
-                                  "damping",
-                                  "lag",
-                                  "amplitude",
-                                  "axis"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "trim-path"
-                                  },
-                                  "start": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                  },
-                                  "end": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                  },
-                                  "offset": {
-                                    "$ref": "#/definitions/JsonValue/anyOf/1",
-                                    "default": 0
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "start",
-                                  "end"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "path-bend"
-                                  },
-                                  "amount": {
-                                    "type": "number",
-                                    "minimum": -1,
-                                    "maximum": 1
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "amount"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "constraint"
-                                  },
-                                  "kind": {
-                                    "type": "string",
-                                    "enum": [
-                                      "look-at",
-                                      "copy-position",
-                                      "copy-rotation"
-                                    ]
-                                  },
-                                  "targetLayerId": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "weight": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                    "default": 1
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "kind",
-                                  "targetLayerId"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "const": "parallax"
-                                  },
-                                  "factor": {
-                                    "type": "number",
-                                    "minimum": -8,
-                                    "maximum": 8,
-                                    "default": 1
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type"
-                                ],
-                                "additionalProperties": false
-                              }
-                            ]
-                          },
-                          "maxItems": 32
-                        },
                         "layout": {
                           "anyOf": [
                             {
@@ -2427,9 +2153,6 @@
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {
@@ -2522,9 +2245,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "type": "object",
@@ -2766,9 +2486,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "anyOf": [
@@ -3063,9 +2780,6 @@
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {
@@ -3239,9 +2953,6 @@
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {
@@ -3356,9 +3067,6 @@
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
-                        },
                         "payload": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload"
                         }
@@ -3420,9 +3128,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "type": "object",
@@ -3512,9 +3217,6 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
                         },
@@ -3523,9 +3225,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "type": "object",
@@ -3630,9 +3329,6 @@
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {
@@ -3701,9 +3397,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "type": "object",
@@ -3780,9 +3473,6 @@
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "modifiers": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/modifiers"
                         },
                         "payload": {
                           "type": "object",
