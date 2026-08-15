@@ -18,13 +18,17 @@ export type RemotionPaintTreeNode =
       key: string;
       isolation: boolean;
       offscreen: boolean;
-      mask?: { mode: string; sourceKey: string };
+      mask?: {
+        mode: string;
+        sourceKey: string;
+        sourceVisibility?: "mask-only" | "content-and-mask";
+      };
       children: RemotionPaintTreeNode[];
     }
   | {
       kind: "group";
       key: string;
-      nodeId: string;
+      layerId: string;
       transform?: PaintTransformState;
       children: RemotionPaintTreeNode[];
     }
@@ -40,7 +44,7 @@ export type RemotionPaintTree = {
   width: number;
   height: number;
   background?: string;
-  sceneId: string;
+  graphId: string;
   frame: number;
   time: number;
   roots: RemotionPaintTreeNode[];
@@ -62,7 +66,7 @@ function mapNode(node: PaintDisplayNode): RemotionPaintTreeNode {
     return {
       kind: "group",
       key: node.key,
-      nodeId: node.nodeId,
+      layerId: node.layerId,
       ...(node.transform ? { transform: node.transform } : {}),
       children: node.children.map(mapNode),
     };
@@ -85,7 +89,7 @@ export function buildRemotionPaintTree(
     width: list.width,
     height: list.height,
     background: list.background,
-    sceneId: list.sceneId,
+    graphId: list.graphId,
     frame: list.frame,
     time: list.time,
     roots: list.roots.map(mapNode),
@@ -103,8 +107,8 @@ export function flattenRemotionDrawables(
     draw: PaintDrawCommand;
   }> = [];
 
-  const walk = (nodes: RemotionPaintTreeNode[]) => {
-    for (const node of nodes) {
+  const walk = (layers: RemotionPaintTreeNode[]) => {
+    for (const node of layers) {
       if (node.kind === "drawable") {
         out.push({
           key: node.key,

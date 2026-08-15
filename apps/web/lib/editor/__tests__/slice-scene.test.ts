@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sliceScene, clipLocalTime } from "@motionvideo/editor-core";
-import type { MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 describe("sliceScene", () => {
   it("shifts absolute schedule and keyframe times by localStart", () => {
@@ -8,11 +10,11 @@ describe("sliceScene", () => {
       id: "s1",
       name: "S",
       duration: 5,
-      nodes: [],
+      layers: [],
       clips: [
         {
           id: "c1",
-          targetId: "n1",
+          layerId: "n1",
           schedule: { kind: "absolute" as const, at: 0 },
           duration: 5,
           playback: {},
@@ -20,8 +22,8 @@ describe("sliceScene", () => {
             kind: "tracks" as const,
             tracks: [
               {
-                targetId: "n1",
-                property: "transform.opacity",
+                layerId: "n1",
+                property: "appearance.opacity",
                 keys: [
                   { t: 0, v: 0 },
                   { t: 2, v: 0.5 },

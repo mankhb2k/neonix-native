@@ -18,7 +18,7 @@ import { buildRenderSnapshot, type RenderSnapshot } from "./render-snapshot";
 export type EvaluatedFrame = {
   frame: number;
   time: number;
-  sceneId: string;
+  graphId: string;
   interaction: RenderSnapshot;
   paint: PaintCommandBuffer;
   diagnostics: RenderDiagnostic[];
@@ -57,7 +57,7 @@ export function evaluateFrame(input: EvaluateFrameInput): EvaluatedFrame {
   return {
     frame: input.frame,
     time: input.time,
-    sceneId: interaction.sceneId,
+    graphId: interaction.graphId,
     interaction,
     paint,
     diagnostics: paint.diagnostics,

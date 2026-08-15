@@ -5,7 +5,7 @@ import { createBlankProject } from "@/lib/editor/create-blank-project";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
 import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 
 export type WebUiFixtureId = "blank-16x9" | "blank-9x16" | "facebook-history";
 
@@ -21,7 +21,7 @@ function withUniqueId(
   id: string,
   name: string,
 ) {
-  return parseMotionProjectV3({
+  return parseMotionProjectV1({
     ...project,
     metadata: {
       ...project.metadata,

@@ -19,21 +19,21 @@ function LayerTree() {
     [project],
   );
   const scene =
-    preview?.project.scenes.find((s) => s.id === preview.sceneId) ??
-    preview?.project.scenes[0];
-  const nodes = scene?.nodes ?? [];
+    preview?.project.scenes?.find((s) => s.id === preview.sceneId) ??
+    preview?.project.scenes?.[0];
+  const layers = scene?.layers ?? preview?.project.layers ?? [];
 
   return (
     <div className="space-y-1 p-2" data-testid="layer-tree">
-      {nodes.length === 0 ? (
+      {layers.length === 0 ? (
         <p className="p-2 text-body leading-normal text-[var(--fg-muted)]">
           Chưa có layer.
         </p>
       ) : (
-        nodes.map((node) => {
+        layers.map((node) => {
           const selected =
             selection.kind === "node" &&
-            selection.nodeId === node.id &&
+            selection.layerId === node.id &&
             selection.sceneId === (scene?.id ?? "");
           return (
             <button

@@ -1,7 +1,8 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Phase 3 — Effective timing tests (Group Layer Semantics).
  *
- * Verifies the V3 parent-relative timing contract:
+ * Verifies the V1 parent-relative timing contract:
  *   - Child timing is parent-relative
  *   - Child visibility is clipped by ancestor timing
  *   - Missing child timing = full parent duration
@@ -21,31 +22,17 @@ import type { RuntimeNode } from "../evaluator";
 function g(
   id: string,
   overrides: Partial<RuntimeNode> & {
-    parentId?: string | null;
+    parentLayerId?: string | null;
     timing?: { start: number; duration: number };
   } = {},
 ): RuntimeNode {
   return {
     id,
     type: "group",
-    parentId: overrides.parentId ?? null,
+    parentLayerId: overrides.parentLayerId ?? null,
     zIndex: 0,
     timing: overrides.timing,
-    transform: {
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0.5,
-      anchorY: 0.5,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {},
     ...overrides,
   } as RuntimeNode;
@@ -54,7 +41,7 @@ function g(
 function img(
   id: string,
   overrides: Partial<RuntimeNode> & {
-    parentId?: string | null;
+    parentLayerId?: string | null;
     timing?: { start: number; duration: number };
   } = {},
 ): RuntimeNode {
@@ -65,10 +52,10 @@ function img(
 
 describe("resolveEffectiveTiming", () => {
   it("root node without timing gets full scene duration", () => {
-    const nodes: RuntimeNode[] = [
-      g("a", { parentId: null }),
+    const layers: RuntimeNode[] = [
+      g("a", { parentLayerId: null }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const t = result.get("a")!;
     expect(t.effectiveStart).toBe(0);
     expect(t.effectiveEnd).toBe(10);
@@ -76,10 +63,10 @@ describe("resolveEffectiveTiming", () => {
   });
 
   it("root node with explicit timing", () => {
-    const nodes: RuntimeNode[] = [
-      g("a", { parentId: null, timing: { start: 2, duration: 3 } }),
+    const layers: RuntimeNode[] = [
+      g("a", { parentLayerId: null, timing: { start: 2, duration: 3 } }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const t = result.get("a")!;
     expect(t.effectiveStart).toBe(2);
     expect(t.effectiveEnd).toBe(5);
@@ -90,11 +77,11 @@ describe("resolveEffectiveTiming", () => {
     // parent: effective 2-5  (start=5, duration=4 → offset 5 from scene)
     // child: timing.start=1, duration=2
     // child effective = parent start + 1 = 3, end = min(5, 3+2=5) = 5
-    const nodes: RuntimeNode[] = [
-      g("parent", { parentId: null, timing: { start: 5, duration: 4 } }),
-      img("child", { parentId: "parent", timing: { start: 1, duration: 2 } }),
+    const layers: RuntimeNode[] = [
+      g("parent", { parentLayerId: null, timing: { start: 5, duration: 4 } }),
+      img("child", { parentLayerId: "parent", timing: { start: 1, duration: 2 } }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
     expect(ct.effectiveStart).toBe(6); // 5 + 1
     expect(ct.effectiveEnd).toBe(8); // min(9, 6+2=8) = 8
@@ -104,11 +91,11 @@ describe("resolveEffectiveTiming", () => {
   it("child end is clipped by parent end", () => {
     // parent: 2-5
     // child: start=2, duration=5 → raw end = 4+5=9, clipped to 5
-    const nodes: RuntimeNode[] = [
-      g("parent", { parentId: null, timing: { start: 2, duration: 3 } }),
-      img("child", { parentId: "parent", timing: { start: 2, duration: 5 } }),
+    const layers: RuntimeNode[] = [
+      g("parent", { parentLayerId: null, timing: { start: 2, duration: 3 } }),
+      img("child", { parentLayerId: "parent", timing: { start: 2, duration: 5 } }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
     expect(ct.effectiveStart).toBe(4); // 2 + 2
     expect(ct.effectiveEnd).toBe(5); // min(5, 4+5=9) → clipped
@@ -116,11 +103,11 @@ describe("resolveEffectiveTiming", () => {
   });
 
   it("missing child timing = full parent duration", () => {
-    const nodes: RuntimeNode[] = [
-      g("parent", { parentId: null, timing: { start: 3, duration: 5 } }),
-      img("child", { parentId: "parent" }),
+    const layers: RuntimeNode[] = [
+      g("parent", { parentLayerId: null, timing: { start: 3, duration: 5 } }),
+      img("child", { parentLayerId: "parent" }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
     expect(ct.effectiveStart).toBe(3); // parent start + 0
     expect(ct.effectiveEnd).toBe(8); // parent end
@@ -133,13 +120,13 @@ describe("resolveEffectiveTiming", () => {
     // group.upper-body:    start=1, dur=2  → effective 6-8
     // group.head-rig:      start=0.5, dur=1.5 → effective 6.5-8
     // head-image:          start=0, dur=1  → effective 6.5-7.5
-    const nodes: RuntimeNode[] = [
-      g("group.character", { parentId: null, timing: { start: 5, duration: 4 } }),
-      g("group.upper-body", { parentId: "group.character", timing: { start: 1, duration: 2 } }),
-      g("group.head-rig", { parentId: "group.upper-body", timing: { start: 0.5, duration: 1.5 } }),
-      img("head-image", { parentId: "group.head-rig", timing: { start: 0, duration: 1 } }),
+    const layers: RuntimeNode[] = [
+      g("group.character", { parentLayerId: null, timing: { start: 5, duration: 4 } }),
+      g("group.upper-body", { parentLayerId: "group.character", timing: { start: 1, duration: 2 } }),
+      g("group.head-rig", { parentLayerId: "group.upper-body", timing: { start: 0.5, duration: 1.5 } }),
+      img("head-image", { parentLayerId: "group.head-rig", timing: { start: 0, duration: 1 } }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
 
     expect(result.get("group.character")!.effectiveStart).toBe(5);
     expect(result.get("group.character")!.effectiveEnd).toBe(9);
@@ -211,11 +198,11 @@ describe("nodeLocalTime", () => {
 
 describe("effective timing — parent movement", () => {
   it("moving group from start=5 to start=2 moves child from 6-8 to 3-5", () => {
-    const nodes: RuntimeNode[] = [
-      g("parent", { parentId: null, timing: { start: 2, duration: 4 } }),
-      img("child", { parentId: "parent", timing: { start: 1, duration: 2 } }),
+    const layers: RuntimeNode[] = [
+      g("parent", { parentLayerId: null, timing: { start: 2, duration: 4 } }),
+      img("child", { parentLayerId: "parent", timing: { start: 1, duration: 2 } }),
     ];
-    const result = resolveEffectiveTiming(nodes, 10);
+    const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
     // parent effective: 2-6, child: 2+1=3 to min(6, 3+2=5) = 5
     expect(ct.effectiveStart).toBe(3);

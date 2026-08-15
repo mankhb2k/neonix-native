@@ -4,7 +4,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
-  compileProjectV3,
+  compileProjectV1,
 } from "@motionvideo/motion-runtime/testing";
 import { describe, expect, it } from "vitest";
 
@@ -16,7 +16,7 @@ function paintFingerprint(commands: unknown): string {
 
 describe("Pixi vs Remotion sampled-frame paint parity", () => {
   it("shares EvaluatedFrame.paint digests across sample points", () => {
-    const runtime = compileProjectV3(createDemoMotionProject());
+    const runtime = compileProjectV1(createDemoMotionProject());
     const fps = 30;
     const duration = compositionDurationInFrames(runtime, undefined, fps);
     const last = Math.max(0, duration - 1);

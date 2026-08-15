@@ -59,7 +59,7 @@ export type PixiFramePainterOptions = {
   /** Observes unsupported paint ops (preview diagnostic overlay). */
   onUnsupported?: (info: {
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }) => void;
@@ -92,9 +92,13 @@ export type PixiFramePainterOptions = {
 export type PixiFramePainter = EvaluatedFramePainter & {
   paintCommands(buffer: PaintCommandBuffer): void;
   getLiveKeys(): readonly string[];
+  getCompositingLayers(): ReadonlyMap<
+    string,
+    import("./pixi-compositing").CompositingLayer
+  >;
   getUnsupported(): readonly {
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }[];
@@ -414,7 +418,7 @@ export function createPixiFramePainter(
   let paused = false;
   let unsupported: Array<{
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }> = [];
@@ -448,6 +452,7 @@ export function createPixiFramePainter(
       if (existing.display.parent !== parent) {
         parent.addChild(existing.display);
       }
+      compositingCtx?.registerDisplay(key, existing.display);
       return existing.display as T;
     }
     if (existing) {
@@ -459,6 +464,7 @@ export function createPixiFramePainter(
     display.label = key;
     parent.addChild(display);
     cache.set(key, { kind, display });
+    compositingCtx?.registerDisplay(key, display);
     return display;
   };
 
@@ -659,7 +665,7 @@ export function createPixiFramePainter(
       // ── beginGroup (Phase 5: was flat, now push/pop stack) ─────
       if (cmd.op === "beginGroup") {
         live.add(cmd.key);
-        const groupContainer = compositingCtx.pushGroup(cmd.key, cmd.nodeId);
+        const groupContainer = compositingCtx.pushGroup(cmd.key, cmd.layerId);
         if (pendingTransform && pendingTransform.key === cmd.key) {
           applyAffineMatrix(
             groupContainer,
@@ -683,7 +689,7 @@ export function createPixiFramePainter(
         live.add(cmd.key);
         const info = {
           key: cmd.key,
-          nodeId: cmd.nodeId,
+          layerId: cmd.layerId,
           nodeType: cmd.nodeType,
           message: cmd.message,
         };
@@ -938,6 +944,7 @@ export function createPixiFramePainter(
     },
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
+    getCompositingLayers: () => compositingCtx?.getLayers() ?? new Map(),
     getUnsupported: () => unsupported,
     setPaused(p: boolean) {
       paused = p;
@@ -970,19 +977,19 @@ export function createPixiFramePainter(
       if (isPatchStale(patch, currentSequence)) return currentSequence;
 
       // Find the cached display object by key
-      const entry = cache.get(patch.nodeId);
+      const entry = cache.get(patch.layerId);
       if (!entry) return currentSequence;
 
       // Apply property update without clearing Graphics cache
       const display = entry.display;
       try {
         if (
-          patch.property === "transform.opacity" &&
+          patch.property === "appearance.opacity" &&
           typeof patch.value === "number"
         ) {
           display.alpha = patch.value;
         } else if (
-          patch.property === "transform.visible" &&
+          patch.property === "appearance.visible" &&
           typeof patch.value === "boolean"
         ) {
           display.visible = patch.value;
@@ -997,7 +1004,7 @@ export function createPixiFramePainter(
             // Re-execute the relevant paint command for this key
             for (const cmd of lastPaint.commands) {
               if (
-                cmd.key === patch.nodeId &&
+                cmd.key === patch.layerId &&
                 (cmd.op === "drawShape" || cmd.op === "drawSolid")
               ) {
                 g.clear();

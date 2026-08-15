@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
-  "runtimeVersion": 1,
+  "formatVersion": 1,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "clips-and-tracks",
     "name": "Clips And Tracks",
@@ -11,7 +11,7 @@
     "brand": {
       "name": "Clips And Tracks"
     },
-    "description": "Scene with property tracks and a preset clip"
+    "description": "Text layers with property tracks and a motion preset"
   },
   "assets": [],
   "composition": {
@@ -22,204 +22,133 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c71f2a8393eb722c58e8d4b5c81cfefc",
+  "runtimeHash": "e1264d8547e6eff3cb13c25a76e95dfb",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
-    "scenes": {
-      "intro": "scenes:intro"
+    "layers": {
+      "title": "layers:title",
+      "subtitle": "layers:subtitle"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "main-track",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-intro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "intro"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "intro",
-      "duration": 5,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "intro"
-        ]
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "frame": {
+        "width": 800,
+        "height": 120
       },
-      "nodes": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Animated Title"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
         },
-        {
-          "id": "subtitle",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 960,
-            "y": 700,
-            "width": 600,
-            "height": 80,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Property track clip"
-            },
-            "fontSize": 32,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": [
-        {
-          "targetId": "title",
-          "property": "transform.opacity",
-          "valueKind": "number",
-          "keys": [
-            {
-              "t": 0,
-              "v": 0
-            },
-            {
-              "t": 1,
-              "v": 1,
-              "easing": "easeOut"
-            },
-            {
-              "t": 1.5,
-              "v": 0
-            },
-            {
-              "t": 2.5,
-              "v": 1,
-              "easing": "spring"
-            }
-          ]
+        "rotate": {
+          "z": 0
         },
-        {
-          "targetId": "title",
-          "property": "transform.scaleX",
-          "keys": [
-            {
-              "t": 1.5,
-              "v": 0.8
-            },
-            {
-              "t": 2.5,
-              "v": 1,
-              "easing": "spring"
-            }
-          ]
+        "scale": {
+          "x": 1,
+          "y": 1
         },
-        {
-          "targetId": "title",
-          "property": "transform.scaleY",
-          "keys": [
-            {
-              "t": 1.5,
-              "v": 0.8
-            },
-            {
-              "t": 2.5,
-              "v": 1,
-              "easing": "spring"
-            }
-          ]
+        "skew": {
+          "x": 0,
+          "y": 0
         },
-        {
-          "targetId": "subtitle",
-          "property": "transform.x",
-          "valueKind": "number",
-          "preBehavior": {
-            "type": "clamp"
-          },
-          "postBehavior": {
-            "type": "clamp"
-          },
-          "keys": [
-            {
-              "t": 1,
-              "v": 1200
-            },
-            {
-              "t": 2.5,
-              "v": 960,
-              "easing": "easeInOut"
-            }
-          ]
-        }
-      ]
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Animated Title"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "frame": {
+        "width": 600,
+        "height": 80
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 700
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Property track clip"
+        },
+        "fontSize": 32,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
 }

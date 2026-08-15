@@ -1,6 +1,6 @@
 # `@motionvideo/ai-planner`
 
-AI-facing contracts and typed authoring commands for Motion Format V3.
+AI-facing contracts and typed authoring commands for Motion Format V1.
 
 ## Pipeline
 
@@ -13,7 +13,7 @@ SceneDesignPlanV1
       ↓
 ValidatedCommandBatch → executeCommandBatch
       ↓
-MotionProject V3 (+ generation provenance, outside Runtime IR)
+MotionProject V1 (+ generation provenance, outside Runtime IR)
 ```
 
 Default mode is **from-scratch**. Templates are optional retrieval priors (`mode: "template"`).

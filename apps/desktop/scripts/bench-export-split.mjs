@@ -60,7 +60,7 @@ fs.mkdirSync(exportOutDir, { recursive: true });
 
 const project = {
   format: "motion-project",
-  formatVersion: 3,
+  formatVersion: 1,
   metadata: {
     id: "bench.export",
     name: "Bench",
@@ -103,11 +103,11 @@ const project = {
     {
       id: "scene.a",
       duration: wantUhd ? 0.5 : 0.25,
-      nodes: [
+      layers: [
         {
           id: "n1",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           transform: {
             x: 100,
             y: 100,

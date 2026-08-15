@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Phase 3 tests: EvaluatedCompositionFrame, stable keys, interaction snapshot,
  * camera view override, transition frame fixtures.
@@ -24,10 +25,10 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
   it("EvaluatedLayer has required fields", () => {
     const layer: EvaluatedLayer = {
       layerKey: "s1:n1",
-      sceneId: "s1",
-      nodeId: "n1",
+      graphId: "s1",
+      layerId: "n1",
       composition: {
-        sceneId: "s1",
+        graphId: "s1",
         localTime: 0.5,
         opacity: 1,
         translateX: 0,
@@ -36,11 +37,15 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
         zIndex: 0,
       },
       interaction: {
-        sceneId: "s1",
+        graphId: "s1",
+        frame: 15,
         time: 0.5,
-        nodes: [],
         width: 1920,
         height: 1080,
+        space: "flat-2d",
+        projection: { kind: "orthographic" },
+        cameraMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+        items: [],
       },
       paint: { commands: [], diagnostics: [] },
     };
@@ -90,7 +95,7 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
 
   it("EvaluatedMediaState has required fields", () => {
     const media: EvaluatedMediaState = {
-      nodeId: "n1",
+      layerId: "n1",
       mediaTime: 2.0,
       sourceFrame: 60,
       assetId: "vid-1",
@@ -130,14 +135,14 @@ describe("stableLayerKey", () => {
 describe("parseStableLayerKey", () => {
   it("round-trips without iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a");
-    expect(parsed).toEqual({ sceneId: "scene-1", nodeId: "node-a" });
+    expect(parsed).toEqual({ graphId: "scene-1", layerId: "node-a" });
   });
 
   it("round-trips with iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a::iter3");
     expect(parsed).toEqual({
-      sceneId: "scene-1",
-      nodeId: "node-a",
+      graphId: "scene-1",
+      layerId: "node-a",
       iteration: 3,
     });
   });
@@ -150,76 +155,44 @@ describe("parseStableLayerKey", () => {
 
 // ── Task 3.4: Camera view override seam ───────────────────────────────
 
-import { evaluateCompositionFrameV3 } from "../evaluate-composition";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import { evaluateCompositionFrameV1 } from "../evaluate-composition";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 function emptyRuntime(): MotionRuntimeProject {
   return {
     format: "motion-runtime",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "test",
-      title: "Test",
+      name: "Test",
       aspectRatio: "16:9",
-      width: 1920,
-      height: 1080,
+      fps: 30,
+      locale: "vi-VN",
+      brand: { name: "Default" },
     },
     assets: [],
-    timeline: {
-      duration: 2,
-      visualTracks: [
-        {
-          id: "primary",
-          order: 0,
-          clips: [
-            {
-              id: "clip-s1",
-              source: { kind: "scene", sceneId: "s1" },
-              start: 0,
-              duration: 2,
-            },
-          ],
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-    scenes: [
+    space: "flat-2d",
+    layers: [
       {
-        id: "s1",
-        duration: 2,
-        space: "flat-2d",
-        nodes: [
-          {
-            type: "group",
-            id: "n1",
-            parentId: null,
-            zIndex: 0,
-            transform: {
-              x: 0,
-              y: 0,
-              width: 100,
-              height: 100,
-              rotation: 0,
-              opacity: 1,
-              anchorX: 0,
-              anchorY: 0,
-              scaleX: 1,
-              scaleY: 1,
-            },
-            payload: {},
-          } as any,
-        ],
-        tracks: [],
-      },
+        type: "group",
+        id: "n1",
+        parentLayerId: null,
+        zIndex: 0,
+        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+        payload: {},
+      } as MotionRuntimeProject["layers"][number],
     ],
+    tracks: [],
+    timeline: { duration: 2 },
   };
 }
 
-describe("evaluateCompositionFrameV3", () => {
+describe("evaluateCompositionFrameV1", () => {
   it("returns EvaluatedCompositionFrame with all fields", () => {
     const runtime = emptyRuntime();
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080);
     expect(frame).not.toBeNull();
     if (!frame) return;
 
@@ -239,14 +212,14 @@ describe("evaluateCompositionFrameV3", () => {
 
   it("returns orthographic-2d projection for flat space", () => {
     const runtime = emptyRuntime();
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080);
     expect(frame?.projection.kind).toBe("orthographic-2d");
   });
 
   it("stageView:'flat' produces orthographic-2d even for 2.5d space", () => {
     const runtime = emptyRuntime();
-    runtime.scenes[0]!.space = "layered-2.5d";
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080, {
+    runtime.space = "layered-2.5d";
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080, {
       stageView: "flat",
     });
     expect(frame?.projection.kind).toBe("orthographic-2d");
@@ -255,7 +228,7 @@ describe("evaluateCompositionFrameV3", () => {
   it("null for out-of-bounds frame", () => {
     const runtime = emptyRuntime();
     // Frame way beyond duration
-    const frame = evaluateCompositionFrameV3(runtime, 10000, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 10000, 30, 1920, 1080);
     expect(frame).toBeNull();
   });
 });
@@ -268,178 +241,28 @@ import {
   timelineTotalDuration,
 } from "../resolve-timeline";
 
-describe("Phase 5 — multi-track timeline resolution", () => {
-  it("listTimelineSegments includes all tracks (primary + overlay)", () => {
+describe("Phase 5 — layer-graph timeline resolution", () => {
+  it("listTimelineSegments covers the full duration once", () => {
     const rt = emptyRuntime();
-    rt.timeline.visualTracks = [
-      {
-        id: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-s1",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 2,
-          },
-        ],
-      },
-      {
-        id: "overlay-track",
-        order: 1,
-        clips: [
-          {
-            id: "clip-over",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 1,
-            duration: 1,
-          },
-        ],
-      },
-    ];
     const segments = listTimelineSegments(rt);
-    // Both primary and overlay clips are included (sorted by start)
-    expect(segments).toHaveLength(2);
-    expect(segments[0]!.sceneId).toBe("s1");
-    expect(segments[0]!.duration).toBe(2);
-    // Overlay clip appears at its start offset
-    expect(segments[1]!.start).toBe(1);
-    expect(segments[1]!.duration).toBe(1);
-  });
-
-  it("listTimelineSegments includes overlay clips even without primary track", () => {
-    const rt = emptyRuntime();
-    rt.timeline.visualTracks = [
-      {
-        id: "overlay-only",
-        order: 0,
-        clips: [
-          {
-            id: "clip-over",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 3,
-          },
-        ],
-      },
-    ];
-    const segments = listTimelineSegments(rt);
-    // Overlay clips are included even without a primary track
     expect(segments).toHaveLength(1);
-    expect(segments[0]!.sceneId).toBe("s1");
-    expect(segments[0]!.duration).toBe(3);
+    expect(segments[0]!.graphId).toBe("root");
+    expect(segments[0]!.duration).toBe(2);
   });
 
-  it("listTimelineSegments with 2 primary clips → ordered by start", () => {
+  it("timelineTotalDuration uses timeline.duration", () => {
     const rt = emptyRuntime();
-    rt.scenes.push({
-      id: "s2",
-      duration: 3,
-      nodes: [],
-      tracks: [],
-    });
-    rt.timeline.visualTracks = [
-      {
-        id: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-s2",
-            source: { kind: "scene", sceneId: "s2" },
-            start: 2,
-            duration: 3,
-          },
-          {
-            id: "clip-s1",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 2,
-          },
-        ],
-      },
-    ];
-    const segments = listTimelineSegments(rt);
-    expect(segments).toHaveLength(2);
-    // Sorted by start
-    expect(segments[0]!.sceneId).toBe("s1");
-    expect(segments[0]!.start).toBe(0);
-    expect(segments[1]!.sceneId).toBe("s2");
-    expect(segments[1]!.start).toBe(2);
-  });
-
-  it("timelineTotalDuration falls back to max end when duration is missing", () => {
-    const rt = emptyRuntime();
-    rt.scenes.push({
-      id: "s2",
-      duration: 3,
-      nodes: [],
-      tracks: [],
-    });
-    // Remove the declared duration to exercise the legacy fallback path.
-    delete (rt.timeline as { duration?: number }).duration;
-    rt.timeline.visualTracks = [
-      {
-        id: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-s1",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 2,
-          },
-          {
-            id: "clip-s2",
-            source: { kind: "scene", sceneId: "s2" },
-            start: 2,
-            duration: 3,
-          },
-        ],
-      },
-    ];
+    expect(timelineTotalDuration(rt)).toBe(2);
+    rt.timeline.duration = 5;
     expect(timelineTotalDuration(rt)).toBe(5);
   });
 
-  it("resolveTimelineAtTime resolves correct scene at time", () => {
+  it("resolveTimelineAtTime maps onto the root graph", () => {
     const rt = emptyRuntime();
-    rt.scenes.push({
-      id: "s2",
-      duration: 3,
-      nodes: [],
-      tracks: [],
-    });
-    // Content ends at 5s — duration must match SoT semantics.
-    rt.timeline.duration = 5;
-    rt.timeline.visualTracks = [
-      {
-        id: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-s1",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 2,
-          },
-          {
-            id: "clip-s2",
-            source: { kind: "scene", sceneId: "s2" },
-            start: 2,
-            duration: 3,
-          },
-        ],
-      },
-    ];
-
     const mid = resolveTimelineAtTime(rt, 1);
     expect(mid).not.toBeNull();
-    expect(mid!.sceneId).toBe("s1");
+    expect(mid!.graphId).toBe("root");
     expect(mid!.localTime).toBe(1);
-
-    const cross = resolveTimelineAtTime(rt, 3);
-    expect(cross).not.toBeNull();
-    expect(cross!.sceneId).toBe("s2");
-    expect(cross!.localTime).toBe(1);
 
     const pastEnd = resolveTimelineAtTime(rt, 10);
     expect(pastEnd).toBeNull();
@@ -447,40 +270,13 @@ describe("Phase 5 — multi-track timeline resolution", () => {
 
   it("resolveTimelineAtTime returns null for empty timeline", () => {
     const rt = emptyRuntime();
-    rt.timeline.visualTracks = [];
+    rt.timeline.duration = 0;
     expect(resolveTimelineAtTime(rt, 0)).toBeNull();
   });
 
-  it("multitrack: evaluateCompositionFrameV3 from primary + overlay", () => {
+  it("evaluateCompositionFrameV1 evaluates the layer graph", () => {
     const rt = emptyRuntime();
-    rt.timeline.visualTracks = [
-      {
-        id: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-s1",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0,
-            duration: 2,
-          },
-        ],
-      },
-      {
-        id: "overlay-track",
-        order: 1,
-        clips: [
-          {
-            id: "clip-over",
-            source: { kind: "scene", sceneId: "s1" },
-            start: 0.5,
-            duration: 1,
-          },
-        ],
-      },
-    ];
-    // Frame at global time 0.5 → primary clip is active
-    const frame = evaluateCompositionFrameV3(rt, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(rt, 0, 30, 1920, 1080);
     expect(frame).not.toBeNull();
     expect(frame!.compositionTime).toBe(0);
   });

@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
 import {
   canUndo,
@@ -41,26 +42,12 @@ describe("timeline session property bus", () => {
       {
         id: "scene_1",
         duration: 3,
-        nodes: [
+        layers: [
           {
             id: "node_1",
             type: "text",
-            parentId: null,
-            transform: {
-              x: 10,
-              y: 20,
-              width: 100,
-              height: 40,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0,
-              anchorY: 0,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
+            parentLayerId: null,
+            ...visualLayerAtoms({ x: 10, y: 20, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
               content: { kind: "plain", text: "Hi" },
               fontSize: 24,
@@ -137,7 +124,7 @@ describe("timeline session property bus", () => {
       entryId: "e1",
       selection,
     });
-    expect(state.project!.scenes[0]!.nodes[0]!.transform.x).toBe(77);
+    expect(state.project!.scenes[0]!.layers[0]!.transform.x).toBe(77);
     expect(canUndo(state.history)).toBe(true);
     expect(state.sessionDocumentJson).toContain('"x": 77');
 
@@ -156,6 +143,6 @@ describe("timeline session property bus", () => {
     expect(state.history.past).toHaveLength(1);
 
     state = reduce(state, { type: "UNDO" });
-    expect(state.project!.scenes[0]!.nodes[0]!.transform.x).toBe(10);
+    expect(state.project!.scenes[0]!.layers[0]!.transform.x).toBe(10);
   });
 });

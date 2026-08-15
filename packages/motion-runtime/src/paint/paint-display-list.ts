@@ -22,12 +22,13 @@ export type PaintTransformState = {
 export type PaintLayerScope = {
   kind: "layer";
   key: string;
-  nodeId?: string;
+  layerId?: string;
   isolation: boolean;
   offscreen: boolean;
   mask?: {
     mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
     sourceKey: string;
+    sourceVisibility?: "mask-only" | "content-and-mask";
   };
   children: PaintDisplayNode[];
 };
@@ -35,7 +36,7 @@ export type PaintLayerScope = {
 export type PaintGroupScope = {
   kind: "group";
   key: string;
-  nodeId: string;
+  layerId: string;
   transform?: PaintTransformState;
   children: PaintDisplayNode[];
 };
@@ -55,7 +56,7 @@ export type PaintDisplayList = {
   width: number;
   height: number;
   background?: string;
-  sceneId: string;
+  graphId: string;
   frame: number;
   time: number;
   roots: PaintDisplayNode[];

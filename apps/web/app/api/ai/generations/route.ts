@@ -11,7 +11,7 @@ import { parseMotionProject } from "@motionvideo/motion-protocol";
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-/** AI output is already V3 (Phase 7 cutover). */
+/** AI output is already V1 (Phase 7 cutover). */
 
 function repoRoot(): string {
   const cwd = process.cwd();
@@ -203,7 +203,7 @@ export async function POST(request: Request): Promise<Response> {
                   scope: "video",
                   summary: `Zero-template draft: ${result.brief.objective.slice(0, 80)}`,
                   affectedElementKeys: result.project.scenes.flatMap((s) =>
-                    s.nodes.map((n) => `${s.id}/${n.id}`),
+                    s.layers.map((n) => `${s.id}/${n.id}`),
                   ),
                   warnings: result.critic.findings
                     .filter((f) => f.severity === "warning")

@@ -1,8 +1,8 @@
 name: Protocol Schema Freeze
 
-# Ensures committed JSON Schema files (schema/v2.json, schema/v3.json) stay
+# Ensures committed JSON Schema files (schema/v2.json, schema/v1.json) stay
 # in sync with the zod schemas. Also runs the motion-protocol test suite so
-# v2/v3 schema changes are always covered.
+# v2/v1 schema changes are always covered.
 
 on:
   pull_request:

@@ -18,13 +18,28 @@ import type { WorkerSequenceId } from "@motionvideo/render-contracts";
 export type FrameBufferEntry = {
   /** Composition time (seconds). */
   time: number;
-  /** The rendered frame (opaque — consumer decides the format). */
+  /**
+   * The rendered frame. Prefer `ImageBitmap` or `VideoFrame`.
+   * Anything with `close()` is released on evict/prune/stale drop.
+   */
   data: unknown;
   /** Sequence ID at time of production. */
   sequenceId: WorkerSequenceId;
   /** Wall-clock timestamp when the frame was produced. */
   producedAt: number;
 };
+
+/** Close ImageBitmap / VideoFrame (or any `{ close() }`) exactly once. */
+export function releaseBufferedFrameData(data: unknown): void {
+  if (data == null || typeof data !== "object") return;
+  const closer = (data as { close?: unknown }).close;
+  if (typeof closer !== "function") return;
+  try {
+    (closer as () => void).call(data);
+  } catch {
+    // already closed
+  }
+}
 
 export type BufferStatus = {
   /** Number of frames currently buffered. */
@@ -97,15 +112,19 @@ export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
 
   function push(entry: FrameBufferEntry): void {
     // Drop stale frames, but only when a sequence has been set
-    if (currentSequenceId >= 0 && entry.sequenceId !== currentSequenceId)
+    if (currentSequenceId >= 0 && entry.sequenceId !== currentSequenceId) {
+      releaseBufferedFrameData(entry.data);
       return;
+    }
 
     // Drop if we already have a newer frame at the same time
     const existingIdx = entries.findIndex((e) => e.time === entry.time);
     if (existingIdx >= 0) {
       if (entries[existingIdx]!.sequenceId <= entry.sequenceId) {
-        entries.splice(existingIdx, 1);
+        const prev = entries.splice(existingIdx, 1)[0];
+        if (prev) releaseBufferedFrameData(prev.data);
       } else {
+        releaseBufferedFrameData(entry.data);
         return; // existing is newer
       }
     }
@@ -125,8 +144,8 @@ export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
 
     // Evict if over capacity
     while (entries.length > capacity) {
-      // Remove the oldest frame
-      entries.shift();
+      const evicted = entries.shift();
+      if (evicted) releaseBufferedFrameData(evicted.data);
     }
 
     if (entry.time > latestTime) {
@@ -151,13 +170,24 @@ export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
 
   function prune(playhead: number, keepBackSec = 0.05): void {
     const cutoff = playhead - keepBackSec;
-    entries = entries.filter((e) => e.time >= cutoff);
+    const kept: FrameBufferEntry[] = [];
+    for (const e of entries) {
+      if (e.time >= cutoff) kept.push(e);
+      else releaseBufferedFrameData(e.data);
+    }
+    entries = kept;
+    latestTime = entries.length === 0 ? -1 : entries[entries.length - 1]!.time;
   }
 
   function setSequenceId(id: WorkerSequenceId): void {
     currentSequenceId = id;
-    // Drop all frames from previous sequences
-    entries = entries.filter((e) => e.sequenceId === id);
+    const kept: FrameBufferEntry[] = [];
+    for (const e of entries) {
+      if (e.sequenceId === id) kept.push(e);
+      else releaseBufferedFrameData(e.data);
+    }
+    entries = kept;
+    latestTime = entries.length === 0 ? -1 : entries[entries.length - 1]!.time;
   }
 
   function status(playhead: number, _fps: number): BufferStatus {
@@ -173,6 +203,7 @@ export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
   }
 
   function clear(): void {
+    for (const e of entries) releaseBufferedFrameData(e.data);
     entries = [];
     latestTime = -1;
   }

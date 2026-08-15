@@ -7,7 +7,7 @@ import type { PaintCommandBuffer } from "./paint-command-buffer";
 import type { RenderSnapshot } from "../render-snapshot";
 
 const snapshot: RenderSnapshot = {
-  sceneId: "s1",
+  graphId: "s1",
   frame: 0,
   time: 0,
   width: 200,
@@ -19,8 +19,8 @@ const snapshot: RenderSnapshot = {
   items: [
     {
       key: "s1:shape",
-      sceneId: "s1",
-      nodeId: "shape",
+      graphId: "s1",
+      layerId: "shape",
       nodeType: "shape",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
       worldBounds: { x: 10, y: 20, width: 80, height: 40 },
@@ -67,7 +67,7 @@ describe("validatePaintCommandBuffer", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -96,14 +96,14 @@ describe("validatePaintCommandBuffer", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
         {
           op: "drawSolid",
           key: "x",
-          nodeId: "n",
+          layerId: "n",
           fill: "#000",
           width: 1,
           height: 1,
@@ -118,7 +118,7 @@ describe("validatePaintCommandBuffer", () => {
 });
 
 describe("decodePaintCommandBuffer", () => {
-  it("builds a display list with drawable nodes", () => {
+  it("builds a display list with drawable layers", () => {
     const buffer = buildPaintCommandBuffer(snapshot);
     const list = decodePaintCommandBuffer(buffer);
     expect(list.width).toBe(200);

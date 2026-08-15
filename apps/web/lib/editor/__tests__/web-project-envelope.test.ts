@@ -14,18 +14,18 @@ describe("web project envelope locks", () => {
       envelope,
       "scene.a",
       "node.t",
-      "transform.x",
+      "transform.translate.x",
       true,
     );
-    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.x")).toBe(
+    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.translate.x")).toBe(
       true,
     );
-    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.y")).toBe(
+    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.translate.y")).toBe(
       false,
     );
 
     envelope = toggleElementLock(envelope, "scene.a", "node.t", true);
-    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.y")).toBe(
+    expect(isPropertyLocked(envelope, "scene.a", "node.t", "transform.translate.y")).toBe(
       true,
     );
   });
@@ -33,13 +33,13 @@ describe("web project envelope locks", () => {
   it("tracks user-modified properties", () => {
     let envelope = createEmptyEnvelope("proj_1");
     envelope = markUserModified(envelope, "scene.a", "node.t", [
-      "transform.x",
+      "transform.translate.x",
       "text.text",
     ]);
     const meta =
       envelope.authoring.elementMeta["scene:scene.a:node.t"];
     expect(meta?.userModifiedProperties).toEqual([
-      "transform.x",
+      "transform.translate.x",
       "text.text",
     ]);
     expect(meta?.origin).toBe("user");

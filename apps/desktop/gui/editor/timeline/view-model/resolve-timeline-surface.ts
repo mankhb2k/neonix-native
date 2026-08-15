@@ -36,8 +36,8 @@ export type TimelineStripFlags = {
     containerStart: number;
     containerDuration: number;
     /** Node ids top→bottom (zIndex desc). */
-    orderedNodeIds: string[];
-    /** Lane ids top→bottom parallel to orderedNodeIds. */
+    orderedLayerIds: string[];
+    /** Lane ids top→bottom parallel to orderedLayerIds. */
     orderedLaneIds: string[];
     /** Video source duration cap (seconds) by node id. */
     mediaMaxDurationByNodeId: Map<string, number>;
@@ -148,7 +148,7 @@ export function resolveTimelineSurface(args: {
   for (const strip of layerModeView.strips) {
     const synthetic: TimelineClip = {
       kind: "scene",
-      id: strip.nodeId,
+      id: strip.layerId,
       sceneId: layerModeView.sceneId,
       laneId: strip.laneId,
       startTime: strip.startTime,
@@ -174,12 +174,12 @@ export function resolveTimelineSurface(args: {
   }
 
   const mediaMaxDurationByNodeId = new Map<string, number>();
-  const sceneNodes = args.project?.scenes.find(
+  const sceneLayers = args.project?.scenes.find(
     (s) => s.id === layerModeView.sceneId,
-  )?.nodes;
+  )?.layers;
   const assets = args.project?.assets ?? [];
-  if (sceneNodes) {
-    for (const node of sceneNodes) {
+  if (sceneLayers) {
+    for (const node of sceneLayers) {
       if (node.type !== "video") continue;
       const payload = node.payload as {
         assetId?: string;
@@ -219,13 +219,13 @@ export function resolveTimelineSurface(args: {
       sceneId: layerModeView.sceneId,
       containerStartTime: c.startTime,
       containerDuration: c.duration,
-      nodes: layerModeView.rows.map((row) => {
+      layers: layerModeView.rows.map((row) => {
         const strip = layerModeView.stripsByLaneId.get(row.laneId);
         return {
-          id: row.nodeId,
+          id: row.layerId,
           laneId: row.laneId,
           type: row.nodeType,
-          parentId: row.parentId,
+          parentLayerId: row.parentLayerId,
           zIndex: row.zIndex,
           sceneLocalStart: strip ? strip.startTime - c.startTime : 0,
           sceneLocalDuration: strip?.duration ?? c.duration,
@@ -238,7 +238,7 @@ export function resolveTimelineSurface(args: {
         sceneId: layerModeView.sceneId,
         containerStart: c.startTime,
         containerDuration: c.duration,
-        orderedNodeIds: layerModeView.rows.map((r) => r.nodeId),
+        orderedLayerIds: layerModeView.rows.map((r) => r.layerId),
         orderedLaneIds: layerModeView.rows.map((r) => r.laneId),
         mediaMaxDurationByNodeId,
       },

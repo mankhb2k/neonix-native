@@ -10,8 +10,13 @@ const AUTOSAVE_WAIT_MS = 900;
 export class EditorPage {
   constructor(readonly page: Page) {}
 
-  async goto(projectId: string) {
-    await this.page.goto(`/app/editor/${projectId}`);
+  async goto(projectId: string, search = "") {
+    const query = search
+      ? search.startsWith("?")
+        ? search
+        : `?${search}`
+      : "";
+    await this.page.goto(`/app/editor/${projectId}${query}`);
   }
 
   async waitReady(clipText?: string) {

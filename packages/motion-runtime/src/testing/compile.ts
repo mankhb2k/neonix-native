@@ -1,22 +1,24 @@
-import {
-  compileMotionProjectV3,
-  type MotionRuntimeProject,
-} from "@motionvideo/motion-compiler";
-import type { MotionProjectV3 } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
+import type {
+  MotionProjectV1,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /**
- * Compile a v3 authoring project into the runtime IR, throwing on failure.
+ * Compile a v1 authoring project into the runtime IR, throwing on failure.
  *
- * Phase 12 helper: uses `compileMotionProjectV3` directly. All V3 fixtures
- * must go through the v3 compiler and have `.project` unwrapped.
+ * Phase 12 helper: uses `compileMotionProjectV1` directly. All V1 fixtures
+ * must go through the v1 compiler and have `.project` unwrapped.
  */
-export function compileProjectV3(
-  project: MotionProjectV3,
+export function compileProjectV1(
+  project: MotionProjectV1,
 ): MotionRuntimeProject {
-  const result = compileMotionProjectV3(project);
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     throw new Error(
-      `compileProjectV3 failed: ${result.diagnostics
+      `compileProjectV1 failed: ${result.diagnostics
         .map((d) => `${d.code}: ${d.message}`)
         .join(" | ")}`,
     );

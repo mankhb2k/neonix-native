@@ -43,7 +43,6 @@ export default [
                 "@motionvideo/editor-core",
                 "@motionvideo/editor-interactions",
                 "@motionvideo/editor-react",
-                "@motionvideo/motion-workspace",
               ],
               message: "Runtime must not import editor packages.",
             },

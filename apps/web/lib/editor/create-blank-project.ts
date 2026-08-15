@@ -1,5 +1,5 @@
 import {
-  parseMotionProjectV3,
+  parseMotionProjectV1,
   type AspectRatio,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
@@ -15,9 +15,9 @@ export function createBlankProject(input: {
   aspectRatio: AspectRatio;
 }): MotionProject {
   const { width, height } = ASPECT_SIZES[input.aspectRatio];
-  return parseMotionProjectV3({
+  return parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: `proj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
       name: input.name,

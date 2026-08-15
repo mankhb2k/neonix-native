@@ -7,11 +7,14 @@ import path from "node:path";
 import { createCanvas, loadImage, type SKRSContext2D } from "@napi-rs/canvas";
 import {
   evaluateFrame,
+  layerGraphFromRuntime,
   type PaintCommand,
   type PaintCommandBuffer,
   type PaintFill,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { projectFrameLayers } from "./frame-plan";
 import { ensureFont } from "./draw";
 
@@ -302,7 +305,7 @@ async function paintCommandsToContextAsync(
 }
 
 export async function drawSceneFramePaint(
-  scene: MotionRuntimeProject["scenes"][number],
+  scene: Parameters<typeof evaluateFrame>[0]["scene"],
   metadata: MotionRuntimeProject["metadata"],
   assets: RuntimeAsset[],
   localTime: number,
@@ -344,8 +347,8 @@ export async function drawProjectFramePaint(
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
   for (const layer of projectFrameLayers(project, globalTime)) {
-    const scene = project.scenes[layer.sceneIndex];
-    if (!scene || layer.opacity <= 0) continue;
+    const scene = layerGraphFromRuntime(project);
+    if (layer.opacity <= 0) continue;
     const png = await drawSceneFramePaint(
       scene,
       project.metadata,

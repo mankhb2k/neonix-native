@@ -1,14 +1,14 @@
 /**
- * Shared multi-scene composition layer plan (AE layer stack).
+ * Shared composition layer-graph plan (AE layer stack).
  *
- * At time t: active clips (start <= t < start+duration) render by zIndex
- * (caller sorts by track.order ascending). No transition primitives.
+ * At time t: active layer-graph segments (start <= t < start+duration)
+ * render by zIndex (caller sorts by track.order ascending).
  */
 
 import { resolveMediaTiming } from "../media-timing";
 
-export type CompositionSceneInput = {
-  sceneId: string;
+export type LayerGraphSegmentInput = {
+  graphId: string;
   /** Absolute global timeline start (seconds). */
   start: number;
   duration: number;
@@ -16,14 +16,17 @@ export type CompositionSceneInput = {
   playbackRate?: number;
   loop?: boolean;
   sourceDuration?: number;
-  /** Clip opacity (default 1). */
+  /** Segment opacity (default 1). */
   opacity?: number;
   trackId?: string;
   trackOrder?: number;
 };
 
+/** @see LayerGraphSegmentInput */
+export type CompositionLayerInput = LayerGraphSegmentInput;
+
 export type CompositionLayerPlan = {
-  sceneId: string;
+  graphId: string;
   localTime: number;
   opacity: number;
   translateX: number;
@@ -41,7 +44,7 @@ export type CompositionFramePlan = {
 };
 
 type Segment = {
-  sceneId: string;
+  graphId: string;
   start: number;
   duration: number;
   trimStart?: number;
@@ -53,21 +56,21 @@ type Segment = {
   trackOrder?: number;
 };
 
-function buildSegments(scenes: CompositionSceneInput[]): {
+function buildSegments(segmentsIn: LayerGraphSegmentInput[]): {
   segments: Segment[];
   totalDuration: number;
 } {
-  const segments: Segment[] = scenes.map((scene) => ({
-    sceneId: scene.sceneId,
-    start: scene.start,
-    duration: scene.duration,
-    trimStart: scene.trimStart,
-    playbackRate: scene.playbackRate,
-    loop: scene.loop,
-    sourceDuration: scene.sourceDuration,
-    opacity: scene.opacity ?? 1,
-    trackId: scene.trackId,
-    trackOrder: scene.trackOrder,
+  const segments: Segment[] = segmentsIn.map((segment) => ({
+    graphId: segment.graphId,
+    start: segment.start,
+    duration: segment.duration,
+    trimStart: segment.trimStart,
+    playbackRate: segment.playbackRate,
+    loop: segment.loop,
+    sourceDuration: segment.sourceDuration,
+    opacity: segment.opacity ?? 1,
+    trackId: segment.trackId,
+    trackOrder: segment.trackOrder,
   }));
   const totalDuration = segments.reduce(
     (max, s) => Math.max(max, s.start + s.duration),
@@ -92,17 +95,17 @@ function effectiveLocalTime(
 }
 
 /**
- * Evaluate which scene layers are visible at a global time.
- * Gaps produce no layers. Opacity comes from the clip only.
+ * Evaluate which layer-graph segments are visible at a global time.
+ * Gaps produce no layers. Opacity comes from the segment only.
  */
 export function evaluateCompositionLayers(
-  scenes: CompositionSceneInput[],
+  segmentsIn: LayerGraphSegmentInput[],
   globalTime: number,
   width: number,
   height: number,
   fps = 30,
 ): CompositionFramePlan {
-  const { segments, totalDuration } = buildSegments(scenes);
+  const { segments, totalDuration } = buildSegments(segmentsIn);
   const t = Number.isFinite(globalTime) ? Math.max(0, globalTime) : 0;
   const safeFps = Math.max(1, fps);
   const layers: CompositionLayerPlan[] = [];
@@ -115,7 +118,7 @@ export function evaluateCompositionLayers(
     }
 
     layers.push({
-      sceneId: seg.sceneId,
+      graphId: seg.graphId,
       localTime: effectiveLocalTime(seg, compositionLocalTime, safeFps),
       opacity: seg.opacity,
       translateX: 0,
@@ -130,7 +133,7 @@ export function evaluateCompositionLayers(
 }
 
 export function compositionTotalDuration(
-  scenes: CompositionSceneInput[],
+  segmentsIn: LayerGraphSegmentInput[],
 ): number {
-  return buildSegments(scenes).totalDuration;
+  return buildSegments(segmentsIn).totalDuration;
 }

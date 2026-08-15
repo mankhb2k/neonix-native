@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MotionProjectV3PatchSchema } from "@motionvideo/motion-protocol";
+import { MotionProjectV1PatchSchema } from "@motionvideo/motion-protocol";
 
 const Id = z.string().min(1).max(128);
 const Finite = z.number().finite();
@@ -16,7 +16,7 @@ export const TransformPatchSchema = z
     scaleY: Finite.nonnegative().optional(),
     anchorX: Finite.min(0).max(1).optional(),
     anchorY: Finite.min(0).max(1).optional(),
-    opacity: Finite.min(0).max(1).optional(),
+    opacity: Finite.int().min(0).max(100).optional(),
     visible: z.boolean().optional(),
     flipX: z.boolean().optional(),
     flipY: z.boolean().optional(),
@@ -100,7 +100,7 @@ export const LayoutConstraintCommandSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("anchor"),
-      targetNodeId: Id,
+      targetLayerId: Id,
       offsetX: Finite.optional(),
       offsetY: Finite.optional(),
     })
@@ -156,9 +156,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addNode"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       nodeType: z.enum(["group", "text", "shape"]),
-      parentId: Id.nullable().optional(),
+      parentLayerId: Id.nullable().optional(),
       transform: TransformPatchSchema.optional(),
       text: z.string().max(2_000).optional(),
       fontSize: Finite.positive().optional(),
@@ -171,7 +171,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("removeNode"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
     })
     .strict(),
   z
@@ -179,7 +179,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("addTrack"),
       sceneId: Id,
       clipId: Id,
-      targetId: Id,
+      layerId: Id,
       property: z.string().min(1).max(256),
       duration: Finite.positive(),
       at: Finite.nonnegative().optional(),
@@ -191,14 +191,14 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("applyRepairPatch"),
-      patch: MotionProjectV3PatchSchema,
+      patch: MotionProjectV1PatchSchema,
     })
     .strict(),
   z
     .object({
       type: z.literal("setLayoutConstraint"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       modifierId: Id,
       constraint: LayoutConstraintCommandSchema,
     })
@@ -227,12 +227,12 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
         "stagger",
         "camera-shake",
       ]),
-      targetNodeId: Id,
+      targetLayerId: Id,
       duration: Finite.positive(),
       seed: Finite.optional(),
       intensity: Finite.optional(),
-      sourceNodeId: Id.optional(),
-      staggerNodeIds: z.array(Id).max(64).optional(),
+      sourceLayerId: Id.optional(),
+      staggerLayerIds: z.array(Id).max(64).optional(),
       clipId: Id.optional(),
     })
     .strict(),
@@ -240,8 +240,8 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addMask"),
       sceneId: Id,
-      nodeId: Id,
-      sourceNodeId: Id,
+      layerId: Id,
+      sourceLayerId: Id,
       mode: z.enum(["clip", "alpha", "inverse-alpha", "luma", "inverse-luma"]),
       sourceVisibility: z.enum(["mask-only", "content-and-mask"]).optional(),
     })
@@ -250,7 +250,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addEffect"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       effectId: Id,
       effect: z.discriminatedUnion("type", [
         z
@@ -263,24 +263,25 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
             offsetY: Finite,
             blur: Finite.nonnegative(),
             color: z.string().min(1),
-            opacity: Finite.min(0).max(1).optional(),
+            opacity: Finite.min(0).max(100).optional(),
           })
           .strict(),
         z
           .object({
             type: z.literal("glow"),
             radius: Finite.nonnegative(),
-            intensity: Finite.nonnegative(),
+            intensity: Finite.min(0).max(100).optional(),
             color: z.string().min(1),
-            opacity: Finite.min(0).max(1).optional(),
+            opacity: Finite.min(0).max(100).optional(),
           })
           .strict(),
         z
           .object({
             type: z.literal("color-adjust"),
-            brightness: Finite.min(-1).max(1).optional(),
-            contrast: Finite.min(0).max(4).optional(),
-            saturation: Finite.min(0).max(4).optional(),
+            brightness: Finite.min(0).max(200).optional(),
+            contrast: Finite.min(0).max(200).optional(),
+            saturation: Finite.min(0).max(200).optional(),
+            "hue-rotate": Finite.min(-180).max(180).optional(),
           })
           .strict(),
       ]),
@@ -353,9 +354,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addImageNode"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       assetId: Id,
-      parentId: Id.nullable().optional(),
+      parentLayerId: Id.nullable().optional(),
       transform: TransformPatchSchema.optional(),
       fit: z.enum(["contain", "cover", "fill", "none"]).optional(),
       crop: z
@@ -375,9 +376,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addSvgNode"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       assetId: Id,
-      parentId: Id.nullable().optional(),
+      parentLayerId: Id.nullable().optional(),
       transform: TransformPatchSchema.optional(),
       fit: z.enum(["contain", "cover", "fill", "none"]).optional(),
       crop: z
@@ -397,8 +398,8 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("addPathNode"),
       sceneId: Id,
-      nodeId: Id,
-      parentId: Id.nullable().optional(),
+      layerId: Id,
+      parentLayerId: Id.nullable().optional(),
       transform: TransformPatchSchema.optional(),
       fillRule: z.enum(["nonzero", "evenodd"]).optional(),
       fill: z.string().min(1).optional(),
@@ -443,7 +444,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("setNodePayload"),
       sceneId: Id,
-      nodeId: Id,
+      layerId: Id,
       payload: z.record(z.unknown()),
     })
     .strict(),

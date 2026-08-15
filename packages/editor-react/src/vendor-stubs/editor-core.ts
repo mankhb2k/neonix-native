@@ -8,7 +8,7 @@ export type TimelineTrackKind = "main" | "overlay" | "audio";
 export type EditorSelection =
   | { kind: "none" }
   | { kind: "clips"; ids: string[]; primaryId?: string }
-  | { kind: "node"; sceneId: string; nodeId: string }
+  | { kind: "node"; sceneId: string; layerId: string }
   | { kind: string; [key: string]: unknown };
 
 export type TimelineClip = {
@@ -44,7 +44,7 @@ export type DocumentPropertyCommand = {
 
 export type NodeTargetRef = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
 };
 
 export type TransformPatch = {
@@ -68,9 +68,9 @@ export function selectionClips(ids: string[]): EditorSelection {
 
 export function selectionNode(
   sceneId: string,
-  nodeId: string,
+  layerId: string,
 ): EditorSelection {
-  return { kind: "node", sceneId, nodeId };
+  return { kind: "node", sceneId, layerId };
 }
 
 export function selectedClipIdsFrom(selection: EditorSelection): string[] {

@@ -1,47 +1,32 @@
 ﻿/**
- * Canonical runtime IR types — neutral location, no legacy naming.
+ * Compiler / renderer IR — import `@motionvideo/motion-protocol/runtime`.
  *
- * Core exports:
- *   - MotionRuntimeProjectSchema / MotionRuntimeProject
- *   - Sub-schemas (RuntimeCompositionMetadataSchema, RuntimeVisualClipSchema, …)
- *   - PreparedRuntimeProject (in-memory compilation target)
- *   - Sub-types (RuntimeSceneNode, RuntimeSceneTrack, StaticGeometry, …)
+ * Authoring JSON stays on `@motionvideo/motion-protocol`.
  */
+
+export * from "./assets";
 
 export {
   MotionRuntimeProjectSchema,
   RuntimeCompositionMetadataSchema,
-  RuntimeClipSourceSchema,
-  RuntimeVisualClipSchema,
-  RuntimeVisualTrackSchema,
   RuntimeSourceRefSchema,
   RuntimeSourceRefMapSchema,
-  RuntimeSceneSchema,
-  PlatformSafeAreaSchema,
+  RuntimeLayerGraphSchema,
   ProjectMetadataSchema,
-  AudioTrackSchema,
-  SceneTransitionSchema,
   MOTION_RUNTIME_VERSION,
   type MotionRuntimeProject,
-  type MotionRuntimeScene,
   type MotionRuntimeTrack,
   type RuntimeCompositionMetadata,
-  type RuntimeClipSource,
-  type RuntimeVisualClip,
-  type RuntimeVisualTrack,
   type RuntimeSourceRef,
   type RuntimeSourceRefMap,
-  type RuntimeScene,
-  type PlatformSafeArea,
+  type RuntimeLayerGraph,
   type ProjectMetadata,
-  type AudioTrack,
-  type SceneTransition,
 } from "./project";
 
 export {
   type PreparedRuntimeProject,
-  type RuntimeSceneNode,
-  type RuntimeSceneTrack,
+  type RuntimeVisualLayer,
+  type RuntimePropertyTrack,
   type StaticGeometry,
   type TextLayoutInput,
   type CompositingScope,

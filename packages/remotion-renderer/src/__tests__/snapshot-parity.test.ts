@@ -1,19 +1,20 @@
 import {
   buildRenderSnapshot,
   evaluateCompositionSnapshot,
+  layerGraphFromRuntime,
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
   DEMO_SCENE_ID,
-  compileProjectV3,
+  compileProjectV1,
 } from "@motionvideo/motion-runtime/testing";
 import { describe, expect, it } from "vitest";
 
 describe("remotion-renderer snapshot contract", () => {
   it("builds drawable snapshot items from demo project", () => {
     const project = createDemoMotionProject();
-    const runtime = compileProjectV3(project);
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID);
+    const runtime = compileProjectV1(project);
+    const scene = layerGraphFromRuntime(runtime);
     expect(scene).toBeTruthy();
 
     const snapshot = buildRenderSnapshot({
@@ -25,7 +26,7 @@ describe("remotion-renderer snapshot contract", () => {
       background: "#0c0b0a",
     });
 
-    expect(snapshot.sceneId).toBe(DEMO_SCENE_ID);
+    expect(snapshot.graphId).toBe(DEMO_SCENE_ID);
     expect(snapshot.items.length).toBeGreaterThanOrEqual(4);
 
     const kinds = new Set(snapshot.items.map((item) => item.payload.kind));
@@ -33,7 +34,7 @@ describe("remotion-renderer snapshot contract", () => {
     expect(kinds.has("text")).toBe(true);
     expect(kinds.has("group")).toBe(true);
 
-    const title = snapshot.items.find((item) => item.nodeId === "node.title");
+    const title = snapshot.items.find((item) => item.layerId === "node.title");
     expect(title?.payload.kind).toBe("text");
     if (title?.payload.kind === "text") {
       expect(title.payload.text).toBe("MotiClip AI Studio");
@@ -41,7 +42,7 @@ describe("remotion-renderer snapshot contract", () => {
   });
 
   it("evaluateCompositionSnapshot matches buildRenderSnapshot at probe frames", () => {
-    const runtime = compileProjectV3(createDemoMotionProject());
+    const runtime = compileProjectV1(createDemoMotionProject());
     for (const frame of [0, 15, 45]) {
       const viaComposition = evaluateCompositionSnapshot(
         runtime,
@@ -52,7 +53,7 @@ describe("remotion-renderer snapshot contract", () => {
         DEMO_SCENE_ID,
         "#0c0b0a",
       );
-      const scene = runtime.scenes[0]!;
+      const scene = layerGraphFromRuntime(runtime);
       const viaBuild = buildRenderSnapshot({
         scene,
         time: frame / 30,

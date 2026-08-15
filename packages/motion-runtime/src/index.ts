@@ -1,9 +1,25 @@
 export * from "./matrix";
 export * from "./matrix4";
+export * from "./layer-graph";
 export * from "./evaluator";
-export * from "./spatial";
+export {
+  EMPTY_BOUNDS,
+  containsPoint,
+  invertMatrix,
+  isEmptyBounds,
+  planOffscreenSurface,
+  projectAABB,
+  transformBounds,
+  type Bounds2D,
+  type Point2D,
+} from "./spatial";
 export * from "./hit-test";
-export * from "./clock";
+export {
+  frameIndexAtTime,
+  frameTimestamp,
+  quantizeTimeToFrame,
+  type FrameTimestamp,
+} from "./clock";
 export * from "./geometry";
 export * from "./secondary-motion";
 export * from "./render-plan";
@@ -24,11 +40,32 @@ export * from "./media-timing";
 export * from "./compositing-fingerprint";
 export * from "./pixel-diff";
 export * from "./runtime-patch";
-export * from "./determinism";
+export {
+  FRAME_EPSILON,
+  GEOMETRY_EPSILON,
+  LENGTH_EPSILON,
+  assertNoImplicitLocale,
+  deterministicRandom,
+  deterministicTieBreak,
+  deterministicUint32,
+  frameToTime,
+  numericThenId,
+  roundTimeToFrame,
+} from "./determinism";
 export * from "./evaluated-composition-frame";
 export * from "./diagnostics";
 export * from "./cancellation";
-export * from "./version-policy";
+export {
+  COMPOSITION_FRAME_VERSION,
+  DEFAULT_FEATURE_FLAGS,
+  FeatureFlag,
+  buildVersionManifest,
+  getActiveFeatureFlags,
+  isFeatureEnabled,
+  rollbackChecklist,
+  type FeatureFlag as FeatureFlagId,
+  type RuntimeVersionManifest,
+} from "./version-policy";
 export {
   hierarchyRenderOrder,
   hierarchyRenderOrderReverse,
@@ -37,5 +74,5 @@ export {
 export {
   buildAudioExportManifest,
   type AudioExportManifest,
-  type AudioExportClip,
+  type AudioExportLayer,
 } from "./audio-export-manifest";

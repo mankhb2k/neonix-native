@@ -47,7 +47,7 @@ import { z } from "zod";
 /**
  * Group compositing mode — aligns all renderers on group layer behaviour.
  *
- * V3 group semantics (see `docs/motion-format-v3.md` § Group Layer
+ * V1 group semantics (see `docs/motion-format-v1.md` § Group Layer
  * Semantics) define two compositing modes for `type: "group"` nodes:
  *
  * ## `pass-through`

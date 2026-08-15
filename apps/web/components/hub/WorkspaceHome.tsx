@@ -13,7 +13,7 @@ import { marketingUrl } from "@/lib/hosts";
 import { Clapperboard, Plus, Smartphone, Tv, Square } from "lucide-react";
 
 const hubBg =
-  "[background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-app)]";
+  "[background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-site)]";
 
 export function WorkspaceHome() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export function WorkspaceHome() {
   return (
     <div className={`min-h-screen text-[var(--fg-primary)] ${hubBg}`}>
       <DesktopTitleStrip />
-      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-3.5 shadow-sm backdrop-blur-[10px] [background:color-mix(in_srgb,var(--bg-panel)_88%,transparent)]">
+      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-3.5 shadow-sm backdrop-blur-[10px] [background:color-mix(in_srgb,var(--bg-editor)_88%,transparent)]">
         <AppLink
           href="/"
           className="font-semibold tracking-[-0.02em] text-[var(--fg-primary)] no-underline text-[1.2rem] [font-family:var(--font-display)]"
@@ -93,7 +93,7 @@ export function WorkspaceHome() {
             type="button"
             data-testid="demo-facebook-history"
             onClick={handleFacebookHistoryDemo}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
             title="Mở demo Remotion: lịch sử Facebook"
           >
             <Clapperboard size={14} />
@@ -104,7 +104,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("9:16", "TikTok Shorts 9:16")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng dọc"
             >
               <Smartphone size={14} />
@@ -114,7 +114,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("16:9", "YouTube Motion 16:9")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng ngang"
             >
               <Tv size={14} />
@@ -124,7 +124,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("1:1", "Feed Square 1:1")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-sm transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng vuông"
             >
               <Square size={14} />

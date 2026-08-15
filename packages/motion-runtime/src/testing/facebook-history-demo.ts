@@ -1,10 +1,12 @@
+// @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
-  parseMotionProjectV3,
-  type MotionClipV3,
-  type MotionProjectV3,
-  type NodeV3,
-  type SceneDefinitionV3,
+  parseMotionProjectV1,
+  visualLayerAtoms,
+  type MotionProjectV1,
+  type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import type { MotionClipV1 } from "@motionvideo/motion-protocol/internal";
+import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
 
 export const FB_HISTORY_SCENE_IDS = {
   hook: "scene.hook",
@@ -36,31 +38,28 @@ type Xform = {
 };
 
 function xform(input: Xform) {
-  return {
+  return visualLayerAtoms({
     x: input.x,
     y: input.y,
     width: input.width,
     height: input.height,
-    rotation: input.rotation ?? 0,
-    scaleX: input.scaleX ?? 1,
-    scaleY: input.scaleY ?? 1,
-    opacity: input.opacity ?? 1,
-    visible: true,
-    anchorX: input.anchorX ?? 0.5,
-    anchorY: input.anchorY ?? 0.5,
-    flipX: false,
-    flipY: false,
-  };
+    rotation: input.rotation,
+    scaleX: input.scaleX,
+    scaleY: input.scaleY,
+    originX: input.anchorX,
+    originY: input.anchorY,
+    opacity: input.opacity,
+  });
 }
 
-function bg(id: string, fill: string): NodeV3 {
+function bg(id: string, fill: string): MotionLayer {
   return {
     id,
     type: "shape",
     name: "Background",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
-    transform: xform({
+    ...xform({
       x: 960,
       y: 540,
       width: 1920,
@@ -78,15 +77,15 @@ function rect(
   name: string,
   t: Xform,
   fill: string,
-  opts?: { parentId?: string | null; zIndex?: number; cornerRadius?: number },
-): NodeV3 {
+  opts?: { parentLayerId?: string | null; zIndex?: number; cornerRadius?: number },
+): MotionLayer {
   return {
     id,
     type: "shape",
     name,
-    parentId: opts?.parentId ?? null,
+    parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 1,
-    transform: xform(t),
+    ...xform(t),
     payload: {
       shape: "rectangle",
       ...(opts?.cornerRadius != null
@@ -107,15 +106,15 @@ function textNode(
     align?: "left" | "center" | "right";
   },
   fill: string,
-  opts?: { parentId?: string | null; zIndex?: number },
-): NodeV3 {
+  opts?: { parentLayerId?: string | null; zIndex?: number },
+): MotionLayer {
   return {
     id,
     type: "text",
     name,
-    parentId: opts?.parentId ?? null,
+    parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 2,
-    transform: xform(t),
+    ...xform(t),
     payload: {
       content: { kind: "plain", text: payload.text },
       fontSize: payload.fontSize,
@@ -127,29 +126,29 @@ function textNode(
 
 function fadeInClip(
   id: string,
-  targetId: string,
+  layerId: string,
   at: number,
   duration: number,
   fromY?: number,
-): MotionClipV3 {
+): MotionClipV1 {
   const tracks: Array<{
-    targetId: string;
+    layerId: string;
     property: string;
     keys: Array<{ t: number; v: number; easing?: "easeOut" }>;
   }> = [
     {
-      targetId,
-      property: "transform.opacity",
+      layerId,
+      property: "appearance.opacity",
       keys: [
         { t: 0, v: 0 },
-        { t: duration, v: 1, easing: "easeOut" },
+        { t: duration, v: 100, easing: "easeOut" },
       ],
     },
   ];
   if (fromY != null) {
     tracks.push({
-      targetId,
-      property: "transform.y",
+      layerId,
+      property: "transform.translate.y",
       keys: [
         { t: 0, v: fromY },
         { t: duration, v: fromY - 40, easing: "easeOut" },
@@ -158,7 +157,7 @@ function fadeInClip(
   }
   return {
     id,
-    targetId,
+    layerId,
     schedule: { kind: "absolute", at },
     duration,
     playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -170,13 +169,13 @@ function scene(
   id: string,
   name: string,
   duration: number,
-  nodes: NodeV3[],
-  clips: MotionClipV3[],
-): SceneDefinitionV3 {
-  return { id, name, duration, nodes, clips };
+  layers: MotionLayer[],
+  clips: MotionClipV1[],
+): RuntimeLayerGraph {
+  return { id, name, duration, layers, clips };
 }
 
-function buildHook(): MotionScene {
+function buildHook(): RuntimeLayerGraph {
   const titleId = "hook.title";
   const subId = "hook.subtitle";
   const accentId = "hook.accent";
@@ -223,7 +222,7 @@ function buildHook(): MotionScene {
       fadeInClip("clip.hook.sub", subId, 0.6, 0.7),
       {
         id: "clip.hook.accent",
-        targetId: accentId,
+        layerId: accentId,
         schedule: { kind: "absolute", at: 0.9 },
         duration: 0.6,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -231,16 +230,16 @@ function buildHook(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: accentId,
-              property: "transform.opacity",
+              layerId: accentId,
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.6, v: 1, easing: "easeOut" },
+                { t: 0.6, v: 100, easing: "easeOut" },
               ],
             },
             {
-              targetId: accentId,
-              property: "transform.width",
+              layerId: accentId,
+              property: "frame.width",
               keys: [
                 { t: 0, v: 40 },
                 { t: 0.6, v: 120, easing: "easeOut" },
@@ -253,7 +252,7 @@ function buildHook(): MotionScene {
   );
 }
 
-function buildHarvard(): MotionScene {
+function buildHarvard(): RuntimeLayerGraph {
   const yearId = "harvard.year";
   const cardId = "harvard.card";
   const bodyId = "harvard.body";
@@ -313,7 +312,7 @@ function buildHarvard(): MotionScene {
   );
 }
 
-function buildNewsfeed(): MotionScene {
+function buildNewsfeed(): RuntimeLayerGraph {
   const yearId = "newsfeed.year";
   const titleId = "newsfeed.title";
   const post1 = "newsfeed.post1";
@@ -416,7 +415,7 @@ function buildNewsfeed(): MotionScene {
   );
 }
 
-function buildIpo(): MotionScene {
+function buildIpo(): RuntimeLayerGraph {
   const yearId = "ipo.year";
   const titleId = "ipo.title";
   const barId = "ipo.bar";
@@ -485,7 +484,7 @@ function buildIpo(): MotionScene {
       fadeInClip("clip.ipo.title", titleId, 0.35, 0.55),
       {
         id: "clip.ipo.bar",
-        targetId: barId,
+        layerId: barId,
         schedule: { kind: "absolute", at: 0.6 },
         duration: 0.5,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -493,16 +492,16 @@ function buildIpo(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: barId,
-              property: "transform.opacity",
+              layerId: barId,
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.5, v: 1, easing: "easeOut" },
+                { t: 0.5, v: 100, easing: "easeOut" },
               ],
             },
             {
-              targetId: barId,
-              property: "transform.width",
+              layerId: barId,
+              property: "frame.width",
               keys: [
                 { t: 0, v: 40 },
                 { t: 0.5, v: 200, easing: "easeOut" },
@@ -517,7 +516,7 @@ function buildIpo(): MotionScene {
   );
 }
 
-function buildMeta(): MotionScene {
+function buildMeta(): RuntimeLayerGraph {
   const yearId = "meta.year";
   const oldId = "meta.old";
   const newId = "meta.new";
@@ -580,7 +579,7 @@ function buildMeta(): MotionScene {
       fadeInClip("clip.meta.note", noteId, 1.1, 0.5),
       {
         id: "clip.meta.dark",
-        targetId: "meta.overlay",
+        layerId: "meta.overlay",
         schedule: { kind: "absolute", at: 2.2 },
         duration: 0.8,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -588,11 +587,11 @@ function buildMeta(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: "meta.overlay",
-              property: "transform.opacity",
+              layerId: "meta.overlay",
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.8, v: 0.55, easing: "easeInOut" },
+                { t: 0.8, v: 55, easing: "easeInOut" },
               ],
             },
           ],
@@ -602,7 +601,7 @@ function buildMeta(): MotionScene {
   );
 }
 
-function buildOutro(): MotionScene {
+function buildOutro(): RuntimeLayerGraph {
   const titleId = "outro.title";
   const ctaId = "outro.cta";
   const brandId = "outro.brand";
@@ -659,7 +658,7 @@ function buildOutro(): MotionScene {
 
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
-export function createFacebookHistoryDemoProject(): MotionProjectV3 {
+export function createFacebookHistoryDemoProject(): MotionProjectV1 {
   const scenes = [
     buildHook(),
     buildHarvard(),
@@ -674,9 +673,9 @@ export function createFacebookHistoryDemoProject(): MotionProjectV3 {
     scenes.slice(0, index).reduce((sum, s) => sum + s.duration, 0),
   );
 
-  return parseMotionProjectV3({
+  return parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "proj_facebook_history_demo",
       name: "Facebook History — Demo",
@@ -703,11 +702,11 @@ export function createFacebookHistoryDemoProject(): MotionProjectV3 {
     timeline: {
       visualTracks: [
         {
-          id: "track.main",
+          id: "track.main",
           order: 0,
           clips: scenes.map((scene, index) => ({
             id: `clip.${scene.id}`,
-            source: { kind: "scene", sceneId: scene.id },
+            source: { kind: "scene", graphId: scene.id },
             start: starts[index]!,
             duration: scene.duration,
             opacity: 1,

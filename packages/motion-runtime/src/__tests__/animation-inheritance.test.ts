@@ -1,13 +1,14 @@
 /**
  * Phase 5 — Animation inheritance tests (Group Layer Semantics).
  *
- * Verifies the V3 group animation contract:
+ * Verifies the V1 group animation contract:
  *   - Animating a group transform moves all descendants
  *   - Child local animation combines with parent animation
  *   - Group opacity animation cascades to children
  *   - Group visibility animation hides children
  */
 import { describe, expect, it } from "vitest";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { evaluateScene, type RuntimeNode, type RuntimeScene } from "../evaluator";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -22,55 +23,22 @@ function makeGroupScene(opts: {
   return {
     id: "scene.test",
     duration: 10,
-    nodes: [
+    layers: [
       {
         id: "group.char",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         timing: opts.groupTiming ?? { start: 0, duration: 10 },
-        transform: {
-          x: 100,
-          y: 200,
-          width: 200,
-          height: 200,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-          ...opts.groupTransform,
-        },
-        payload: { compositing: { mode: "pass-through" as const } },
+        ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
       },
       {
         id: "head",
         type: "image",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 0,
         timing: opts.childTiming ?? { start: 0, duration: 10 },
-        transform: {
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-          ...opts.childTransform,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
         payload: { assetId: "asset.head" },
       },
     ],
@@ -80,13 +48,13 @@ function makeGroupScene(opts: {
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
-describe("V3 group animation inheritance (Phase 5)", () => {
+describe("V1 group animation inheritance (Phase 5)", () => {
   it("animating group.transform.x moves child world position", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.x",
+          layerId: "group.char",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 2, v: 300 },
@@ -97,13 +65,13 @@ describe("V3 group animation inheritance (Phase 5)", () => {
 
     // At t=0: group x=100, child local x=0 → child should be at world x ≈ 100
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     expect(headAt0).toBeDefined();
     expect(headAt0.visible).toBe(true);
 
     // At t=2: group x=300, child local x=0 → child should be at world x ≈ 300
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
     expect(headAt2).toBeDefined();
     expect(headAt2.visible).toBe(true);
 
@@ -115,8 +83,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.y",
+          layerId: "group.char",
+          property: "transform.translate.y",
           keys: [
             { t: 0, v: 200 },
             { t: 2, v: 500 },
@@ -126,9 +94,9 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     });
 
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
 
     // Child's world f-component (worldMatrix.f) should shift down with parent
     expect(headAt2.worldMatrix.f).toBeGreaterThan(headAt0.worldMatrix.f);
@@ -138,8 +106,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.rotation",
+          layerId: "group.char",
+          property: "transform.rotate.z",
           keys: [
             { t: 0, v: 0 },
             { t: 2, v: 90 },
@@ -149,9 +117,9 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     });
 
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
 
     // Rotation changes should affect child's world matrix differently
     // At t=0 (rotation=0), matrix should not be identity (due to position)
@@ -163,20 +131,20 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.opacity",
+          layerId: "group.char",
+          property: "appearance.opacity",
           keys: [
-            { t: 0, v: 1 },
-            { t: 2, v: 0.5 },
+            { t: 0, v: 100 },
+            { t: 2, v: 50 },
           ],
         } as RuntimeScene["tracks"][number],
       ],
     });
 
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
 
     // At t=0: group opacity=1 × child opacity=1 → worldOpacity ≈ 1
     expect(headAt0.worldOpacity).toBeCloseTo(1, 5);
@@ -189,8 +157,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       groupTransform: { visible: true },
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.visible",
+          layerId: "group.char",
+          property: "appearance.visible",
           keys: [
             { t: 0, v: true },
             { t: 0.5, v: false },
@@ -201,12 +169,12 @@ describe("V3 group animation inheritance (Phase 5)", () => {
 
     // At t=0: group visible=true → child visible
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     expect(headAt0.visible).toBe(true);
 
     // At t=1: group visible=false → child hidden
     const atT1 = evaluateScene(scene, 1);
-    const headAt1 = atT1.find((n) => n.node.id === "head")!;
+    const headAt1 = atT1.find((n) => n.layer.id === "head")!;
     expect(headAt1.visible).toBe(false);
   });
 
@@ -215,8 +183,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       tracks: [
         // Parent: group moves from x=100 to x=300
         {
-          targetId: "group.char",
-          property: "transform.x",
+          layerId: "group.char",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 2, v: 300 },
@@ -224,8 +192,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         } as RuntimeScene["tracks"][number],
         // Child: head rotates from 0 to 45 degrees locally
         {
-          targetId: "head",
-          property: "transform.rotation",
+          layerId: "head",
+          property: "transform.rotate.z",
           keys: [
             { t: 0, v: 0 },
             { t: 2, v: 45 },
@@ -235,9 +203,9 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     });
 
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
 
     // Both: child should be visible at both times
     expect(headAt0.visible).toBe(true);
@@ -261,8 +229,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       tracks: [
         // Animate child local x from 10 to 60
         {
-          targetId: "head",
-          property: "transform.x",
+          layerId: "head",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 10 },
             { t: 2, v: 60 },
@@ -272,9 +240,9 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     });
 
     const atT0 = evaluateScene(scene, 0);
-    const headAt0 = atT0.find((n) => n.node.id === "head")!;
+    const headAt0 = atT0.find((n) => n.layer.id === "head")!;
     const atT2 = evaluateScene(scene, 2);
-    const headAt2 = atT2.find((n) => n.node.id === "head")!;
+    const headAt2 = atT2.find((n) => n.layer.id === "head")!;
 
     // Both should be visible
     expect(headAt0.visible).toBe(true);
@@ -288,58 +256,40 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene: RuntimeScene = {
       id: "scene.deep",
       duration: 10,
-      nodes: [
+      layers: [
         {
           id: "g.root",
           type: "group",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 100, y: 200, width: 200, height: 200,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
           id: "g.mid",
           type: "group",
-          parentId: "g.root",
+          parentLayerId: "g.root",
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 50, y: 0, width: 100, height: 100,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 50, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
           id: "leaf",
           type: "image",
-          parentId: "g.mid",
+          parentLayerId: "g.mid",
           zIndex: 0,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 0, y: 0, width: 50, height: 50,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 50, height: 50, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { assetId: "a" },
         },
       ],
       tracks: [
         // Animate root group horizontal position
         {
-          targetId: "g.root",
-          property: "transform.x",
+          layerId: "g.root",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 4, v: 500 },
@@ -347,8 +297,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         } as RuntimeScene["tracks"][number],
         // Animate mid group vertical position
         {
-          targetId: "g.mid",
-          property: "transform.y",
+          layerId: "g.mid",
+          property: "transform.translate.y",
           keys: [
             { t: 0, v: 0 },
             { t: 4, v: 200 },
@@ -358,9 +308,9 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     };
 
     const atT0 = evaluateScene(scene, 0);
-    const leafAt0 = atT0.find((n) => n.node.id === "leaf")!;
+    const leafAt0 = atT0.find((n) => n.layer.id === "leaf")!;
     const atT4 = evaluateScene(scene, 4);
-    const leafAt4 = atT4.find((n) => n.node.id === "leaf")!;
+    const leafAt4 = atT4.find((n) => n.layer.id === "leaf")!;
 
     expect(leafAt0.visible).toBe(true);
     expect(leafAt4.visible).toBe(true);
@@ -376,8 +326,8 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       childTiming: { start: 0, duration: 10 },
       tracks: [
         {
-          targetId: "group.char",
-          property: "transform.x",
+          layerId: "group.char",
+          property: "transform.translate.x",
           keys: [
             { t: 3, v: 100 },
             { t: 5, v: 300 },
@@ -388,13 +338,13 @@ describe("V3 group animation inheritance (Phase 5)", () => {
 
     // At t=1: group not yet active → child culled
     const atT1 = evaluateScene(scene, 1);
-    const headAt1 = atT1.find((n) => n.node.id === "head")!;
+    const headAt1 = atT1.find((n) => n.layer.id === "head")!;
     expect(headAt1.visible).toBe(false);
     expect(headAt1.worldOpacity).toBe(0);
 
     // At t=4: group active → child visible with animated group position
     const atT4 = evaluateScene(scene, 4);
-    const headAt4 = atT4.find((n) => n.node.id === "head")!;
+    const headAt4 = atT4.find((n) => n.layer.id === "head")!;
     expect(headAt4.visible).toBe(true);
     expect(headAt4.worldOpacity).toBeGreaterThan(0);
   });

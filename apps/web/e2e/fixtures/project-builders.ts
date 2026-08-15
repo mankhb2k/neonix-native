@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Minimal MotionProject + timeline builders for Playwright seeding.
  * Keep JSON plain — runs in Node and is serialized into page.addInitScript.
@@ -45,22 +46,8 @@ function textNode(id: string, text: string) {
   return {
     id,
     type: "text" as const,
-    parentId: null,
-    transform: {
-      x: 40,
-      y: 40,
-      width: 200,
-      height: 40,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0,
-      anchorY: 0,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    parentLayerId: null,
+    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
     payload: {
       content: { kind: "plain", text },
       fontSize: 24,
@@ -74,7 +61,7 @@ function scene(id: string, name: string, duration: number) {
   return {
     id,
     duration,
-    nodes: [textNode(`${id}.title`, name)],
+    layers: [textNode(`${id}.title`, name)],
     clips: [] as unknown[],
   };
 }
@@ -153,7 +140,7 @@ export function buildStoredProject(input: {
 }): StoredEditorProject {
   const project = {
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: input.projectId,
       name: input.name,
@@ -304,14 +291,14 @@ export function buildAudioCrossLaneProject(projectId = "e2e.editor.audio-cross")
         role: "sfx",
         assetId: "asset.audio.a",
         start: 0,
-        volume: 1,
+        volume: 100,
       },
       {
         id: "a1",
         role: "sfx",
         assetId: "asset.audio.b",
         start: 3,
-        volume: 1,
+        volume: 100,
       },
     ],
     clips: [
@@ -376,7 +363,7 @@ export function buildScrollableAudioProject(
       role: "sfx",
       assetId: `asset.audio.${index}`,
       start: 0,
-      volume: 1,
+      volume: 100,
     })),
     clips: [
       sceneClip({

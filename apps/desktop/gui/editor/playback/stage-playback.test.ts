@@ -6,8 +6,9 @@ import {
   createPlaybackDriver,
 } from "@motionvideo/editor-core";
 import { previewParitySnapshot } from "../preview/preview-evaluate";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
-import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {
@@ -115,10 +116,10 @@ describe("playback driver", () => {
 });
 
 describe("compose + evaluate smoke", () => {
-  it("composes a scene clip layer and evaluates nodes", () => {
-    const project = parseMotionProjectV3({
+  it("composes a scene clip layer and evaluates layers", () => {
+    const project = parseMotionProjectV1({
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "proj_test",
         name: "Test",
@@ -162,27 +163,13 @@ describe("compose + evaluate smoke", () => {
           id: "scene_1",
           name: "Scene",
           duration: 3,
-          nodes: [
+          layers: [
             {
               id: "node_1",
               type: "text",
-              parentId: null,
+              parentLayerId: null,
               zIndex: 0,
-              transform: {
-                x: 100,
-                y: 100,
-                width: 400,
-                height: 80,
-                rotation: 0,
-                scaleX: 1,
-                scaleY: 1,
-                anchorX: 0.5,
-                anchorY: 0.5,
-                opacity: 1,
-                visible: true,
-                flipX: false,
-                flipY: false,
-              },
+              ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
               payload: {
                 content: { kind: "plain", text: "Hello" },
                 fontSize: 64,
@@ -224,12 +211,12 @@ describe("compose + evaluate smoke", () => {
     expect(layers).toHaveLength(1);
     expect(layers[0]?.sceneId).toBe("scene_1");
 
-    const compiledResult = compileMotionProjectV3(project);
+    const compiledResult = compileMotionProjectV1(project);
     expect(compiledResult.ok).toBe(true);
     const compiled = compiledResult.ok ? compiledResult.project : null;
     if (!compiled) return;
     const snapshot = previewParitySnapshot(compiled, "scene_1", 0.5);
-    expect(snapshot.nodes.length).toBeGreaterThan(0);
-    expect(snapshot.nodes.some((n) => n.type === "text")).toBe(true);
+    expect(snapshot.layers.length).toBeGreaterThan(0);
+    expect(snapshot.layers.some((n) => n.type === "text")).toBe(true);
   });
 });

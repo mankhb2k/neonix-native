@@ -2,6 +2,7 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,
@@ -42,32 +43,18 @@ function sceneClip(input: {
   return { kind: "scene", ...input };
 }
 
-/** Scene tối giản dùng trong fixture editor (V3 nodes). */
+/** Scene tối giản dùng trong fixture editor (V1 layers). */
 function scene(id: string, name: string, duration = 3) {
   return {
     id,
     duration,
-    nodes: [
+    layers: [
       {
         id: `${id}.title`,
         type: "text" as const,
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
-        transform: {
-          x: 40,
-          y: 40,
-          width: 200,
-          height: 40,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0,
-          anchorY: 0,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: {
           content: { kind: "plain" as const, text: name },
           fontSize: 24,
@@ -87,7 +74,7 @@ function baseProject(
 ): MotionProject {
   return parseMotionProject({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id,
       name,
@@ -269,7 +256,7 @@ export function fixtureMainPlusAudioOverlap() {
           assetId: "asset.audio.a",
           start: 0,
           duration: 4,
-          volume: 1,
+          volume: 100,
         },
         {
           id: "audio.b",
@@ -285,7 +272,7 @@ export function fixtureMainPlusAudioOverlap() {
           assetId: "asset.audio.c",
           start: 2.5,
           duration: 2,
-          volume: 1,
+          volume: 100,
         },
       ],
       captionTracks: [],
@@ -338,7 +325,7 @@ export function fixtureLegacyTrackLayerIndex() {
 export function fixtureMultiSceneReferences() {
   const project = parseMotionProject({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "fixture.multi-ref",
       name: "Multi Scene Refs",
@@ -389,46 +376,18 @@ export function fixtureMultiSceneReferences() {
       {
         id: "scene.a",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "node.a.root",
             type: "group",
-            parentId: null,
-            transform: {
-              x: 0,
-              y: 0,
-              width: 100,
-              height: 100,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0,
-              anchorY: 0,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
+            parentLayerId: null,
+            ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
           },
           {
             id: "node.a.child",
             type: "text",
-            parentId: "node.a.root",
-            transform: {
-              x: 10,
-              y: 10,
-              width: 80,
-              height: 30,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0,
-              anchorY: 0,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
+            parentLayerId: "node.a.root",
+            ...visualLayerAtoms({ x: 10, y: 10, width: 80, height: 30, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
               content: { kind: "plain", text: "A" },
               fontSize: 18,
@@ -440,7 +399,7 @@ export function fixtureMultiSceneReferences() {
         clips: [
           {
             id: "anim.a",
-            targetId: "node.a.child",
+            layerId: "node.a.child",
             schedule: { kind: "absolute", at: 0 },
             duration: 1,
             playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -448,8 +407,8 @@ export function fixtureMultiSceneReferences() {
               kind: "tracks",
               tracks: [
                 {
-                  targetId: "node.a.child",
-                  property: "transform.opacity",
+                  layerId: "node.a.child",
+                  property: "appearance.opacity",
                   keys: [
                     { t: 0, v: 0 },
                     { t: 1, v: 1, easing: "linear" },
@@ -463,26 +422,12 @@ export function fixtureMultiSceneReferences() {
       {
         id: "scene.b",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "node.b.title",
             type: "text",
-            parentId: null,
-            transform: {
-              x: 20,
-              y: 20,
-              width: 120,
-              height: 40,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0,
-              anchorY: 0,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
+            parentLayerId: null,
+            ...visualLayerAtoms({ x: 20, y: 20, width: 120, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
               content: { kind: "plain", text: "B" },
               fontSize: 20,

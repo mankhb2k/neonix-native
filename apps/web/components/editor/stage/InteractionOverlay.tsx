@@ -16,6 +16,7 @@ import {
   selectionNode,
   visualTracksToTimelineClips,
 } from "@motionvideo/editor-core";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
@@ -90,7 +91,7 @@ export function InteractionOverlay({
       snapshot.items.find(
         (item) =>
           item.sceneId === selection.sceneId &&
-          item.nodeId === selection.nodeId,
+          item.layerId === selection.layerId,
       ) ?? null
     );
   }, [snapshot, selection]);
@@ -105,7 +106,7 @@ export function InteractionOverlay({
     if (
       !preview ||
       !base ||
-      preview.nodeId !== selectedItem.nodeId ||
+      preview.layerId !== selectedItem.layerId ||
       preview.sceneId !== selectedItem.sceneId
     ) {
       return selectedItem.worldBounds;
@@ -138,20 +139,20 @@ export function InteractionOverlay({
   );
 
   const resolveNodeBase = useCallback(
-    (sceneId: string, nodeId: string) => {
+    (sceneId: string, layerId: string) => {
       if (!project) return null;
       const previewProject = resolvePreviewProject(project).project;
       const scene = previewProject.scenes.find((s) => s.id === sceneId);
-      const node = scene?.nodes.find((n) => n.id === nodeId);
+      const node = scene?.layers.find((n) => n.id === nodeId);
       if (!node) return null;
       return {
         sceneId,
-        nodeId,
-        x: node.transform.x,
-        y: node.transform.y,
-        width: node.transform.width,
-        height: node.transform.height,
-        rotation: node.transform.rotation,
+        layerId,
+        x: node.transform.translate.x,
+        y: node.transform.translate.y,
+        width: node.frame?.width ?? 0,
+        height: node.frame?.height ?? 0,
+        rotation: node.transform.rotate.z,
       };
     },
     [project],
@@ -172,7 +173,7 @@ export function InteractionOverlay({
       });
     }
 
-    commitNodeTransform(values.sceneId, values.nodeId, {
+    commitNodeTransform(values.sceneId, values.layerId, {
       x: values.x,
       y: values.y,
       width: values.width,
@@ -217,7 +218,7 @@ export function InteractionOverlay({
   const nudge = useCallback(
     (dx: number, dy: number) => {
       if (selection.kind !== "node" || !project) return;
-      const nodeBase = resolveNodeBase(selection.sceneId, selection.nodeId);
+      const nodeBase = resolveNodeBase(selection.sceneId, selection.layerId);
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
@@ -228,7 +229,7 @@ export function InteractionOverlay({
           timelineClips: clips,
         });
       }
-      commitNodeTransform(nodeBase.sceneId, nodeBase.nodeId, {
+      commitNodeTransform(nodeBase.sceneId, nodeBase.layerId, {
         x: nodeBase.x + dx,
         y: nodeBase.y + dy,
       });
@@ -244,6 +245,10 @@ export function InteractionOverlay({
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent) => {
+      if (usePlaybackClock.getState().mode === "playing") {
+        usePlaybackClock.getState().pause();
+        return;
+      }
       if (!snapshot) return;
       const point = toCompositionPoint(event.clientX, event.clientY);
       if (!point) return;
@@ -254,7 +259,7 @@ export function InteractionOverlay({
         event.stopPropagation();
         const nodeBase = resolveNodeBase(
           selectedItem.sceneId,
-          selectedItem.nodeId,
+          selectedItem.layerId,
         );
         if (!nodeBase) return;
         if (handle === "rotate") {
@@ -285,11 +290,11 @@ export function InteractionOverlay({
       setCycleIndex(nextIndex);
       const hit = hits[nextIndex]!;
       useEditorStore.setState({
-        selection: selectionNode(hit.sceneId, hit.nodeId),
+        selection: selectionNode(hit.sceneId, hit.layerId),
       });
 
-      const nodeBase = resolveNodeBase(hit.sceneId, hit.nodeId);
-      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.nodeId)) {
+      const nodeBase = resolveNodeBase(hit.sceneId, hit.layerId);
+      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.layerId)) {
         startMove(nodeBase, hit.worldBounds, point);
       }
     },
@@ -375,7 +380,7 @@ export function InteractionOverlay({
                 data-handle={handle}
                 data-testid={`resize-handle-${handle}`}
                 aria-label={`Resize ${handle}`}
-                className="absolute h-2 w-2 cursor-pointer border border-[var(--bg-app)] bg-[var(--accent)] p-0"
+                className="absolute h-2 w-2 cursor-pointer border border-[var(--bg-site)] bg-[var(--accent)] p-0"
                 style={{ ...pos, pointerEvents: "auto" }}
               />
             );
@@ -385,7 +390,7 @@ export function InteractionOverlay({
             data-handle="rotate"
             data-testid="rotate-handle"
             aria-label="Rotate"
-            className="absolute left-[calc(50%-4px)] h-2 w-2 cursor-pointer rounded-full border border-[var(--bg-app)] bg-[var(--accent-text)] p-0"
+            className="absolute left-[calc(50%-4px)] h-2 w-2 cursor-pointer rounded-full border border-[var(--bg-site)] bg-[var(--accent-text)] p-0"
             style={{ top: "-18px", pointerEvents: "auto" }}
           />
         </div>

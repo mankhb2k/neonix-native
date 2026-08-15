@@ -14,6 +14,7 @@ import {
 } from "@/lib/editor/export/editor-project-envelope";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {
@@ -93,7 +94,7 @@ describe("buildExportProject", () => {
             assetId: "asset.audio.a",
             start: 0,
             duration: 4,
-            volume: 1,
+            volume: 100,
           },
         ],
       },
@@ -118,11 +119,11 @@ describe("buildExportProject", () => {
 
     // Overlay bake: segment có overlay phải có thêm node từ overlay scene.
     const overlaySourceNodes =
-      withAsset.scenes.find((s) => s.id === "scene.overlay")?.nodes.length ?? 0;
+      withAsset.scenes.find((s) => s.id === "scene.overlay")?.layers.length ?? 0;
     const baseSourceNodes =
-      withAsset.scenes.find((s) => s.id === "scene.base")?.nodes.length ?? 0;
+      withAsset.scenes.find((s) => s.id === "scene.base")?.layers.length ?? 0;
     const merged = baked.scenes.some(
-      (s) => s.nodes.length >= baseSourceNodes + overlaySourceNodes,
+      (s) => s.layers.length >= baseSourceNodes + overlaySourceNodes,
     );
     expect(merged).toBe(true);
 
@@ -142,9 +143,9 @@ describe("buildExportProject", () => {
       timelineClips: clips,
       timelineLanes: hiddenLanes,
     });
-    const maxNodes = Math.max(...baked.scenes.map((s) => s.nodes.length));
+    const maxNodes = Math.max(...baked.scenes.map((s) => s.layers.length));
     const baseNodes =
-      project.scenes.find((s) => s.id === "scene.base")?.nodes.length ?? 0;
+      project.scenes.find((s) => s.id === "scene.base")?.layers.length ?? 0;
     expect(maxNodes).toBe(baseNodes);
   });
 });
@@ -186,27 +187,13 @@ describe("export temporal parity (local-time bake)", () => {
       id,
       name: id,
       duration,
-      nodes: [
+      layers: [
         {
           id: `${id}.node`,
           type: "text" as const,
-          parentId: null,
+          parentLayerId: null,
           zIndex: 0,
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 40,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            anchorX: 0,
-            anchorY: 0,
-            opacity: 1,
-            visible: true,
-            flipX: false,
-            flipY: false,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
           payload: {
             content: { kind: "plain" as const, text: id },
             fontSize: 20,
@@ -218,7 +205,7 @@ describe("export temporal parity (local-time bake)", () => {
       clips: [
         {
           id: `${id}.anim`,
-          targetId: `${id}.node`,
+          layerId: `${id}.node`,
           schedule: { kind: "absolute" as const, at: 0 },
           duration,
           playback: {},
@@ -226,8 +213,8 @@ describe("export temporal parity (local-time bake)", () => {
             kind: "tracks" as const,
             tracks: [
               {
-                targetId: `${id}.node`,
-                property: "transform.opacity",
+                layerId: `${id}.node`,
+                property: "appearance.opacity",
                 keys: [
                   { t: 0, v: 0 },
                   { t: duration, v: 1 },
@@ -245,7 +232,7 @@ describe("export temporal parity (local-time bake)", () => {
     const overlayScene = sceneWithAbsoluteAnim("scene.overlay", 2);
     const project = parseMotionProject({
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "parity.boundary",
         name: "Parity",
@@ -384,11 +371,11 @@ describe("export temporal parity (local-time bake)", () => {
 
       const bakedScene = baked.scenes.find((s) => s.id === bakedLocal!.sceneId);
       const anim = bakedScene?.clips?.find(
-        (c) => String(c.id).includes("anim") || c.targetId?.includes("base"),
+        (c) => String(c.id).includes("anim") || c.layerId?.includes("base"),
       );
       // Prefer base anim (not remapped overlay)
       const baseAnim = bakedScene?.clips?.find(
-        (c) => c.targetId === "scene.base.node",
+        (c) => c.layerId === "scene.base.node",
       );
       const check = baseAnim ?? anim;
       expect(check?.schedule.kind).toBe("absolute");
@@ -401,7 +388,7 @@ describe("export temporal parity (local-time bake)", () => {
     }
   });
 
-  it("bakes base gap + overlay without dropping overlay nodes", () => {
+  it("bakes base gap + overlay without dropping overlay layers", () => {
     const { project, lanes } = fixtureBasePlusOverlay();
     const clips: TimelineClip[] = [
       {
@@ -444,8 +431,8 @@ describe("export temporal parity (local-time bake)", () => {
     expect(bakedAt).not.toBeNull();
     const scene = baked.scenes.find((s) => s.id === bakedAt!.sceneId);
     const overlayNodes =
-      project.scenes.find((s) => s.id === "scene.overlay")?.nodes.length ?? 0;
-    expect((scene?.nodes.length ?? 0) >= overlayNodes).toBe(true);
+      project.scenes.find((s) => s.id === "scene.overlay")?.layers.length ?? 0;
+    expect((scene?.layers.length ?? 0) >= overlayNodes).toBe(true);
   });
 
   it("exports muted audio at volume 0 and preserves trimStart", () => {

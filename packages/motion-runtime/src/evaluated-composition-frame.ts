@@ -71,7 +71,7 @@ export type ProjectionSnapshot =
 
 export type EvaluatedMediaState = {
   /** Node ID of the media node (video/image) */
-  nodeId: string;
+  layerId: string;
   /** Scene-local time for this media element */
   mediaTime: number;
   /** Source frame index (for video texture seeking) */
@@ -111,7 +111,7 @@ export type EvaluatedAudioState = {
 
 /**
  * Stable drawable key — survives playback, edit patches, and scene iterations.
- * Format: `sceneId:nodeId` for unique nodes; `sceneId:nodeId::iter<N>` for repeats.
+ * Format: `graphId:nodeId` for unique layers; `graphId:layerId::iter<N>` for repeats.
  */
 export type StableLayerKey = string;
 
@@ -120,28 +120,28 @@ export type StableLayerKey = string;
  * Deterministic — same inputs always produce the same key.
  */
 export function stableLayerKey(
-  sceneId: string,
-  nodeId: string,
+  graphId: string,
+  layerId: string,
   iteration?: number,
 ): StableLayerKey {
   return iteration != null
-    ? `${sceneId}:${nodeId}::iter${iteration}`
-    : `${sceneId}:${nodeId}`;
+    ? `${graphId}:${layerId}::iter${iteration}`
+    : `${graphId}:${layerId}`;
 }
 
 /**
  * Parse a stable layer key back to its components.
  */
 export function parseStableLayerKey(key: StableLayerKey): {
-  sceneId: string;
-  nodeId: string;
+  graphId: string;
+  layerId: string;
   iteration?: number;
 } | null {
   const match = /^(.+?):(.+?)(?:::iter(\d+))?$/.exec(key);
   if (!match) return null;
   return {
-    sceneId: match[1]!,
-    nodeId: match[2]!,
+    graphId: match[1]!,
+    layerId: match[2]!,
     iteration: match[3] ? Number(match[3]) : undefined,
   };
 }
@@ -152,9 +152,9 @@ export type EvaluatedLayer = {
   /** Stable layer key — deterministic across playback and patches */
   layerKey: StableLayerKey;
   /** Owning scene ID */
-  sceneId: string;
+  graphId: string;
   /** Owning node ID */
-  nodeId: string;
+  layerId: string;
   /** Composition layer plan entry (position, opacity, transition state) */
   composition: CompositionLayerPlan;
   /** Interaction snapshot for this layer */

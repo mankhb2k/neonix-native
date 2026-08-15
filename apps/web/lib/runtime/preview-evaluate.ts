@@ -1,10 +1,13 @@
 import {
   applyMatrix,
   evaluateScene,
+  layerGraphFromRuntime,
   type EvaluatedNode,
   type Matrix2D,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type PreviewParityNode = {
   id: string;
@@ -29,9 +32,9 @@ export type PreviewParityNode = {
 };
 
 export type PreviewParitySnapshot = {
-  sceneId: string;
+  graphId: string;
   time: number;
-  nodes: PreviewParityNode[];
+  layers: PreviewParityNode[];
 };
 
 export function matrixToCss(matrix: Matrix2D): string {
@@ -40,20 +43,21 @@ export function matrixToCss(matrix: Matrix2D): string {
 
 export function previewParitySnapshot(
   runtime: MotionRuntimeProject,
-  sceneId: string | undefined,
+  graphId: string | undefined,
   time: number,
 ): PreviewParitySnapshot {
-  const scene = runtime.scenes.find((candidate) => candidate.id === sceneId) ?? runtime.scenes[0];
-  if (!scene) throw new Error("Runtime preview requires at least one scene");
+  const scene = layerGraphFromRuntime(runtime);
+  if (scene.layers.length === 0 && !(scene.duration > 0))
+    throw new Error("Runtime preview requires at least one layer");
   const evaluated = evaluateScene(scene, time);
   return {
-    sceneId: scene.id,
+    graphId: scene.id,
     time,
-    nodes: evaluated.map((item) => {
+    layers: evaluated.map((item) => {
       const worldOrigin = applyMatrix(item.worldMatrix, 0, 0);
       return {
-        id: item.node.id,
-        type: item.node.type,
+        id: item.layer.id,
+        type: item.layer.type,
         visible: item.visible,
         worldOpacity: item.worldOpacity,
         transform: {

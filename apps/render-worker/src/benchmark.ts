@@ -41,7 +41,7 @@ async function main() {
 
   const compiled = compileProject(project);
   console.log(
-    `[bench] project: ${compiled.scenes.length} scenes, ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s total, aspect ${compiled.metadata.aspectRatio}`,
+    `[bench] project: ${compiled.layers.length} layers, ${compiled.timeline.duration}s total, aspect ${compiled.metadata.aspectRatio}`,
   );
 
   const fps = 30;
@@ -77,10 +77,7 @@ async function main() {
   const probeOut = await probe(mp4);
   const videoMatch = probeOut.match(/Video:\s*([^\n]+)/);
 
-  const videoDurationSec = compiled.scenes.reduce(
-    (sum, scene) => sum + scene.duration,
-    0,
-  );
+  const videoDurationSec = compiled.timeline.duration;
   const realtimeFactor = totalMs / 1000 / videoDurationSec;
 
   console.log("");

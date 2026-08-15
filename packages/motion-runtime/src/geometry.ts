@@ -1,9 +1,14 @@
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 import type { Transform2D } from "./matrix";
 import type { Bounds2D } from "./spatial";
 
-type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
+type RuntimeNode = Exclude<
+  MotionRuntimeProject["layers"][number],
+  { type: "audio" }
+>;
 type Point = { x: number; y: number };
 type PathNode = Extract<RuntimeNode, { type: "path" }>;
 export type PathContour = PathNode["payload"]["contours"][number];

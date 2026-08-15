@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
-  "runtimeVersion": 1,
+  "formatVersion": 1,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "transition",
     "name": "Transition",
@@ -11,7 +11,7 @@
     "brand": {
       "name": "Transition"
     },
-    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)"
+    "description": "Root layers with staggered timing on the layer stack (no scene transitions)"
   },
   "assets": [],
   "composition": {
@@ -22,150 +22,133 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "1e85557a477327dd11cd46b60d3abdb0",
+  "runtimeHash": "a2ab77f10b5ee25e490c7a8cdc4e88ee",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
-    "scenes": {
-      "intro": "scenes:intro",
-      "outro": "scenes:outro"
+    "layers": {
+      "intro-title": "layers:intro-title",
+      "outro-title": "layers:outro-title"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "main-track",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-intro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "intro"
-            },
-            "start": 0,
-            "duration": 3
-          },
-          {
-            "id": "clip-outro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "outro"
-            },
-            "start": 3,
-            "duration": 2
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "intro",
-      "duration": 3,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "intro"
-        ]
+      "id": "intro-title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "frame": {
+        "width": 800,
+        "height": 120
       },
-      "nodes": [
-        {
-          "id": "intro-title",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "First Scene"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": []
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "First Scene"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
     },
     {
-      "id": "outro",
-      "duration": 2,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "outro"
-        ]
+      "id": "outro-title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "frame": {
+        "width": 800,
+        "height": 120
       },
-      "nodes": [
-        {
-          "id": "outro-title",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Second Scene"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": []
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 2
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Second Scene"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 3
+  }
 }

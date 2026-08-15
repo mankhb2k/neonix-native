@@ -76,19 +76,19 @@ export type EditorStoreActions = {
   selectClip: (clipId: string) => void;
   setSelectedClipIds: (clipIds: string[]) => void;
   clearTimelineSelection: () => void;
-  selectNode: (nodeId: string | null) => void;
+  selectNode: (layerId: string | null) => void;
   setActiveSidebarTab: (tab: SidebarTabId) => void;
   updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
-  updateNodeText: (sceneId: string, nodeId: string, text: string) => void;
+  updateNodeText: (sceneId: string, layerId: string, text: string) => void;
   updateNodePosition: (
     sceneId: string,
-    nodeId: string,
+    layerId: string,
     position: { x?: number; y?: number },
   ) => void;
   updateNodeAnimation: (
     sceneId: string,
-    nodeId: string,
+    layerId: string,
     patch: { presetId?: string; duration?: number; at?: number },
   ) => void;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
@@ -148,7 +148,7 @@ export type EditorStoreActions = {
   /** Stage interaction commit — one history entry per gesture. */
   commitNodeTransform: (
     sceneId: string,
-    nodeId: string,
+    layerId: string,
     patch: {
       x?: number;
       y?: number;
@@ -162,10 +162,10 @@ export type EditorStoreActions = {
     command: import("@motionvideo/editor-core").DocumentPropertyCommand,
     options?: { coalesceKey?: string },
   ) => void;
-  setElementLocked: (sceneId: string, nodeId: string, locked: boolean) => void;
+  setElementLocked: (sceneId: string, layerId: string, locked: boolean) => void;
   setPropertyLocked: (
     sceneId: string,
-    nodeId: string,
+    layerId: string,
     propertyPath: string,
     locked: boolean,
   ) => void;

@@ -10,6 +10,9 @@ export {
   type PlaybackEngine,
   type PlaybackEngineOptions,
   type FrameConsumer,
+  type ClockDrive,
+  type PresentMode,
+  type PreviewWorkerPort,
 } from "./playback-engine";
 
 export {
@@ -51,6 +54,7 @@ export {
 
 export {
   createFrameBuffer,
+  releaseBufferedFrameData,
   type FrameBuffer,
   type FrameBufferEntry,
   type FrameBufferOptions,

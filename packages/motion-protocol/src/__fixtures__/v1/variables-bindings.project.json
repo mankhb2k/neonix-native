@@ -1,0 +1,206 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "variables-bindings",
+    "name": "Variables And Bindings",
+    "description": "Project with variables and project bindings",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#1877f2",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {
+    "colors": {
+      "primary": "#1877f2"
+    }
+  },
+  "variables": [
+    {
+      "id": "founder-name",
+      "name": "Founder name",
+      "type": "string",
+      "value": "Mark Zuckerberg"
+    },
+    {
+      "id": "facebook-blue",
+      "name": "Facebook blue",
+      "type": "color",
+      "value": "#1877f2"
+    },
+    {
+      "id": "title-opacity",
+      "name": "Title opacity",
+      "type": "number",
+      "value": 90,
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "show-subtitle",
+      "name": "Show subtitle",
+      "type": "boolean",
+      "value": true
+    }
+  ],
+  "assets": [],
+  "components": [],
+  "timeline": {},
+  "bindings": [
+    {
+      "id": "binding-founder-name",
+      "source": {
+        "kind": "variable",
+        "variableId": "founder-name"
+      },
+      "target": {
+        "type": "layer",
+        "layerId": "subtitle",
+        "property": "payload.content.text"
+      }
+    },
+    {
+      "id": "binding-title-opacity",
+      "source": {
+        "kind": "variable",
+        "variableId": "title-opacity"
+      },
+      "target": {
+        "type": "layer",
+        "layerId": "title",
+        "property": "appearance.opacity"
+      }
+    }
+  ],
+  "extensions": {},
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 400
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "inheritFlags": {
+        "position": true,
+        "rotation": true,
+        "scale": true,
+        "opacity": true
+      },
+      "locked": false,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Founder:"
+        },
+        "fontSize": 64,
+        "color": "#000000",
+        "alignment": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 600
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "inheritFlags": {
+        "position": true,
+        "rotation": true,
+        "scale": true,
+        "opacity": true
+      },
+      "locked": false,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Mark Zuckerberg"
+        },
+        "fontSize": 48,
+        "color": "#000000",
+        "alignment": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    }
+  ]
+}

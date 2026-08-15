@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
-  "runtimeVersion": 1,
+  "formatVersion": 1,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "nested-groups",
     "name": "Nested Groups",
@@ -11,7 +11,7 @@
     "brand": {
       "name": "Nested Groups"
     },
-    "description": "Three-level nested group hierarchy validated for V3 Group Layer Semantics"
+    "description": "Three-level nested group hierarchy validated for V1 Group Layer Semantics"
   },
   "assets": [
     {
@@ -34,168 +34,199 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c13bb38951dcccdae388b40ac171e2c0",
+  "runtimeHash": "d2a7124c52b57401a7f6ce954f48ee37",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
-    "scenes": {
-      "character-demo": "scenes:character-demo"
+    "layers": {
+      "group.character": "layers:group.character",
+      "group.upper-body": "layers:group.upper-body",
+      "group.head-rig": "layers:group.head-rig",
+      "head-image": "layers:head-image"
     }
   },
-  "timeline": {
-    "duration": 10,
-    "visualTracks": [
-      {
-        "id": "main-track",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-character-demo",
-            "source": {
-              "kind": "scene",
-              "sceneId": "character-demo"
-            },
-            "start": 0,
-            "duration": 10
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "character-demo",
-      "duration": 10,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "character-demo"
-        ]
+      "id": "group.character",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "frame": {
+        "width": 500,
+        "height": 700
       },
-      "nodes": [
-        {
-          "id": "group.character",
-          "type": "group",
-          "parentId": null,
-          "zIndex": 3,
-          "transform": {
-            "x": 540,
-            "y": 960,
-            "width": 500,
-            "height": 700,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 5,
-            "duration": 4
-          },
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
-          }
+      "transform": {
+        "translate": {
+          "x": 540,
+          "y": 960
         },
-        {
-          "id": "group.upper-body",
-          "type": "group",
-          "parentId": "group.character",
-          "zIndex": 2,
-          "transform": {
-            "x": 0,
-            "y": -120,
-            "width": 360,
-            "height": 380,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 1,
-            "duration": 2
-          },
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
-          }
+        "rotate": {
+          "z": 0
         },
-        {
-          "id": "group.head-rig",
-          "type": "group",
-          "parentId": "group.upper-body",
-          "zIndex": 3,
-          "transform": {
-            "x": 0,
-            "y": -140,
-            "width": 180,
-            "height": 180,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0.5,
-            "duration": 1.5
-          },
-          "payload": {
-            "compositing": {
-              "mode": "isolate"
-            }
-          }
+        "scale": {
+          "x": 1,
+          "y": 1
         },
-        {
-          "id": "head-image",
-          "type": "image",
-          "parentId": "group.head-rig",
-          "zIndex": 0,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 160,
-            "height": 160,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 1
-          },
-          "payload": {
-            "assetId": "asset.head"
-          }
-        }
-      ],
-      "tracks": []
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "blend-mode": "normal",
+        "isolation": "auto"
+      },
+      "timing": {
+        "start": 5,
+        "duration": 4
+      },
+      "payload": {}
+    },
+    {
+      "id": "group.upper-body",
+      "type": "group",
+      "parentLayerId": "group.character",
+      "zIndex": 2,
+      "frame": {
+        "width": 360,
+        "height": 380
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": -120
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "blend-mode": "normal",
+        "isolation": "auto"
+      },
+      "timing": {
+        "start": 1,
+        "duration": 2
+      },
+      "payload": {}
+    },
+    {
+      "id": "group.head-rig",
+      "type": "group",
+      "parentLayerId": "group.upper-body",
+      "zIndex": 3,
+      "frame": {
+        "width": 180,
+        "height": 180
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": -140
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "blend-mode": "normal",
+        "isolation": "isolate"
+      },
+      "timing": {
+        "start": 0.5,
+        "duration": 1.5
+      },
+      "payload": {}
+    },
+    {
+      "id": "head-image",
+      "type": "image",
+      "parentLayerId": "group.head-rig",
+      "zIndex": 0,
+      "frame": {
+        "width": 160,
+        "height": 160
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 1
+      },
+      "payload": {
+        "assetId": "asset.head"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 9
+  }
 }

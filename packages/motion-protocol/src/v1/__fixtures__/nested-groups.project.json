@@ -1,0 +1,221 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "nested-groups",
+    "name": "Nested Groups",
+    "description": "Three-level nested group hierarchy validated for V1 Group Layer Semantics",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [
+    {
+      "id": "asset.head",
+      "uri": "./assets/characters/head.png",
+      "integrity": "sha256:head",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 512,
+      "height": 512,
+      "pixelFormat": "rgba",
+      "hasAlpha": true
+    }
+  ],
+  "components": [],
+  "timeline": {},
+  "bindings": [],
+  "layers": [
+    {
+      "id": "group.character",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "timing": {
+        "start": 5,
+        "duration": 4
+      },
+      "transform": {
+        "translate": {
+          "x": 540,
+          "y": 960
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "children": [
+        {
+          "id": "group.upper-body",
+          "type": "group",
+          "parentLayerId": "group.character",
+          "zIndex": 2,
+          "timing": {
+            "start": 1,
+            "duration": 2
+          },
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": -120
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "children": [
+            {
+              "id": "group.head-rig",
+              "type": "group",
+              "parentLayerId": "group.upper-body",
+              "zIndex": 3,
+              "timing": {
+                "start": 0.5,
+                "duration": 1.5
+              },
+              "transform": {
+                "translate": {
+                  "x": 0,
+                  "y": -140
+                },
+                "rotate": {
+                  "z": 0
+                },
+                "scale": {
+                  "x": 1,
+                  "y": 1
+                },
+                "skew": {
+                  "x": 0,
+                  "y": 0
+                },
+                "origin": {
+                  "x": 0.5,
+                  "y": 0.5
+                }
+              },
+              "children": [
+                {
+                  "id": "head-image",
+                  "type": "image",
+                  "parentLayerId": "group.head-rig",
+                  "zIndex": 0,
+                  "timing": {
+                    "start": 0,
+                    "duration": 1
+                  },
+                  "transform": {
+                    "translate": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "rotate": {
+                      "z": 0
+                    },
+                    "scale": {
+                      "x": 1,
+                      "y": 1
+                    },
+                    "skew": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "origin": {
+                      "x": 0.5,
+                      "y": 0.5
+                    }
+                  },
+                  "payload": {
+                    "assetId": "asset.head"
+                  },
+                  "frame": {
+                    "width": 160,
+                    "height": 160
+                  },
+                  "appearance": {
+                    "visible": true,
+                    "opacity": 100
+                  }
+                }
+              ],
+              "frame": {
+                "width": 180,
+                "height": 180
+              },
+              "appearance": {
+                "visible": true,
+                "opacity": 100
+              },
+              "compositing": {
+                "isolation": "isolate"
+              }
+            }
+          ],
+          "frame": {
+            "width": 360,
+            "height": 380
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          },
+          "compositing": {
+            "isolation": "auto"
+          }
+        }
+      ],
+      "frame": {
+        "width": 500,
+        "height": 700
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "isolation": "auto"
+      }
+    }
+  ]
+}

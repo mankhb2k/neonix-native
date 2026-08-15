@@ -5,11 +5,13 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { AspectRatio } from "@motionvideo/motion-protocol";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   buildAudioRenderPlan,
   sampleAudioVolumeAtFrame,
-  type AudioRenderClip,
+  type AudioRenderLayer,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
 import type { RenderResult } from "../runtime";
@@ -76,41 +78,39 @@ export function buildFfmpegAudioMixFilters(
   plan: AudioRenderPlan,
 ): { filters: string[]; hasAudio: boolean } {
   const fps = Math.max(1, plan.fps);
-  if (plan.clips.length === 0) return { filters: [], hasAudio: false };
+  if (plan.layers.length === 0) return { filters: [], hasAudio: false };
 
-  const filters = plan.clips.map((clip, index) =>
-    clipToFfmpegFilter(clip, index, fps),
+  const filters = plan.layers.map((layer, index) =>
+    layerToFfmpegFilter(layer, index, fps),
   );
-  const mix = `${plan.clips.map((_, index) => `[a${index}]`).join("")}amix=inputs=${plan.clips.length}:duration=longest:normalize=0[aout]`;
+  const mix = `${plan.layers.map((_, index) => `[a${index}]`).join("")}amix=inputs=${plan.layers.length}:duration=longest:normalize=0[aout]`;
   return { filters: [...filters, mix], hasAudio: true };
 }
 
-function clipToFfmpegFilter(
-  clip: AudioRenderClip,
+function layerToFfmpegFilter(
+  layer: AudioRenderLayer,
   index: number,
   fps: number,
 ): string {
-  const startSec = clip.fromFrame / fps;
-  const playDurationSec = clip.durationInFrames / fps;
-  const trimStart = Math.max(0, clip.trimStartSeconds);
+  const startSec = layer.fromFrame / fps;
+  const playDurationSec = layer.durationInFrames / fps;
+  const trimStart = Math.max(0, layer.trimStartSeconds);
   const trimEnd = Math.max(
     trimStart,
-    clip.trimEndSeconds > 0 ? clip.trimEndSeconds : trimStart + playDurationSec,
+    layer.trimEndSeconds > 0 ? layer.trimEndSeconds : trimStart + playDurationSec,
   );
-  // Source window needed before rate change ≈ playDuration * rate
-  const sourceNeeded = playDurationSec * Math.max(0.01, clip.playbackRate);
+  const sourceNeeded = playDurationSec * Math.max(0.01, layer.playbackRate);
   const atrimEnd = Math.min(trimEnd, trimStart + sourceNeeded);
 
-  const midFrame = clip.fromFrame + Math.floor(clip.durationInFrames / 2);
-  const volume = clip.muted
+  const midFrame = layer.fromFrame + Math.floor(layer.durationInFrames / 2);
+  const volume = layer.muted
     ? 0
-    : sampleAudioVolumeAtFrame(clip.volumeEnvelope, midFrame);
+    : sampleAudioVolumeAtFrame(layer.volumeEnvelope, midFrame);
 
   const chain = [
     `atrim=start=${trimStart}:end=${Math.max(trimStart, atrimEnd)}`,
     "asetpts=PTS-STARTPTS",
-    ...atempoChain(clip.playbackRate),
-    // After rate change, clamp to composition play window.
+    ...atempoChain(layer.playbackRate),
     `atrim=start=0:end=${Math.max(0, playDurationSec)}`,
     "asetpts=PTS-STARTPTS",
     `adelay=${Math.round(startSec * 1000)}:all=1`,
@@ -148,11 +148,11 @@ export async function encodeOutputs(
           fps,
           durationInFrames,
         })
-      : { fps, clips: [] as AudioRenderClip[] };
+      : { fps, layers: [] as AudioRenderLayer[] };
 
-  const audioArgs = plan.clips.flatMap((clip) => {
-    const input = path.resolve(assetBaseDir, clip.uri);
-    return clip.loop ? ["-stream_loop", "-1", "-i", input] : ["-i", input];
+  const audioArgs = plan.layers.flatMap((layer) => {
+    const input = path.resolve(assetBaseDir, layer.uri);
+    return layer.loop ? ["-stream_loop", "-1", "-i", input] : ["-i", input];
   });
   const { filters, hasAudio } = buildFfmpegAudioMixFilters(plan);
 

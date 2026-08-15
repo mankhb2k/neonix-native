@@ -1,4 +1,9 @@
-import type { MotionProject, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionProject,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import type { TimelineClip, TimelineLane } from "../timeline/timeline-clips";
 import {
   focusedNodeIdFrom,
@@ -12,7 +17,7 @@ import {
 
 function firstEditableNodeId(scene: MotionScene | undefined): string | null {
   if (!scene) return null;
-  const node = scene.nodes.find(
+  const node = scene.layers.find(
     (n) => n.type === "text" || n.type === "shape" || n.type === "path",
   );
   return node?.id ?? null;

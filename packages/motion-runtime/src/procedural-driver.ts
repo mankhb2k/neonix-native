@@ -45,9 +45,9 @@ function wrap(value: number, min: number, max: number): number {
 export type DriverSampleContext = {
   time: number;
   /** Base property values before drivers (from tracks/transform). */
-  readBase: (nodeId: string, property: string, atTime?: number) => number;
+  readBase: (layerId: string, property: string, atTime?: number) => number;
   /** Already-computed driver outputs for DAG. */
-  readDriven: (nodeId: string, property: string) => number | undefined;
+  readDriven: (layerId: string, property: string) => number | undefined;
 };
 
 /** Evaluate one driver to a numeric contribution/override for its target. */
@@ -55,60 +55,60 @@ export function evaluateDriverValue(
   driver: ProceduralDriver,
   ctx: DriverSampleContext,
 ): number {
-  const read = (nodeId: string, property: string): number => {
-    const driven = ctx.readDriven(nodeId, property);
+  const read = (id: string, property: string): number => {
+    const driven = ctx.readDriven(id, property);
     if (driven !== undefined) return driven;
-    return ctx.readBase(nodeId, property);
+    return ctx.readBase(id, property);
   };
 
   switch (driver.type) {
     case "oscillator":
       return (
-        ctx.readBase(driver.targetNodeId, driver.targetProperty) +
+        ctx.readBase(driver.targetLayerId, driver.targetProperty) +
         evaluateOscillator(driver, ctx.time)
       );
     case "noise":
       return (
-        ctx.readBase(driver.targetNodeId, driver.targetProperty) +
+        ctx.readBase(driver.targetLayerId, driver.targetProperty) +
         evaluateNoise(driver, ctx.time)
       );
     case "link":
       return (
-        read(driver.sourceNodeId, driver.sourceProperty) *
+        read(driver.sourceLayerId, driver.sourceProperty) *
           (driver.multiplier ?? 1) +
         (driver.offset ?? 0)
       );
     case "remap": {
-      const raw = read(driver.sourceNodeId, driver.sourceProperty);
+      const raw = read(driver.sourceLayerId, driver.sourceProperty);
       const t =
         (raw - driver.inMin) / Math.max(1e-9, driver.inMax - driver.inMin);
       return driver.outMin + clamp(t, 0, 1) * (driver.outMax - driver.outMin);
     }
     case "clamp":
       return clamp(
-        read(driver.sourceNodeId, driver.sourceProperty),
+        read(driver.sourceLayerId, driver.sourceProperty),
         driver.min,
         driver.max,
       );
     case "wrap":
       return wrap(
-        read(driver.sourceNodeId, driver.sourceProperty),
+        read(driver.sourceLayerId, driver.sourceProperty),
         driver.min,
         driver.max,
       );
     case "quantize": {
-      const raw = read(driver.sourceNodeId, driver.sourceProperty);
+      const raw = read(driver.sourceLayerId, driver.sourceProperty);
       return Math.round(raw / driver.step) * driver.step;
     }
     case "delay-follow":
       return ctx.readBase(
-        driver.sourceNodeId,
+        driver.sourceLayerId,
         driver.sourceProperty,
         Math.max(0, ctx.time - driver.delay),
       );
     case "spring-follow": {
-      const target = read(driver.sourceNodeId, driver.sourceProperty);
-      const current = ctx.readBase(driver.targetNodeId, driver.targetProperty);
+      const target = read(driver.sourceLayerId, driver.sourceProperty);
+      const current = ctx.readBase(driver.targetLayerId, driver.targetProperty);
       const k = driver.stiffness;
       const d = driver.damping;
       const alpha = 1 - Math.exp(-Math.sqrt(k) * 0.016) * Math.exp(-d * 0.0005);
@@ -117,7 +117,7 @@ export function evaluateDriverValue(
     case "time-remap": {
       const remapped = ctx.time * (driver.scale ?? 1) + (driver.offset ?? 0);
       return (
-        ctx.readBase(driver.targetNodeId, driver.targetProperty) + remapped * 0
+        ctx.readBase(driver.targetLayerId, driver.targetProperty) + remapped * 0
       );
     }
     default: {
@@ -129,7 +129,7 @@ export function evaluateDriverValue(
 
 /**
  * Topological evaluation of scene drivers. Detects cycles.
- * Returns map key `${nodeId}::${property}` → driven value.
+ * Returns map key `${layerId}::${property}` → driven value.
  */
 export function evaluateDriverGraph(
   drivers: readonly ProceduralDriver[],
@@ -149,8 +149,8 @@ export function evaluateDriverGraph(
   }
 
   const sourceKey = (driver: ProceduralDriver): string | undefined => {
-    if ("sourceNodeId" in driver && "sourceProperty" in driver) {
-      return `${driver.sourceNodeId}::${driver.sourceProperty}`;
+    if ("sourceLayerId" in driver && "sourceProperty" in driver) {
+      return `${driver.sourceLayerId}::${driver.sourceProperty}`;
     }
     return undefined;
   };
@@ -158,7 +158,7 @@ export function evaluateDriverGraph(
   const producers = new Map<string, string>();
   for (const driver of drivers) {
     producers.set(
-      `${driver.targetNodeId}::${driver.targetProperty}`,
+      `${driver.targetLayerId}::${driver.targetProperty}`,
       driver.id,
     );
   }
@@ -188,8 +188,8 @@ export function evaluateDriverGraph(
     throw new Error("Procedural driver cycle detected");
 
   const outputs = new Map<string, number>();
-  const readDriven = (nodeId: string, property: string) =>
-    outputs.get(`${nodeId}::${property}`);
+  const readDriven = (layerId: string, property: string) =>
+    outputs.get(`${layerId}::${property}`);
 
   for (const id of order) {
     const driver = byId.get(id)!;
@@ -198,7 +198,7 @@ export function evaluateDriverGraph(
       readBase: ctx.readBase,
       readDriven,
     });
-    outputs.set(`${driver.targetNodeId}::${driver.targetProperty}`, value);
+    outputs.set(`${driver.targetLayerId}::${driver.targetProperty}`, value);
   }
   return outputs;
 }

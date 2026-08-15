@@ -37,7 +37,7 @@ export function createSelectionActions(
       set({ selection: selectionNone() });
     },
 
-    selectNode: (nodeId) => {
+    selectNode: (layerId) => {
       set((state) => {
         if (!nodeId) {
           const current = state.selection;

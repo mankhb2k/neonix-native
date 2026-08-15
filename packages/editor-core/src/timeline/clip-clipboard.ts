@@ -1,4 +1,6 @@
-import type { MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type ClipClipboardKind = "main" | "overlay" | "audio";
 

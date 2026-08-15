@@ -4,7 +4,12 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionProject,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import { layerLaneIdForNode } from "../layer-mode/build-layer-mode-view";
 import { resolveTimelineSurface } from "./resolve-timeline-surface";
 
@@ -35,7 +40,7 @@ function sceneClip(
 }
 
 function stubProject(
-  nodes: MotionScene["nodes"],
+  layers: MotionScene["layers"],
   assets: MotionProject["assets"] = [],
 ): MotionProject {
   return {
@@ -50,7 +55,7 @@ function stubProject(
         id: "sc1",
         name: "Scene",
         duration: 10,
-        nodes,
+        layers,
         clips: [],
       } as MotionScene,
     ],
@@ -85,12 +90,12 @@ describe("resolveTimelineSurface", () => {
         id: "n1",
         type: "text",
         name: "Title",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, opacity: 1 },
         payload: { text: "Hi", fontSize: 24 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
 
     const surface = resolveTimelineSurface({
       timelineMode: "layer",
@@ -107,7 +112,7 @@ describe("resolveTimelineSurface", () => {
       sceneId: "sc1",
       containerStart: 2,
       containerDuration: 4,
-      orderedNodeIds: ["n1"],
+      orderedLayerIds: ["n1"],
       orderedLaneIds: [layerLaneIdForNode("n1")],
     });
     expect(surface.stripFlags.layerSession?.mediaMaxDurationByNodeId.size).toBe(
@@ -134,7 +139,7 @@ describe("resolveTimelineSurface", () => {
           id: "vid1",
           type: "video",
           name: "Clip",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 0,
           transform: {
             x: 0,
@@ -147,7 +152,7 @@ describe("resolveTimelineSurface", () => {
           payload: { assetId: "a1", trimStart: 1 },
           timing: { start: 0, duration: 3 },
         },
-      ] as MotionScene["nodes"],
+      ] as MotionScene["layers"],
       [{ id: "a1", name: "v.mp4", kind: "video", duration: 8 } as never],
     );
 

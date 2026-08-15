@@ -20,7 +20,7 @@ function allTargetsOfType(
 ): boolean {
   if (!context.targets.length) return false;
   return context.targets.every((t) => {
-    const node = findNode(context.project, t.sceneId, t.nodeId);
+    const node = findNode(context.project, t.sceneId, t.layerId);
     return node != null && types.includes(node.type);
   });
 }
@@ -37,7 +37,7 @@ function validateNumber(
     ? findNode(
         context.project,
         context.targets[0].sceneId,
-        context.targets[0].nodeId,
+        context.targets[0].layerId,
       )
     : null;
   const cap = motionPropertyCapability(node?.type ?? "text", capabilityKey);
@@ -55,8 +55,24 @@ function readTransformNumber(
   key: "x" | "y" | "rotation" | "scaleX" | "scaleY" | "opacity",
 ): number | MixedValue {
   const values = context.targets.map((t) => {
-    const node = findNode(context.project, t.sceneId, t.nodeId);
-    return node?.transform[key] ?? 0;
+    const node = findNode(context.project, t.sceneId, t.layerId);
+    if (!node || !("transform" in node)) return 0;
+    const tr = node.transform;
+    const appearance = "appearance" in node ? node.appearance : undefined;
+    switch (key) {
+      case "x":
+        return tr.translate.x;
+      case "y":
+        return tr.translate.y;
+      case "rotation":
+        return tr.rotate.z;
+      case "scaleX":
+        return tr.scale.x;
+      case "scaleY":
+        return tr.scale.y;
+      case "opacity":
+        return appearance?.opacity ?? 1;
+    }
   });
   return readUniform(values);
 }
@@ -96,38 +112,38 @@ function numberProp(
 }
 
 const transformX = numberProp(
-  "transform.x",
+  "transform.translate.x",
   "X",
   "Transform",
-  "transform.x",
+  "transform.translate.x",
   "x",
 );
 const transformY = numberProp(
-  "transform.y",
+  "transform.translate.y",
   "Y",
   "Transform",
-  "transform.y",
+  "transform.translate.y",
   "y",
 );
 const transformRotation = numberProp(
-  "transform.rotation",
+  "transform.rotate.z",
   "Rotation",
   "Transform",
-  "transform.rotation",
+  "transform.rotate.z",
   "rotation",
 );
 const transformScaleX = numberProp(
-  "transform.scaleX",
+  "transform.scale.x",
   "Scale X",
   "Transform",
-  "transform.scaleX",
+  "transform.scale.x",
   "scaleX",
 );
 const transformScaleY = numberProp(
-  "transform.scaleY",
+  "transform.scale.y",
   "Scale Y",
   "Transform",
-  "transform.scaleY",
+  "transform.scale.y",
   "scaleY",
 );
 
@@ -140,21 +156,21 @@ const transformScaleUniform: PropertyDefinition<number> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       if (!node) return 1;
-      return Math.abs(node.transform.scaleX - node.transform.scaleY) < 1e-6
-        ? node.transform.scaleX
-        : node.transform.scaleX;
+      return Math.abs(node.transform.scale.x - node.transform.scale.y) < 1e-6
+        ? node.transform.scale.x
+        : node.transform.scale.x;
     });
     const sx = readUniform(
       ctx.targets.map((t) => {
-        const node = findNode(ctx.project, t.sceneId, t.nodeId);
-        return node?.transform.scaleX ?? 1;
+        const node = findNode(ctx.project, t.sceneId, t.layerId);
+        return node?.transform.scale.x ?? 1;
       }),
     );
     const sy = readUniform(
       ctx.targets.map((t) => {
-        const node = findNode(ctx.project, t.sceneId, t.nodeId);
+        const node = findNode(ctx.project, t.sceneId, t.layerId);
         return node?.transform.scaleY ?? 1;
       }),
     );
@@ -170,11 +186,11 @@ const transformScaleUniform: PropertyDefinition<number> = {
   },
   createCommand: (value, ctx) =>
     transformCommand("scaleX", value, ctx, true),
-  validate: (value, ctx) => validateNumber(value, "transform.scaleX", ctx),
+  validate: (value, ctx) => validateNumber(value, "transform.scale.x", ctx),
 };
 
 const transformOpacity: PropertyDefinition<number> = {
-  id: "transform.opacity",
+  id: "appearance.opacity",
   label: "Opacity",
   group: "Transform",
   editor: "number",
@@ -185,7 +201,7 @@ const transformOpacity: PropertyDefinition<number> = {
     targets: ctx.targets,
     opacity: value,
   }),
-  validate: (value, ctx) => validateNumber(value, "transform.opacity", ctx),
+  validate: (value, ctx) => validateNumber(value, "appearance.opacity", ctx),
 };
 
 const metadataName: PropertyDefinition<string> = {
@@ -196,7 +212,7 @@ const metadataName: PropertyDefinition<string> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       return node?.name ?? node?.id ?? "";
     });
     return readUniform(values);
@@ -225,7 +241,7 @@ const metadataVisible: PropertyDefinition<boolean> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       return node?.transform.visible ?? true;
     });
     return readUniform(values);
@@ -250,7 +266,7 @@ function readStyleColor(
   key: "fill" | "stroke",
 ): string | MixedValue {
   const values = ctx.targets.map((t) => {
-    const node = findNode(ctx.project, t.sceneId, t.nodeId);
+    const node = findNode(ctx.project, t.sceneId, t.layerId);
     if (!node || !("style" in node) || !node.style) return "";
     const raw = node.style[key];
     return typeof raw === "string" ? raw : "";
@@ -306,7 +322,7 @@ const styleStrokeWidth: PropertyDefinition<number> = {
   isVisible: (ctx) => allTargetsOfType(ctx, PAINT_TYPES),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       if (!node || !("style" in node) || !node.style) return 0;
       return node.style.strokeWidth ?? 0;
     });
@@ -328,7 +344,7 @@ const textContent: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
     });
     return readUniform(values);
@@ -352,7 +368,7 @@ const textFontSize: PropertyDefinition<number> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       return node?.type === "text" ? node.payload.fontSize : 16;
     });
     return readUniform(values);
@@ -378,7 +394,7 @@ const textAlign: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       return node?.type === "text" ? (node.payload.align ?? "left") : "left";
     });
     return readUniform(values);
@@ -410,7 +426,7 @@ const mediaFit: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["image", "svg", "video"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       if (
         node &&
         (node.type === "image" || node.type === "svg" || node.type === "video")
@@ -444,7 +460,7 @@ const mediaCropOrigin: PropertyDefinition<Vector2> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["image", "svg"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.nodeId);
+      const node = findNode(ctx.project, t.sceneId, t.layerId);
       if (node && (node.type === "image" || node.type === "svg")) {
         const crop = node.payload.crop;
         return { x: crop?.x ?? 0, y: crop?.y ?? 0 };

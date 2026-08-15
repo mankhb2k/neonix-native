@@ -1,0 +1,140 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "component-instance",
+    "name": "Component Instance",
+    "description": "Embedded component instantiated as a root component layer",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": [
+      {
+        "componentId": "logo-reveal",
+        "version": "1.0.0",
+        "source": "logo-reveal",
+        "integrity": "sha256:logo-reveal-1.0.0"
+      }
+    ]
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [
+    {
+      "id": "logo-reveal",
+      "version": "1.0.0",
+      "integrity": "sha256:logo-reveal-1.0.0",
+      "props": [],
+      "variables": [],
+      "layers": [
+        {
+          "id": "logo",
+          "type": "solid",
+          "parentLayerId": null,
+          "zIndex": 1,
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "locked": false,
+          "payload": {
+            "color": "#1877f2"
+          },
+          "frame": {
+            "width": 256,
+            "height": 256
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {},
+  "bindings": [],
+  "extensions": {},
+  "layers": [
+    {
+      "id": "logo-instance",
+      "type": "component",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "componentId": "logo-reveal"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 4
+      },
+      "frame": {
+        "width": 256,
+        "height": 256
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    }
+  ]
+}

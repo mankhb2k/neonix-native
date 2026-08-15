@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Seeds real Home / EditingWorkspace for visual baselines (P20/B1).
  * Only loaded when VITE_ENABLE_UI_FIXTURES=1.
@@ -67,27 +68,13 @@ function withSceneClip(
           id: sceneId,
           name: "Fixture Scene",
           duration: 4,
-          nodes: [
+          layers: [
             {
               id: stableId("node"),
               type: "text",
-              parentId: null,
+              parentLayerId: null,
               zIndex: 0,
-              transform: {
-                x: 80,
-                y: 60,
-                width: 240,
-                height: 48,
-                rotation: 0,
-                scaleX: 1,
-                scaleY: 1,
-                anchorX: 0,
-                anchorY: 0,
-                opacity: 1,
-                visible: true,
-                flipX: false,
-                flipY: false,
-              },
+              ...visualLayerAtoms({ x: 80, y: 60, width: 240, height: 48, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
               payload: {
                 content: { kind: "plain", text: name },
                 fontSize: 28,

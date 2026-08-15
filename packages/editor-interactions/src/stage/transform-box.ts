@@ -18,7 +18,7 @@ export type StageHandle = ResizeHandle | "rotate";
 
 export type StageTransformValues = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
   x: number;
   y: number;
   width: number;

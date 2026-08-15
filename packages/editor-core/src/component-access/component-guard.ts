@@ -3,18 +3,18 @@
  * editor level.
  *
  * The contract:
- * - **Owner mode**: can edit ALL component internals (nodes, bindings, actions,
+ * - **Owner mode**: can edit ALL component internals (layers, bindings, actions,
  *   public surface). Used when the user is authoring/editing a component
  *   definition.
- * - **Consumer mode**: can ONLY interact with the public surface (publicParams,
- *   slots, variants, publicTargets, actions). Internal nodes are sealed.
+ * - **Consumer mode**: can ONLY interact with the public surface (props,
+ *   variants, actions). Internal layers are sealed.
  *
  * These guards are designed to be called by the property panel, node tree,
  * and command executors BEFORE any mutation. They return structured results
  * so the UI can show clear error messages instead of silently failing.
  */
 
-import type { V3 } from "@motionvideo/motion-protocol";
+import type { V1 } from "@motionvideo/motion-protocol";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export type ComponentEditContext =
       clipId: string;
     }
   | {
-      /** Not editing a component at all — full access to scene nodes. */
+      /** Not editing a component at all — full access to scene layers. */
       mode: "scene";
     };
 
@@ -54,7 +54,6 @@ export type AccessCheckResult =
 /** Properties on the public surface that a consumer is allowed to read. */
 export const CONSUMER_READABLE_PROPERTIES = [
   "publicParams",
-  "slots",
   "variants",
   "actions",
   "publicTargets",
@@ -66,7 +65,6 @@ export type ConsumerReadableProperty =
 /** Properties on the public surface that a consumer is allowed to write. */
 export const CONSUMER_WRITABLE_PROPERTIES = [
   "publicParams",
-  "slots",
   "variants",
 ] as const;
 
@@ -92,7 +90,7 @@ export function canConsumerRead(property: string): AccessCheckResult {
 
 /**
  * Check whether a consumer can write to a specific component property.
- * Consumers can only write to publicParams, slots, and variants.
+ * Consumers can only write to publicParams and variants.
  * Actions are read-only triggers, publicTargets are owner-only definitions.
  */
 export function canConsumerWrite(property: string): AccessCheckResult {
@@ -114,14 +112,14 @@ export function canConsumerWrite(property: string): AccessCheckResult {
 /**
  * Check whether a node operation is allowed in the current editing context.
  *
- * In consumer mode, internal nodes (nodes, bindings, variables) are sealed.
- * In owner mode, all nodes are editable.
- * In scene mode, all scene nodes are editable.
+ * In consumer mode, internal layers (layers, bindings, variables) are sealed.
+ * In owner mode, all layers are editable.
+ * In scene mode, all scene layers are editable.
  */
 export function canAccessNode(
   context: ComponentEditContext,
-  nodeId: string,
-  component?: V3.EmbeddedComponentV3,
+  layerId: string,
+  component?: V1.EmbeddedComponentV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
@@ -129,7 +127,7 @@ export function canAccessNode(
   // Consumer mode — only allow access if the node is referenced by a publicTarget
   if (component) {
     const isExposed = component.publicTargets.some(
-      (pt) => pt.nodeId === nodeId,
+      (pt) => pt.layerId === layerId,
     );
     if (isExposed) {
       return { allowed: true };
@@ -138,7 +136,7 @@ export function canAccessNode(
 
   return {
     allowed: false,
-    reason: `Node "${nodeId}" is internal to component "${context.componentId}" and not exposed via publicTargets`,
+    reason: `Node "${layerId}" is internal to component "${context.componentId}" and not exposed via publicTargets`,
     suggestion: "Ask the component owner to expose this node as a publicTarget",
   };
 }
@@ -149,8 +147,8 @@ export function canAccessNode(
  */
 export function canAccessBinding(
   context: ComponentEditContext,
-  targetNodeId: string,
-  component?: V3.EmbeddedComponentV3,
+  targetLayerId: string,
+  component?: V1.EmbeddedComponentV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
@@ -158,7 +156,7 @@ export function canAccessBinding(
   // Consumer mode — binding must go through a publicTarget
   if (component) {
     const isExposed = component.publicTargets.some(
-      (pt) => pt.nodeId === targetNodeId,
+      (pt) => pt.layerId === targetLayerId,
     );
     if (isExposed) {
       return { allowed: true };
@@ -167,7 +165,7 @@ export function canAccessBinding(
 
   return {
     allowed: false,
-    reason: `Cannot bind to internal node "${targetNodeId}" of component "${context.componentId}"`,
+    reason: `Cannot bind to internal node "${targetLayerId}" of component "${context.componentId}"`,
     suggestion:
       "Use a publicTarget to expose this property, or bind through an existing publicTarget",
   };
@@ -178,7 +176,7 @@ export function canAccessBinding(
  * Only variants declared by the owner are allowed.
  */
 export function canSelectVariant(
-  component: V3.EmbeddedComponentV3,
+  component: V1.EmbeddedComponentV1,
   variantId: string,
 ): AccessCheckResult {
   const variant = component.variants.find((v) => v.id === variantId);
@@ -190,34 +188,6 @@ export function canSelectVariant(
     reason: `Variant "${variantId}" is not defined in component "${component.id}"`,
     suggestion: `Available variants: ${component.variants.map((v) => v.id).join(", ") || "none"}`,
   };
-}
-
-/**
- * Check whether a slot fill is valid for a component.
- * Only slots declared by the owner can be filled, and content must match
- * the accepted kinds.
- */
-export function canFillSlot(
-  component: V3.EmbeddedComponentV3,
-  slotId: string,
-  contentKind: string,
-): AccessCheckResult {
-  const slot = component.slots.find((s) => s.id === slotId);
-  if (!slot) {
-    return {
-      allowed: false,
-      reason: `Slot "${slotId}" is not defined in component "${component.id}"`,
-      suggestion: `Available slots: ${component.slots.map((s) => s.id).join(", ") || "none"}`,
-    };
-  }
-  if (!slot.accepts.includes(contentKind as V3.SlotContentKind)) {
-    return {
-      allowed: false,
-      reason: `Slot "${slotId}" does not accept "${contentKind}"`,
-      suggestion: `Accepted kinds: ${slot.accepts.join(", ")}`,
-    };
-  }
-  return { allowed: true };
 }
 
 /**

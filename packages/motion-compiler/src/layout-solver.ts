@@ -1,4 +1,4 @@
-import type { MotionNode } from "@motionvideo/motion-protocol";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import {
   estimateTextSize,
@@ -6,8 +6,14 @@ import {
   defaultTextMeasurementProvider,
 } from "./text-layout";
 
+type VisualLayer = Exclude<MotionLayer, { type: "audio" }>;
+
+function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
+  return layer.type !== "audio";
+}
+
 type LayoutConstraint = Extract<
-  NonNullable<MotionNode["modifiers"]>[number],
+  NonNullable<VisualLayer["modifiers"]>[number],
   { type: "layout" }
 >["constraint"];
 
@@ -25,14 +31,31 @@ type LayoutItemPolicy = {
 
 type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 
-type MutableNode = MotionNode & {
-  transform: MotionNode["transform"] & {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-};
+type MutableNode = VisualLayer;
+
+function frameWidth(node: VisualLayer): number {
+  return node.frame?.width ?? 0;
+}
+
+function frameHeight(node: VisualLayer): number {
+  return node.frame?.height ?? 0;
+}
+
+function setFrameSize(node: MutableNode, width: number, height: number): void {
+  node.frame = { width, height };
+}
+
+function translateX(node: VisualLayer): number {
+  return node.transform.translate.x;
+}
+
+function translateY(node: VisualLayer): number {
+  return node.transform.translate.y;
+}
+
+function setTranslate(node: MutableNode, x: number, y: number): void {
+  node.transform.translate = { x, y };
+}
 
 function normalizePadding(
   padding: number | EdgeInsets | undefined,
@@ -44,7 +67,7 @@ function normalizePadding(
   return padding;
 }
 
-function readItemPolicy(node: MotionNode): LayoutItemPolicy {
+function readItemPolicy(node: VisualLayer): LayoutItemPolicy {
   const mod = (node.modifiers ?? []).find((m) => m.type === "layout-item");
   return mod && mod.type === "layout-item" ? (mod.policy ?? {}) : {};
 }
@@ -54,21 +77,20 @@ function measureIntrinsic(
   measure: TextMeasurementProvider,
 ): { width: number; height: number } {
   if (node.type === "text") {
-    const size = estimateTextSize(
+    return estimateTextSize(
       {
         text: getTextPayloadPlain(node.payload),
         fontSize: node.payload.fontSize,
         letterSpacing: node.payload.letterSpacing,
         lineHeight: node.payload.lineHeight,
         wrap: node.payload.wrap,
-        maxWidth: node.transform.width,
+        maxWidth: frameWidth(node),
         maxLines: node.payload.maxLines,
       },
       measure,
     );
-    return size;
   }
-  return { width: node.transform.width, height: node.transform.height };
+  return { width: frameWidth(node), height: frameHeight(node) };
 }
 
 function applyItemSizing(
@@ -81,8 +103,8 @@ function applyItemSizing(
   const intrinsic = measureIntrinsic(child, measure);
   const widthMode = policy.width ?? "fixed";
   const heightMode = policy.height ?? "fixed";
-  let width = child.transform.width;
-  let height = child.transform.height;
+  let width = frameWidth(child);
+  let height = frameHeight(child);
   if (widthMode === "content") width = intrinsic.width;
   if (widthMode === "fill") width = fillWidth;
   if (heightMode === "content") height = intrinsic.height;
@@ -91,16 +113,17 @@ function applyItemSizing(
   if (policy.maxWidth != null) width = Math.min(policy.maxWidth, width);
   if (policy.minHeight != null) height = Math.max(policy.minHeight, height);
   if (policy.maxHeight != null) height = Math.min(policy.maxHeight, height);
-  child.transform.width = width;
-  child.transform.height = height;
+  setFrameSize(child, width, height);
 }
 
-/** Deterministic layout → literal transforms; layout modifiers are compile-time only. */
+/** Deterministic layout → literal frame + translate; layout modifiers compile-time only. */
 export function applyLayoutConstraints(
-  nodes: MotionNode[],
+  layers: MotionLayer[],
   measure: TextMeasurementProvider = defaultTextMeasurementProvider,
-): MotionNode[] {
-  const byId = new Map(nodes.map((node) => [node.id, cloneNode(node)]));
+): MotionLayer[] {
+  const byId = new Map(
+    layers.filter(isVisualLayer).map((node) => [node.id, cloneNode(node)]),
+  );
   const ordered = [...byId.values()];
 
   for (const parent of ordered) {
@@ -108,13 +131,13 @@ export function applyLayoutConstraints(
       (modifier) => modifier.type === "layout",
     );
     if (layoutMods.length === 0) continue;
-    const children = ordered.filter((node) => node.parentId === parent.id);
+    const children = ordered.filter((node) => node.parentLayerId === parent.id);
     for (const modifier of layoutMods) {
       solveConstraint(parent, children, modifier.constraint, measure);
     }
   }
 
-  return ordered.map((node) => {
+  const visual = ordered.map((node) => {
     const modifiers = (node.modifiers ?? []).filter(
       (modifier) =>
         modifier.type !== "layout" && modifier.type !== "layout-item",
@@ -125,9 +148,13 @@ export function applyLayoutConstraints(
     else next.modifiers = modifiers;
     return next;
   });
+  return layers.map((layer) => {
+    if (layer.type === "audio") return layer;
+    return visual.find((node) => node.id === layer.id) ?? layer;
+  });
 }
 
-function cloneNode(node: MotionNode): MutableNode {
+function cloneNode(node: VisualLayer): MutableNode {
   return JSON.parse(JSON.stringify(node)) as MutableNode;
 }
 
@@ -147,31 +174,26 @@ function solveConstraint(
       const justify =
         ("justify" in constraint ? constraint.justify : undefined) ?? "start";
       const align = constraint.align ?? "start";
-      const innerW = Math.max(0, parent.transform.width - pad.left - pad.right);
-      const innerH = Math.max(
-        0,
-        parent.transform.height - pad.top - pad.bottom,
-      );
+      const innerW = Math.max(0, frameWidth(parent) - pad.left - pad.right);
+      const innerH = Math.max(0, frameHeight(parent) - pad.top - pad.bottom);
 
       for (const child of children) {
         applyItemSizing(child, readItemPolicy(child), measure, innerW, innerH);
         if (align === "stretch") {
           if (constraint.direction === "vertical")
-            child.transform.width = innerW;
-          else child.transform.height = innerH;
+            setFrameSize(child, innerW, frameHeight(child));
+          else setFrameSize(child, frameWidth(child), innerH);
         }
         const self = readItemPolicy(child).alignSelf;
         if (self === "stretch") {
           if (constraint.direction === "vertical")
-            child.transform.width = innerW;
-          else child.transform.height = innerH;
+            setFrameSize(child, innerW, frameHeight(child));
+          else setFrameSize(child, frameWidth(child), innerH);
         }
       }
 
       const sizes = children.map((c) =>
-        constraint.direction === "vertical"
-          ? c.transform.height
-          : c.transform.width,
+        constraint.direction === "vertical" ? frameHeight(c) : frameWidth(c),
       );
       const occupied =
         sizes.reduce((sum, s) => sum + s, 0) +
@@ -199,25 +221,31 @@ function solveConstraint(
             ? policy.alignSelf
             : align;
         if (constraint.direction === "vertical") {
-          child.transform.y = cursor;
-          child.transform.x = alignCross(
-            crossAlign,
-            parent.transform.width,
-            child.transform.width,
-            pad.left,
-            pad.right,
+          setTranslate(
+            child,
+            alignCross(
+              crossAlign,
+              frameWidth(parent),
+              frameWidth(child),
+              pad.left,
+              pad.right,
+            ),
+            cursor,
           );
-          cursor += child.transform.height + between;
+          cursor += frameHeight(child) + between;
         } else {
-          child.transform.x = cursor;
-          child.transform.y = alignCross(
-            crossAlign,
-            parent.transform.height,
-            child.transform.height,
-            pad.top,
-            pad.bottom,
+          setTranslate(
+            child,
+            cursor,
+            alignCross(
+              crossAlign,
+              frameHeight(parent),
+              frameHeight(child),
+              pad.top,
+              pad.bottom,
+            ),
           );
-          cursor += child.transform.width + between;
+          cursor += frameWidth(child) + between;
         }
       }
       return;
@@ -230,34 +258,40 @@ function solveConstraint(
           child,
           readItemPolicy(child),
           measure,
-          child.transform.width,
-          child.transform.height,
+          frameWidth(child),
+          frameHeight(child),
         );
         const col = index % constraint.columns;
         const row = Math.floor(index / constraint.columns);
-        child.transform.x = col * (child.transform.width + gapX);
-        child.transform.y = row * (child.transform.height + gapY);
+        setTranslate(
+          child,
+          col * (frameWidth(child) + gapX),
+          row * (frameHeight(child) + gapY),
+        );
       });
       return;
     }
     case "align": {
       for (const child of children) {
+        let x = translateX(child);
+        let y = translateY(child);
         if (constraint.axis === "x" || constraint.axis === "both") {
-          child.transform.x = alignAxis(
+          x = alignAxis(
             constraint.align,
-            parent.transform.width,
-            child.transform.width,
+            frameWidth(parent),
+            frameWidth(child),
             0,
           );
         }
         if (constraint.axis === "y" || constraint.axis === "both") {
-          child.transform.y = alignAxis(
+          y = alignAxis(
             constraint.align,
-            parent.transform.height,
-            child.transform.height,
+            frameHeight(parent),
+            frameHeight(child),
             0,
           );
         }
+        setTranslate(child, x, y);
       }
       return;
     }

@@ -37,7 +37,7 @@ describe("stage coordinates", () => {
 describe("stage transform math", () => {
   const base = {
     sceneId: "s",
-    nodeId: "n",
+    layerId: "n",
     x: 10,
     y: 20,
     width: 100,
@@ -74,7 +74,7 @@ describe("stage constraints", () => {
     const { values, guides } = applyMoveConstraints(
       {
         sceneId: "s",
-        nodeId: "n",
+        layerId: "n",
         x: 52,
         y: 10,
         width: 10,
@@ -103,7 +103,7 @@ describe("createStageSession", () => {
     const previews: unknown[] = [];
     const base = {
       sceneId: "scene",
-      nodeId: "node",
+      layerId: "node",
       x: 0,
       y: 0,
       width: 40,
@@ -141,7 +141,7 @@ describe("createStageSession", () => {
         interactionId: "i2",
         base: {
           sceneId: "s",
-          nodeId: "n",
+          layerId: "n",
           x: 0,
           y: 0,
           width: 10,
@@ -162,7 +162,7 @@ describe("toStagePropertyPatches", () => {
   it("includes sizePatch when dimensions change", () => {
     const base = {
       sceneId: "s",
-      nodeId: "n",
+      layerId: "n",
       x: 0,
       y: 0,
       width: 10,

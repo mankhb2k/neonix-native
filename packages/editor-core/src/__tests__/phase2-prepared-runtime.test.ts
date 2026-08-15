@@ -11,7 +11,7 @@ import type {
   TextLayoutInput,
   CompositingScope,
   DepGraphNode,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 
 describe("PreparedRuntimeProject (type smoke)", () => {
   it("StaticGeometry shape is valid", () => {
@@ -26,7 +26,7 @@ describe("PreparedRuntimeProject (type smoke)", () => {
 
   it("TextLayoutInput shape is valid", () => {
     const tli: TextLayoutInput = {
-      nodeId: "text-1",
+      layerId: "text-1",
       text: "Hello",
       fontFamily: "Arial",
       fontSize: 24,
@@ -39,16 +39,16 @@ describe("PreparedRuntimeProject (type smoke)", () => {
   it("CompositingScope shape is valid", () => {
     const scope: CompositingScope = {
       scopeId: "mask-1",
-      nodeIds: ["node-a", "node-b"],
+      layerIds: ["node-a", "node-b"],
       reason: "mask",
-      sourceNodeId: "mask-src",
+      sourceLayerId: "mask-src",
     };
     expect(scope.reason).toBe("mask");
   });
 
   it("DepGraphNode shape is valid", () => {
     const dg: DepGraphNode = {
-      nodeId: "node-1",
+      layerId: "node-1",
       dependsOn: ["parent-1"],
       dependedOnBy: ["child-1", "child-2"],
     };
@@ -61,7 +61,7 @@ describe("PreparedRuntimeProject (type smoke)", () => {
 import {
   isPatchStale,
   nextSequence,
-  affectedSceneIds,
+  affectedGraphIds,
   PATCH_SEQUENCE_INITIAL,
   type PaintPatch,
   type TrackValuesPatch,
@@ -83,8 +83,8 @@ describe("RuntimePatch protocol", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 3,
-        sceneId: "s1",
-        nodeId: "n1",
+        graphId: "s1",
+        layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
       };
@@ -95,8 +95,8 @@ describe("RuntimePatch protocol", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 5,
-        sceneId: "s1",
-        nodeId: "n1",
+        graphId: "s1",
+        layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
       };
@@ -105,37 +105,37 @@ describe("RuntimePatch protocol", () => {
     });
   });
 
-  describe("affectedSceneIds", () => {
+  describe("affectedGraphIds", () => {
     it("paint patch affects one scene", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 1,
-        sceneId: "scene-a",
-        nodeId: "n1",
-        property: "transform.opacity",
+        graphId: "scene-a",
+        layerId: "n1",
+        property: "appearance.opacity",
         value: 0.5,
       };
-      expect(affectedSceneIds(patch)).toEqual(["scene-a"]);
+      expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
 
     it("track-values patch affects one scene", () => {
       const patch: TrackValuesPatch = {
         kind: "track-values",
         sequence: 1,
-        sceneId: "scene-a",
+        graphId: "scene-a",
         tracks: [],
       };
-      expect(affectedSceneIds(patch)).toEqual(["scene-a"]);
+      expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
 
-    it("structural patch returns all sceneIds", () => {
+    it("structural patch returns all graphIds", () => {
       const patch: StructuralPatch = {
         kind: "structural",
         sequence: 1,
         scope: "full",
-        sceneIds: ["s1", "s2", "s3"],
+        graphIds: ["s1", "s2", "s3"],
       };
-      expect(affectedSceneIds(patch)).toEqual(["s1", "s2", "s3"]);
+      expect(affectedGraphIds(patch)).toEqual(["s1", "s2", "s3"]);
     });
   });
 
@@ -143,8 +143,8 @@ describe("RuntimePatch protocol", () => {
     const paint: PaintPatch = {
       kind: "paint",
       sequence: 1,
-      sceneId: "s",
-      nodeId: "n",
+      graphId: "s",
+      layerId: "n",
       property: "style.fill",
       value: "#fff",
     };
@@ -153,9 +153,9 @@ describe("RuntimePatch protocol", () => {
     const track: TrackValuesPatch = {
       kind: "track-values",
       sequence: 2,
-      sceneId: "s",
+      graphId: "s",
       tracks: [
-        { targetId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
+        { layerId: "n", property: "transform.translate.x", keys: [{ t: 0, v: 100 }] },
       ],
     };
     expect(track.kind).toBe("track-values");
@@ -163,8 +163,8 @@ describe("RuntimePatch protocol", () => {
     const structural: StructuralPatch = {
       kind: "structural",
       sequence: 3,
-      scope: "scene",
-      sceneIds: ["s1"],
+        scope: "graph",
+      graphIds: ["s1"],
     };
     expect(structural.kind).toBe("structural");
   });

@@ -19,6 +19,8 @@ import {
   type MediaFallbackBridge,
   type VideoFrameProvider,
 } from "../index";
+import type { WorkerSequenceId } from "@motionvideo/render-contracts";
+import type { MainToWorkerMessage } from "@motionvideo/render-contracts";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -86,8 +88,7 @@ describe("Worker Protocol (Task 9.2)", () => {
   });
 
   it("MainToWorkerMessage has init discriminator", async () => {
-    const mod = await import("@motionvideo/render-contracts");
-    const msg: typeof mod.MainToWorkerMessage = {
+    const msg: MainToWorkerMessage = {
       type: "init",
       protocolVersion: 1,
       runtimeJson: "{}",
@@ -95,8 +96,8 @@ describe("Worker Protocol (Task 9.2)", () => {
       height: 1080,
       fps: 30,
       sequenceId: 1,
-    } as never;
-    expect((msg as { type: string }).type).toBe("init");
+    } as MainToWorkerMessage;
+    expect(msg.type).toBe("init");
   });
 
   it("WorkerToMainMessage has ready discriminator", async () => {

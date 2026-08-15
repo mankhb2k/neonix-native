@@ -11,7 +11,7 @@ export type IsolationMode = "pass-through" | "isolate";
 
 export type RenderPass = {
   id: string;
-  nodeId: string;
+  layerId: string;
   type: RuntimeNode["type"];
   zIndex: number;
   isolation: IsolationMode;
@@ -20,7 +20,7 @@ export type RenderPass = {
   visible: boolean;
   needsOffscreen: boolean;
   mask?: {
-    sourceNodeId: string;
+    sourceLayerId: string;
     mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
     sourceVisibility: "mask-only" | "content-and-mask";
   };
@@ -36,7 +36,7 @@ export type RenderPlanDiagnostic = {
 };
 
 export type RenderPlan = {
-  sceneId: string;
+  graphId: string;
   passes: RenderPass[];
   totalAllocatedPixels: number;
   diagnostics: RenderPlanDiagnostic[];
@@ -47,8 +47,9 @@ export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<R
   let inflation = 0;
   for (const effect of effects) {
     if (effect.type === "blur") inflation += effect.radius;
-    if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offsetX) + Math.abs(effect.offsetY);
-    if (effect.type === "glow") inflation += effect.radius * effect.intensity;
+    if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offset.x) + Math.abs(effect.offset.y);
+    if (effect.type === "glow")
+      inflation += effect.radius * (effect.intensity / 100);
   }
   if (inflation === 0) return bounds;
   return {
@@ -72,18 +73,23 @@ export function buildRenderPlan(
   const passes: RenderPass[] = [];
 
   for (const evaluated of sorted) {
-    const node = evaluated.node;
+    const node = evaluated.layer;
     if (!evaluated.visible) continue;
 
     const effects = node.effects ?? [];
     const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
     const isAdjustment = node.type === "adjustment";
-    const groupCompositingMode =
-      node.type === "group" ? String(node.payload?.compositing?.mode ?? "pass-through") : "pass-through";
+    const compositingIsolation =
+      node.compositing?.isolation === "isolate" ? "isolate" : "pass-through";
     const needsOffscreen =
-      Boolean(node.mask) || effects.length > 0 || isAdjustment || groupCompositingMode === "isolate";
+      Boolean(node.compositing?.mask) ||
+      effects.length > 0 ||
+      isAdjustment ||
+      compositingIsolation === "isolate";
     const isolation: IsolationMode =
-      needsOffscreen || groupCompositingMode === "isolate" ? "isolate" : "pass-through";
+      needsOffscreen || compositingIsolation === "isolate"
+        ? "isolate"
+        : "pass-through";
 
     if (needsOffscreen) {
       const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
@@ -99,7 +105,7 @@ export function buildRenderPlan(
 
     passes.push({
       id: `pass_${node.id}`,
-      nodeId: node.id,
+      layerId: node.id,
       type: node.type,
       zIndex: node.zIndex ?? 0,
       isolation,
@@ -107,11 +113,17 @@ export function buildRenderPlan(
       worldOpacity: evaluated.worldOpacity,
       visible: evaluated.visible,
       needsOffscreen,
-      mask: node.mask,
+      mask: node.compositing?.mask
+        ? {
+            sourceLayerId: node.compositing.mask.sourceLayerId,
+            mode: node.compositing.mask.mode,
+            sourceVisibility: node.compositing.mask["source-visibility"],
+          }
+        : undefined,
       effects,
       isAdjustment,
-      ...(groupCompositingMode === "isolate" || groupCompositingMode === "pass-through"
-        ? { groupCompositing: groupCompositingMode as "pass-through" | "isolate" }
+      ...(node.type === "group"
+        ? { groupCompositing: compositingIsolation }
         : {}),
     });
   }
@@ -132,7 +144,7 @@ export function buildRenderPlan(
       : undefined;
 
   return {
-    sceneId: scene.id,
+    graphId: scene.id,
     passes,
     totalAllocatedPixels,
     diagnostics,

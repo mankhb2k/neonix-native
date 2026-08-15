@@ -23,7 +23,7 @@ export type AiSchemaCapabilityRow = {
 };
 
 /** Bump when matrix rows/columns change for AI prompts. */
-export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.1";
+export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.2";
 
 export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   {
@@ -42,7 +42,7 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   },
   {
     id: "baseline.plain-text",
-    label: "Plain text node + drawText",
+    label: "Plain text layer + drawText",
     phase: 0,
     columns: {
       schema: "yes",
@@ -56,7 +56,7 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   },
   {
     id: "baseline.hard-cut",
-    label: "Multi-scene hard cut",
+    label: "Staggered root-layer hard cut",
     phase: 0,
     columns: {
       schema: "yes",
@@ -69,8 +69,8 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     },
   },
   {
-    id: "preset.scene-end",
-    label: "Scene-end clip schedule",
+    id: "preset.timeline-end",
+    label: "Layer timing aligned to timeline end",
     phase: 1,
     columns: {
       schema: "yes",
@@ -111,8 +111,8 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     },
   },
   {
-    id: "caption.track",
-    label: "Caption track + cues",
+    id: "caption.text-layers",
+    label: "Caption-style text layers",
     phase: 3,
     columns: {
       schema: "yes",
@@ -123,7 +123,7 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
       remotion: "partial",
       ai: "partial",
     },
-    notes: "Cue compiler + SourceRef ready; full caption paint path partial",
+    notes: "Text layers on the stack; not captionTracks",
   },
   {
     id: "layout.stack-advanced",
@@ -141,7 +141,7 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   },
   {
     id: "transition.composition",
-    label: "Multi-scene transition composition",
+    label: "Overlapping root-layer timing (fade/crossfade/slide/wipe/zoom)",
     phase: 5,
     columns: {
       schema: "yes",
@@ -171,7 +171,7 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   },
   {
     id: "blend.extended",
-    label: "darken/lighten/overlay + scene background",
+    label: "darken/lighten/overlay + composition background",
     phase: 7,
     columns: {
       schema: "yes",
@@ -190,7 +190,7 @@ export function aiSchemaCapabilityPromptBlock(): string {
     const cols = Object.entries(row.columns)
       .map(([k, v]) => `${k}=${v}`)
       .join(" ");
-    return `- ${row.id}: ${cols}${row.notes ? ` (${row.notes})` : ""}`;
+    return `- ${row.id} (${row.label}): ${cols}${row.notes ? ` (${row.notes})` : ""}`;
   });
   return [`AI schema capability matrix ${AI_SCHEMA_CAPABILITY_VERSION}:`, ...lines].join("\n");
 }

@@ -1,11 +1,16 @@
 /**
  * Scene node hierarchy for Figma-style Layers panel.
- * Document remains flat `scene.nodes` + parentId; this is view-model only.
+ * Document remains flat `scene.layers` + parentLayerId; this is view-model only.
  *
  * Moved from apps/desktop/gui/editor/timeline/layer-mode/build-layer-tree.ts
  */
 
-import type { MotionNode, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionLayer,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type LayerTreeNode = {
   id: string;
@@ -15,7 +20,7 @@ export type LayerTreeNode = {
   zIndex: number;
   declarationIndex: number;
   visible: boolean;
-  parentId: string | null;
+  parentLayerId: string | null;
   children: LayerTreeNode[];
 };
 
@@ -27,15 +32,15 @@ export type LayerTreeRow = {
   zIndex: number;
   visible: boolean;
   hasChildren: boolean;
-  parentId: string | null;
+  parentLayerId: string | null;
 };
 
-function nodeDisplayName(node: MotionNode): string {
+function nodeDisplayName(node: MotionLayer): string {
   if (typeof node.name === "string" && node.name.trim()) return node.name;
   return `${node.type}:${node.id}`;
 }
 
-function nodeVisible(node: MotionNode): boolean {
+function nodeVisible(node: MotionLayer): boolean {
   return node.transform?.visible !== false;
 }
 
@@ -45,22 +50,22 @@ function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {
 }
 
 /**
- * Build a forest from scene.nodes.
+ * Build a forest from scene.layers.
  * Orphans (unknown parent) and cycle breakers become roots.
  */
 export function buildLayerTree(
   scene: MotionScene | null | undefined,
 ): LayerTreeNode[] {
   if (!scene) return [];
-  const nodes = scene.nodes ?? [];
-  if (nodes.length === 0) return [];
+  const layers = scene.layers ?? [];
+  if (layers.length === 0) return [];
 
-  const idSet = new Set(nodes.map((n) => n.id));
-  const declarationIndex = new Map(nodes.map((n, index) => [n.id, index]));
-  const byParent = new Map<string | null, MotionNode[]>();
+  const idSet = new Set(layers.map((n) => n.id));
+  const declarationIndex = new Map(layers.map((n, index) => [n.id, index]));
+  const byParent = new Map<string | null, MotionLayer[]>();
 
-  for (const node of nodes) {
-    let parentKey: string | null = node.parentId;
+  for (const node of layers) {
+    let parentKey: string | null = node.parentLayerId;
     if (parentKey != null && !idSet.has(parentKey)) {
       parentKey = null;
     }
@@ -72,13 +77,13 @@ export function buildLayerTree(
   const visiting = new Set<string>();
   const built = new Set<string>();
 
-  function parentKeyFor(node: MotionNode): string | null {
-    const p = node.parentId;
+  function parentKeyFor(node: MotionLayer): string | null {
+    const p = node.parentLayerId;
     if (p != null && idSet.has(p)) return p;
     return null;
   }
 
-  function buildNode(node: MotionNode, depth: number): LayerTreeNode | null {
+  function buildNode(node: MotionLayer, depth: number): LayerTreeNode | null {
     if (visiting.has(node.id)) return null;
     if (built.has(node.id)) return null;
     visiting.add(node.id);
@@ -99,7 +104,7 @@ export function buildLayerTree(
       zIndex: node.zIndex ?? 0,
       declarationIndex: declarationIndex.get(node.id) ?? 0,
       visible: nodeVisible(node),
-      parentId: parentKeyFor(node),
+      parentLayerId: parentKeyFor(node),
       children,
     };
   }
@@ -110,7 +115,7 @@ export function buildLayerTree(
     if (tree) roots.push(tree);
   }
 
-  for (const node of nodes) {
+  for (const node of layers) {
     if (built.has(node.id)) continue;
     visiting.clear();
     const tree = buildNode(node, 0);
@@ -126,8 +131,8 @@ export function collectExpandableIds(
   roots: readonly LayerTreeNode[],
 ): string[] {
   const ids: string[] = [];
-  const walk = (nodes: readonly LayerTreeNode[]) => {
-    for (const n of nodes) {
+  const walk = (layers: readonly LayerTreeNode[]) => {
+    for (const n of layers) {
       if (n.children.length > 0) {
         ids.push(n.id);
         walk(n.children);
@@ -147,8 +152,8 @@ export function flattenVisibleTree(
   expandedIds: ReadonlySet<string>,
 ): LayerTreeRow[] {
   const rows: LayerTreeRow[] = [];
-  const walk = (nodes: readonly LayerTreeNode[]) => {
-    for (const n of nodes) {
+  const walk = (layers: readonly LayerTreeNode[]) => {
+    for (const n of layers) {
       const hasChildren = n.children.length > 0;
       rows.push({
         id: n.id,
@@ -158,7 +163,7 @@ export function flattenVisibleTree(
         zIndex: n.zIndex,
         visible: n.visible,
         hasChildren,
-        parentId: n.parentId,
+        parentLayerId: n.parentLayerId,
       });
       if (hasChildren && expandedIds.has(n.id)) {
         walk(n.children);
@@ -170,10 +175,10 @@ export function flattenVisibleTree(
 }
 
 /** Pre-order DFS ids (matches sidebar top→bottom when fully expanded). */
-export function collectDfsNodeIds(roots: readonly LayerTreeNode[]): string[] {
+export function collectDfsLayerIds(roots: readonly LayerTreeNode[]): string[] {
   const ids: string[] = [];
-  const walk = (nodes: readonly LayerTreeNode[]) => {
-    for (const n of nodes) {
+  const walk = (layers: readonly LayerTreeNode[]) => {
+    for (const n of layers) {
       ids.push(n.id);
       walk(n.children);
     }
@@ -196,14 +201,14 @@ function findNode(
 
 function getSiblingList(
   roots: LayerTreeNode[],
-  nodeId: string,
+  layerId: string,
 ): { siblings: LayerTreeNode[]; index: number } | null {
   const node = findNode(roots, nodeId);
   if (!node) return null;
   const siblings =
-    node.parentId == null
+    node.parentLayerId == null
       ? roots
-      : (findNode(roots, node.parentId)?.children ?? null);
+      : (findNode(roots, node.parentLayerId)?.children ?? null);
   if (!siblings) return null;
   const index = siblings.findIndex((s) => s.id === nodeId);
   if (index < 0) return null;
@@ -212,7 +217,7 @@ function getSiblingList(
 
 /**
  * Reorder a node among its siblings (same parent). Returns full DFS id list
- * for `reorder-scene-nodes`, or null if no-op / invalid.
+ * for `reorder-scene-layers`, or null if no-op / invalid.
  */
 export function reorderSiblingAndCollectDfs(
   roots: readonly LayerTreeNode[],
@@ -239,7 +244,7 @@ export function reorderSiblingAndCollectDfs(
   if (from < to) to -= 1;
   siblings.splice(to, 0, moved);
 
-  return collectDfsNodeIds(cloned);
+  return collectDfsLayerIds(cloned);
 }
 
 /**
@@ -254,12 +259,12 @@ export function resolveSidebarSiblingInsert(
   const moving = rows.find((r) => r.id === movingId);
   const hover = rows.find((r) => r.id === hoverId);
   if (!moving || !hover) return null;
-  if (moving.parentId !== hover.parentId) return null;
+  if (moving.parentLayerId !== hover.parentLayerId) return null;
   if (movingId === hoverId) {
     return { insertBeforeSiblingId: movingId };
   }
 
-  const siblings = rows.filter((r) => r.parentId === moving.parentId);
+  const siblings = rows.filter((r) => r.parentLayerId === moving.parentLayerId);
   const hoverIndex = siblings.findIndex((r) => r.id === hoverId);
   if (hoverIndex < 0) return null;
 

@@ -281,7 +281,7 @@ export const DesignNodeHintSchema = z.enum([
   "camera",
 ]);
 
-export const SceneDesignNodeSchema = z
+export const SceneDesignLayerSchema = z
   .object({
     id: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
     semanticKey: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
@@ -294,8 +294,8 @@ export const SceneDesignEntrySchema = z
   .object({
     sceneBriefId: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
     layout: LayoutIntentSchema,
-    nodes: z
-      .array(SceneDesignNodeSchema)
+    layers: z
+      .array(SceneDesignLayerSchema)
       .max(AI_ARTIFACT_LIMITS.designNodesPerScene),
   })
   .strict();

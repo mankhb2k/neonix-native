@@ -11,13 +11,13 @@ describe("Phase 1 preset registry + recipes", () => {
     expect(isCompiledPreset("fade-out")).toBe(true);
     const tracks = expandMotionPreset({
       presetId: "fade-up",
-      nodeId: "n1",
+      layerId: "n1",
       start: 0,
       end: 0.5,
-      transform: { x: 10, y: 20, opacity: 1, scaleX: 1, scaleY: 1 },
+      transform: { x: 10, y: 20, opacity: 100, scaleX: 1, scaleY: 1 },
       params: { distance: 80 },
     });
-    const y = tracks.find((t) => t.property === "transform.y");
+    const y = tracks.find((t) => t.property === "transform.translate.y");
     expect(y?.keys[0]?.v).toBe(100);
     expect(y?.keys[1]?.v).toBe(20);
   });
@@ -31,8 +31,8 @@ describe("Phase 1 preset registry + recipes", () => {
     expect(isMotionRecipe("breathing")).toBe(true);
     const baked = bakeMotionRecipe({
       recipeId: "drift",
-      sceneId: "s",
-      targetNodeId: "n",
+      graphId: "s",
+      targetLayerId: "n",
       duration: 2,
       intensity: 0.5,
       frequencyHz: 0.4,

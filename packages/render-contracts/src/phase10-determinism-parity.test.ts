@@ -226,14 +226,14 @@ describe("RenderManifest expansion (Task 10.1)", () => {
       runtime: { url: "https://cdn.example/runtime.json", sha256: "abc" },
       assets: [],
       audio: {
-        clipCount: 3,
+        audioLayerCount: 3,
         totalDurationSeconds: 45.0,
         sampleRate: 48000,
         codec: "aac",
       },
       output: { codec: "h264", pixelFormat: "yuv420p", privacy: "private" },
     });
-    expect(manifest.audio?.clipCount).toBe(3);
+    expect(manifest.audio?.audioLayerCount).toBe(3);
     expect(manifest.audio?.sampleRate).toBe(48000);
   });
 });
@@ -327,11 +327,11 @@ describe("Golden Frames (Task 10.5)", () => {
 
   it("goldenSampleFrame computes correct frame indices", () => {
     const dur = 90; // 3 seconds @ 30fps
-    expect(goldenSampleFrame("before-start", dur, 30)).toBe(0);
-    expect(goldenSampleFrame("start", dur, 30)).toBe(0);
-    expect(goldenSampleFrame("middle", dur, 30)).toBe(45);
-    expect(goldenSampleFrame("end", dur, 30)).toBe(89);
-    expect(goldenSampleFrame("after-end", dur, 30)).toBe(89);
+    expect(goldenSampleFrame("before-start", dur)).toBe(0);
+    expect(goldenSampleFrame("start", dur)).toBe(0);
+    expect(goldenSampleFrame("middle", dur)).toBe(45);
+    expect(goldenSampleFrame("end", dur)).toBe(89);
+    expect(goldenSampleFrame("after-end", dur)).toBe(89);
   });
 
   it("goldenSampleTime computes correct times", () => {
@@ -343,15 +343,15 @@ describe("Golden Frames (Task 10.5)", () => {
   });
 
   it("first-quarter at 25%", () => {
-    expect(goldenSampleFrame("first-quarter", 100, 30)).toBe(25);
+    expect(goldenSampleFrame("first-quarter", 100)).toBe(25);
   });
 
   it("last-quarter at 75%", () => {
-    expect(goldenSampleFrame("last-quarter", 100, 30)).toBe(75);
+    expect(goldenSampleFrame("last-quarter", 100)).toBe(75);
   });
 
   it("transition-overlap at 15%", () => {
-    expect(goldenSampleFrame("transition-overlap", 100, 30)).toBe(15);
+    expect(goldenSampleFrame("transition-overlap", 100)).toBe(15);
   });
 
   it("compareGoldenFrames reports all match", () => {

@@ -1,4 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
+import { V1 } from "@motionvideo/motion-protocol";
 import {
   parseCreativeBriefV1,
   parseCreativePlanV1,
@@ -339,8 +340,8 @@ export async function runZeroTemplateGeneration(input: {
 
     // Recipe pass (deterministic polish)
     const recipeCommands: AuthoringCommand[] = [];
-    for (const scene of project.scenes) {
-      const textIds = scene.nodes
+    for (const scene of project.layers.filter((layer) => layer.type === "group")) {
+      const textIds = V1.flattenLayerTree(scene.children)
         .filter((node) => node.type === "text")
         .map((node) => node.id);
       if (textIds.length === 0) continue;
@@ -349,17 +350,17 @@ export async function runZeroTemplateGeneration(input: {
           type: "applyRecipe",
           sceneId: scene.id,
           recipeId: "stagger",
-          targetNodeId: textIds[0]!,
-          staggerNodeIds: textIds,
-          duration: Math.min(1.2, scene.duration),
+          targetLayerId: textIds[0]!,
+          staggerLayerIds: textIds,
+          duration: Math.min(1.2, scene.timing?.duration ?? 1),
         });
       } else {
         recipeCommands.push({
           type: "applyRecipe",
           sceneId: scene.id,
           recipeId: "float",
-          targetNodeId: textIds[0]!,
-          duration: scene.duration,
+          targetLayerId: textIds[0]!,
+          duration: scene.timing?.duration ?? 1,
           intensity: 0.6,
         });
       }
@@ -418,7 +419,7 @@ export async function runZeroTemplateGeneration(input: {
       });
       const targetedIds = critic.findings
         .map((f) => {
-          const m = /\.nodes\.([^.]+)/.exec(f.path);
+          const m = /\.layers\.([^.]+)/.exec(f.path);
           return m?.[1];
         })
         .filter((id): id is string => Boolean(id));
@@ -433,8 +434,10 @@ export async function runZeroTemplateGeneration(input: {
           findings: critic.findings,
           targetedIds,
           projectSummary: {
-            sceneIds: project.scenes.map((s) => s.id),
-            nodeIds: project.scenes.flatMap((s) => s.nodes.map((n) => n.id)),
+            sceneIds: project.layers
+              .filter((s) => s.type === "group")
+              .map((s) => s.id),
+            layerIds: V1.flattenLayerTree(project.layers).map((n) => n.id),
           },
         },
         model: modelName,
@@ -491,8 +494,10 @@ export async function runZeroTemplateGeneration(input: {
     emit({ phase: "ready", progress: 100, message: "Done" });
     const ok =
       critic.findings.every((f) => f.severity !== "error") &&
-      project.scenes.length > 0 &&
-      project.scenes.every((s) => s.nodes.length > 0);
+      project.layers.some((layer) => layer.type === "group") &&
+      project.layers
+        .filter((layer) => layer.type === "group")
+        .every((s) => s.children.length > 0);
 
     return {
       ok,
@@ -583,10 +588,10 @@ export async function runScopedRefine(input: {
   gateway?: ModelGateway;
 }): Promise<CommandBatchResult & { summary: string; commandLabels: string[] }> {
   const gateway = input.gateway ?? createModelGateway();
-  const [sceneId, nodeId] = (input.selectionKey ?? "").split("/");
+  const [sceneId, layerId] = (input.selectionKey ?? "").split("/");
   const commands: AuthoringCommand[] = [];
 
-  if (input.scope === "element" && sceneId && nodeId) {
+  if (input.scope === "element" && sceneId && layerId) {
     const lower = input.prompt.toLowerCase();
     if (
       lower.includes("larger") ||
@@ -596,14 +601,14 @@ export async function runScopedRefine(input: {
       commands.push({
         type: "setNodePayload",
         sceneId,
-        nodeId,
+        layerId,
         payload: { fontSize: 72 },
       });
     } else {
       commands.push({
         type: "setNodePayload",
         sceneId,
-        nodeId,
+        layerId,
         payload: {
           content: { kind: "plain", text: input.prompt.slice(0, 200) },
         },
@@ -611,25 +616,19 @@ export async function runScopedRefine(input: {
     }
   } else {
     // Fall back to full zero-template for video scope via stub commands on last CTA
-    const lastScene = input.project.scenes[input.project.scenes.length - 1];
+    const groups = input.project.layers.filter((layer) => layer.type === "group");
+    const lastScene = groups[groups.length - 1];
     if (lastScene) {
       commands.push({
         type: "addNode",
         sceneId: lastScene.id,
-        nodeId: `node.refine.${Date.now().toString(36)}`,
+        layerId: `node.refine.${Date.now().toString(36)}`,
         nodeType: "text",
         text: input.prompt.slice(0, 120),
         fontSize: 40,
         fill: "#ffffff",
         semanticRole: "offer",
-        transform: {
-          x: 540,
-          y: 1400,
-          width: 900,
-          height: 100,
-          anchorX: 0.5,
-          anchorY: 0.5,
-        },
+        transform: { x: 540, y: 1400, width: 900, height: 100 },
       });
     }
   }
@@ -655,7 +654,7 @@ export async function runScopedRefine(input: {
               repairHint: `scope=${input.scope}`,
             },
           ],
-          targetedIds: nodeId ? [nodeId] : [],
+          targetedIds: layerId ? [layerId] : [],
         },
         model: "anthropic/messages",
         maxOutputTokens: 2_048,

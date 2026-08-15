@@ -4,6 +4,10 @@ import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
 import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
+import {
+  resolveStageRendererBackend,
+  type StageRendererBackend,
+} from "@/lib/editor/stage/stage-renderer-factory";
 import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
 import { subscribeLibraryDrag } from "@/lib/editor/library/library-drag-session";
 import { isOverStageDropZone } from "@/lib/editor/library/timeline-library-drop";
@@ -17,18 +21,15 @@ type Props = {
   height: number;
 };
 
-/** Pixi is the only production preview engine (DOM available for debug). */
-function resolveStageMode(): "dom" | "pixi" {
-  const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
-  if (raw === "dom") return "dom";
-  return "pixi";
-}
-
 export function StageViewport({ project, width, height }: Props) {
   const clips = useEditorStore((s) => s.timelineClips);
   const lanes = useEditorStore((s) => s.timelineLanes);
-  const mode = resolveStageMode();
+  const [mode, setMode] = useState<StageRendererBackend>("pixi");
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    setMode(resolveStageRendererBackend());
+  }, []);
 
   const preview = useMemo(() => resolvePreviewProject(project), [project]);
   const { paintClips, paintLanes } = useMemo(() => {
@@ -72,7 +73,7 @@ export function StageViewport({ project, width, height }: Props) {
         </div>
       </div>
 
-      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t-2 border-[var(--border-subtle)] bg-[var(--bg-panel)]">
+      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t-2 border-[var(--border-subtle)] bg-[var(--bg-editor)]">
         <TimelineShell />
       </div>
     </main>

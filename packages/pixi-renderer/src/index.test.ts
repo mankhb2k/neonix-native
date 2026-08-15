@@ -7,7 +7,7 @@ import { syncPaintBufferToCache } from "./display-cache";
 import { PixiSnapshotAdapter, assertSnapshotContract } from "./index";
 
 const snapshot: RenderSnapshot = {
-  sceneId: "s1",
+  graphId: "s1",
   frame: 0,
   time: 0,
   width: 1080,
@@ -18,8 +18,8 @@ const snapshot: RenderSnapshot = {
   items: [
     {
       key: "s1:a",
-      sceneId: "s1",
-      nodeId: "a",
+      graphId: "s1",
+      layerId: "a",
       nodeType: "shape",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
       worldBounds: { x: 10, y: 20, width: 100, height: 50 },
@@ -40,8 +40,8 @@ const snapshot: RenderSnapshot = {
     },
     {
       key: "s1:t",
-      sceneId: "s1",
-      nodeId: "t",
+      graphId: "s1",
+      layerId: "t",
       nodeType: "text",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
       worldBounds: { x: 0, y: 0, width: 80, height: 24 },

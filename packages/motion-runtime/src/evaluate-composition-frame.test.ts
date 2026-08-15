@@ -4,11 +4,12 @@ import {
   evaluateCompositionSnapshot,
 } from "./evaluate-composition";
 import { evaluateFrame } from "./evaluated-frame";
-import { compileProjectV3 } from "./testing/compile";
+import { compileProjectV1 } from "./testing/compile";
 import { createDemoMotionProject, DEMO_SCENE_ID } from "./testing/demo-project";
+import { layerGraphFromRuntime } from "./layer-graph";
 
 function compileDemo() {
-  return compileProjectV3(createDemoMotionProject());
+  return compileProjectV1(createDemoMotionProject());
 }
 
 describe("evaluateCompositionFrame", () => {
@@ -23,8 +24,8 @@ describe("evaluateCompositionFrame", () => {
       DEMO_SCENE_ID,
     );
     expect(evaluated).toBeTruthy();
-    expect(evaluated!.sceneId).toBe(DEMO_SCENE_ID);
-    expect(evaluated!.interaction.sceneId).toBe(DEMO_SCENE_ID);
+    expect(evaluated!.graphId).toBe(DEMO_SCENE_ID);
+    expect(evaluated!.interaction.graphId).toBe(DEMO_SCENE_ID);
     expect(evaluated!.paint.commands.length).toBeGreaterThan(0);
     expect(evaluated!.diagnostics).toEqual(evaluated!.paint.diagnostics);
   });
@@ -52,7 +53,7 @@ describe("evaluateCompositionFrame", () => {
 
   it("matches scene-local evaluateFrame for the same inputs", () => {
     const runtime = compileDemo();
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
+    const scene = layerGraphFromRuntime(runtime);
     const composed = evaluateCompositionFrame(
       runtime,
       10,
@@ -68,8 +69,8 @@ describe("evaluateCompositionFrame", () => {
       width: 800,
       height: 600,
     });
-    expect(composed!.interaction.items.map((item) => item.nodeId)).toEqual(
-      local.interaction.items.map((item) => item.nodeId),
+    expect(composed!.interaction.items.map((item) => item.layerId)).toEqual(
+      local.interaction.items.map((item) => item.layerId),
     );
     expect(composed!.paint.commands.length).toBe(local.paint.commands.length);
   });

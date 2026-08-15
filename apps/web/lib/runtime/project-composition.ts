@@ -1,7 +1,7 @@
 import type { AspectRatio, MotionProject } from "@motionvideo/motion-protocol";
 
 /**
- * Phase 3: v3 projects carry width/height/fps on `composition` (metadata lost
+ * Phase 3: v1 projects carry width/height/fps on `composition` (metadata lost
  * `aspectRatio`/`fps`). Small adapters for UI + stage sizing.
  */
 export function compositionAspectRatio(project: MotionProject): AspectRatio {

@@ -6,7 +6,9 @@
  * source locations, severity, and codes.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /** Canonical alias for the normalized project output. */
 export type CompiledProject = MotionRuntimeProject;
@@ -16,7 +18,7 @@ export type CompiledProject = MotionRuntimeProject;
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export type DiagnosticCode =
-  // V3 compiler (Phase 5) — CMP_* family
+  // V1 compiler (Phase 5) — CMP_* family
   | "CMP_UNRESOLVED_VARIABLE"
   | "CMP_UNRESOLVED_COMPONENT"
   | "CMP_UNRESOLVED_COMPONENT_VARIANT"
@@ -26,12 +28,14 @@ export type DiagnosticCode =
   | "CMP_COMPONENT_INTEGRITY_MISMATCH"
   | "CMP_BINDING_TYPE_MISMATCH"
   | "CMP_CLIP_TARGET_MISSING"
+  | "CMP_COMPONENT_PROP_TRACK_FORBIDDEN"
   | "CMP_INVALID_CLIP_FIELD"
   | "CMP_PRIVATE_COMPONENT_ACCESS"
   | "CMP_INSTANCE_TRANSFORM_OVERLAP"
   | "CMP_TIMELINE_DURATION_DERIVED"
   | "CMP_TIMELINE_DURATION_EMPTY"
   | "CMP_TIMELINE_VISUAL_EMPTY"
+  | "CMP_ASSET_URI_UNRESOLVED"
   // Capability preflight (Phase 11)
   | "CAP_UNDECLARED_CAPABILITY"
   | "CAP_EXPERIMENTAL_IN_USE"
@@ -70,7 +74,7 @@ export type CompileDiagnostic = {
   message: string;
   /** Severity level */
   severity: DiagnosticSeverity;
-  /** Path within the project (e.g. ["scenes", 0, "clips", 2]) */
+  /** Path within the project (e.g. ["layers", 0, "timing"]) */
   path?: (string | number)[];
   /** Source reference for editor highlighting */
   sourceRef?: string;

@@ -14,21 +14,23 @@ function _uid(prefix: string): string {
 
 /**
  * Derive timeline lanes + clips from project.timeline.visualTracks
- * and project.timeline.audioTracks (Phase 8: V3 only).
+ * and project.timeline.audioTracks (Phase 8: V1 only).
  *
- * Every V3 visual track maps to a visual lane (main → base, overlay → overlay);
+ * Every V1 visual track maps to a visual lane (main → base, overlay → overlay);
  * audio tracks map to audio clips with a shared audio lane.
  */
 export function visualTracksToTimelineClips(project: MotionProject): {
   lanes: TimelineLane[];
   clips: TimelineClip[];
 } {
-  const scenesById = new Map(project.scenes.map((s) => [s.id, s] as const));
+  const scenesById = new Map(
+    (project.scenes ?? []).map((s) => [s.id, s] as const),
+  );
   const lanes: TimelineLane[] = [];
   const clips: TimelineClip[] = [];
 
   // ── Visual tracks → lanes + scene clips ──
-  const visualTracks = project.timeline.visualTracks;
+  const visualTracks = project.timeline.visualTracks ?? [];
 
   for (const track of visualTracks) {
     const role: "base" | "overlay" =
@@ -60,7 +62,7 @@ export function visualTracksToTimelineClips(project: MotionProject): {
   }
 
   // ── Audio tracks → audio clips (shared lane) ──
-  const audioTracks = project.timeline.audioTracks;
+  const audioTracks = project.timeline.audioTracks ?? [];
   if (audioTracks.length > 0) {
     const audioLaneId = _uid("lane_audio");
     const audioLane: TimelineLane = {

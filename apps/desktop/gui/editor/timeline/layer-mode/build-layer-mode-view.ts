@@ -1,5 +1,5 @@
 /**
- * Layer-mode view model — map MotionScene.nodes → pseudo lanes + strips.
+ * Layer-mode view model — map MotionScene.layers → pseudo lanes + strips.
  * Global timeline alignment: strip times are project-global seconds.
  */
 
@@ -9,7 +9,12 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import { clampNodeLocalTiming as clampNodeLocalTimingShared } from "@motionvideo/editor-interactions";
-import type { MotionNode, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionLayer,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   LAYER_LANE_HEIGHT_PX,
   LAYER_VIDEO_LANE_HEIGHT_PX,
@@ -18,20 +23,20 @@ import {
 
 export const LAYER_LANE_ID_PREFIX = "layer-node:";
 
-export type NodeTimingLocal = {
+export type LayerTimingLocal = {
   /** Seconds relative to container start (scene-local). */
   start: number;
   duration: number;
 };
 
 export type LayerModeRow = {
-  nodeId: string;
+  layerId: string;
   name: string;
   nodeType: string;
   zIndex: number;
   laneId: string;
   /** Phase 7: parent group node id (null = root layer). */
-  parentId: string | null;
+  parentLayerId: string | null;
   /** Phase 7: true when this node has children (group with descendants). */
   hasChildren: boolean;
   /** Phase 7: nesting depth in the hierarchy (0 = root). */
@@ -39,7 +44,7 @@ export type LayerModeRow = {
 };
 
 export type LayerModeStrip = {
-  nodeId: string;
+  layerId: string;
   laneId: string;
   name: string;
   nodeType: string;
@@ -47,9 +52,9 @@ export type LayerModeStrip = {
   startTime: number;
   duration: number;
   /** Scene-local timing used for property commits. */
-  localTiming: NodeTimingLocal;
+  localTiming: LayerTimingLocal;
   /** Phase 7: parent group node id (null = root layer). */
-  parentId: string | null;
+  parentLayerId: string | null;
   /** Phase 7: parent-local start offset (seconds, 0 at parent's effective start). */
   parentRelativeStart: number;
 };
@@ -64,8 +69,8 @@ export type LayerModeView = {
   stripsByLaneId: Map<string, LayerModeStrip>;
 };
 
-export function layerLaneIdForNode(nodeId: string): string {
-  return `${LAYER_LANE_ID_PREFIX}${nodeId}`;
+export function layerLaneIdForNode(layerId: string): string {
+  return `${LAYER_LANE_ID_PREFIX}${layerId}`;
 }
 
 export function nodeIdFromLayerLaneId(laneId: string): string | null {
@@ -79,9 +84,9 @@ export function isLayerModeLaneId(laneId: string): boolean {
 
 /** Resolve scene-local timing; missing → full container span. */
 export function resolveNodeLocalTiming(
-  node: MotionNode,
+  node: MotionLayer,
   containerDuration: number,
-): NodeTimingLocal {
+): LayerTimingLocal {
   const safeDuration = Math.max(0.001, containerDuration);
   const timing = node.timing;
   if (
@@ -102,7 +107,7 @@ export function resolveNodeLocalTiming(
 
 // ── Phase 1 Editor Alignment: Effective node timing (parent-relative) ─
 
-export type EffectiveNodeTiming = {
+export type EffectiveLayerTiming = {
   /** Scene-local start time (sum of all ancestor timing.starts + node.timing.start). */
   sceneLocalStart: number;
   /** Effective duration, clipped by ancestor timing bounds. */
@@ -116,36 +121,36 @@ export type EffectiveNodeTiming = {
 /**
  * Compute effective scene-local timing for a node, walking the parent chain.
  *
- * V3 contract: child timing is parent-relative. This function:
+ * V1 contract: child timing is parent-relative. This function:
  * 1. Accumulates all ancestor `timing.start` offsets to get `sceneLocalStart`.
  * 2. Computes `sceneLocalEnd = sceneLocalStart + node.timing.duration`.
  * 3. Clips `sceneLocalEnd` by every ancestor's effective end (child cannot
  *    outlive its parent).
  * 4. Returns the clipped `sceneLocalDuration`.
  *
- * Root nodes (parentId: null) are relative to the container (scene duration).
+ * Root layers (parentLayerId: null) are relative to the container (scene duration).
  */
-export function resolveEffectiveNodeTiming(
-  node: MotionNode,
-  allNodes: readonly MotionNode[],
+export function resolveEffectiveLayerTiming(
+  node: MotionLayer,
+  allNodes: readonly MotionLayer[],
   containerDuration: number,
-): EffectiveNodeTiming {
+): EffectiveLayerTiming {
   const byId = new Map(allNodes.map((n) => [n.id, n]));
   const safeDuration = Math.max(0.001, containerDuration);
-  const cache = new Map<string, EffectiveNodeTiming>();
+  const cache = new Map<string, EffectiveLayerTiming>();
 
-  const readStart = (n: MotionNode): number => {
+  const readStart = (n: MotionLayer): number => {
     const s = n.timing?.start;
     if (s != null && Number.isFinite(s))
       return Math.max(0, Math.min(s, safeDuration));
     return 0;
   };
 
-  const resolve = (n: MotionNode): EffectiveNodeTiming => {
+  const resolve = (n: MotionLayer): EffectiveLayerTiming => {
     const cached = cache.get(n.id);
     if (cached) return cached;
 
-    const parent = n.parentId ? byId.get(n.parentId) : undefined;
+    const parent = n.parentLayerId ? byId.get(n.parentLayerId) : undefined;
     const parentTiming = parent ? resolve(parent) : undefined;
     const parentStart = parentTiming?.sceneLocalStart ?? 0;
     const parentEnd = parentTiming?.sceneLocalEnd ?? safeDuration;
@@ -161,7 +166,7 @@ export function resolveEffectiveNodeTiming(
     const sceneLocalStart = parentStart + localStart;
     const rawEnd = sceneLocalStart + duration;
     const sceneLocalEnd = Math.min(parentEnd, rawEnd);
-    const result: EffectiveNodeTiming = {
+    const result: EffectiveLayerTiming = {
       sceneLocalStart,
       sceneLocalDuration: Math.max(0, sceneLocalEnd - sceneLocalStart),
       sceneLocalEnd,
@@ -182,7 +187,7 @@ export function clampNodeLocalTiming(
   duration: number,
   containerDuration: number,
   minDuration = 0.05,
-): NodeTimingLocal {
+): LayerTimingLocal {
   return clampNodeLocalTimingShared(
     start,
     duration,
@@ -191,33 +196,33 @@ export function clampNodeLocalTiming(
   );
 }
 
-function nodeDisplayName(node: MotionNode): string {
+function nodeDisplayName(node: MotionLayer): string {
   if (typeof node.name === "string" && node.name.trim()) return node.name;
   return `${node.type}:${node.id}`;
 }
 
 /**
- * Sort scene nodes into hierarchy-aware DFS pre-order for the timeline.
+ * Sort scene layers into hierarchy-aware DFS pre-order for the timeline.
  *
- * V3 contract: `zIndex` is sibling-local. This function:
- * 1. Groups siblings by `parentId` (null → root).
+ * V1 contract: `zIndex` is sibling-local. This function:
+ * 1. Groups siblings by `parentLayerId` (null → root).
  * 2. Within each group, sorts by zIndex DESC (highest on top like Figma/After Effects).
  * 3. DFS pre-order: parent → children (sorted) → next sibling.
  *
- * Result: child nodes appear immediately below their parent group,
+ * Result: child layers appear immediately below their parent group,
  * and a high-z child inside a low-z group never escapes above root siblings.
  */
-function sortNodesForLayerMode(nodes: readonly MotionNode[]): MotionNode[] {
-  const declarationIndex = new Map(nodes.map((node, index) => [node.id, index]));
-  const byParent = new Map<string | null, MotionNode[]>();
-  for (const n of nodes) {
-    const pid = n.parentId ?? null;
+function sortNodesForLayerMode(layers: readonly MotionLayer[]): MotionLayer[] {
+  const declarationIndex = new Map(layers.map((node, index) => [node.id, index]));
+  const byParent = new Map<string | null, MotionLayer[]>();
+  for (const n of layers) {
+    const pid = n.parentLayerId ?? null;
     const list = byParent.get(pid);
     if (list) list.push(n);
     else byParent.set(pid, [n]);
   }
 
-  const sortGroup = (list: MotionNode[]) => {
+  const sortGroup = (list: MotionLayer[]) => {
     list.sort((a, b) => {
       const za = a.zIndex ?? 0;
       const zb = b.zIndex ?? 0;
@@ -229,7 +234,7 @@ function sortNodesForLayerMode(nodes: readonly MotionNode[]): MotionNode[] {
   // Sort every sibling group.
   for (const [, list] of byParent) sortGroup(list);
 
-  const sorted: MotionNode[] = [];
+  const sorted: MotionLayer[] = [];
   const visit = (pid: string | null) => {
     const siblings = byParent.get(pid);
     if (!siblings) return;
@@ -241,9 +246,9 @@ function sortNodesForLayerMode(nodes: readonly MotionNode[]): MotionNode[] {
 
   visit(null); // roots first
 
-  // Catch orphans (nodes whose parentId is not in the set but may have been
+  // Catch orphans (layers whose parentLayerId is not in the set but may have been
   // grouped under wrong parent due to parent not being a real node).
-  for (const node of nodes) {
+  for (const node of layers) {
     if (!sorted.includes(node)) sorted.push(node);
   }
 
@@ -259,7 +264,7 @@ export function buildLayerModeView(
   scene: MotionScene | null | undefined,
 ): LayerModeView | null {
   if (!scene || scene.id !== container.sceneId) return null;
-  const nodes = sortNodesForLayerMode(scene.nodes ?? []);
+  const layers = sortNodesForLayerMode(scene.layers ?? []);
   const rows: LayerModeRow[] = [];
   const strips: LayerModeStrip[] = [];
   const lanes: TimelineLane[] = [];
@@ -267,7 +272,7 @@ export function buildLayerModeView(
   const stripsByLaneId = new Map<string, LayerModeStrip>();
 
   // Empty scene still needs a drop runway so library DnD works.
-  if (nodes.length === 0) {
+  if (layers.length === 0) {
     const laneId = "layer-runway";
     const lane: TimelineLane = {
       id: laneId,
@@ -300,49 +305,49 @@ export function buildLayerModeView(
   }
 
   // Phase 7: Build hierarchy metadata for group nesting display.
-  const nodeList = scene.nodes ?? [];
+  const nodeList = scene.layers ?? [];
   const byId = new Map(nodeList.map((n) => [n.id, n]));
   const childrenByParent = new Map<string | null, string[]>();
   for (const n of nodeList) {
-    const pid = n.parentId ?? null;
+    const pid = n.parentLayerId ?? null;
     const list = childrenByParent.get(pid);
     if (list) list.push(n.id);
     else childrenByParent.set(pid, [n.id]);
   }
 
   /** Walk parent chain to compute nesting depth (0 = root). */
-  function computeDepth(node: MotionNode): number {
+  function computeDepth(node: MotionLayer): number {
     let depth = 0;
-    let current: MotionNode | undefined = node;
-    while (current?.parentId) {
+    let current: MotionLayer | undefined = node;
+    while (current?.parentLayerId) {
       depth += 1;
-      current = byId.get(current.parentId);
+      current = byId.get(current.parentLayerId);
     }
     return depth;
   }
 
-  for (let i = 0; i < nodes.length; i += 1) {
-    const node = nodes[i]!;
+  for (let i = 0; i < layers.length; i += 1) {
+    const node = layers[i]!;
     const laneId = layerLaneIdForNode(node.id);
-    const zIndex = node.zIndex ?? nodes.length - i;
+    const zIndex = node.zIndex ?? layers.length - i;
     const name = nodeDisplayName(node);
     // Phase 1: effective timing walks the parent chain + clips by ancestor ends.
-    const effective = resolveEffectiveNodeTiming(
+    const effective = resolveEffectiveLayerTiming(
       node,
       nodeList,
       container.duration,
     );
     const localTiming = resolveNodeLocalTiming(node, container.duration);
-    const nodeParentId = node.parentId ?? null;
+    const nodeParentId = node.parentLayerId ?? null;
     const nodeHasChildren = (childrenByParent.get(node.id)?.length ?? 0) > 0;
     const nodeDepth = computeDepth(node);
 
     // Phase 7: parentRelativeStart — child's timing.start is already
-    // parent-relative by V3 contract; we record it for UI display.
+    // parent-relative by V1 contract; we record it for UI display.
     const parentRelativeStart = node.timing?.start ?? 0;
 
     const strip: LayerModeStrip = {
-      nodeId: node.id,
+      layerId: node.id,
       laneId,
       name,
       nodeType: node.type,
@@ -350,14 +355,14 @@ export function buildLayerModeView(
       startTime: container.startTime + effective.sceneLocalStart,
       duration: effective.sceneLocalDuration,
       localTiming,
-      parentId: nodeParentId,
+      parentLayerId: nodeParentId,
       parentRelativeStart,
     };
     const lane: TimelineLane = {
       id: laneId,
       kind: "visual",
       role: "overlay",
-      order: nodes.length - i,
+      order: layers.length - i,
       name,
       policy: { ...DEFAULT_VISUAL_POLICY },
     };
@@ -366,12 +371,12 @@ export function buildLayerModeView(
       ? LAYER_VIDEO_LANE_HEIGHT_PX
       : LAYER_LANE_HEIGHT_PX;
     rows.push({
-      nodeId: node.id,
+      layerId: node.id,
       name,
       nodeType: node.type,
       zIndex,
       laneId,
-      parentId: nodeParentId,
+      parentLayerId: nodeParentId,
       hasChildren: nodeHasChildren,
       depth: nodeDepth,
     });
@@ -410,14 +415,14 @@ export type SceneInnerLayerItem = {
   duration: number;
 };
 
-/** Flat list of scene nodes for LayersPanel (same sort as timeline rows). */
+/** Flat list of scene layers for LayersPanel (same sort as timeline rows). */
 export function listSceneInnerLayers(
   scene: MotionScene | null | undefined,
   containerDuration = 0,
 ): SceneInnerLayerItem[] {
   if (!scene) return [];
   const safeDuration = Math.max(0.001, containerDuration);
-  return sortNodesForLayerMode(scene.nodes ?? []).map((node) => {
+  return sortNodesForLayerMode(scene.layers ?? []).map((node) => {
     const timing = resolveNodeLocalTiming(node, safeDuration);
     return {
       id: node.id,
@@ -434,23 +439,23 @@ export function listSceneInnerLayers(
 /**
  * Resolve a node's effective parent-local timing window for timeline display.
  *
- * V3 contract: child timing is parent-relative. This function walks the
+ * V1 contract: child timing is parent-relative. This function walks the
  * parent chain to determine, for a given child node, what time range the
  * child occupies relative to its **direct parent's** effective window.
  *
- * Returns `null` for root nodes (no parent).
+ * Returns `null` for root layers (no parent).
  */
 export function resolveParentRelativeTimingWindow(
-  node: MotionNode,
-  allNodes: readonly MotionNode[],
+  node: MotionLayer,
+  allNodes: readonly MotionLayer[],
   containerDuration: number,
-): { parentId: string; parentStartTime: number; parentEndTime: number } | null {
-  if (!node.parentId) return null;
+): { parentLayerId: string; parentStartTime: number; parentEndTime: number } | null {
+  if (!node.parentLayerId) return null;
   const allById = new Map(allNodes.map((n) => [n.id, n]));
-  const parent = allById.get(node.parentId);
+  const parent = allById.get(node.parentLayerId);
   if (!parent) return null;
 
-  const parentTiming = resolveEffectiveNodeTiming(
+  const parentTiming = resolveEffectiveLayerTiming(
     parent,
     allNodes,
     containerDuration,
@@ -459,7 +464,7 @@ export function resolveParentRelativeTimingWindow(
   const parentEnd = parentTiming.sceneLocalEnd;
 
   return {
-    parentId: parent.id,
+    parentLayerId: parent.id,
     parentStartTime: parentStart,
     parentEndTime: parentEnd,
   };
@@ -472,15 +477,15 @@ export function resolveParentRelativeTimingWindow(
  * Phase 1: end is clipped by every ancestor's effective end
  * (child duration cannot visually exceed parent duration).
  *
- * Returns `{ globalStart, globalEnd }` or null for orphan nodes.
+ * Returns `{ globalStart, globalEnd }` or null for orphan layers.
  */
 export function resolveNodeGlobalTiming(
-  node: MotionNode,
-  allNodes: readonly MotionNode[],
+  node: MotionLayer,
+  allNodes: readonly MotionLayer[],
   containerStartTime: number,
   containerDuration: number,
 ): { globalStart: number; globalEnd: number } | null {
-  const effective = resolveEffectiveNodeTiming(
+  const effective = resolveEffectiveLayerTiming(
     node,
     allNodes,
     containerDuration,

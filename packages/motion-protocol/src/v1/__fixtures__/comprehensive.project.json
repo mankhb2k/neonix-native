@@ -1,0 +1,1086 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "v1-comprehensive",
+    "name": "V1 Comprehensive Field Coverage",
+    "description": "Covers every top-level and nested v1 field for Phase 2 gate",
+    "locale": "vi-VN",
+    "industry": "technology",
+    "tags": [
+      "demo",
+      "v1",
+      "comprehensive"
+    ],
+    "createdAt": "2026-08-10T00:00:00Z",
+    "updatedAt": "2026-08-10T12:00:00Z"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#1a1a2e",
+    "colorSpace": "srgb",
+    "pixelAspectRatio": 1,
+    "audioSampleRate": 48000,
+    "motionBlur": {
+      "samples": 16,
+      "shutterAngle": 180,
+      "shutterPhase": 0
+    }
+  },
+  "capabilities": {
+    "required": [
+      "primitive.group",
+      "primitive.text",
+      "primitive.shape",
+      "primitive.image",
+      "primitive.svg",
+      "primitive.video",
+      "primitive.path",
+      "anim.transform",
+      "anim.opacity",
+      "style.gradient",
+      "camera.orthographic"
+    ],
+    "optional": [
+      "effect.blur",
+      "effect.shadow"
+    ],
+    "experimental": [
+      "projection.perspective-3d"
+    ]
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": [
+      {
+        "componentId": "lower-third",
+        "version": "1.2.0",
+        "source": "com.moticlip.store",
+        "integrity": "sha256:lower-third-1.2.0"
+      }
+    ],
+    "plugins": [
+      {
+        "pluginId": "com.moticlip.ai-captions",
+        "version": "0.9.0",
+        "integrity": "sha256:ai-captions-0.9.0"
+      }
+    ]
+  },
+  "tokens": {
+    "colors": {
+      "brand": "#ff6b35",
+      "accent": "#004e89",
+      "bg": "#1a1a2e"
+    },
+    "fonts": {
+      "display": "font-be-vietnam",
+      "body": "font-inter"
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 32
+    },
+    "radii": {
+      "sm": 0.125,
+      "md": 0.25,
+      "lg": 0.5
+    },
+    "motion": {
+      "fast": 0.15,
+      "normal": 0.3,
+      "slow": 0.6
+    }
+  },
+  "variables": [
+    {
+      "id": "var-company",
+      "name": "Company name",
+      "type": "string",
+      "semantic": {
+        "role": "company-name"
+      },
+      "value": "MotiClip"
+    },
+    {
+      "id": "var-brand-color",
+      "name": "Brand color",
+      "type": "color",
+      "value": "#ff6b35"
+    },
+    {
+      "id": "var-title-opacity",
+      "name": "Title opacity",
+      "type": "number",
+      "value": 90,
+      "min": 0,
+      "max": 100
+    },
+    {
+      "id": "var-show-logo",
+      "name": "Show logo",
+      "type": "boolean",
+      "value": true
+    },
+    {
+      "id": "var-logo-asset",
+      "name": "Logo asset",
+      "type": "asset",
+      "assetKind": "image",
+      "value": "asset-logo"
+    },
+    {
+      "id": "var-theme",
+      "name": "Theme",
+      "type": "enum",
+      "value": "dark",
+      "options": [
+        "light",
+        "dark",
+        "auto"
+      ]
+    },
+    {
+      "id": "var-data-rows",
+      "name": "Data rows",
+      "type": "list",
+      "itemSchema": {
+        "type": "object",
+        "fields": {
+          "value": {
+            "type": "number"
+          }
+        }
+      },
+      "value": [
+        {
+          "value": 1.2
+        },
+        {
+          "value": 4.5
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset-logo",
+      "uri": "./assets/images/logo.png",
+      "integrity": "sha256:logo",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 512,
+      "height": 512,
+      "pixelFormat": "rgba",
+      "hasAlpha": true
+    },
+    {
+      "id": "asset-icon",
+      "uri": "./assets/images/icon.svg",
+      "integrity": "sha256:icon",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 64,
+      "height": 64,
+      "viewBox": "0 0 64 64",
+      "sanitized": true
+    },
+    {
+      "id": "asset-intro-video",
+      "uri": "./assets/video/intro.mp4",
+      "integrity": "sha256:intro-video",
+      "assetType": "video",
+      "mimeType": "video/mp4",
+      "width": 1920,
+      "height": 1080,
+      "duration": 10,
+      "fps": 30,
+      "codec": "h264",
+      "pixelFormat": "yuv420p",
+      "audioCodec": "aac",
+      "audioSampleRate": 48000,
+      "audioChannels": 2
+    },
+    {
+      "id": "asset-bgm",
+      "uri": "./assets/audio/bgm.mp3",
+      "integrity": "sha256:bgm",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 30,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 2
+    },
+    {
+      "id": "asset-font-display",
+      "uri": "./assets/fonts/BeVietnamPro-Bold.ttf",
+      "integrity": "sha256:be-vietnam-pro-bold",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Be Vietnam Pro",
+      "weight": 700,
+      "style": "normal",
+      "localeCoverage": [
+        "vi",
+        "en"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "lower-third",
+      "version": "1.2.0",
+      "integrity": "sha256:lower-third-1.2.0",
+      "props": [
+        {
+          "id": "title",
+          "name": "Title",
+          "kind": "text",
+          "default": ""
+        },
+        {
+          "id": "bgColor",
+          "name": "Background color",
+          "kind": "color",
+          "default": "#000000"
+        },
+        {
+          "id": "height",
+          "name": "Bar height",
+          "kind": "number",
+          "default": 80
+        }
+      ],
+      "variables": [],
+      "layers": [
+        {
+          "id": "lt-bg",
+          "type": "solid",
+          "parentLayerId": null,
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "payload": {
+            "color": "#000000"
+          },
+          "frame": {
+            "width": 600,
+            "height": 80
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 90
+          }
+        }
+      ],
+      "variants": [
+        {
+          "id": "compact",
+          "name": "Compact lower third",
+          "props": {
+            "height": 60
+          }
+        }
+      ],
+      "propBindings": [
+        {
+          "propId": "bgColor",
+          "target": {
+            "kind": "layerProperty",
+            "layerId": "lt-bg",
+            "property": "payload.color"
+          }
+        },
+        {
+          "propId": "height",
+          "target": {
+            "kind": "layerProperty",
+            "layerId": "lt-bg",
+            "property": "payload.height"
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "duration": 18,
+    "workArea": {
+      "start": 0,
+      "end": 18
+    },
+    "markers": [
+      {
+        "id": "marker-project-start",
+        "t": 0
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "id": "binding-company-name",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-company"
+      },
+      "target": {
+        "type": "layer",
+        "layerId": "node-title",
+        "property": "payload.content.text"
+      }
+    },
+    {
+      "id": "binding-opacity",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-title-opacity"
+      },
+      "target": {
+        "type": "layer",
+        "layerId": "node-title",
+        "property": "appearance.opacity"
+      }
+    },
+    {
+      "id": "binding-component",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-brand-color"
+      },
+      "target": {
+        "type": "componentLayer",
+        "layerId": "node-lower-third",
+        "propId": "bgColor"
+      }
+    }
+  ],
+  "provenance": {
+    "workspaceId": "ws-moticlip-demo",
+    "sourceHash": "abc123def456",
+    "bundleProfile": "embedded-components",
+    "sourceMap": {
+      "components": {
+        "lower-third": "src/components/lower-third.json"
+      },
+      "variables": {
+        "var-company": "src/variables.json"
+      },
+      "assets": {
+        "asset-logo": "assets/logo.png"
+      },
+      "layers": {
+        "node-group": "src/layers/group.json"
+      }
+    }
+  },
+  "extensions": {
+    "com.moticlip.constraints": [
+      {
+        "maxDuration": 30
+      }
+    ],
+    "com.moticlip.ai-hints": {
+      "tone": "professional",
+      "pace": "fast"
+    }
+  },
+  "layers": [
+    {
+      "id": "node-group",
+      "type": "group",
+      "name": "Title Group",
+      "parentLayerId": null,
+      "zIndex": 0,
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 300
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "children": [
+        {
+          "id": "node-title",
+          "type": "text",
+          "parentLayerId": "node-group",
+          "zIndex": 0,
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Hello MotiClip V1"
+            },
+            "fontAssetId": "asset-font-display",
+            "fontSize": 64,
+            "color": "#ffffff",
+            "alignment": "center",
+            "wrap": "word",
+            "lineHeight": 1.2,
+            "letterSpacing": 1,
+            "maxLines": 2,
+            "overflow": "ellipsis"
+          },
+          "frame": {
+            "width": 800,
+            "height": 120
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        },
+        {
+          "id": "node-shape",
+          "type": "shape",
+          "parentLayerId": "node-group",
+          "zIndex": 1,
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 80
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 2
+          },
+          "style": {
+            "fill": "#ff6b35"
+          },
+          "frame": {
+            "width": 200,
+            "height": 4
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        },
+        {
+          "id": "node-bone",
+          "type": "bone",
+          "parentLayerId": "node-group",
+          "zIndex": 2,
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "payload": {
+            "length": 100,
+            "restRotation": 0,
+            "rotationLimits": {
+              "min": -45,
+              "max": 45
+            }
+          },
+          "frame": {
+            "width": 0,
+            "height": 0
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        }
+      ],
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 0,
+        "height": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "blend-mode": "normal",
+        "isolation": "isolate"
+      }
+    },
+    {
+      "id": "node-logo",
+      "type": "image",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 600
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "assetId": "asset-logo",
+        "fit": "contain"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 128,
+        "height": 128
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "mask": {
+          "sourceLayerId": "node-shape",
+          "mode": "alpha",
+          "source-visibility": "mask-only"
+        }
+      }
+    },
+    {
+      "id": "node-cam",
+      "type": "camera",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "projection": "orthographic",
+        "zoom": 1,
+        "parallaxStrength": 0.5
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-path",
+      "type": "path",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "transform": {
+        "translate": {
+          "x": 100,
+          "y": 200
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "contours": [
+          {
+            "id": "contour-1",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "closed": false,
+            "segments": [
+              {
+                "kind": "line",
+                "to": {
+                  "x": 100,
+                  "y": 50
+                }
+              },
+              {
+                "kind": "cubic",
+                "to": {
+                  "x": 200,
+                  "y": 50
+                },
+                "control1": {
+                  "x": 130,
+                  "y": 0
+                },
+                "control2": {
+                  "x": 170,
+                  "y": 100
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "style": {
+        "stroke": "#ff6b35",
+        "strokeWidth": 3
+      },
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 300,
+        "height": 200
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-adjustment",
+      "type": "adjustment",
+      "parentLayerId": null,
+      "zIndex": 4,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "brightness": 0.1,
+        "contrast": 1.1
+      },
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 1920,
+        "height": 1080
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-video-bg",
+      "type": "video",
+      "parentLayerId": null,
+      "zIndex": 5,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "assetId": "asset-intro-video",
+        "fit": "cover",
+        "muted": true,
+        "loop": true
+      },
+      "timing": {
+        "start": 0,
+        "duration": 10
+      },
+      "frame": {
+        "width": 1920,
+        "height": 1080
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-svg-icon",
+      "type": "svg",
+      "parentLayerId": null,
+      "zIndex": 6,
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "assetId": "asset-icon"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 10
+      },
+      "frame": {
+        "width": 64,
+        "height": 64
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-lower-third",
+      "type": "component",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 160,
+          "y": 800
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "componentId": "lower-third"
+      },
+      "zIndex": 7,
+      "timing": {
+        "start": 0,
+        "duration": 4
+      },
+      "frame": {
+        "width": 600,
+        "height": 80
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 95
+      }
+    },
+    {
+      "id": "track-bgm-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -1,
+      "timing": {
+        "start": 0,
+        "duration": 18
+      },
+      "payload": {
+        "assetId": "asset-bgm",
+        "trimStart": 0,
+        "playbackRate": 1,
+        "volume": 70,
+        "loop": false,
+        "fadeIn": 1,
+        "fadeOut": 2,
+        "muted": false
+      }
+    },
+    {
+      "id": "caption-vi",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 8,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "children": [
+        {
+          "id": "tok-1",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 1.5
+          },
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "payload": {
+            "text": "Xin chào",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        },
+        {
+          "id": "tok-2",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 1,
+          "timing": {
+            "start": 1.6,
+            "duration": 1.4
+          },
+          "transform": {
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          },
+          "payload": {
+            "text": "MotiClip V1",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          }
+        }
+      ],
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    }
+  ]
+}

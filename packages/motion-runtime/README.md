@@ -42,6 +42,6 @@ import {
 
 ## Docs
 
-- [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
+- [`docs/motion-format-v1.md`](../../docs/motion-format-v1.md)
 - [`docs/primitives-object.md`](../../docs/primitives-object.md)
 - Gate visual: `pnpm validate:primitives`

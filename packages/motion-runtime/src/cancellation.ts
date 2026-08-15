@@ -13,7 +13,7 @@
  *
  * Usage in frame evaluation:
  * ```typescript
- * export function evaluateCompositionFrameV3(
+ * export function evaluateCompositionFrameV1(
  *   runtime, frame, fps, width, height, opts?: { signal?: AbortSignal }
  * ): EvaluatedCompositionFrame | null {
  *   throwIfAborted(opts?.signal);
@@ -92,12 +92,11 @@ export function cancelledDiagnostic(
   opts?: {
     frame?: number;
     time?: number;
-    sceneId?: string;
+    graphId?: string;
   },
 ): RuntimeDiagnostic {
   return createDiagnostic(code, {
     message: `Operation cancelled: ${code}`,
-    severity: "info",
     ...opts,
   });
 }

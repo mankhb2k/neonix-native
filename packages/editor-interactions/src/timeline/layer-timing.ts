@@ -2,7 +2,7 @@
  * Clamp scene-local node timing inside a container span.
  */
 
-export type NodeTimingLocal = {
+export type LayerTimingLocal = {
   /** Seconds relative to container start (scene-local). */
   start: number;
   duration: number;
@@ -13,7 +13,7 @@ export function clampNodeLocalTiming(
   duration: number,
   containerDuration: number,
   minDuration = 0.05,
-): NodeTimingLocal {
+): LayerTimingLocal {
   const maxEnd = Math.max(minDuration, containerDuration);
   let nextStart = Number.isFinite(start) ? start : 0;
   let nextDuration = Number.isFinite(duration) ? duration : minDuration;

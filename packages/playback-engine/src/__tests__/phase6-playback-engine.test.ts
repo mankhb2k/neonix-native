@@ -20,104 +20,65 @@ import {
   type FrameConsumer,
 } from "../index";
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 
 // ── Helpers for test runtime ─────────────────────────────────────────
 
 function makeRuntime(
   duration: number,
-  extraScenes: number = 0,
+  extraLayers: number = 0,
 ): MotionRuntimeProject {
-  const scenes = [
+  const transform = {
+    translate: { x: 0, y: 0 },
+    rotate: { z: 0 },
+    scale: { x: 1, y: 1 },
+    skew: { x: 0, y: 0 },
+    origin: { x: 0.5, y: 0.5 },
+    depth: 0,
+  };
+  const layers: MotionRuntimeProject["layers"] = [
     {
-      id: "s1",
-      duration: duration,
-      space: "flat-2d" as const,
-      nodes: [
-        {
-          type: "group" as const,
-          id: "n1",
-          parentId: null,
-          zIndex: 0,
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            opacity: 1,
-            anchorX: 0,
-            anchorY: 0,
-            scaleX: 1,
-            scaleY: 1,
-          },
-          payload: {},
-        },
-      ],
-      tracks: [],
-    },
+      type: "group",
+      id: "n1",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 100, height: 100 },
+      transform,
+      appearance: { visible: true, opacity: 100 },
+      payload: {},
+    } as MotionRuntimeProject["layers"][number],
   ];
-
-  for (let i = 0; i < extraScenes; i++) {
-    scenes.push({
-      id: `s${i + 2}`,
-      duration: 1,
-      space: "flat-2d" as const,
-      nodes: [
-        {
-          type: "group" as const,
-          id: `n_extra_${i}`,
-          parentId: null,
-          zIndex: 0,
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            opacity: 1,
-            anchorX: 0,
-            anchorY: 0,
-            scaleX: 1,
-            scaleY: 1,
-          },
-          payload: {},
-        },
-      ],
-      tracks: [],
-    });
+  for (let i = 0; i < extraLayers; i++) {
+    layers.push({
+      type: "group",
+      id: `n_extra_${i}`,
+      parentLayerId: null,
+      zIndex: i + 1,
+      frame: { width: 100, height: 100 },
+      transform,
+      appearance: { visible: true, opacity: 100 },
+      payload: {},
+    } as MotionRuntimeProject["layers"][number]);
   }
 
   return {
     format: "motion-runtime",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "test",
-      title: "Test",
+      name: "Test",
       aspectRatio: "16:9",
-      width: 1920,
-      height: 1080,
+      fps: 30,
+      locale: "vi-VN",
+      brand: { name: "Default" },
     },
     assets: [],
-    timeline: {
-      visualTracks: [
-        {
-          id: "primary",
-          role: "primary",
-          order: 0,
-          clips: scenes.map((s) => ({
-            id: `clip-${s.id}`,
-            source: { kind: "scene" as const, sceneId: s.id },
-            start: 0,
-            duration: s.duration,
-          })),
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-    scenes,
+    layers,
+    tracks: [],
+    timeline: { duration },
   };
 }
 

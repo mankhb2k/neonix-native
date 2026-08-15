@@ -154,9 +154,9 @@ function collectSceneLanesFromLayout(
 }
 
 function collectSceneLanesFromDom(scope: HTMLElement): VideoLaneHit[] {
-  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const layers = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
   const out: VideoLaneHit[] = [];
-  for (const el of nodes) {
+  for (const el of layers) {
     const rawRole = el.getAttribute("data-track-role");
     const rawType = el.getAttribute("data-track-type");
     const isBase = rawRole === "base" || rawType === "main";

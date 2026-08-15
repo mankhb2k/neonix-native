@@ -6,8 +6,9 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { layerGraphFromRuntime } from "@motionvideo/motion-runtime";
 import { drawSceneFrame } from "./runtime/draw";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
   const project = parseMotionProject(
     JSON.parse(await readFile(resolve(mtPath), "utf8")),
   );
-  const result = compileMotionProjectV3(project);
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     console.log(
       JSON.stringify({
@@ -63,9 +64,9 @@ async function main(): Promise<void> {
     return;
   }
   const runtime = result.project;
-  const scene = runtime.scenes[0];
-  if (!scene) {
-    console.log(JSON.stringify({ ok: false, error: "No scenes" }));
+  const scene = layerGraphFromRuntime(runtime);
+  if (scene.layers.length === 0 && !(scene.duration > 0)) {
+    console.log(JSON.stringify({ ok: false, error: "No layers" }));
     process.exitCode = 1;
     return;
   }
@@ -94,7 +95,7 @@ async function main(): Promise<void> {
     frames.push({ time, path: file });
   }
 
-  console.log(JSON.stringify({ ok: true, outDir, frames, sceneId: scene.id }));
+  console.log(JSON.stringify({ ok: true, outDir, frames, graphId: scene.id }));
 }
 
 main().catch((error: unknown) => {

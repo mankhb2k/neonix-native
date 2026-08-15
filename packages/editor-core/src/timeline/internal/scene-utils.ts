@@ -4,10 +4,13 @@ import {
   type CommandContext,
 } from "../../ports/command-context";
 import type {
-  MotionNode,
+  MotionLayer,
   MotionProject,
-  MotionScene,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */
@@ -19,7 +22,7 @@ export function uid(
 }
 
 /** Trích xuất văn bản từ Node dạng Text */
-export function nodeText(node: MotionNode | undefined): string {
+export function nodeText(node: MotionLayer | undefined): string {
   return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
 }
 
@@ -38,25 +41,24 @@ export function updateVariable(
   });
 }
 
-/** Cập nhật một Node cụ thể trong một Scene nhất định */
+/** Cập nhật một Node cụ thể trong cây layer */
 export function mapNode(
   project: MotionProject,
-  sceneId: string,
-  nodeId: string,
-  transform: (node: MotionNode) => MotionNode,
+  _sceneId: string,
+  layerId: string,
+  transform: (node: MotionLayer) => MotionLayer,
 ): MotionProject {
+  const mapLayers = (layers: MotionLayer[]): MotionLayer[] =>
+    layers.map((layer) => {
+      if (layer.id === layerId) return transform(layer);
+      if (layer.type === "group") {
+        return { ...layer, children: mapLayers(layer.children) };
+      }
+      return layer;
+    });
   return {
     ...project,
-    scenes: project.scenes.map((scene) =>
-      scene.id === sceneId
-        ? {
-            ...scene,
-            nodes: scene.nodes.map((node) =>
-              node.id === nodeId ? transform(node) : node,
-            ),
-          }
-        : scene,
-    ),
+    layers: mapLayers(project.layers),
   };
 }
 
@@ -104,28 +106,19 @@ function baseTransform(
   width: number,
   height: number,
 ) {
-  return {
+  return visualLayerAtoms({
     x: composition.width / 2,
     y: composition.height / 2,
     width,
     height,
-    rotation: 0,
-    scaleX: 1,
-    scaleY: 1,
-    anchorX: 0.5,
-    anchorY: 0.5,
-    opacity: 1,
-    visible: true,
-    flipX: false,
-    flipY: false,
-  };
+  });
 }
 
 function nodeFromDraft(
   draft: FrameDraft,
-  nodeId: string,
+  layerId: string,
   composition: CompositionSize,
-): MotionNode {
+): MotionLayer {
   const kind = draft.kind ?? "text";
   const textW = Math.min(900, composition.width * 0.7);
   const textH = Math.min(180, composition.height * 0.2);
@@ -133,7 +126,7 @@ function nodeFromDraft(
   const shapeSide = Math.min(420, mediaSide * 0.55);
 
   if (kind === "shape") {
-    let shapePayload: MotionScene["nodes"][number]["payload"];
+    let shapePayload: MotionScene["layers"][number]["payload"];
     if (draft.shape === "ellipse" || draft.shape === "circle") {
       shapePayload = { shape: "ellipse" };
     } else if (draft.shape === "polygon") {
@@ -149,11 +142,11 @@ function nodeFromDraft(
       shapePayload = { shape: "rectangle", cornerRadius: 0 };
     }
     return {
-      id: nodeId,
+      id: layerId,
       type: "shape",
-      parentId: null,
+      parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, shapeSide, shapeSide),
+      ...baseTransform(composition, shapeSide, shapeSide),
       payload: shapePayload,
       style: { fill: "#4A90D9" },
     };
@@ -161,11 +154,11 @@ function nodeFromDraft(
 
   if (kind === "image" && draft.assetId) {
     return {
-      id: nodeId,
+      id: layerId,
       type: "image",
-      parentId: null,
+      parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, mediaSide, mediaSide),
+      ...baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -175,11 +168,11 @@ function nodeFromDraft(
 
   if (kind === "video" && draft.assetId) {
     return {
-      id: nodeId,
+      id: layerId,
       type: "video",
-      parentId: null,
+      parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, mediaSide, mediaSide),
+      ...baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -189,11 +182,11 @@ function nodeFromDraft(
   }
 
   return {
-    id: nodeId,
+    id: layerId,
     type: "text",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
-    transform: baseTransform(composition, textW, textH),
+    ...baseTransform(composition, textW, textH),
     payload: {
       text: draft.text || draft.name,
       fontSize: 64,
@@ -203,13 +196,13 @@ function nodeFromDraft(
   };
 }
 
-/** Public: build a single MotionNode from a library FrameDraft. */
+/** Public: build a single MotionLayer from a library FrameDraft. */
 export function createNodeFromFrameDraft(
   draft: FrameDraft,
-  nodeId: string,
+  layerId: string,
   composition: CompositionSize = DEFAULT_COMPOSITION,
-): MotionNode {
-  return nodeFromDraft(draft, nodeId, composition);
+): MotionLayer {
+  return nodeFromDraft(draft, layerId, composition);
 }
 
 /** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
@@ -219,19 +212,19 @@ export function sceneFromFrameDraft(
   composition: CompositionSize = DEFAULT_COMPOSITION,
 ): MotionScene {
   const sceneId = createId("scene");
-  const nodeId = createId("node");
+  const layerId = createId("node");
   const clipId = createId("clip");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
-  const node = nodeFromDraft(draft, nodeId, composition);
+  const node = nodeFromDraft(draft, layerId, composition);
   return {
     id: sceneId,
     name: draft.name,
     duration,
-    nodes: [node],
+    layers: [node],
     clips: [
       {
         id: clipId,
-        targetId: nodeId,
+        layerId: layerId,
         schedule: { kind: "absolute", at: 0 },
         duration: Math.min(0.8, duration),
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -250,25 +243,25 @@ export function cloneSceneWithNewIds(
   const newSceneId = createId("scene");
   idMap.set(scene.id, newSceneId);
   cloned.id = newSceneId;
-  cloned.nodes = (cloned.nodes ?? []).map((node) => {
+  cloned.layers = (cloned.layers ?? []).map((node) => {
     const nextId = createId("node");
     idMap.set(node.id, nextId);
     return { ...node, id: nextId };
   });
-  cloned.nodes = cloned.nodes.map((node) => ({
+  cloned.layers = cloned.layers.map((node) => ({
     ...node,
-    parentId:
-      node.parentId && idMap.has(node.parentId)
-        ? idMap.get(node.parentId)!
-        : node.parentId,
+    parentLayerId:
+      node.parentLayerId && idMap.has(node.parentLayerId)
+        ? idMap.get(node.parentLayerId)!
+        : node.parentLayerId,
   }));
   cloned.clips = (cloned.clips ?? []).map((clip) => ({
     ...clip,
     id: createId("clip"),
-    targetId:
-      clip.targetId && idMap.has(clip.targetId)
-        ? idMap.get(clip.targetId)!
-        : clip.targetId,
+    layerId:
+      clip.layerId && idMap.has(clip.layerId)
+        ? idMap.get(clip.layerId)!
+        : clip.layerId,
   }));
   return cloned;
 }

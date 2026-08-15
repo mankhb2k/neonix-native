@@ -1,0 +1,96 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 1,
+  "runtimeVersion": 3,
+  "metadata": {
+    "id": "single-root",
+    "name": "Single Root",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Single Root"
+    },
+    "description": "One root text layer"
+  },
+  "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "runtimeHash": "dcba3e4c945769de26fc737032f005ee",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "2cf6603729d72afd",
+  "sourceRef": {
+    "layers": {
+      "title": "layers:title"
+    }
+  },
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Hello MotiClip"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    }
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
+}

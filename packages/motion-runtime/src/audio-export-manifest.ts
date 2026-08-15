@@ -3,29 +3,29 @@
  *
  * §Phase 10 Task 10.3 in core-engine-tasks.md
  *
- * Builds a summary of audio clips from the compiled runtime, suitable
+ * Builds a summary of audio layers from the compiled runtime, suitable
  * for embedding in RenderManifest.audio.
  */
 
-import type { AudioRenderPlan, AudioRenderClip } from "./audio-render-plan";
+import type { AudioRenderPlan, AudioRenderLayer } from "./audio-render-plan";
 import { sampleAudioVolumeAtFrame } from "./audio-render-plan";
 
 export type AudioExportManifest = {
-  /** Total number of audio clips. */
-  clipCount: number;
+  /** Total number of audio layers. */
+  audioLayerCount: number;
   /** Total audio duration in seconds (including loops). */
   totalDurationSeconds: number;
   /** Sample rate for audio rendering. */
   sampleRate: number;
   /** Audio codec for export. */
   codec: "aac" | "opus" | "mp3" | "pcm";
-  /** Per-clip metadata. */
-  clips: AudioExportClip[];
+  /** Per-layer metadata. */
+  layers: AudioExportLayer[];
 };
 
-export type AudioExportClip = {
-  /** Clip / track ID. */
-  clipId: string;
+export type AudioExportLayer = {
+  /** Audio layer ID. */
+  layerId: string;
   /** Asset duration (seconds). */
   assetDurationSeconds: number;
   /** Trim start (seconds). */
@@ -47,12 +47,8 @@ export type AudioExportClip = {
   volumeKeyframes: Array<{ time: number; value: number }>;
 };
 
-// ── Default values ────────────────────────────────────────────────────
-
 const DEFAULT_SAMPLE_RATE = 48000;
 const DEFAULT_CODEC = "aac" as const;
-
-// ── Builder ───────────────────────────────────────────────────────────
 
 /**
  * Build an AudioExportManifest from an AudioRenderPlan.
@@ -69,39 +65,38 @@ export function buildAudioExportManifest(
   const codec = options?.codec ?? DEFAULT_CODEC;
   const fps = Math.max(1, plan.fps);
 
-  const clips: AudioExportClip[] = plan.clips.map((clip) =>
-    clipToExportClip(clip, fps),
+  const layers: AudioExportLayer[] = plan.layers.map((layer) =>
+    layerToExportLayer(layer, fps),
   );
 
-  const totalDurationSeconds = plan.clips.reduce((sum, clip) => {
-    const duration = clip.durationInFrames / fps;
+  const totalDurationSeconds = plan.layers.reduce((sum, layer) => {
+    const duration = layer.durationInFrames / fps;
     return sum + Math.max(0, duration);
   }, 0);
 
   return {
-    clipCount: clips.length,
+    audioLayerCount: layers.length,
     totalDurationSeconds: Math.round(totalDurationSeconds * 1000) / 1000,
     sampleRate,
     codec,
-    clips,
+    layers,
   };
 }
 
-function clipToExportClip(
-  clip: AudioRenderClip,
+function layerToExportLayer(
+  layer: AudioRenderLayer,
   fps: number,
-): AudioExportClip {
-  const startTime = clip.fromFrame / fps;
-  const endTime = (clip.fromFrame + clip.durationInFrames) / fps;
+): AudioExportLayer {
+  const startTime = layer.fromFrame / fps;
+  const endTime = (layer.fromFrame + layer.durationInFrames) / fps;
   const volumeKeyframes: Array<{ time: number; value: number }> = [];
 
-  // Sample the frame-based envelope at each composition frame in the clip.
   for (
-    let frame = clip.fromFrame;
-    frame <= clip.fromFrame + clip.durationInFrames;
+    let frame = layer.fromFrame;
+    frame <= layer.fromFrame + layer.durationInFrames;
     frame += 1
   ) {
-    const v = sampleAudioVolumeAtFrame(clip.volumeEnvelope, frame);
+    const v = sampleAudioVolumeAtFrame(layer.volumeEnvelope, frame);
     volumeKeyframes.push({
       time: Math.round((frame / fps) * 1000) / 1000,
       value: Math.round(v * 1000) / 1000,
@@ -111,24 +106,20 @@ function clipToExportClip(
   const compressed = compressVolumeKeyframes(volumeKeyframes);
 
   return {
-    clipId: clip.clipId,
-    assetDurationSeconds: clip.assetDurationSeconds,
-    trimStartSeconds: clip.trimStartSeconds,
-    trimEndSeconds: clip.trimEndSeconds,
+    layerId: layer.layerId,
+    assetDurationSeconds: layer.assetDurationSeconds,
+    trimStartSeconds: layer.trimStartSeconds,
+    trimEndSeconds: layer.trimEndSeconds,
     startTime,
     endTime,
-    loop: clip.loop,
-    loopWindowStartSeconds: clip.loopWindowStartSeconds,
-    loopWindowEndSeconds: clip.loopWindowEndSeconds,
-    channelPolicy: clip.channelPolicy,
+    loop: layer.loop,
+    loopWindowStartSeconds: layer.loopWindowStartSeconds,
+    loopWindowEndSeconds: layer.loopWindowEndSeconds,
+    channelPolicy: layer.channelPolicy,
     volumeKeyframes: compressed,
   };
 }
 
-/**
- * Compress volume keyframes — keep only inflection points where the
- * slope changes by more than EPSILON.
- */
 function compressVolumeKeyframes(
   keyframes: Array<{ time: number; value: number }>,
 ): Array<{ time: number; value: number }> {
@@ -146,7 +137,6 @@ function compressVolumeKeyframes(
     const slope1 = (curr.value - prev.value) / dt1;
     const slope2 = (next.value - curr.value) / dt2;
 
-    // Keep if slope changes meaningfully (threshold 0.001)
     if (Math.abs(slope2 - slope1) > 0.001) {
       result.push(curr);
     }

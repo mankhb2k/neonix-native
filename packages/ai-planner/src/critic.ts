@@ -1,5 +1,6 @@
+import { visualLayerAtoms, V1 } from "@motionvideo/motion-protocol";
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { getTextPayloadPlain, V3 } from "@motionvideo/motion-protocol";
+import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 export type CriticFinding = {
   code: string;
@@ -14,13 +15,12 @@ export type CriticReport = {
   findings: CriticFinding[];
 };
 
-/** Structural/layout critic — deterministic, no CSS/JS (R7). Phase 9: V3-aware. */
+/** Structural/layout critic — deterministic, no CSS/JS (R7). */
 export function critiqueProject(project: MotionProject): CriticReport {
   const findings: CriticFinding[] = [];
   let score = 100;
 
-  // ── Phase 9: V3 schema validity ──
-  const parsed = V3.MotionProjectV3Schema.safeParse(project);
+  const parsed = V1.MotionProjectV1Schema.safeParse(project);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       findings.push({
@@ -35,215 +35,120 @@ export function critiqueProject(project: MotionProject): CriticReport {
     return { score: Math.max(0, score), findings };
   }
 
-  // ── V3 visualTracks integrity ──
-  const sceneIds = new Set(project.scenes.map((s) => s.id));
-  const componentIds = new Set(project.components.map((c) => c.id));
-  for (const track of project.timeline.visualTracks) {
-    for (const clip of track.clips) {
-      if (clip.source.kind === "scene" && !sceneIds.has(clip.source.sceneId)) {
-        findings.push({
-          code: "clip_target_missing",
-          severity: "error",
-          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
-          message: `Visual clip references unknown scene "${clip.source.sceneId}"`,
-          repairHint: "Add the scene first, or point clip to an existing scene",
-        });
-        score -= 25;
-      }
-      if (
-        clip.source.kind === "component" &&
-        !componentIds.has(clip.source.componentId)
-      ) {
-        findings.push({
-          code: "clip_component_missing",
-          severity: "error",
-          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
-          message: `Visual clip references unknown component "${clip.source.componentId}"`,
-          repairHint:
-            "Embed the component definition, or point clip to an existing component",
-        });
-        score -= 25;
-      }
-    }
-  }
-
-  // ── Clip timing ──
-  for (const track of project.timeline.visualTracks) {
-    if (track.role !== "main") continue;
-    const sorted = [...track.clips].sort((a, b) => a.start - b.start);
-    for (let i = 0; i < sorted.length; i += 1) {
-      const clip = sorted[i]!;
-      if (clip.start < 0) {
-        findings.push({
-          code: "clip_negative_start",
-          severity: "error",
-          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
-          message: `Clip start is negative (${clip.start})`,
-          repairHint: "Set clip start >= 0",
-        });
-        score -= 10;
-      }
-      if (clip.duration <= 0) {
-        findings.push({
-          code: "clip_zero_duration",
-          severity: "error",
-          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
-          message: `Clip duration is non-positive (${clip.duration})`,
-          repairHint: "Set clip duration > 0",
-        });
-        score -= 10;
-      }
-      // Check for overlapping clips in the base lane
-      if (i > 0) {
-        const prev = sorted[i - 1]!;
-        const prevEnd = prev.start + prev.duration;
-        if (clip.start < prevEnd - 1e-9) {
-          findings.push({
-            code: "clip_overlap",
-            severity: "warning",
-            path: `timeline.visualTracks.${track.id}.clips`,
-            message: `Clips "${prev.id}" and "${clip.id}" overlap`,
-            repairHint:
-              "Adjust clip start times to eliminate overlap, or use overlay tracks",
-          });
-          score -= 5;
-        }
-      }
-    }
-  }
-
-  // ── Asset integrity ──
+  const layers = V1.flattenLayerTree(project.layers);
   const assetIds = new Set(project.assets.map((a) => a.id));
-  for (const scene of project.scenes) {
-    for (const node of scene.nodes) {
-      const payload = node.payload as Record<string, unknown>;
-      if (
-        (node.type === "image" ||
-          node.type === "svg" ||
-          node.type === "video") &&
-        typeof payload.assetId === "string" &&
-        !assetIds.has(payload.assetId)
-      ) {
-        findings.push({
-          code: "asset_missing",
-          severity: "error",
-          path: `scenes.${scene.id}.nodes.${node.id}`,
-          message: `Node references unknown asset "${payload.assetId}"`,
-          repairHint:
-            "registerAsset before referencing it, or use a valid asset id",
-        });
-        score -= 15;
-      }
+  for (const node of layers) {
+    if (
+      (node.type === "image" || node.type === "svg" || node.type === "video") &&
+      "payload" in node &&
+      typeof node.payload === "object" &&
+      node.payload &&
+      "assetId" in node.payload &&
+      typeof node.payload.assetId === "string" &&
+      !assetIds.has(node.payload.assetId)
+    ) {
+      findings.push({
+        code: "asset_missing",
+        severity: "error",
+        path: `layers.${node.id}`,
+        message: `Node references unknown asset "${node.payload.assetId}"`,
+        repairHint: "registerAsset before referencing it, or use a valid asset id",
+      });
+      score -= 15;
     }
   }
 
-  // ── Unsupported capabilities ──
-  const capabilities = project.capabilities;
-  const experimental = capabilities?.experimental ?? [];
+  const experimental = project.capabilities?.experimental ?? [];
   if (experimental.length > 0) {
     findings.push({
       code: "experimental_capabilities",
       severity: "warning",
       path: "capabilities.experimental",
       message: `Project requires experimental capabilities: ${experimental.join(", ")}`,
-      repairHint:
-        "Remove experimental capability requirements for production use",
+      repairHint: "Remove experimental capability requirements for production use",
     });
     score -= 5;
   }
 
-  if (project.scenes.length === 0) {
+  const groups = project.layers.filter((layer) => layer.type === "group");
+  if (groups.length === 0 && project.layers.length === 0) {
     findings.push({
       code: "empty_project",
       severity: "error",
-      path: "scenes",
-      message: "Project has no scenes",
+      path: "layers",
+      message: "Project has no layers",
       repairHint: "addScene then addNode",
     });
     score -= 40;
   }
 
-  const hasCta = project.scenes.some(
-    (scene) =>
-      scene.nodes.some(
-        (node) =>
-          node.semantic?.role === "cta" || node.semantic?.key?.includes("cta"),
-      ) || scene.id.includes("cta"),
+  const hasCta = layers.some(
+    (node) =>
+      node.semantic?.role === "cta" ||
+      node.semantic?.key?.includes("cta") ||
+      node.id.includes("cta"),
   );
   if (!hasCta) {
     findings.push({
       code: "missing_cta",
       severity: "warning",
-      path: "scenes",
+      path: "layers",
       message: "No CTA scene/node detected",
       repairHint: "Add a scene with role cta and on-screen copy",
     });
     score -= 10;
   }
 
-  for (const scene of project.scenes) {
-    if (scene.nodes.length === 0) {
+  for (const scene of groups) {
+    if (scene.children.length === 0) {
       findings.push({
         code: "empty_scene",
         severity: "error",
         path: `scenes.${scene.id}`,
-        message: `Scene ${scene.id} has no nodes`,
+        message: `Scene ${scene.id} has no layers`,
         repairHint: "addNode with on-screen copy",
       });
       score -= 25;
     }
 
-    const safe = project.metadata.safeArea;
-    for (const node of scene.nodes) {
-      if (node.type !== "text") continue;
+    const texts = V1.flattenLayerTree(scene.children).filter((node) => node.type === "text");
+    for (const node of texts) {
       const fontSize = node.payload.fontSize;
-      const width = node.transform.width;
+      const width = node.frame?.width ?? 1;
       const text = getTextPayloadPlain(node.payload);
       const approx = text.length * fontSize * 0.55;
       if (approx > width * 1.05) {
         findings.push({
           code: "text_overflow",
           severity: "warning",
-          path: `scenes.${scene.id}.nodes.${node.id}`,
+          path: `scenes.${scene.id}.layers.${node.id}`,
           message: `Text may overflow width at fontSize=${fontSize}`,
           repairHint: "Reduce fontSize or shorten copy",
         });
         score -= 5;
       }
-      if (safe) {
-        const top =
-          (safe.top ?? 0) *
-          (project.metadata.aspectRatio === "9:16" ? 1920 : 1080);
-        if (node.transform.y < top) {
-          findings.push({
-            code: "safe_area",
-            severity: "info",
-            path: `scenes.${scene.id}.nodes.${node.id}.transform.y`,
-            message: "Node may sit in platform safe-area top inset",
-            repairHint: "Increase y or apply layout padding",
-          });
-          score -= 2;
-        }
-      }
     }
 
-    // Overlap among sibling text nodes (AABB)
-    const texts = scene.nodes.filter((node) => node.type === "text");
     for (let i = 0; i < texts.length; i += 1) {
       for (let j = i + 1; j < texts.length; j += 1) {
         const a = texts[i]!;
         const b = texts[j]!;
+        const aw = a.frame?.width ?? 0;
+        const ah = a.frame?.height ?? 0;
+        const bw = b.frame?.width ?? 0;
+        const bh = b.frame?.height ?? 0;
+        const ax = a.transform.translate.x;
+        const ay = a.transform.translate.y;
+        const bx = b.transform.translate.x;
+        const by = b.transform.translate.y;
         const overlap =
-          a.transform.x < b.transform.x + b.transform.width &&
-          a.transform.x + a.transform.width > b.transform.x &&
-          a.transform.y < b.transform.y + b.transform.height &&
-          a.transform.y + a.transform.height > b.transform.y;
+          ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
         if (overlap) {
           findings.push({
             code: "overlap",
             severity: "warning",
-            path: `scenes.${scene.id}.nodes`,
-            message: `Text nodes ${a.id} and ${b.id} overlap`,
+            path: `scenes.${scene.id}.layers`,
+            message: `Text layers ${a.id} and ${b.id} overlap`,
             repairHint: "setLayoutConstraint stack or adjust transforms",
           });
           score -= 4;
@@ -255,19 +160,17 @@ export function critiqueProject(project: MotionProject): CriticReport {
   return { score: Math.max(0, score), findings };
 }
 
-/** Apply one targeted repair from critic findings (R7). */
 export function applyCriticRepair(
   project: MotionProject,
   finding: CriticFinding,
 ): MotionProject {
   const next = JSON.parse(JSON.stringify(project)) as MotionProject;
   if (finding.code === "text_overflow") {
-    const match = /^scenes\.([^.]+)\.nodes\.(.+)$/.exec(finding.path);
+    const match = /^scenes\.([^.]+)\.layers\.(.+)$/.exec(finding.path);
     if (match) {
-      const scene = next.scenes.find((item) => item.id === match[1]);
-      const node = scene?.nodes.find((item) => item.id === match[2]);
+      const node = V1.flattenLayerTree(next.layers).find((item) => item.id === match[2]);
       if (node?.type === "text") {
-        const box = Math.max(1, node.transform.width);
+        const box = Math.max(1, node.frame?.width ?? 1);
         const needed =
           box / Math.max(1, getTextPayloadPlain(node.payload).length * 0.55);
         node.payload.fontSize = Math.min(
@@ -277,44 +180,47 @@ export function applyCriticRepair(
       }
     }
   }
-  if (finding.code === "missing_cta" && next.scenes.length > 0) {
-    const last = next.scenes[next.scenes.length - 1]!;
-    last.name = "cta";
-    for (const node of last.nodes) {
-      if (node.type === "text") {
-        node.semantic = { role: "cta", key: "cta.copy", tags: [] };
+  if (finding.code === "missing_cta") {
+    const groups = next.layers.filter((layer) => layer.type === "group");
+    const last = groups[groups.length - 1];
+    if (last) {
+      last.name = "cta";
+      for (const node of V1.flattenLayerTree(last.children)) {
+        if (node.type === "text") {
+          node.semantic = { role: "cta", key: "cta.copy", tags: [] };
+        }
       }
     }
   }
   if (finding.code === "empty_scene") {
     const match = /^scenes\.([^.]+)$/.exec(finding.path);
-    const scene = next.scenes.find((item) => item.id === match?.[1]);
-    if (scene && scene.nodes.length === 0) {
-      scene.nodes.push({
+    const scene = next.layers.find(
+      (layer) => layer.type === "group" && layer.id === match?.[1],
+    );
+    if (scene && scene.type === "group" && scene.children.length === 0) {
+      scene.children.push({
         id: `node.repair.${scene.id}`,
         type: "text",
-        parentId: null,
-        transform: {
+        parentLayerId: scene.id,
+        ...visualLayerAtoms({
           x: 540,
           y: 960,
+          z: 0,
           width: 900,
           height: 120,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
+          originX: 0.5,
+          originY: 0.5,
+          opacity: 100,
           visible: true,
-          flipX: false,
-          flipY: false,
-        },
+        }),
         payload: {
           content: { kind: "plain", text: "Continue" },
           fontSize: 48,
-          align: "center",
+          alignment: "center",
         },
-        style: { fill: "#ffffff" },
         semantic: { role: "hook", key: "hook.copy", tags: [] },
       });
     }

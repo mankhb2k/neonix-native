@@ -1,8 +1,8 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
 import type {
-  MotionProjectV3,
-  VisualClipV3,
-  VisualTrackV3,
+  MotionProjectV1,
+  VisualClipV1,
+  VisualTrackV1,
 } from "@motionvideo/motion-protocol";
 
 type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
@@ -12,20 +12,20 @@ type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
  * the current editor lanes/clips back into the project timeline so autosave
  * always produces a schema-valid project.
  *
- * Phase 8: V3 only — writes visualTracks directly.
+ * Phase 8: V1 only — writes visualTracks directly.
  */
 export function rebuildMainProject(
-  project: MotionProjectV3,
+  project: MotionProjectV1,
   clips: TimelineClip[],
   lanes: TimelineLane[],
-): MotionProjectV3 {
+): MotionProjectV1 {
   const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
   const orderedIds = computeOrderedSceneIds(project, clips, lanes);
   const scenes = orderedIds.map((sceneId) => byId.get(sceneId)!);
 
-  return rebuildV3Timeline(
+  return rebuildV1Timeline(
     project,
-    scenes as MotionProjectV3["scenes"],
+    scenes as MotionProjectV1["scenes"],
     orderedIds,
     clips,
     lanes,
@@ -34,7 +34,7 @@ export function rebuildMainProject(
 
 /** Main-lane scene ids first, then any other referenced scene ids. */
 function computeOrderedSceneIds(
-  project: MotionProjectV3,
+  project: MotionProjectV1,
   clips: TimelineClip[],
   lanes: TimelineLane[],
 ): string[] {
@@ -65,7 +65,7 @@ function computeOrderedSceneIds(
   ];
 }
 
-function toV3Clip(clip: SceneClip): VisualClipV3 {
+function toV1Clip(clip: SceneClip): VisualClipV1 {
   return {
     id: clip.id,
     source: { kind: "scene", sceneId: clip.sceneId },
@@ -81,13 +81,13 @@ function toV3Clip(clip: SceneClip): VisualClipV3 {
  * into a single overlay track. Falls back to sequential clips over every
  * referenced scene when the base lane is empty.
  */
-function rebuildV3Timeline(
-  project: MotionProjectV3,
-  scenes: MotionProjectV3["scenes"],
+function rebuildV1Timeline(
+  project: MotionProjectV1,
+  scenes: MotionProjectV1["scenes"],
   orderedIds: string[],
   clips: TimelineClip[],
   lanes: TimelineLane[],
-): MotionProjectV3 {
+): MotionProjectV1 {
   const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
   const mainId = lanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
@@ -117,7 +117,7 @@ function rebuildV3Timeline(
     ...project.scenes.map((scene) => scene.id),
   ]);
 
-  const tracks: VisualTrackV3[] = [];
+  const tracks: VisualTrackV1[] = [];
 
   if (mainClips.length > 0) {
     const mainTrack = existingTracks.find((track) => track.role === "main") ?? {
@@ -125,9 +125,9 @@ function rebuildV3Timeline(
       role: "main" as const,
       order: 0,
       muted: false,
-      clips: [] as VisualClipV3[],
+      clips: [] as VisualClipV1[],
     };
-    tracks.push({ ...mainTrack, clips: mainClips.map(toV3Clip) });
+    tracks.push({ ...mainTrack, clips: mainClips.map(toV1Clip) });
     if (overlayClips.length > 0) {
       const overlayTrack = existingTracks.find(
         (track) => track.role === "overlay",
@@ -136,9 +136,9 @@ function rebuildV3Timeline(
         role: "overlay" as const,
         order: existingTracks.length,
         muted: false,
-        clips: [] as VisualClipV3[],
+        clips: [] as VisualClipV1[],
       };
-      tracks.push({ ...overlayTrack, clips: overlayClips.map(toV3Clip) });
+      tracks.push({ ...overlayTrack, clips: overlayClips.map(toV1Clip) });
     }
   } else {
     // Base lane empty: keep every referenced scene in the main track with
@@ -148,8 +148,8 @@ function rebuildV3Timeline(
       .filter((scene): scene is NonNullable<typeof scene> => Boolean(scene));
     if (fallback.length > 0) {
       let cursor = 0;
-      const fallbackClips: VisualClipV3[] = fallback.map((scene) => {
-        const clip: VisualClipV3 = {
+      const fallbackClips: VisualClipV1[] = fallback.map((scene) => {
+        const clip: VisualClipV1 = {
           id: `clip-${scene.id}`,
           source: { kind: "scene", sceneId: scene.id },
           start: cursor,
@@ -167,7 +167,7 @@ function rebuildV3Timeline(
         role: "main" as const,
         order: 0,
         muted: false,
-        clips: [] as VisualClipV3[],
+        clips: [] as VisualClipV1[],
       };
       tracks.push({ ...mainTrack, clips: fallbackClips });
     }

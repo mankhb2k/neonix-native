@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Requires `pnpm build:main` so dist/main/journal-validate.worker.js exists.
  * Asserts packaged-bound worker path can validate a >1MB document via worker.
@@ -38,23 +39,9 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const node = {
     id: "node_artifact",
     type: "text",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
-    transform: {
-      x: 1,
-      y: 1,
-      width: 10,
-      height: 10,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0.5,
-      anchorY: 0.5,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
       content: { kind: "plain", text: "" },
       fontSize: 12,
@@ -63,7 +50,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
     },
   };
   envelope.project.scenes = [
-    { id, name: "Artifact", duration: 1, nodes: [node], clips: [] },
+    { id, name: "Artifact", duration: 1, layers: [node], clips: [] },
   ];
   envelope.project.timeline.visualTracks = [
     {

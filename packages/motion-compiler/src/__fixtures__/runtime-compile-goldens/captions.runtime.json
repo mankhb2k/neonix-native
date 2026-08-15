@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
-  "runtimeVersion": 1,
+  "formatVersion": 1,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "captions",
     "name": "Captions",
@@ -11,7 +11,7 @@
     "brand": {
       "name": "Captions"
     },
-    "description": "Scene with a caption track"
+    "description": "Text layers used as on-screen captions"
   },
   "assets": [],
   "composition": {
@@ -22,121 +22,225 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "4825325e952c2688022ec5ea4fe8a8aa",
+  "runtimeHash": "51e40c00be58415c7bd93eed33527f30",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
-    "scenes": {
-      "intro": "scenes:intro"
+    "layers": {
+      "title": "layers:title",
+      "caption-vi": "layers:caption-vi",
+      "token-1": "layers:token-1",
+      "token-2": "layers:token-2"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "main-track",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-intro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "intro"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": [
-      {
-        "id": "caption-vi",
-        "name": "Vietnamese captions",
-        "locale": "vi-VN",
-        "enabled": true,
-        "tokens": [
-          {
-            "id": "token-1",
-            "text": "Xin chào",
-            "start": 0,
-            "end": 1.2
-          },
-          {
-            "id": "token-2",
-            "text": "MotiClip",
-            "start": 1.3,
-            "end": 2.5
-          }
-        ],
-        "segmentation": {
-          "maxLines": 2
-        },
-        "style": {
-          "fontSize": 48,
-          "fill": "#ffffff",
-          "safeArea": "tiktok",
-          "position": "bottom"
-        },
-        "animation": {
-          "presetId": "word-pop"
-        }
-      }
-    ]
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "intro",
-      "duration": 5,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "intro"
-        ]
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "frame": {
+        "width": 800,
+        "height": 120
       },
-      "nodes": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 540,
-            "y": 960,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Captioned Video"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": []
+      "transform": {
+        "translate": {
+          "x": 540,
+          "y": 960
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Captioned Video"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    },
+    {
+      "id": "caption-vi",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 2.5
+      },
+      "payload": {}
+    },
+    {
+      "id": "token-1",
+      "type": "text",
+      "parentLayerId": "caption-vi",
+      "zIndex": 0,
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 1.2
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Xin chào"
+        },
+        "fontSize": 48,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#ffffff"
+      }
+    },
+    {
+      "id": "token-2",
+      "type": "text",
+      "parentLayerId": "caption-vi",
+      "zIndex": 1,
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 1.3,
+        "duration": 1.2
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "MotiClip"
+        },
+        "fontSize": 48,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#ffffff"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
 }

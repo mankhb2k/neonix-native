@@ -1,62 +1,60 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   MotiClip — token màu + font/text + editor layout (chỉ giữ token đang dùng)
-   Radius, shadow, spacing chung → Tailwind sẵn có.
+   MotiClip tokens — chỉ biến app đang dùng.
+   Palette giấy/neutral theo hệ --color-* (background #f7f7f4, surface, border).
+   Tên MotiClip (--bg-site, --accent, …) giữ nguyên để không đụng component.
+   Brand MotiClip = teal, không lấy primary cam của dashboard mẫu.
    ========================================================================== */
 
 :root {
-  /* --- Backgrounds --- */
-  --bg-app: #f4f4f5;
-  --bg-panel: #faf8f6;
-  --bg-surface: #f5f3f1;
+  /* Neutral */
+  --bg-site: #f7f7f4;
+  --bg-editor: #f5f4f0;
+  --bg-surface: #f5f5f5;
   --bg-elevated: #ffffff;
-  --bg-hover: #e8eaef;
-
-  /* --- Foreground --- */
-  --fg-primary: #0f1419;
-  --fg-secondary: #3d4654;
-  --fg-muted: #6b7285;
-  --fg-disabled: #9aa1b0;
-
-  /* --- Borders --- */
-  --border-subtle: rgba(15, 20, 25, 0.06);
-  --border-strong: rgba(15, 20, 25, 0.12);
+  --bg-hover: #ecece8;
+  --fg-primary: #171717;
+  --fg-secondary: #555555;
+  --fg-muted: #aaaaaa;
+  --fg-disabled: #9e9e9e;
+  --border-subtle: #dfdfdf;
+  --border-strong: #cecece;
   --border-focus: #0d9488;
 
-  /* --- Brand accent --- */
+  /* Brand */
   --accent: #0d9488;
   --accent-hover: #0f766e;
   --accent-soft: rgba(13, 148, 136, 0.12);
   --accent-text: #0f766e;
-  --accent-on: #ffffff;
-
-  /* --- Semantic --- */
+  --accent-on: #fafafa;
   --danger: #e11d48;
 
-  /* --- Editor surfaces --- */
-  --stage-bg: var(--bg-panel);
-  --preview-bg: #ffffff;
+  /* Surfaces */
+  --stage-bg: var(--bg-editor);
+  --preview-bg: var(--bg-elevated);
 
-  /* --- Fonts --- */
-  --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
-  /* Timecode / ruler — equal-width digits (NLE standard) */
-  --font-mono: var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas,
-    monospace;
+  /* Code (docs JsonBlock — luôn tối) */
+  --code-block-bg: #1d1818;
+  --code-block-fg: #f4f4f5;
 
-  /* --- Type scale (đang dùng: ui / caption / body) --- */
+  /* Fonts — --font-sans / --font-display do next/font gắn trên <html> */
+  --font-sans-fallback: "Be Vietnam Pro", "Segoe UI", sans-serif;
+  --font-mono:
+    var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Type — caption / ui / body đang dùng */
   --fs-caption: 11px;
   --fs-ui: 12px;
   --fs-body: 13px;
 
-  /* --- Editor layout --- */
+  /* Layout editor */
   --editor-chrome-h: 56px;
   --editor-timeline-h: 240px;
   --editor-left-w: 380px;
   --editor-right-w: 480px;
 
-  /* --- Timeline (Canva-like pastels + layout) --- */
+  /* Timeline */
   --timeline-track-lane: #f3f2f5;
   --timeline-clip-frame: #cfcad9;
   --timeline-clip-frame-hover: #bbb5c9;
@@ -68,15 +66,42 @@
   --timeline-clip-overlay-hover: #b09fd9;
   --timeline-clip-overlay-fg: #3b2f5c;
   --timeline-playhead: var(--fg-primary);
-  /* Ruler ticks + labels — đậm hơn border (đọc được trên bg-panel) */
-  --timeline-ruler-tick: rgba(15, 20, 25, 0.38);
-  --timeline-ruler-label: rgba(15, 20, 25, 0.58);
+  --timeline-ruler-tick: rgba(23, 23, 23, 0.38);
+  --timeline-ruler-label: rgba(23, 23, 23, 0.58);
   --timeline-transport-h: 36px;
   --timeline-ruler-h: 28px;
   --timeline-label-w: 96px;
+
+  color-scheme: light;
 }
 
-/* Bridge → utilities text-caption / text-ui / text-body */
+[data-theme="dark"] {
+  --bg-site: #141414;
+  --bg-editor: #171717;
+  --bg-surface: #202020;
+  --bg-elevated: #262626;
+  --bg-hover: #2a2a2a;
+  --fg-primary: #dbdbdb;
+  --fg-secondary: #9e9e9e;
+  --fg-muted: #777777;
+  --fg-disabled: #737373;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-strong: #535353;
+  --border-focus: #14b8a6;
+  --accent: #14b8a6;
+  --accent-hover: #2dd4bf;
+  --accent-soft: rgba(20, 184, 166, 0.14);
+  --accent-text: #5eead4;
+  --accent-on: #fafafa;
+  --danger: #f43f5e;
+  --stage-bg: var(--bg-editor);
+  --preview-bg: #0a0a0a;
+  --timeline-track-lane: #1a1a1a;
+  --timeline-ruler-tick: rgba(219, 219, 219, 0.38);
+  --timeline-ruler-label: rgba(219, 219, 219, 0.58);
+  color-scheme: dark;
+}
+
 @theme inline {
   --text-caption: var(--fs-caption);
   --text-caption--line-height: 1.25;
@@ -84,8 +109,8 @@
   --text-ui--line-height: 1.4;
   --text-body: var(--fs-body);
   --text-body--line-height: 1.4;
-  --font-mono: var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas,
-    monospace;
+  --font-mono:
+    var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 * {
@@ -97,12 +122,13 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--bg-app);
+  background: var(--bg-site);
   color: var(--fg-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), var(--font-sans-fallback);
   font-size: var(--fs-ui);
   font-weight: 400;
   line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
 }
 
 body:has([data-surface="editor"]) {
@@ -119,10 +145,10 @@ body:has([data-surface="editor"]) {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 20, 25, 0.14);
+  background: rgba(23, 23, 23, 0.14);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 20, 25, 0.24);
+  background: rgba(23, 23, 23, 0.24);
 }

@@ -11,7 +11,7 @@ export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";
   code: string;
   message: string;
-  nodeId?: string;
+  layerId?: string;
   key?: string;
 };
 
@@ -21,7 +21,7 @@ export type PaintCommand =
       width: number;
       height: number;
       background?: string;
-      sceneId: string;
+      graphId: string;
       frame: number;
       time: number;
       /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */
@@ -31,18 +31,19 @@ export type PaintCommand =
       };
     }
   | { op: "endFrame" }
-  | { op: "beginGroup"; key: string; nodeId: string }
+  | { op: "beginGroup"; key: string; layerId: string }
   | { op: "endGroup"; key: string }
-  /** Compositing scope (mask/isolation/offscreen) — draw nodes stay world-space. */
+  /** Compositing scope (mask/isolation/offscreen) — draw layers stay world-space. */
   | {
       op: "beginLayer";
       key: string;
-      nodeId?: string;
+      layerId?: string;
       isolation?: boolean;
       offscreen?: boolean;
       mask?: {
         mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
         sourceKey: string;
+        sourceVisibility?: "mask-only" | "content-and-mask";
       };
     }
   | { op: "endLayer"; key: string }
@@ -67,7 +68,7 @@ export type PaintCommand =
   | {
       op: "drawText";
       key: string;
-      nodeId: string;
+      layerId: string;
       text: string;
       fontSize: number;
       fontWeight?: number;
@@ -97,14 +98,14 @@ export type PaintCommand =
           paddingY?: number;
           radius?: number;
         };
-        sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
+        sourceRef?: { kind: "text-run"; layerId: string; runId: string };
       }>;
       effects?: RuntimeEffect[];
     }
   | {
       op: "drawShape";
       key: string;
-      nodeId: string;
+      layerId: string;
       shape: "rectangle" | "ellipse" | "polygon";
       fill: string;
       fillPaint?: PaintFill;
@@ -116,7 +117,7 @@ export type PaintCommand =
   | {
       op: "drawSolid";
       key: string;
-      nodeId: string;
+      layerId: string;
       fill: string;
       width: number;
       height: number;
@@ -125,7 +126,7 @@ export type PaintCommand =
   | {
       op: "drawImage";
       key: string;
-      nodeId: string;
+      layerId: string;
       assetId: string;
       uri?: string;
       width: number;
@@ -135,7 +136,7 @@ export type PaintCommand =
   | {
       op: "drawPath";
       key: string;
-      nodeId: string;
+      layerId: string;
       contours: PathContour[];
       fillRule: "nonzero" | "evenodd";
       fill?: string;
@@ -149,7 +150,7 @@ export type PaintCommand =
   | {
       op: "drawVideo";
       key: string;
-      nodeId: string;
+      layerId: string;
       assetId: string;
       uri?: string;
       width: number;
@@ -160,7 +161,7 @@ export type PaintCommand =
   | {
       op: "unsupported";
       key: string;
-      nodeId: string;
+      layerId: string;
       nodeType: string;
       message: string;
     };

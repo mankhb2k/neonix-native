@@ -78,7 +78,7 @@ mockCanvas();
 
 function makeSnapshot(items: RenderSnapshot["items"]): RenderSnapshot {
   return {
-    sceneId: "test",
+    graphId: "test",
     frame: 0,
     time: 0,
     width: 1920,
@@ -96,8 +96,8 @@ function makeItem(
 ): RenderSnapshot["items"][0] {
   return {
     key,
-    sceneId: "test",
-    nodeId: key,
+    graphId: "test",
+    layerId: key,
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
     worldBounds: { x: 0, y: 0, width: 100, height: 100 },
@@ -442,7 +442,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with empty store does not throw", () => {
     const store: OverlayStore = {
-      selectedNodeIds: [],
+      selectedLayerIds: [],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [],
@@ -458,7 +458,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with selection draws boxes", () => {
     const store: OverlayStore = {
-      selectedNodeIds: ["n1"],
+      selectedLayerIds: ["n1"],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [],
@@ -474,7 +474,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with hover draws hover rect", () => {
     const store: OverlayStore = {
-      selectedNodeIds: [],
+      selectedLayerIds: [],
       hoveredNodeId: "n2",
       draggedNodeId: null,
       guides: [],
@@ -490,7 +490,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with drag draws drag preview", () => {
     const store: OverlayStore = {
-      selectedNodeIds: [],
+      selectedLayerIds: [],
       hoveredNodeId: null,
       draggedNodeId: "n3",
       guides: [],
@@ -506,7 +506,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with guides draws guide lines", () => {
     const store: OverlayStore = {
-      selectedNodeIds: [],
+      selectedLayerIds: [],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [
@@ -525,7 +525,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("paint with rubber-band selection box", () => {
     const store: OverlayStore = {
-      selectedNodeIds: [],
+      selectedLayerIds: [],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [],
@@ -546,7 +546,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("handles viewport zoom/pan transforms", () => {
     const store: OverlayStore = {
-      selectedNodeIds: ["n1"],
+      selectedLayerIds: ["n1"],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [],
@@ -559,7 +559,7 @@ describe("Task 8.4 — imperative overlay", () => {
 
   it("skips items not in bounds map", () => {
     const store: OverlayStore = {
-      selectedNodeIds: ["n1", "n_missing"],
+      selectedLayerIds: ["n1", "n_missing"],
       hoveredNodeId: null,
       draggedNodeId: null,
       guides: [],

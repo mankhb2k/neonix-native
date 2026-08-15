@@ -18,7 +18,7 @@ const buffer: PaintCommandBuffer = {
       width: 100,
       height: 80,
       background: "#fff",
-      sceneId: "s",
+      graphId: "s",
       frame: 0,
       time: 0,
     },
@@ -33,7 +33,7 @@ const buffer: PaintCommandBuffer = {
     {
       op: "drawShape",
       key: "s:shape",
-      nodeId: "shape",
+      layerId: "shape",
       shape: "rectangle",
       fill: "#00f",
       width: 40,
@@ -50,7 +50,7 @@ const buffer: PaintCommandBuffer = {
     {
       op: "drawPath",
       key: "s:path",
-      nodeId: "path",
+      layerId: "path",
       contours: [
         {
           id: "c0",
@@ -103,7 +103,7 @@ describe("buildRemotionPaintTree", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -118,7 +118,7 @@ describe("buildRemotionPaintTree", () => {
         {
           op: "unsupported",
           key: "s:x",
-          nodeId: "x",
+          layerId: "x",
           nodeType: "mesh",
           message: "nope",
         },

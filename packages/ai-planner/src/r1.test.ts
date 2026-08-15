@@ -55,7 +55,7 @@ describe("ai-planner R1 commands", () => {
         {
           type: "addNode",
           sceneId: "scene.a",
-          nodeId: "text.a",
+          layerId: "text.a",
           nodeType: "text",
           text: "Hi",
         },
@@ -63,19 +63,19 @@ describe("ai-planner R1 commands", () => {
           type: "addTrack",
           sceneId: "scene.a",
           clipId: "clip.a",
-          targetId: "text.a",
-          property: "transform.opacity",
+          layerId: "text.a",
+          property: "appearance.opacity",
           duration: 1,
           keys: [
             { t: 0, v: 0 },
-            { t: 1, v: 1, easing: "easeOut" },
+            { t: 1, v: 100, easing: "easeOut" },
           ],
         },
-        { type: "removeNode", sceneId: "scene.a", nodeId: "text.a" },
+        { type: "removeNode", sceneId: "scene.a", layerId: "text.a" },
         {
           type: "addNode",
           sceneId: "scene.a",
-          nodeId: "text.b",
+          layerId: "text.b",
           nodeType: "text",
           text: "Hello",
         },
@@ -83,8 +83,10 @@ describe("ai-planner R1 commands", () => {
       ],
     });
     expect(result.ok).toBe(true);
-    expect(result.project?.scenes[0]?.nodes).toHaveLength(1);
-    expect(result.project?.scenes[0]?.nodes[0]?.id).toBe("text.b");
+    expect(result.project?.layers.some((layer) => layer.id === "scene.a")).toBe(true);
+    const scene = result.project?.layers.find((layer) => layer.id === "scene.a");
+    expect(scene && scene.type === "group" ? scene.children : []).toHaveLength(1);
+    expect(scene && scene.type === "group" ? scene.children[0]?.id : undefined).toBe("text.b");
     expect(result.compiled?.format).toBe("motion-runtime");
   });
 
@@ -127,22 +129,22 @@ describe("ai-planner R1 commands", () => {
         {
           type: "addNode",
           sceneId: "scene.1",
-          nodeId: "stack",
+          layerId: "stack",
           nodeType: "group",
           transform: { x: 0, y: 0, width: 400, height: 400, anchorX: 0, anchorY: 0 },
         },
         {
           type: "addNode",
           sceneId: "scene.1",
-          nodeId: "child",
+          layerId: "child",
           nodeType: "shape",
-          parentId: "stack",
+          parentLayerId: "stack",
           transform: { x: 0, y: 0, width: 100, height: 100, anchorX: 0, anchorY: 0 },
         },
         {
           type: "setLayoutConstraint",
           sceneId: "scene.1",
-          nodeId: "stack",
+          layerId: "stack",
           modifierId: "lay",
           constraint: { kind: "stack", direction: "vertical", gap: 8 },
         },
@@ -157,16 +159,16 @@ describe("ai-planner R1 commands", () => {
         {
           type: "addMask",
           sceneId: "scene.1",
-          nodeId: "child",
-          sourceNodeId: "stack",
+          layerId: "child",
+          sourceLayerId: "stack",
           mode: "luma",
         },
         {
           type: "addTrack",
           sceneId: "scene.1",
           clipId: "clip.x",
-          targetId: "child",
-          property: "transform.x",
+          layerId: "child",
+          property: "transform.translate.x",
           duration: 1,
           keys: [
             { t: 0, v: 0 },
@@ -177,11 +179,21 @@ describe("ai-planner R1 commands", () => {
       ],
     });
     expect(result.ok).toBe(true);
-    expect(result.project?.scenes[0]?.activeCameraId).toBe("cam");
-    expect(result.project?.scenes[0]?.space).toBe("layered-2.5d");
-    const child = result.project?.scenes[0]?.nodes.find((node) => node.id === "child");
-    expect(child?.mask?.mode).toBe("luma");
-    expect(result.compiled?.scenes[0]?.tracks.some((track) => track.property === "transform.x")).toBe(true);
+    expect(result.project?.extensions["com.moticlip.ai"]).toMatchObject({
+      activeCameraLayerId: "cam",
+      space: "layered-2.5d",
+    });
+    const scene = result.project?.layers.find((layer) => layer.id === "scene.1");
+    const child =
+      scene && scene.type === "group"
+        ? scene.children
+            .flatMap((node) =>
+              node.type === "group" ? [node, ...node.children] : [node],
+            )
+            .find((node) => node.id === "child")
+        : undefined;
+    expect(child && "compositing" in child ? child.compositing?.mask?.mode : undefined).toBe("luma");
+    expect(result.compiled?.tracks.some((track) => track.property === "transform.translate.x")).toBe(true);
   });
 });
 
@@ -204,7 +216,7 @@ describe("ai-planner R1 from-scratch", () => {
     }) as PlanResult;
 
     expect(result.project.format).toBe("motion-project");
-    expect(result.project.scenes.length).toBeGreaterThanOrEqual(1);
+    expect(result.project.layers.length).toBeGreaterThanOrEqual(1);
     expect(result.generation.model).toContain("from-scratch");
     expect(result.generation.planId).toBe("plan_unit-from-scratch");
     expect(result.receipts.some((receipt) => receipt.diagnostics.some((d) => d.code === "compiled"))).toBe(true);

@@ -658,12 +658,12 @@ describe("drop-host CapCut policy", () => {
         sceneId: "sc1",
         containerStartTime: 2,
         containerDuration: 10,
-        nodes: [
+        layers: [
           {
             id: "group.char",
             laneId: "layer-node:group.char",
             type: "group",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 3,
             sceneLocalStart: 5,
             sceneLocalDuration: 4,
@@ -672,7 +672,7 @@ describe("drop-host CapCut policy", () => {
             id: "child.a",
             laneId: "layer-node:child.a",
             type: "text",
-            parentId: "group.char",
+            parentLayerId: "group.char",
             zIndex: 5,
             sceneLocalStart: 6,
             sceneLocalDuration: 2,
@@ -681,7 +681,7 @@ describe("drop-host CapCut policy", () => {
             id: "title",
             laneId: "layer-node:title",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 1,
             sceneLocalStart: 0,
             sceneLocalDuration: 10,

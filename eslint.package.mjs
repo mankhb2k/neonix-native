@@ -25,7 +25,7 @@ export default tseslint.config(
   eslintJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["src/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"],
     rules: {
       "array-callback-return": "error",
       eqeqeq: ["error", "always", { null: "ignore" }],
@@ -58,7 +58,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/**/*.{test,spec}.{ts,tsx}", "src/**/__tests__/**/*.{ts,tsx}"],
+    files: [
+      "src/**/*.{test,spec}.{ts,tsx}",
+      "src/**/__tests__/**/*.{ts,tsx}",
+      "test/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-console": "off",
       "@typescript-eslint/no-explicit-any": "off",

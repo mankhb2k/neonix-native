@@ -22,6 +22,7 @@ import {
   type TimelineDocument,
 } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";
@@ -84,22 +85,8 @@ function textNode(id: string, text: string) {
   return {
     id,
     type: "text" as const,
-    parentId: null,
-    transform: {
-      x: 40,
-      y: 40,
-      width: 200,
-      height: 40,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0,
-      anchorY: 0,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    parentLayerId: null,
+    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
     payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
     style: { fill: "#111111" },
   };
@@ -198,7 +185,7 @@ export function buildPhase0MediumFixture(): StoredEnvelope {
           role: "bgm",
           assetId: "asset.audio.a",
           start: 0,
-          volume: 1,
+          volume: 100,
         },
         {
           id: "audio.b",
@@ -253,7 +240,7 @@ export function buildPhase0LargeFixture(
   const scenes: Array<{
     id: string;
     duration: number;
-    nodes: ReturnType<typeof textNode>[];
+    layers: ReturnType<typeof textNode>[];
     clips: unknown[];
   }> = [];
   const assets: Array<Record<string, unknown>> = [];
@@ -264,7 +251,7 @@ export function buildPhase0LargeFixture(
     scenes.push({
       id: sceneId,
       duration: 1,
-      nodes: [textNode(`${sceneId}.title`, `Main ${i}`)],
+      layers: [textNode(`${sceneId}.title`, `Main ${i}`)],
       clips: [],
     });
     clips.push({
@@ -283,7 +270,7 @@ export function buildPhase0LargeFixture(
     scenes.push({
       id: sceneId,
       duration: 1.5,
-      nodes: [textNode(`${sceneId}.title`, `Overlay ${i}`)],
+      layers: [textNode(`${sceneId}.title`, `Overlay ${i}`)],
       clips: [],
     });
     clips.push({
@@ -316,7 +303,7 @@ export function buildPhase0LargeFixture(
       role: "sfx",
       assetId,
       start: i * 1.5,
-      volume: 1,
+      volume: 100,
     });
     clips.push({
       kind: "audio",
@@ -332,7 +319,7 @@ export function buildPhase0LargeFixture(
 
   const project = parseProjectInput({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "vite-phase0.large",
       name: `Phase0 Large ${clipCount}`,
@@ -380,7 +367,7 @@ function applyPure(
 export function buildPhase0Goldens(): Record<string, DocSnapshot> {
   return withDeterministicIds(() => {
     const { project, clips, lanes } = fixtureMainOnly();
-    // Goldens document command output on the current (v3) project shape.
+    // Goldens document command output on the current (v1) project shape.
     const baseProject = parseProjectInput(project);
     const baseDoc: TimelineDocument = { project: baseProject, clips, lanes };
     const overlay = fixtureBasePlusOverlay();

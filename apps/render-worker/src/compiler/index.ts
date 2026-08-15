@@ -1,21 +1,23 @@
 import {
-  compileMotionProjectV3,
+  compileMotionProjectV1,
   COMPILED_PRESET_IDS,
   isCompiledPreset,
-  type CompileV3Options,
+  type CompileV1Options,
   type CompiledPresetId,
 } from "@motionvideo/motion-compiler";
 import type {
-  MotionProjectV3,
-  MotionRuntimeProject,
+  MotionProjectV1,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /**
- * Phase 10: V3-only compiler bridge. All projects are V3 format.
- * compileMotionProjectV3 is used directly — no v2 routing.
+ * Phase 10: V1-only compiler bridge. All projects are V1 format.
+ * compileMotionProjectV1 is used directly — no v2 routing.
  */
-export function compileProject(project: MotionProjectV3): MotionRuntimeProject {
-  const result = compileMotionProjectV3(project);
+export function compileProject(project: MotionProjectV1): MotionRuntimeProject {
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     const msgs = result.diagnostics
       .map((d) => `${d.code}: ${d.message}`)
@@ -28,7 +30,7 @@ export function compileProject(project: MotionProjectV3): MotionRuntimeProject {
 export {
   COMPILED_PRESET_IDS,
   isCompiledPreset,
-  type CompileV3Options,
+  type CompileV1Options,
   type CompiledPresetId,
   type MotionRuntimeProject,
 };

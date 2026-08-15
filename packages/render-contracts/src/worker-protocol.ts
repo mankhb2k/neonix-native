@@ -21,7 +21,7 @@ export type WorkerSequenceId = number;
 export type WorkerTimings = {
   /** Wall-clock ms for the entire produce cycle. */
   totalMs: number;
-  /** Time spent in evaluateCompositionFrameV3. */
+  /** Time spent in evaluateCompositionFrameV1. */
   evaluateMs: number;
   /** Time spent building paint commands. */
   paintBuildMs: number;

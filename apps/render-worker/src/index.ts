@@ -19,7 +19,7 @@ export async function processJob(rawProject: unknown): Promise<{
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
     const detail = presetCheck.unknown
-      .map((u) => `${u.sceneId}/${u.nodeId}:${u.preset}`)
+      .map((u) => `${u.layerId}:${u.preset}`)
       .join(", ");
     return {
       status: "failed",

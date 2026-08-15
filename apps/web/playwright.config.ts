@@ -28,7 +28,7 @@ export default defineConfig({
     ? undefined
     : {
         // Use node entrypoint so Windows spawn does not hang on .cmd shims.
-        command: `node ./node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port ${port}`,
+        command: `node ./node_modules/next/dist/bin/next dev --turbopack --hostname 127.0.0.1 --port ${port}`,
         url: `${baseURL}/app`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

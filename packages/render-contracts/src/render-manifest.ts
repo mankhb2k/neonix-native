@@ -67,12 +67,12 @@ export const RenderManifestSchema = z.object({
     }),
   ),
   /**
-   * Audio manifest — summary of audio clips in the project.
+   * Audio manifest — summary of audio layers in the project.
    * @since Phase 10
    */
   audio: z
     .object({
-      clipCount: z.number().int().nonnegative(),
+      audioLayerCount: z.number().int().nonnegative(),
       totalDurationSeconds: z.number().nonnegative(),
       /** Sample rate used for audio rendering (Hz). */
       sampleRate: z.number().int().positive().default(48000),

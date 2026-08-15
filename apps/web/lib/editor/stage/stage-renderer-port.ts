@@ -16,16 +16,18 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
+import { compileProjectV1 } from "@motionvideo/motion-runtime/testing";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
 } from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
+} from "@motionvideo/motion-protocol";
+import type {
   MotionScene,
   MotionRuntimeProject,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 import {
   matrixToCss,
   previewParitySnapshot,
@@ -43,12 +45,16 @@ export type StageRendererPort = StageRendererPortShape & {
     clips: TimelineClip[];
     lanes: TimelineLane[];
   }): void;
+  /** Dual-path blit: switch Pixi live vs worker RAM-preview. */
+  setPlaying?(playing: boolean): void;
+  /** Dual-path blit: drive worker present/top-up from the host clock. */
+  syncPlayhead?(time: number): void;
 };
 
-export type StageRendererBackend = "dom" | "pixi";
+export type StageRendererBackend = "dom" | "pixi" | "blit";
 
-function nodeDomKey(clipId: string, nodeId: string): string {
-  return `${clipId}\0${nodeId}`;
+function nodeDomKey(clipId: string, layerId: string): string {
+  return `${clipId}\0${layerId}`;
 }
 
 function isRenderableNode(node: PreviewParityNode): boolean {
@@ -57,15 +63,15 @@ function isRenderableNode(node: PreviewParityNode): boolean {
   );
 }
 
-type SceneNode = MotionScene["nodes"][number];
+type SceneNode = MotionScene["layers"][number];
 type SceneNodeMap = Map<string, SceneNode>;
 
 function nodeLabel(
   node: PreviewParityNode,
-  sceneNodes: SceneNodeMap | null,
+  sceneLayers: SceneNodeMap | null,
 ): string {
   if (node.type === "text") {
-    const authored = sceneNodes?.get(node.id);
+    const authored = sceneLayers?.get(node.id);
     return nodeText(authored) || node.id;
   }
   if (node.type === "shape" || node.type === "path") return node.type;
@@ -101,7 +107,7 @@ function applyStaticNodeChrome(
 function syncNodeElement(
   el: HTMLDivElement,
   node: PreviewParityNode,
-  sceneNodes: SceneNodeMap | null,
+  sceneLayers: SceneNodeMap | null,
   clipId: string,
 ): void {
   const width = Math.max(8, node.transform.width || node.worldBounds.width);
@@ -113,7 +119,7 @@ function syncNodeElement(
   el.style.visibility =
     !node.visible || node.worldOpacity <= 0 ? "hidden" : "visible";
   el.dataset.clipId = clipId;
-  const label = nodeLabel(node, sceneNodes);
+  const label = nodeLabel(node, sceneLayers);
   if (el.textContent !== label) el.textContent = label;
 }
 
@@ -198,12 +204,12 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
 
       const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
       if (!scene) continue;
-      const sceneNodes = sceneNodeMaps.get(scene.id) ?? null;
+      const sceneLayers = sceneNodeMaps.get(scene.id) ?? null;
 
       const frame = quantizeTimeToFrame(layer.localTime, fps);
       const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
 
-      for (const node of snapshot.nodes) {
+      for (const node of snapshot.layers) {
         if (!isRenderableNode(node)) continue;
         const key = nodeDomKey(layer.clipId, node.id);
         liveNodeKeys.add(key);
@@ -216,7 +222,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         } else if (el.parentElement !== layerEl) {
           layerEl.appendChild(el);
         }
-        syncNodeElement(el, node, sceneNodes, layer.clipId);
+        syncNodeElement(el, node, sceneLayers, layer.clipId);
       }
     }
 
@@ -238,7 +244,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileProjectV3(project);
+        compiled = compileProjectV1(project);
       } catch {
         compiled = null;
       }
@@ -246,7 +252,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       sceneNodeMaps = new Map(
         project.scenes.map((s) => [
           s.id,
-          new Map(s.nodes.map((n) => [n.id, n])),
+          new Map(s.layers.map((n) => [n.id, n])),
         ]),
       );
       visualIndex = buildVisualLaneIndex(clips, lanes);

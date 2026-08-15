@@ -142,11 +142,11 @@ export function executeTimelineCommand(
       }
       const scene = project.scenes[sceneIdx]!;
       const composition = stageSizeForProject(project);
-      const nodeId = ctx.createId("node");
-      const node = createNodeFromFrameDraft(command.draft, nodeId, composition);
-      const parentId = command.parentId ?? null;
-      if (parentId != null) {
-        const parent = scene.nodes.find((n) => n.id === parentId);
+      const layerId = ctx.createId("node");
+      const node = createNodeFromFrameDraft(command.draft, layerId, composition);
+      const parentLayerId = command.parentLayerId ?? null;
+      if (parentLayerId != null) {
+        const parent = scene.layers.find((n) => n.id === parentLayerId);
         if (!parent || parent.type !== "group") {
           return {
             status: "rejected",
@@ -155,10 +155,10 @@ export function executeTimelineCommand(
           };
         }
       }
-      const siblingNodes = scene.nodes.filter(
-        (n) => (n.parentId ?? null) === parentId,
+      const siblingLayers = scene.layers.filter(
+        (n) => (n.parentLayerId ?? null) === parentLayerId,
       );
-      const maxZ = siblingNodes.reduce(
+      const maxZ = siblingLayers.reduce(
         (m, n) => Math.max(m, n.zIndex ?? 0),
         -1,
       );
@@ -167,30 +167,30 @@ export function executeTimelineCommand(
           ? Math.floor(command.zIndex)
           : maxZ + 1;
       const sceneDuration = Math.max(0.001, scene.duration);
-      const nodeById = new Map(scene.nodes.map((n) => [n.id, n]));
+      const layerById = new Map(scene.layers.map((n) => [n.id, n]));
       const timingCache = new Map<string, { start: number; end: number }>();
       const effectiveTimingFor = (
-        existingNode: (typeof scene.nodes)[number],
+        existingLayer: (typeof scene.layers)[number],
       ): { start: number; end: number } => {
-        const cached = timingCache.get(existingNode.id);
+        const cached = timingCache.get(existingLayer.id);
         if (cached) return cached;
-        const parent = existingNode.parentId
-          ? nodeById.get(existingNode.parentId)
+        const parent = existingLayer.parentLayerId
+          ? layerById.get(existingLayer.parentLayerId)
           : undefined;
         const parentTiming = parent
           ? effectiveTimingFor(parent)
           : { start: 0, end: sceneDuration };
-        const start = parentTiming.start + Math.max(0, existingNode.timing?.start ?? 0);
+        const start = parentTiming.start + Math.max(0, existingLayer.timing?.start ?? 0);
         const duration =
-          existingNode.timing?.duration ?? parentTiming.end - parentTiming.start;
+          existingLayer.timing?.duration ?? parentTiming.end - parentTiming.start;
         const end = Math.min(parentTiming.end, start + Math.max(0, duration));
         const result = { start, end };
-        timingCache.set(existingNode.id, result);
+        timingCache.set(existingLayer.id, result);
         return result;
       };
       const parentWindow =
-        parentId != null
-          ? effectiveTimingFor(nodeById.get(parentId)!)
+        parentLayerId != null
+          ? effectiveTimingFor(layerById.get(parentLayerId)!)
           : { start: 0, end: sceneDuration };
       const parentDuration = Math.max(0, parentWindow.end - parentWindow.start);
       if (parentDuration < 0.001) {
@@ -219,23 +219,23 @@ export function executeTimelineCommand(
               ),
             }
           : { start: 0, duration: parentDuration };
-      const nextNode = { ...node, parentId, zIndex, timing };
+      const nextNode = { ...node, parentLayerId, zIndex, timing };
       const scenes = project.scenes.slice();
       scenes[sceneIdx] = {
         ...scene,
-        nodes: [...scene.nodes, nextNode],
+        layers: [...scene.layers, nextNode],
       };
       nextProject = { ...project, scenes };
       events.push({
         type: "scene-node-added",
         sceneId: command.sceneId,
-        nodeId,
+        layerId,
       });
       return finish(
         nextProject,
         lanes,
         clips,
-        selectionNode(command.sceneId, nodeId),
+        selectionNode(command.sceneId, layerId),
         events,
       );
     }
@@ -413,7 +413,7 @@ export function executeTimelineCommand(
         assetId,
         start: placement.startTime,
         trimStart: 0,
-        volume: 1,
+        volume: 100,
         loop: false,
         fadeIn: 0,
         fadeOut: 0,

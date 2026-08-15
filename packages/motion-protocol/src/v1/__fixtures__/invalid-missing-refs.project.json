@@ -1,0 +1,141 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "v1-missing-refs",
+    "name": "Invalid Missing Refs",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "timeline": {},
+  "bindings": [
+    {
+      "id": "binding-missing-var",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-nonexistent"
+      },
+      "target": {
+        "type": "layer",
+        "layerId": "node-text",
+        "property": "payload.content.text"
+      }
+    }
+  ],
+  "variables": [],
+  "assets": [],
+  "layers": [
+    {
+      "id": "node-img",
+      "type": "image",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "assetId": "asset-nonexistent"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 200,
+        "height": 200
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "node-text",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Hello"
+        },
+        "fontSize": 32,
+        "fontAssetId": "font-missing"
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "frame": {
+        "width": 400,
+        "height": 60
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "audio-1-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -1,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "payload": {
+        "assetId": "asset-missing-audio"
+      }
+    }
+  ]
+}

@@ -1,27 +1,88 @@
-import { AbsoluteFill, Audio, Sequence, useCurrentFrame } from "remotion";
+import { useEffect, useState } from "react";
+import {
+  AbsoluteFill,
+  Audio,
+  Sequence,
+  cancelRender,
+  continueRender,
+  delayRender,
+  useCurrentFrame,
+} from "remotion";
 import {
   buildAudioRenderPlan,
-  evaluateCompositionFrame,
+  evaluateCompositionFrameV1,
   sampleAudioVolumeLinear,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 import { RemotionFramePainter } from "./RemotionFramePainter";
 
 export type MotiClipVideoProps = {
   manifest: RenderManifest;
-  runtime: MotionRuntimeProject;
+  /** Inline IR. When omitted, the composition fetches `manifest.runtime.url`. */
+  runtime?: MotionRuntimeProject | null;
 };
 
+function isRuntimeProject(value: unknown): value is MotionRuntimeProject {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as { format?: unknown; layers?: unknown };
+  return record.format === "motion-runtime" && Array.isArray(record.layers);
+}
+
+function useResolvedRuntime(
+  manifest: RenderManifest,
+  runtimeProp: MotionRuntimeProject | null | undefined,
+): MotionRuntimeProject | null {
+  const [runtime, setRuntime] = useState<MotionRuntimeProject | null>(() =>
+    isRuntimeProject(runtimeProp) ? runtimeProp : null,
+  );
+
+  useEffect(() => {
+    if (isRuntimeProject(runtimeProp)) {
+      setRuntime(runtimeProp);
+      return;
+    }
+    const url = manifest.runtime?.url;
+    if (!url || url.startsWith("file:")) {
+      return;
+    }
+    const handle = delayRender("load-runtime-ir");
+    let cancelled = false;
+    void fetch(url)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch runtime IR (${response.status}): ${url}`,
+          );
+        }
+        return response.json();
+      })
+      .then((json) => {
+        const parsed = json as unknown;
+        if (!isRuntimeProject(parsed)) {
+          throw new Error("Fetched runtime IR is not a MotionRuntimeProject");
+        }
+        if (!cancelled) setRuntime(parsed);
+        continueRender(handle);
+      })
+      .catch((error) => {
+        cancelRender(error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [manifest.runtime?.url, runtimeProp]);
+
+  return runtime;
+}
+
 /**
- * Production Remotion composition — evaluates once per frame into EvaluatedFrame,
- * paints via RemotionFramePainter (shared decode), mounts AudioRenderPlan.
- *
- * §Phase 7 Task 7.4: Remotion <Audio> wiring reads the same AudioRenderPlan
- * as the Web Audio scheduler, ensuring export audio parity.
+ * Production Remotion composition — evaluates each frame via
+ * `evaluateCompositionFrameV1`, paints the combined paint buffer, mounts AudioRenderPlan.
  */
-export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
+export function MotiClipVideo({ manifest, runtime: runtimeProp }: MotiClipVideoProps) {
+  const runtime = useResolvedRuntime(manifest, runtimeProp);
   const frame = useCurrentFrame();
   const fps = manifest.composition.fps;
   const { width, height, background } = {
@@ -29,14 +90,18 @@ export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
     height: manifest.composition.height,
     background: manifest.composition.background,
   };
-  const evaluated = evaluateCompositionFrame(
+
+  if (!runtime) {
+    return <AbsoluteFill style={{ background }} />;
+  }
+
+  const evaluated = evaluateCompositionFrameV1(
     runtime,
     frame,
     fps,
     width,
     height,
-    undefined,
-    background,
+    { background },
   );
 
   const audioPlan = buildAudioRenderPlan({
@@ -60,63 +125,61 @@ export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
 function MotiClipAudio({ plan }: { plan: AudioRenderPlan }) {
   return (
     <>
-      {plan.clips.map((clip, index) => (
+      {plan.layers.map((layer, index) => (
         <Sequence
-          key={`${clip.assetId}-${index}`}
-          from={clip.fromFrame}
-          durationInFrames={clip.durationInFrames}
+          key={`${layer.assetId}-${index}`}
+          from={layer.fromFrame}
+          durationInFrames={layer.durationInFrames}
           layout="none"
         >
-          <AudioClipVolume clip={clip} fps={plan.fps} />
+          <AudioLayerVolume layer={layer} fps={plan.fps} />
         </Sequence>
       ))}
     </>
   );
 }
 
-function AudioClipVolume({
-  clip,
+function AudioLayerVolume({
+  layer,
   fps,
 }: {
-  clip: AudioRenderPlan["clips"][number];
+  layer: AudioRenderPlan["layers"][number];
   fps: number;
 }) {
   const frame = useCurrentFrame();
-  const absoluteFrame = clip.fromFrame + frame;
-  // Use linear interpolation for continuous fade (Phase 7 Task 7.3)
-  const volume = sampleAudioVolumeLinear(clip.volumeEnvelope, absoluteFrame);
+  const absoluteFrame = layer.fromFrame + frame;
+  const volume = sampleAudioVolumeLinear(layer.volumeEnvelope, absoluteFrame);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopStartInFrames =
-    clip.loopWindowStartSeconds != null
-      ? Math.round(clip.loopWindowStartSeconds * fps)
-      : Math.round(clip.trimStartSeconds * fps);
+    layer.loopWindowStartSeconds != null
+      ? Math.round(layer.loopWindowStartSeconds * fps)
+      : Math.round(layer.trimStartSeconds * fps);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopDurationInFrames =
-    clip.loopWindowEndSeconds != null && clip.loopWindowStartSeconds != null
+    layer.loopWindowEndSeconds != null && layer.loopWindowStartSeconds != null
       ? Math.round(
-          (clip.loopWindowEndSeconds - clip.loopWindowStartSeconds) * fps,
+          (layer.loopWindowEndSeconds - layer.loopWindowStartSeconds) * fps,
         )
-      : clip.trimEndSeconds > 0
-        ? Math.round((clip.trimEndSeconds - clip.trimStartSeconds) * fps)
+      : layer.trimEndSeconds > 0
+        ? Math.round((layer.trimEndSeconds - layer.trimStartSeconds) * fps)
         : undefined;
 
-  // Map channel policy to Remotion Audio props
-  const channelPolicy = clip.channelPolicy ?? "stereo";
+  const channelPolicy = layer.channelPolicy ?? "stereo";
 
   return (
     <Audio
-      src={clip.uri}
-      startFrom={Math.max(0, Math.round(clip.trimStartSeconds * fps))}
+      src={layer.uri}
+      startFrom={Math.max(0, Math.round(layer.trimStartSeconds * fps))}
       endAt={
-        clip.trimEndSeconds > 0
-          ? Math.round(clip.trimEndSeconds * fps)
+        layer.trimEndSeconds > 0
+          ? Math.round(layer.trimEndSeconds * fps)
           : undefined
       }
       volume={volume}
-      playbackRate={clip.playbackRate}
-      loop={clip.loop}
+      playbackRate={layer.playbackRate}
+      loop={layer.loop}
       loopVolumeCurveBehavior="repeat"
       toneFrequency={
         channelPolicy === "left-only"

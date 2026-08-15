@@ -33,13 +33,13 @@ export type WebProjectEnvelope = {
 export function elementKey(
   clipId: string,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
 ): ElementKey {
-  return `${clipId}:${sceneId}:${nodeId}`;
+  return `${clipId}:${sceneId}:${layerId}`;
 }
 
-export function nodeElementKey(sceneId: string, nodeId: string): ElementKey {
-  return `scene:${sceneId}:${nodeId}`;
+export function nodeElementKey(sceneId: string, layerId: string): ElementKey {
+  return `scene:${sceneId}:${layerId}`;
 }
 
 export function createEmptyEnvelope(projectId: string): WebProjectEnvelope {
@@ -53,7 +53,7 @@ export function createEmptyEnvelope(projectId: string): WebProjectEnvelope {
 export function isPropertyLocked(
   envelope: WebProjectEnvelope | null | undefined,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
   propertyPath: string,
 ): boolean {
   if (!envelope) return false;
@@ -66,7 +66,7 @@ export function isPropertyLocked(
 export function markUserModified(
   envelope: WebProjectEnvelope,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
   propertyPaths: string[],
 ): WebProjectEnvelope {
   const key = nodeElementKey(sceneId, nodeId);
@@ -98,7 +98,7 @@ export function markUserModified(
 export function isElementLocked(
   envelope: WebProjectEnvelope | null | undefined,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
 ): boolean {
   if (!envelope) return false;
   const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
@@ -108,7 +108,7 @@ export function isElementLocked(
 export function toggleElementLock(
   envelope: WebProjectEnvelope,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
   locked: boolean,
 ): WebProjectEnvelope {
   const key = nodeElementKey(sceneId, nodeId);
@@ -136,7 +136,7 @@ export function toggleElementLock(
 export function togglePropertyLock(
   envelope: WebProjectEnvelope,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
   propertyPath: string,
   locked: boolean,
 ): WebProjectEnvelope {

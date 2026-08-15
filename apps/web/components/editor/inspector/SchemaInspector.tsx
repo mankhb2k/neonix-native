@@ -24,13 +24,13 @@ import { cn } from "@/lib/utils";
 
 /** Map inspector prop id → Motion track property path. */
 const TRACK_PROPERTY_BY_PROP_ID: Record<string, string> = {
-  "transform.x": "transform.x",
-  "transform.y": "transform.y",
-  "transform.rotation": "transform.rotation",
-  "transform.scaleX": "transform.scaleX",
-  "transform.scaleY": "transform.scaleY",
-  "transform.opacity": "transform.opacity",
-  "metadata.visible": "transform.visible",
+  "transform.translate.x": "transform.translate.x",
+  "transform.translate.y": "transform.translate.y",
+  "transform.rotate.z": "transform.rotate.z",
+  "transform.scale.x": "transform.scale.x",
+  "transform.scale.y": "transform.scale.y",
+  "appearance.opacity": "appearance.opacity",
+  "metadata.visible": "appearance.visible",
   "style.fill": "style.fill",
   "style.stroke": "style.stroke",
   "style.strokeWidth": "style.strokeWidth",
@@ -57,14 +57,14 @@ function isAnimatableProp(
 function findKeyframeAtTime(
   project: MotionProject,
   sceneId: string,
-  nodeId: string,
+  layerId: string,
   property: string,
   t: number,
 ): boolean {
   const scene = project.scenes.find((s) => s.id === sceneId);
   if (!scene) return false;
   for (const clip of scene.clips) {
-    if (clip.targetId !== nodeId || clip.source.kind !== "tracks") continue;
+    if (clip.layerId !== layerId || clip.source.kind !== "tracks") continue;
     for (const track of clip.source.tracks) {
       if (track.property !== property) continue;
       if (track.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
@@ -75,10 +75,10 @@ function findKeyframeAtTime(
 
 function LockToggle({
   sceneId,
-  nodeId,
+  layerId,
 }: {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
 }) {
   const envelope = useEditorStore((s) => s.envelope);
   const setElementLocked = useEditorStore((s) => s.setElementLocked);
@@ -89,7 +89,7 @@ function LockToggle({
       type="button"
       data-testid="lock-element"
       className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-      onClick={() => setElementLocked(sceneId, nodeId, !locked)}
+      onClick={() => setElementLocked(sceneId, layerId, !locked)}
       title={locked ? "Unlock element" : "Lock element"}
     >
       {locked ? <Lock size={12} /> : <Unlock size={12} />}
@@ -150,13 +150,13 @@ function PropertyControl({
   const mixed = isMixedValue(raw);
   const target = context.targets[0];
   const locked = target
-    ? isPropertyLocked(envelope, target.sceneId, target.nodeId, prop.id)
+    ? isPropertyLocked(envelope, target.sceneId, target.layerId, prop.id)
     : false;
 
   const nodeType = target
     ? context.project.scenes
         .find((s) => s.id === target.sceneId)
-        ?.nodes.find((n) => n.id === target.nodeId)?.type
+        ?.layers.find((n) => n.id === target.layerId)?.type
     : undefined;
 
   const trackProperty = trackPropertyForProp(prop.id);
@@ -166,7 +166,7 @@ function PropertyControl({
     findKeyframeAtTime(
       context.project,
       target!.sceneId,
-      target!.nodeId,
+      target!.layerId,
       trackProperty!,
       currentTime,
     );
@@ -226,7 +226,7 @@ function PropertyControl({
     ) : null;
 
   const inputClass =
-    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
+    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
 
   const lockBtn =
     target != null ? (
@@ -235,7 +235,7 @@ function PropertyControl({
         className="cursor-pointer border-0 bg-transparent p-0 text-[var(--fg-muted)] hover:text-[var(--accent-text)]"
         title={locked ? "Unlock property" : "Lock property"}
         onClick={() =>
-          setPropertyLocked(target.sceneId, target.nodeId, prop.id, !locked)
+          setPropertyLocked(target.sceneId, target.layerId, prop.id, !locked)
         }
       >
         {locked ? <Lock size={11} /> : <Unlock size={11} />}
@@ -410,7 +410,7 @@ export function SchemaInspector() {
   const selectedNode = useMemo(() => {
     if (!activeProject || selection.kind !== "node") return null;
     const scene = activeProject.scenes.find((s) => s.id === selection.sceneId);
-    return scene?.nodes.find((n) => n.id === selection.nodeId) ?? null;
+    return scene?.layers.find((n) => n.id === selection.layerId) ?? null;
   }, [activeProject, selection]);
 
   return (
@@ -442,7 +442,7 @@ export function SchemaInspector() {
                       </p>
                       <LockToggle
                         sceneId={selection.sceneId}
-                        nodeId={selection.nodeId}
+                        nodeId={selection.layerId}
                       />
                     </div>
                   ) : null}

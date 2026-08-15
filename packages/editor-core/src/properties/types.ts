@@ -33,7 +33,7 @@ export type ValidationResult =
 
 export type NodeTarget = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
 };
 
 export type PropertyContext = {

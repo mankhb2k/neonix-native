@@ -1,0 +1,317 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "v1-transition",
+    "name": "V1 Transition Example",
+    "description": "Root layers with staggered timing on the layer stack (no scene transitions)",
+    "locale": "vi-VN",
+    "tags": [
+      "example",
+      "v1",
+      "transition"
+    ]
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": [
+      "primitive.text",
+      "primitive.solid"
+    ],
+    "optional": [
+      "anim.transform",
+      "anim.opacity"
+    ]
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [],
+  "timeline": {},
+  "bindings": [],
+  "layers": [
+    {
+      "id": "bg-a",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "color": "#ff6b35"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 1080,
+        "height": 1920
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "text-a",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene A"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "bg-b",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "color": "#004e89"
+      },
+      "zIndex": 2,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 1080,
+        "height": 1920
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "text-b",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene B"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 3,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "bg-c",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "color": "#2ecc71"
+      },
+      "zIndex": 4,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 1080,
+        "height": 1920
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    },
+    {
+      "id": "text-c",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene C"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 5,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
+    }
+  ]
+}

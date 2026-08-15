@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Engineering diagnostic bench — NOT a production performance acceptance gate.
  * Soft main-thread budget is JOURNAL_VALIDATE_SOFT_BUDGET_MS (100ms).
@@ -50,27 +51,13 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
     id,
     name: "Bench",
     duration: 3,
-    nodes: [
+    layers: [
       {
         id: "node_bench_pad",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
-        transform: {
-          x: 100,
-          y: 100,
-          width: 400,
-          height: 80,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
         payload: {
           content: { kind: "plain", text: "" },
           fontSize: 64,
@@ -101,7 +88,7 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
     (
-      skeleton.nodes[0] as {
+      skeleton.layers[0] as {
         payload: { content: { text: string } };
       }
     ).payload.content.text = "x".repeat(deficit);

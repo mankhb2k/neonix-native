@@ -169,7 +169,7 @@ ok("canvas + ffmpeg under ELECTRON_RUN_AS_NODE");
 
 const minimalProject = {
   format: "motion-project",
-  formatVersion: 3,
+  formatVersion: 1,
   metadata: {
     id: "smoke_export_cli",
     name: "Smoke Export",
@@ -212,11 +212,11 @@ const minimalProject = {
     {
       id: "scene_smoke",
       duration: 0.2,
-      nodes: [
+      layers: [
         {
           id: "node_1",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           name: "Hi",
           transform: {
             x: 100,

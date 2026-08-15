@@ -195,7 +195,7 @@ export const ClipStrip = memo(function ClipStrip({
         const isSelected = inLayerSession
           ? (selection.kind === "node" &&
               selection.sceneId === layerSession.sceneId &&
-              selection.nodeId === clip.id) ||
+              selection.layerId === clip.id) ||
             selected.has(clip.id)
           : selected.has(clip.id);
         const trackKind = trackForLane(lane);

@@ -10,7 +10,7 @@ import {
 } from "@motionvideo/editor-core";
 import {
   clampNodeLocalTiming,
-  reorderLayerNodeIdsByInsert,
+  reorderLayerLayerIdsByInsert,
   type ClipMovePreview,
 } from "@motionvideo/editor-interactions";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -24,7 +24,7 @@ export type LayerMoveSession = {
   sceneId: string;
   containerStart: number;
   containerDuration: number;
-  orderedNodeIds: string[];
+  orderedLayerIds: string[];
   orderedLaneIds: string[];
   mediaMaxDurationByNodeId?: ReadonlyMap<string, number>;
 };
@@ -91,9 +91,9 @@ export function useLayerMove({
         containerStart,
         containerDuration,
         sceneId,
-        orderedNodeIds,
+        orderedLayerIds,
       } = layerSession;
-      const originIndex = orderedNodeIds.indexOf(clip.id);
+      const originIndex = orderedLayerIds.indexOf(clip.id);
       const homeInsertBefore = originIndex >= 0 ? originIndex : 0;
 
       type MoveState = {
@@ -154,12 +154,12 @@ export function useLayerMove({
               targetLaneId = gap.laneId;
             }
 
-            const nextOrder = reorderLayerNodeIdsByInsert(
-              orderedNodeIds,
+            const nextOrder = reorderLayerLayerIdsByInsert(
+              orderedLayerIds,
               clip.id,
               insertBeforeIndex,
             );
-            const orderChanged = !sameOrder(nextOrder, orderedNodeIds);
+            const orderChanged = !sameOrder(nextOrder, orderedLayerIds);
             const timingChanged =
               Math.abs(globalStart - clip.startTime) > 1e-4 ||
               Math.abs(nextTiming.duration - clip.duration) > 1e-4;
@@ -207,7 +207,7 @@ export function useLayerMove({
               onCommandProperty({
                 command: {
                   type: "set-node-timing",
-                  targets: [{ sceneId, nodeId: clip.id }],
+                  targets: [{ sceneId, layerId: clip.id }],
                   timing: clamped,
                 },
                 label: "Move layer",
@@ -216,17 +216,17 @@ export function useLayerMove({
             }
 
             if (state.orderChanged) {
-              const nextOrder = reorderLayerNodeIdsByInsert(
-                orderedNodeIds,
+              const nextOrder = reorderLayerLayerIdsByInsert(
+                orderedLayerIds,
                 clip.id,
                 state.insertBeforeIndex,
               );
-              if (!sameOrder(nextOrder, orderedNodeIds)) {
+              if (!sameOrder(nextOrder, orderedLayerIds)) {
                 onCommandProperty({
                   command: {
-                    type: "reorder-scene-nodes",
+                    type: "reorder-scene-layers",
                     sceneId,
-                    nodeIds: nextOrder,
+                    layerIds: nextOrder,
                   },
                   label: "Reorder layers",
                   coalesceKey: `node-reorder:${sceneId}`,

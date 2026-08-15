@@ -23,6 +23,7 @@ export type {
 export {
   evaluateCompositionSnapshot,
   evaluateCompositionFrame,
+  evaluateCompositionFrameV1,
   compositionDurationInFrames,
   resolveTimelineAtTime,
   listTimelineSegments,

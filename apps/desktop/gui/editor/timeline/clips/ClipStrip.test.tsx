@@ -80,7 +80,7 @@ describe("ClipStrip layer trim flag", () => {
           sceneId: "sc1",
           containerStart: 0,
           containerDuration: 10,
-          orderedNodeIds: ["n1"],
+          orderedLayerIds: ["n1"],
           orderedLaneIds: ["layer-node:n1"],
         }}
       />,

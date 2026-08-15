@@ -6,7 +6,9 @@ import {
   type EvaluatedFrame,
   type EvaluatedFramePainter,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { Application, Container } from "pixi.js";
 import {
   createPixiFramePainter,
@@ -27,7 +29,9 @@ export type PixiStageRenderer = EvaluatedFramePainter & {
   setViewport(viewport: StageViewport): void;
   setQuality(tier: "interactive" | "high"): void;
   setBackground(color: string): void;
-  setSceneId(sceneId: string | undefined): void;
+  setGraphId(graphId: string | undefined): void;
+  /** Stop the Pixi ticker during buffered RAM-preview playback. */
+  setTickerEnabled(enabled: boolean): void;
   dispose(): void;
 };
 
@@ -35,7 +39,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
   let app: Application | null = null;
   let host: HTMLElement | null = null;
   let runtime: MotionRuntimeProject | null = null;
-  let sceneId: string | undefined;
+  let graphId: string | undefined;
   let background = "#ffffff";
   let quality: "interactive" | "high" = "interactive";
   let viewport: StageViewport = { scale: 1, offsetX: 0, offsetY: 0 };
@@ -109,10 +113,21 @@ export function createPixiStageRenderer(): PixiStageRenderer {
       if (app) app.renderer.background.color = hexToNumber(color);
     },
 
-    setSceneId(id) {
-      sceneId = id;
-      void sceneId;
+    setGraphId(id) {
+      graphId = id;
+      void graphId;
       void runtime;
+    },
+
+    setTickerEnabled(enabled) {
+      if (!app) return;
+      if (enabled) {
+        app.ticker.start();
+        painter.setPaused(false);
+      } else {
+        app.ticker.stop();
+        painter.setPaused(true);
+      }
     },
 
     dispose() {

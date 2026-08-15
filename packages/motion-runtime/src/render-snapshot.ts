@@ -1,4 +1,5 @@
 import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
+import type { Matrix4 } from "./matrix4";
 import {
   evaluateScene,
   type EvaluatedNode,
@@ -64,7 +65,7 @@ export type RenderItemPayload =
           paddingY?: number;
           radius?: number;
         };
-        sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
+        sourceRef?: { kind: "text-run"; layerId: string; runId: string };
       }>;
     }
   | {
@@ -120,9 +121,9 @@ export type RenderItemPayload =
 
 export type RenderSnapshotItem = {
   key: RenderItemKey;
-  sceneId: string;
-  nodeId: string;
-  parentNodeId?: string;
+  graphId: string;
+  layerId: string;
+  parentLayerId?: string;
   nodeType: string;
   worldMatrix: Matrix2D;
   /** 4×4 world matrix for perspective-3d space. @since Phase 11 */
@@ -153,7 +154,7 @@ export type RenderSnapshotItem = {
     groupCompositing?: "pass-through" | "isolate";
     mask?: {
       mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
-      sourceNodeId: string;
+      sourceLayerId: string;
       sourceVisibility: "mask-only" | "content-and-mask";
     };
     effectOrder: Array<{ id: string; type: string }>;
@@ -161,13 +162,13 @@ export type RenderSnapshotItem = {
 };
 
 export type RenderSnapshot = {
-  sceneId: string;
+  graphId: string;
   frame: number;
   time: number;
   width: number;
   height: number;
   background?: string;
-  space: "flat-2d" | "layered-2.5d";
+  space: "flat-2d" | "layered-2.5d" | "perspective-3d";
   projection: {
     kind: "orthographic";
     cameraId?: string;
@@ -311,7 +312,7 @@ function payloadForNode(
               highlight: run.style?.highlight,
               sourceRef: {
                 kind: "text-run" as const,
-                nodeId: node.id,
+                layerId: node.id,
                 runId: run.id,
               },
             }))
@@ -456,18 +457,18 @@ function resolveCameraMatrix(
   width: number,
   height: number,
 ): Matrix2D {
-  const cameraId = scene.activeCameraId;
+  const cameraId = scene.activeCameraLayerId;
   if (!cameraId) {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   }
   const cam = evaluated.find(
-    (item) => item.node.id === cameraId && item.node.type === "camera",
+    (item) => item.layer.id === cameraId && item.layer.type === "camera",
   );
-  if (!cam || cam.node.type !== "camera") {
+  if (!cam || cam.layer.type !== "camera") {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   }
   const zoom =
-    typeof cam.node.payload.zoom === "number" ? cam.node.payload.zoom : 1;
+    typeof cam.layer.payload.zoom === "number" ? cam.layer.payload.zoom : 1;
   return cameraViewMatrix(
     {
       x: cam.transform.x,
@@ -500,7 +501,7 @@ export function buildRenderSnapshot(input: {
     time: input.time,
   });
   const passByNodeId = new Map(
-    renderPlan.passes.map((pass) => [pass.nodeId, pass]),
+    renderPlan.passes.map((pass) => [pass.layerId, pass]),
   );
   const cameraMatrix = resolveCameraMatrix(
     input.scene,
@@ -515,16 +516,16 @@ export function buildRenderSnapshot(input: {
   const items: RenderSnapshotItem[] = [];
   let renderOrder = 0;
   for (const item of ordered) {
-    if (!isDrawable(item.node.type)) continue;
+    if (!isDrawable(item.layer.type)) continue;
     const worldMatrix = multiplyMatrix(cameraMatrix, item.worldMatrix);
     const worldBounds = transformBounds(cameraMatrix, item.worldBounds);
-    const pass = passByNodeId.get(item.node.id);
+    const pass = passByNodeId.get(item.layer.id);
     items.push({
-      key: `${input.scene.id}:${item.node.id}`,
-      sceneId: input.scene.id,
-      nodeId: item.node.id,
-      parentNodeId: item.node.parentId ?? undefined,
-      nodeType: item.node.type,
+      key: `${input.scene.id}:${item.layer.id}`,
+      graphId: input.scene.id,
+      layerId: item.layer.id,
+      parentLayerId: item.layer.parentLayerId ?? undefined,
+      nodeType: item.layer.type,
       worldMatrix,
       ...(item.worldMatrix4 ? { worldMatrix4: item.worldMatrix4 } : {}),
       worldBounds,
@@ -533,10 +534,12 @@ export function buildRenderSnapshot(input: {
       selectable: item.visible && item.worldOpacity > 0.01,
       locked: false,
       renderOrder: renderOrder++,
-      payload: payloadForNode(item.node, item, input.assetUriById, input.time),
+      payload: payloadForNode(item.layer, item, input.assetUriById, input.time),
       depth: item.depth,
       projectedOffset: item.projectedOffset,
-      ...(item.node.blendMode ? { blendMode: item.node.blendMode } : {}),
+      ...(item.layer.compositing?.["blend-mode"]
+        ? { blendMode: item.layer.compositing["blend-mode"] }
+        : {}),
       ...(item.effects?.length ? { effects: item.effects } : {}),
       ...(pass
         ? {
@@ -551,7 +554,7 @@ export function buildRenderSnapshot(input: {
                 ? {
                     mask: {
                       mode: pass.mask.mode,
-                      sourceNodeId: pass.mask.sourceNodeId,
+                      sourceLayerId: pass.mask.sourceLayerId,
                       sourceVisibility: pass.mask.sourceVisibility,
                     },
                   }
@@ -567,7 +570,7 @@ export function buildRenderSnapshot(input: {
   }
 
   return {
-    sceneId: input.scene.id,
+    graphId: input.scene.id,
     frame: input.frame,
     time: input.time,
     width: input.width,
@@ -576,8 +579,8 @@ export function buildRenderSnapshot(input: {
     space: input.scene.space ?? "flat-2d",
     projection: {
       kind: "orthographic",
-      ...(input.scene.activeCameraId
-        ? { cameraId: input.scene.activeCameraId }
+      ...(input.scene.activeCameraLayerId
+        ? { cameraId: input.scene.activeCameraLayerId }
         : {}),
     },
     cameraMatrix,

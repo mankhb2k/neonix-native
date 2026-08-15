@@ -81,7 +81,7 @@ function drawableToView(
   switch (draw.op) {
     case "unsupported":
       throw new Error(
-        `Unsupported paint command: ${draw.message} (${draw.nodeId ?? "unknown"})`,
+        `Unsupported paint command: ${draw.message} (${draw.layerId ?? "unknown"})`,
       );
     case "drawText":
       return (
@@ -111,7 +111,7 @@ function drawableToView(
                   key={run.id}
                   data-source-ref={
                     run.sourceRef
-                      ? `${run.sourceRef.kind}:${run.sourceRef.nodeId}:${run.sourceRef.runId}`
+                      ? `${run.sourceRef.kind}:${run.sourceRef.layerId}:${run.sourceRef.runId}`
                       : undefined
                   }
                   style={{
@@ -277,6 +277,119 @@ function drawableToView(
   }
 }
 
+function findDrawable(
+  nodes: RemotionPaintTreeNode[],
+  key: string,
+): Extract<RemotionPaintTreeNode, { kind: "drawable" }> | undefined {
+  for (const node of nodes) {
+    if (node.kind === "drawable" && node.key === key) return node;
+    if (node.kind !== "drawable") {
+      const found = findDrawable(node.children, key);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+function clipPathElement(
+  source: Extract<RemotionPaintTreeNode, { kind: "drawable" }>,
+): React.ReactNode {
+  const m = source.transform.matrix;
+  const draw = source.draw;
+  if (draw.op === "drawShape" || draw.op === "drawSolid") {
+    const w = draw.width;
+    const h = draw.height;
+    if (draw.op === "drawShape" && draw.shape === "ellipse") {
+      return (
+        <ellipse
+          cx={m.e + (w * m.a) / 2}
+          cy={m.f + (h * m.d) / 2}
+          rx={(w * m.a) / 2}
+          ry={(h * m.d) / 2}
+        />
+      );
+    }
+    return (
+      <rect x={m.e} y={m.f} width={w * m.a} height={h * m.d} />
+    );
+  }
+  if (draw.op === "drawPath") {
+    return (
+      <path
+        d={contoursToSvgPathD(draw.contours)}
+        transform={`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`}
+      />
+    );
+  }
+  return (
+    <rect x={m.e} y={m.f} width={100} height={100} />
+  );
+}
+
+function collectHiddenMaskSources(
+  nodes: RemotionPaintTreeNode[],
+  hidden: Set<string>,
+): void {
+  for (const node of nodes) {
+    if (node.kind === "layer" && node.mask) {
+      if (node.mask.sourceVisibility !== "content-and-mask") {
+        hidden.add(node.mask.sourceKey);
+      }
+    }
+    if (node.kind !== "drawable") collectHiddenMaskSources(node.children, hidden);
+  }
+}
+
+function nodeToView(
+  node: RemotionPaintTreeNode,
+  tree: RemotionPaintTree,
+  fps: number,
+  hiddenSources: Set<string>,
+): React.ReactNode {
+  if (node.kind === "drawable") {
+    if (hiddenSources.has(node.key)) return null;
+    return drawableToView(node.key, node.transform, node.draw, fps);
+  }
+  const children = node.children.map((child) =>
+    nodeToView(child, tree, fps, hiddenSources),
+  );
+  if (node.kind === "group") {
+    return (
+      <AbsoluteFill key={node.key} data-paint-group={node.layerId}>
+        {children}
+      </AbsoluteFill>
+    );
+  }
+  const inner = (
+    <AbsoluteFill key={node.key} data-paint-layer={node.key}>
+      {children}
+    </AbsoluteFill>
+  );
+  if (!node.mask || node.mask.mode !== "clip") return inner;
+  const source = findDrawable(tree.roots, node.mask.sourceKey);
+  const clipId = `clip-${node.key.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  return (
+    <AbsoluteFill key={node.key} data-clip-mask={node.mask.sourceKey}>
+      {source ? (
+        <svg
+          width={tree.width}
+          height={tree.height}
+          style={{ position: "absolute", left: 0, top: 0 }}
+        >
+          <defs>
+            <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+              {clipPathElement(source)}
+            </clipPath>
+          </defs>
+        </svg>
+      ) : null}
+      <AbsoluteFill style={{ clipPath: source ? `url(#${clipId})` : undefined }}>
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+}
+
 export type RemotionFramePainterProps = {
   paint: PaintCommandBuffer;
   /** Used to map mediaTime → trimBefore frames for OffthreadVideo. */
@@ -302,9 +415,10 @@ export function RemotionFramePainterFromTree({
   tree: RemotionPaintTree;
   fps?: number;
 }) {
-  const drawables = flattenRemotionDrawables(tree);
-  const nodes = drawables.map((item) =>
-    drawableToView(item.key, item.transform, item.draw, fps),
+  const hiddenSources = new Set<string>();
+  collectHiddenMaskSources(tree.roots, hiddenSources);
+  const layers = tree.roots.map((node) =>
+    nodeToView(node, tree, fps, hiddenSources),
   );
 
   return (
@@ -312,7 +426,7 @@ export function RemotionFramePainterFromTree({
       data-testid="remotion-frame-painter"
       style={{ background: tree.background ?? "#ffffff" }}
     >
-      {nodes}
+      {layers}
     </AbsoluteFill>
   );
 }

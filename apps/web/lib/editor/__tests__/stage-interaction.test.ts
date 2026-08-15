@@ -10,7 +10,7 @@ describe("stage interaction session", () => {
     let preview: StageTransformValues | null = null;
     const base = {
       sceneId: "scene.demo",
-      nodeId: "node.dot",
+      layerId: "node.dot",
       x: 100,
       y: 200,
       width: 72,
@@ -52,7 +52,7 @@ describe("stage interaction session", () => {
         interactionId: "resize-1",
         base: {
           sceneId: "s",
-          nodeId: "n",
+          layerId: "n",
           x: 0,
           y: 0,
           width: 100,
