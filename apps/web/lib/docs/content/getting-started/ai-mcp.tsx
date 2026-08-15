@@ -26,8 +26,8 @@ export function aiMcpPage(): DocsPageView {
             <code>timing</code>.
           </li>
           <li>
-            Opacity is <code>appearance.opacity</code> integer 0..100, not
-            0..1.
+            Opacity is <code>appearance.opacity</code> integer 0..100 on visual
+            layers only. Audio has no appearance.
           </li>
           <li>
             Component consumers set public props only. Do not author internal

@@ -27,6 +27,7 @@
 - `inheritFlags` không dùng trừ khi user/tool cố ý. Không emit `modifiers`.
 - Layout: chỉ `group.layout` + child `layoutItem`. Field: `mode`, `gap`, `padding`, `justify`, `align`, size `fixed|hug|fill`, `alignSelf`, min/max. Grid cần `columns`. Không `wrap` / `grow` / `shrink` / span.
 - Transform: mọi visual layer cùng `{ translate, scale, rotate.z, skew, origin, depth }`. Lật bằng scale âm. Origin AI: `0` \| `0.5` \| `1`. Không `flipX/Y`, không `transform.z`.
+- Appearance: chỉ `visible` + `opacity` trên visual layer. Integer opacity `0..100`. Không hit-test. Audio không có `appearance`; mute/volume trên payload.
 
 ---
 

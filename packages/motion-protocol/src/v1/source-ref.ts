@@ -1,5 +1,6 @@
 /**
- * Con trỏ click-to-edit / hit-test vào project authoring V1.
+ * Con trỏ editor vào project authoring V1 (click-to-edit).
+ * Không phải field JSON appearance; không thuộc contract hit-test authoring.
  *
  * Trỏ layer hoặc text-run trên layer. Không phải node/clip/caption-track.
  */

@@ -77,7 +77,7 @@ Root `title` với `zIndex: 2` luôn vẽ trên toàn bộ `hero`, kể cả chi
 ## 5. AI authoring
 
 - Đừng tạo group rỗng.
-- Đừng bỏ `frame` trên group. Đó là box layout/hit-test, không clip.
+- Đừng bỏ `frame` trên group. Đó là box size/layout, không clip.
 - Đừng bỏ `zIndex` / `timing` trên child.
 - Muốn cắt subtree: mask, không phải frame của group.
 - Muốn xếp children: `layout` trên group + `layoutItem` trên child. Không dùng modifier. Xem [v1-layout-guide.md](v1-layout-guide.md).

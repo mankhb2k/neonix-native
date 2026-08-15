@@ -140,10 +140,14 @@ function cap(
   };
 }
 
-const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+const APPEARANCE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
     "appearance.visible": cap("boolean"),
     "appearance.opacity": cap("number", { min: 0, max: 100 }),
+  });
+
+const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+  Object.freeze({
     "frame.width": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
@@ -450,6 +454,10 @@ export function motionPropertyCapability(
   nodeType: string,
   property: string,
 ): MotionPropertyCapability | undefined {
+  if (nodeType !== "audio") {
+    const appearance = APPEARANCE_PROPERTIES[property];
+    if (appearance) return appearance;
+  }
   const layerBase = LAYER_BASE_PROPERTIES[property];
   if (layerBase) return layerBase;
   if (nodeType !== "audio") {
@@ -608,6 +616,7 @@ export function motionPropertyCapabilities(
   motionPathModifierIds: readonly string[] = [],
 ): MotionPropertyCapabilityEntry[] {
   return [
+    ...(nodeType === "audio" ? [] : Object.entries(APPEARANCE_PROPERTIES)),
     ...Object.entries(LAYER_BASE_PROPERTIES),
     ...(nodeType === "audio" ? [] : Object.entries(TRANSFORM_PROPERTIES)),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),

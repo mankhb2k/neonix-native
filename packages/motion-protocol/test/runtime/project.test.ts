@@ -316,4 +316,21 @@ describe("timeline.duration", () => {
     (ir.timeline as Record<string, unknown>).duration = 2;
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
+
+  it("rejects appearance on a runtime audio layer", () => {
+    const ir = baseIR();
+    ir.layers = [
+      {
+        id: "music",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -1,
+        timing: { start: 0, duration: 2 },
+        appearance: { visible: true, opacity: 100 },
+        payload: { assetId: "a" },
+      },
+    ];
+    (ir.timeline as Record<string, unknown>).duration = 2;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
 });

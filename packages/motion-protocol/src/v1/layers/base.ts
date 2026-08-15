@@ -2,7 +2,7 @@
  * Nền node V1 — danh tính + nhóm atom.
  *
  * Size ở frame. Hình học ở transform (mọi visual layer cùng contract).
- * Blend/mask/isolation ở compositing.
+ * Appearance chỉ visible + opacity. Blend/mask/isolation ở compositing.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

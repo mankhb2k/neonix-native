@@ -24,10 +24,10 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 
 | File | Phạm vi | Trạng thái |
 | --- | --- | --- |
-| [v1-layer-guide.md](./v1-layer-guide.md) | Mô hình layer chung | Nháp |
+| [v1-layer-guide.md](./v1-layer-guide.md) | Mô hình visual layer + cây + timing + zIndex | v1 |
 | [v1-frame-guide.md](./v1-frame-guide.md) | `frame` là size box | Nháp |
 | [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | v1 |
-| [v1-appearance-guide.md](./v1-appearance-guide.md) | Hiện/ẩn và độ mờ | Nháp |
+| [v1-appearance-guide.md](./v1-appearance-guide.md) | `visible` + `opacity` (visual only) | v1 |
 | [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | Nháp |
 | [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | Nháp |
 | [v1-shape-guide.md](./v1-shape-guide.md) | Layer hình học primitive | Nháp |
@@ -35,7 +35,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-text-guide.md](./v1-text-guide.md) | Chữ và hộp chữ | Nháp |
 | [v1-image-guide.md](./v1-image-guide.md) | Layer ảnh | Nháp |
 | [v1-video-guide.md](./v1-video-guide.md) | Layer video | Nháp |
-| [v1-audio-guide.md](./v1-audio-guide.md) | Layer audio | Nháp |
+| [v1-audio-guide.md](./v1-audio-guide.md) | Audio root-only, không visual | v1 |
 | [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |
 | [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | Nháp |
 | [v1-production-surface-guide.md](./v1-production-surface-guide.md) | Bề mặt AI mặc định / nâng cao | Nháp |
@@ -54,6 +54,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - Child timing tính local theo cha; cửa sổ hiệu lực là phần giao.
 - `layout` chỉ trên `group`; `layoutItem` trên child visual. Không phải modifier.
 - `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
+- `appearance` chỉ `visible` + `opacity` trên visual layer. Audio không có appearance. Protocol không định nghĩa hit-test.
 
 ---
 

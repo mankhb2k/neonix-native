@@ -20,11 +20,11 @@ export function opacityPage(): DocsPageView {
         title="Look"
         human="Visibility and opacity."
         jsonPath="appearance"
-        lede="appearance.opacity is an integer percent 0..100 (100 = fully opaque). Not a 0..1 float. Not transform.opacity."
+        lede="appearance is the minimum visual display layer: visible plus opacity. Opacity is an integer percent 0..100 (100 = fully opaque). Not a 0..1 float. Not transform.opacity. Not hit-test."
         quick={ATOM_OPACITY}
         meaning={[
-          `${ATOM_VISIBLE.path} hides the layer without changing opacity.`,
-          "Audio may use appearance; it has no transform.",
+          `${ATOM_VISIBLE.path} turns render on or off. It does not define hit-test or editor selection.`,
+          "Parent opacity can multiply down to children. Audio has no appearance.",
         ]}
         authoringExample={{ appearance: { visible: true, opacity: 80 } }}
         valid={SINGLE_ROOT}
@@ -41,10 +41,13 @@ export function opacityPage(): DocsPageView {
         mistakes={[
           "Do not use opacity 0..1.",
           "Do not put opacity on transform.",
+          "Do not put hit-test or pointer-events on appearance.",
+          "Do not put appearance on audio.",
         ]}
         ai={[
           "Use appearance.opacity for opacity.",
           "Use appearance.visible for hide/show.",
+          "Do not emit hit-test fields. Audio uses payload.muted and payload.volume.",
         ]}
       />
     ),

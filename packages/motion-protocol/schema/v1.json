@@ -3534,13 +3534,6 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance",
-                          "default": {
-                            "visible": true,
-                            "opacity": 100
-                          }
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {

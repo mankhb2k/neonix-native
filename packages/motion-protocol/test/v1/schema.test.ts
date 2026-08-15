@@ -179,6 +179,25 @@ describe("v1 schema — reject old contract", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects appearance on an audio layer", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "music",
+            type: "audio",
+            parentLayerId: null,
+            zIndex: -1,
+            timing: { start: 0, duration: 8 },
+            appearance: { visible: true, opacity: 100 },
+            payload: { assetId: "music-1" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
   it("rejects visual root zIndex < 0", () => {
     const result = MotionProjectV1Schema.safeParse(
       baseProject({

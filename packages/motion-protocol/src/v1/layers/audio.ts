@@ -1,6 +1,6 @@
 /**
  * Layer audio V1 — lá chỉ ở root. Playback trên payload; chỗ đứng trên timing.
- * volume 0..100 nguyên, 100 = đầy.
+ * Không frame, transform, appearance, layout. volume 0..100 nguyên, 100 = đầy.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -10,7 +10,6 @@ import {
   PercentSchema,
   PositiveNumberSchema,
 } from "../common";
-import { AppearanceSchema } from "../appearance";
 import { LayerTimingSchema } from "./timing";
 
 export const AudioLayerPayloadV1Schema = z
@@ -45,7 +44,6 @@ export const AudioLayerV1Schema = z
     parentLayerId: z.null(),
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,
-    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
     payload: AudioLayerPayloadV1Schema,
   })
   .strict();

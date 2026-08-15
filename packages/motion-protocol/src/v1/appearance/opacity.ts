@@ -1,6 +1,6 @@
 /**
- * Opacity compositing cuối — không phải filter.
- * Authoring 0..100 nguyên, 100 = đầy. Paint dùng ratioFromPercent.
+ * Độ mờ render 0..100 nguyên, 100 = đầy. Không phải filter hay hit-test.
+ * Opacity cha có thể cộng hưởng xuống con. Paint dùng ratioFromPercent.
  */
 import { z } from "zod";
 import { PercentSchema } from "../common";

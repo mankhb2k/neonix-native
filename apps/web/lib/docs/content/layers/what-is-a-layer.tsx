@@ -24,9 +24,12 @@ export function whatIsALayerPage(): DocsPageView {
         <HumanName title="What is a layer" jsonPath="layers[]" />
         <H2 id="primitive">The authoring primitive</H2>
         <P>
-          A layer is the only picture/sound object you author. Nesting is{" "}
-          <code>group.children</code>. Audio is a root-only leaf: no transform,
-          negative <code>zIndex</code>, required timing.
+          A visual layer is the picture object you author: what it is, where
+          it sits, when it lives, how it looks, and how it relates to its
+          parent. Nesting is <code>group.children</code>. Audio is a special
+          exception — still a timeline object on <code>project.layers</code>,
+          but not a visual primitive. See the audio page for playback, trim,
+          volume, fade, loop, muted, and root-only rules.
         </P>
         <H2 id="roots">Root lanes</H2>
         <JsonBlock
@@ -71,9 +74,10 @@ export function whatIsALayerPage(): DocsPageView {
         <AiWritingGuide
           items={[
             "Give every layer unique sibling zIndex and required timing.",
-            "Do not parent audio under a group.",
+            "Treat audio as a special root-only exception. See the audio page.",
             "Skip locked. Use semantic only as labels, never as render hints.",
             "Pack children with group.layout and child.layoutItem, not modifiers.",
+            "Do not put hit-test or editor selection into JSON.",
           ]}
         />
       </article>

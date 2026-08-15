@@ -185,7 +185,6 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
     parentLayerId: null,
     zIndex: layer.zIndex,
     timing: clone(layer.timing),
-    appearance: clone(layer.appearance),
     payload: clone(layer.payload),
   };
 }

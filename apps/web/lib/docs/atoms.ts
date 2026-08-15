@@ -85,8 +85,8 @@ export const ATOM_OPACITY: QuickRef = {
   type: "integer percent",
   defaultValue: "100",
   animatable: "yes",
-  appliesTo: "visual + audio appearance",
-  doesNotApplyTo: "—",
+  appliesTo: "visual layers",
+  doesNotApplyTo: "audio",
   range: `0..${MOTION_PROTOCOL_LIMITS.percent} (integer)`,
 };
 
@@ -95,7 +95,7 @@ export const ATOM_VISIBLE: QuickRef = {
   type: "boolean",
   defaultValue: "true",
   animatable: "yes (boolean keys)",
-  appliesTo: "layers with appearance",
-  doesNotApplyTo: "—",
+  appliesTo: "visual layers",
+  doesNotApplyTo: "audio",
   range: "true | false",
 };

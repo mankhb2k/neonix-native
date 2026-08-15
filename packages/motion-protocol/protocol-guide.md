@@ -86,13 +86,13 @@ Geometry only. Không size, opacity, zoom.
 
 ### 2.3 `src/v1/appearance/`
 
-Compositing visibility — không phải effect.
+Lớp hiển thị tối thiểu của visual layer — không phải compositing, effect, hay hit-test.
 
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | `AppearanceSchema` = `visible` + `opacity`. |
 | `opacity.ts` | `OpacitySchema` = `PercentSchema` (0..100 int, default 100). |
-| `visibility.ts` | `VisibilitySchema` boolean. |
+| `visibility.ts` | `VisibilitySchema` boolean (render on/off). |
 
 ### 2.4 `src/v1/compositing/`
 
@@ -143,7 +143,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`, no `modifiers`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
 | `component.ts` | `type: "component"` — `payload.componentId`, `variantId?`, `props`. |
-| `audio.ts` | `AudioLayerV1Schema` — payload trim/fade/volume (0..100)/loop. |
+| `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
 | `media.ts` | `image` / `svg` / `video` / `camera`. Image+svg: `{ assetId, fit, crop? }`. |
 | `geometry.ts` | `shape` + `path`. |
 | `geometry-types.ts` | `z.infer` shape/path. |
@@ -212,7 +212,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | --- | --- |
 | `index.ts` | Runtime node union theo `type`. |
 | `base.ts` | `LayerBaseSchema` — required frame (except camera/audio), layoutItem, V1 transform/appearance/compositing/effects; modifiers remain runtime-only. |
-| `audio.ts` | Runtime audio leaf. |
+| `audio.ts` | Runtime audio leaf. No appearance. |
 | `geometry.ts` | Shape/path (primitive từ V1). |
 | `media.ts` | Image / svg / video. |
 | `paint.ts` | Fit / crop / paint style. |
