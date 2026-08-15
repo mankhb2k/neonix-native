@@ -2926,14 +2926,11 @@
                               "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
                             },
                             "fit": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload/properties/fit"
-                            },
-                            "crop": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload/properties/crop"
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/5/properties/payload/properties/fit",
+                              "default": "cover"
                             },
                             "trimStart": {
                               "type": "number",
-                              "exclusiveMinimum": true,
                               "minimum": 0,
                               "maximum": 86400
                             },
@@ -2944,10 +2941,12 @@
                               "maximum": 86400
                             },
                             "loop": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "default": false
                             },
                             "muted": {
-                              "type": "boolean"
+                              "type": "boolean",
+                              "default": false
                             },
                             "framePolicy": {
                               "type": "string",

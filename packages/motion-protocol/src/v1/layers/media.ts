@@ -1,11 +1,11 @@
 /**
  * Layer media + camera. Image: assetId + fit + crop. SVG: assetId + fit + style.fill.
- * Video thêm trim/loop/muted. Camera không frame.
+ * Video: fit + trim/loop/muted; không crop. Camera không frame.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { CropSchema, FitSchema, SvgStyleSchema } from "./paint";
-import { IdSchema, PositiveNumberSchema } from "../common";
+import { FiniteNumberSchema, IdSchema, PositiveNumberSchema } from "../common";
 import { LayerBaseV1Schema } from "./base";
 
 /** Image V1: nguồn + fit trong frame + crop nguồn tùy chọn. Default fit = cover. */
@@ -25,13 +25,35 @@ export const SvgPayloadSchema = z
   })
   .strict();
 
-const MediaPayloadSchema = z
+/** Video V1: placement (fit) + playback (trim/loop/muted). Không crop. */
+export const VideoPayloadSchema = z
   .object({
     assetId: IdSchema,
-    fit: FitSchema.optional(),
-    crop: CropSchema.optional(),
+    fit: FitSchema.default("cover"),
+    trimStart: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
+    trimEnd: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
+    loop: z.boolean().default(false),
+    muted: z.boolean().default(false),
+    framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (
+      val.trimStart !== undefined &&
+      val.trimEnd !== undefined &&
+      val.trimStart >= val.trimEnd
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `trimStart (${val.trimStart}) must be < trimEnd (${val.trimEnd})`,
+        path: ["trimStart"],
+      });
+    }
+  });
 
 export const ImageLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("image"),
@@ -46,17 +68,7 @@ export const SvgLayerV1Schema = LayerBaseV1Schema.extend({
 
 export const VideoLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("video"),
-  payload: MediaPayloadSchema.extend({
-    trimStart: PositiveNumberSchema.max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ).optional(),
-    trimEnd: PositiveNumberSchema.max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ).optional(),
-    loop: z.boolean().optional(),
-    muted: z.boolean().optional(),
-    framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
-  }),
+  payload: VideoPayloadSchema,
 }).strict();
 
 export const CameraLayerV1Schema = LayerBaseV1Schema.omit({

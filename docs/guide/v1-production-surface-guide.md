@@ -32,6 +32,7 @@
 - Component: instance leaf với đủ wrapper atoms. Default AI set `payload.props` (+ `variantId`) bằng literal/keyframes. Variant chỉ override props. `project.bindings` chỉ `type: "prop"`. Nested chỉ `childProp`. Không `component.variables`, không inline variable ref.
 - Image: một asset ảnh trong `frame`. `payload.assetId` + `payload.fit` (`contain`/`cover`/`fill`/`none`, mặc định `cover`) + `payload.crop?` (0..1 trên nguồn). Không `style`. Fit theo full asset rectangle, kể cả PNG trong suốt. Không auto-trim alpha.
 - SVG: asset vector placement, không phải shape/path. `payload.assetId` + `payload.fit` (mặc định `contain`) + `style.fill?` recolor đơn giản. Không crop, không `payload.color`, không stroke, không sửa internals.
+- Video: placement + playback. `payload.assetId` + `fit` (mặc định `cover`) + `trimStart`/`trimEnd` cắt nguồn + `loop` (mặc định false) + `muted` (mặc định false). `timing` là timing layer. `framePolicy` nâng cao, không emit nếu không cần. Không `payload.crop`.
 - Path: vector tự do. `frame` + `payload.contours` / `fillRule` + `style`. Không `payload.color`. Segment `line` \| `cubic`. `morphTargets` nâng cao, topology phải khớp base. AI mặc định `style.fill` / `stroke` / `strokeWidth`.
 - Shape: rectangle / ellipse / polygon. `frame` + `payload` geometry + `style` paint. Không `payload.color`. AI mặc định `style.fill` / `stroke` / `strokeWidth`. Polygon `points` 0..1 theo frame.
 - Text: một hộp, một `payload.text`, một style. Không runs / rich text. String sink: `payload.text`.

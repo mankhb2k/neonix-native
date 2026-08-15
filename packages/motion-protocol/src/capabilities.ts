@@ -101,7 +101,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.8";
+export const CAPABILITY_MANIFEST_VERSION = "2.9";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -354,8 +354,11 @@ const NODE_PROPERTIES: Readonly<
     ...MEDIA_PAYLOAD_PROPERTIES,
   },
   video: {
-    ...MEDIA_PAYLOAD_PROPERTIES,
     "payload.assetId": cap("asset", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.fit": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
     }),
@@ -382,6 +385,7 @@ const NODE_PROPERTIES: Readonly<
     "payload.framePolicy": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
+      public: false,
     }),
   },
   camera: {

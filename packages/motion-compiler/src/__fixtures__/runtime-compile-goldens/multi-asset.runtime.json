@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "b9a39e7be1e487a7ebecb63fedaff058",
+  "runtimeHash": "befbb4c9140f74b2f0b43add7f542258",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -329,7 +329,8 @@
       "payload": {
         "assetId": "clip-video",
         "fit": "cover",
-        "loop": true
+        "loop": true,
+        "muted": false
       }
     },
     {

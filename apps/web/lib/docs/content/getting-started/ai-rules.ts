@@ -18,5 +18,6 @@ export const AI_GLOBAL = [
   "A path layer is freeform vector: frame box, payload.contours (line/cubic), style paint. fillRule nonzero|evenodd. Never payload.color. morphTargets are advanced and must match base topology.",
   "An image layer shows one image asset. frame is the display box, payload.assetId is the source, payload.fit is contain|cover|fill|none (default cover), optional payload.crop is 0..1 on the source. No style, fill, stroke, object-position, or payload radius. Fit uses the full asset rectangle, including transparent PNG pixels. Do not auto-trim empty alpha.",
   "An svg layer places a vector asset. frame is the box, payload.assetId is the SVG, payload.fit is contain|cover|fill|none (default contain). Optional style.fill is a simple recolor only. Not shape or path. No crop, payload.color, stroke, internals, or node selectors.",
+  "A video layer is placement plus playback. frame is the box, payload.assetId is the source, payload.fit is contain|cover|fill|none (default cover). trimStart/trimEnd cut the media source; layer timing stays on timing. loop default false, muted default false. framePolicy is advanced — omit unless needed. Never payload.crop.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

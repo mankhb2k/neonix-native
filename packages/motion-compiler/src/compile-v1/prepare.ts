@@ -98,15 +98,15 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
         ...base,
         payload: {
           assetId: payload.assetId,
-          ...(payload.fit !== undefined ? { fit: payload.fit } : {}),
+          fit: payload.fit ?? "cover",
           ...(payload.trimStart !== undefined
             ? { trimStart: payload.trimStart }
             : {}),
           ...(payload.trimEnd !== undefined
             ? { trimEnd: payload.trimEnd }
             : {}),
-          ...(payload.loop !== undefined ? { loop: payload.loop } : {}),
-          ...(payload.muted !== undefined ? { muted: payload.muted } : {}),
+          loop: payload.loop ?? false,
+          muted: payload.muted ?? false,
           ...(payload.framePolicy !== undefined
             ? { framePolicy: payload.framePolicy }
             : {}),
