@@ -23,7 +23,7 @@ Audio là ngoại lệ: vẫn là timeline object trên `project.layers`, nhưng
 - Layer gốc có `parentLayerId: null`.
 - Layer lồng có `parentLayerId` trỏ về cha.
 - `group` là container nhìn thấy được và phải có ít nhất một child.
-- `component` là instance niêm phong.
+- `component` là sealed instance leaf. Wrapper atoms trên instance; ruột qua `payload.props`. Compiler bung template. Xem [v1-component-guide.md](./v1-component-guide.md).
 - Các type visual còn lại là leaf, trừ khi guide riêng nói khác.
 - Mọi layer bắt buộc `timing` và `zIndex`.
 - `timing.start` / `timing.duration` là contract canonical; không dùng layer `trim` trong JSON authoring.

@@ -12,5 +12,6 @@ export const AI_GLOBAL = [
   "Use zIndex for stacking, not depth.",
   "Do not emit locked. semantic is optional tagging and does not change paint.",
   "Do not emit modifiers.",
+  "A component layer is a sealed instance. Set wrapper atoms plus payload.props. Do not edit internals. Prefer payload.props over project.bindings. Variants only override props.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

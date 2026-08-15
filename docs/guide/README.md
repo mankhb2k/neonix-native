@@ -37,7 +37,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-video-guide.md](./v1-video-guide.md) | Layer video | Nháp |
 | [v1-audio-guide.md](./v1-audio-guide.md) | Audio root-only, không visual | v1 |
 | [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |
-| [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | Nháp |
+| [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | v1 |
 | [v1-production-surface-guide.md](./v1-production-surface-guide.md) | Bề mặt AI mặc định / nâng cao | Nháp |
 
 ---
@@ -56,6 +56,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 - `appearance` chỉ `visible` + `opacity` trên visual layer. Audio không có appearance. Protocol không định nghĩa hit-test.
 - `compositing` tách khỏi appearance/effects: `blend-mode`, `isolation`, `mask`. AI mặc định: blend khi cần; mask `clip`/`alpha` + `mask-only`; không emit isolation.
+- Component instance = leaf + wrapper atoms. Props = ruột public. Variant = preset props. Project binding tới propId = advanced.
 
 ---
 

@@ -130,8 +130,8 @@ Catalog (definition). Instance layer ở `layers/component.ts`.
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | `ComponentDefinitionV1Schema`, props/variants/`propBindings`, `ProjectDependenciesV1Schema`. |
-| `prop-values.ts` | Static \| variable \| keyframes (`value`, không track `v`). |
+| `index.ts` | Definition: props, variants (props-only preset), owner `propBindings`, internals. |
+| `prop-values.ts` | Static \| variable \| keyframes (`value`, không track `v`). Keyframes = public signal, không wrapper. |
 
 ### 2.8 `src/v1/layers/`
 
@@ -142,7 +142,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
 | `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`, no `modifiers`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
-| `component.ts` | `type: "component"` — `payload.componentId`, `variantId?`, `props`. |
+| `component.ts` | Sealed instance leaf. Wrapper atoms + `payload.componentId` / `variantId?` / `props`. Compiler expand. |
 | `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
 | `media.ts` | `image` / `svg` / `video` / `camera`. Image+svg: `{ assetId, fit, crop? }`. |
 | `geometry.ts` | `shape` + `path`. |

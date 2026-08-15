@@ -22,18 +22,20 @@ export function componentLayerPage(): DocsPageView {
         />
         <H2 id="instance">Sealed instance</H2>
         <P>
-          <code>type: &quot;component&quot;</code> is a real layer: it has its
-          own <code>timing</code>, <code>zIndex</code>, <code>transform</code>,
-          and <code>frame</code>. Internals stay inside{" "}
-          <code>project.components[]</code>. Consumers do not edit those inner
-          layers.
+          <code>type: &quot;component&quot;</code> is a sealed instance leaf.
+          AI sees one layer. The compiler expands it into a wrapper plus
+          internals. Wrapper atoms: <code>frame</code>,{" "}
+          <code>transform</code>, <code>timing</code>, <code>zIndex</code>,{" "}
+          <code>appearance</code>, <code>compositing</code>,{" "}
+          <code>effects</code>, <code>semantic</code>.
         </P>
         <H2 id="outside">What you may set</H2>
         <P>
-          Outside the seal: position, scale, rotation, timing,{" "}
-          <code>payload.variantId</code>, and <code>payload.props</code> that
-          the owner exposed. Every other customization goes through those
-          public props — never through an inner <code>layerId</code>.
+          Control the shell with wrapper atoms (fade, mask, blur the whole
+          widget). Control inner public content with{" "}
+          <code>payload.props</code> and optional{" "}
+          <code>payload.variantId</code>. Do not edit internals,{" "}
+          <code>propBindings</code>, or nested trees from the instance.
         </P>
         <JsonBlock
           code={JSON.stringify(
@@ -55,8 +57,8 @@ export function componentLayerPage(): DocsPageView {
         />
         <AiWritingGuide
           items={[
-            "Treat a component layer like a group wrapper: move, time, and scale it.",
-            "Set only public props and variantId. Do not author internal layers from the instance.",
+            "Treat the instance as a visual wrapper: frame, transform, timing, appearance, compositing, effects.",
+            "Set payload.props for inner content. Prefer that over project.bindings. Variants only override props.",
           ]}
         />
       </article>

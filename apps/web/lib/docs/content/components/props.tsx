@@ -21,7 +21,9 @@ export function propsPage(): DocsPageView {
           Definitions expose props and variants. Instances are{" "}
           <code>type: &quot;component&quot;</code> layers with{" "}
           <code>payload.componentId</code> and <code>payload.props</code>.
-          Internals are sealed.
+          Internals are sealed. Prop keyframes animate a public signal, not
+          the instance wrapper (use appearance.opacity / transform on the
+          instance for the shell).
         </P>
         <H2 id="keyframes">Prop keyframes</H2>
         <JsonBlock
@@ -40,7 +42,7 @@ export function propsPage(): DocsPageView {
         />
         <AiWritingGuide
           items={[
-            "Instance props use value, not v.",
+            "Prop keyframes are public signals. Fade the whole instance with appearance.opacity on the wrapper.",
             "Do not bind into nested-in-definition layers from the project tree.",
           ]}
         />

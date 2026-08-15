@@ -1,8 +1,9 @@
 /**
- * Catalog component V1 — template niêm phong, props công khai, variants.
+ * Catalog component V1 — template niêm phong.
  *
- * Consumer chỉ override props công khai. Owner nối bằng propBindings.
- * Instance type:"component" nằm ở layers/component.ts.
+ * Definition: props, variants (chỉ override props), propBindings, layers.
+ * Variant không đổi tree, bindings, hay layout graph.
+ * Consumer instance: layers/component.ts. Project binding componentLayer = advanced.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

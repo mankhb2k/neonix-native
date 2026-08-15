@@ -1,7 +1,8 @@
 /**
  * Variable và binding project V1.
  *
- * Binding nhắm layer hoặc componentLayer (instance trên cây project).
+ * Binding nhắm layer (wrapper property) hoặc componentLayer.propId (advanced).
+ * Default AI: set payload.props. Nested internals chỉ nhận childProp.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -109,7 +110,7 @@ export const ProjectBindingV1Schema = z
         .object({
           type: z.literal("componentLayer"),
           layerId: IdSchema,
-          /** Public prop id declared by the referenced component owner. */
+          /** Public prop id. Advanced surface — default AI uses payload.props. */
           propId: IdSchema,
         })
         .strict(),

@@ -338,7 +338,7 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "Hi" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
@@ -371,7 +371,7 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "Hi" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
@@ -405,7 +405,7 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "A" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
@@ -419,7 +419,7 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "B" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
@@ -453,7 +453,7 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "Hi" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
@@ -615,12 +615,115 @@ describe("v1 schema — reject old contract", () => {
                 payload: {
                   content: { kind: "plain", text: "Hi" },
                   fontSize: 24,
-                  color: "#111",
+                  color: "#111111",
                   alignment: "center",
                 },
               },
             ],
             actions: [{ id: "tap", animations: [] }],
+          },
+        ],
+        layers: [
+          {
+            id: "inst",
+            type: "component",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            payload: { componentId: "btn" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts wrapper atoms on a component instance", () => {
+    const project = MotionProjectV1Schema.parse(
+      baseProject({
+        components: [
+          {
+            id: "btn",
+            version: "1.0.0",
+            integrity: "sha256:btn",
+            props: [],
+            variants: [],
+            propBindings: [],
+            variables: [],
+            layers: [
+              {
+                id: "label",
+                type: "text",
+                parentLayerId: null,
+                zIndex: 0,
+                timing: { start: 0, duration: 1 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111111",
+                  alignment: "center",
+                },
+              },
+            ],
+          },
+        ],
+        layers: [
+          {
+            id: "inst",
+            type: "component",
+            parentLayerId: null,
+            zIndex: 2,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            appearance: { visible: true, opacity: 80 },
+            compositing: { "blend-mode": "multiply" },
+            effects: [{ id: "fx", type: "blur", radius: 4 }],
+            semantic: { role: "cta" },
+            payload: { componentId: "btn", props: {} },
+          },
+        ],
+      }),
+    );
+    expect(project.layers[0]?.type).toBe("component");
+  });
+
+  it("rejects a variant that tries to replace internal layers", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        components: [
+          {
+            id: "btn",
+            version: "1.0.0",
+            integrity: "sha256:btn",
+            props: [],
+            variants: [
+              {
+                id: "alt",
+                name: "Alt",
+                props: {},
+                layers: [],
+              },
+            ],
+            propBindings: [],
+            variables: [],
+            layers: [
+              {
+                id: "label",
+                type: "text",
+                parentLayerId: null,
+                zIndex: 0,
+                timing: { start: 0, duration: 1 },
+                ...ATOMS,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111111",
+                  alignment: "center",
+                },
+              },
+            ],
           },
         ],
         layers: [

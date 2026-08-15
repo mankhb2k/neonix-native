@@ -41,19 +41,18 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 2b) `src/v1/layers/component.ts` — Component layer (instance)
 
-- `ComponentLayerV1Schema` với `type: "component"` và `payload.componentId`.
-- `transform` của layer đóng vai trò wrapper transform khi compiler expand.
-- Animation trên component layer → compiler remap sang wrapper group.
-- **Wrapper-safe contract:** các property transform chuẩn của layer được phép animate; không expose internal layer của component.
+- `ComponentLayerV1Schema` với `type: "component"` — leaf. Wrapper atoms trên LayerBase; `payload.componentId`, `variantId?`, `props`. Compiler expand thành wrapper + internals.
+- Animation trên wrapper atoms của instance → compiler remap sang wrapper group. Prop keyframes fan-out internals.
+- **Wrapper-safe:** frame, transform, timing, zIndex, appearance, compositing, effects, semantic. Không expose internal layers.
 
 ### 3) `src/v1/components/` — Sealed component
 
 - Owner sở hữu toàn bộ internals (layers). Public props là luồng drive duy nhất từ ngoài vào trong.
-- Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
+- Consumer: wrapper atoms + public `props` / `variantId`. Wiring owner = `propBindings`. Variant chỉ override props.
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - `payload.props` trên project instance chỉ ref `project.variables`. `component.variables` chỉ cho default / variant / nested instance trong definition.
 - Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
-- Project-level binding chỉ qua `target.type: "componentLayer"` (`layerId` + `propId`) trên project-tree instance; nested trong component definition chỉ qua `childProp`.
+- Project-level `componentLayer` binding là advanced; nested chỉ `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
 

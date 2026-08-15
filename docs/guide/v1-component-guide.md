@@ -1,5 +1,24 @@
 # MotiClip V1 Components
 
+> Trạng thái: v1
+>
+> Mục tiêu: instance niêm phong trên cây project; compiler bung template.
+
+---
+
+## Đã chốt
+
+1. `type: "component"` là **sealed instance leaf** trên project tree. Definition = mẫu niêm phong. Instance = layer đặt trên cây. AI/user thấy một layer; compiler/runtime bung thành wrapper + internals.
+2. Bên ngoài instance được chỉnh **wrapper atoms** (vỏ): `frame`, `transform`, `timing`, `zIndex`, `appearance`, `compositing`, `effects`, `semantic`. (Cộng `name`, `parentLayerId`, và `layoutItem` khi là child của group có `layout`.)
+3. Bên ngoài **không** được chỉnh: `layers`, `propBindings`, property internal, nested internals trực tiếp. Không bind/animate/patch vào ruột từ project consumer.
+4. `props` là public signals điều khiển ruột. Wrapper atoms điều khiển cả khối như một object.
+5. `variant` chỉ là preset override **props**. Không đổi tree, bindings, hay layout graph.
+6. Default AI: `payload.props` (+ `variantId`). `project.bindings` → `componentLayer.propId` là **advanced**. Nested chỉ nhận giá trị qua `childProp`; không skip-level.
+
+**Câu chốt:** vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Binding project tới prop = advanced.
+
+---
+
 ## Cách nên nghĩ
 
 | Khái niệm | Nghĩa đời thường |
@@ -7,7 +26,7 @@
 | **Prop** | Một **tín hiệu public** — nút chỉnh mà user/AI được đụng |
 | **PropBindings** | Các **dây nối** tín hiệu đó vào bên trong component |
 | **Prop value** | Giá trị gắn lên tín hiệu (màu tĩnh, biến, hoặc keyframes) |
-| **Instance** | Layer `type: "component"` trên `project.layers` — wrapper có `zIndex` / `timing` / `transform` / `frame`; nội dung chỉ qua `payload.props` |
+| **Instance** | Layer `type: "component"` — leaf authoring; wrapper atoms + `payload.props` |
 
 ```text
 User chỉnh props
@@ -20,23 +39,20 @@ User chỉnh props
      └─► border.style.stroke
 ```
 
-- **User / app / AI consumer** chỉ chỉnh `props`.
-- **Owner / designer AI** thiết kế `propBindings`.
-- **Compiler** biến props thành giá trị / motion tracks trên layer nội bộ.
+- **User / app / AI consumer** chỉnh wrapper atoms + `payload.props` / `variantId`.
+- **Owner / designer AI** thiết kế `propBindings` và internals.
+- **Compiler** bung instance và biến props thành giá trị / motion tracks trên layer nội bộ.
 
 Timeline **không biết** component. Root/group đặt instance. Definition mô tả bên trong.
 
 ---
 
-## Câu chốt contract
+## Câu chốt contract (chi tiết)
 
-> A **component** is a sealed design template with public **props** and **variants**.  
-> A **component layer** is an **instance** placed on the project layer tree (`type: "component"`, leaf).  
-> **Props** are public signals. A prop value can be **static**, **variable-bound**, or **keyframed**.  
-> **PropBindings** wire each signal into one or many internal layers (or child props).  
-> Only **animatable** props may receive keyframes (`choice` / `asset` default off; set `animatable: true` to opt in; asset stays step-only).  
-> Nested components may forward prop values (including keyframes) only to **direct child props**.  
-> Asset props must declare `assetKind`; asset keyframes are **step-only**.
+> Definition = sealed template. Component layer = instance leaf. Compiler expand = wrapper + internals.  
+> Wrapper atoms điều khiển vỏ. Props điều khiển ruột public. Variant chỉ override props.  
+> Prop keyframes animate public signal, không animate wrapper.  
+> Nested chỉ `childProp`. Project `componentLayer` binding là advanced.
 
 ---
 
@@ -171,9 +187,9 @@ flowchart TB
 
 | Ai | Làm gì | Không làm |
 | --- | --- | --- |
-| **User / consumer** | Set `payload.props`, chọn `variantId` | Không sửa `layers` / `propBindings` |
-| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers` | — |
-| **Compiler** | Resolve value → apply / emit tracks theo bindings | Không suy luận binding thiếu |
+| **User / consumer** | Wrapper atoms + `payload.props` / `variantId` | Không sửa `layers` / `propBindings` / internals |
+| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers`, `variants[].props` | Variant không đổi tree |
+| **Compiler** | Expand instance → wrapper + internals; resolve props → apply / emit tracks | Không suy luận binding thiếu |
 
 ---
 
@@ -294,7 +310,7 @@ Instance trên `project.layers` chỉ được ref **`project.variables`**.
 - Unknown `ref.variable` → **reject**
 - Không animate `payload.props.<propId>` qua animation track bên ngoài. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`.
 
-Prop animation ≠ wrapper transform. Animation trên component layer animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
+Prop keyframes animate **public signal**, không animate wrapper. Animation trên field wrapper của instance (`transform`, `appearance.opacity`, …) là vỏ. Prop keyframes fan-out vào layer nội bộ qua `propBindings`.
 
 ---
 
@@ -333,13 +349,15 @@ Không skip-level: A không bind thẳng layer nội bộ của C.
 
 Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child definition cho đến khi gặp `layerProperty`.
 
-### Project binding
+### Project binding (advanced)
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Project-tree layer (`layer`) hoặc **một** component instance (`componentLayer` = `layerId` + `propId`) |
+| `project.bindings` | Project | Layer wrapper property (`layer`) hoặc **một** instance (`componentLayer` = `layerId` + `propId`) |
 
-Global bulk `target.type: "component"` **đã gỡ**. Nested Button trong Card không nhận project binding — parent phải `childProp`.
+Default AI **không** dùng `project.bindings` để set prop. Dùng `payload.props`. Binding `componentLayer` giữ trong protocol cho hệ thống/app.
+
+Global bulk `target.type: "component"` **đã gỡ**. Nested Button trong Card không nhận project binding — parent phải `childProp`. Không skip-level vào nested internals.
 
 Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
 
@@ -424,6 +442,7 @@ flowchart TD
   "zIndex": 2,
   "timing": { "start": 0, "duration": 4 },
   "frame": { "width": 256, "height": 256 },
+  "appearance": { "visible": true, "opacity": 100 },
   "payload": {
     "componentId": "promo-badge",
     "props": { "brandColor": "#00ff88" }
@@ -435,7 +454,7 @@ flowchart TD
 
 ## 8. Timeline reminder
 
-Component instance = `type: "component"` layer trên **project layer tree**. Không còn visual clip / `source.kind: "scene"`. Instance có `timing`, `zIndex`, `transform`, `frame` riêng; internals sealed. Timing instance nằm ở `layer.timing`.
+Component instance = `type: "component"` leaf trên **project layer tree**. Compiler bung thành wrapper + internals. Instance mang đủ wrapper atoms; internals sealed. Timing nằm ở `layer.timing`.
 
 ---
 
@@ -443,10 +462,11 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 
 | ❌ Sai | ✅ Đúng |
 | --- | --- |
-| User sửa `layers` / `propBindings` | User chỉ set `payload.props` |
-| Một màu = ba prop riêng | Một `brandColor` + ba bindings |
-| Bind thẳng internals từ project | Bind `propId` (project-tree instance) — compiler resolve prop rồi apply |
-| Skip-level vào layer của nested child | `childProp` từng tầng |
+| User sửa `layers` / `propBindings` | User set wrapper atoms + `payload.props` |
+| Bind thẳng internals từ project | Advanced: `componentLayer` + `propId`; default: `payload.props` |
+| Animate internal bằng track ngoài | Prop keyframes hoặc wrapper atoms trên instance |
+| Variant đổi tree / bindings | Variant chỉ `props` |
+| Skip-level vào nested child | `childProp` từng tầng |
 | Global bulk binding mọi instance cùng `componentId` | `componentLayer` từng instance; nested qua `childProp` |
 | `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
 | `target.kind` / `target.type: "component"` | `target.type: "layer"` \| `"componentLayer"` |
@@ -456,7 +476,7 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 
 ## 10. Tóm tắt một câu
 
-> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Project binding chỉ `layer` | `componentLayer`. Không có `actions`.**
+> **Instance là leaf. Vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Project binding tới propId là advanced. Nested chỉ childProp.**
 
 ---
 
