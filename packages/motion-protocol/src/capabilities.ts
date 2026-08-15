@@ -46,7 +46,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   effectRadius: 512,
   effectOffset: 32_768,
   effectIntensity: 100,
-  /** Authoring percent for opacity / volume / glow intensity. 100 = full. */
+  /** Authoring percent for opacity / volume / glow-shadow opacity. 100 = full. */
   percent: 100,
   /** Color-adjust percent. 100 = normal, 200 = 2×. */
   colorAdjustPercent: 200,
@@ -512,11 +512,13 @@ export function motionPropertyCapability(
       min: 0,
       max: 1,
     };
-  const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
-  if (effectMatch) {
-    for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
-      const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
-      if (capability) return capability;
+  if (nodeType !== "audio" && nodeType !== "camera") {
+    const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
+    if (effectMatch) {
+      for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
+        const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
+        if (capability) return capability;
+      }
     }
   }
   if (
@@ -569,24 +571,23 @@ export function motionEffectPropertyCapability(
       if (field === "color")
         return {
           valueKind: "color",
-          animatable: true,
+          animatable: false,
           bindable: true,
           public: true,
-          runtimeSupport: "evaluated",
+          runtimeSupport: "compile-time",
         };
       return undefined;
     case "glow":
       if (field === "radius")
         return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
-      if (field === "intensity") return number(0, 100);
       if (field === "opacity") return number(0, 100);
       if (field === "color")
         return {
           valueKind: "color",
-          animatable: true,
+          animatable: false,
           bindable: true,
           public: true,
-          runtimeSupport: "evaluated",
+          runtimeSupport: "compile-time",
         };
       return undefined;
     case "color-adjust":

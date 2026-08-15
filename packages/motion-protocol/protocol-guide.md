@@ -9,7 +9,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 > - `index.ts` trong folder là barrel (hoặc ghép schema từ atom files).
 > - V1 (`src/v1`) = authoring JSON. Runtime (`src/runtime`) = IR renderer. Compile nằm ở `@motionvideo/motion-compiler`.
 
-**Percent / độ (authoring):** `appearance.opacity`, `payload.volume`, glow opacity/intensity, shadow opacity = integer **0..100** (100 = full). Color-adjust + adjustment payload brightness/contrast/saturation = integer **0..200** (100 = normal). `hue-rotate` = **-180..180** độ. Paint/audio: `ratioFromPercent(n) = n/100`.
+**Percent / độ (authoring):** `appearance.opacity`, `payload.volume`, glow/shadow opacity = integer **0..100** (100 = full). Color-adjust + adjustment payload brightness/contrast/saturation = integer **0..200** (100 = normal). `hue-rotate` = **-180..180** độ. Paint/audio: `ratioFromPercent(n) = n/100`.
 
 ---
 
@@ -109,10 +109,10 @@ Stack `effects[]`. Không có field `filter` trên layer.
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | `EffectSchema` discriminated `blur` \| `shadow` \| `glow` \| `color-adjust`. |
-| `blur.ts` | `radius`. |
-| `shadow.ts` | `offset: { x, y }`, `blur`, `color`, `opacity` default 25. |
-| `glow.ts` | `radius`, `intensity`/`opacity` 0..100. |
+| `index.ts` | `EffectSchema` — mảng có thứ tự; animate `effects.<id>.field`. |
+| `blur.ts` | `radius` only. |
+| `shadow.ts` | Outer: `offset`, `blur`, `color`, `opacity` default 25. Color không animate. |
+| `glow.ts` | Outer: `radius`, `color`, `opacity`. Không `intensity`. |
 | `color-adjust.ts` | brightness/contrast/saturation 0..200; `hue-rotate` −180..180. |
 
 ### 2.6 `src/v1/assets/`

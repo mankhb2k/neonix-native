@@ -459,7 +459,7 @@ function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
     outputContext.shadowOffsetX = 0;
     outputContext.shadowOffsetY = 0;
   } else if (effect.type === "glow") {
-    outputContext.shadowColor = colorWithOpacity(effect.color, Math.min(1, effect.opacity * effect.intensity));
+    outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
     outputContext.shadowBlur = effect.radius;
     outputContext.drawImage(layer, 0, 0);
     outputContext.shadowColor = "transparent";

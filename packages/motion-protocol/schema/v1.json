@@ -1790,8 +1790,7 @@
                                     "const": "shadow"
                                   },
                                   "color": {
-                                    "type": "string",
-                                    "minLength": 1
+                                    "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
                                   },
                                   "opacity": {
                                     "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
@@ -1847,13 +1846,8 @@
                                     "minimum": 0,
                                     "maximum": 512
                                   },
-                                  "intensity": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
-                                    "default": 100
-                                  },
                                   "color": {
-                                    "type": "string",
-                                    "minLength": 1
+                                    "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
                                   },
                                   "opacity": {
                                     "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
@@ -3219,9 +3213,6 @@
                         },
                         "semantic": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
-                        },
-                        "effects": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"

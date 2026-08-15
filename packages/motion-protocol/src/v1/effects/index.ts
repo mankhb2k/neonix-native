@@ -1,5 +1,6 @@
 /**
- * Stack effect pixel — discriminated blur | shadow | glow | color-adjust.
+ * Stack effect pixel theo thứ tự mảng. Discriminator type.
+ * Animate theo effect id (effects.<id>.field), không theo index.
  */
 import { z } from "zod";
 import { BlurEffectSchema } from "./blur";

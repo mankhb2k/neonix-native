@@ -854,4 +854,49 @@ describe("v1 schema — reject old contract", () => {
     );
     expect(result.success).toBe(false);
   });
+
+  it("rejects duplicate effect ids on a layer", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          layers: [
+            {
+              id: "box",
+              type: "solid",
+              parentLayerId: null,
+              zIndex: 0,
+              timing: { start: 0, duration: 1 },
+              ...ATOMS,
+              effects: [
+                { id: "fx", type: "blur", radius: 4 },
+                { id: "fx", type: "blur", radius: 8 },
+              ],
+              payload: { color: "#111111" },
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/effect id/);
+  });
+
+  it("rejects effects on a camera layer", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "cam",
+            type: "camera",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            transform: ATOMS.transform,
+            appearance: ATOMS.appearance,
+            effects: [{ id: "fx", type: "blur", radius: 4 }],
+            payload: { projection: "orthographic" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
 });

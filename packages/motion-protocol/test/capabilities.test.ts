@@ -81,6 +81,21 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(isLayerPropertyBindable("audio", "appearance.opacity")).toBe(false);
     expect(isLayerPropertyBindable("audio", "appearance.visible")).toBe(false);
     expect(isLayerPropertyBindable("text", "appearance.opacity")).toBe(true);
+    expect(motionPropertyCapability("text", "effects.fx.radius")?.animatable).toBe(
+      true,
+    );
+    expect(motionPropertyCapability("text", "effects.fx.color")?.animatable).toBe(
+      false,
+    );
+    expect(
+      motionPropertyCapability("text", "effects.fx.intensity"),
+    ).toBeUndefined();
+    expect(
+      motionPropertyCapability("camera", "effects.fx.radius"),
+    ).toBeUndefined();
+    expect(
+      motionPropertyCapability("audio", "effects.fx.radius"),
+    ).toBeUndefined();
     expect(
       publicMotionPropertyCapabilities("text").some(
         (entry) => entry.property === "payload.content.text",

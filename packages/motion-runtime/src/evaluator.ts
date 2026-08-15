@@ -434,16 +434,6 @@ export function evaluateEffect(
           time,
           effect.radius,
         ),
-        intensity: ratioFromPercent(
-          effectNumber(
-            scene,
-            node,
-            effect,
-            "intensity",
-            time,
-            effect.intensity,
-          ),
-        ),
         color: effectString(scene, node, effect, "color", time, effect.color),
         opacity: ratioFromPercent(
           effectNumber(scene, node, effect, "opacity", time, effect.opacity),

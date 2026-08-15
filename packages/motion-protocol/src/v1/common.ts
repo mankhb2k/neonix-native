@@ -56,7 +56,7 @@ export const NonNegativeIntegerSchema = z.number().int().nonnegative();
 export const PositiveNumberSchema = z.number().positive().finite();
 export const NormalizedRatioSchema = z.number().min(0).max(1).finite();
 
-/** Phần trăm authoring. 100 = đầy (opacity, volume, intensity). Chỉ số nguyên. */
+/** Phần trăm authoring. 100 = đầy (opacity, volume). Chỉ số nguyên. */
 export const PercentSchema = z.number().int().min(0).max(100);
 
 /** Phần trăm color-adjust. 100 = bình thường, 200 = 2×. Chỉ số nguyên. */

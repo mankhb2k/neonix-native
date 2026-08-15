@@ -497,14 +497,14 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "effect.blur",
     name: "Blur Effect",
-    description: "Gaussian blur filter",
+    description: "Isotropic content blur (radius only)",
     category: "effect",
     experimental: false,
   },
   {
     id: "effect.shadow",
     name: "Drop Shadow",
-    description: "Drop shadow effect",
+    description: "Outer drop shadow (offset, blur, color, opacity)",
     category: "effect",
     experimental: false,
   },

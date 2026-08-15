@@ -1,9 +1,10 @@
 /**
- * Đổ bóng — offset {x,y}, blur, color, opacity mặc định 25 (0..100).
+ * Bóng ngoài — offset {x,y}, blur, color, opacity mặc định 25 (0..100).
+ * Không inner shadow / spread / angle. Color không animate trong V1.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { IdSchema, PercentSchema } from "../common";
+import { ColorHexSchema, IdSchema, PercentSchema } from "../common";
 
 export const ShadowOffsetSchema = z
   .object({
@@ -24,7 +25,7 @@ export const ShadowEffectSchema = z
   .object({
     id: IdSchema,
     type: z.literal("shadow"),
-    color: z.string().min(1),
+    color: ColorHexSchema,
     opacity: PercentSchema.default(25),
     blur: z
       .number()

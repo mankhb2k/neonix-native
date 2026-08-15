@@ -84,6 +84,22 @@ export function validateLayerGraphV1(
       });
     }
 
+    if (
+      node.type !== "audio" &&
+      node.type !== "camera" &&
+      "effects" in node &&
+      node.effects
+    ) {
+      for (const effectId of new Set(
+        duplicates(node.effects.map((effect) => effect.id)),
+      )) {
+        issues.push({
+          path: `${prefix}.${node.id}.effects`,
+          message: `Duplicate effect id: ${effectId}`,
+        });
+      }
+    }
+
     if ("layoutItem" in node && node.layoutItem) {
       if (node.parentLayerId === null) {
         issues.push({

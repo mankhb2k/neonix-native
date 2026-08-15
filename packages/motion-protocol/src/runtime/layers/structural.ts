@@ -36,6 +36,7 @@ export const BoneLayerSchema = LayerBaseSchema.extend({
 export const CameraLayerSchema = LayerBaseSchema.omit({
   frame: true,
   layoutItem: true,
+  effects: true,
 }).extend({
   type: z.literal("camera"),
   payload: z

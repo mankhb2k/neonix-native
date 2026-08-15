@@ -1003,7 +1003,6 @@ function applyOne(
             id: command.effectId,
             type: "glow",
             radius: command.effect.radius,
-            intensity: command.effect.intensity ?? 100,
             color: command.effect.color,
             opacity: command.effect.opacity ?? 100,
           });

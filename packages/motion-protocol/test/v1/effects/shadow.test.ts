@@ -7,7 +7,7 @@ describe("ShadowEffectSchema", () => {
       ShadowEffectSchema.parse({
         id: "s1",
         type: "shadow",
-        color: "#000",
+        color: "#000000",
         blur: 4,
         offset: { x: 2, y: -1 },
       }),
@@ -22,7 +22,7 @@ describe("ShadowEffectSchema", () => {
       ShadowEffectSchema.safeParse({
         id: "s1",
         type: "shadow",
-        color: "#000",
+        color: "#000000",
         blur: 4,
         offsetX: 2,
         offsetY: 1,
