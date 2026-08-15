@@ -145,7 +145,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `component.ts` | Sealed instance leaf. Wrapper atoms + `payload.componentId` / `variantId?` / `props`. Compiler expand. |
 | `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
 | `media.ts` | `image` / `svg` / `video` / `camera`. Image+svg: `{ assetId, fit, crop? }`. |
-| `geometry.ts` | `shape` + `path`. |
+| `geometry.ts` | `shape` (rectangle/ellipse/polygon, points 0..1) + `path`. Không `payload.color` trên shape. |
 | `geometry-types.ts` | `z.infer` shape/path. |
 | `paint.ts` | `FitSchema`, `CropSchema`, `PaintStyleSchema`. |
 | `structural.ts` | `group` (phải có children), `bone`, `solid`, `adjustment`. |

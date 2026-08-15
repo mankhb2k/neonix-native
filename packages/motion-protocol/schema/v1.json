@@ -2272,13 +2272,13 @@
                                     "properties": {
                                       "x": {
                                         "type": "number",
-                                        "minimum": -32768,
-                                        "maximum": 32768
+                                        "minimum": 0,
+                                        "maximum": 1
                                       },
                                       "y": {
                                         "type": "number",
-                                        "minimum": -32768,
-                                        "maximum": 32768
+                                        "minimum": 0,
+                                        "maximum": 1
                                       }
                                     },
                                     "required": [
@@ -2530,7 +2530,24 @@
                                     "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
                                   },
                                   "start": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/3/properties/payload/anyOf/2/properties/points/items"
+                                    "type": "object",
+                                    "properties": {
+                                      "x": {
+                                        "type": "number",
+                                        "minimum": -32768,
+                                        "maximum": 32768
+                                      },
+                                      "y": {
+                                        "type": "number",
+                                        "minimum": -32768,
+                                        "maximum": 32768
+                                      }
+                                    },
+                                    "required": [
+                                      "x",
+                                      "y"
+                                    ],
+                                    "additionalProperties": false
                                   },
                                   "segments": {
                                     "type": "array",
@@ -2544,7 +2561,7 @@
                                               "const": "line"
                                             },
                                             "to": {
-                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/3/properties/payload/anyOf/2/properties/points/items"
+                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                             }
                                           },
                                           "required": [
@@ -2561,13 +2578,13 @@
                                               "const": "cubic"
                                             },
                                             "control1": {
-                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/3/properties/payload/anyOf/2/properties/points/items"
+                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                             },
                                             "control2": {
-                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/3/properties/payload/anyOf/2/properties/points/items"
+                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                             },
                                             "to": {
-                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/3/properties/payload/anyOf/2/properties/points/items"
+                                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                             }
                                           },
                                           "required": [

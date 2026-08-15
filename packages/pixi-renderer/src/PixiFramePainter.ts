@@ -793,9 +793,18 @@ export function createPixiFramePainter(
           if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
             g.ellipse(w / 2, h / 2, w / 2, h / 2);
           } else if (cmd.op === "drawShape" && cmd.shape === "polygon") {
-            g.moveTo(w / 2, 0);
-            g.lineTo(0, h);
-            g.lineTo(w, h);
+            const pts =
+              cmd.points && cmd.points.length >= 3
+                ? cmd.points
+                : [
+                    { x: 0.5, y: 0 },
+                    { x: 0, y: 1 },
+                    { x: 1, y: 1 },
+                  ];
+            g.moveTo(pts[0]!.x * w, pts[0]!.y * h);
+            for (let i = 1; i < pts.length; i++) {
+              g.lineTo(pts[i]!.x * w, pts[i]!.y * h);
+            }
             g.closePath();
           } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
             g.roundRect(0, 0, w, h, cmd.cornerRadius);
@@ -1012,6 +1021,20 @@ export function createPixiFramePainter(
                 const h = cmd.height;
                 if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
                   g.ellipse(w / 2, h / 2, w / 2, h / 2);
+                } else if (cmd.op === "drawShape" && cmd.shape === "polygon") {
+                  const pts =
+                    cmd.points && cmd.points.length >= 3
+                      ? cmd.points
+                      : [
+                          { x: 0.5, y: 0 },
+                          { x: 0, y: 1 },
+                          { x: 1, y: 1 },
+                        ];
+                  g.moveTo(pts[0]!.x * w, pts[0]!.y * h);
+                  for (let i = 1; i < pts.length; i++) {
+                    g.lineTo(pts[i]!.x * w, pts[i]!.y * h);
+                  }
+                  g.closePath();
                 } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
                   g.roundRect(0, 0, w, h, cmd.cornerRadius);
                 } else {

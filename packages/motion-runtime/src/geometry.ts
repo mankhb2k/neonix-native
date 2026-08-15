@@ -240,8 +240,7 @@ export function inflateBounds(bounds: Bounds2D, amount: number): Bounds2D {
 /** Returns canonical local-space drawable bounds, including half of the evaluated stroke. */
 export function localNodeBounds(node: RuntimeNode, transform: Transform2D, strokeWidth = 0, contours?: PathContour[]): Bounds2D {
   let bounds: Bounds2D = { x: 0, y: 0, width: transform.width, height: transform.height };
-  if (node.type === "shape" && node.payload.shape === "polygon") bounds = pointBounds(node.payload.points);
-  else if (node.type === "path") bounds = pathBounds(node, contours);
+  if (node.type === "path") bounds = pathBounds(node, contours);
   return inflateBounds(bounds, strokeWidth / 2);
 }
 

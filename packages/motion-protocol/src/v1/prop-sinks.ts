@@ -22,6 +22,7 @@ const NUMBER_LEAVES = new Set([
   "layoutItem.maxWidth",
   "layoutItem.minHeight",
   "layoutItem.maxHeight",
+  "payload.cornerRadius",
 ]);
 
 const BOOLEAN_LEAVES = new Set(["appearance.visible"]);

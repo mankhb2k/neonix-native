@@ -74,6 +74,7 @@ export type RenderItemPayload =
       fill?: string;
       fillPaint?: PaintFill;
       cornerRadius?: number;
+      points?: Array<{ x: number; y: number }>;
       width: number;
       height: number;
     }
@@ -289,6 +290,7 @@ function payloadForNode(
         payload: {
           shape: "rectangle" | "ellipse" | "polygon";
           cornerRadius?: number;
+          points?: Array<{ x: number; y: number }>;
         };
       };
       return {
@@ -297,6 +299,9 @@ function payloadForNode(
         fill: paint.fill ?? "#c4843a",
         ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
         cornerRadius: shapeNode.payload.cornerRadius,
+        ...(shapeNode.payload.shape === "polygon" && shapeNode.payload.points
+          ? { points: shapeNode.payload.points }
+          : {}),
         width,
         height,
       };

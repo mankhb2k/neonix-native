@@ -30,12 +30,14 @@ export {
 } from "./text";
 export {
   PointSchema,
+  NormalizedPointSchema,
   ShapeLayerSchema,
   PathSegmentSchema,
   PathContourSchema,
   PathMorphTargetSchema,
   PathLayerSchema,
   type MotionPoint,
+  type NormalizedPoint,
   type MotionPathSegment,
   type MotionPathContour,
   type MotionPathMorphTarget,

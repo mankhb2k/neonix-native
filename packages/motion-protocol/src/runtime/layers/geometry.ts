@@ -12,15 +12,18 @@ import { PaintStyleSchema } from "./paint";
 // Shared primitives — imported from V1 for local use, then re-exported
 import {
   PointSchema,
+  NormalizedPointSchema,
   PathContourSchema,
   PathMorphTargetSchema,
 } from "../../v1/layers/geometry";
 export {
   PointSchema,
+  NormalizedPointSchema,
   PathSegmentSchema,
   PathContourSchema,
   PathMorphTargetSchema,
   type MotionPoint,
+  type NormalizedPoint,
   type MotionPathSegment,
   type MotionPathContour,
   type MotionPathMorphTarget,
@@ -41,7 +44,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
     .object({
       shape: z.literal("polygon"),
       points: z
-        .array(PointSchema)
+        .array(NormalizedPointSchema)
         .min(3)
         .max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })

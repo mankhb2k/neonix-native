@@ -52,6 +52,7 @@ export type PaintShapeResource = {
   kind: "shape";
   shape: "rectangle" | "ellipse" | "polygon";
   cornerRadius?: number;
+  points?: Array<{ x: number; y: number }>;
 };
 
 export type PaintImageResource = {
@@ -135,6 +136,7 @@ export function extractPaintResource(
         kind: "shape",
         shape: cmd.shape,
         cornerRadius: cmd.cornerRadius,
+        points: cmd.points,
       };
     case "drawImage":
       return {

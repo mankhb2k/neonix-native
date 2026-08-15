@@ -133,9 +133,9 @@ function nodeFromDraft(
       shapePayload = {
         shape: "polygon",
         points: [
-          { x: 50, y: 0 },
-          { x: 100, y: 100 },
-          { x: 0, y: 100 },
+          { x: 0.5, y: 0 },
+          { x: 1, y: 1 },
+          { x: 0, y: 1 },
         ],
       };
     } else {

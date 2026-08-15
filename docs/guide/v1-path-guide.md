@@ -12,7 +12,7 @@
 
 Khác với `shape`:
 
-- `shape` dùng cho primitive chuẩn như rectangle, ellipse, polygon
+- `shape` dùng cho primitive chuẩn: rectangle, ellipse, polygon. Xem [v1-shape-guide.md](./v1-shape-guide.md).
 - `path` dùng cho hình được mô tả bằng các điểm và các đoạn path
 
 Nói ngắn:

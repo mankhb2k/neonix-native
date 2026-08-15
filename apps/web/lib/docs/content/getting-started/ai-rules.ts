@@ -14,6 +14,6 @@ export const AI_GLOBAL = [
   "Do not emit modifiers.",
   "A component layer is a sealed instance. Set wrapper atoms plus payload.props. Do not edit internals. Prefer payload.props over project.bindings. Bind only target.type prop to a public propId. Variants only override props.",
   "Prefer payload.props literals or project.bindings type prop. Do not emit inline variable refs on props. Do not emit component.variables.",
-  "A text layer is one box, one string, one style. Set payload.text plus typography. Do not emit content, runs, or rich text. Two styles need two text layers.",
+  "A shape layer is a formula primitive: rectangle, ellipse, or polygon. frame is the box, payload is the formula, style is paint. Put color on style.fill/stroke. Never payload.color. Polygon points are 0..1 inside the frame. Path is freeform vector, not shape.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

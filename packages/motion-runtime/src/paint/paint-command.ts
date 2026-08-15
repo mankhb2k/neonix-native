@@ -112,6 +112,7 @@ export type PaintCommand =
       width: number;
       height: number;
       cornerRadius?: number;
+      points?: Array<{ x: number; y: number }>;
       effects?: RuntimeEffect[];
     }
   | {

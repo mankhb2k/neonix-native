@@ -132,6 +132,7 @@ function emitDraw(
       width: payload.width,
       height: payload.height,
       cornerRadius: payload.cornerRadius,
+      ...(payload.points ? { points: payload.points } : {}),
       ...(effects?.length ? { effects } : {}),
     });
     return;

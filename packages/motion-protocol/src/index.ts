@@ -200,6 +200,8 @@ export {
 export {
   PointSchema,
   type MotionPoint,
+  NormalizedPointSchema,
+  type NormalizedPoint,
   PathSegmentSchema,
   type MotionPathSegment,
   PathContourSchema,

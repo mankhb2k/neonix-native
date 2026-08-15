@@ -34,7 +34,7 @@ User chỉnh props
      ▼
   brandColor = #00ff88          ← một tín hiệu
      │
-     ├─► circle.payload.color
+     ├─► circle.style.fill
      ├─► title.payload.color    ← fan-out nhờ propBindings
      └─► border.style.stroke
 ```
@@ -86,7 +86,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
       "target": {
         "kind": "layerProperty",
         "layerId": "circle",
-        "property": "payload.color"
+        "property": "style.fill"
       }
     },
     {
@@ -132,7 +132,7 @@ Compiler hiểu:
 
 ```text
 badge-1.brandColor = #00ff88
-  → circle.payload.color  = #00ff88
+  → circle.style.fill     = #00ff88
   → title.payload.color   = #00ff88
   → border.style.stroke   = #00ff88
 ```
@@ -423,7 +423,7 @@ flowchart TD
   "propBindings": [
     {
       "propId": "brandColor",
-      "target": { "kind": "layerProperty", "layerId": "circle", "property": "payload.color" }
+      "target": { "kind": "layerProperty", "layerId": "circle", "property": "style.fill" }
     },
     {
       "propId": "brandColor",

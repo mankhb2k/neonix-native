@@ -101,7 +101,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.5";
+export const CAPABILITY_MANIFEST_VERSION = "2.6";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -175,29 +175,45 @@ const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> 
 const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
     "style.fill": cap("color"),
-    "style.fillOpacity": cap("number", { min: 0, max: 1 }),
+    "style.fillOpacity": cap("number", {
+      min: 0,
+      max: 1,
+      public: false,
+    }),
     "style.stroke": cap("color"),
     "style.strokeWidth": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
     }),
-    "style.strokeOpacity": cap("number", { min: 0, max: 1 }),
+    "style.strokeOpacity": cap("number", {
+      min: 0,
+      max: 1,
+      public: false,
+    }),
     "style.lineCap": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
+      public: false,
     }),
     "style.lineJoin": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
+      public: false,
     }),
     "style.miterLimit": cap("number", {
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      public: false,
     }),
-    "style.dash": cap("json", { animatable: false, runtimeSupport: "compile-time" }),
+    "style.dash": cap("json", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+      public: false,
+    }),
     "style.dashOffset": cap("number", {
       min: -MOTION_PROTOCOL_LIMITS.dashLength,
       max: MOTION_PROTOCOL_LIMITS.dashLength,
+      public: false,
     }),
   });
 

@@ -23,6 +23,16 @@ export const PointSchema = z
 
 export type MotionPoint = z.infer<typeof PointSchema>;
 
+/** Polygon vertices — 0..1 trong frame (0,0 góc trên trái; 1,1 góc dưới phải). */
+export const NormalizedPointSchema = z
+  .object({
+    x: FiniteNumberSchema.min(0).max(1),
+    y: FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
+export type NormalizedPoint = z.infer<typeof NormalizedPointSchema>;
+
 export const PathSegmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("line"), to: PointSchema }).strict(),
   z
@@ -69,9 +79,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("rectangle"),
-      cornerRadius: z
-        .number()
-        .nonnegative()
+      cornerRadius: FiniteNumberSchema.nonnegative()
         .max(MOTION_PROTOCOL_LIMITS.layerDimension)
         .optional(),
     })
@@ -80,7 +88,10 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("polygon"),
-      points: z.array(PointSchema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
+      points: z
+        .array(NormalizedPointSchema)
+        .min(3)
+        .max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })
     .strict(),
 ]);
