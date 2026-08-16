@@ -152,7 +152,7 @@ export function buildAudioRenderPlan(
     );
     if (durationInFrames <= 0) continue;
 
-    const muted = layer.appearance?.visible === false || (payload.muted ?? false);
+    const muted = payload.muted ?? false;
     const volume = muted ? 0 : ratioFromPercent(payload.volume ?? 100);
 
     const channelPolicy: AudioChannelPolicy =

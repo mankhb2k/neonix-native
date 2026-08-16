@@ -1,7 +1,7 @@
 /**
  * Layer cấu trúc: group, bone, solid, adjustment.
  *
- * Chỉ group được lồng children. parentLayerId con phải khớp.
+ * Chỉ group được lồng children. Group không hợp lệ nếu không có child.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -11,10 +11,12 @@ import {
   HueRotateSchema,
   PositiveNumberSchema,
 } from "../common";
+import { LayoutConstraintSchema } from "../layout";
 import { LayerBaseV1Schema } from "./base";
 
 export const GroupLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("group"),
+  layout: LayoutConstraintSchema.optional(),
   payload: z.object({}).strict().optional(),
 }).strict();
 

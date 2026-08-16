@@ -200,6 +200,8 @@ export {
 export {
   PointSchema,
   type MotionPoint,
+  NormalizedPointSchema,
+  type NormalizedPoint,
   PathSegmentSchema,
   type MotionPathSegment,
   PathContourSchema,
@@ -214,15 +216,10 @@ export {
   PaintStyleSchema,
   type MotionPaintStyle,
   segmentTextUnits,
-  TextContentSchema,
-  RichTextRunSchema,
   TextPayloadSchema,
-  textContentPlain,
   getTextPayloadPlain,
   setTextPayloadPlain,
   normalizeTextPayloadInput,
-  type TextContent,
-  type RichTextRun,
   type TextLayerPayload,
 } from "./v1/layers";
 
@@ -250,11 +247,8 @@ export {
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
   KeyframeEasingSchema,
-  ExtrapolationBehaviorSchema,
   ProceduralDriverSchema,
   type ProceduralDriver,
-  TimelineMarkerSchema,
-  TrackTimeSchema,
 } from "./v1/animation";
 
 export { DesignTokensSchema, type DesignTokens } from "./v1/design-tokens";

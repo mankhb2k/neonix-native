@@ -14,7 +14,6 @@ export function getRootLayerTimelineEndV1(
   let end = 0;
   for (const layer of layers) {
     if (layer.parentLayerId !== null) continue;
-    if (!layer.timing) continue;
     end = Math.max(end, layer.timing.start + layer.timing.duration);
   }
   return roundTimelineValue(end);
@@ -29,7 +28,5 @@ export function deriveTimelineDurationV1(
 export function hasTimelineContentV1(
   layers: ReadonlyArray<Pick<LayerV1, "parentLayerId" | "timing">>,
 ): boolean {
-  return layers.some(
-    (layer) => layer.parentLayerId === null && layer.timing !== undefined,
-  );
+  return layers.some((layer) => layer.parentLayerId === null);
 }

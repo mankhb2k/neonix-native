@@ -200,14 +200,10 @@ function trimLayer(
 ): LayerV1[] {
   return nodes.map((node) => {
     if (node.id === layerId) {
-      const timing = node.timing
-        ? {
-            start: start ?? node.timing.start,
-            duration: duration ?? node.timing.duration,
-          }
-        : start !== undefined && duration !== undefined
-          ? { start, duration }
-          : node.timing;
+      const timing = {
+        start: start ?? node.timing.start,
+        duration: duration ?? node.timing.duration,
+      };
       return { ...node, timing } as LayerV1;
     }
     if (node.type === "group") {
@@ -331,7 +327,7 @@ export function applyMotionProjectV1Patch(
           layers: removeLayer(next.layers, op.layerId),
           bindings: next.bindings.filter((binding) => {
             const target = binding.target;
-            if (target.type === "layer" || target.type === "componentLayer") {
+            if (target.type === "prop") {
               return target.layerId !== op.layerId;
             }
             return true;

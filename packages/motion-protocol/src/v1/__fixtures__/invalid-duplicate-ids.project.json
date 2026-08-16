@@ -91,11 +91,8 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "hello"
-        },
-        "fontSize": 24
+        "fontSize": 24,
+        "text": "hello"
       },
       "zIndex": 0,
       "timing": {
@@ -137,11 +134,8 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "world"
-        },
-        "fontSize": 24
+        "fontSize": 24,
+        "text": "world"
       },
       "zIndex": 1,
       "timing": {

@@ -610,7 +610,7 @@ export async function runScopedRefine(input: {
         sceneId,
         layerId,
         payload: {
-          content: { kind: "plain", text: input.prompt.slice(0, 200) },
+          text: input.prompt.slice(0, 200) ,
         },
       });
     }

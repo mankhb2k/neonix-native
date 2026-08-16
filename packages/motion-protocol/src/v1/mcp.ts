@@ -207,9 +207,9 @@ export interface MCPInspectTimelineResult extends MCPBaseResult {
   layers: Array<{
     id: string;
     type: string;
-    zIndex: number | undefined;
-    start?: number;
-    duration?: number;
+    zIndex: number;
+    start: number;
+    duration: number;
   }>;
 }
 
@@ -382,7 +382,7 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "inspect_timeline",
     description:
-      "Inspect a project's timeline — root layers, zIndex lanes, timings, markers",
+      "Inspect a project's timeline — root layers, required zIndex lanes, required timings, property keyframes",
     inputSchema: { $ref: "#/definitions/MCPInspectTimelineInput" },
     category: "inspect",
     requiredCapabilities: [],
@@ -497,14 +497,14 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "effect.blur",
     name: "Blur Effect",
-    description: "Gaussian blur filter",
+    description: "Isotropic content blur (radius only)",
     category: "effect",
     experimental: false,
   },
   {
     id: "effect.shadow",
     name: "Drop Shadow",
-    description: "Drop shadow effect",
+    description: "Outer drop shadow (offset, blur, color, opacity)",
     category: "effect",
     experimental: false,
   },
@@ -532,7 +532,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "primitive.text",
     name: "Text",
-    description: "Rich text with font, color, alignment",
+    description: "One box, one string, one style",
     category: "primitive",
     experimental: false,
   },
@@ -655,12 +655,11 @@ export function inspectTimeline(
     id: layer.id,
     type: layer.type,
     zIndex: layer.zIndex,
-    start: layer.timing?.start,
-    duration: layer.timing?.duration,
+    start: layer.timing.start,
+    duration: layer.timing.duration,
   }));
 
   const totalDuration = layers.reduce((max, layer) => {
-    if (layer.start === undefined || layer.duration === undefined) return max;
     return Math.max(max, layer.start + layer.duration);
   }, 0);
 
@@ -763,7 +762,7 @@ function explainSingle(diag: {
   // formatVersion must be 1
   if (diag.message.includes("formatVersion") || diag.path.includes("formatVersion")) {
     return {
-      explanation: `Authoring only accepts formatVersion 1 (project.layers, no scenes or timeline tracks).`,
+      explanation: `Authoring only accepts formatVersion 1 (project.layers). V1 has no tracks in authoring/runtime animation.`,
       suggestedAction:
         "Set formatVersion to 1 and use V1 conventions (root layers with type and zIndex).",
     };

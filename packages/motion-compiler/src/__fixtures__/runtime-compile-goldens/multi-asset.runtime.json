@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "multi-asset",
     "name": "Multi Asset",
@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a2c41bf69986fea94da2247069a2d736",
+  "runtimeHash": "350176dd91d3f6eb1bfab0c134d141f9",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -97,12 +97,12 @@
           "x": 960,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -146,12 +146,12 @@
           "x": 960,
           "y": 200
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -176,12 +176,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Multi Asset Scene"
-        },
+        "text": "Multi Asset Scene",
         "fontSize": 48,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -203,12 +201,12 @@
           "x": 300,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -251,12 +249,12 @@
           "x": 960,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -299,12 +297,12 @@
           "x": 1620,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -331,7 +329,8 @@
       "payload": {
         "assetId": "clip-video",
         "fit": "cover",
-        "loop": true
+        "loop": true,
+        "muted": false
       }
     },
     {
@@ -343,11 +342,6 @@
         "start": 0,
         "duration": 42.5
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      },
-      "locked": false,
       "payload": {
         "assetId": "bgm",
         "trimStart": 0,
@@ -360,7 +354,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 42.5
   }

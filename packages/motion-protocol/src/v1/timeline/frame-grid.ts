@@ -112,7 +112,6 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
   const next = { ...timeline } as T & {
     duration?: number;
     workArea?: { start: number; end: number };
-    markers?: Array<Record<string, unknown>>;
   };
 
   if (next.duration !== undefined) {
@@ -124,16 +123,6 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
       start: snapSecondsToFrameGrid(next.workArea.start, safeFps),
       end: snapSecondsToFrameGrid(next.workArea.end, safeFps),
     };
-  }
-
-  if (Array.isArray(next.markers)) {
-    next.markers = next.markers.map((marker) => ({
-      ...marker,
-      t:
-        typeof marker.t === "number"
-          ? snapSecondsToFrameGrid(marker.t, safeFps)
-          : marker.t,
-    }));
   }
 
   return next;
@@ -208,9 +197,6 @@ export function collectFrameGridIssues(
       issues,
     );
     checkOnGrid(timeline.workArea.end, safeFps, ["workArea", "end"], issues);
-  }
-  for (const marker of timeline.markers ?? []) {
-    checkOnGrid(marker.t, safeFps, ["markers", marker.id, "t"], issues);
   }
 
   collectLayerFrameGridIssues(layers, safeFps, ["layers"], issues);

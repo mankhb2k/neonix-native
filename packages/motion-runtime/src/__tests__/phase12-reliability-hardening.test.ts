@@ -439,7 +439,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
       id: "s1",
       duration: 5,
       space: "flat-2d" as const,
-      tracks: [],
+      propertyAnimations: [],
       layers: [
         {
           type: "solid" as const,
@@ -469,7 +469,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
       id: "s2",
       duration: 5,
       space: "flat-2d" as const,
-      tracks: [],
+      propertyAnimations: [],
       layers: [
         {
           type: "solid" as const,

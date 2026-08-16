@@ -20,9 +20,9 @@ function runtimeLayer(id = "title"): Record<string, unknown> {
     timing: { start: 0, duration: 5 },
     ...visualLayerAtoms({ x: 960, y: 540, width: 800, height: 120, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
-      content: { kind: "plain", text: "Hello MotiClip" },
+      text: "Hello MotiClip" ,
       fontSize: 64,
-      align: "center",
+      alignment: "center",
     },
   };
 }
@@ -31,7 +31,7 @@ function baseIR(): Record<string, unknown> {
   return {
     format: "motion-runtime",
     formatVersion: 1,
-    runtimeVersion: 3,
+    runtimeVersion: 4,
     metadata: {
       id: "rt",
       name: "Runtime",
@@ -42,7 +42,7 @@ function baseIR(): Record<string, unknown> {
     },
     assets: [],
     layers: [runtimeLayer()],
-    tracks: [],
+    propertyAnimations: [],
     timeline: { duration: 5 },
   };
 }
@@ -58,7 +58,14 @@ describe("runtime IR layer graph", () => {
       MotionRuntimeProjectSchema.parse(baseIR());
     expect(project.format).toBe("motion-runtime");
     expect(project.layers).toHaveLength(1);
-    expect(project.tracks).toEqual([]);
+    expect(project.propertyAnimations).toEqual([]);
+    expect(project).not.toHaveProperty("tracks");
+  });
+
+  it("strict-rejects serialized runtime tracks", () => {
+    const ir = baseIR();
+    ir.tracks = [];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
   it("strict-rejects serialized scenes", () => {
@@ -67,18 +74,44 @@ describe("runtime IR layer graph", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("strict-rejects timeline.visualTracks / audioTracks / captionTracks", () => {
+  it("requires frame on visual runtime layers", () => {
     const ir = baseIR();
-    (ir.timeline as Record<string, unknown>).visualTracks = [];
+    const layer = (ir.layers as Record<string, unknown>[])[0]!;
+    delete layer.frame;
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
 
-    const audio = baseIR();
-    (audio.timeline as Record<string, unknown>).audioTracks = [];
-    expect(MotionRuntimeProjectSchema.safeParse(audio).success).toBe(false);
-
-    const captions = baseIR();
-    (captions.timeline as Record<string, unknown>).captionTracks = [];
-    expect(MotionRuntimeProjectSchema.safeParse(captions).success).toBe(false);
+  it("accepts optional layoutItem on a nested visual runtime layer", () => {
+    const ir = baseIR();
+    ir.layers = [
+      {
+        id: "stack",
+        type: "group",
+        parentLayerId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 5 },
+        ...visualLayerAtoms({
+          x: 0,
+          y: 0,
+          width: 800,
+          height: 400,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
+        layout: { mode: "column", gap: 8 },
+      },
+      {
+        ...runtimeLayer("title"),
+        parentLayerId: "stack",
+        layoutItem: { width: "fill", height: "hug" },
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });
 
@@ -288,6 +321,69 @@ describe("timeline.duration", () => {
       },
     ];
     (ir.timeline as Record<string, unknown>).duration = 2;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+
+  it("rejects appearance on a runtime audio layer", () => {
+    const ir = baseIR();
+    ir.layers = [
+      {
+        id: "music",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -1,
+        timing: { start: 0, duration: 2 },
+        appearance: { visible: true, opacity: 100 },
+        payload: { assetId: "a" },
+      },
+    ];
+    (ir.timeline as Record<string, unknown>).duration = 2;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+});
+
+describe("runtime IR V1 contract", () => {
+  it("rejects modifiers on runtime layers", () => {
+    const ir = baseIR();
+    const layer = (ir.layers as Record<string, unknown>[])[0]!;
+    layer.modifiers = [
+      {
+        id: "mp",
+        type: "motion-path",
+        pathNodeId: "p",
+        contourId: "c",
+        progress: 0,
+        orientToPath: false,
+        rotationOffset: 0,
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects modifiers.* propertyAnimations", () => {
+    const ir = baseIR();
+    ir.propertyAnimations = [
+      {
+        layerId: "title",
+        property: "modifiers.mp.progress",
+        keys: [{ t: 0, v: 0 }],
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts propertyAnimations compiled from timeline.clips allowlist", () => {
+    const ir = baseIR();
+    ir.propertyAnimations = [
+      {
+        layerId: "title",
+        property: "appearance.opacity",
+        keys: [
+          { t: 0, v: 0 },
+          { t: 1, v: 100 },
+        ],
+      },
+    ];
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });

@@ -64,7 +64,7 @@ import {
   affectedGraphIds,
   PATCH_SEQUENCE_INITIAL,
   type PaintPatch,
-  type TrackValuesPatch,
+  type PropertyAnimationValuesPatch,
   type StructuralPatch,
 } from "@motionvideo/motion-runtime";
 
@@ -118,12 +118,12 @@ describe("RuntimePatch protocol", () => {
       expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
 
-    it("track-values patch affects one scene", () => {
-      const patch: TrackValuesPatch = {
-        kind: "track-values",
+    it("property-animation-values patch affects one scene", () => {
+      const patch: PropertyAnimationValuesPatch = {
+        kind: "property-animation-values",
         sequence: 1,
         graphId: "scene-a",
-        tracks: [],
+        propertyAnimations: [],
       };
       expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
@@ -150,15 +150,15 @@ describe("RuntimePatch protocol", () => {
     };
     expect(paint.kind).toBe("paint");
 
-    const track: TrackValuesPatch = {
-      kind: "track-values",
+    const animationPatch: PropertyAnimationValuesPatch = {
+      kind: "property-animation-values",
       sequence: 2,
       graphId: "s",
-      tracks: [
+      propertyAnimations: [
         { layerId: "n", property: "transform.translate.x", keys: [{ t: 0, v: 100 }] },
       ],
     };
-    expect(track.kind).toBe("track-values");
+    expect(animationPatch.kind).toBe("property-animation-values");
 
     const structural: StructuralPatch = {
       kind: "structural",

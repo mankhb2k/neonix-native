@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  ExtrapolationBehaviorSchema,
   KeyframeEasingSchema,
   LayerSchema,
   TransformSchema,
   isLayerPropertyBindable,
+  isLayerPropertyAnimatable,
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "../src/index";
@@ -19,6 +19,8 @@ describe("motion-protocol R2–R5 contract", () => {
         id: "grade",
         type: "adjustment",
         parentLayerId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 1 },
         ...ATOMS,
         payload: { brightness: 110, contrast: 110, saturation: 100 },
       }).type,
@@ -29,18 +31,6 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(TransformSchema.parse({ ...ATOMS.transform, depth: 1.5 }).depth).toBe(
       1.5,
     );
-  });
-
-  it("accepts cycle pingpong mode and rejects unknown modes", () => {
-    expect(
-      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "pingpong" }),
-    ).toEqual({
-      type: "cycle",
-      mode: "pingpong",
-    });
-    expect(() =>
-      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "bounce" }),
-    ).toThrow();
   });
 
   it("exposes transform.depth in public AI vocabulary", () => {
@@ -63,7 +53,7 @@ describe("motion-protocol R2–R5 contract", () => {
   });
 
   it("treats capability bindable as the binding allowlist", () => {
-    expect(isLayerPropertyBindable("text", "payload.content.text")).toBe(true);
+    expect(isLayerPropertyBindable("text", "payload.text")).toBe(true);
     expect(isLayerPropertyBindable("text", "payload.notAField")).toBe(false);
     expect(isLayerPropertyBindable("text", "payload.counterProgress")).toBe(
       false,
@@ -76,9 +66,46 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(isLayerPropertyBindable("audio", "transform.translate.x")).toBe(
       false,
     );
+    expect(isLayerPropertyBindable("audio", "appearance.opacity")).toBe(false);
+    expect(isLayerPropertyBindable("audio", "appearance.visible")).toBe(false);
+    expect(isLayerPropertyBindable("text", "appearance.opacity")).toBe(true);
+    expect(isLayerPropertyBindable("text", "style.fill")).toBe(false);
+    expect(isLayerPropertyBindable("text", "modifiers.mp.progress")).toBe(
+      false,
+    );
+    expect(isLayerPropertyAnimatable("text", "modifiers.mp.progress")).toBe(
+      false,
+    );
+    expect(
+      motionPropertyCapability("text", "modifiers.mp.progress"),
+    ).toBeUndefined();
+    expect(
+      publicMotionPropertyCapabilities("text").some((entry) =>
+        entry.property.startsWith("modifiers."),
+      ),
+    ).toBe(false);
+    expect(isLayerPropertyAnimatable("text", "frame.width")).toBe(false);
+    expect(isLayerPropertyAnimatable("text", "transform.translate.x")).toBe(
+      true,
+    );
+    expect(motionPropertyCapability("text", "effects.fx.radius")?.animatable).toBe(
+      true,
+    );
+    expect(motionPropertyCapability("text", "effects.fx.color")?.animatable).toBe(
+      false,
+    );
+    expect(
+      motionPropertyCapability("text", "effects.fx.intensity"),
+    ).toBeUndefined();
+    expect(
+      motionPropertyCapability("camera", "effects.fx.radius"),
+    ).toBeUndefined();
+    expect(
+      motionPropertyCapability("audio", "effects.fx.radius"),
+    ).toBeUndefined();
     expect(
       publicMotionPropertyCapabilities("text").some(
-        (entry) => entry.property === "payload.content.text",
+        (entry) => entry.property === "payload.text",
       ),
     ).toBe(true);
   });
@@ -118,6 +145,8 @@ describe("motion-protocol R2–R5 contract", () => {
       id: "plate",
       type: "solid",
       parentLayerId: null,
+      zIndex: 0,
+      timing: { start: 0, duration: 1 },
       ...visualLayerAtoms({
         width: 100,
         height: 100,

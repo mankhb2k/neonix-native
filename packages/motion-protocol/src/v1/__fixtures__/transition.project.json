@@ -111,13 +111,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Scene A"
-        },
         "fontSize": 72,
         "color": "#ffffff",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Scene A"
       },
       "zIndex": 1,
       "timing": {
@@ -201,13 +198,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Scene B"
-        },
         "fontSize": 72,
         "color": "#ffffff",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Scene B"
       },
       "zIndex": 3,
       "timing": {
@@ -291,13 +285,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Scene C"
-        },
         "fontSize": 72,
         "color": "#ffffff",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Scene C"
       },
       "zIndex": 5,
       "timing": {

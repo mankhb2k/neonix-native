@@ -3,7 +3,6 @@ import {
   clone,
   pixelFormatHasAlpha,
   type JsonRecord,
-  type LayerMotionUnit,
 } from "./helpers";
 
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
@@ -30,10 +29,10 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
     transform: clone(node.transform),
     appearance: clone(node.appearance),
   };
-  if (node.frame) base.frame = clone(node.frame);
+  if ("frame" in node && node.frame) base.frame = clone(node.frame);
   if (node.name) base.name = node.name;
-  if (node.zIndex !== undefined) base.zIndex = node.zIndex;
-  if (node.timing) base.timing = clone(node.timing);
+  base.zIndex = node.zIndex;
+  base.timing = clone(node.timing);
   if (node.semantic) base.semantic = node.semantic;
   if (node.effects && node.effects.length > 0)
     base.effects = clone(node.effects);
@@ -49,12 +48,13 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
       return {
         ...base,
         payload: {
-          content: clone(payload.content),
+          text: payload.text,
           ...(payload.fontAssetId !== undefined
             ? { fontAssetId: payload.fontAssetId }
             : {}),
           fontSize: payload.fontSize,
-          align: payload.alignment,
+          ...(payload.color !== undefined ? { color: payload.color } : {}),
+          alignment: payload.alignment,
           wrap: payload.wrap,
           ...(payload.lineHeight !== undefined
             ? { lineHeight: payload.lineHeight }
@@ -70,29 +70,42 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
         style: { fill: payload.color },
       };
     case "image":
-    case "svg":
       return {
         ...base,
         payload: {
           assetId: payload.assetId,
-          ...(payload.fit !== undefined ? { fit: payload.fit } : {}),
+          fit: payload.fit ?? "cover",
           ...(payload.crop !== undefined ? { crop: clone(payload.crop) } : {}),
         },
       };
+    case "svg": {
+      const style =
+        node.type === "svg" && node.style
+          ? { fill: node.style.fill }
+          : undefined;
+      return {
+        ...base,
+        payload: {
+          assetId: payload.assetId,
+          fit: payload.fit ?? "contain",
+        },
+        ...(style ? { style } : {}),
+      };
+    }
     case "video":
       return {
         ...base,
         payload: {
           assetId: payload.assetId,
-          ...(payload.fit !== undefined ? { fit: payload.fit } : {}),
+          fit: payload.fit ?? "cover",
           ...(payload.trimStart !== undefined
             ? { trimStart: payload.trimStart }
             : {}),
           ...(payload.trimEnd !== undefined
             ? { trimEnd: payload.trimEnd }
             : {}),
-          ...(payload.loop !== undefined ? { loop: payload.loop } : {}),
-          ...(payload.muted !== undefined ? { muted: payload.muted } : {}),
+          loop: payload.loop ?? false,
+          muted: payload.muted ?? false,
           ...(payload.framePolicy !== undefined
             ? { framePolicy: payload.framePolicy }
             : {}),
@@ -160,7 +173,10 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
     case "path":
       return {
         ...base,
-        payload: clone(node.payload),
+        payload: {
+          ...clone(node.payload),
+          fillRule: node.payload.fillRule ?? "nonzero",
+        },
         ...(node.style ? { style: clone(node.style) } : {}),
       };
     case "component":
@@ -173,10 +189,6 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   }
 }
 
-export function prepareRuntimeMotionUnit(unit: LayerMotionUnit): JsonRecord {
-  return clone(unit);
-}
-
 export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
   return {
     id: layer.id,
@@ -185,8 +197,6 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
     parentLayerId: null,
     zIndex: layer.zIndex,
     timing: clone(layer.timing),
-    appearance: clone(layer.appearance),
-    locked: layer.locked,
     payload: clone(layer.payload),
   };
 }

@@ -63,7 +63,7 @@ function makeHierarchyScene() {
         timing: { start: 0, duration: 3 },
       },
     ],
-    tracks: [],
+    propertyAnimations: [],
   } as any;
 }
 

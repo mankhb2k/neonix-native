@@ -1,5 +1,7 @@
 /**
- * Điểm xoay trong khung layer, 0..1. Chỉ origin.x/y — origin.z không thuộc MVP.
+ * Điểm neo transform trong box local, normalized 0..1.
+ * Canonical AI: 0 | 0.5 | 1 (góc / tâm). Schema vẫn nhận mọi giá trị 0..1 để nội suy.
+ * origin.z không thuộc V1.
  */
 import { z } from "zod";
 

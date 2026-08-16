@@ -44,18 +44,18 @@ function addDuplicateIdIssues(
   }
 }
 
-function collectRootLayerSchemaIssues(
+function collectLayerSchemaIssues(
   layers: LayerV1[],
   duration: number | undefined,
   ctx: z.RefinementCtx,
 ): void {
-  const seenRootZ = new Map<number, string>();
-
   const walk = (
     nodes: LayerV1[],
     parentId: string | null,
+    parentTiming: LayerV1["timing"] | null,
     path: (string | number)[],
   ): void => {
+    const seenZ = new Map<number, string>();
     for (const [index, layer] of nodes.entries()) {
       const layerPath = [...path, index];
       if (parentId === null) {
@@ -66,31 +66,27 @@ function collectRootLayerSchemaIssues(
             path: [...layerPath, "parentLayerId"],
           });
         }
-        if (layer.zIndex === undefined) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Root layer "${layer.id}" requires zIndex`,
-            path: [...layerPath, "zIndex"],
-          });
-        } else {
-          const prev = seenRootZ.get(layer.zIndex);
-          if (prev !== undefined) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `Duplicate root zIndex ${layer.zIndex} (also used by "${prev}")`,
-              path: [...layerPath, "zIndex"],
-            });
-          } else {
-            seenRootZ.set(layer.zIndex, layer.id);
-          }
-        }
-        if (!layer.timing) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Root layer "${layer.id}" requires timing`,
-            path: [...layerPath, "timing"],
-          });
-        } else if (
+      } else if (layer.parentLayerId !== parentId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Layer "${layer.id}" parentLayerId must be "${parentId}"`,
+          path: [...layerPath, "parentLayerId"],
+        });
+      }
+
+      const prevZ = seenZ.get(layer.zIndex);
+      if (prevZ !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate zIndex ${layer.zIndex} among siblings of parent ${parentId ?? "null"} (also used by "${prevZ}")`,
+          path: [...layerPath, "zIndex"],
+        });
+      } else {
+        seenZ.set(layer.zIndex, layer.id);
+      }
+
+      if (parentId === null) {
+        if (
           duration !== undefined &&
           layer.timing.start + layer.timing.duration > duration + 1e-9
         ) {
@@ -101,7 +97,7 @@ function collectRootLayerSchemaIssues(
           });
         }
         if (layer.type === "audio") {
-          if (layer.zIndex !== undefined && layer.zIndex >= 0) {
+          if (layer.zIndex >= 0) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: `Audio layer "${layer.id}" must have zIndex < 0`,
@@ -115,18 +111,22 @@ function collectRootLayerSchemaIssues(
               path: [...layerPath, ...issue.path],
             });
           }
-        } else if (layer.zIndex !== undefined && layer.zIndex < 0) {
+        } else if (layer.zIndex < 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: `Visual root layer "${layer.id}" must have zIndex >= 0`,
             path: [...layerPath, "zIndex"],
           });
         }
-      } else if (layer.parentLayerId !== parentId) {
+      } else if (
+        parentTiming &&
+        layer.timing.start + layer.timing.duration >
+          parentTiming.duration + 1e-9
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Layer "${layer.id}" parentLayerId must be "${parentId}"`,
-          path: [...layerPath, "parentLayerId"],
+          message: `Layer "${layer.id}" ends at ${layer.timing.start + layer.timing.duration} beyond parent duration (${parentTiming.duration})`,
+          path: [...layerPath, "timing"],
         });
       }
 
@@ -139,7 +139,10 @@ function collectRootLayerSchemaIssues(
       }
 
       if (layer.type === "group") {
-        walk(layer.children, layer.id, [...layerPath, "children"]);
+        walk(layer.children, layer.id, layer.timing, [
+          ...layerPath,
+          "children",
+        ]);
       } else if (
         "children" in layer &&
         Array.isArray((layer as { children?: unknown }).children) &&
@@ -154,7 +157,7 @@ function collectRootLayerSchemaIssues(
     }
   };
 
-  walk(layers, null, ["layers"]);
+  walk(layers, null, null, ["layers"]);
 }
 
 function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
@@ -228,8 +231,14 @@ export const MotionProjectV1Schema =
       "component",
       ctx,
     );
+    addDuplicateIdIssues(
+      (project.timeline.clips ?? []).map((clip) => clip.id),
+      ["timeline", "clips"],
+      "clip",
+      ctx,
+    );
 
-    collectRootLayerSchemaIssues(
+    collectLayerSchemaIssues(
       project.layers,
       project.timeline.duration,
       ctx,

@@ -163,8 +163,9 @@ describe("committed JSON schemas", () => {
     };
     const timelineProps = Object.keys(timeline.properties ?? {});
     expect(timelineProps).toEqual(
-      expect.arrayContaining(["duration", "workArea", "markers"]),
+      expect.arrayContaining(["duration", "workArea", "clips"]),
     );
+    expect(timelineProps).not.toContain("markers");
     expect(timelineProps).not.toContain("sceneOrder");
     expect(timelineProps).not.toContain("visualTracks");
     expect(timelineProps).not.toContain("audioTracks");
@@ -205,13 +206,8 @@ describe("committed JSON schemas", () => {
     };
 
     assertClosed(schema.definitions.JsonValue, "JsonValue");
-    assertClosed(schema.definitions.ListField, "ListField");
     assertClosed(schema.definitions.ComponentPropValue, "ComponentPropValue");
     assertClosed(schema.definitions.PropKeyframesValue, "PropKeyframesValue");
-    assertClosed(
-      getByPointer(schema, "#/definitions/ListField/properties/itemSchema"),
-      "ListField.itemSchema",
-    );
     assertClosed(
       getByPointer(
         schema,
@@ -324,6 +320,7 @@ describe("Phase 7 — public API V1 naming", () => {
     expect(runtimeExports).not.toContain("CaptionTrackSchema");
     expect(runtimeExports).not.toContain("ClipScheduleSchema");
     expect(runtimeExports).not.toContain("MotionClipV1");
+    expect(runtimeExports).not.toContain("InternalAnimationUnitV1");
     expect(runtimeExports).not.toContain("PlaybackSchema");
   });
 
@@ -366,7 +363,10 @@ describe("V1 authoring namespace", () => {
     const names = Object.keys(V1Public);
     expect(names).not.toContain("CaptionTrackSchema");
     expect(names).not.toContain("MotionClipV1Schema");
+    expect(names).not.toContain("InternalAnimationUnitV1Schema");
     expect(names).not.toContain("ClipScheduleSchema");
+    expect(names).not.toContain("defaultInterpolationForValueKind");
+    expect(names).not.toContain("allowedInterpolationsForValueKind");
   });
 });
 
@@ -379,5 +379,6 @@ describe("runtime entry", () => {
     expect(names).toContain("ImageAssetSchema");
     expect(names).toContain("MotionRuntimeProjectSchema");
     expect(names).toContain("MOTION_RUNTIME_VERSION");
+    expect(names).toContain("defaultInterpolationForValueKind");
   });
 });

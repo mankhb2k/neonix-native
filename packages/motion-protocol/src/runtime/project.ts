@@ -1,8 +1,7 @@
 ﻿/**
  * MotionRuntimeProject â€” canonical runtime IR schemas and types.
  *
- * Authoring and runtime share one layer graph: `layers` + animation `tracks`.
- * There is no serialized `scenes` array or visual/audio clip tracks.
+ * Authoring and runtime share one layer graph: `layers` + `propertyAnimations`.
  */
 
 import { z } from "zod";
@@ -13,7 +12,6 @@ import {
   motionPropertyValueError,
 } from "../capabilities";
 import { ProceduralDriverSchema } from "../v1/animation/drivers";
-import { ExtrapolationBehaviorSchema } from "../v1/animation/tracks";
 import { KeyframeEasingSchema } from "../v1/animation/easing";
 import { AssetSchema } from "./assets";
 import {
@@ -46,7 +44,7 @@ import {
 
 // â”€â”€ Runtime IR schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
+import { duplicates } from "./helpers";
 import { LiteralValueSchema, ValueKindSchema } from "../v1/values";
 
 const DesignTokensSchema = z
@@ -140,7 +138,7 @@ export type AudioClip = z.infer<typeof AudioClipSchema>;
  * Incremented when the runtime shape changes (new fields, new node types).
  * Renderers check this to reject incompatible IR.
  */
-export const MOTION_RUNTIME_VERSION = 3 as const;
+export const MOTION_RUNTIME_VERSION = 4 as const;
 
 const RuntimeVisualLayerSchema = z.discriminatedUnion("type", [
   GroupLayerSchema.omit({ repeat: true }),
@@ -171,7 +169,19 @@ const RuntimeLayerSchema = z.discriminatedUnion("type", [
   RuntimeAudioLayerSchema,
 ]);
 
-const RuntimeTrackSchema = z
+const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("clamp") }).strict(),
+  z
+    .object({
+      type: z.literal("cycle"),
+      mode: z.enum(["repeat", "pingpong"]).optional(),
+    })
+    .strict(),
+  z.object({ type: z.literal("continue") }).strict(),
+]);
+
+/** Evaluated property animations compiled from timeline.clips — not authoring. */
+const RuntimePropertyAnimationSchema = z
   .object({
     layerId: IdSchema,
     property: PropertyPathSchema,
@@ -191,14 +201,14 @@ const RuntimeTrackSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation),
   })
   .strict();
 
 // â”€â”€ Runtime IR VNext â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The runtime IR (`MotionRuntimeProject`) is the compiler's serializable
-// output: composition metadata, layer graph, property tracks, source refs.
+// output: composition metadata, layer graph, propertyAnimations, source refs.
 
 /**
  * Composition-level runtime metadata.
@@ -255,7 +265,7 @@ export type RuntimeSourceRefMap = z.infer<typeof RuntimeSourceRefMapSchema>;
 
 /**
  * In-memory layer graph for evaluators (not a serialized scene).
- * Compiler lifts this onto `MotionRuntimeProject.layers` / `.tracks`.
+ * Compiler lifts this onto `MotionRuntimeProject.layers` / `.propertyAnimations`.
  */
 export const RuntimeLayerGraphSchema = z
   .object({
@@ -271,12 +281,9 @@ export const RuntimeLayerGraphSchema = z
     layers: z
       .array(RuntimeVisualLayerSchema)
       .max(MOTION_PROTOCOL_LIMITS.layersPerProject),
-    tracks: z
-      .array(RuntimeTrackSchema)
-      .max(
-        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.tracksPerClip,
-      )
+    propertyAnimations: z
+      .array(RuntimePropertyAnimationSchema)
+      .max(MOTION_PROTOCOL_LIMITS.propertyAnimationsPerProject)
       .default([]),
   })
   .strict();
@@ -302,12 +309,9 @@ const MotionRuntimeProjectBaseSchema = z
       .array(RuntimeLayerSchema)
       .max(MOTION_PROTOCOL_LIMITS.layersPerProject)
       .default([]),
-    tracks: z
-      .array(RuntimeTrackSchema)
-      .max(
-        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.tracksPerClip,
-      )
+    propertyAnimations: z
+      .array(RuntimePropertyAnimationSchema)
+      .max(MOTION_PROTOCOL_LIMITS.propertyAnimationsPerProject)
       .default([]),
     timeline: z
       .object({
@@ -341,7 +345,6 @@ export const MotionRuntimeProjectSchema =
           message: `Runtime node ${runtime.activeCameraLayerId} has type ${camera.type}, expected camera`,
         });
     }
-    const secondaryChainOwners = new Map<string, string>();
     for (let nodeIndex = 0; nodeIndex < layers.length; nodeIndex += 1) {
       const node = layers[nodeIndex]!;
       if (
@@ -355,295 +358,44 @@ export const MotionRuntimeProjectSchema =
         });
       }
       if (node.type === "audio") continue;
-      const modifiers = node.modifiers ?? [];
-      const effects = node.effects ?? [];
-        for (const effectId of new Set(
-          duplicates(effects.map((effect) => effect.id)),
+      const effects = layerEffects(node) ?? [];
+      for (const effectId of new Set(
+        duplicates(effects.map((effect) => effect.id)),
+      )) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["layers", nodeIndex, "effects"],
+          message: `Duplicate runtime effect id: ${effectId}`,
+        });
+      }
+      if (node.type === "path") {
+        const morphTargets = node.payload.morphTargets ?? [];
+        for (const targetId of new Set(
+          duplicates(morphTargets.map((target) => target.id)),
         )) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "effects"],
-            message: `Duplicate runtime effect id: ${effectId}`,
+            path: ["layers", nodeIndex, "payload", "morphTargets"],
+            message: `Duplicate runtime Path Morph target id: ${targetId}`,
           });
-        }
-        for (const modifierId of new Set(
-          duplicates(modifiers.map((modifier) => modifier.id)),
-        )) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "modifiers"],
-            message: `Duplicate runtime modifier id: ${modifierId}`,
-          });
-        }
-        if (node.type === "path") {
-          const morphTargets = node.payload.morphTargets ?? [];
-          for (const targetId of new Set(
-            duplicates(morphTargets.map((target) => target.id)),
-          )) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [
-                "layers",
-                nodeIndex,
-                "payload",
-                "morphTargets",
-              ],
-              message: `Duplicate runtime Path Morph target id: ${targetId}`,
-            });
-          }
-          for (const modifier of modifiers.filter(
-            (candidate) => candidate.type === "path-morph",
-          )) {
-            const targetById = new Map(
-              morphTargets.map((target) => [target.id, target]),
-            );
-            const fromContours =
-              modifier.from === "base"
-                ? node.payload.contours
-                : targetById.get(modifier.from)?.contours;
-            const toContours = targetById.get(modifier.to)?.contours;
-            if (modifier.from !== "base" && !fromContours)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["layers", nodeIndex, "modifiers"],
-                message: `Unknown runtime Path Morph target: ${modifier.from}`,
-              });
-            if (!toContours)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["layers", nodeIndex, "modifiers"],
-                message: `Unknown runtime Path Morph target: ${modifier.to}`,
-              });
-            if (fromContours && toContours) {
-              const mismatch = morphTopologyMismatch(fromContours, toContours);
-              if (mismatch)
-                context.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  path: ["layers", nodeIndex, "modifiers"],
-                  message: mismatch,
-                });
-            }
-          }
-        } else if (
-          modifiers.some((modifier) => modifier.type === "path-morph")
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "modifiers"],
-            message: "Runtime Path Morph modifier requires a path node",
-          });
-        }
-        if (
-          modifiers.some((modifier) => modifier.type === "trim-path") &&
-          node.type !== "path"
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "modifiers"],
-            message: "Runtime Trim Path modifier requires a path node",
-          });
-        }
-        if (
-          modifiers.some((modifier) => modifier.type === "path-bend") &&
-          node.type !== "path"
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "modifiers"],
-            message: "Runtime Path Bend modifier requires a path node",
-          });
-        }
-        if (
-          modifiers.filter((modifier) => modifier.type === "motion-path")
-            .length > 1
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["layers", nodeIndex, "modifiers"],
-            message:
-              "Only one runtime motion-path modifier is allowed per node",
-          });
-        }
-        for (
-          let modifierIndex = 0;
-          modifierIndex < modifiers.length;
-          modifierIndex += 1
-        ) {
-          const modifier = modifiers[modifierIndex]!;
-          const path = [
-            "layers",
-            nodeIndex,
-            "modifiers",
-            modifierIndex,
-          ] as Array<string | number>;
-          if (modifier.type === "trim-path" && modifier.start > modifier.end) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path,
-              message: "Runtime Trim Path end must be >= start",
-            });
-          }
-          if (modifier.type === "constraint") {
-            const target = layerById.get(modifier.targetLayerId);
-            if (!target)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "targetLayerId"],
-                message: `Unknown runtime constraint target: ${modifier.targetLayerId}`,
-              });
-            else if (modifier.targetLayerId === node.id)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "targetLayerId"],
-                message: "Runtime Constraint cannot target itself",
-              });
-          }
-          if (modifier.type !== "secondary-motion") continue;
-          if (modifier.axis !== "rotation")
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "axis"],
-              message: "Runtime Secondary Motion supports rotation axis only",
-            });
-          const driver = layerById.get(modifier.driverNodeId);
-          if (!driver)
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "driverNodeId"],
-              message: `Unknown runtime Secondary Motion driver: ${modifier.driverNodeId}`,
-            });
-          else if (driver.type !== "bone")
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "driverNodeId"],
-              message: `Runtime Secondary Motion driver must be bone: ${modifier.driverNodeId}`,
-            });
-          if (modifier.driverNodeId !== node.id)
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "driverNodeId"],
-              message:
-                "Runtime Secondary Motion modifier must live on its driver node",
-            });
-          for (const chainNodeId of modifier.chainLayerIds) {
-            const chainNode = layerById.get(chainNodeId);
-            if (!chainNode)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "chainLayerIds"],
-                message: `Unknown runtime Secondary Motion chain node: ${chainNodeId}`,
-              });
-            else if (chainNode.type !== "bone")
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "chainLayerIds"],
-                message: `Runtime Secondary Motion chain node must be bone: ${chainNodeId}`,
-              });
-            const owner = secondaryChainOwners.get(chainNodeId);
-            if (owner)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "chainLayerIds"],
-                message: `Runtime Secondary Motion chain node already owned: ${chainNodeId}`,
-              });
-            else secondaryChainOwners.set(chainNodeId, modifier.id);
-          }
-          for (const chainNodeId of new Set(
-            duplicates(modifier.chainLayerIds),
-          )) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "chainLayerIds"],
-              message: `Duplicate runtime Secondary Motion chain node: ${chainNodeId}`,
-            });
-          }
-        }
-        for (
-          let modifierIndex = 0;
-          modifierIndex < (node.modifiers?.length ?? 0);
-          modifierIndex += 1
-        ) {
-          const modifier = node.modifiers![modifierIndex]!;
-          if (modifier.type !== "motion-path") continue;
-          const source = layerById.get(modifier.pathNodeId);
-          const path = [
-            "layers",
-            nodeIndex,
-            "modifiers",
-            modifierIndex,
-          ] as Array<string | number>;
-          if (modifier.startOffset > modifier.endOffset)
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path,
-              message: "Runtime Motion Path endOffset must be >= startOffset",
-            });
-          if (!source)
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "pathNodeId"],
-              message: `Unknown runtime Motion Path node: ${modifier.pathNodeId}`,
-            });
-          else if (source.type !== "path")
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [...path, "pathNodeId"],
-              message: `Runtime Motion Path source must be path: ${modifier.pathNodeId}`,
-            });
-          else {
-            const contour = source.payload.contours.find(
-              (candidate) => candidate.id === modifier.contourId,
-            );
-            if (!contour)
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "contourId"],
-                message: `Unknown runtime Path contour: ${modifier.contourId}`,
-              });
-            else if (!contourHasLength(contour))
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: [...path, "contourId"],
-                message: `Runtime Motion Path contour has zero length: ${modifier.contourId}`,
-              });
-          }
-        }
-        const seen = new Set([node.id]);
-        let current = node;
-        while (current) {
-          const motionPath = current.modifiers?.find(
-            (modifier) => modifier.type === "motion-path",
-          );
-          if (!motionPath) break;
-          if (seen.has(motionPath.pathNodeId)) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ["layers", nodeIndex, "modifiers"],
-              message: "Runtime Motion Path dependency cycle detected",
-            });
-            break;
-          }
-          seen.add(motionPath.pathNodeId);
-          const next = layerById.get(motionPath.pathNodeId);
-          if (!next || next.type === "audio") break;
-          current = next;
         }
       }
-      for (
-        let trackIndex = 0;
-        trackIndex < runtime.tracks.length;
-        trackIndex += 1
+    }
+    for (
+        let animationIndex = 0;
+        animationIndex < runtime.propertyAnimations.length;
+        animationIndex += 1
       ) {
-        const track = runtime.tracks[trackIndex]!;
-        const path = ["tracks", trackIndex] as Array<
+        const animation = runtime.propertyAnimations[animationIndex]!;
+        const path = ["propertyAnimations", animationIndex] as Array<
           string | number
         >;
-        const node = layerById.get(track.layerId);
+        const node = layerById.get(animation.layerId);
         if (!node) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "layerId"],
-            message: `Unknown runtime node: ${track.layerId}`,
+            message: `Unknown runtime node: ${animation.layerId}`,
           });
           continue;
         }
@@ -651,64 +403,13 @@ export const MotionRuntimeProjectSchema =
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Animation tracks cannot target audio layers: ${track.layerId}`,
+            message: `Property animations cannot target audio layers: ${animation.layerId}`,
           });
           continue;
         }
-        const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(
-          track.property,
-        );
-        if (
-          modifierMatch &&
-          !node.modifiers?.some(
-            (modifier) =>
-              modifier.id === modifierMatch[1] &&
-              (modifier.type === "motion-path" ||
-                modifier.type === "path-morph"),
-          )
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [...path, "property"],
-            message: `Unknown runtime progress modifier: ${modifierMatch[1]}`,
-          });
-          continue;
-        }
-        const trimMatch = /^modifiers\.([^.]+)\.(start|end|offset)$/.exec(
-          track.property,
-        );
-        if (
-          trimMatch &&
-          !node.modifiers?.some(
-            (modifier) =>
-              modifier.id === trimMatch[1] && modifier.type === "trim-path",
-          )
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [...path, "property"],
-            message: `Unknown runtime trim-path modifier: ${trimMatch[1]}`,
-          });
-          continue;
-        }
-        const amountMatch = /^modifiers\.([^.]+)\.amount$/.exec(track.property);
-        if (
-          amountMatch &&
-          !node.modifiers?.some(
-            (modifier) =>
-              modifier.id === amountMatch[1] && modifier.type === "path-bend",
-          )
-        ) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [...path, "property"],
-            message: `Unknown runtime path-bend modifier: ${amountMatch[1]}`,
-          });
-          continue;
-        }
-        const effectMatch = /^effects\.([^.]+)\.(.+)$/.exec(track.property);
+        const effectMatch = /^effects\.([^.]+)\.(.+)$/.exec(animation.property);
         if (effectMatch) {
-          const effect = node.effects?.find(
+          const effect = layerEffects(node)?.find(
             (candidate) => candidate.id === effectMatch[1],
           );
           if (!effect) {
@@ -728,12 +429,12 @@ export const MotionRuntimeProjectSchema =
             continue;
           }
         }
-        const capability = motionPropertyCapability(node.type, track.property);
+        const capability = motionPropertyCapability(node.type, animation.property);
         if (!capability) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Unsupported runtime property for ${node.type}: ${track.property}`,
+            message: `Unsupported runtime property for ${node.type}: ${animation.property}`,
           });
           continue;
         }
@@ -744,15 +445,15 @@ export const MotionRuntimeProjectSchema =
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Property is not supported by runtime evaluator: ${track.property}`,
+            message: `Property is not supported by runtime evaluator: ${animation.property}`,
           });
           continue;
         }
-        for (let keyIndex = 0; keyIndex < track.keys.length; keyIndex += 1) {
+        for (let keyIndex = 0; keyIndex < animation.keys.length; keyIndex += 1) {
           const message = motionPropertyValueError(
             capability,
-            track.keys[keyIndex]!.v,
-            track.property,
+            animation.keys[keyIndex]!.v,
+            animation.property,
           );
           if (message)
             context.addIssue({
@@ -764,6 +465,20 @@ export const MotionRuntimeProjectSchema =
       }
   });
 
+type RuntimeLayerWithEffects = z.infer<typeof RuntimeLayerSchema> & {
+  effects?: Array<{
+    id: string;
+    type: "blur" | "shadow" | "glow" | "color-adjust";
+  }>;
+};
+
+function layerEffects(
+  layer: z.infer<typeof RuntimeLayerSchema>,
+): RuntimeLayerWithEffects["effects"] {
+  return "effects" in layer ? (layer as RuntimeLayerWithEffects).effects : undefined;
+}
+
 export type MotionRuntimeProject = z.infer<typeof MotionRuntimeProjectSchema>;
 
-export type MotionRuntimeTrack = MotionRuntimeProject["tracks"][number];
+export type MotionRuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];

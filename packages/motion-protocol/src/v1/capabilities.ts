@@ -22,7 +22,6 @@ const KNOWN_CAPABILITY_IDS = [
   "primitive.video",
   "primitive.path",
   "primitive.audio",
-  "text.rich",
   "video.trim",
   "video.loop",
   "anim.transform",

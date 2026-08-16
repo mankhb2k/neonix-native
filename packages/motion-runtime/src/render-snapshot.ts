@@ -74,6 +74,7 @@ export type RenderItemPayload =
       fill?: string;
       fillPaint?: PaintFill;
       cornerRadius?: number;
+      points?: Array<{ x: number; y: number }>;
       width: number;
       height: number;
     }
@@ -256,33 +257,10 @@ function payloadForNode(
     case "text": {
       const textNode = node as RuntimeNode & {
         payload: {
-          content?:
-            | { kind: "plain"; text: string }
-            | {
-                kind: "runs";
-                runs: Array<{
-                  id: string;
-                  text: string;
-                  style?: {
-                    fill?: string;
-                    fontAssetId?: string;
-                    fontWeight?: number;
-                    fontStyle?: "normal" | "italic";
-                    fontScale?: number;
-                    letterSpacing?: number;
-                    highlight?: {
-                      fill: string;
-                      paddingX?: number;
-                      paddingY?: number;
-                      radius?: number;
-                    };
-                  };
-                }>;
-              };
           text?: string;
           fontSize: number;
-          fontWeight?: number;
-          align?: "left" | "center" | "right";
+          color?: string;
+          alignment?: "left" | "center" | "right";
           fontAssetId?: string;
           wrap?: "none" | "word" | "character";
           lineHeight?: number;
@@ -291,46 +269,19 @@ function payloadForNode(
           overflow?: "visible" | "clip" | "ellipsis";
         };
       };
-      const content = textNode.payload.content;
-      const plain =
-        content?.kind === "plain"
-          ? content.text
-          : content?.kind === "runs"
-            ? content.runs.map((r) => r.text).join("")
-            : (textNode.payload.text ?? "");
-      const runs =
-        content?.kind === "runs"
-          ? content.runs.map((run) => ({
-              id: run.id,
-              text: run.text,
-              fill: run.style?.fill,
-              fontAssetId: run.style?.fontAssetId,
-              fontWeight: run.style?.fontWeight,
-              fontStyle: run.style?.fontStyle,
-              fontScale: run.style?.fontScale,
-              letterSpacing: run.style?.letterSpacing,
-              highlight: run.style?.highlight,
-              sourceRef: {
-                kind: "text-run" as const,
-                layerId: node.id,
-                runId: run.id,
-              },
-            }))
-          : undefined;
+      const plain = textNode.payload.text ?? "";
       return {
         kind: "text",
         text: plain,
         fontSize: textNode.payload.fontSize,
-        fontWeight: textNode.payload.fontWeight,
-        align: textNode.payload.align,
+        align: textNode.payload.alignment,
         fontAssetId: textNode.payload.fontAssetId,
         wrap: textNode.payload.wrap,
         lineHeight: textNode.payload.lineHeight,
         letterSpacing: textNode.payload.letterSpacing,
         maxLines: textNode.payload.maxLines,
         overflow: textNode.payload.overflow,
-        ...(runs ? { runs } : {}),
-        fill: paint.fill ?? "#ebe6dc",
+        fill: paint.fill ?? textNode.payload.color ?? "#ebe6dc",
         ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
       };
     }
@@ -339,6 +290,7 @@ function payloadForNode(
         payload: {
           shape: "rectangle" | "ellipse" | "polygon";
           cornerRadius?: number;
+          points?: Array<{ x: number; y: number }>;
         };
       };
       return {
@@ -347,6 +299,9 @@ function payloadForNode(
         fill: paint.fill ?? "#c4843a",
         ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
         cornerRadius: shapeNode.payload.cornerRadius,
+        ...(shapeNode.payload.shape === "polygon" && shapeNode.payload.points
+          ? { points: shapeNode.payload.points }
+          : {}),
         width,
         height,
       };

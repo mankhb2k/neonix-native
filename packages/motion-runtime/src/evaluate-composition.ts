@@ -568,7 +568,7 @@ function buildAudioState(
     const fadeInEnd = payload.fadeIn ?? 0;
     const fadeOutStart = duration - (payload.fadeOut ?? 0);
     const clipLocal = globalTime - start;
-    const muted = layer.appearance?.visible === false || (payload.muted ?? false);
+    const muted = payload.muted ?? false;
     const fadeActive =
       clipLocal >= 0 &&
       clipLocal < duration &&

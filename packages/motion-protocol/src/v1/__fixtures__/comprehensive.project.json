@@ -138,33 +138,12 @@
     {
       "id": "var-theme",
       "name": "Theme",
-      "type": "enum",
+      "type": "choice",
       "value": "dark",
       "options": [
         "light",
         "dark",
         "auto"
-      ]
-    },
-    {
-      "id": "var-data-rows",
-      "name": "Data rows",
-      "type": "list",
-      "itemSchema": {
-        "type": "object",
-        "fields": {
-          "value": {
-            "type": "number"
-          }
-        }
-      },
-      "value": [
-        {
-          "value": 1.2
-        },
-        {
-          "value": 4.5
-        }
       ]
     }
   ],
@@ -242,7 +221,7 @@
         {
           "id": "title",
           "name": "Title",
-          "kind": "text",
+          "kind": "string",
           "default": ""
         },
         {
@@ -258,12 +237,12 @@
           "default": 80
         }
       ],
-      "variables": [],
       "layers": [
         {
           "id": "lt-bg",
           "type": "solid",
           "parentLayerId": null,
+          "zIndex": 0,
           "transform": {
             "translate": {
               "x": 0,
@@ -295,6 +274,10 @@
           "appearance": {
             "visible": true,
             "opacity": 90
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ],
@@ -321,7 +304,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "lt-bg",
-            "property": "payload.height"
+            "property": "frame.height"
           }
         }
       ]
@@ -332,39 +315,9 @@
     "workArea": {
       "start": 0,
       "end": 18
-    },
-    "markers": [
-      {
-        "id": "marker-project-start",
-        "t": 0
-      }
-    ]
+    }
   },
   "bindings": [
-    {
-      "id": "binding-company-name",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-company"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "node-title",
-        "property": "payload.content.text"
-      }
-    },
-    {
-      "id": "binding-opacity",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-title-opacity"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "node-title",
-        "property": "appearance.opacity"
-      }
-    },
     {
       "id": "binding-component",
       "source": {
@@ -372,7 +325,7 @@
         "variableId": "var-brand-color"
       },
       "target": {
-        "type": "componentLayer",
+        "type": "prop",
         "layerId": "node-lower-third",
         "propId": "bgColor"
       }
@@ -464,10 +417,6 @@
             }
           },
           "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Hello MotiClip V1"
-            },
             "fontAssetId": "asset-font-display",
             "fontSize": 64,
             "color": "#ffffff",
@@ -476,7 +425,8 @@
             "lineHeight": 1.2,
             "letterSpacing": 1,
             "maxLines": 2,
-            "overflow": "ellipsis"
+            "overflow": "ellipsis",
+            "text": "Hello MotiClip V1"
           },
           "frame": {
             "width": 800,
@@ -485,6 +435,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         },
         {
@@ -527,6 +481,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         },
         {
@@ -570,6 +528,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ],

@@ -44,7 +44,7 @@ function wrap(value: number, min: number, max: number): number {
 
 export type DriverSampleContext = {
   time: number;
-  /** Base property values before drivers (from tracks/transform). */
+  /** Base property values before drivers (from propertyAnimations / transform). */
   readBase: (layerId: string, property: string, atTime?: number) => number;
   /** Already-computed driver outputs for DAG. */
   readDriven: (layerId: string, property: string) => number | undefined;

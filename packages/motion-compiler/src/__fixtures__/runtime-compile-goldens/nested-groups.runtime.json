@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "nested-groups",
     "name": "Nested Groups",
@@ -34,7 +34,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "d2a7124c52b57401a7f6ce954f48ee37",
+  "runtimeHash": "2f1baec75a6edda8bb269c5474f48daa",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -60,12 +60,12 @@
           "x": 540,
           "y": 960
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -105,12 +105,12 @@
           "x": 0,
           "y": -120
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -150,12 +150,12 @@
           "x": 0,
           "y": -140
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -195,12 +195,12 @@
           "x": 0,
           "y": 0
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -221,11 +221,12 @@
         "duration": 1
       },
       "payload": {
-        "assetId": "asset.head"
+        "assetId": "asset.head",
+        "fit": "cover"
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 9
   }

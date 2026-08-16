@@ -1,34 +1,26 @@
-import { LayoutConstraintCommandSchema } from "./types";
 import type { z } from "zod";
+import { LayoutConstraintCommandSchema } from "./types";
 
 type LayoutConstraint = z.infer<typeof LayoutConstraintCommandSchema>;
 
-/** Named layout recipes for SceneDesign → setLayoutConstraint (R3-L5). */
+/** Named layout recipes for SceneDesign -> setLayoutConstraint. */
 export const LAYOUT_RECIPES = {
   "vertical-stack": {
-    kind: "stack",
-    direction: "vertical",
+    mode: "column",
     gap: 24,
     padding: 16,
     align: "center",
   },
   "horizontal-row": {
-    kind: "stack",
-    direction: "horizontal",
+    mode: "row",
     gap: 16,
     padding: 8,
     align: "center",
   },
   "two-column-grid": {
-    kind: "grid",
+    mode: "grid",
     columns: 2,
-    gapX: 24,
-    gapY: 24,
-  },
-  "center-align": {
-    kind: "align",
-    axis: "both",
-    align: "center",
+    gap: 24,
   },
 } as const satisfies Record<string, LayoutConstraint>;
 

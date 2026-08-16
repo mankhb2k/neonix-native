@@ -19,8 +19,9 @@ export type RuntimeVisualLayer = Exclude<
   { type: "audio" }
 >;
 
-/** A runtime property track as it appears in MotionRuntimeProject.tracks */
-export type RuntimePropertyTrack = MotionRuntimeProject["tracks"][number];
+/** A runtime property animation as it appears in MotionRuntimeProject.propertyAnimations */
+export type RuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];
 
 // ── Static geometry descriptor ───────────────────────────────────────
 
@@ -83,7 +84,7 @@ export type CompositingScope = {
 // ── Dependency graph ──────────────────────────────────────────────────
 
 /**
- * A minimal dependency graph node for invalidation tracking.
+ * A minimal dependency graph node for invalidation.
  */
 export type DepGraphNode = {
   layerId: string;
@@ -99,7 +100,7 @@ export type DepGraphNode = {
  * PreparedRuntimeProject — compiled project with all indexes pre-built.
  *
  * Created by the compiler. Consumed by:
- *   - evaluator (O(1) layer/track lookups)
+ *   - evaluator (O(1) layer / propertyAnimation lookups)
  *   - painter (static geometry, compositing scopes)
  *   - renderer (capability fingerprint, asset URIs)
  */
@@ -119,8 +120,8 @@ export type PreparedRuntimeProject = {
   /** Visual layer lookup by id (one graph). */
   layerById: Map<string, RuntimeVisualLayer>;
 
-  /** Property tracks indexed by target layer id. */
-  tracksByLayerId: Map<string, RuntimePropertyTrack[]>;
+  /** Property animations indexed by target layer id. */
+  propertyAnimationsByLayerId: Map<string, RuntimePropertyAnimation[]>;
 
   /** Topological order of layers (parent before children). */
   topoOrder: string[];

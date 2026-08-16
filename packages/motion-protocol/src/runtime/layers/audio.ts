@@ -1,6 +1,6 @@
 /**
  * Runtime audio layer — root-only leaf. Same payload as authoring;
- * placement is `timing` (global).
+ * placement is `timing` (global). No appearance.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -10,7 +10,6 @@ import {
   PercentSchema,
   PositiveNumberSchema,
 } from "../../v1/common";
-import { AppearanceSchema } from "../../v1/appearance";
 import { LayerTimingSchema } from "./base";
 
 export const RuntimeAudioPayloadSchema = z
@@ -45,8 +44,6 @@ export const RuntimeAudioLayerSchema = z
     parentLayerId: z.null(),
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,
-    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
-    locked: z.boolean().default(false),
     payload: RuntimeAudioPayloadSchema,
   })
   .strict();

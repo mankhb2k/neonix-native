@@ -2,8 +2,6 @@ import { V1 } from "@motionvideo/motion-protocol";
 
 export type JsonRecord = Record<string, unknown>;
 
-export type LayerMotionUnit = import("@motionvideo/motion-protocol/internal").LayerMotionUnit;
-
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -28,7 +26,7 @@ export function setPropertyPath(
 
 /** Map a V1 authoring property path to its runtime IR equivalent. */
 export function toRuntimeProperty(property: string): string {
-  return property === "payload.text" ? "payload.content.text" : property;
+  return property;
 }
 
 export function pixelFormatHasAlpha(pixelFormat: string): boolean {

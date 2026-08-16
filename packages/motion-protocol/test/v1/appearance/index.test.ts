@@ -6,8 +6,9 @@ describe("AppearanceSchema", () => {
     expect(AppearanceSchema.parse({})).toEqual({ visible: true, opacity: 100 });
   });
 
-  it("rejects blend-mode on appearance", () => {
-    expect(AppearanceSchema.safeParse({ "blend-mode": "multiply" }).success).toBe(
+  it("rejects extra appearance keys including hit-test", () => {
+    expect(AppearanceSchema.safeParse({ hitTest: true }).success).toBe(false);
+    expect(AppearanceSchema.safeParse({ pointerEvents: "none" }).success).toBe(
       false,
     );
   });

@@ -15,7 +15,7 @@ export {
   ProjectMetadataSchema,
   MOTION_RUNTIME_VERSION,
   type MotionRuntimeProject,
-  type MotionRuntimeTrack,
+  type MotionRuntimePropertyAnimation,
   type RuntimeCompositionMetadata,
   type RuntimeSourceRef,
   type RuntimeSourceRefMap,
@@ -26,9 +26,15 @@ export {
 export {
   type PreparedRuntimeProject,
   type RuntimeVisualLayer,
-  type RuntimePropertyTrack,
+  type RuntimePropertyAnimation,
   type StaticGeometry,
   type TextLayoutInput,
   type CompositingScope,
   type DepGraphNode,
 } from "./prepared";
+
+export {
+  defaultInterpolationForValueKind,
+  allowedInterpolationsForValueKind,
+  type RuntimeKeyframeInterpolation,
+} from "./interpolation";

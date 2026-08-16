@@ -4,8 +4,8 @@
  * Used by `generate-json-schema.ts` (write) and schema-files tests (freshness gate).
  * Keep Zod → JSON Schema options here so script and test cannot diverge.
  *
- * `$refStrategy: "root"` so `z.lazy()` recursive types (`JsonValueSchema`,
- * `ListFieldSchema`) emit `#/definitions/...` instead of falling back to `any`.
+ * `$refStrategy: "root"` so `z.lazy()` recursive types (`JsonValueSchema`)
+ * emit `#/definitions/...` instead of falling back to `any`.
  */
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { MotionProjectV1Schema } from "../src/v1/project";
@@ -14,7 +14,6 @@ import {
   PropKeyframesValueSchema,
 } from "../src/v1/components/prop-values";
 import { JsonValueSchema } from "../src/v1/values";
-import { ListFieldSchema } from "../src/v1/variables";
 
 const GENERATE_OPTIONS = {
   name: "MotionProjectV1",
@@ -22,7 +21,6 @@ const GENERATE_OPTIONS = {
   $refStrategy: "root" as const,
   definitions: {
     JsonValue: JsonValueSchema,
-    ListField: ListFieldSchema,
     ComponentPropValue: ComponentPropValueSchema,
     PropKeyframesValue: PropKeyframesValueSchema,
   },

@@ -1,6 +1,7 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ProjectMapFigure } from "@/components/docs/figures/ProjectFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
@@ -9,6 +10,7 @@ import { MINIMAL_EMPTY } from "@/lib/docs/projects";
 export function projectPage(): DocsPageView {
   return withOnThisPage({
     title: "Project",
+    showToc: false,
     toc: [
       { id: "envelope", title: "Envelope vs content" },
       { id: "root-map", title: "Root map" },
@@ -32,6 +34,7 @@ export function projectPage(): DocsPageView {
           </a>
           .
         </P>
+        <ProjectMapFigure />
         <H2 id="envelope">Envelope vs content</H2>
         <P>
           Discriminator: <code>format: &quot;motion-project&quot;</code> and{" "}
@@ -48,10 +51,7 @@ export function projectPage(): DocsPageView {
                 format, formatVersion, metadata, composition, timeline, assets
               </code>,
             ],
-            [
-              "Content (Layers / later)",
-              <code key="content">layers[]</code>,
-            ],
+            ["Content (Layers / later)", <code key="content">layers[]</code>],
           ]}
         />
         <H2 id="root-map">Root map</H2>

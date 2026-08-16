@@ -1,6 +1,7 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { AssetsFigure } from "@/components/docs/figures/ProjectFigures";
 import { ValidInvalid } from "@/components/docs/ValidInvalid";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
@@ -10,6 +11,7 @@ import { AUDIO_FADE, INVALID_MISSING_REF } from "@/lib/docs/projects";
 export function assetsPage(): DocsPageView {
   return withOnThisPage({
     title: "Assets",
+    showToc: false,
     toc: [
       { id: "registry", title: "Registry" },
       { id: "storage", title: "uri vs managed" },
@@ -26,9 +28,9 @@ export function assetsPage(): DocsPageView {
         />
         <H2 id="registry">Registry</H2>
         <P>
-          Image, video, audio, and font layers use{" "}
-          <code>payload.assetId</code>. Put the file in <code>assets[]</code>{" "}
-          first. Payload fields per layer type belong in Layers.
+          Image, video, audio, and font layers use <code>payload.assetId</code>.
+          Put the file in <code>assets[]</code> first. Payload fields per layer
+          type belong in Layers.
         </P>
         <P>
           <code>assetType</code> is a union: <code>image</code>,{" "}
@@ -36,6 +38,7 @@ export function assetsPage(): DocsPageView {
           <code>font</code>. <code>source.kind</code> is only{" "}
           <code>&quot;upload&quot;</code>.
         </P>
+        <AssetsFigure />
         <H2 id="storage">uri vs managed</H2>
         <DocsTable
           headers={["Kind", "Rule"]}
@@ -49,8 +52,8 @@ export function assetsPage(): DocsPageView {
         />
         <P>
           How MotiClip stores managed bytes is product infrastructure — not
-          something to invent in JSON. See storage docs later if you operate
-          the product, not when you author a file.
+          something to invent in JSON. See storage docs later if you operate the
+          product, not when you author a file.
         </P>
         <H2 id="example">Example</H2>
         <JsonBlock

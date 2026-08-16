@@ -1,44 +1,28 @@
 import type { MotionLayer } from "@motionvideo/motion-protocol";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import {
+  defaultTextMeasurementProvider,
   estimateTextSize,
   type TextMeasurementProvider,
-  defaultTextMeasurementProvider,
 } from "./text-layout";
 
-type VisualLayer = Exclude<MotionLayer, { type: "audio" }>;
-
-function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
-  return layer.type !== "audio";
-}
-
-type LayoutConstraint = Extract<
-  NonNullable<VisualLayer["modifiers"]>[number],
-  { type: "layout" }
->["constraint"];
-
-type LayoutItemPolicy = {
-  width?: "fixed" | "content" | "fill";
-  height?: "fixed" | "content" | "fill";
-  grow?: number;
-  shrink?: number;
-  alignSelf?: "auto" | "start" | "center" | "end" | "stretch";
-  minWidth?: number;
-  maxWidth?: number;
-  minHeight?: number;
-  maxHeight?: number;
-};
-
+type VisualLayer = Exclude<MotionLayer, { type: "audio" | "camera" }>;
+type GroupLayer = Extract<VisualLayer, { type: "group" }>;
+type LayoutConstraint = NonNullable<GroupLayer["layout"]>;
+type LayoutItemPolicy = NonNullable<VisualLayer["layoutItem"]>;
 type EdgeInsets = { top: number; right: number; bottom: number; left: number };
-
 type MutableNode = VisualLayer;
 
+function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
+  return layer.type !== "audio" && layer.type !== "camera";
+}
+
 function frameWidth(node: VisualLayer): number {
-  return node.frame?.width ?? 0;
+  return node.frame.width;
 }
 
 function frameHeight(node: VisualLayer): number {
-  return node.frame?.height ?? 0;
+  return node.frame.height;
 }
 
 function setFrameSize(node: MutableNode, width: number, height: number): void {
@@ -68,8 +52,7 @@ function normalizePadding(
 }
 
 function readItemPolicy(node: VisualLayer): LayoutItemPolicy {
-  const mod = (node.modifiers ?? []).find((m) => m.type === "layout-item");
-  return mod && mod.type === "layout-item" ? (mod.policy ?? {}) : {};
+  return node.layoutItem ?? {};
 }
 
 function measureIntrinsic(
@@ -105,10 +88,11 @@ function applyItemSizing(
   const heightMode = policy.height ?? "fixed";
   let width = frameWidth(child);
   let height = frameHeight(child);
-  if (widthMode === "content") width = intrinsic.width;
+  if (widthMode === "hug") width = intrinsic.width;
   if (widthMode === "fill") width = fillWidth;
-  if (heightMode === "content") height = intrinsic.height;
+  if (heightMode === "hug") height = intrinsic.height;
   if (heightMode === "fill") height = fillHeight;
+  // Clamp after size mode, not instead of it.
   if (policy.minWidth != null) width = Math.max(policy.minWidth, width);
   if (policy.maxWidth != null) width = Math.min(policy.maxWidth, width);
   if (policy.minHeight != null) height = Math.max(policy.minHeight, height);
@@ -116,7 +100,12 @@ function applyItemSizing(
   setFrameSize(child, width, height);
 }
 
-/** Deterministic layout → literal frame + translate; layout modifiers compile-time only. */
+/**
+ * Deterministic layout -> literal frame + translate.
+ * Compile-time only: runtime IR must not keep `layout` / `layoutItem`.
+ * v1 does not implement wrap, grow, shrink, or grid span/autoFlow.
+ * min/max size clamps after fixed/hug/fill.
+ */
 export function applyLayoutConstraints(
   layers: MotionLayer[],
   measure: TextMeasurementProvider = defaultTextMeasurementProvider,
@@ -127,31 +116,26 @@ export function applyLayoutConstraints(
   const ordered = [...byId.values()];
 
   for (const parent of ordered) {
-    const layoutMods = (parent.modifiers ?? []).filter(
-      (modifier) => modifier.type === "layout",
-    );
-    if (layoutMods.length === 0) continue;
+    if (parent.type !== "group" || !parent.layout) continue;
     const children = ordered.filter((node) => node.parentLayerId === parent.id);
-    for (const modifier of layoutMods) {
-      solveConstraint(parent, children, modifier.constraint, measure);
-    }
+    solveConstraint(parent, children, parent.layout, measure);
   }
 
-  const visual = ordered.map((node) => {
-    const modifiers = (node.modifiers ?? []).filter(
-      (modifier) =>
-        modifier.type !== "layout" && modifier.type !== "layout-item",
-    );
-    if (modifiers.length === (node.modifiers?.length ?? 0)) return node;
-    const next = { ...node };
-    if (modifiers.length === 0) delete next.modifiers;
-    else next.modifiers = modifiers;
-    return next;
-  });
+  const visual = ordered.map((node) => stripLayoutFields(node));
+
   return layers.map((layer) => {
     if (layer.type === "audio") return layer;
     return visual.find((node) => node.id === layer.id) ?? layer;
   });
+}
+
+function stripLayoutFields(node: MutableNode): MutableNode {
+  if (node.type === "group") {
+    const { layout: _layout, layoutItem: _item, ...rest } = node;
+    return rest;
+  }
+  const { layoutItem: _item, ...rest } = node;
+  return rest;
 }
 
 function cloneNode(node: VisualLayer): MutableNode {
@@ -165,62 +149,60 @@ function solveConstraint(
   measure: TextMeasurementProvider,
 ): void {
   if (children.length === 0) return;
-  switch (constraint.kind) {
-    case "stack": {
+
+  switch (constraint.mode) {
+    case "row":
+    case "column": {
+      const isColumn = constraint.mode === "column";
       const gap = constraint.gap ?? 0;
       const pad = normalizePadding(
         constraint.padding as number | EdgeInsets | undefined,
       );
-      const justify =
-        ("justify" in constraint ? constraint.justify : undefined) ?? "start";
+      const justify = constraint.justify ?? "start";
       const align = constraint.align ?? "start";
       const innerW = Math.max(0, frameWidth(parent) - pad.left - pad.right);
       const innerH = Math.max(0, frameHeight(parent) - pad.top - pad.bottom);
 
       for (const child of children) {
         applyItemSizing(child, readItemPolicy(child), measure, innerW, innerH);
+
         if (align === "stretch") {
-          if (constraint.direction === "vertical")
-            setFrameSize(child, innerW, frameHeight(child));
+          if (isColumn) setFrameSize(child, innerW, frameHeight(child));
           else setFrameSize(child, frameWidth(child), innerH);
         }
+
         const self = readItemPolicy(child).alignSelf;
         if (self === "stretch") {
-          if (constraint.direction === "vertical")
-            setFrameSize(child, innerW, frameHeight(child));
+          if (isColumn) setFrameSize(child, innerW, frameHeight(child));
           else setFrameSize(child, frameWidth(child), innerH);
         }
       }
 
-      const sizes = children.map((c) =>
-        constraint.direction === "vertical" ? frameHeight(c) : frameWidth(c),
+      const sizes = children.map((child) =>
+        isColumn ? frameHeight(child) : frameWidth(child),
       );
       const occupied =
-        sizes.reduce((sum, s) => sum + s, 0) +
+        sizes.reduce((sum, size) => sum + size, 0) +
         gap * Math.max(0, children.length - 1);
-      const free = Math.max(
-        0,
-        (constraint.direction === "vertical" ? innerH : innerW) - occupied,
-      );
-      let cursor =
-        constraint.direction === "vertical"
-          ? pad.top +
-            (justify === "center" ? free / 2 : justify === "end" ? free : 0)
-          : pad.left +
-            (justify === "center" ? free / 2 : justify === "end" ? free : 0);
+      const free = Math.max(0, (isColumn ? innerH : innerW) - occupied);
+      let cursor = isColumn
+        ? pad.top +
+          (justify === "center" ? free / 2 : justify === "end" ? free : 0)
+        : pad.left +
+          (justify === "center" ? free / 2 : justify === "end" ? free : 0);
       const between =
         justify === "space-between" && children.length > 1
           ? free / (children.length - 1)
           : gap;
 
-      for (let i = 0; i < children.length; i += 1) {
-        const child = children[i]!;
+      for (const child of children) {
         const policy = readItemPolicy(child);
         const crossAlign =
           policy.alignSelf && policy.alignSelf !== "auto"
             ? policy.alignSelf
             : align;
-        if (constraint.direction === "vertical") {
+
+        if (isColumn) {
           setTranslate(
             child,
             alignCross(
@@ -233,26 +215,31 @@ function solveConstraint(
             cursor,
           );
           cursor += frameHeight(child) + between;
-        } else {
-          setTranslate(
-            child,
-            cursor,
-            alignCross(
-              crossAlign,
-              frameHeight(parent),
-              frameHeight(child),
-              pad.top,
-              pad.bottom,
-            ),
-          );
-          cursor += frameWidth(child) + between;
+          continue;
         }
+
+        setTranslate(
+          child,
+          cursor,
+          alignCross(
+            crossAlign,
+            frameHeight(parent),
+            frameHeight(child),
+            pad.top,
+            pad.bottom,
+          ),
+        );
+        cursor += frameWidth(child) + between;
       }
       return;
     }
     case "grid": {
-      const gapX = constraint.gapX ?? 0;
-      const gapY = constraint.gapY ?? 0;
+      // Auto-flow: left-to-right, then top-to-bottom. No span / rowGap.
+      const gap = constraint.gap ?? 0;
+      const pad = normalizePadding(
+        constraint.padding as number | EdgeInsets | undefined,
+      );
+
       children.forEach((child, index) => {
         applyItemSizing(
           child,
@@ -265,34 +252,10 @@ function solveConstraint(
         const row = Math.floor(index / constraint.columns);
         setTranslate(
           child,
-          col * (frameWidth(child) + gapX),
-          row * (frameHeight(child) + gapY),
+          pad.left + col * (frameWidth(child) + gap),
+          pad.top + row * (frameHeight(child) + gap),
         );
       });
-      return;
-    }
-    case "align": {
-      for (const child of children) {
-        let x = translateX(child);
-        let y = translateY(child);
-        if (constraint.axis === "x" || constraint.axis === "both") {
-          x = alignAxis(
-            constraint.align,
-            frameWidth(parent),
-            frameWidth(child),
-            0,
-          );
-        }
-        if (constraint.axis === "y" || constraint.axis === "both") {
-          y = alignAxis(
-            constraint.align,
-            frameHeight(parent),
-            frameHeight(child),
-            0,
-          );
-        }
-        setTranslate(child, x, y);
-      }
       return;
     }
   }
@@ -306,19 +269,8 @@ function alignCross(
   padEnd: number,
 ): number {
   if (align === "center") return (parentSize - childSize) / 2;
-  if (align === "end")
+  if (align === "end") {
     return Math.max(padStart, parentSize - childSize - padEnd);
+  }
   return padStart;
-}
-
-function alignAxis(
-  align: "start" | "center" | "end",
-  parentSize: number,
-  childSize: number,
-  padding: number,
-): number {
-  if (align === "center") return (parentSize - childSize) / 2;
-  if (align === "end")
-    return Math.max(padding, parentSize - childSize - padding);
-  return padding;
 }

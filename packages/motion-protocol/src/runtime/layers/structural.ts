@@ -8,10 +8,12 @@ import {
   SemverSchema,
 } from "../common";
 import { JsonValueSchema } from "../values";
+import { LayoutConstraintSchema } from "../layout";
 import { LayerBaseSchema } from "./base";
 
 export const GroupLayerSchema = LayerBaseSchema.extend({
   type: z.literal("group"),
+  layout: LayoutConstraintSchema.optional(),
   payload: z.object({}).strict().optional(),
 }).strict();
 
@@ -31,7 +33,11 @@ export const BoneLayerSchema = LayerBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const CameraLayerSchema = LayerBaseSchema.extend({
+export const CameraLayerSchema = LayerBaseSchema.omit({
+  frame: true,
+  layoutItem: true,
+  effects: true,
+}).extend({
   type: z.literal("camera"),
   payload: z
     .object({

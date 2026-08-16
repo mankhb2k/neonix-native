@@ -1,26 +1,19 @@
 /**
- * Giá trị prop component — tĩnh, gắn variable, hoặc keyframes.
- *
- * Keyframe authoring dùng value (không dùng v của track).
+ * Giá trị prop component — literal hoặc keyframes.
+ * Không inline variable ref. Nối variable chỉ qua project.bindings → prop.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema } from "../common";
 import { KeyframeEasingSchema } from "../animation/easing";
-import { JsonValueSchema, VariableReferenceSchema } from "../values";
-
-export const PropKeyframeInterpolationSchema = z.enum([
-  "step",
-  "linear",
-  "color",
-]);
+import { LiteralValueSchema } from "../values";
 
 export const PropKeyframeSchema = z
   .object({
     t: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
-    value: JsonValueSchema,
+    value: LiteralValueSchema,
     easing: KeyframeEasingSchema.optional(),
   })
   .strict();
@@ -31,16 +24,14 @@ export const PropKeyframesValueSchema = z
     keys: z
       .array(PropKeyframeSchema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
-    interpolation: PropKeyframeInterpolationSchema.optional(),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation),
   })
   .strict();
 
-/** Giá trị prop: keyframes | ref variable | literal (thứ tự union quan trọng với Zod). */
+/** Giá trị prop: keyframes hoặc literal. Không `{ ref: { kind: "variable" } }`. */
 export const ComponentPropValueSchema = z.union([
   PropKeyframesValueSchema,
-  VariableReferenceSchema,
-  JsonValueSchema,
+  LiteralValueSchema,
 ]);
 
 export type PropKeyframe = z.infer<typeof PropKeyframeSchema>;

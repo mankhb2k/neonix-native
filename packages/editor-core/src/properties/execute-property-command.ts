@@ -1,5 +1,6 @@
 import {
   MOTION_PROTOCOL_LIMITS,
+  V1,
   motionPropertyCapability,
   setTextPayloadPlain,
   type MotionLayer,
@@ -192,10 +193,7 @@ function applyText(node: MotionLayer, patch: TextPayloadPatch): MotionLayer | nu
       node.type,
     );
   }
-  if (patch.fontWeight !== undefined) {
-    payload.fontWeight = Math.min(1000, Math.max(1, Math.round(patch.fontWeight)));
-  }
-  if (patch.align !== undefined) payload.align = patch.align;
+  if (patch.align !== undefined) payload.alignment = patch.align;
   if (patch.lineHeight !== undefined) {
     payload.lineHeight = Math.max(Number.EPSILON, patch.lineHeight);
   }
@@ -406,14 +404,22 @@ function applyAudioTrack(
   };
 }
 
-function clampKeyframeClipDuration(
-  currentDuration: number,
-  keyTime: number,
-): number {
-  return Math.min(
-    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    Math.max(currentDuration, keyTime + 0.001),
-  );
+function clampKeyframeTime(keyTime: number): number {
+  return Math.min(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds, Math.max(0, keyTime));
+}
+
+function authoringClips(project: MotionProject): V1.TimelinePropertyClipV1[] {
+  return [...(project.timeline.clips ?? [])];
+}
+
+function withAuthoringClips(
+  project: MotionProject,
+  clips: V1.TimelinePropertyClipV1[],
+): MotionProject {
+  return {
+    ...project,
+    timeline: { ...project.timeline, clips },
+  };
 }
 
 function allocateUniqueClipId(
@@ -445,85 +451,53 @@ function upsertKeyframeOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "set-property-keyframe" }>,
 ): { project: MotionProject; missing: boolean; invalid?: string } {
-  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
-  if (sceneIdx < 0) return { project, missing: true };
-  const scene = project.scenes[sceneIdx]!;
-  const node = scene.layers.find((n) => n.id === target.layerId);
+  const node = findNode(project, target.sceneId, target.layerId);
   if (!node) return { project, missing: true };
 
-  const clips = [...scene.clips];
+  const t = clampKeyframeTime(command.t);
+  const layerDuration = node.timing?.duration;
+  const keyT =
+    typeof layerDuration === "number"
+      ? Math.min(t, Math.max(0, layerDuration - 1e-6))
+      : t;
+  const clips = authoringClips(project);
   const clipIdx = clips.findIndex(
-    (c) =>
-      c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+    (c) => c.layerId === target.layerId && c.property === command.property,
   );
+  const key = {
+    t: keyT,
+    value: command.v,
+    easing: command.easing,
+  };
   if (clipIdx < 0) {
     const existingIds = new Set(clips.map((c) => c.id));
     clips.push({
       id: allocateUniqueClipId(existingIds, target.layerId, command.property),
       layerId: target.layerId,
-      schedule: { kind: "absolute", at: 0 },
-      duration: clampKeyframeClipDuration(scene.duration, command.t),
-      playback: { iterations: 1, direction: "normal", rate: 1 },
-      source: {
-        kind: "tracks",
-        tracks: [
-          {
-            layerId: target.layerId,
-            property: command.property,
-            keys: [
-              {
-                t: command.t,
-                v: command.v,
-                easing: command.easing,
-              },
-            ],
-          },
-        ],
-      },
+      property: command.property,
+      kind: "keyframes",
+      keys: [key],
     });
   } else {
     const clip = clips[clipIdx]!;
-    if (clip.source.kind !== "tracks") return { project, missing: true };
-    let overflow = false;
-    const tracks = clip.source.tracks.map((tr) => {
-      if (tr.property !== command.property) return tr;
-      const keys = [...tr.keys];
-      const keyIdx = keys.findIndex((k) => Math.abs(k.t - command.t) < 1e-6);
-      const key = {
-        t: command.t,
-        v: command.v,
-        easing: command.easing,
-      };
-      if (keyIdx >= 0) keys[keyIdx] = key;
-      else {
-        if (keys.length >= MOTION_PROTOCOL_LIMITS.keysPerTrack) {
-          overflow = true;
-          return tr;
-        }
-        keys.push(key);
-        keys.sort((a, b) => a.t - b.t);
+    const keys = [...clip.keys];
+    const keyIdx = keys.findIndex((k) => Math.abs(k.t - keyT) < 1e-6);
+    if (keyIdx >= 0) keys[keyIdx] = key;
+    else {
+      if (keys.length >= MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation) {
+        return {
+          project,
+          missing: false,
+          invalid: `Keyframe animation exceeds keysPerPropertyAnimation (${MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation}).`,
+        };
       }
-      return { ...tr, keys };
-    });
-    if (overflow) {
-      return {
-        project,
-        missing: false,
-        invalid: `Keyframe track exceeds keysPerTrack (${MOTION_PROTOCOL_LIMITS.keysPerTrack}).`,
-      };
+      keys.push(key);
+      keys.sort((a, b) => a.t - b.t);
     }
-    clips[clipIdx] = {
-      ...clip,
-      source: { kind: "tracks", tracks },
-      duration: clampKeyframeClipDuration(clip.duration, command.t),
-    };
+    clips[clipIdx] = { ...clip, keys };
   }
 
-  const scenes = project.scenes.slice();
-  scenes[sceneIdx] = { ...scene, clips };
-  return { project: { ...project, scenes }, missing: false };
+  return { project: withAuthoringClips(project, clips), missing: false };
 }
 
 function applyKeyframe(
@@ -545,55 +519,39 @@ function moveKeyframeOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "move-property-keyframe" }>,
 ): { project: MotionProject; missing: boolean; invalid?: string } {
-  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
-  if (sceneIdx < 0) return { project, missing: true };
-  const scene = project.scenes[sceneIdx]!;
-
-  const clips = [...scene.clips];
+  const clips = authoringClips(project);
   const clipIdx = clips.findIndex(
-    (c) =>
-      c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+    (c) => c.layerId === target.layerId && c.property === command.property,
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
+  const newT = clampKeyframeTime(command.newT);
+  const collides = clip.keys.some(
+    (k) => Math.abs(k.t - newT) < 1e-6 && Math.abs(k.t - command.t) >= 1e-6,
+  );
+  if (collides) {
+    return {
+      project,
+      missing: false,
+      invalid: `Cannot move keyframe to ${command.newT} because another keyframe exists at that time.`,
+    };
+  }
 
-  let invalid: string | undefined = undefined;
-  const tracks = clip.source.tracks.map((tr) => {
-    if (tr.property !== command.property) return tr;
-    
-    // Check collision
-    const collides = tr.keys.some(k => Math.abs(k.t - command.newT) < 1e-6 && Math.abs(k.t - command.t) >= 1e-6);
-    if (collides) {
-      invalid = `Cannot move keyframe to ${command.newT} because another keyframe exists at that time.`;
-      return tr;
-    }
-
-    const keys = tr.keys.map((k) => {
+  const keys = clip.keys
+    .map((k) => {
       if (Math.abs(k.t - command.t) < 1e-6) {
         return {
           ...k,
-          t: command.newT,
-          v: command.newV !== undefined ? command.newV : k.v,
+          t: newT,
+          value: command.newV !== undefined ? command.newV : k.value,
         };
       }
       return k;
-    }).sort((a, b) => a.t - b.t);
-    return { ...tr, keys };
-  });
+    })
+    .sort((a, b) => a.t - b.t);
 
-  if (invalid) return { project, missing: false, invalid };
-
-  clips[clipIdx] = {
-    ...clip,
-    duration: clampKeyframeClipDuration(clip.duration, command.newT),
-    source: { kind: "tracks", tracks },
-  };
-  const scenes = project.scenes.slice();
-  scenes[sceneIdx] = { ...scene, clips };
-  return { project: { ...project, scenes }, missing: false };
+  clips[clipIdx] = { ...clip, keys };
+  return { project: withAuthoringClips(project, clips), missing: false };
 }
 
 function deleteKeyframeOnScene(
@@ -601,36 +559,16 @@ function deleteKeyframeOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "delete-property-keyframe" }>,
 ): { project: MotionProject; missing: boolean } {
-  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
-  if (sceneIdx < 0) return { project, missing: true };
-  const scene = project.scenes[sceneIdx]!;
-
-  const clips = [...scene.clips];
+  const clips = authoringClips(project);
   const clipIdx = clips.findIndex(
-    (c) =>
-      c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+    (c) => c.layerId === target.layerId && c.property === command.property,
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
-
-  const tracks = clip.source.tracks.map((tr) => {
-    if (tr.property !== command.property) return tr;
-    const keys = tr.keys.filter((k) => Math.abs(k.t - command.t) >= 1e-6);
-    return { ...tr, keys };
-  }).filter((tr) => tr.keys.length > 0);
-
-  if (tracks.length === 0) {
-    clips.splice(clipIdx, 1);
-  } else {
-    clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
-  }
-
-  const scenes = project.scenes.slice();
-  scenes[sceneIdx] = { ...scene, clips };
-  return { project: { ...project, scenes }, missing: false };
+  const keys = clip.keys.filter((k) => Math.abs(k.t - command.t) >= 1e-6);
+  if (keys.length === 0) clips.splice(clipIdx, 1);
+  else clips[clipIdx] = { ...clip, keys };
+  return { project: withAuthoringClips(project, clips), missing: false };
 }
 
 function setKeyframeEasingOnScene(
@@ -638,36 +576,20 @@ function setKeyframeEasingOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "set-keyframe-easing" }>,
 ): { project: MotionProject; missing: boolean } {
-  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
-  if (sceneIdx < 0) return { project, missing: true };
-  const scene = project.scenes[sceneIdx]!;
-
-  const clips = [...scene.clips];
+  const clips = authoringClips(project);
   const clipIdx = clips.findIndex(
-    (c) =>
-      c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+    (c) => c.layerId === target.layerId && c.property === command.property,
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
-
-  const tracks = clip.source.tracks.map((tr) => {
-    if (tr.property !== command.property) return tr;
-    const keys = tr.keys.map((k) => {
-      if (Math.abs(k.t - command.t) < 1e-6) {
-        return { ...k, easing: command.easing };
-      }
-      return k;
-    });
-    return { ...tr, keys };
+  const keys = clip.keys.map((k) => {
+    if (Math.abs(k.t - command.t) < 1e-6) {
+      return { ...k, easing: command.easing };
+    }
+    return k;
   });
-
-  clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
-  const scenes = project.scenes.slice();
-  scenes[sceneIdx] = { ...scene, clips };
-  return { project: { ...project, scenes }, missing: false };
+  clips[clipIdx] = { ...clip, keys };
+  return { project: withAuthoringClips(project, clips), missing: false };
 }
 
 export function executePropertyCommand(

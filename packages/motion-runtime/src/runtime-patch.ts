@@ -2,9 +2,9 @@
  * RuntimePatch protocol — incremental update primitives for prepared projects.
  *
  * Three patch kinds with different invalidation scopes:
- *   PaintPatch       — property-only change, keeps display object cache
- *   TrackValuesPatch — keyframe values change, re-evaluate target frame ranges
- *   StructuralPatch  — layer/tree/graph change, rebuild affected scope
+ *   PaintPatch                    — property-only change, keeps display object cache
+ *   PropertyAnimationValuesPatch  — keyframe values change, re-evaluate target frame ranges
+ *   StructuralPatch               — layer/tree/graph change, rebuild affected scope
  *
  * Each patch carries a sequence number (monotonic) so the painter/evaluator
  * can drop stale patches that arrive out of order.
@@ -44,20 +44,19 @@ export type PaintPatch = {
   value: unknown;
 };
 
-// ── Track values patch ────────────────────────────────────────────────
+// ── Property animation values patch ───────────────────────────────────
 
 /**
- * Update keyframe values on one or more tracks.
+ * Update keyframe values on one or more propertyAnimations.
  * Invalidates the frame range spanning the modified keyframes.
  * Display cache is preserved for unaffected layers.
  */
-export type TrackValuesPatch = {
-  kind: "track-values";
+export type PropertyAnimationValuesPatch = {
+  kind: "property-animation-values";
   sequence: PatchSequence;
   /** Target layer graph */
   graphId: string;
-  /** Track updates */
-  tracks: Array<{
+  propertyAnimations: Array<{
     layerId: string;
     property: string;
     /** Replace all keys — the patch source owns correctness */
@@ -101,7 +100,7 @@ export type StructuralPatch = {
 
 // ── Union type ────────────────────────────────────────────────────────
 
-export type RuntimePatch = PaintPatch | TrackValuesPatch | StructuralPatch;
+export type RuntimePatch = PaintPatch | PropertyAnimationValuesPatch | StructuralPatch;
 
 // ── Invalidation helpers ──────────────────────────────────────────────
 
@@ -113,7 +112,7 @@ export function affectedGraphIds(patch: RuntimePatch): string[] {
   switch (patch.kind) {
     case "paint":
       return [patch.graphId];
-    case "track-values":
+    case "property-animation-values":
       return [patch.graphId];
     case "structural":
       return patch.graphIds;

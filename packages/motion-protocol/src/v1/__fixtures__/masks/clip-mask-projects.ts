@@ -23,9 +23,17 @@ function t(x: number, y: number, width: number, height: number) {
 
 const ROOT_TIMING = { start: 0, duration: 1 };
 
-function withRootTiming<T extends { parentLayerId: string | null }>(layer: T): T & { timing?: { start: number; duration: number } } {
-  if (layer.parentLayerId !== null) return layer;
-  return { ...layer, timing: ROOT_TIMING };
+function withLayerTiming(layer: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = {
+    ...layer,
+    timing: layer.timing ?? ROOT_TIMING,
+  };
+  if (Array.isArray(next.children)) {
+    next.children = next.children.map((child) =>
+      withLayerTiming(child as Record<string, unknown>),
+    );
+  }
+  return next;
 }
 
 function clipEllipse(parentLayerId: string | null, zIndex: number) {
@@ -53,6 +61,18 @@ function projectShell(
   layers: unknown[],
   extras: Record<string, unknown> = {},
 ) {
+  const components = Array.isArray(extras.components)
+    ? extras.components.map((component) => {
+        if (!component || typeof component !== "object") return component;
+        const next = { ...(component as Record<string, unknown>) };
+        if (Array.isArray(next.layers)) {
+          next.layers = next.layers.map((layer) =>
+            withLayerTiming(layer as Record<string, unknown>),
+          );
+        }
+        return next;
+      })
+    : extras.components ?? [];
   return {
     format: "motion-project" as const,
     formatVersion: 1 as const,
@@ -69,10 +89,10 @@ function projectShell(
     tokens: {},
     variables: [],
     assets: extras.assets ?? [],
-    components: extras.components ?? [],
+    components,
     timeline: { duration: 1 },
     bindings: [],
-    layers: (layers as Array<{ parentLayerId: string | null }>).map(withRootTiming),
+    layers: (layers as Array<Record<string, unknown>>).map(withLayerTiming),
   };
 }
 
@@ -142,7 +162,7 @@ function artworkLayer(
         ...base,
         type: "text",
         payload: {
-          content: { kind: "plain", text: "MASK" },
+          text: "MASK" ,
           fontSize: 120,
           color: CLIP_ARTWORK_COLOR,
           alignment: "center",
@@ -245,7 +265,6 @@ function componentDefs() {
       props: [],
       variants: [],
       propBindings: [],
-      variables: [],
       layers: [
         {
           id: "comp-fill",
@@ -335,7 +354,6 @@ export function clipMaskComponentInternalProject() {
       props: [],
       variants: [],
       propBindings: [],
-      variables: [],
       layers: [
         {
           id: "comp-fill",

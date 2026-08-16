@@ -41,6 +41,7 @@ export const RuntimeDiagnosticCode = {
   INVALID_KEYFRAME_VALUE: "INVALID_KEYFRAME_VALUE",
   NON_FINITE_VALUE: "NON_FINITE_VALUE",
   PROPERTY_NOT_FOUND: "PROPERTY_NOT_FOUND",
+  TRACK_NOT_APPLIED: "TRACK_NOT_APPLIED",
   OUT_OF_RANGE_VALUE: "OUT_OF_RANGE_VALUE",
   TYPE_MISMATCH: "TYPE_MISMATCH",
 
@@ -159,6 +160,10 @@ export const RUNTIME_DIAGNOSTIC_CODE_META: Record<
   PROPERTY_NOT_FOUND: {
     severity: "warning",
     message: "The referenced property does not exist on the node.",
+  },
+  TRACK_NOT_APPLIED: {
+    severity: "warning",
+    message: "A compiled propertyAnimation exists but snapshot/paint does not apply it in V1.",
   },
   OUT_OF_RANGE_VALUE: {
     severity: "warning",

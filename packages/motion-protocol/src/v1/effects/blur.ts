@@ -1,5 +1,5 @@
 /**
- * Effect làm mờ — radius.
+ * Effect làm mờ nội dung layer — chỉ radius. Không hướng, không inner/outer.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

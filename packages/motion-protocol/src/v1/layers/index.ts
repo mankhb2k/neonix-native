@@ -1,7 +1,7 @@
 /**
  * Union layer V1. Discriminator luôn là type (không dùng kind).
  *
- * Chỉ group có children. component = instance niêm phong. audio = lá root, zIndex âm.
+ * Chỉ group có children (ít nhất một). component = instance niêm phong. audio = lá root, zIndex âm.
  */
 import { z } from "zod";
 import { TextLayerV1Schema } from "./text";
@@ -24,19 +24,14 @@ import type { AudioLayerV1 } from "./audio";
 
 export { LayerBaseV1Schema, InheritFlagsSchema } from "./base";
 export { LayerTimingSchema, type LayerTiming } from "./timing";
-export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
+export { PaintStyleSchema, SvgStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {
   segmentTextUnits,
-  TextContentSchema,
-  RichTextRunSchema,
   TextPayloadSchema,
-  textContentPlain,
   getTextPayloadPlain,
   setTextPayloadPlain,
   normalizeTextPayloadInput,
-  type TextContent,
-  type RichTextRun,
   type TextLayerPayload,
 } from "./text-content";
 export {
@@ -58,10 +53,13 @@ export {
   ShapeLayerV1Schema,
   PathLayerV1Schema,
   PointSchema,
+  NormalizedPointSchema,
   PathSegmentSchema,
   PathContourSchema,
   PathMorphTargetSchema,
+  PathPayloadSchema,
   type MotionPoint,
+  type NormalizedPoint,
   type MotionPathSegment,
   type MotionPathContour,
   type MotionPathMorphTarget,
@@ -89,7 +87,7 @@ export type LayerV1 =
 export const LayerV1Schema: z.ZodType<LayerV1> = z.lazy(() =>
   z.discriminatedUnion("type", [
     GroupLayerV1BaseSchema.extend({
-      children: z.array(LayerV1Schema).default([]),
+      children: z.array(LayerV1Schema).min(1),
     }),
     BoneLayerV1Schema,
     TextLayerV1Schema,

@@ -1,12 +1,12 @@
 /**
- * Timeline project — chỉ metadata toàn cục (duration / workArea / markers).
+ * Timeline project — duration, workArea, clips.
  *
- * Nội dung visual/audio/caption sống trên project.layers.
+ * Nội dung visual/audio sống trên project.layers.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, PositiveNumberSchema } from "../common";
-import { TimelineMarkerV1Schema } from "../animation/tracks";
+import { TimelinePropertyClipV1Schema } from "./clips";
 
 export const WorkAreaSchema = z
   .object({
@@ -32,7 +32,10 @@ export const ProjectTimelineV1Schema = z
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .optional(),
     workArea: WorkAreaSchema.optional(),
-    markers: z.array(TimelineMarkerV1Schema).max(256).optional(),
+    clips: z
+      .array(TimelinePropertyClipV1Schema)
+      .max(MOTION_PROTOCOL_LIMITS.timelineClipsPerProject)
+      .optional(),
   })
   .strict()
   .superRefine((timeline, ctx) => {
@@ -45,16 +48,6 @@ export const ProjectTimelineV1Schema = z
         message: `workArea.end (${timeline.workArea.end}) must be ≤ timeline.duration (${duration})`,
         path: ["workArea", "end"],
       });
-    }
-
-    for (const [markerIndex, marker] of (timeline.markers ?? []).entries()) {
-      if (marker.t > duration) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `marker "${marker.id}" t (${marker.t}) must be ≤ timeline.duration (${duration})`,
-          path: ["markers", markerIndex, "t"],
-        });
-      }
     }
   });
 

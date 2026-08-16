@@ -1,13 +1,13 @@
 /**
- * Catalog component V1 — template niêm phong, props công khai, variants.
+ * Catalog component V1 — template niêm phong.
  *
- * Consumer chỉ override props công khai. Owner nối bằng propBindings.
- * Instance type:"component" nằm ở layers/component.ts.
+ * Definition: props, variants (chỉ override props), propBindings, layers.
+ * Variant không đổi tree, bindings, hay layout graph.
+ * Consumer instance: layers/component.ts. Project binding chỉ target type prop.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { VariableSchema } from "../variables";
-import { JsonValueSchema } from "../values";
+import { LiteralValueSchema } from "../values";
 import {
   IdSchema,
   PropertyPathSchema,
@@ -20,9 +20,9 @@ import { ComponentPropValueSchema } from "./prop-values";
 
 export * from "./prop-values";
 
-/** Loại prop công khai — thân thiện AI/user (không string/enum/list). */
+/** Loại prop công khai V1 — primitive bindable. */
 export const ComponentPropKindSchema = z.enum([
-  "text",
+  "string",
   "number",
   "boolean",
   "color",
@@ -60,7 +60,7 @@ export const ComponentPropV1Schema = z
     id: IdSchema,
     name: z.string().min(1).optional(),
     kind: ComponentPropKindSchema,
-    default: JsonValueSchema,
+    default: LiteralValueSchema,
     /** When omitted, inferred: choice/asset → false; others → true. */
     animatable: z.boolean().optional(),
     /** Required when kind === "asset". */
@@ -158,11 +158,6 @@ export const ComponentDefinitionV1Schema = z
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
 
-    // ── Nội bộ owner (niêm phong với consumer) ─────────────────────
-    variables: z
-      .array(VariableSchema)
-      .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
-      .default([]),
     layers: z
       .array(LayerV1Schema)
       .min(1)

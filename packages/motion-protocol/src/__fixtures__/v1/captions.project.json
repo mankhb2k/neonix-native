@@ -66,15 +66,12 @@
       },
       "locked": false,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Captioned Video"
-        },
         "fontSize": 64,
         "color": "#000000",
         "alignment": "center",
         "wrap": "word",
-        "overflow": "visible"
+        "overflow": "visible",
+        "text": "Captioned Video"
       },
       "timing": {
         "start": 0,

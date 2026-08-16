@@ -147,7 +147,6 @@
           }
         }
       ],
-      "variables": [],
       "layers": [
         {
           "id": "logo",
@@ -184,7 +183,12 @@
           "appearance": {
             "visible": true,
             "opacity": 100
-          }
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
+          "zIndex": 0
         }
       ]
     }
@@ -196,32 +200,7 @@
       "end": 8
     }
   },
-  "bindings": [
-    {
-      "id": "binding-founder-name",
-      "source": {
-        "kind": "variable",
-        "variableId": "founder-name"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "subtitle",
-        "property": "payload.content.text"
-      }
-    },
-    {
-      "id": "binding-title-opacity",
-      "source": {
-        "kind": "variable",
-        "variableId": "title-opacity"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "title",
-        "property": "appearance.opacity"
-      }
-    }
-  ],
+  "bindings": [],
   "layers": [
     {
       "id": "title",
@@ -249,13 +228,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Hello MotiClip"
-        },
         "fontSize": 64,
         "color": "#111111",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Hello MotiClip"
       },
       "zIndex": 0,
       "timing": {
@@ -297,13 +273,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Powered by V1"
-        },
         "fontSize": 40,
         "color": "#555555",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Powered by V1"
       },
       "zIndex": 1,
       "timing": {
@@ -427,13 +400,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Thanks for watching"
-        },
         "fontSize": 48,
         "color": "#111111",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Thanks for watching"
       },
       "zIndex": 4,
       "timing": {

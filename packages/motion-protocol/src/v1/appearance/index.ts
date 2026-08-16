@@ -1,5 +1,6 @@
 /**
- * Ghép appearance: visible + opacity. Import file lá để test từng atom.
+ * Lớp hiển thị tối thiểu của visual layer: visible + opacity.
+ * Không chứa compositing, effect, hay interaction / hit-test.
  */
 import { z } from "zod";
 import { OpacitySchema } from "./opacity";

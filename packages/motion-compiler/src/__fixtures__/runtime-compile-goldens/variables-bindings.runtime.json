@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "variables-bindings",
     "name": "Variables And Bindings",
@@ -12,7 +12,7 @@
       "name": "Variables And Bindings",
       "primaryColor": "#1877f2"
     },
-    "description": "Project with variables and project bindings"
+    "description": "Project variable bound to a public component prop"
   },
   "assets": [],
   "composition": {
@@ -23,93 +23,36 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "87403d44019d37a5cc584cf9e26ae523",
+  "runtimeHash": "f758e9ec66317508dd4421c9bd7c7219",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
     "layers": {
-      "title": "layers:title",
-      "subtitle": "layers:subtitle"
+      "card__instance": "layers:card__instance",
+      "card__subtitle": "layers:card__subtitle"
     }
   },
   "layers": [
     {
-      "id": "title",
-      "type": "text",
+      "id": "card__instance",
+      "type": "group",
       "parentLayerId": null,
-      "zIndex": 1,
+      "zIndex": 0,
       "frame": {
         "width": 800,
         "height": 120
       },
       "transform": {
         "translate": {
-          "x": 960,
-          "y": 400
-        },
-        "rotate": {
-          "z": 0
-        },
-        "scale": {
-          "x": 1,
-          "y": 1
-        },
-        "skew": {
           "x": 0,
           "y": 0
         },
-        "origin": {
-          "x": 0.5,
-          "y": 0.5
-        },
-        "depth": 0
-      },
-      "appearance": {
-        "visible": true,
-        "opacity": 90
-      },
-      "timing": {
-        "start": 0,
-        "duration": 5
-      },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
-      "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Founder:"
-        },
-        "fontSize": 64,
-        "align": "center",
-        "wrap": "word",
-        "overflow": "visible"
-      },
-      "style": {
-        "fill": "#000000"
-      }
-    },
-    {
-      "id": "subtitle",
-      "type": "text",
-      "parentLayerId": null,
-      "zIndex": 2,
-      "frame": {
-        "width": 800,
-        "height": 100
-      },
-      "transform": {
-        "translate": {
-          "x": 960,
-          "y": 600
-        },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -129,17 +72,52 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
-      "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Mark Zuckerberg"
+      "payload": {}
+    },
+    {
+      "id": "card__subtitle",
+      "type": "text",
+      "parentLayerId": "card__instance",
+      "zIndex": 0,
+      "frame": {
+        "width": 800,
+        "height": 100
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 600
         },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotate": {
+          "z": 0
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depth": 0
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "payload": {
+        "text": "Mark Zuckerberg",
         "fontSize": 48,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -148,7 +126,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 5
   }

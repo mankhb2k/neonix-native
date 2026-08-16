@@ -1,13 +1,13 @@
 /**
  * Nền node V1 — danh tính + nhóm atom.
  *
- * Size ở frame. Hình học ở transform. Opacity ở appearance.
- * Blend/mask/isolation ở compositing.
+ * Size ở frame. Hình học ở transform (mọi visual layer cùng contract).
+ * Appearance chỉ visible + opacity. Blend/mask/isolation ở compositing.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { EffectSchema } from "../effects";
-import { MotionModifierSchema } from "../modifiers";
+import { LayoutItemPolicySchema } from "../layout";
 import { LayerTimingSchema } from "./timing";
 import { TransformSchema } from "../transform";
 import { FrameSchema } from "../frame";
@@ -30,22 +30,18 @@ export const LayerBaseV1Schema = z
     type: IdSchema,
     name: z.string().min(1).optional(),
     parentLayerId: IdSchema.nullable(),
-    zIndex: z.number().int().optional(),
-    frame: FrameSchema.optional(),
+    zIndex: z.number().int().nonnegative(),
+    frame: FrameSchema,
     transform: TransformSchema,
     appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
     compositing: CompositingSchema.optional(),
-    timing: LayerTimingSchema.optional(),
+    timing: LayerTimingSchema,
+    layoutItem: LayoutItemPolicySchema.optional(),
     semantic: SemanticSchema.optional(),
     effects: z
       .array(EffectSchema)
       .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)
       .optional(),
     inheritFlags: InheritFlagsSchema.optional(),
-    locked: z.boolean().default(false),
-    modifiers: z
-      .array(MotionModifierSchema)
-      .max(MOTION_PROTOCOL_LIMITS.modifiersPerLayer)
-      .optional(),
   })
   .strict();

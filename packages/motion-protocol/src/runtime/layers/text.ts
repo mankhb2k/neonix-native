@@ -5,6 +5,7 @@ import {
   IdSchema,
   LocaleIdentifierSchema,
 } from "../common";
+import { ColorHexSchema } from "../../v1/common";
 import { LayerBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
@@ -76,90 +77,12 @@ export function segmentTextUnits(
     : segments.map((segment) => segment.segment);
 }
 
-const RunHighlightSchema = z
-  .object({
-    fill: z.string().min(1),
-    paddingX: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
-      .optional(),
-    paddingY: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
-      .optional(),
-    radius: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
-      .optional(),
-  })
-  .strict();
-
-const RichTextRunStyleSchema = z
-  .object({
-    fill: z.string().min(1).optional(),
-    fontAssetId: IdSchema.optional(),
-    fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
-    fontStyle: z.enum(["normal", "italic"]).optional(),
-    fontScale: FiniteNumberSchema.positive()
-      .max(MOTION_PROTOCOL_LIMITS.richTextFontScale)
-      .optional(),
-    letterSpacing: FiniteNumberSchema.optional(),
-    highlight: RunHighlightSchema.optional(),
-  })
-  .strict();
-
-export const RichTextRunSchema = z
-  .object({
-    id: IdSchema,
-    text: z.string(),
-    style: RichTextRunStyleSchema.optional(),
-  })
-  .strict();
-
-export const TextContentPlainSchema = z
-  .object({ kind: z.literal("plain"), text: z.string() })
-  .strict();
-
-export const TextContentRunsSchema = z
-  .object({
-    kind: z.literal("runs"),
-    runs: z
-      .array(RichTextRunSchema)
-      .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.richTextRuns),
-  })
-  .strict();
-
-export const TextContentSchema = z
-  .discriminatedUnion("kind", [TextContentPlainSchema, TextContentRunsSchema])
-  .superRefine((content, context) => {
-    if (content.kind !== "runs") return;
-    const seen = new Set<string>();
-    for (let i = 0; i < content.runs.length; i += 1) {
-      const run = content.runs[i]!;
-      if (seen.has(run.id)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["runs", i, "id"],
-          message: `Duplicate rich-text run id: ${run.id}`,
-        });
-      }
-      seen.add(run.id);
-    }
-  });
-
-export type TextContent = z.infer<typeof TextContentSchema>;
-export type RichTextRun = z.infer<typeof RichTextRunSchema>;
-
-/** Flatten text content to a plain string (for measurement, animators, search). */
-export function textContentPlain(content: TextContent): string {
-  if (content.kind === "plain") return content.text;
-  return content.runs.map((run) => run.text).join("");
-}
-
 export type TextLayerPayload = {
-  content: TextContent;
+  text: string;
   fontAssetId?: string;
   fontSize: number;
-  fontWeight?: number;
-  align?: "left" | "center" | "right";
+  color?: string;
+  alignment?: "left" | "center" | "right";
   wrap?: "none" | "word" | "character";
   lineHeight?: number;
   letterSpacing?: number;
@@ -169,53 +92,49 @@ export type TextLayerPayload = {
   fitText?: { minFontSize: number; maxFontSize: number };
 };
 
-/** Read plain string from a text node payload (content or legacy text). */
-export function getTextPayloadPlain(payload: {
-  content?: TextContent;
-  text?: string;
-}): string {
-  if (payload.content) return textContentPlain(payload.content);
-  if (typeof payload.text === "string") return payload.text;
-  return "";
+export function getTextPayloadPlain(payload: { text?: string }): string {
+  return typeof payload.text === "string" ? payload.text : "";
 }
 
-/** Write plain string into content (keeps runs only when already plain). */
-export function setTextPayloadPlain<
-  T extends { content?: TextContent; text?: string },
->(payload: T, text: string): T & { content: TextContent } {
-  const next = { ...payload, content: { kind: "plain" as const, text } };
-  delete (next as { text?: string }).text;
-  return next;
+export function setTextPayloadPlain<T extends { text?: string }>(
+  payload: T,
+  text: string,
+): T & { text: string } {
+  return { ...payload, text };
 }
 
-/**
- * Normalize legacy `{ text }` payloads to `{ content: { kind: "plain" } }`.
- * Called at parse boundary before Zod validation.
- */
 export function normalizeTextPayloadInput(raw: unknown): unknown {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
   const payload = { ...(raw as Record<string, unknown>) };
-  if (payload.content != null) {
-    delete payload.text;
-    return payload;
+  const content = payload.content;
+  if (
+    content !== null &&
+    typeof content === "object" &&
+    !Array.isArray(content) &&
+    (content as Record<string, unknown>).kind === "plain" &&
+    typeof (content as Record<string, unknown>).text === "string"
+  ) {
+    if (typeof payload.text !== "string") {
+      payload.text = (content as Record<string, unknown>).text;
+    }
+    delete payload.content;
   }
-  if (typeof payload.text === "string") {
-    const text = payload.text;
-    delete payload.text;
-    payload.content = { kind: "plain", text };
+  if (payload.align != null && payload.alignment == null) {
+    payload.alignment = payload.align;
   }
+  delete payload.align;
   return payload;
 }
 
 const TextPayloadFieldsSchema = z
   .object({
-    content: TextContentSchema,
+    text: z.string(),
     fontAssetId: IdSchema.optional(),
     fontSize: FiniteNumberSchema.positive().max(
       MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
-    fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
-    align: z.enum(["left", "center", "right"]).optional(),
+    color: ColorHexSchema.optional(),
+    alignment: z.enum(["left", "center", "right"]).optional(),
     wrap: z.enum(["none", "word", "character"]).optional(),
     lineHeight: FiniteNumberSchema.positive()
       .max(MOTION_PROTOCOL_LIMITS.layerDimension)

@@ -1,7 +1,10 @@
 /**
- * Layer instance component trên cây project.
+ * Layer instance component trên cây project — leaf authoring.
  *
- * Consumer chỉ đụng payload.componentId, variantId?, props.
+ * Wrapper atoms (vỏ): frame, transform, timing, zIndex, appearance,
+ * compositing, effects, semantic (+ name, layoutItem khi nằm trong group).
+ * Ruột public: payload.componentId, variantId?, props.
+ * Compiler bung thành wrapper group + internals. Consumer không sửa internals.
  */
 import { z } from "zod";
 import { IdSchema } from "../common";

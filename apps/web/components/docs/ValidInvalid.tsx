@@ -19,7 +19,7 @@ export function ValidInvalid({
         >
           {good.message}
         </p>
-        <JsonBlock code={JSON.stringify(valid, null, 2)} />
+        <JsonBlock maxLines={12} code={JSON.stringify(valid, null, 2)} />
       </div>
       <div>
         <h2 className="mb-2 text-xl font-semibold tracking-tight">Invalid</h2>
@@ -28,7 +28,7 @@ export function ValidInvalid({
         >
           {bad.message}
         </p>
-        <JsonBlock code={JSON.stringify(invalid, null, 2)} />
+        <JsonBlock maxLines={12} code={JSON.stringify(invalid, null, 2)} />
       </div>
     </section>
   );

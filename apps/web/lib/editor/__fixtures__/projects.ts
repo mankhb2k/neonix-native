@@ -56,7 +56,7 @@ function scene(id: string, name: string, duration = 3) {
         zIndex: 0,
         ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: {
-          content: { kind: "plain" as const, text: name },
+          text: name ,
           fontSize: 24,
           color: "#111111",
           alignment: "left" as const,
@@ -389,7 +389,7 @@ export function fixtureMultiSceneReferences() {
             parentLayerId: "node.a.root",
             ...visualLayerAtoms({ x: 10, y: 10, width: 80, height: 30, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
-              content: { kind: "plain", text: "A" },
+              text: "A" ,
               fontSize: 18,
               color: "#000000",
               alignment: "left" as const,
@@ -400,22 +400,12 @@ export function fixtureMultiSceneReferences() {
           {
             id: "anim.a",
             layerId: "node.a.child",
-            schedule: { kind: "absolute", at: 0 },
-            duration: 1,
-            playback: { iterations: 1, direction: "normal", rate: 1 },
-            source: {
-              kind: "tracks",
-              tracks: [
-                {
-                  layerId: "node.a.child",
-                  property: "appearance.opacity",
-                  keys: [
-                    { t: 0, v: 0 },
-                    { t: 1, v: 1, easing: "linear" },
-                  ],
-                },
-              ],
-            },
+            property: "appearance.opacity",
+            kind: "keyframes",
+            keys: [
+              { t: 0, value: 0 },
+              { t: 1, value: 1, easing: "linear" },
+            ],
           },
         ],
       },
@@ -429,7 +419,7 @@ export function fixtureMultiSceneReferences() {
             parentLayerId: null,
             ...visualLayerAtoms({ x: 20, y: 20, width: 120, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
-              content: { kind: "plain", text: "B" },
+              text: "B" ,
               fontSize: 20,
               color: "#222222",
               alignment: "left" as const,

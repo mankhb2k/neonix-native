@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { HumanName } from "@/components/docs/HumanName";
 import { QuickReference } from "@/components/docs/QuickReference";
 import { JsonBlock } from "@/components/docs/JsonBlock";
@@ -11,6 +12,7 @@ export function AtomPage({
   human,
   jsonPath,
   lede,
+  visual,
   quick,
   meaning,
   authoringExample,
@@ -26,6 +28,7 @@ export function AtomPage({
   human: string;
   jsonPath: string;
   lede: string;
+  visual?: ReactNode;
   quick: QuickRef;
   meaning: string[];
   authoringExample: unknown;
@@ -44,6 +47,7 @@ export function AtomPage({
     <article className="pb-20">
       <HumanName title={title} human={human} jsonPath={jsonPath} />
       <p className="text-[15px] leading-7 text-[var(--fg-primary)]">{lede}</p>
+      {visual}
       <QuickReference {...quick} />
       <section id="meaning" className="my-8">
         <h2 className="mb-3 text-xl font-semibold tracking-tight">Meaning</h2>

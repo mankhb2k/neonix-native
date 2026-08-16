@@ -72,24 +72,11 @@ function mergeOverlayNodes(
     id: idMap.get(node.id)!,
     parentLayerId: remapId(node.parentLayerId ?? undefined) ?? null,
   }));
-  const remappedClips = (overlay.clips ?? []).map((clip) => {
-    let source = clip.source;
-    if (source.kind === "tracks") {
-      source = {
-        ...source,
-        tracks: source.tracks.map((track) => ({
-          ...track,
-          layerId: remapId(track.layerId) ?? track.layerId,
-        })),
-      };
-    }
-    return {
-      ...clip,
-      id: uid("clip"),
-      layerId: remapId(clip.layerId),
-      source,
-    };
-  });
+  const remappedClips = (overlay.clips ?? []).map((clip) => ({
+    ...clip,
+    id: uid("clip"),
+    layerId: remapId(clip.layerId) ?? clip.layerId,
+  }));
   return {
     ...base,
     layers: [...base.layers, ...remappedNodes],

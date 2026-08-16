@@ -1,5 +1,5 @@
 import type { DocsPageView } from "@/lib/docs/content/page-view";
-import { aiMcpPage } from "./ai-mcp";
+import { getAiAuthoringPage } from "@/lib/docs/content/ai-authoring";
 import { howAVideoIsDescribedPage } from "./how-a-video-is-described";
 import { minimalProjectPage } from "./minimal-project";
 import { pixiPreviewPage } from "./pixi-preview";
@@ -31,7 +31,7 @@ export function getGettingStartedPage(slug: GettingStartedSlug): DocsPageView {
     case "minimal-project":
       return minimalProjectPage();
     case "ai":
-      return aiMcpPage();
+      return getAiAuthoringPage();
     case "preview":
       return pixiPreviewPage();
   }

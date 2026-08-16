@@ -6,9 +6,10 @@
  *   and computes each node's effective time window on the scene timeline.
  *
  * Rules (per the V1 Group Layer Semantics doc):
- *   - Root layers (parentLayerId: null) are relative to the scene.
+ *   - Root layers (parentLayerId: null) are relative to the project clock.
  *   - Child layers (parentLayerId set) are relative to their parent.
- *   - Missing timing means full parent duration (start=0, duration=parent duration).
+ *   - Authoring requires timing on every layer; missing timing is a safety
+ *     fallback (start=0, duration=parent window) then clip.
  *   - Child end is clipped by parent effective end.
  *   - Node is visible only when scene time falls within [effectiveStart, effectiveEnd).
  */

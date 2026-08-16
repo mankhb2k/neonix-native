@@ -1,5 +1,5 @@
 /**
- * Hiện/ẩn layer (boolean).
+ * Layer có được render hay không. Không định nghĩa hit-test hay selection.
  */
 import { z } from "zod";
 

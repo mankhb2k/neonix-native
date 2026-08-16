@@ -9,9 +9,10 @@
  *                            dimensions, fps, background as brand color)
  *   project.layers         → runtime `layers` (flat parentLayerId graph)
  *   root audio layers      → runtime audio layers on the same `layers` list
- *   variables / bindings   → resolved inline before layer compilation
- *   component layers        → sealed wrapper-group expansion in the layer
- *                            graph
+ *   variables / bindings   → component props via project.bindings (no inline `{ ref }`)
+ *   component layers       → sealed wrapper-group expansion in the layer graph
+ *   timeline.clips         → runtime `propertyAnimations`
+ *   component prop keyframes → runtime `propertyAnimations`
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
  * callers can surface structured errors instead of string exceptions.
@@ -44,13 +45,18 @@ import {
   type CompileResult,
 } from "../compile-result";
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
-import { clone, deriveAspectRatio, toRuntimeProperty, type JsonRecord } from "./helpers";
+import { clone, deriveAspectRatio, type JsonRecord } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
+import { timelineClipsToPropertyAnimations } from "./to-property-animations";
 
 export { detectScheduleCycles } from "./semantics";
+export {
+  timelineClipsToPropertyAnimations,
+  componentPropKeyframesToPropertyAnimations,
+} from "./to-property-animations";
 
 function resolveCompileAssetUri(
   asset: V1.AssetV1,
@@ -98,8 +104,8 @@ export const COMPILER_VERSION_V1 = "3.0.0-phase11";
  * diagnostics.
  *
  * Compiles `project.layers` into one runtime layer graph.
- * Root audio layers become runtime audio layers. Animation tracks live on
- * `project.tracks`.
+ * Root audio layers become runtime audio layers. Property animations live on
+ * `project.propertyAnimations`.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
  * when the project fails semantic validation (CMP_* codes) or the runtime
@@ -249,91 +255,48 @@ export function compileMotionProjectV1(
       normalized.components.map((c) => [c.id, c] as const),
     );
 
-    const runtimeBindings: Array<{
-      id: string;
-      source: { variableId: string };
-      target: { graphId: string; layerId: string; property: string };
-    }> = [];
     for (const binding of normalized.bindings) {
       const target = binding.target;
-      if (target.type === "layer") {
-        runtimeBindings.push({
-          id: binding.id,
-          source: { variableId: binding.source.variableId },
-          target: {
-            graphId: "root",
-            layerId: target.layerId,
-            property: toRuntimeProperty(target.property),
+      if (target.type !== "prop") continue;
+      const instance = componentInstances.get(target.layerId);
+      if (!instance) {
+        collector.warn(
+          "CMP_UNRESOLVED_COMPONENT",
+          `Binding "${binding.id}" targets prop on "${target.layerId}" but no component instance exists at that layer`,
+          {
+            path: ["bindings", binding.id],
+            details: { bindingId: binding.id, layerId: target.layerId },
           },
-        });
+        );
         continue;
       }
-      if (target.type === "componentLayer") {
-        const instance = componentInstances.get(target.layerId);
-        if (!instance) {
-          collector.warn(
-            "CMP_UNRESOLVED_COMPONENT",
-            `Binding "${binding.id}" targets component layer "${target.layerId}" but no component instance exists at that layer`,
-            {
-              path: ["bindings", binding.id],
-              details: { bindingId: binding.id, layerId: target.layerId },
+      const component = components.get(instance.componentId);
+      const leaves = component
+        ? resolvePropTargets(
+            components,
+            component,
+            target.propId,
+            instance.componentLayerId,
+          )
+        : [];
+      if (leaves.length === 0) {
+        collector.error(
+          "CMP_PRIVATE_COMPONENT_ACCESS",
+          `Binding "${binding.id}" targets "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              componentId: instance.componentId,
+              propId: target.propId,
             },
-          );
-          continue;
-        }
-        const component = components.get(instance.componentId);
-        const leaves = component
-          ? resolvePropTargets(
-              components,
-              component,
-              target.propId,
-              instance.componentLayerId,
-            )
-          : [];
-        if (leaves.length === 0) {
-          collector.error(
-            "CMP_PRIVATE_COMPONENT_ACCESS",
-            `Binding "${binding.id}" targets component layer "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
-            {
-              path: ["bindings", binding.id],
-              details: {
-                bindingId: binding.id,
-                componentId: instance.componentId,
-                propId: target.propId,
-              },
-            },
-          );
-          continue;
-        }
-        continue;
+          },
+        );
       }
-      // Only layer | componentLayer are valid binding targets.
-      continue;
     }
 
-    // Fail early if binding resolution produced errors.
     if (collector.hasErrors) {
       return compileFailure([...collector.diagnostics]);
-    }
-
-    for (const binding of runtimeBindings) {
-      const layers = (graph.layers ?? []) as Array<Record<string, unknown>>;
-      const target = layers.find(
-        (n: Record<string, unknown>) => n.id === binding.target.layerId,
-      );
-      if (target && projectVariables.has(binding.source.variableId)) {
-        const parts = binding.target.property.split(".");
-        let cursor: Record<string, unknown> = target;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const part = parts[i]!;
-          if (!cursor[part] || typeof cursor[part] !== "object") {
-            cursor[part] = {};
-          }
-          cursor = cursor[part] as Record<string, unknown>;
-        }
-        const last = parts[parts.length - 1]!;
-        cursor[last] = projectVariables.get(binding.source.variableId);
-      }
     }
 
     const duration = normalized.timeline.duration ?? 0;
@@ -341,14 +304,10 @@ export function compileMotionProjectV1(
     const aiRecord =
       aiExt && typeof aiExt === "object" && !Array.isArray(aiExt)
         ? (aiExt as {
-            motionUnits?: unknown[];
             activeCameraLayerId?: string;
             space?: "flat-2d" | "layered-2.5d";
           })
         : undefined;
-    const extraUnits = Array.isArray(aiRecord?.motionUnits)
-      ? aiRecord.motionUnits
-      : [];
     const compiledGraph =
       duration > 0
         ? compileLayerGraphToRuntime({
@@ -357,13 +316,11 @@ export function compileMotionProjectV1(
             layers: (graph.layers ?? []) as Parameters<
               typeof compileLayerGraphToRuntime
             >[0]["layers"],
-            motionUnits: [
-              ...((graph.motionUnits ?? []) as Parameters<
-                typeof compileLayerGraphToRuntime
-              >[0]["motionUnits"]),
-              ...(extraUnits as Parameters<
-                typeof compileLayerGraphToRuntime
-              >[0]["motionUnits"]),
+            propertyAnimations: [
+              ...((Array.isArray(graph.propertyAnimations)
+                ? graph.propertyAnimations
+                : []) as MotionRuntimeProject["propertyAnimations"]),
+              ...timelineClipsToPropertyAnimations(normalized.timeline.clips),
             ],
             variables: projectVariables,
             ...(aiRecord?.space ? { space: aiRecord.space } : {}),
@@ -373,7 +330,7 @@ export function compileMotionProjectV1(
           })
         : null;
     const visualLayers = compiledGraph?.layers ?? [];
-    const tracks = compiledGraph?.tracks ?? [];
+    const propertyAnimations = compiledGraph?.propertyAnimations ?? [];
     const audioRuntimeLayers = audioLayers
       .slice()
       .sort((a, b) => a.zIndex - b.zIndex)
@@ -407,7 +364,7 @@ export function compileMotionProjectV1(
         ? { activeCameraLayerId: compiledGraph.activeCameraLayerId }
         : {}),
       layers: [...visualLayers, ...audioRuntimeLayers],
-      tracks,
+      propertyAnimations,
       timeline: {
         duration,
       },
@@ -432,19 +389,18 @@ export function compileMotionProjectV1(
         }>;
       };
       for (const issue of zodErr.issues) {
-        collector.error("RUNTIME_VALIDATION_ERROR", issue.message, {
+        const code = issue.message.includes("Unknown runtime node")
+          ? "UNKNOWN_CLIP_TARGET"
+          : "RUNTIME_VALIDATION_ERROR";
+        collector.error(code, issue.message, {
           path: issue.path,
           details: { zodCode: issue.code },
         });
       }
     } else if (err instanceof Error) {
       const msg = err.message;
-      if (msg.includes("Unknown variable reference")) {
-        collector.error("UNKNOWN_VARIABLE", msg);
-      } else if (msg.includes("Unknown motion-unit target layer")) {
+      if (msg.includes("Unknown runtime node")) {
         collector.error("UNKNOWN_CLIP_TARGET", msg);
-      } else if (msg.includes("Unknown timeline marker")) {
-        collector.error("UNKNOWN_MARKER", msg);
       } else {
         collector.error("COMPILE_ERROR", msg);
       }

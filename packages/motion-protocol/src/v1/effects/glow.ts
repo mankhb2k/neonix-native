@@ -1,9 +1,10 @@
 /**
- * Phát sáng — radius, intensity/opacity 0..100.
+ * Outer glow V1 — halo đều ra ngoài silhouette.
+ * Không inner glow, không intensity (dùng opacity).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { IdSchema, PercentSchema } from "../common";
+import { ColorHexSchema, IdSchema, PercentSchema } from "../common";
 
 export const GlowEffectSchema = z
   .object({
@@ -14,8 +15,7 @@ export const GlowEffectSchema = z
       .finite()
       .nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.effectRadius),
-    intensity: PercentSchema.default(100),
-    color: z.string().min(1),
+    color: ColorHexSchema,
     opacity: PercentSchema.default(100),
   })
   .strict();

@@ -15,10 +15,7 @@ import {
   evaluateNodeEffects,
   evaluateProperty,
   evaluateScene,
-  bendPathContours,
-  pathMorphContours,
   planOffscreenSurface,
-  trimPathContours,
   hierarchyRenderOrder,
   type EvaluatedNode,
   type RuntimeEffect,
@@ -253,26 +250,7 @@ function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeSc
     }
     return;
   }
-  const morph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
-  const morphProgress = morph ? evaluateProperty(scene, node, `modifiers.${morph.id}.progress`, time, morph.progress) : 0;
-  let contours = morph ? pathMorphContours(node, typeof morphProgress === "number" ? morphProgress : 0) : node.payload.contours;
-  const bend = node.modifiers?.find((modifier) => modifier.type === "path-bend");
-  if (bend) {
-    const amount = evaluateProperty(scene, node, `modifiers.${bend.id}.amount`, time, bend.amount);
-    contours = bendPathContours(contours, typeof amount === "number" ? amount : bend.amount);
-  }
-  const trim = node.modifiers?.find((modifier) => modifier.type === "trim-path");
-  if (trim) {
-    const start = evaluateProperty(scene, node, `modifiers.${trim.id}.start`, time, trim.start);
-    const end = evaluateProperty(scene, node, `modifiers.${trim.id}.end`, time, trim.end);
-    const offset = evaluateProperty(scene, node, `modifiers.${trim.id}.offset`, time, trim.offset);
-    contours = trimPathContours(
-      contours,
-      typeof start === "number" ? start : trim.start,
-      typeof end === "number" ? end : trim.end,
-      typeof offset === "number" ? offset : trim.offset,
-    );
-  }
+  const contours = node.type === "path" ? node.payload.contours : [];
   for (const contour of contours) {
     ctx.moveTo(contour.start.x, contour.start.y);
     for (const segment of contour.segments) {
@@ -459,7 +437,7 @@ function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
     outputContext.shadowOffsetX = 0;
     outputContext.shadowOffsetY = 0;
   } else if (effect.type === "glow") {
-    outputContext.shadowColor = colorWithOpacity(effect.color, Math.min(1, effect.opacity * effect.intensity));
+    outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
     outputContext.shadowBlur = effect.radius;
     outputContext.drawImage(layer, 0, 0);
     outputContext.shadowColor = "transparent";

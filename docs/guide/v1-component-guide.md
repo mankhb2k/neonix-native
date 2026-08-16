@@ -1,5 +1,24 @@
 # MotiClip V1 Components
 
+> Trạng thái: v1
+>
+> Mục tiêu: instance niêm phong trên cây project; compiler bung template.
+
+---
+
+## Đã chốt
+
+1. `type: "component"` là **sealed instance leaf** trên project tree. Definition = mẫu niêm phong. Instance = layer đặt trên cây. AI/user thấy một layer; compiler/runtime bung thành wrapper + internals.
+2. Bên ngoài instance được chỉnh **wrapper atoms** (vỏ): `frame`, `transform`, `timing`, `zIndex`, `appearance`, `compositing`, `effects`, `semantic`. (Cộng `name`, `parentLayerId`, và `layoutItem` khi là child của group có `layout`.)
+3. Bên ngoài **không** được chỉnh: `layers`, `propBindings`, property internal, nested internals trực tiếp. Không bind/animate/patch vào ruột từ project consumer.
+4. `props` là public signals điều khiển ruột. Wrapper atoms điều khiển cả khối như một object.
+5. `variant` chỉ là preset override **props**. Không đổi tree, bindings, hay layout graph.
+6. Default AI: `payload.props` (+ `variantId`). `project.bindings` chỉ `type: "prop"` (`layerId` + `propId`). Nested chỉ nhận giá trị qua `childProp`; không skip-level.
+
+**Câu chốt:** vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Binding project chỉ tới prop.
+
+---
+
 ## Cách nên nghĩ
 
 | Khái niệm | Nghĩa đời thường |
@@ -7,7 +26,7 @@
 | **Prop** | Một **tín hiệu public** — nút chỉnh mà user/AI được đụng |
 | **PropBindings** | Các **dây nối** tín hiệu đó vào bên trong component |
 | **Prop value** | Giá trị gắn lên tín hiệu (màu tĩnh, biến, hoặc keyframes) |
-| **Instance** | Bản dùng component trên `project.layers` — chỉ set `payload.props` |
+| **Instance** | Layer `type: "component"` — leaf authoring; wrapper atoms + `payload.props` |
 
 ```text
 User chỉnh props
@@ -15,28 +34,25 @@ User chỉnh props
      ▼
   brandColor = #00ff88          ← một tín hiệu
      │
-     ├─► circle.payload.color
+     ├─► circle.style.fill
      ├─► title.payload.color    ← fan-out nhờ propBindings
      └─► border.style.stroke
 ```
 
-- **User / app / AI consumer** chỉ chỉnh `props`.
-- **Owner / designer AI** thiết kế `propBindings`.
-- **Compiler** biến props thành giá trị / motion tracks trên layer nội bộ.
+- **User / app / AI consumer** chỉnh wrapper atoms + `payload.props` / `variantId`.
+- **Owner / designer AI** thiết kế `propBindings` và internals.
+- **Compiler** bung instance và biến props thành giá trị / `propertyAnimations` trên layer nội bộ.
 
 Timeline **không biết** component. Root/group đặt instance. Definition mô tả bên trong.
 
 ---
 
-## Câu chốt contract
+## Câu chốt contract (chi tiết)
 
-> A **component** is a sealed design template with public **props** and **variants**.  
-> A **component layer** is an **instance** placed on the project layer tree (`type: "component"`, leaf).  
-> **Props** are public signals. A prop value can be **static**, **variable-bound**, or **keyframed**.  
-> **PropBindings** wire each signal into one or many internal layers (or child props).  
-> Only **animatable** props may receive keyframes (`choice` / `asset` default off; set `animatable: true` to opt in; asset stays step-only).  
-> Nested components may forward prop values (including keyframes) only to **direct child props**.  
-> Asset props must declare `assetKind`; asset keyframes are **step-only**.
+> Definition = sealed template. Component layer = instance leaf. Compiler expand = wrapper + internals.  
+> Wrapper atoms điều khiển vỏ. Props điều khiển ruột public. Variant chỉ override props.  
+> Prop keyframes animate public signal, không animate wrapper.  
+> Nested chỉ `childProp`. Project binding chỉ `type: "prop"`.
 
 ---
 
@@ -70,7 +86,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
       "target": {
         "kind": "layerProperty",
         "layerId": "circle",
-        "property": "payload.color"
+        "property": "style.fill"
       }
     },
     {
@@ -116,7 +132,7 @@ Compiler hiểu:
 
 ```text
 badge-1.brandColor = #00ff88
-  → circle.payload.color  = #00ff88
+  → circle.style.fill     = #00ff88
   → title.payload.color   = #00ff88
   → border.style.stroke   = #00ff88
 ```
@@ -171,9 +187,9 @@ flowchart TB
 
 | Ai | Làm gì | Không làm |
 | --- | --- | --- |
-| **User / consumer** | Set `payload.props`, chọn `variantId` | Không sửa `layers` / `propBindings` |
-| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers` | — |
-| **Compiler** | Resolve value → apply / emit tracks theo bindings | Không suy luận binding thiếu |
+| **User / consumer** | Wrapper atoms + `payload.props` / `variantId` | Không sửa `layers` / `propBindings` / internals |
+| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers`, `variants[].props` | Variant không đổi tree |
+| **Compiler** | Expand instance → wrapper + internals; resolve props → apply / emit `propertyAnimations` | Không suy luận binding thiếu |
 
 ---
 
@@ -200,19 +216,19 @@ flowchart LR
 ## 3. PropKind
 
 ```ts
-type PropKind = "text" | "number" | "boolean" | "color" | "choice" | "asset";
+type PropKind = "string" | "number" | "boolean" | "color" | "choice" | "asset";
 ```
 
-| Kind | Dùng cho | Default `animatable` | Keyframe interpolation |
+| Kind | Dùng cho | Default `animatable` | Interpolate (theo type, không field) |
 | --- | --- | --- | --- |
-| `text` | title, label | `true` | step |
+| `string` | title, label | `true` | step |
 | `number` | opacity, progress, size | `true` | linear / easing |
 | `boolean` | showIcon, visible | `true` | step |
 | `color` | brandColor, fill | `true` | color |
 | `choice` | style, layout, mode | `false` (`animatable: true` được) | step |
 | `asset` | image, video, font… | `false` (`animatable: true` được) | step |
 
-Không dùng `string` / `enum` / `list` trên public API (`text` thay string, `choice` thay enum).
+Không dùng `text` / `enum` / `list` trên public API (`string` thay text, `choice` thay enum).
 
 ### Ví dụ definition
 
@@ -255,14 +271,19 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 
 ### Variable-bound
 
-Instance trên `project.layers` chỉ được ref **`project.variables`**.  
-`component.variables` là biến local của owner — dùng cho `props.default`, `variants[].props`, và nested `payload.props` trong `component.layers`. Consumer không được trỏ vào đó.
+Chỉ một đường: `project.bindings` với `target.type: "prop"`.  
+Không ghi `{ ref: { kind: "variable" } }` trong `payload.props`, `prop.default`, hay `variant.props`.  
+Không có `component.variables`.
 
 ```jsonc
 {
-  "props": {
-    "label": { "ref": { "kind": "variable", "id": "cta-text" } }
-  }
+  "bindings": [
+    {
+      "id": "bind-label",
+      "source": { "kind": "variable", "variableId": "cta-text" },
+      "target": { "type": "prop", "layerId": "cta", "propId": "label" }
+    }
+  ]
 }
 ```
 
@@ -286,15 +307,15 @@ Instance trên `project.layers` chỉ được ref **`project.variables`**.
 
 - `t` là **local time của component instance layer** — `0..layer.timing.duration`
 - `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ layer.timing.duration`**
-- `number` / `color`: interpolate được
-- `text` / `boolean` / `choice` / `asset`: chỉ **step**
+- `number` → `linear`; `color` → `color`
+- `string` / `boolean` / `choice` / `asset`: chỉ **step**
 - `animatable: false` (hoặc omitted trên choice/asset) + keyframes → **reject**
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
-- Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
+- Asset / choice: mỗi key phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- Không animate `payload.props.<propId>` qua animation track bên ngoài. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`.
+- Không animate `payload.props.<propId>` qua `timeline.clips`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`. Layer property (`transform`, `appearance.opacity`, …) của instance vỏ đi qua `timeline.clips`. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
 
-Prop animation ≠ wrapper transform. Animation trên component layer animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
+Prop keyframes animate **public signal**, không animate wrapper. Animation trên field wrapper của instance (`transform`, `appearance.opacity`, …) là vỏ. Prop keyframes fan-out vào layer nội bộ qua `propBindings`.
 
 ---
 
@@ -333,13 +354,15 @@ Không skip-level: A không bind thẳng layer nội bộ của C.
 
 Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child definition cho đến khi gặp `layerProperty`.
 
-### Project binding
+### Project binding (advanced)
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Project-tree layer (`layer`) hoặc **một** component instance (`componentLayer` = `layerId` + `propId`) |
+| `project.bindings` | Project | **Một** instance: `type: "prop"` + `layerId` + `propId` |
 
-Global bulk `target.type: "component"` **đã gỡ**. Nested Button trong Card không nhận project binding — parent phải `childProp`.
+Default AI **không** dùng `project.bindings` để set prop. Dùng `payload.props`. Binding `prop` giữ trong protocol cho hệ thống/app chia sẻ variable.
+
+Global bulk `target.type: "component"` **đã gỡ**. Không bind layer field. Nested Button trong Card không nhận project binding — parent phải `childProp`.
 
 Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
 
@@ -357,7 +380,7 @@ root source
   -> internal layerProperty
 ```
 
-Mọi nguồn đều là **prop source**. Binding chỉ drive public prop. Compiler merge cascade xong rồi mới apply `layerProperty` / emit tracks.
+Mọi nguồn đều là **prop source**. Binding chỉ drive public prop. Compiler merge cascade xong rồi mới apply `layerProperty` / emit `propertyAnimations`.
 
 Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 
@@ -365,7 +388,7 @@ Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 2. `variant.props`
 3. `payload.props`
 4. parent forwarded prop (`childProp`)
-5. project binding (`target.type: "componentLayer"`)
+5. project binding (`target.type: "prop"`)
 
 Nested instance không nhận project binding. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
@@ -375,7 +398,7 @@ flowchart TD
   sources[Resolve prop sources per instance]
   merge[Merge cascade into resolvedProps]
   forward[Forward childProp to nested instances]
-  apply[Apply layerProperty + emit keyframe tracks]
+  apply[Apply layerProperty + emit propertyAnimations]
   collect --> sources --> merge --> forward --> apply
 ```
 
@@ -400,7 +423,7 @@ flowchart TD
   "propBindings": [
     {
       "propId": "brandColor",
-      "target": { "kind": "layerProperty", "layerId": "circle", "property": "payload.color" }
+      "target": { "kind": "layerProperty", "layerId": "circle", "property": "style.fill" }
     },
     {
       "propId": "brandColor",
@@ -420,6 +443,11 @@ flowchart TD
 {
   "id": "badge-1",
   "type": "component",
+  "parentLayerId": null,
+  "zIndex": 2,
+  "timing": { "start": 0, "duration": 4 },
+  "frame": { "width": 256, "height": 256 },
+  "appearance": { "visible": true, "opacity": 100 },
   "payload": {
     "componentId": "promo-badge",
     "props": { "brandColor": "#00ff88" }
@@ -431,7 +459,7 @@ flowchart TD
 
 ## 8. Timeline reminder
 
-Component instance = `type: "component"` layer trên **project layer tree**. Không còn visual clip / `source.kind: "scene"`. Timing instance nằm ở `layer.timing`.
+Component instance = `type: "component"` leaf trên **project layer tree**. Compiler bung thành wrapper + internals. Instance mang đủ wrapper atoms; internals sealed. Timing nằm ở `layer.timing`.
 
 ---
 
@@ -439,20 +467,21 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 
 | ❌ Sai | ✅ Đúng |
 | --- | --- |
-| User sửa `layers` / `propBindings` | User chỉ set `payload.props` |
-| Một màu = ba prop riêng | Một `brandColor` + ba bindings |
-| Bind thẳng internals từ project | Bind `propId` (project-tree instance) — compiler resolve prop rồi apply |
-| Skip-level vào layer của nested child | `childProp` từng tầng |
-| Global bulk binding mọi instance cùng `componentId` | `componentLayer` từng instance; nested qua `childProp` |
-| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
-| `target.kind` / `target.type: "component"` | `target.type: "layer"` \| `"componentLayer"` |
+| User sửa `layers` / `propBindings` | User set wrapper atoms + `payload.props` |
+| Bind thẳng internals từ project | Cấm. Chỉ `type: "prop"`; default AI: `payload.props` |
+| Global bulk binding mọi instance cùng `componentId` | Từng instance `prop`; nested qua `childProp` |
+| `target.type: "layer"` / `"componentLayer"` / `"component"` | `target.type: "prop"` |
+| Animate internals từ `timeline.clips` của project | Prop keyframes hoặc wrapper atoms trên instance |
+| Variant đổi tree / bindings | Variant chỉ `props` |
+| Skip-level vào nested child | `childProp` từng tầng |
+| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc `timeline.clips` |
 | `PublicParamSchema` / `ComponentBindingSchema` | `ComponentPropV1Schema` + `propBindings` |
 
 ---
 
 ## 10. Tóm tắt một câu
 
-> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Project binding chỉ `layer` | `componentLayer`. Không có `actions`.**
+> **Instance là leaf. Vỏ = wrapper atoms. Ruột public = props. Variant = preset props. Project binding tới propId là advanced. Nested chỉ childProp.**
 
 ---
 
@@ -461,9 +490,9 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 | File | Vai trò |
 | --- | --- |
 | `src/v1/components/index.ts` | Definition, PropKind, propBindings |
-| `src/v1/components/prop-values.ts` | Static / variable / keyframes |
+| `src/v1/components/prop-values.ts` | Literal / keyframes. Không inline variable ref. |
 | `src/v1/layers/component.ts` | Instance `payload.props` |
 | `src/v1/references/project.ts` | Validation |
-| `motion-compiler/compile-v1.ts` | Resolve + fan-out + keyframe tracks |
+| `motion-compiler/compile-v1.ts` | Resolve + fan-out + `propertyAnimations` |
 
-Xem thêm: [v1-format-guide.md](v1-format-guide.md), [v1-timeline-guide.md](v1-timeline-guide.md).
+Xem thêm: [v1-format-guide.md](v1-format-guide.md), [v1-timeline-guide.md](v1-timeline-guide.md), [v1-group-guide.md](v1-group-guide.md).

@@ -1,7 +1,7 @@
 /**
- * Compiler / leftover schemas — not authoring public API.
+ * Leftover schemas — caption tokens only.
+ * Animation authoring is `timeline.clips`; runtime is `propertyAnimations`.
  *
  * Import `@motionvideo/motion-protocol/internal`.
  */
-export * from "./v1/animation/clips";
 export * from "./v1/captions";

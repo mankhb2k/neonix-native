@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "transition",
     "name": "Transition",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a2ab77f10b5ee25e490c7a8cdc4e88ee",
+  "runtimeHash": "b6be98565a9bd3fb8fdbed57b28e0a0e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -46,12 +46,12 @@
           "x": 960,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -76,12 +76,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "First Scene"
-        },
+        "text": "First Scene",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -103,12 +101,12 @@
           "x": 960,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -133,12 +131,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Second Scene"
-        },
+        "text": "Second Scene",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -147,7 +143,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 3
   }

@@ -195,7 +195,7 @@ describe("export temporal parity (local-time bake)", () => {
           zIndex: 0,
           ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
           payload: {
-            content: { kind: "plain" as const, text: id },
+            text: id ,
             fontSize: 20,
             color: "#000000",
             alignment: "left" as const,
@@ -210,8 +210,8 @@ describe("export temporal parity (local-time bake)", () => {
           duration,
           playback: {},
           source: {
-            kind: "tracks" as const,
-            tracks: [
+            kind: "propertyAnimations" as const,
+            items: [
               {
                 layerId: `${id}.node`,
                 property: "appearance.opacity",
@@ -378,13 +378,7 @@ describe("export temporal parity (local-time bake)", () => {
         (c) => c.layerId === "scene.base.node",
       );
       const check = baseAnim ?? anim;
-      expect(check?.schedule.kind).toBe("absolute");
-      if (check?.schedule.kind === "absolute") {
-        expect(check.schedule.at).toBeCloseTo(0, 5);
-      }
-      if (check?.source.kind === "tracks") {
-        expect(check.source.tracks[0].keys[0]?.t).toBeCloseTo(0, 5);
-      }
+      expect(check?.keys[0]?.t).toBeCloseTo(0, 5);
     }
   });
 

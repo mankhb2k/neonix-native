@@ -49,7 +49,7 @@ function textNode(id: string, text: string) {
     parentLayerId: null,
     ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
     payload: {
-      content: { kind: "plain", text },
+      text,
       fontSize: 24,
       color: "#111111",
       alignment: "left" as const,

@@ -56,19 +56,14 @@ function isAnimatableProp(
 
 function findKeyframeAtTime(
   project: MotionProject,
-  sceneId: string,
+  _sceneId: string,
   layerId: string,
   property: string,
   t: number,
 ): boolean {
-  const scene = project.scenes.find((s) => s.id === sceneId);
-  if (!scene) return false;
-  for (const clip of scene.clips) {
-    if (clip.layerId !== layerId || clip.source.kind !== "tracks") continue;
-    for (const track of clip.source.tracks) {
-      if (track.property !== property) continue;
-      if (track.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
-    }
+  for (const clip of project.timeline.clips ?? []) {
+    if (clip.layerId !== layerId || clip.property !== property) continue;
+    if (clip.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
   }
   return false;
 }

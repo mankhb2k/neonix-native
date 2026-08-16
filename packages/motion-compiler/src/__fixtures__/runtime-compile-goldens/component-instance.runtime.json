@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "1c3b0aad8951df0fe2c00aa53ea1990c",
+  "runtimeHash": "131fba970367af3ae8d8999077dd90db",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -46,12 +46,12 @@
           "x": 0,
           "y": 0
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -87,12 +87,12 @@
           "x": 0,
           "y": 0
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -108,6 +108,10 @@
         "visible": true,
         "opacity": 100
       },
+      "timing": {
+        "start": 0,
+        "duration": 4
+      },
       "inheritPosition": true,
       "inheritRotation": true,
       "inheritScale": true,
@@ -117,7 +121,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 4
   }

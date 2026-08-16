@@ -447,7 +447,7 @@ function applyOne(
             parentLayerId,
             ...atoms,
             payload: {
-              content: { kind: "plain" as const, text: command.text ?? "" },
+              text: command.text ?? "" ,
               fontSize: command.fontSize ?? 48,
               color: command.fill ?? "#ffffff",
               alignment: "center" as const,
@@ -532,11 +532,12 @@ function applyOne(
         };
         visit(command.layerId);
         removeLayers(scene, removeIds);
-        const ext = getAiExt(next);
-        ext.motionUnits = ext.motionUnits.filter(
-          (unit) => !unit.layerId || !removeIds.has(unit.layerId),
-        );
-        setAiExt(next, ext);
+        next.timeline = {
+          ...next.timeline,
+          clips: (next.timeline.clips ?? []).filter(
+            (clip) => !clip.layerId || !removeIds.has(clip.layerId),
+          ),
+        };
         changedIds.push(...removeIds);
         return {
           project: parseMotionProject(next),
@@ -594,8 +595,8 @@ function applyOne(
             },
           };
         }
-        const ext = getAiExt(next);
-        if (ext.motionUnits.some((unit) => unit.id === command.clipId)) {
+        const clips = [...(next.timeline.clips ?? [])];
+        if (clips.some((clip) => clip.id === command.clipId)) {
           return {
             project,
             receipt: {
@@ -604,31 +605,25 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `clips.${command.clipId}`,
+                  `timeline.clips.${command.clipId}`,
                   `Clip already exists: ${command.clipId}`,
                 ),
               ],
             },
           };
         }
-        ext.motionUnits.push({
+        clips.push({
           id: command.clipId,
           layerId: command.layerId,
-          schedule: { kind: "absolute", at: command.at ?? 0 },
-          duration: command.duration,
-          playback: { iterations: 1, direction: "normal", rate: 1 },
-          source: {
-            kind: "tracks",
-            tracks: [
-              {
-                layerId: command.layerId,
-                property: command.property,
-                keys: command.keys,
-              },
-            ],
-          },
+          property: command.property,
+          kind: "keyframes",
+          keys: command.keys.map((key) => ({
+            t: key.t,
+            value: key.v,
+            ...(key.easing !== undefined ? { easing: key.easing } : {}),
+          })),
         });
-        setAiExt(next, ext);
+        next.timeline = { ...next.timeline, clips };
         changedIds.push(command.clipId);
         return {
           project: parseMotionProject(next),
@@ -808,34 +803,29 @@ function applyOne(
             },
           };
         }
-        const modifiers = [...(node.modifiers ?? [])].filter(
-          (modifier) => modifier.id !== command.modifierId,
-        );
-        modifiers.push({
-          id: command.modifierId,
-          type: "layout",
-          // Command schema allows optional stack fields; layout modifier requires defaults at compile.
-          constraint: {
-            ...command.constraint,
-            ...(command.constraint.kind === "stack"
-              ? {
-                  gap: command.constraint.gap ?? 0,
-                  padding: command.constraint.padding ?? 0,
-                  align: command.constraint.align ?? "start",
-                }
-              : {}),
-            ...(command.constraint.kind === "grid"
-              ? {
-                  gapX: command.constraint.gapX ?? 0,
-                  gapY: command.constraint.gapY ?? 0,
-                }
-              : {}),
-          } as Extract<
-            NonNullable<MotionLayer["modifiers"]>[number],
-            { type: "layout" }
-          >["constraint"],
-        });
-        node.modifiers = modifiers;
+        if (node.type !== "group") {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic(
+                  "invalid_target",
+                  `layers.${command.layerId}.layout`,
+                  "Layout can only be applied to group layers",
+                ),
+              ],
+            },
+          };
+        }
+        node.layout = {
+          ...command.constraint,
+          gap: command.constraint.gap ?? 0,
+          padding: command.constraint.padding ?? 0,
+          align: command.constraint.align ?? "start",
+          justify: command.constraint.justify ?? "start",
+        };
         changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
@@ -1008,7 +998,6 @@ function applyOne(
             id: command.effectId,
             type: "glow",
             radius: command.effect.radius,
-            intensity: command.effect.intensity ?? 100,
             color: command.effect.color,
             opacity: command.effect.opacity ?? 100,
           });
@@ -1268,33 +1257,27 @@ function applyOne(
           staggerLayerIds: command.staggerLayerIds,
         });
         void baked.drivers;
-        if (baked.tracks.length > 0) {
+        if (baked.propertyAnimations.length > 0) {
           const clipId =
             command.clipId ??
             `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
-          const ext = getAiExt(next);
-          ext.motionUnits.push({
-            id: clipId,
-            layerId: command.targetLayerId,
-            schedule: { kind: "absolute", at: 0 },
-            duration: command.duration,
-            playback: { rate: 1, direction: "normal", iterations: 1 },
-            source: {
-              kind: "tracks",
-              tracks: baked.tracks.map((track) => ({
-                layerId: track.layerId,
-                property: track.property,
-                keys: track.keys.map((key) => ({
-                  t: key.t,
-                  v: key.v,
-                  ...(key.easing
-                    ? { easing: key.easing as "easeOut" | "linear" | "step" }
-                    : {}),
-                })),
+          const clips = [...(next.timeline.clips ?? [])];
+          for (const animation of baked.propertyAnimations) {
+            clips.push({
+              id: `${clipId}.${animation.layerId}.${animation.property}`,
+              layerId: animation.layerId,
+              property: animation.property,
+              kind: "keyframes",
+              keys: animation.keys.map((key) => ({
+                t: key.t,
+                value: key.v,
+                ...(key.easing
+                  ? { easing: key.easing as "easeOut" | "linear" | "step" }
+                  : {}),
               })),
-            },
-          });
-          setAiExt(next, ext);
+            });
+          }
+          next.timeline = { ...next.timeline, clips };
           changedIds.push(clipId);
         }
         return {

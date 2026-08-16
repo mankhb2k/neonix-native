@@ -59,7 +59,7 @@
         {
           "id": "label",
           "name": "Button label",
-          "kind": "text",
+          "kind": "string",
           "default": "Click me"
         },
         {
@@ -91,7 +91,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "cta-label-node",
-            "property": "payload.content.text"
+            "property": "payload.text"
           }
         },
         {
@@ -103,26 +103,16 @@
           }
         }
       ],
-      "variables": [
-        {
-          "id": "cta-label",
-          "name": "CTA Label",
-          "type": "string",
-          "value": "Click me"
-        },
-        {
-          "id": "cta-color",
-          "name": "CTA Color",
-          "type": "color",
-          "value": "#1877f2"
-        }
-      ],
       "layers": [
         {
           "id": "cta-bg",
           "type": "solid",
           "parentLayerId": null,
           "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
           "transform": {
             "translate": {
               "x": 0,
@@ -183,13 +173,10 @@
             }
           },
           "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Click me"
-            },
             "fontSize": 40,
             "color": "#ffffff",
-            "alignment": "center"
+            "alignment": "center",
+            "text": "Click me"
           },
           "frame": {
             "width": 500,
@@ -198,6 +185,10 @@
           "appearance": {
             "visible": true,
             "opacity": 100
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           }
         }
       ]
@@ -212,7 +203,7 @@
         "variableId": "cta-text"
       },
       "target": {
-        "type": "componentLayer",
+        "type": "prop",
         "layerId": "cta-instance",
         "propId": "label"
       }
@@ -245,13 +236,10 @@
         }
       },
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Welcome to MotiClip"
-        },
         "fontSize": 56,
         "color": "#111111",
-        "alignment": "center"
+        "alignment": "center",
+        "text": "Welcome to MotiClip"
       },
       "zIndex": 0,
       "timing": {

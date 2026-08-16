@@ -126,7 +126,7 @@ const patch: MotionProjectV1Patch = {
   operations: [
     { op: "addScene", scene: { id: "scene-cta", duration: 3, layers: [...], clips: [] } },
     { op: "addVisualClip", trackId: "track-main", clip: { id: "clip-cta", source: { kind: "scene", sceneId: "scene-cta" }, start: 5, duration: 3 } },
-    { op: "updateBinding", bindingId: "bind-headline", property: "payload.content", value: "New headline" },
+    { op: "updateBinding", bindingId: "bind-headline", property: "payload.text", value: "New headline" },
   ],
 };
 const updated = applyMotionProjectV1Patch(project, patch);
@@ -430,7 +430,7 @@ User: "Change the headline to 'Black Friday' and show me frame 30"
 
 MCP Server:
   1. mcp.apply_patch(project, {
-       operations: [{ op: "updateBinding", bindingId: "bind-headline", property: "payload.content", value: "Black Friday" }]
+       operations: [{ op: "updateBinding", bindingId: "bind-headline", property: "payload.text", value: "Black Friday" }]
      })
   2. mcp.validate_project(updated)  → ok
   3. mcp.compile_project(updated)   → runtime IR

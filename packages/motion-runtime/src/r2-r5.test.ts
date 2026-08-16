@@ -5,7 +5,7 @@ import {
   sampleEasing,
   sampleSpring,
 } from "./curve-sampler";
-import { evaluateTrack, sampleTrackValue } from "./evaluator";
+import { evaluatePropertyAnimation, sampleKeyframesValue } from "./evaluator";
 import { sampleMatteCoverage, relativeLuminance } from "./matte";
 import { evaluateDriverGraph, evaluateOscillator } from "./procedural-driver";
 
@@ -32,9 +32,9 @@ describe("curve-sampler R2", () => {
   });
 });
 
-describe("track sampler R2", () => {
+describe("property animation sampler R2", () => {
   it("evaluates cubic and spring keys", () => {
-    const cubic = sampleTrackValue(
+    const cubic = sampleKeyframesValue(
       [
         { t: 0, v: 0 },
         { t: 1, v: 100, easing: { type: "cubic-bezier", x1: 0, y1: 0, x2: 1, y2: 1 } },
@@ -43,7 +43,7 @@ describe("track sampler R2", () => {
     );
     expect(cubic).toBeCloseTo(50, 5);
 
-    const spring = evaluateTrack(
+    const spring = evaluatePropertyAnimation(
       {
         layerId: "n",
         property: "transform.translate.x",
@@ -61,7 +61,7 @@ describe("track sampler R2", () => {
   });
 
   it("applies angle valueKind", () => {
-    const value = evaluateTrack(
+    const value = evaluatePropertyAnimation(
       {
         layerId: "n",
         property: "transform.rotate.z",

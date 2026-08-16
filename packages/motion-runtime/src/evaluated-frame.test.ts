@@ -27,11 +27,11 @@ function fixtureScene(): RuntimeScene {
         parentLayerId: null,
         zIndex: 1,
         ...visualLayerAtoms({ x: 20, y: 30, width: 160, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
-        payload: { content: { kind: "plain", text: "Wave1" }, fontSize: 24, fontWeight: 700, align: "left" },
+        payload: { text: "Wave1", fontSize: 24, alignment: "left" },
         style: { fill: "#ffffff" },
       },
     ],
-    tracks: [
+    propertyAnimations: [
       {
         layerId: "title",
         property: "appearance.opacity",

@@ -1,5 +1,6 @@
 /**
- * Barrel animation V1 — easing / clips / tracks / drivers.
+ * Barrel animation V1 — easing / drivers (JSON / runtime evaluate).
+ * Interpolation is not an authoring field; see `@motionvideo/motion-protocol/runtime`.
  */
 
 // Easing
@@ -10,19 +11,5 @@ export {
   KeyframeEasingSchema,
   type KeyframeEasingV1,
 } from "./easing";
-
-// Tracks
-export {
-  ExtrapolationBehaviorSchema,
-  TimelineMarkerSchema,
-  TrackTimeSchema,
-  PropertyTrackSchema,
-  PropertyTrackV1Schema,
-  ExtrapolationBehaviorV1Schema,
-  TrackTimeV1Schema,
-  TimelineMarkerV1Schema,
-  TimeSecondsSchema,
-  type PropertyTrackV1,
-} from "./tracks";
 
 export { ProceduralDriverSchema, type ProceduralDriver } from "./drivers";

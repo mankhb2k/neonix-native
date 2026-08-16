@@ -17,6 +17,7 @@ export * from "./composition";
 export * from "./capabilities";
 export * from "./design-tokens";
 export * from "./variables";
+export * from "./prop-sinks";
 export * from "./assets";
 export * from "./assets/validation";
 export * from "./components";

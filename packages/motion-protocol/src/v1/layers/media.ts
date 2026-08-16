@@ -1,47 +1,81 @@
 /**
- * Layer media + camera. Payload media: { assetId, fit, crop? }.
- * image/svg cùng shape; khác assetType. video thêm trim/loop/muted.
+ * Layer media + camera. Image: assetId + fit + crop. SVG: assetId + fit + style.fill.
+ * Video: fit + trim/loop/muted; không crop. Camera không frame.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { CropSchema, FitSchema } from "./paint";
-import { IdSchema, PositiveNumberSchema } from "../common";
+import { CropSchema, FitSchema, SvgStyleSchema } from "./paint";
+import { FiniteNumberSchema, IdSchema, PositiveNumberSchema } from "../common";
 import { LayerBaseV1Schema } from "./base";
 
-const MediaPayloadSchema = z
+/** Image V1: nguồn + fit trong frame + crop nguồn tùy chọn. Default fit = cover. */
+export const ImagePayloadSchema = z
   .object({
     assetId: IdSchema,
-    fit: FitSchema.optional(),
+    fit: FitSchema.default("cover"),
     crop: CropSchema.optional(),
   })
   .strict();
 
+/** SVG V1: asset vector + fit. Default fit = contain. Không crop. */
+export const SvgPayloadSchema = z
+  .object({
+    assetId: IdSchema,
+    fit: FitSchema.default("contain"),
+  })
+  .strict();
+
+/** Video V1: placement (fit) + playback (trim/loop/muted). Không crop. */
+export const VideoPayloadSchema = z
+  .object({
+    assetId: IdSchema,
+    fit: FitSchema.default("cover"),
+    trimStart: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
+    trimEnd: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
+    loop: z.boolean().default(false),
+    muted: z.boolean().default(false),
+    framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (
+      val.trimStart !== undefined &&
+      val.trimEnd !== undefined &&
+      val.trimStart >= val.trimEnd
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `trimStart (${val.trimStart}) must be < trimEnd (${val.trimEnd})`,
+        path: ["trimStart"],
+      });
+    }
+  });
+
 export const ImageLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("image"),
-  payload: MediaPayloadSchema,
+  payload: ImagePayloadSchema,
 }).strict();
 
 export const SvgLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("svg"),
-  payload: MediaPayloadSchema,
+  payload: SvgPayloadSchema,
+  style: SvgStyleSchema.optional(),
 }).strict();
 
 export const VideoLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("video"),
-  payload: MediaPayloadSchema.extend({
-    trimStart: PositiveNumberSchema.max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ).optional(),
-    trimEnd: PositiveNumberSchema.max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ).optional(),
-    loop: z.boolean().optional(),
-    muted: z.boolean().optional(),
-    framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
-  }),
+  payload: VideoPayloadSchema,
 }).strict();
 
-export const CameraLayerV1Schema = LayerBaseV1Schema.extend({
+export const CameraLayerV1Schema = LayerBaseV1Schema.omit({
+  frame: true,
+  layoutItem: true,
+  effects: true,
+}).extend({
   type: z.literal("camera"),
   payload: z
     .object({

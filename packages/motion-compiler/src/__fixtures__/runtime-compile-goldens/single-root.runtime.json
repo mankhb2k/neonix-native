@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "single-root",
     "name": "Single Root",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "dcba3e4c945769de26fc737032f005ee",
+  "runtimeHash": "2bb8d52d6b382c63d3f9070ae8c38194",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -45,12 +45,12 @@
           "x": 960,
           "y": 540
         },
-        "rotate": {
-          "z": 0
-        },
         "scale": {
           "x": 1,
           "y": 1
+        },
+        "rotate": {
+          "z": 0
         },
         "skew": {
           "x": 0,
@@ -75,12 +75,10 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "content": {
-          "kind": "plain",
-          "text": "Hello MotiClip"
-        },
+        "text": "Hello MotiClip",
         "fontSize": 64,
-        "align": "center",
+        "color": "#000000",
+        "alignment": "center",
         "wrap": "word",
         "overflow": "visible"
       },
@@ -89,7 +87,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 5
   }

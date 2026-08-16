@@ -8,18 +8,18 @@ Three package entries:
 | --- | --- |
 | `@motionvideo/motion-protocol` | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings, patch, MCP |
 | `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
-| `@motionvideo/motion-protocol/internal` | Compiler leftovers (motion units, caption token schemas) — not authoring |
+| `@motionvideo/motion-protocol/internal` | Leftover caption schemas — not authoring or V1 compile |
 
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
-> **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind via `target.type` (`layer` | `componentLayer`). Component internals are sealed — consumers only set public props. Runtime IR is produced by `@motionvideo/motion-compiler`.
+> **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind only `target.type: "prop"` (`layerId` + `propId`). Component internals are sealed. Runtime IR is produced by `@motionvideo/motion-compiler`.
 
 ---
 
 ## Design
 
 1. **Single contract** — Editor, AI planner, and compiler validate the same Zod schemas.
-2. **Authoring → Runtime** — `MotionProjectV1` (variables, props, bindings) compiles to `MotionRuntimeProject` (literal layer graph + animation tracks).
+2. **Authoring → Runtime** — `MotionProjectV1` (variables, props, bindings) compiles to `MotionRuntimeProject` (literal layer graph + `propertyAnimations`).
 3. **Strict bounds** — `.strict()`, finite numbers, `MOTION_PROTOCOL_LIMITS`.
 4. **Parse path** — `parseMotionProjectV1`: normalize → schema → reference validation.
 
@@ -31,7 +31,7 @@ Three package entries:
 | --- | --- |
 | [`src/index.ts`](./src/index.ts) | Authoring barrel (`.`) |
 | [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`) |
-| [`src/internal.ts`](./src/internal.ts) | Compiler leftovers (`./internal`) |
+| [`src/internal.ts`](./src/internal.ts) | Caption leftover schemas (`./internal`) |
 | [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, timeline, variables, animation, references) |
 | [`src/runtime/`](./src/runtime) | Runtime IR schemas |
 | [`src/capabilities.ts`](./src/capabilities.ts) | Limits + property capability registry |
@@ -41,12 +41,14 @@ Three package entries:
 
 ## Timeline model
 
-- `timeline` = clock metadata only: `duration?`, `workArea?`, `markers?` (`TimelineMarkerV1Schema`)
-- `project.layers[]` = root lanes; `zIndex` unique (`>= 0` visual, `< 0` audio)
-- Nesting via `group.children[]`; child timing is local to parent
+- `timeline` = `duration?`, `workArea?`, `clips?`
+- `project.layers[]` = root lanes; every layer requires `zIndex` (root visual `>= 0`, audio `< 0`, nested `>= 0`, unique among siblings)
+- Nesting via `group.children[]` (at least one child); child timing is local to parent and must fit inside the parent duration
 - Audio is a root-only leaf (`type: "audio"`)
+- `frame` = local size box before transform. Required on every visual layer including group (does not clip, not derived from children). Forbidden on audio/camera
+- `transform` = shared visual geometry (`translate`, `scale`, `rotate.z`, `skew`, `origin`, `depth`). Audio has none. Negative scale flips. `depth` is not `zIndex`.
 
-See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md).
+See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and [docs/guide/v1-group-guide.md](../../docs/guide/v1-group-guide.md).
 
 ---
 
@@ -55,15 +57,13 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md).
 - Sealed definition: public `props` / `variants`; owner-only `propBindings` + internal `layers`
 - Instance = `type: "component"` layer on the **project layer tree**
 - Prop keyframe `t` is local to the instance: `0..layer.timing.duration`
-- No `actions` — timeline motion uses layer tracks / prop keyframes only
+- Timeline motion uses `timeline.clips` / prop keyframes
 
 ### Bindings (`ProjectBindingV1Schema`)
 
 ```text
-target.type:
-  layer          → project-tree layer property
-  componentLayer → one project-tree component instance (layerId + propId)
-nested-in-definition → childProp only
+target.type: prop → one project-tree component instance (layerId + propId)
+nested-in-definition → owner childProp / layerProperty only
 ```
 
 See [docs/guide/v1-component-guide.md](../../docs/guide/v1-component-guide.md).
@@ -76,7 +76,7 @@ See [docs/guide/v1-component-guide.md](../../docs/guide/v1-component-guide.md).
 JSON  →  parseMotionProjectV1()  →  MotionProjectV1
                 │
                 ▼  @motionvideo/motion-compiler
-         MotionRuntimeProject (flat layers[] + tracks)
+         MotionRuntimeProject (flat layers[] + propertyAnimations)
 ```
 
 ---
