@@ -1,10 +1,12 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
 import { MediaFitFigure } from "@/components/docs/figures/MediaFitFigure";
 import { VideoTrimFigure } from "@/components/docs/figures/VideoTrimFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { visualLayerExample } from "@/lib/docs/content/layers/example-json";
+import { DOCS_ASSET_VIDEO } from "@/lib/docs/visual-fixtures";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
-import { JsonBlock } from "@/components/docs/JsonBlock";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function videoLayerPage(): DocsPageView {
@@ -74,37 +76,46 @@ export function videoLayerPage(): DocsPageView {
         </P>
 
         <H2 id="example">Example layer</H2>
-        <JsonBlock
-          caption="Authoring JSON (fragment)"
-          code={JSON.stringify(
-            {
+        <ExampleWithResult
+          json={JSON.stringify(
+            visualLayerExample({
               id: "video_1",
               type: "video",
-              parentLayerId: null,
-              zIndex: 1,
-              timing: { start: 0, duration: 120 },
               frame: { width: 1280, height: 720 },
-              transform: {
-                translate: { x: 0, y: 0 },
-                scale: { x: 1, y: 1 },
-                rotate: { z: 0 },
-                skew: { x: 0, y: 0 },
-                origin: { x: 0.5, y: 0.5 },
-                depth: 0,
-              },
-              appearance: { visible: true, opacity: 100 },
               payload: {
-                assetId: "video_intro",
+                assetId: DOCS_ASSET_VIDEO.id,
                 fit: "cover",
                 trimStart: 0,
                 trimEnd: 8,
                 loop: false,
                 muted: true,
               },
-            },
+            }),
             null,
             2,
           )}
+          result={
+            <figure className="flex w-full max-w-[320px] flex-col items-center gap-2">
+              <div
+                className="overflow-hidden border border-dashed border-[#94a3b8] bg-black"
+                style={{ width: 256, height: 144 }}
+              >
+                <video
+                  src={`${DOCS_ASSET_VIDEO.uri}#t=0,8`}
+                  muted
+                  playsInline
+                  autoPlay
+                  loop
+                  preload="metadata"
+                  className="h-full w-full object-cover"
+                  aria-label="Example video fitted with cover in a 16:9 frame"
+                />
+              </div>
+              <figcaption className="font-mono text-[10px] text-[#94a3b8]">
+                frame 1280×720 · fit cover · muted · {DOCS_ASSET_VIDEO.id}
+              </figcaption>
+            </figure>
+          }
         />
 
         <H2 id="not-v1">Not in V1</H2>

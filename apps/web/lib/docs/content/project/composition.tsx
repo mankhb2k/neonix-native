@@ -1,6 +1,7 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { CompositionFigure } from "@/components/docs/figures/ProjectFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
@@ -8,6 +9,7 @@ import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 export function compositionPage(): DocsPageView {
   return withOnThisPage({
     title: "Composition",
+    showToc: false,
     toc: [
       { id: "canvas", title: "Render face" },
       { id: "fields", title: "Fields" },
@@ -27,11 +29,15 @@ export function compositionPage(): DocsPageView {
           <code>timeline.duration</code> it decides the MP4. It is not the size
           of a text or image layer.
         </P>
+        <CompositionFigure />
         <H2 id="fields">Fields</H2>
         <DocsTable
           headers={["Field", "Rule"]}
           rows={[
-            [<code key="wh">width / height</code>, "Pixels of the composition; must be > 0"],
+            [
+              <code key="wh">width / height</code>,
+              "Pixels of the composition; must be > 0",
+            ],
             [<code key="fps">fps</code>, "1…120"],
             [
               <code key="bg">background</code>,

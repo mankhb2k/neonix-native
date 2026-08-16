@@ -13,9 +13,9 @@ import { AUDIO_FADE } from "@/lib/docs/projects";
 
 export function whatIsALayerPage(): DocsPageView {
   const strip = lanesFromProject(AUDIO_FADE);
-  return withOnThisPage({ showToc: false,
+  return withOnThisPage({
+    showToc: false,
     title: "What is a layer",
-    previewProject: AUDIO_FADE,
     toc: [
       { id: "concept", title: "Concept" },
       { id: "primitive", title: "The authoring primitive" },

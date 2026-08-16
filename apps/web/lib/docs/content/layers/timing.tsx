@@ -8,8 +8,14 @@ import { H2, P } from "@/lib/docs/content/prose";
 export function layerTimingPage(): DocsPageView {
   return {
     title: "Layer timing",
-    toc: [],
     showToc: false,
+    toc: [
+      { id: "required", title: "Required on every layer" },
+      { id: "local", title: "Child timing is local" },
+      { id: "effective", title: "Effective window" },
+      { id: "trim", title: "No layer trim field" },
+      { id: "ai-guide", title: "AI writing guide" },
+    ],
     body: (
       <article className="pb-20">
         <HumanName

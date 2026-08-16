@@ -1,9 +1,11 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleResultFrame } from "@/components/docs/figures/ExampleResultFrame";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
 import { PathFigure } from "@/components/docs/figures/PathFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
-import { H2, P } from "@/lib/docs/content/prose";
+import { visualLayerExample } from "@/lib/docs/content/layers/example-json";
+import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function pathLayerPage(): DocsPageView {
@@ -12,9 +14,9 @@ export function pathLayerPage(): DocsPageView {
     title: "Path",
     toc: [
       { id: "concept", title: "Concept" },
-      { id: "what", title: "What a path is" },
-      { id: "contours", title: "Contours" },
-      { id: "paint", title: "Paint" },
+      { id: "payload", title: "Payload" },
+      { id: "example", title: "Example layer" },
+      { id: "not-v1", title: "Not in V1" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
@@ -24,30 +26,45 @@ export function pathLayerPage(): DocsPageView {
           human="Freeform vector: points and segments. Not a formula shape."
           jsonPath='layers[] type: "path"'
         />
-        <H2 id="concept">Concept</H2>
-        <PathFigure />
-        <H2 id="what">What a path is</H2>
         <P>
-          Use path for icons, cubics, holes, and several sub-paths in one layer
-          (letter O). Use{" "}
+          Use path for icons, cubics, holes, and several sub-paths in one layer.
+          Use{" "}
           <a className="underline" href="/docs/layers/shape">
             shape
           </a>{" "}
-          for rectangle, ellipse, and polygon. There is no{" "}
-          <code>payload.geometry</code> — contours sit on <code>payload</code>.
+          for rectangle, ellipse, and polygon. Color is{" "}
+          <code>style.fill</code> / <code>style.stroke</code>.
         </P>
-        <H2 id="contours">Contours</H2>
-        <P>
-          Each contour has <code>id</code>, <code>start</code>,{" "}
-          <code>segments</code> (<code>line</code> or <code>cubic</code>), and{" "}
-          <code>closed</code>. <code>fillRule</code> is <code>nonzero</code>{" "}
-          (default) or <code>evenodd</code>. <code>morphTargets</code> are
-          advanced and must match base topology.
-        </P>
-        <JsonBlock
-          code={JSON.stringify(
-            {
+
+        <H2 id="concept">Concept</H2>
+        <PathFigure />
+
+        <H2 id="payload">Payload</H2>
+        <DocsTable
+          headers={["Field", "Meaning"]}
+          rows={[
+            [
+              <code key="c">contours</code>,
+              "Required. Each has id, start, segments (line | cubic), closed.",
+            ],
+            [
+              <code key="f">fillRule</code>,
+              "nonzero (default) or evenodd.",
+            ],
+            [
+              <code key="m">morphTargets</code>,
+              "Advanced. Must match base contour topology.",
+            ],
+          ]}
+        />
+
+        <H2 id="example">Example layer</H2>
+        <ExampleWithResult
+          json={JSON.stringify(
+            visualLayerExample({
+              id: "icon-path",
               type: "path",
+              frame: { width: 200, height: 120 },
               payload: {
                 contours: [
                   {
@@ -64,16 +81,39 @@ export function pathLayerPage(): DocsPageView {
                 fillRule: "nonzero",
               },
               style: { fill: "#111111" },
-            },
+            }),
             null,
             2,
           )}
+          result={
+            <ExampleResultFrame
+              label="Rendered path layer"
+              caption="frame 200×120 · 1 contour · fill #111111"
+              viewBox="0 0 400 170"
+            >
+              <rect
+                x={90}
+                y={18}
+                width={220}
+                height={120}
+                fill="none"
+                stroke="#94a3b8"
+                strokeDasharray="5 4"
+              />
+              <path
+                d="M120 40 L280 40 L280 118 L120 118 Z"
+                fill="#111111"
+              />
+            </ExampleResultFrame>
+          }
         />
-        <H2 id="paint">Paint</H2>
+
+        <H2 id="not-v1">Not in V1</H2>
         <P>
-          Same as shape: <code>style.fill</code> / <code>style.stroke</code>.
-          Never <code>payload.color</code>.
+          No SVG path string, no <code>payload.geometry</code>, no{" "}
+          <code>payload.color</code>. Do not author a rectangle as a path.
         </P>
+
         <AiWritingGuide
           items={[
             "Do not stuff a rectangle into path. Use type shape.",

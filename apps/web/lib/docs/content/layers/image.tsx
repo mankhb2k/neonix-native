@@ -1,9 +1,10 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
 import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
 import { MediaFitFigure } from "@/components/docs/figures/MediaFitFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { visualLayerExample } from "@/lib/docs/content/layers/example-json";
+import { DOCS_ASSET_PHOTO_WIDE } from "@/lib/docs/visual-fixtures";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
@@ -54,67 +55,31 @@ export function imageLayerPage(): DocsPageView {
         <H2 id="example">Example layer</H2>
         <ExampleWithResult
           json={JSON.stringify(
-            {
+            visualLayerExample({
               id: "image_1",
               type: "image",
-              parentLayerId: null,
-              zIndex: 1,
-              timing: { start: 0, duration: 90 },
               frame: { width: 400, height: 300 },
-              transform: {
-                translate: { x: 200, y: 120 },
-                scale: { x: 1, y: 1 },
-                rotate: { z: 0 },
-                skew: { x: 0, y: 0 },
-                origin: { x: 0.5, y: 0.5 },
-                depth: 0,
-              },
-              appearance: { visible: true, opacity: 100 },
-              payload: { assetId: "img_hero", fit: "cover" },
-            },
+              payload: { assetId: DOCS_ASSET_PHOTO_WIDE.id, fit: "cover" },
+            }),
             null,
             2,
           )}
           result={
-            <svg
-              viewBox="0 0 400 240"
-              className="w-full max-w-[320px]"
-              role="img"
-              aria-label="Rendered image layer"
-            >
-              <defs>
-                <clipPath id="img-ex">
-                  <rect x={90} y={30} width={220} height={165} rx={4} />
-                </clipPath>
-              </defs>
-              <rect
-                x={90}
-                y={30}
-                width={220}
-                height={165}
-                fill="none"
-                stroke="#94a3b8"
-                strokeDasharray="5 4"
-              />
-              <g clipPath="url(#img-ex)">
-                <rect x={90} y={30} width={220} height={165} fill="#dbeafe" />
-                <circle cx={280} cy={65} r={20} fill="#fbbf24" />
-                <path
-                  d="M90 195 L160 100 L220 155 L260 120 L310 195 Z"
-                  fill="#34d399"
-                />
-              </g>
-              <text
-                x={200}
-                y={222}
-                textAnchor="middle"
-                fontSize={11}
-                fill="#94a3b8"
-                fontFamily="monospace"
+            <figure className="flex w-full max-w-[320px] flex-col items-center gap-2">
+              <div
+                className="overflow-hidden border border-dashed border-[#94a3b8]"
+                style={{ width: 240, height: 180 }}
               >
-                frame 400×300 · fit cover
-              </text>
-            </svg>
+                <img
+                  src={DOCS_ASSET_PHOTO_WIDE.uri}
+                  alt="16:9 photo fitted with cover in a 4:3 frame"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <figcaption className="font-mono text-[10px] text-[#94a3b8]">
+                frame 400×300 · fit cover · {DOCS_ASSET_PHOTO_WIDE.id}
+              </figcaption>
+            </figure>
           }
         />
 

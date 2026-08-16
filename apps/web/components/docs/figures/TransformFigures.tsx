@@ -39,19 +39,25 @@ function Box({
   size = 96,
   rotate = 0,
   skewX = 0,
+  skewY = 0,
   dashed = false,
   label,
+  labelY = 5,
 }: {
   x: number;
   y: number;
   size?: number;
   rotate?: number;
   skewX?: number;
+  skewY?: number;
   dashed?: boolean;
   label?: string;
+  labelY?: number;
 }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX})`}>
+    <g
+      transform={`translate(${x} ${y}) rotate(${rotate}) skewX(${skewX}) skewY(${skewY})`}
+    >
       <rect
         x={-size / 2}
         y={-size / 2}
@@ -67,7 +73,7 @@ function Box({
       {label ? (
         <text
           x={0}
-          y={5}
+          y={labelY}
           textAnchor="middle"
           fontSize={13}
           fill={INK}
@@ -93,8 +99,8 @@ export function TranslateFigure() {
         aria-label="Translate"
       >
         <Canvas label="composition" />
-        <Box x={200} y={140} dashed label="before" />
-        <Box x={400} y={180} label="after" />
+        <Box x={200} y={140} dashed label="before" labelY={-22} />
+        <Box x={400} y={180} label="after" labelY={-22} />
         <line
           x1={200}
           y1={140}
@@ -123,7 +129,7 @@ export function TranslateFigure() {
         </defs>
         <text
           x={300}
-          y={140}
+          y={108}
           textAnchor="middle"
           fontSize={13}
           fill={ACCENT}
@@ -209,15 +215,8 @@ export function RotateFigure() {
       >
         <Canvas label="rotate around origin" />
         <Box x={240} y={150} dashed />
-        <Box x={240} y={150} rotate={35} label="35°" />
-        <circle
-          cx={240}
-          cy={150}
-          r={5}
-          fill="#fff"
-          stroke={ACCENT}
-          strokeWidth={2}
-        />
+        <Box x={240} y={150} rotate={35} />
+        <circle cx={240} cy={150} r={5} fill="#fff" stroke={ACCENT} strokeWidth={2} />
         <path
           d="M 320 150 A 80 80 0 0 0 296 96"
           fill="none"
@@ -251,7 +250,7 @@ export function RotateFigure() {
         <line
           x1={430}
           y1={148}
-          x2={248}
+          x2={280}
           y2={150}
           stroke={MUTED}
           strokeWidth={1}
@@ -266,7 +265,7 @@ export function SkewFigure() {
   return (
     <Figure
       label="transform.skew"
-      caption="Shear the local box in degrees. skew.x slants horizontally; skew.y slants vertically."
+      caption="Shear in degrees around origin. skew.x slants horizontally; skew.y slants vertically. Applies after scale / rotate."
     >
       <svg
         viewBox="0 0 640 280"
@@ -274,14 +273,39 @@ export function SkewFigure() {
         role="img"
         aria-label="Skew"
       >
-        <Canvas label="skew.x" />
-        <Box x={220} y={150} dashed />
-        <Box x={220} y={150} skewX={20} label="skew.x 20" />
-        <text x={430} y={150} fontSize={13} fill={INK} fontFamily="monospace">
-          degrees around origin
+        <Canvas label="skew around origin" />
+        <Box x={140} y={130} />
+        <text
+          x={140}
+          y={214}
+          textAnchor="middle"
+          fontSize={12}
+          fill={INK}
+          fontFamily="monospace"
+        >
+          0, 0
         </text>
-        <text x={430} y={172} fontSize={12} fill={MUTED} fontFamily="monospace">
-          after scale / rotate in the pipeline
+        <Box x={320} y={130} skewX={20} />
+        <text
+          x={320}
+          y={214}
+          textAnchor="middle"
+          fontSize={12}
+          fill={INK}
+          fontFamily="monospace"
+        >
+          skew.x 20
+        </text>
+        <Box x={500} y={130} skewY={16} />
+        <text
+          x={500}
+          y={214}
+          textAnchor="middle"
+          fontSize={12}
+          fill={INK}
+          fontFamily="monospace"
+        >
+          skew.y 16
         </text>
       </svg>
     </Figure>

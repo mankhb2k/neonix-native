@@ -73,28 +73,88 @@ export function VisibleFigure() {
       label="appearance.visible"
       caption="visible is render on/off for visual layers. It is not hit-test, selection, or editor lock — and audio has no appearance at all."
     >
-      <svg viewBox="0 0 640 190" className="w-full max-w-[576px]" role="img" aria-label="Visible">
+      <svg
+        viewBox="0 0 640 190"
+        className="w-full max-w-[576px]"
+        role="img"
+        aria-label="Visible"
+      >
         {/* visible: true */}
         <g transform="translate(90 40)">
-          <rect x={0} y={0} width={140} height={90} rx={10} fill="#ccfbf1" stroke={ACCENT} strokeWidth={2} />
-          <text x={70} y={52} textAnchor="middle" fontSize={13} fontWeight={600} fill={INK} fontFamily="monospace">
+          <rect
+            x={0}
+            y={0}
+            width={140}
+            height={90}
+            rx={10}
+            fill="#ccfbf1"
+            stroke={ACCENT}
+            strokeWidth={2}
+          />
+          <text
+            x={70}
+            y={52}
+            textAnchor="middle"
+            fontSize={13}
+            fontWeight={600}
+            fill={INK}
+            fontFamily="monospace"
+          >
             painted
           </text>
-          <text x={70} y={118} textAnchor="middle" fontSize={12} fill={INK} fontFamily="monospace">
+          <text
+            x={70}
+            y={118}
+            textAnchor="middle"
+            fontSize={12}
+            fill={INK}
+            fontFamily="monospace"
+          >
             visible: true
           </text>
         </g>
         {/* visible: false — slot reserved but nothing painted */}
         <g transform="translate(390 40)">
-          <rect x={0} y={0} width={140} height={90} rx={10} fill="none" stroke={MUTED} strokeWidth={1.5} strokeDasharray="6 4" />
-          <text x={70} y={52} textAnchor="middle" fontSize={12} fill={MUTED} fontFamily="monospace">
+          <rect
+            x={0}
+            y={0}
+            width={140}
+            height={90}
+            rx={10}
+            fill="none"
+            stroke={MUTED}
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+          />
+          <text
+            x={70}
+            y={52}
+            textAnchor="middle"
+            fontSize={12}
+            fill={MUTED}
+            fontFamily="monospace"
+          >
             not painted
           </text>
-          <text x={70} y={118} textAnchor="middle" fontSize={12} fill={MUTED} fontFamily="monospace">
+          <text
+            x={70}
+            y={118}
+            textAnchor="middle"
+            fontSize={12}
+            fill={MUTED}
+            fontFamily="monospace"
+          >
             visible: false
           </text>
         </g>
-        <text x={320} y={176} textAnchor="middle" fontSize={12} fill={MUTED} fontFamily="monospace">
+        <text
+          x={320}
+          y={176}
+          textAnchor="middle"
+          fontSize={12}
+          fill={MUTED}
+          fontFamily="monospace"
+        >
           opacity can stay 100 — nothing renders when visible is false
         </text>
       </svg>
@@ -157,29 +217,102 @@ export function IsolationFigure() {
       label="compositing.isolation"
       caption="Advanced. auto (default) lets blend/mask effects see everything painted below; isolate scopes them to a fresh group. AI should not emit it by default."
     >
-      <svg viewBox="0 0 640 210" className="w-full max-w-[576px]" role="img" aria-label="Isolation">
+      <svg
+        viewBox="0 0 640 210"
+        className="w-full max-w-[576px]"
+        role="img"
+        aria-label="Isolation"
+      >
         {/* auto: blends with the backdrop */}
         <g transform="translate(50 30)">
-          <rect x={0} y={0} width={220} height={110} rx={10} fill="#f8fafc" stroke={MUTED} strokeWidth={1.5} />
+          <rect
+            x={0}
+            y={0}
+            width={220}
+            height={110}
+            rx={10}
+            fill="#f8fafc"
+            stroke={MUTED}
+            strokeWidth={1.5}
+          />
           <circle cx={70} cy={60} r={34} fill="#60a5fa" />
-          <circle cx={110} cy={60} r={34} fill="#f59e0b" style={{ mixBlendMode: "multiply" }} />
-          <text x={110} y={138} textAnchor="middle" fontSize={13} fill={INK} fontFamily="monospace">
+          <circle
+            cx={110}
+            cy={60}
+            r={34}
+            fill="#f59e0b"
+            style={{ mixBlendMode: "multiply" }}
+          />
+          <text
+            x={110}
+            y={138}
+            textAnchor="middle"
+            fontSize={13}
+            fill={INK}
+            fontFamily="monospace"
+          >
             auto (default)
           </text>
-          <text x={110} y={156} textAnchor="middle" fontSize={11} fill={MUTED} fontFamily="monospace">
+          <text
+            x={110}
+            y={156}
+            textAnchor="middle"
+            fontSize={11}
+            fill={MUTED}
+            fontFamily="monospace"
+          >
             blends with the backdrop
           </text>
         </g>
         {/* isolate: fresh scope */}
         <g transform="translate(370 30)">
-          <rect x={0} y={0} width={220} height={110} rx={10} fill="#f8fafc" stroke={ACCENT} strokeWidth={2} />
-          <rect x={28} y={14} width={164} height={82} rx={8} fill="#fff" stroke={ACCENT} strokeWidth={1.5} strokeDasharray="5 4" />
+          <rect
+            x={0}
+            y={0}
+            width={220}
+            height={110}
+            rx={10}
+            fill="#f8fafc"
+            stroke={ACCENT}
+            strokeWidth={2}
+          />
+          <rect
+            x={28}
+            y={14}
+            width={164}
+            height={82}
+            rx={8}
+            fill="#fff"
+            stroke={ACCENT}
+            strokeWidth={1.5}
+            strokeDasharray="5 4"
+          />
           <circle cx={90} cy={55} r={28} fill="#60a5fa" />
-          <circle cx={124} cy={55} r={28} fill="#f59e0b" style={{ mixBlendMode: "multiply" }} />
-          <text x={110} y={138} textAnchor="middle" fontSize={13} fill={ACCENT} fontFamily="monospace">
+          <circle
+            cx={124}
+            cy={55}
+            r={28}
+            fill="#f59e0b"
+            style={{ mixBlendMode: "multiply" }}
+          />
+          <text
+            x={110}
+            y={138}
+            textAnchor="middle"
+            fontSize={13}
+            fill={ACCENT}
+            fontFamily="monospace"
+          >
             isolate
           </text>
-          <text x={110} y={156} textAnchor="middle" fontSize={11} fill={MUTED} fontFamily="monospace">
+          <text
+            x={110}
+            y={156}
+            textAnchor="middle"
+            fontSize={11}
+            fill={MUTED}
+            fontFamily="monospace"
+          >
             blend scoped to the dashed group
           </text>
         </g>

@@ -36,6 +36,18 @@ export const DOCS_ASSET_PHOTO_WIDE = {
   height: 1080,
 };
 
+export const DOCS_ASSET_VIDEO = {
+  id: "docs-video",
+  uri: "/docs/example-video.mp4",
+  integrity: "sha256:docs-example-video",
+  assetType: "video" as const,
+  mimeType: "video/mp4" as const,
+  width: 1920,
+  height: 1080,
+  duration: 422.56,
+  fps: 50,
+};
+
 export const DOCS_ASSET_TREE = {
   id: "docs-tree",
   uri: "/docs/tree-svgrepo-com.svg",

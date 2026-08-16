@@ -8,6 +8,7 @@ import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 export function timelinePage(): DocsPageView {
   return withOnThisPage({
     title: "Timeline",
+    showToc: false,
     toc: [
       { id: "clock", title: "Clock, not tracks" },
       { id: "duration", title: "Duration" },
@@ -25,9 +26,9 @@ export function timelinePage(): DocsPageView {
         <H2 id="clock">Clock, not tracks</H2>
         <P>
           <code>timeline</code> only has <code>duration?</code>,{" "}
-          <code>workArea?</code>, <code>clips?</code>. Picture and sound live
-          on <code>layers[]</code>. Captions are a group with text children —
-          not a track type.
+          <code>workArea?</code>, <code>clips?</code>. Picture and sound live on{" "}
+          <code>layers[]</code>. Captions are a group with text children — not a
+          track type.
         </P>
         <H2 id="duration">Duration</H2>
         <P>
@@ -44,8 +45,8 @@ export function timelinePage(): DocsPageView {
         </P>
         <H2 id="strip">Three lanes</H2>
         <P>
-          Seconds on the axis. Each bar is a root layer. The clock itself has
-          no lanes.
+          Seconds on the axis. Each bar is a root layer. The clock itself has no
+          lanes.
         </P>
         <TimelineStrip
           hideHeading
