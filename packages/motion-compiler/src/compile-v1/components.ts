@@ -67,7 +67,6 @@ function isKeyframesPropValue(
 ): value is {
   kind: "keyframes";
   keys: Array<{ t: number; value: unknown; easing?: unknown }>;
-  interpolation?: string;
 } {
   return (
     value !== null &&
@@ -166,7 +165,6 @@ function buildPropKeyframeMotionUnit(
   >,
   keyframes: {
     keys: Array<{ t: number; value: unknown; easing?: unknown }>;
-    interpolation?: string;
   },
   propKind: string,
 ): JsonRecord {
@@ -188,8 +186,8 @@ function buildPropKeyframeMotionUnit(
     duration: Math.max(...keyframes.keys.map((k) => k.t), 0),
     playback: { rate: 1, iterations: 1, direction: "normal" },
     source: {
-      kind: "tracks",
-      tracks: [
+      kind: "propertyAnimations",
+      items: [
         {
           layerId: targetId,
           property: layer.property,

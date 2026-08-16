@@ -1,7 +1,6 @@
 /**
- * Barrel animation V1 — easing / drivers / interpolation.
- *
- * Authoring layer/property animation lives on `timeline.clips`.
+ * Barrel animation V1 — easing / drivers.
+ * Interpolation is derived from value type; not an authoring field.
  */
 
 // Easing

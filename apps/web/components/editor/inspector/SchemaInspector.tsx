@@ -64,8 +64,8 @@ function findKeyframeAtTime(
   const scene = project.scenes.find((s) => s.id === sceneId);
   if (!scene) return false;
   for (const clip of scene.clips) {
-    if (clip.layerId !== layerId || clip.source.kind !== "tracks") continue;
-    for (const track of clip.source.tracks) {
+    if (clip.layerId !== layerId || clip.source.kind !== "propertyAnimations") continue;
+    for (const track of clip.source.items) {
       if (track.property !== property) continue;
       if (track.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
     }

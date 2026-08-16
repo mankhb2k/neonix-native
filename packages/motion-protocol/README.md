@@ -41,7 +41,7 @@ Three package entries:
 
 ## Timeline model
 
-- `timeline` = clock metadata only: `duration?`, `workArea?`, `markers?` (`TimelineMarkerV1Schema`)
+- `timeline` = `duration?`, `workArea?`, `clips?`
 - `project.layers[]` = root lanes; every layer requires `zIndex` (root visual `>= 0`, audio `< 0`, nested `>= 0`, unique among siblings)
 - Nesting via `group.children[]` (at least one child); child timing is local to parent and must fit inside the parent duration
 - Audio is a root-only leaf (`type: "audio"`)

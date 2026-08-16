@@ -19,8 +19,8 @@ describe("sliceScene", () => {
           duration: 5,
           playback: {},
           source: {
-            kind: "tracks" as const,
-            tracks: [
+            kind: "propertyAnimations" as const,
+            items: [
               {
                 layerId: "n1",
                 property: "appearance.opacity",
@@ -40,8 +40,8 @@ describe("sliceScene", () => {
     expect(sliced.duration).toBe(2);
     const clip = sliced.clips![0];
     expect(clip.schedule).toEqual({ kind: "absolute", at: 0 });
-    if (clip.source.kind === "tracks") {
-      expect(clip.source.tracks[0].keys.map((k) => k.t)).toEqual([0, 0, 3]);
+    if (clip.source.kind === "propertyAnimations") {
+      expect(clip.source.items[0].keys.map((k) => k.t)).toEqual([0, 0, 3]);
     }
   });
 

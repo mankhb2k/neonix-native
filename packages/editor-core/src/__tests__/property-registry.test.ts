@@ -299,10 +299,10 @@ describe("Logic-2 property domain depth", () => {
     if (withKey.status !== "applied") return;
     const sceneClips = withKey.document.project.scenes[0]!.clips;
     expect(sceneClips.length).toBeGreaterThan(0);
-    const trackClip = sceneClips.find((c) => c.source.kind === "tracks");
-    expect(trackClip?.source.kind).toBe("tracks");
-    if (trackClip?.source.kind !== "tracks") return;
-    expect(trackClip.source.tracks[0]!.keys[0]).toMatchObject({
+    const trackClip = sceneClips.find((c) => c.source.kind === "propertyAnimations");
+    expect(trackClip?.source.kind).toBe("propertyAnimations");
+    if (trackClip?.source.kind !== "propertyAnimations") return;
+    expect(trackClip.source.items[0]!.keys[0]).toMatchObject({
       t: 0.5,
       v: 200,
     });
@@ -564,8 +564,8 @@ describe("Logic-2 property domain depth", () => {
     if (result.status !== "applied") return;
     const kf = result.document.project.scenes[0]!.clips.find(
       (c) =>
-        c.source.kind === "tracks" &&
-        c.source.tracks.some((tr) => tr.property === "transform.translate.x"),
+        c.source.kind === "propertyAnimations" &&
+        c.source.items.some((tr) => tr.property === "transform.translate.x"),
     );
     expect(kf).toBeTruthy();
     expect(kf!.duration).toBeLessThanOrEqual(

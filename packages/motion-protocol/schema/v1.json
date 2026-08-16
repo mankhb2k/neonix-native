@@ -148,14 +148,6 @@
           },
           "minItems": 1,
           "maxItems": 10000
-        },
-        "interpolation": {
-          "type": "string",
-          "enum": [
-            "step",
-            "linear",
-            "color"
-          ]
         }
       },
       "required": [
@@ -3439,28 +3431,6 @@
               ],
               "additionalProperties": false
             },
-            "markers": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "t": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 86400
-                  }
-                },
-                "required": [
-                  "id",
-                  "t"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 256
-            },
             "clips": {
               "type": "array",
               "items": {
@@ -3487,9 +3457,6 @@
                     },
                     "minItems": 1,
                     "maxItems": 10000
-                  },
-                  "interpolation": {
-                    "$ref": "#/definitions/PropKeyframesValue/properties/interpolation"
                   }
                 },
                 "required": [

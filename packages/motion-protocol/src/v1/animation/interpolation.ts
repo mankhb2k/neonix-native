@@ -1,6 +1,6 @@
 /**
- * Interpolation V1 — cứng theo value kind / prop kind.
- * number → linear, color → color, còn lại → step.
+ * Derived interpolation — not an authoring JSON field.
+ * number/angle → tween (linear), color → color blend, else step/hold.
  */
 export type KeyframeInterpolationV1 = "step" | "linear" | "color";
 

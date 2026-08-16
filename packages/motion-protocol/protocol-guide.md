@@ -157,7 +157,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Barrel easing/drivers/interpolation. |
+| `index.ts` | Barrel easing/drivers; interpolation derived from type (not authoring). |
 | `easing.ts` | Named / cubic / spring. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
 | `clips.ts` | **Internal** `MotionClipV1` cho compiler runtime, không thuộc authoring JSON. |
@@ -169,7 +169,7 @@ Metadata only + authoring `clips`. Visual/audio sống trên `project.layers`.
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Barrel. |
-| `schema.ts` | `duration` / `workArea` / `markers` / `clips`. |
+| `schema.ts` | `duration` / `workArea` / `clips`. |
 | `clips.ts` | Authoring `timeline.clips` — layer/property keyframes. |
 | `duration.ts` | Derive duration từ root layer timing. |
 | `canonicalize.ts` | Điền duration thiếu + snap frame-grid. |

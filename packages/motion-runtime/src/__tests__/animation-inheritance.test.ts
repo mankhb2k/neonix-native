@@ -18,7 +18,7 @@ function makeGroupScene(opts: {
   groupTiming?: RuntimeNode["timing"];
   childTransform?: Partial<RuntimeNode["transform"]>;
   childTiming?: RuntimeNode["timing"];
-  tracks?: RuntimeScene["tracks"];
+  propertyAnimations?: RuntimeScene["propertyAnimations"];
 } = {}): RuntimeScene {
   return {
     id: "scene.test",
@@ -42,7 +42,7 @@ function makeGroupScene(opts: {
         payload: { assetId: "asset.head" },
       },
     ],
-    tracks: opts.tracks ?? [],
+    propertyAnimations: opts.propertyAnimations ?? [],
   } as RuntimeScene;
 }
 
@@ -51,7 +51,7 @@ function makeGroupScene(opts: {
 describe("V1 group animation inheritance (Phase 5)", () => {
   it("animating group.transform.x moves child world position", () => {
     const scene = makeGroupScene({
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "transform.translate.x",
@@ -59,7 +59,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 100 },
             { t: 2, v: 300 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -81,7 +81,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
 
   it("animating group.transform.y moves child world position", () => {
     const scene = makeGroupScene({
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "transform.translate.y",
@@ -89,7 +89,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 200 },
             { t: 2, v: 500 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -104,7 +104,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
 
   it("animating group.transform.rotation rotates child", () => {
     const scene = makeGroupScene({
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "transform.rotate.z",
@@ -112,7 +112,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 0 },
             { t: 2, v: 90 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -129,7 +129,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
 
   it("animating group.transform.opacity cascades to child worldOpacity (inheritOpacity true)", () => {
     const scene = makeGroupScene({
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "appearance.opacity",
@@ -137,7 +137,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 100 },
             { t: 2, v: 50 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -155,7 +155,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
   it("animating group.transform.visible hides descendants", () => {
     const scene = makeGroupScene({
       groupTransform: { visible: true },
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "appearance.visible",
@@ -163,7 +163,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: true },
             { t: 0.5, v: false },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -180,7 +180,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
 
   it("child local animation combines with parent animation", () => {
     const scene = makeGroupScene({
-      tracks: [
+      propertyAnimations: [
         // Parent: group moves from x=100 to x=300
         {
           layerId: "group.char",
@@ -189,7 +189,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 100 },
             { t: 2, v: 300 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
         // Child: head rotates from 0 to 45 degrees locally
         {
           layerId: "head",
@@ -198,7 +198,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 0 },
             { t: 2, v: 45 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -226,7 +226,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       groupTransform: { x: 500, y: 300, rotation: 0 },
       childTransform: { x: 10, y: 0, rotation: 0 },
-      tracks: [
+      propertyAnimations: [
         // Animate child local x from 10 to 60
         {
           layerId: "head",
@@ -235,7 +235,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 10 },
             { t: 2, v: 60 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 
@@ -285,7 +285,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           payload: { assetId: "a" },
         },
       ],
-      tracks: [
+      propertyAnimations: [
         // Animate root group horizontal position
         {
           layerId: "g.root",
@@ -294,7 +294,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 100 },
             { t: 4, v: 500 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
         // Animate mid group vertical position
         {
           layerId: "g.mid",
@@ -303,7 +303,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 0, v: 0 },
             { t: 4, v: 200 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     };
 
@@ -324,7 +324,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       groupTiming: { start: 3, duration: 2 },
       childTiming: { start: 0, duration: 10 },
-      tracks: [
+      propertyAnimations: [
         {
           layerId: "group.char",
           property: "transform.translate.x",
@@ -332,7 +332,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
             { t: 3, v: 100 },
             { t: 5, v: 300 },
           ],
-        } as RuntimeScene["tracks"][number],
+        } as RuntimeScene["propertyAnimations"][number],
       ],
     });
 

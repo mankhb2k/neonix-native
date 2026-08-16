@@ -46,7 +46,7 @@ function pathScene(): RuntimeScene {
         effects: [{ id: "fx.blur", type: "blur", radius: 2 }],
       },
     ],
-    tracks: [],
+    propertyAnimations: [],
   } as unknown as RuntimeScene;
 }
 

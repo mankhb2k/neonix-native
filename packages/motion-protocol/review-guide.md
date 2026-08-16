@@ -13,7 +13,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | #   | File                              | Tại sao đọc file này                                                                                                            |
 | --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `src/v1/project.ts`               | **Root schema** của V1. Hiểu `MotionProjectV1Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
-| 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
+| 2   | `src/v1/timeline/schema.ts`       | **Timeline**. Chỉ `duration?` / `workArea?` / `clips?`. Không `visualTracks` / `audioTracks` / `captionTracks` / `markers`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components/`              | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v1/variables.ts`             | **Binding model** — `target.type: "prop"` (`layerId` + `propId`); consumer không chạm internals. |
@@ -35,7 +35,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 2) `src/v1/timeline/schema.ts` — Timeline metadata
 
-- `timeline` chỉ giữ clock: `duration?`, `workArea?`, `markers?`.
+- `timeline` chỉ giữ `duration?`, `workArea?`, `clips?`.
 - Nội dung phát nằm trên `project.layers`. Root layer = lane. Mọi layer bắt buộc `zIndex` (unique trong siblings) và `timing`. Nested `zIndex >= 0`. Group phải có ≥1 child. Không field `locked`.
 - Discriminator layer luôn là `type` (không `kind`). Binding target cũng `type`.
 
@@ -134,7 +134,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 project.ts (root schema + limits)
         │
         ▼
-timeline/schema.ts (duration / workArea / markers)   ← trọng tâm
+timeline/schema.ts (duration / workArea / clips)   ← trọng tâm
         │
         ▼
 layers/component.ts (component layer) ──► components/ (sealed contract)

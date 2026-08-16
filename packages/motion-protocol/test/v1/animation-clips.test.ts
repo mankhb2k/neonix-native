@@ -54,7 +54,6 @@ describe("V1 timeline.clips", () => {
               { t: 0, value: 0 },
               { t: 1, value: 80 },
             ],
-            interpolation: "linear",
           },
         ],
       }),
@@ -98,7 +97,7 @@ describe("V1 timeline.clips", () => {
     ).toThrow(/sorted/);
   });
 
-  it("locks interpolation and the animatable allowlist", () => {
+  it("locks the animatable allowlist and rejects interpolation field", () => {
     expect(isLayerPropertyAnimatable("text", "transform.translate.x")).toBe(
       true,
     );

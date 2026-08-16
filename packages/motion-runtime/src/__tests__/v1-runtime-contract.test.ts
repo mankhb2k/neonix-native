@@ -24,7 +24,7 @@ function scene(overrides: Partial<RuntimeScene> = {}): RuntimeScene {
         style: { fill: "#000000" },
       },
     ],
-    tracks: [
+    propertyAnimations: [
       {
         layerId: "title",
         property: "appearance.opacity",
@@ -39,16 +39,16 @@ function scene(overrides: Partial<RuntimeScene> = {}): RuntimeScene {
 }
 
 describe("runtime V1 contract", () => {
-  it("evaluates tracks compiled from timeline.clips", () => {
+  it("evaluates propertyAnimations compiled from timeline.clips", () => {
     const nodes = evaluateScene(scene(), 1);
     expect(nodes[0]?.transform.opacity).toBeCloseTo(1);
   });
 
-  it("warns when a track is not applied by snapshot/paint", () => {
+  it("warns when a propertyAnimation is not applied by snapshot/paint", () => {
     const collector = new RuntimeDiagnosticCollector();
     evaluateScene(
       scene({
-        tracks: [
+        propertyAnimations: [
           {
             layerId: "title",
             property: "style.fill",

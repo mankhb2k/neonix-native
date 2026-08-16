@@ -35,7 +35,6 @@ export function propsPage(): DocsPageView {
                 { t: 0, value: 0 },
                 { t: 2, value: 100 },
               ],
-              interpolation: "linear",
             },
             null,
             2,

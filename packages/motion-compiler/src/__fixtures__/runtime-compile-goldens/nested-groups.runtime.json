@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "nested-groups",
     "name": "Nested Groups",
@@ -34,7 +34,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "ee829110bc5b23d7045cc528ad754bf6",
+  "runtimeHash": "2f1baec75a6edda8bb269c5474f48daa",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -226,7 +226,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 9
   }

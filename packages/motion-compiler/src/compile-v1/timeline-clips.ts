@@ -1,7 +1,8 @@
 import type { LayerMotionUnit } from "@motionvideo/motion-protocol/internal";
 import { V1 } from "@motionvideo/motion-protocol";
 
-export function timelineClipsToMotionUnits(
+/** Compile authoring timeline.clips into internal motion-units of propertyAnimations. */
+export function timelineClipsToPropertyAnimations(
   clips: V1.TimelinePropertyClipV1[] | undefined,
 ): LayerMotionUnit[] {
   return (clips ?? []).map((clip) => {
@@ -13,8 +14,8 @@ export function timelineClipsToMotionUnits(
       duration: Math.max(maxT, 1e-6),
       playback: { rate: 1, iterations: 1, direction: "normal" },
       source: {
-        kind: "tracks",
-        tracks: [
+        kind: "propertyAnimations",
+        items: [
           {
             layerId: clip.layerId,
             property: clip.property,

@@ -9,7 +9,7 @@
  *                            dimensions, fps, background as brand color)
  *   project.layers         → runtime `layers` (flat parentLayerId graph)
  *   root audio layers      → runtime audio layers on the same `layers` list
- *   variables / bindings   → resolved inline before layer compilation
+ *   variables / bindings   → component props via project.bindings (no inline `{ ref }`)
  *   component layers        → sealed wrapper-group expansion in the layer
  *                            graph
  *
@@ -49,7 +49,7 @@ import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
-import { timelineClipsToMotionUnits } from "./timeline-clips";
+import { timelineClipsToPropertyAnimations } from "./timeline-clips";
 
 export { detectScheduleCycles } from "./semantics";
 
@@ -99,8 +99,8 @@ export const COMPILER_VERSION_V1 = "3.0.0-phase11";
  * diagnostics.
  *
  * Compiles `project.layers` into one runtime layer graph.
- * Root audio layers become runtime audio layers. Animation tracks live on
- * `project.tracks`.
+ * Root audio layers become runtime audio layers. Property animations live on
+ * `project.propertyAnimations`.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
  * when the project fails semantic validation (CMP_* codes) or the runtime
@@ -315,7 +315,7 @@ export function compileMotionProjectV1(
               ...((graph.motionUnits ?? []) as Parameters<
                 typeof compileLayerGraphToRuntime
               >[0]["motionUnits"]),
-              ...timelineClipsToMotionUnits(normalized.timeline.clips),
+              ...timelineClipsToPropertyAnimations(normalized.timeline.clips),
             ],
             variables: projectVariables,
             ...(aiRecord?.space ? { space: aiRecord.space } : {}),
@@ -325,7 +325,7 @@ export function compileMotionProjectV1(
           })
         : null;
     const visualLayers = compiledGraph?.layers ?? [];
-    const tracks = compiledGraph?.tracks ?? [];
+    const propertyAnimations = compiledGraph?.propertyAnimations ?? [];
     const audioRuntimeLayers = audioLayers
       .slice()
       .sort((a, b) => a.zIndex - b.zIndex)
@@ -359,7 +359,7 @@ export function compileMotionProjectV1(
         ? { activeCameraLayerId: compiledGraph.activeCameraLayerId }
         : {}),
       layers: [...visualLayers, ...audioRuntimeLayers],
-      tracks,
+      propertyAnimations,
       timeline: {
         duration,
       },
@@ -391,12 +391,8 @@ export function compileMotionProjectV1(
       }
     } else if (err instanceof Error) {
       const msg = err.message;
-      if (msg.includes("Unknown variable reference")) {
-        collector.error("UNKNOWN_VARIABLE", msg);
-      } else if (msg.includes("Unknown motion-unit target layer")) {
+      if (msg.includes("Unknown motion-unit target layer")) {
         collector.error("UNKNOWN_CLIP_TARGET", msg);
-      } else if (msg.includes("Unknown timeline marker")) {
-        collector.error("UNKNOWN_MARKER", msg);
       } else {
         collector.error("COMPILE_ERROR", msg);
       }

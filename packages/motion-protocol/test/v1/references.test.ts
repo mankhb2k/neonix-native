@@ -202,7 +202,6 @@ describe("V1 component / binding / keyframe references", () => {
                 props: {
                   fade: {
                     kind: "keyframes",
-                    interpolation: "linear",
                     keys: [
                       { t: 0, value: 0 },
                       { t: 2.5, value: 1 },
@@ -232,7 +231,6 @@ describe("V1 component / binding / keyframe references", () => {
                 props: {
                   fade: {
                     kind: "keyframes",
-                    interpolation: "linear",
                     keys: [
                       { t: 0, value: 0 },
                       { t: 2.5, value: 1 },
@@ -271,7 +269,6 @@ describe("V1 component / binding / keyframe references", () => {
               props: {
                 fade: {
                   kind: "keyframes",
-                  interpolation: "linear",
                   keys: [
                     { t: 0, value: 0 },
                     { t: 2, value: 1 },

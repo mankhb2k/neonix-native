@@ -5,10 +5,7 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { IdSchema, PropertyPathSchema } from "../common";
-import {
-  PropKeyframeInterpolationSchema,
-  PropKeyframeSchema,
-} from "../components/prop-values";
+import { PropKeyframeSchema } from "../components/prop-values";
 
 export const TimelinePropertyClipV1Schema = z
   .object({
@@ -20,7 +17,6 @@ export const TimelinePropertyClipV1Schema = z
       .array(PropKeyframeSchema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
-    interpolation: PropKeyframeInterpolationSchema.optional(),
   })
   .strict();
 

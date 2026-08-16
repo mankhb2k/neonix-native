@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "transition",
     "name": "Transition",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a9d51f1587b83ee59f20e7d89178cbeb",
+  "runtimeHash": "b6be98565a9bd3fb8fdbed57b28e0a0e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -143,7 +143,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 3
   }

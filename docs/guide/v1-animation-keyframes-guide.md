@@ -41,16 +41,15 @@ Owner fan-out vào internals qua `propBindings`. Không animate `payload.props.*
 
 ## Shape của keyframe
 
-Một key: thời điểm `t`, `value`, `easing?`.
+Một key: thời điểm `t`, `value`, `easing?`. Không có field `interpolation`.
 
 ```json
 {
   "kind": "keyframes",
   "keys": [
     { "t": 0, "value": 0 },
-    { "t": 1, "value": 100 }
-  ],
-  "interpolation": "linear"
+    { "t": 1, "value": 100, "easing": "easeOut" }
+  ]
 }
 ```
 
@@ -60,18 +59,18 @@ Một key: thời điểm `t`, `value`, `easing?`.
 
 ## Interpolation theo type
 
-Cứng trong V1. Không mở rộng.
+Cứng trong V1. Runtime tự quyết theo kiểu dữ liệu. Không ghi `interpolation` trên JSON.
 
-| Loại | Interpolation |
+| Loại | Cách interpolate |
 | --- | --- |
-| number (kể cả angle) | `linear` |
-| color | `color` |
-| boolean | `step` |
-| string | `step` |
-| choice | `step` |
-| asset | `step` |
+| number (kể cả angle) | tween (`linear`) |
+| color | blend color |
+| boolean | hold / `step` |
+| string | hold / `step` |
+| choice | hold / `step` |
+| asset | hold / `step` |
 
-Bỏ `interpolation` → dùng mặc định theo loại. Ghi sai (ví dụ `linear` trên color) → reject.
+Ghi `interpolation` trên clip hoặc prop keyframes → reject.
 
 ---
 
@@ -84,7 +83,7 @@ Cả hai đường dùng **local time của layer đích**.
 - Prop keyframes: local theo **component instance layer**
 - `timeline.clips`: local theo **layer mà clip `layerId` trỏ tới**
 
-Không phải absolute clock của `timeline.duration`. Runtime IR (`project.tracks`) là output compiler, không phải chỗ authoring.
+Không phải absolute clock của `timeline.duration`. Runtime IR (`project.propertyAnimations`) là output compiler, không phải chỗ authoring.
 
 ---
 
@@ -103,8 +102,7 @@ Không phải absolute clock của `timeline.duration`. Runtime IR (`project.tra
         "keys": [
           { "t": 0, "value": 0 },
           { "t": 1, "value": 100 }
-        ],
-        "interpolation": "linear"
+        ]
       }
     ]
   }
@@ -196,8 +194,7 @@ Không animate (cấu trúc / setup / playback):
         "keys": [
           { "t": 0, "value": 0 },
           { "t": 1, "value": 80, "easing": "easeOut" }
-        ],
-        "interpolation": "linear"
+        ]
       }
     ]
   }
@@ -210,7 +207,7 @@ Prop keyframes: xem [v1-component-guide.md](./v1-component-guide.md).
 
 ## Câu chốt
 
-Base state ở layer. Layer/property animation ở `timeline.clips`. Prop animation ở `payload.props`. `t` local theo layer. Không animate frame, trim, hay field setup. Interpolation: number linear, color color, còn lại step.
+Base state ở layer. Layer/property animation ở `timeline.clips`. Prop animation ở `payload.props`. `t` local theo layer. Không animate frame, trim, hay field setup. Interpolation do type: number tween, color blend, string/boolean/asset step. Không field `interpolation`.
 
 ---
 

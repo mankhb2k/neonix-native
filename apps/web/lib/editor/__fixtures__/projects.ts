@@ -404,8 +404,8 @@ export function fixtureMultiSceneReferences() {
             duration: 1,
             playback: { iterations: 1, direction: "normal", rate: 1 },
             source: {
-              kind: "tracks",
-              tracks: [
+              kind: "propertyAnimations",
+              items: [
                 {
                   layerId: "node.a.child",
                   property: "appearance.opacity",

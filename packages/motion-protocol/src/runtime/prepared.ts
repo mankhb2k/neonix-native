@@ -19,8 +19,9 @@ export type RuntimeVisualLayer = Exclude<
   { type: "audio" }
 >;
 
-/** A runtime property track as it appears in MotionRuntimeProject.tracks */
-export type RuntimePropertyTrack = MotionRuntimeProject["tracks"][number];
+/** A runtime property animation as it appears in MotionRuntimeProject.propertyAnimations */
+export type RuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];
 
 // ── Static geometry descriptor ───────────────────────────────────────
 
@@ -119,8 +120,8 @@ export type PreparedRuntimeProject = {
   /** Visual layer lookup by id (one graph). */
   layerById: Map<string, RuntimeVisualLayer>;
 
-  /** Property tracks indexed by target layer id. */
-  tracksByLayerId: Map<string, RuntimePropertyTrack[]>;
+  /** Property animations indexed by target layer id. */
+  propertyAnimationsByLayerId: Map<string, RuntimePropertyAnimation[]>;
 
   /** Topological order of layers (parent before children). */
   topoOrder: string[];

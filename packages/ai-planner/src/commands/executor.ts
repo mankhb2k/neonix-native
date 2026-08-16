@@ -618,8 +618,8 @@ function applyOne(
           duration: command.duration,
           playback: { iterations: 1, direction: "normal", rate: 1 },
           source: {
-            kind: "tracks",
-            tracks: [
+            kind: "propertyAnimations",
+            items: [
               {
                 layerId: command.layerId,
                 property: command.property,
@@ -1262,7 +1262,7 @@ function applyOne(
           staggerLayerIds: command.staggerLayerIds,
         });
         void baked.drivers;
-        if (baked.tracks.length > 0) {
+        if (baked.propertyAnimations.length > 0) {
           const clipId =
             command.clipId ??
             `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
@@ -1274,8 +1274,8 @@ function applyOne(
             duration: command.duration,
             playback: { rate: 1, direction: "normal", iterations: 1 },
             source: {
-              kind: "tracks",
-              tracks: baked.tracks.map((track) => ({
+              kind: "propertyAnimations",
+              items: baked.propertyAnimations.map((track) => ({
                 layerId: track.layerId,
                 property: track.property,
                 keys: track.keys.map((key) => ({

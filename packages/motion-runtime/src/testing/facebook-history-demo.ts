@@ -161,18 +161,46 @@ function fadeInClip(
     schedule: { kind: "absolute", at },
     duration,
     playback: { iterations: 1, direction: "normal", rate: 1 },
-    source: { kind: "tracks", tracks },
+    source: { kind: "propertyAnimations", items: tracks },
   };
+}
+
+function flattenClipPropertyAnimations(
+  clips: MotionClipV1[],
+): RuntimeLayerGraph["propertyAnimations"] {
+  const items: RuntimeLayerGraph["propertyAnimations"] = [];
+  for (const clip of clips) {
+    if (clip.source.kind !== "propertyAnimations") continue;
+    const start = clip.schedule.kind === "absolute" ? clip.schedule.at : 0;
+    for (const item of clip.source.items) {
+      items.push({
+        layerId: item.layerId,
+        property: item.property,
+        ...(item.valueKind ? { valueKind: item.valueKind } : {}),
+        keys: item.keys.map((key) => ({
+          t: typeof key.t === "number" ? key.t + start : 0,
+          v: key.v as RuntimeLayerGraph["propertyAnimations"][number]["keys"][number]["v"],
+          ...(key.easing ? { easing: key.easing } : {}),
+        })),
+      });
+    }
+  }
+  return items;
 }
 
 function scene(
   id: string,
-  name: string,
+  _name: string,
   duration: number,
   layers: MotionLayer[],
   clips: MotionClipV1[],
 ): RuntimeLayerGraph {
-  return { id, name, duration, layers, clips };
+  return {
+    id,
+    duration,
+    layers: layers as RuntimeLayerGraph["layers"],
+    propertyAnimations: flattenClipPropertyAnimations(clips),
+  };
 }
 
 function buildHook(): RuntimeLayerGraph {
@@ -227,8 +255,8 @@ function buildHook(): RuntimeLayerGraph {
         duration: 0.6,
         playback: { iterations: 1, direction: "normal", rate: 1 },
         source: {
-          kind: "tracks",
-          tracks: [
+          kind: "propertyAnimations",
+          items: [
             {
               layerId: accentId,
               property: "appearance.opacity",
@@ -489,8 +517,8 @@ function buildIpo(): RuntimeLayerGraph {
         duration: 0.5,
         playback: { iterations: 1, direction: "normal", rate: 1 },
         source: {
-          kind: "tracks",
-          tracks: [
+          kind: "propertyAnimations",
+          items: [
             {
               layerId: barId,
               property: "appearance.opacity",
@@ -584,8 +612,8 @@ function buildMeta(): RuntimeLayerGraph {
         duration: 0.8,
         playback: { iterations: 1, direction: "normal", rate: 1 },
         source: {
-          kind: "tracks",
-          tracks: [
+          kind: "propertyAnimations",
+          items: [
             {
               layerId: "meta.overlay",
               property: "appearance.opacity",

@@ -102,17 +102,9 @@ const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
   "payload.fontSize": ["number"],
 };
 
-const ClipKeyTimeSchema = z.union([
-  FiniteNumberSchema.nonnegative().max(
-    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-  ),
-  z
-    .object({
-      markerId: IdSchema,
-      offset: FiniteNumberSchema.default(0),
-    })
-    .strict(),
-]);
+const ClipKeyTimeSchema = FiniteNumberSchema.nonnegative().max(
+  MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+);
 
 const InternalClipPropertyAnimationSchema = z
   .object({
@@ -159,8 +151,8 @@ export const ClipSourceV1Schema = z.discriminatedUnion("kind", [
     .strict(),
   z
     .object({
-      kind: z.literal("tracks"),
-      tracks: z
+      kind: z.literal("propertyAnimations"),
+      items: z
         .array(InternalClipPropertyAnimationSchema)
         .min(1)
         .max(MOTION_PROTOCOL_LIMITS.tracksPerClip),

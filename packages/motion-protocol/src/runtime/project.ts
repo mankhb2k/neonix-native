@@ -1,7 +1,7 @@
 ﻿/**
  * MotionRuntimeProject â€” canonical runtime IR schemas and types.
  *
- * Authoring and runtime share one layer graph: `layers` + animation `tracks`.
+ * Authoring and runtime share one layer graph: `layers` + `propertyAnimations`.
  * There is no serialized `scenes` array or visual/audio clip tracks.
  */
 
@@ -140,7 +140,7 @@ export type AudioClip = z.infer<typeof AudioClipSchema>;
  * Incremented when the runtime shape changes (new fields, new node types).
  * Renderers check this to reject incompatible IR.
  */
-export const MOTION_RUNTIME_VERSION = 3 as const;
+export const MOTION_RUNTIME_VERSION = 4 as const;
 
 const RuntimeVisualLayerSchema = z.discriminatedUnion("type", [
   GroupLayerSchema.omit({ repeat: true }),
@@ -171,8 +171,8 @@ const RuntimeLayerSchema = z.discriminatedUnion("type", [
   RuntimeAudioLayerSchema,
 ]);
 
-/** Internal evaluated animation units compiled from timeline.clips — not authoring. */
-const RuntimeTrackSchema = z
+/** Internal evaluated property animations compiled from timeline.clips — not authoring. */
+const RuntimePropertyAnimationSchema = z
   .object({
     layerId: IdSchema,
     property: PropertyPathSchema,
@@ -256,7 +256,7 @@ export type RuntimeSourceRefMap = z.infer<typeof RuntimeSourceRefMapSchema>;
 
 /**
  * In-memory layer graph for evaluators (not a serialized scene).
- * Compiler lifts this onto `MotionRuntimeProject.layers` / `.tracks`.
+ * Compiler lifts this onto `MotionRuntimeProject.layers` / `.propertyAnimations`.
  */
 export const RuntimeLayerGraphSchema = z
   .object({
@@ -272,8 +272,8 @@ export const RuntimeLayerGraphSchema = z
     layers: z
       .array(RuntimeVisualLayerSchema)
       .max(MOTION_PROTOCOL_LIMITS.layersPerProject),
-    tracks: z
-      .array(RuntimeTrackSchema)
+    propertyAnimations: z
+      .array(RuntimePropertyAnimationSchema)
       .max(
         MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
           MOTION_PROTOCOL_LIMITS.tracksPerClip,
@@ -303,8 +303,8 @@ const MotionRuntimeProjectBaseSchema = z
       .array(RuntimeLayerSchema)
       .max(MOTION_PROTOCOL_LIMITS.layersPerProject)
       .default([]),
-    tracks: z
-      .array(RuntimeTrackSchema)
+    propertyAnimations: z
+      .array(RuntimePropertyAnimationSchema)
       .max(
         MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
           MOTION_PROTOCOL_LIMITS.tracksPerClip,
@@ -379,20 +379,20 @@ export const MotionRuntimeProjectSchema =
       }
     }
     for (
-        let trackIndex = 0;
-        trackIndex < runtime.tracks.length;
-        trackIndex += 1
+        let animationIndex = 0;
+        animationIndex < runtime.propertyAnimations.length;
+        animationIndex += 1
       ) {
-        const track = runtime.tracks[trackIndex]!;
-        const path = ["tracks", trackIndex] as Array<
+        const animation = runtime.propertyAnimations[animationIndex]!;
+        const path = ["propertyAnimations", animationIndex] as Array<
           string | number
         >;
-        const node = layerById.get(track.layerId);
+        const node = layerById.get(animation.layerId);
         if (!node) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "layerId"],
-            message: `Unknown runtime node: ${track.layerId}`,
+            message: `Unknown runtime node: ${animation.layerId}`,
           });
           continue;
         }
@@ -400,11 +400,11 @@ export const MotionRuntimeProjectSchema =
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Animation tracks cannot target audio layers: ${track.layerId}`,
+            message: `Property animations cannot target audio layers: ${animation.layerId}`,
           });
           continue;
         }
-        const effectMatch = /^effects\.([^.]+)\.(.+)$/.exec(track.property);
+        const effectMatch = /^effects\.([^.]+)\.(.+)$/.exec(animation.property);
         if (effectMatch) {
           const effect = layerEffects(node)?.find(
             (candidate) => candidate.id === effectMatch[1],
@@ -426,12 +426,12 @@ export const MotionRuntimeProjectSchema =
             continue;
           }
         }
-        const capability = motionPropertyCapability(node.type, track.property);
+        const capability = motionPropertyCapability(node.type, animation.property);
         if (!capability) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Unsupported runtime property for ${node.type}: ${track.property}`,
+            message: `Unsupported runtime property for ${node.type}: ${animation.property}`,
           });
           continue;
         }
@@ -442,15 +442,15 @@ export const MotionRuntimeProjectSchema =
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: [...path, "property"],
-            message: `Property is not supported by runtime evaluator: ${track.property}`,
+            message: `Property is not supported by runtime evaluator: ${animation.property}`,
           });
           continue;
         }
-        for (let keyIndex = 0; keyIndex < track.keys.length; keyIndex += 1) {
+        for (let keyIndex = 0; keyIndex < animation.keys.length; keyIndex += 1) {
           const message = motionPropertyValueError(
             capability,
-            track.keys[keyIndex]!.v,
-            track.property,
+            animation.keys[keyIndex]!.v,
+            animation.property,
           );
           if (message)
             context.addIssue({
@@ -477,4 +477,5 @@ function layerEffects(
 
 export type MotionRuntimeProject = z.infer<typeof MotionRuntimeProjectSchema>;
 
-export type MotionRuntimeTrack = MotionRuntimeProject["tracks"][number];
+export type MotionRuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];

@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "1986a868a0a98dbc321df5af4ce6b2f0",
+  "runtimeHash": "131fba970367af3ae8d8999077dd90db",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -121,7 +121,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 4
   }

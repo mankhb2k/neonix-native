@@ -315,13 +315,7 @@
     "workArea": {
       "start": 0,
       "end": 18
-    },
-    "markers": [
-      {
-        "id": "marker-project-start",
-        "t": 0
-      }
-    ]
+    }
   },
   "bindings": [
     {

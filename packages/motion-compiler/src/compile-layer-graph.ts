@@ -1,6 +1,6 @@
 /**
- * V1-native layer-graph compilation: prepares runtime layers/tracks from an
- * in-memory layer graph plus compiler motion units (presets / property keyframes).
+ * V1-native layer-graph compilation: prepares runtime layers/propertyAnimations
+ * from an in-memory layer graph plus compiler motion units.
  *
  * LayerMotionUnit (internal schema) is compiled as motion-units only — not timeline clips.
  */
@@ -15,7 +15,7 @@ import { applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 import { layerPoseFromAtoms } from "./layer-pose";
 
-type RuntimeTrack = MotionRuntimeProject["tracks"][number];
+type RuntimePropertyAnimation = MotionRuntimeProject["propertyAnimations"][number];
 type RuntimeNode = Exclude<
   MotionRuntimeProject["layers"][number],
   { type: "audio" }
@@ -25,52 +25,9 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function resolveValue(
-  value: unknown,
-  variables: Map<string, unknown>,
-): unknown {
-  if (Array.isArray(value))
-    return value.map((item) => resolveValue(item, variables));
-  if (value === null || typeof value !== "object") return value;
-  const record = value as Record<string, unknown>;
-  const ref = record.ref;
-  if (
-    ref &&
-    typeof ref === "object" &&
-    (ref as Record<string, unknown>).kind === "variable"
-  ) {
-    const id = (ref as Record<string, unknown>).id;
-    if (typeof id !== "string" || !variables.has(id))
-      throw new Error(`Unknown variable reference: ${String(id)}`);
-    const raw = variables.get(id);
-    const map = record.map;
-    if (map && typeof map === "object" && typeof raw === "number") {
-      const scale =
-        typeof (map as Record<string, unknown>).scale === "number"
-          ? (map as Record<string, number>).scale
-          : 1;
-      const offset =
-        typeof (map as Record<string, unknown>).offset === "number"
-          ? (map as Record<string, number>).offset
-          : 0;
-      return raw * scale + offset;
-    }
-    return clone(raw);
-  }
-  return Object.fromEntries(
-    Object.entries(record).map(([key, nested]) => [
-      key,
-      resolveValue(nested, variables),
-    ]),
-  );
-}
-
-function playbackRate(
-  unit: LayerMotionUnit,
-  variables: Map<string, unknown>,
-): number {
+function playbackRate(unit: LayerMotionUnit): number {
   const rate = number(
-    resolveValue(unit.playback.rate, variables),
+    unit.playback.rate,
     `motionUnits.${unit.id}.playback.rate`,
   );
   if (rate <= 0)
@@ -80,10 +37,9 @@ function playbackRate(
 
 function playbackDuration(
   unit: LayerMotionUnit,
-  variables: Map<string, unknown>,
   graphDuration?: number,
 ): number {
-  const rate = playbackRate(unit, variables);
+  const rate = playbackRate(unit);
   if (unit.playback.iterations === "infinite") {
     if (graphDuration === undefined)
       throw new Error(
@@ -96,7 +52,6 @@ function playbackDuration(
 
 function scheduleTimes(
   units: LayerMotionUnit[],
-  variables: Map<string, unknown> = new Map(),
   graphDuration?: number,
 ): Map<string, number> {
   const byId = new Map(units.map((unit) => [unit.id, unit]));
@@ -123,7 +78,7 @@ function scheduleTimes(
       at =
         unit.schedule.kind === "after"
           ? dependencyStart +
-            playbackDuration(dependency, variables, graphDuration) +
+            playbackDuration(dependency, graphDuration) +
             (unit.schedule.offset ?? 0)
           : dependencyStart + (unit.schedule.offset ?? 0);
     }
@@ -147,14 +102,9 @@ function canonicalTime(value: number): number {
 
 function literalPresetParams(
   params: Record<string, unknown> | undefined,
-  variables: Map<string, unknown>,
 ): Record<string, unknown> | undefined {
   if (!params) return undefined;
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
-    out[key] = resolveValue(value, variables);
-  }
-  return out;
+  return clone(params);
 }
 
 function presetTracks(
@@ -163,7 +113,7 @@ function presetTracks(
   start: number,
   end: number,
   params?: Record<string, unknown>,
-): RuntimeTrack[] {
+): RuntimePropertyAnimation[] {
   return expandMotionPreset({
     presetId: preset,
     layerId: node.id,
@@ -171,24 +121,23 @@ function presetTracks(
     end,
     transform: layerPoseFromAtoms(node),
     params,
-  }) as RuntimeTrack[];
+  }) as RuntimePropertyAnimation[];
 }
 
 function expandPlaybackTrack(
-  track: RuntimeTrack,
+  track: RuntimePropertyAnimation,
   unit: LayerMotionUnit,
   start: number,
   graphDuration: number,
-  variables: Map<string, unknown>,
-): RuntimeTrack {
-  const rate = playbackRate(unit, variables);
+): RuntimePropertyAnimation {
+  const rate = playbackRate(unit);
   const cycleDuration = unit.duration / rate;
   const iterations =
     unit.playback.iterations === "infinite"
       ? Number.POSITIVE_INFINITY
       : unit.playback.iterations;
-  const keys: RuntimeTrack["keys"] = [];
-  const append = (key: RuntimeTrack["keys"][number]): void => {
+  const keys: RuntimePropertyAnimation["keys"] = [];
+  const append = (key: RuntimePropertyAnimation["keys"][number]): void => {
     const previous = keys.at(-1);
     if (previous && Math.abs(previous.t - key.t) <= 1e-8)
       keys[keys.length - 1] = { ...key, t: previous.t };
@@ -215,21 +164,8 @@ function expandPlaybackTrack(
   return { ...track, keys };
 }
 
-function resolveTrackTime(
-  time: unknown,
-  markers: Map<string, number>,
-  unitId: string,
-): number {
+function resolveTrackTime(time: unknown, unitId: string): number {
   if (typeof time === "number" && Number.isFinite(time)) return time;
-  if (time && typeof time === "object" && "markerId" in time) {
-    const markerId = (time as { markerId: string; offset?: number }).markerId;
-    const offset = (time as { offset?: number }).offset ?? 0;
-    if (!markers.has(markerId))
-      throw new Error(
-        `Unknown timeline marker ${markerId} in motion-unit ${unitId}`,
-      );
-    return markers.get(markerId)! + offset;
-  }
   throw new Error(
     `Invalid keyframe time in motion-unit ${unitId}: ${JSON.stringify(time)}`,
   );
@@ -238,36 +174,30 @@ function resolveTrackTime(
 function compileMotionUnits(
   layers: RuntimeNode[],
   units: LayerMotionUnit[],
-  variables: Map<string, unknown>,
   graphDuration: number,
-  markers: Map<string, number> = new Map(),
-): RuntimeTrack[] {
+): RuntimePropertyAnimation[] {
   const layerById = new Map(layers.map((node) => [node.id, node]));
-  const starts = scheduleTimes(units, variables, graphDuration);
+  const starts = scheduleTimes(units, graphDuration);
   const expanded = units.flatMap((unit) => {
     const start = canonicalTime(starts.get(unit.id) ?? 0);
-    if (unit.source.kind === "tracks") {
-      return unit.source.tracks.map((track) =>
+    if (unit.source.kind === "propertyAnimations") {
+      return unit.source.items.map((item) =>
         expandPlaybackTrack(
           {
-            layerId: track.layerId,
-            property: track.property,
-            ...(track.valueKind ? { valueKind: track.valueKind } : {}),
-            ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
-            ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
-            keys: track.keys.map((key) => ({
-              t: resolveTrackTime(key.t, markers, unit.id),
-              v: resolveValue(
-                key.v,
-                variables,
-              ) as RuntimeTrack["keys"][number]["v"],
+            layerId: item.layerId,
+            property: item.property,
+            ...(item.valueKind ? { valueKind: item.valueKind } : {}),
+            ...(item.preBehavior ? { preBehavior: item.preBehavior } : {}),
+            ...(item.postBehavior ? { postBehavior: item.postBehavior } : {}),
+            keys: item.keys.map((key) => ({
+              t: resolveTrackTime(key.t, unit.id),
+              v: clone(key.v) as RuntimePropertyAnimation["keys"][number]["v"],
               ...(key.easing ? { easing: key.easing } : {}),
             })),
           },
           unit,
           start,
           graphDuration,
-          variables,
         ),
       );
     }
@@ -283,13 +213,12 @@ function compileMotionUnits(
       unit.duration,
       literalPresetParams(
         unit.source.params as Record<string, unknown> | undefined,
-        variables,
       ),
     ).map((track) =>
-      expandPlaybackTrack(track, unit, start, graphDuration, variables),
+      expandPlaybackTrack(track, unit, start, graphDuration),
     );
   });
-  const merged = new Map<string, RuntimeTrack>();
+  const merged = new Map<string, RuntimePropertyAnimation>();
   for (const track of expanded) {
     const key = `${track.layerId}\u0000${track.property}`;
     const current = merged.get(key);
@@ -311,19 +240,15 @@ export function compileLayerGraphToRuntime(input: {
   duration: number;
   layers: MotionLayer[];
   motionUnits: LayerMotionUnit[];
+  /** Unused on this path: V1 variables reach internals only via prop bindings. */
   variables: Map<string, unknown>;
-  markers?: Array<{ id: string; t: number }>;
   space?: RuntimeLayerGraph["space"];
   motionBlur?: RuntimeLayerGraph["motionBlur"];
   drivers?: RuntimeLayerGraph["drivers"];
   activeCameraLayerId?: string;
   sourceRef?: RuntimeSourceRef;
 }): RuntimeLayerGraph {
-  const variables = input.variables;
-  const resolvedAuthoringNodes = input.layers.map(
-    (node) => resolveValue(node, variables) as unknown as MotionLayer,
-  );
-  const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
+  const laidOut = applyLayoutConstraints(clone(input.layers));
   // Authoring path layers carry no fillRule; the runtime node requires it.
   // Default it here so authoring → runtime IR stays lossless.
   const runtimeNodes: RuntimeNode[] = laidOut.map((node) =>
@@ -337,9 +262,6 @@ export function compileLayerGraphToRuntime(input: {
         }
       : node,
   ) as RuntimeNode[];
-  const markers = new Map<string, number>(
-    (input.markers ?? []).map((m) => [m.id, m.t]),
-  );
   const sourceRef = input.sourceRef ?? {
     projectPath: ["layers", input.id],
   };
@@ -356,13 +278,11 @@ export function compileLayerGraphToRuntime(input: {
       : {}),
     sourceRef,
     layers: runtimeNodes,
-    tracks: [
+    propertyAnimations: [
       ...compileMotionUnits(
         runtimeNodes,
         input.motionUnits,
-        variables,
         input.duration,
-        markers,
       ),
     ],
   };

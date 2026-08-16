@@ -36,7 +36,8 @@ describe("compileMotionProjectV1", () => {
     if (!result.ok) return;
     const parsed = MotionRuntimeProjectSchema.parse(result.project);
     expect(parsed.layers).toEqual([]);
-    expect(parsed.tracks).toEqual([]);
+    expect(parsed.propertyAnimations).toEqual([]);
+    expect(parsed).not.toHaveProperty("tracks");
     expect(parsed.timeline.duration).toBe(0);
   });
 
@@ -131,7 +132,7 @@ describe("compileMotionProjectV1", () => {
     expect(ok.project.assets[0]?.uri).toBe("https://signed.example/logo.png");
   });
 
-  it("compiles timeline.clips into runtime tracks", () => {
+  it("compiles timeline.clips into runtime propertyAnimations", () => {
     const project = structuredClone(representative);
     const layer = project.layers.find((item) => item.type === "text");
     expect(layer).toBeDefined();
@@ -146,16 +147,16 @@ describe("compileMotionProjectV1", () => {
           { t: 0, value: 0 },
           { t: 1, value: 100 },
         ],
-        interpolation: "linear",
       },
     ];
     const result = compileMotionProjectV1(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(
-      result.project.tracks.some(
-        (track) =>
-          track.layerId === layer.id && track.property === "appearance.opacity",
+      result.project.propertyAnimations.some(
+        (animation) =>
+          animation.layerId === layer.id &&
+          animation.property === "appearance.opacity",
       ),
     ).toBe(true);
   });

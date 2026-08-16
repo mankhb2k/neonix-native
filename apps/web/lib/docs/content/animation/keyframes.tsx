@@ -25,14 +25,16 @@ export function keyframesPage(): DocsPageView {
           may use <code>{`{ kind: "keyframes", keys: [{ t, value }] }`}</code> —
           field is <code>value</code>, not <code>v</code>.
         </P>
-        <H2 id="compiled">Compiled tracks</H2>
+        <H2 id="compiled">Compiled propertyAnimations</H2>
         <P>
-          Compiled tracks look like{" "}
+          Compiled property animations look like{" "}
           <code>{`{ layerId, property, valueKind, keys: [{ t, v }] }`}</code>.
-          That shape is compiler output. It is not <code>project.tracks</code>.
+          That shape is compiler output. It is not authoring{" "}
+          <code>timeline.clips</code>. Runtime stores them on{" "}
+          <code>project.propertyAnimations</code>.
         </P>
         <JsonBlock
-          caption="Compiled track — do not paste into authoring JSON"
+          caption="Compiled propertyAnimation — do not paste into authoring JSON"
           code={JSON.stringify(
             {
               layerId: "title",
@@ -49,7 +51,7 @@ export function keyframesPage(): DocsPageView {
         />
         <AiWritingGuide
           items={[
-            "Do not add project.tracks in authoring JSON.",
+            "Do not add project.propertyAnimations or project.tracks in authoring JSON.",
             "Use layer.timing for when a layer exists.",
             "Use component prop keyframes with keys[].value.",
           ]}

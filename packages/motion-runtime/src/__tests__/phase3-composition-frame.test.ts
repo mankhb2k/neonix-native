@@ -184,7 +184,7 @@ function emptyRuntime(): MotionRuntimeProject {
         payload: {},
       } as MotionRuntimeProject["layers"][number],
     ],
-    tracks: [],
+    propertyAnimations: [],
     timeline: { duration: 2 },
   };
 }

@@ -11,7 +11,8 @@ Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm
 | Khái niệm | Vai trò |
 | --- | --- |
 | `timeline.duration` | Độ dài MP4 (giây). Optional lúc authoring; bắt buộc ở canonical/export. Derive từ `root.timing.start + duration` |
-| `workArea` / `markers` | Optional project helpers; phải nằm trong `duration` |
+| `workArea` | Optional; phải nằm trong `duration` |
+| `clips` | Layer/property keyframes; `t` local theo layer |
 | `project.layers[]` | Root layers = timeline lanes. Every layer requires `zIndex`: `>= 0` visual, `< 0` audio at root; nested always `>= 0`; unique among siblings |
 | `group.children[]` | ≥1 child. Timing con **bắt buộc**, local so với parent, không vượt `parent.timing.duration`. Group không clip mặc định. |
 
@@ -40,7 +41,7 @@ Mỗi project có đúng một `timeline`:
   "timeline": {
     "duration": 10, // optional lúc authoring; bắt buộc ở canonical/export
     "workArea": { "start": 0, "end": 8 },
-    "markers": [{ "id": "beat-1", "t": 2.5 }]
+    "clips": []
   }
 }
 ```

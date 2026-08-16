@@ -31,7 +31,7 @@ function baseIR(): Record<string, unknown> {
   return {
     format: "motion-runtime",
     formatVersion: 1,
-    runtimeVersion: 3,
+    runtimeVersion: 4,
     metadata: {
       id: "rt",
       name: "Runtime",
@@ -42,7 +42,7 @@ function baseIR(): Record<string, unknown> {
     },
     assets: [],
     layers: [runtimeLayer()],
-    tracks: [],
+    propertyAnimations: [],
     timeline: { duration: 5 },
   };
 }
@@ -58,7 +58,14 @@ describe("runtime IR layer graph", () => {
       MotionRuntimeProjectSchema.parse(baseIR());
     expect(project.format).toBe("motion-runtime");
     expect(project.layers).toHaveLength(1);
-    expect(project.tracks).toEqual([]);
+    expect(project.propertyAnimations).toEqual([]);
+    expect(project).not.toHaveProperty("tracks");
+  });
+
+  it("strict-rejects serialized runtime tracks", () => {
+    const ir = baseIR();
+    ir.tracks = [];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
   it("strict-rejects serialized scenes", () => {
@@ -353,9 +360,9 @@ describe("runtime IR V1 contract", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("rejects modifiers.* tracks", () => {
+  it("rejects modifiers.* propertyAnimations", () => {
     const ir = baseIR();
-    ir.tracks = [
+    ir.propertyAnimations = [
       {
         layerId: "title",
         property: "modifiers.mp.progress",
@@ -365,9 +372,9 @@ describe("runtime IR V1 contract", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("accepts tracks compiled from timeline.clips allowlist", () => {
+  it("accepts propertyAnimations compiled from timeline.clips allowlist", () => {
     const ir = baseIR();
-    ir.tracks = [
+    ir.propertyAnimations = [
       {
         layerId: "title",
         property: "appearance.opacity",

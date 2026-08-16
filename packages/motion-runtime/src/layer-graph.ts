@@ -16,7 +16,7 @@ export function layerGraphFromRuntime(
       (layer): layer is Exclude<(typeof runtime.layers)[number], { type: "audio" }> =>
         layer.type !== "audio",
     ),
-    tracks: runtime.tracks,
+    propertyAnimations: runtime.propertyAnimations,
     ...(runtime.space ? { space: runtime.space } : {}),
     ...(runtime.motionBlur ? { motionBlur: runtime.motionBlur } : {}),
     ...(runtime.drivers && runtime.drivers.length > 0

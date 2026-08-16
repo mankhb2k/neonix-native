@@ -1,6 +1,6 @@
 /**
  * Deterministic motion recipe registry (R6).
- * Recipes bake to clips/tracks and/or procedural drivers — unknown id throws.
+ * Recipes bake to clips/propertyAnimations and/or procedural drivers — unknown id throws.
  */
 
 export const MOTION_RECIPE_IDS = [
@@ -47,7 +47,7 @@ export type RecipeBakeInput = {
 
 export type BakedRecipe = {
   drivers: Array<Record<string, unknown>>;
-  tracks: Array<{
+  propertyAnimations: Array<{
     layerId: string;
     property: string;
     keys: Array<{ t: number; v: number; easing?: string | Record<string, unknown> }>;
@@ -75,7 +75,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             seed,
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     case "float":
       return {
@@ -91,7 +91,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             waveform: "sine",
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     case "pulse":
       return {
@@ -107,7 +107,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             waveform: "sine",
           },
         ],
-        tracks: [
+        propertyAnimations: [
           {
             layerId: input.targetLayerId,
             property: "transform.scale.y",
@@ -132,7 +132,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             waveform: "sine",
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     case "drift":
       return {
@@ -148,7 +148,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             waveform: "sine",
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     case "shimmer":
       return {
@@ -164,7 +164,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             waveform: "sine",
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     case "follow": {
       if (!input.sourceLayerId) throw new Error("follow recipe requires sourceLayerId");
@@ -181,13 +181,13 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             damping: 18,
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     }
     case "counter":
       return {
         drivers: [],
-        tracks: [
+        propertyAnimations: [
           {
             layerId: input.targetLayerId,
             property: "payload.counterProgress",
@@ -200,7 +200,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       };
     case "stagger": {
       const ids = input.staggerLayerIds ?? [input.targetLayerId];
-      const tracks = ids.flatMap((id, index) => {
+      const propertyAnimations = ids.flatMap((id, index) => {
         const delay = index * 0.08;
         return [
           {
@@ -223,7 +223,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
           },
         ];
       });
-      return { drivers: [], tracks };
+      return { drivers: [], propertyAnimations };
     }
     case "camera-shake":
       return {
@@ -247,7 +247,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             seed: seed + 17,
           },
         ],
-        tracks: [],
+        propertyAnimations: [],
       };
     default: {
       const neverId: never = input.recipeId;

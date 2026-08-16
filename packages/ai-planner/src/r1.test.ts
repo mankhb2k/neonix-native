@@ -192,7 +192,7 @@ describe("ai-planner R1 commands", () => {
             .find((node) => node.id === "child")
         : undefined;
     expect(child && "compositing" in child ? child.compositing?.mask?.mode : undefined).toBe("luma");
-    expect(result.compiled?.tracks.some((track) => track.property === "transform.translate.x")).toBe(true);
+    expect(result.compiled?.propertyAnimations.some((animation) => animation.property === "transform.translate.x")).toBe(true);
   });
 });
 

@@ -163,8 +163,9 @@ describe("committed JSON schemas", () => {
     };
     const timelineProps = Object.keys(timeline.properties ?? {});
     expect(timelineProps).toEqual(
-      expect.arrayContaining(["duration", "workArea", "markers"]),
+      expect.arrayContaining(["duration", "workArea", "clips"]),
     );
+    expect(timelineProps).not.toContain("markers");
     expect(timelineProps).not.toContain("sceneOrder");
     expect(timelineProps).not.toContain("visualTracks");
     expect(timelineProps).not.toContain("audioTracks");

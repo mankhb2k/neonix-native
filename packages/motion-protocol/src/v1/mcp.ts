@@ -382,7 +382,7 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "inspect_timeline",
     description:
-      "Inspect a project's timeline — root layers, required zIndex lanes, required timings, markers",
+      "Inspect a project's timeline — root layers, required zIndex lanes, required timings, property keyframes",
     inputSchema: { $ref: "#/definitions/MCPInspectTimelineInput" },
     category: "inspect",
     requiredCapabilities: [],

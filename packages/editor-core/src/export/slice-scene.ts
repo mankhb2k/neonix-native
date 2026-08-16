@@ -11,8 +11,8 @@ import type {
 
 type TrackTime = Extract<
   MotionClipV1["source"],
-  { kind: "tracks" }
->["tracks"][number]["keys"][number]["t"];
+  { kind: "propertyAnimations" }
+>["items"][number]["keys"][number]["t"];
 
 function shiftTrackTime(t: TrackTime, localStart: number): TrackTime {
   if (typeof t === "number") return Math.max(0, t - localStart);
@@ -24,12 +24,12 @@ function shiftClipSource(
   source: MotionClipV1["source"],
   localStart: number,
 ): MotionClipV1["source"] {
-  if (source.kind !== "tracks") return source;
+  if (source.kind !== "propertyAnimations") return source;
   return {
     ...source,
-    tracks: source.tracks.map((track) => ({
-      ...track,
-      keys: track.keys.map((key) => ({
+    items: source.items.map((item) => ({
+      ...item,
+      keys: item.keys.map((key) => ({
         ...key,
         t: shiftTrackTime(key.t, localStart),
       })),

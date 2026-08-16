@@ -8,12 +8,6 @@ import { FiniteNumberSchema } from "../common";
 import { KeyframeEasingSchema } from "../animation/easing";
 import { LiteralValueSchema } from "../values";
 
-export const PropKeyframeInterpolationSchema = z.enum([
-  "step",
-  "linear",
-  "color",
-]);
-
 export const PropKeyframeSchema = z
   .object({
     t: FiniteNumberSchema.nonnegative().max(
@@ -31,7 +25,6 @@ export const PropKeyframesValueSchema = z
       .array(PropKeyframeSchema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
-    interpolation: PropKeyframeInterpolationSchema.optional(),
   })
   .strict();
 

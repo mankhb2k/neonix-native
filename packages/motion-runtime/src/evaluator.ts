@@ -49,7 +49,8 @@ import {
 
 export type RuntimeScene = RuntimeLayerGraph;
 export type RuntimeNode = RuntimeScene["layers"][number];
-export type RuntimeTrack = MotionRuntimeProject["tracks"][number];
+export type RuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
 type PathNodeContours = Extract<
   RuntimeNode,
@@ -123,12 +124,12 @@ export function interpolateColor(
 }
 
 function resolveValueKind(
-  track: RuntimeTrack | undefined,
+  animation: RuntimePropertyAnimation | undefined,
   property: string,
   left: unknown,
   right: unknown,
 ): string | undefined {
-  if (track?.valueKind) return track.valueKind;
+  if (animation?.valueKind) return animation.valueKind;
   if (property === "transform.rotate.z" || property.endsWith(".rotate.z"))
     return "angle";
   if (
@@ -142,8 +143,8 @@ function resolveValueKind(
   return undefined;
 }
 
-export function sampleTrackValue(
-  keys: RuntimeTrack["keys"],
+export function sampleKeyframesValue(
+  keys: RuntimePropertyAnimation["keys"],
   time: number,
   valueKind?: string,
 ): unknown {
@@ -192,43 +193,43 @@ export function sampleTrackValue(
   return last.v;
 }
 
-export function evaluateTrack(
-  track: RuntimeTrack | undefined,
+export function evaluatePropertyAnimation(
+  animation: RuntimePropertyAnimation | undefined,
   time: number,
   fallback: unknown,
   propertyHint = "",
 ): unknown {
-  if (!track || track.keys.length === 0) return fallback;
-  const keys = track.keys;
+  if (!animation || animation.keys.length === 0) return fallback;
+  const keys = animation.keys;
   const t0 = keys[0]!.t;
   const tLast = keys[keys.length - 1]!.t;
   const duration = tLast - t0;
   const kind = resolveValueKind(
-    track,
+    animation,
     propertyHint,
     keys[0]!.v,
     keys[keys.length - 1]!.v,
   );
 
   const cycleMode = (
-    behavior: RuntimeTrack["preBehavior"],
+    behavior: RuntimePropertyAnimation["preBehavior"],
   ): "repeat" | "pingpong" => {
     if (!behavior || behavior.type !== "cycle") return "repeat";
     return behavior.mode ?? "repeat";
   };
 
   if (time < t0) {
-    const preBehavior = track.preBehavior;
+    const preBehavior = animation.preBehavior;
     const pre = preBehavior?.type ?? "clamp";
     if (pre === "cycle" && duration > 0) {
       if (cycleMode(preBehavior) === "pingpong") {
         const count = Math.floor((t0 - time) / duration);
         const rem = (t0 - time) % duration;
         const wrapped = count % 2 === 0 ? t0 + rem : tLast - rem;
-        return sampleTrackValue(keys, wrapped, kind);
+        return sampleKeyframesValue(keys, wrapped, kind);
       }
       const wrapped = tLast - ((t0 - time) % duration);
-      return sampleTrackValue(keys, wrapped, kind);
+      return sampleKeyframesValue(keys, wrapped, kind);
     }
     if (
       pre === "continue" &&
@@ -244,17 +245,17 @@ export function evaluateTrack(
   }
 
   if (time > tLast) {
-    const postBehavior = track.postBehavior;
+    const postBehavior = animation.postBehavior;
     const post = postBehavior?.type ?? "clamp";
     if (post === "cycle" && duration > 0) {
       if (cycleMode(postBehavior) === "pingpong") {
         const count = Math.floor((time - tLast) / duration);
         const rem = (time - tLast) % duration;
         const wrapped = count % 2 === 0 ? tLast - rem : t0 + rem;
-        return sampleTrackValue(keys, wrapped, kind);
+        return sampleKeyframesValue(keys, wrapped, kind);
       }
       const wrapped = t0 + ((time - tLast) % duration);
-      return sampleTrackValue(keys, wrapped, kind);
+      return sampleKeyframesValue(keys, wrapped, kind);
     }
     if (
       post === "continue" &&
@@ -271,35 +272,40 @@ export function evaluateTrack(
     return keys[keys.length - 1]!.v;
   }
 
-  return sampleTrackValue(keys, time, kind);
+  return sampleKeyframesValue(keys, time, kind);
 }
 
-export function sampleTrackCurve(
-  track: RuntimeTrack,
+export function samplePropertyAnimationCurve(
+  animation: RuntimePropertyAnimation,
   count = 100,
 ): Array<{ time: number; value: unknown }> {
-  if (track.keys.length === 0) return [];
-  const t0 = track.keys[0]!.t;
-  const tLast = track.keys[track.keys.length - 1]!.t;
+  if (animation.keys.length === 0) return [];
+  const t0 = animation.keys[0]!.t;
+  const tLast = animation.keys[animation.keys.length - 1]!.t;
   const step = Math.max(0.01, (tLast - t0) / Math.max(1, count - 1));
   const samples: Array<{ time: number; value: unknown }> = [];
   for (let index = 0; index < count; index += 1) {
     const time = t0 + index * step;
-    samples.push({ time, value: evaluateTrack(track, time, undefined) });
+    samples.push({ time, value: evaluatePropertyAnimation(animation, time, undefined) });
   }
   return samples;
 }
 
-const trackIndexCache = new WeakMap<RuntimeScene, Map<string, RuntimeTrack>>();
+const propertyAnimationIndexCache = new WeakMap<
+  RuntimeScene,
+  Map<string, RuntimePropertyAnimation>
+>();
 
-function getTrackIndex(scene: RuntimeScene): Map<string, RuntimeTrack> {
-  let index = trackIndexCache.get(scene);
+function getPropertyAnimationIndex(
+  scene: RuntimeScene,
+): Map<string, RuntimePropertyAnimation> {
+  let index = propertyAnimationIndexCache.get(scene);
   if (!index) {
     index = new Map();
-    for (const track of scene.tracks) {
-      index.set(`${track.layerId}::${track.property}`, track);
+    for (const animation of scene.propertyAnimations ?? []) {
+      index.set(`${animation.layerId}::${animation.property}`, animation);
     }
-    trackIndexCache.set(scene, index);
+    propertyAnimationIndexCache.set(scene, index);
   }
   return index;
 }
@@ -311,8 +317,8 @@ export function evaluateProperty(
   time: number,
   fallback: unknown,
 ): unknown {
-  const index = getTrackIndex(scene);
-  const value = evaluateTrack(
+  const index = getPropertyAnimationIndex(scene);
+  const value = evaluatePropertyAnimation(
     index.get(`${node.id}::${property}`),
     time,
     fallback,
@@ -778,19 +784,19 @@ const SNAPSHOT_UNAPPLIED_PROPERTIES = new Set([
   "payload.color",
 ]);
 
-function warnUnappliedTracks(
+function warnUnappliedPropertyAnimations(
   scene: RuntimeScene,
   collector?: RuntimeDiagnosticCollector,
 ): void {
   if (!collector) return;
-  for (const track of scene.tracks) {
+  for (const animation of scene.propertyAnimations ?? []) {
     if (
-      SNAPSHOT_UNAPPLIED_PROPERTIES.has(track.property) ||
-      track.property.startsWith("payload.crop.")
+      SNAPSHOT_UNAPPLIED_PROPERTIES.has(animation.property) ||
+      animation.property.startsWith("payload.crop.")
     ) {
       collector.warn("TRACK_NOT_APPLIED", {
-        layerId: track.layerId,
-        message: `Runtime track "${track.property}" is not applied by snapshot/paint in V1.`,
+        layerId: animation.layerId,
+        message: `Runtime property animation "${animation.property}" is not applied by snapshot/paint in V1.`,
       });
     }
   }
@@ -802,7 +808,7 @@ export function evaluateScene(
   collector?: RuntimeDiagnosticCollector,
 ): EvaluatedNode[] {
   const byId = new Map(scene.layers.map((node) => [node.id, node]));
-  const trackIndex = getTrackIndex(scene);
+  const propertyAnimationIndex = getPropertyAnimationIndex(scene);
   const readBaseAt = (
     sampleTime: number,
     layerId: string,
@@ -818,8 +824,8 @@ export function evaluateScene(
     ) {
       fallback = readNestedNumber(node as unknown as Record<string, unknown>, property);
     }
-    const value = evaluateTrack(
-      trackIndex.get(`${layerId}::${property}`),
+    const value = evaluatePropertyAnimation(
+      propertyAnimationIndex.get(`${layerId}::${property}`),
       sampleTime,
       fallback,
       property,
@@ -838,7 +844,7 @@ export function evaluateScene(
       : undefined;
 
   const secondaryRotations = new Map<string, number>();
-  warnUnappliedTracks(scene, collector);
+  warnUnappliedPropertyAnimations(scene, collector);
   // Phase 3: Resolve effective timing for parent-relative time windows
   const effectiveTimings = resolveEffectiveTiming(
     topologicalNodes(scene),

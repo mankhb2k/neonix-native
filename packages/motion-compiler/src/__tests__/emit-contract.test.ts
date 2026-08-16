@@ -8,6 +8,7 @@ import {
   visualLayerAtoms,
 } from "@motionvideo/motion-protocol";
 import { compileMotionProjectV1 } from "../index";
+import { compileLayerGraphToRuntime } from "../compile-layer-graph";
 
 const atoms = visualLayerAtoms({
   width: 200,
@@ -208,7 +209,7 @@ describe("compiler V1 emit contract", () => {
     expect(video).not.toHaveProperty("style");
   });
 
-  it("compiles timeline.clips to tracks and ignores AI motionUnits", () => {
+  it("compiles timeline.clips to propertyAnimations and ignores AI motionUnits", () => {
     const project = baseProject({
       extensions: {
         "com.moticlip.ai": {
@@ -220,8 +221,8 @@ describe("compiler V1 emit contract", () => {
               duration: 1,
               playback: { rate: 1, iterations: 1, direction: "normal" },
               source: {
-                kind: "tracks",
-                tracks: [
+                kind: "propertyAnimations",
+                items: [
                   {
                     layerId: "title",
                     property: "modifiers.mp.progress",
@@ -275,18 +276,21 @@ describe("compiler V1 emit contract", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(
-      result.project.tracks.every(
-        (track) => !track.property.startsWith("modifiers."),
+      result.project.propertyAnimations.every(
+        (animation) => !animation.property.startsWith("modifiers."),
       ),
     ).toBe(true);
     expect(
-      result.project.tracks.map((track) => `${track.layerId}:${track.property}`),
+      result.project.propertyAnimations.map(
+        (animation) => `${animation.layerId}:${animation.property}`,
+      ),
     ).toEqual(["title:appearance.opacity", "title:effects.fx.radius"]);
-    for (const track of result.project.tracks) {
-      const layer = result.project.layers.find((item) => item.id === track.layerId);
+    expect(result.project).not.toHaveProperty("tracks");
+    for (const animation of result.project.propertyAnimations) {
+      const layer = result.project.layers.find((item) => item.id === animation.layerId);
       expect(layer).toBeDefined();
       if (!layer) continue;
-      expect(isLayerPropertyAnimatable(layer.type, track.property)).toBe(true);
+      expect(isLayerPropertyAnimatable(layer.type, animation.property)).toBe(true);
     }
   });
 
@@ -364,5 +368,51 @@ describe("compiler V1 emit contract", () => {
     expect(result.project.layers.some((layer) => layer.id.includes("badge"))).toBe(
       true,
     );
+  });
+
+  it("does not substitute inline { ref: variable } in the V1 compile graph", () => {
+    const graph = compileLayerGraphToRuntime({
+      id: "g",
+      duration: 2,
+      variables: new Map([["op", 40]]),
+      layers: [
+        {
+          id: "title",
+          type: "text",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 2 },
+          ...atoms,
+          payload: { text: "Hi", fontSize: 24, color: "#000000" },
+        },
+      ] as never,
+      motionUnits: [
+        {
+          id: "fade",
+          layerId: "title",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 1,
+          playback: { rate: 1, iterations: 1, direction: "normal" },
+          source: {
+            kind: "propertyAnimations",
+            items: [
+              {
+                layerId: "title",
+                property: "appearance.opacity",
+                keys: [
+                  {
+                    t: 0,
+                    v: { ref: { kind: "variable", id: "op" } },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    expect(graph.propertyAnimations[0]?.keys[0]?.v).toEqual({
+      ref: { kind: "variable", id: "op" },
+    });
   });
 });

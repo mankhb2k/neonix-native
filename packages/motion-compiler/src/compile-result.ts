@@ -42,7 +42,6 @@ export type DiagnosticCode =
   // Schema / reference
   | "UNKNOWN_VARIABLE"
   | "UNKNOWN_CLIP_TARGET"
-  | "UNKNOWN_MARKER"
   | "UNKNOWN_COMPONENT"
   | "UNKNOWN_ACTION"
   | "UNKNOWN_SLOT"

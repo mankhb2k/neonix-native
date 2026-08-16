@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "variables-bindings",
     "name": "Variables And Bindings",
@@ -23,7 +23,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "9220ba96a9d52364312e0f6031c8d79d",
+  "runtimeHash": "f758e9ec66317508dd4421c9bd7c7219",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -126,7 +126,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 5
   }

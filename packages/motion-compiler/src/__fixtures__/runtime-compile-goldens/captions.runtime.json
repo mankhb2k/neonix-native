@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 3,
+  "runtimeVersion": 4,
   "metadata": {
     "id": "captions",
     "name": "Captions",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "9222aff0eb750a17176c59a2797c812e",
+  "runtimeHash": "a031c1896f85600d2bc6116f68cc803e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -233,7 +233,7 @@
       }
     }
   ],
-  "tracks": [],
+  "propertyAnimations": [],
   "timeline": {
     "duration": 5
   }

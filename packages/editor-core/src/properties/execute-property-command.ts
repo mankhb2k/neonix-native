@@ -452,8 +452,8 @@ function upsertKeyframeOnScene(
   const clipIdx = clips.findIndex(
     (c) =>
       c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+      c.source.kind === "propertyAnimations" &&
+      c.source.items.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) {
     const existingIds = new Set(clips.map((c) => c.id));
@@ -464,8 +464,8 @@ function upsertKeyframeOnScene(
       duration: clampKeyframeClipDuration(scene.duration, command.t),
       playback: { iterations: 1, direction: "normal", rate: 1 },
       source: {
-        kind: "tracks",
-        tracks: [
+        kind: "propertyAnimations",
+        items: [
           {
             layerId: target.layerId,
             property: command.property,
@@ -482,9 +482,9 @@ function upsertKeyframeOnScene(
     });
   } else {
     const clip = clips[clipIdx]!;
-    if (clip.source.kind !== "tracks") return { project, missing: true };
+    if (clip.source.kind !== "propertyAnimations") return { project, missing: true };
     let overflow = false;
-    const tracks = clip.source.tracks.map((tr) => {
+    const items = clip.source.items.map((tr) => {
       if (tr.property !== command.property) return tr;
       const keys = [...tr.keys];
       const keyIdx = keys.findIndex((k) => Math.abs(k.t - command.t) < 1e-6);
@@ -513,7 +513,7 @@ function upsertKeyframeOnScene(
     }
     clips[clipIdx] = {
       ...clip,
-      source: { kind: "tracks", tracks },
+      source: { kind: "propertyAnimations", items },
       duration: clampKeyframeClipDuration(clip.duration, command.t),
     };
   }
@@ -550,15 +550,15 @@ function moveKeyframeOnScene(
   const clipIdx = clips.findIndex(
     (c) =>
       c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+      c.source.kind === "propertyAnimations" &&
+      c.source.items.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
+  if (clip.source.kind !== "propertyAnimations") return { project, missing: false };
 
   let invalid: string | undefined = undefined;
-  const tracks = clip.source.tracks.map((tr) => {
+  const items = clip.source.items.map((tr) => {
     if (tr.property !== command.property) return tr;
     
     // Check collision
@@ -586,7 +586,7 @@ function moveKeyframeOnScene(
   clips[clipIdx] = {
     ...clip,
     duration: clampKeyframeClipDuration(clip.duration, command.newT),
-    source: { kind: "tracks", tracks },
+    source: { kind: "propertyAnimations", items },
   };
   const scenes = project.scenes.slice();
   scenes[sceneIdx] = { ...scene, clips };
@@ -606,23 +606,23 @@ function deleteKeyframeOnScene(
   const clipIdx = clips.findIndex(
     (c) =>
       c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+      c.source.kind === "propertyAnimations" &&
+      c.source.items.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
+  if (clip.source.kind !== "propertyAnimations") return { project, missing: false };
 
-  const tracks = clip.source.tracks.map((tr) => {
+  const items = clip.source.items.map((tr) => {
     if (tr.property !== command.property) return tr;
     const keys = tr.keys.filter((k) => Math.abs(k.t - command.t) >= 1e-6);
     return { ...tr, keys };
   }).filter((tr) => tr.keys.length > 0);
 
-  if (tracks.length === 0) {
+  if (items.length === 0) {
     clips.splice(clipIdx, 1);
   } else {
-    clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
+    clips[clipIdx] = { ...clip, source: { kind: "propertyAnimations", items } };
   }
 
   const scenes = project.scenes.slice();
@@ -643,14 +643,14 @@ function setKeyframeEasingOnScene(
   const clipIdx = clips.findIndex(
     (c) =>
       c.layerId === target.layerId &&
-      c.source.kind === "tracks" &&
-      c.source.tracks.some((tr) => tr.property === command.property),
+      c.source.kind === "propertyAnimations" &&
+      c.source.items.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) return { project, missing: false };
   const clip = clips[clipIdx]!;
-  if (clip.source.kind !== "tracks") return { project, missing: false };
+  if (clip.source.kind !== "propertyAnimations") return { project, missing: false };
 
-  const tracks = clip.source.tracks.map((tr) => {
+  const items = clip.source.items.map((tr) => {
     if (tr.property !== command.property) return tr;
     const keys = tr.keys.map((k) => {
       if (Math.abs(k.t - command.t) < 1e-6) {
@@ -661,7 +661,7 @@ function setKeyframeEasingOnScene(
     return { ...tr, keys };
   });
 
-  clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
+  clips[clipIdx] = { ...clip, source: { kind: "propertyAnimations", items } };
   const scenes = project.scenes.slice();
   scenes[sceneIdx] = { ...scene, clips };
   return { project: { ...project, scenes }, missing: false };

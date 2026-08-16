@@ -1,5 +1,5 @@
 /**
- * Typed motion preset registry — finite entrance/exit/emphasis expand to tracks.
+ * Typed motion preset registry — finite entrance/exit/emphasis expand to propertyAnimations.
  * Ambient motion remains in recipe-registry (drivers).
  */
 
@@ -54,7 +54,7 @@ export type DirectionalPresetParams = z.infer<
 >;
 export type ScalePresetParams = z.infer<typeof ScalePresetParamsSchema>;
 
-export type RuntimeTrackBake = {
+export type RuntimePropertyAnimationBake = {
   layerId: string;
   property: string;
   keys: Array<{ t: number; v: number; easing?: KeyframeEasing }>;
@@ -84,7 +84,7 @@ export type MotionPresetDefinition<TParams> = {
   category: "entrance" | "exit" | "emphasis";
   paramsSchema: z.ZodType<TParams>;
   compatibleNodeTypes: readonly string[] | "all-visual";
-  expand(input: PresetExpandInput<TParams>): RuntimeTrackBake[];
+  expand(input: PresetExpandInput<TParams>): RuntimePropertyAnimationBake[];
 };
 
 function easingOf(
@@ -101,7 +101,7 @@ function opacityTrack(
   from: number,
   to: number,
   easing: KeyframeEasing,
-): RuntimeTrackBake {
+): RuntimePropertyAnimationBake {
   return {
     layerId: layerId,
     property: "appearance.opacity",
@@ -120,7 +120,7 @@ function axisTrack(
   from: number,
   to: number,
   easing: KeyframeEasing,
-): RuntimeTrackBake {
+): RuntimePropertyAnimationBake {
   return {
     layerId: layerId,
     property,
@@ -139,7 +139,7 @@ function scaleTracks(
   toX: number,
   toY: number,
   easing: KeyframeEasing,
-): RuntimeTrackBake[] {
+): RuntimePropertyAnimationBake[] {
   return [
     {
       layerId: layerId,
@@ -516,7 +516,7 @@ export function expandMotionPreset(input: {
   end: number;
   transform: PresetExpandInput<unknown>["transform"];
   params?: Record<string, unknown>;
-}): RuntimeTrackBake[] {
+}): RuntimePropertyAnimationBake[] {
   const def = BY_ID.get(input.presetId);
   if (!def) throw new Error(`Unknown preset: ${input.presetId}`);
   const parsed = parsePresetParams(input.presetId, input.params);

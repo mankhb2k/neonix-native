@@ -31,7 +31,7 @@ function fixtureScene(): RuntimeScene {
         style: { fill: "#ffffff" },
       },
     ],
-    tracks: [
+    propertyAnimations: [
       {
         layerId: "title",
         property: "appearance.opacity",

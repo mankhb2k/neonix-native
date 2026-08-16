@@ -21,13 +21,8 @@ import {
 } from "../prop-sinks";
 import {
   defaultAnimatableForPropKind,
-  defaultInterpolationForPropKind,
   type ComponentPropV1,
 } from "../components";
-import {
-  defaultInterpolationForValueKind,
-  allowedInterpolationsForValueKind,
-} from "../animation/interpolation";
 import { duplicates } from "./helpers";
 import { isPropKeyframesValue } from "../components/prop-values";
 import { validateLayerGraphV1 } from "./layer-graph";
@@ -75,14 +70,6 @@ function validateTimelineClips(
     }
     const capability = motionPropertyCapability(layer.type, clip.property);
     const valueKind = capability?.valueKind ?? "json";
-    const interpolation =
-      clip.interpolation ?? defaultInterpolationForValueKind(valueKind);
-    if (!allowedInterpolationsForValueKind(valueKind).has(interpolation)) {
-      issues.push({
-        path: `${path}.interpolation`,
-        message: `interpolation "${interpolation}" is invalid for ${clip.property} (${valueKind})`,
-      });
-    }
     let prevT: number | undefined;
     for (let i = 0; i < clip.keys.length; i++) {
       const key = clip.keys[i]!;
@@ -145,10 +132,6 @@ function literalMatchesPropKind(value: unknown, propKind: string): boolean {
 
 function propKindsCompatible(parentKind: string, childKind: string): boolean {
   return parentKind === childKind;
-}
-
-function allowedKeyframeInterpolations(propKind: string): Set<string> {
-  return new Set(allowedInterpolationsForValueKind(propKind));
 }
 
 type AssetLike = { id: string; assetType: string };
@@ -260,15 +243,6 @@ function validatePropValue(
         message: `Prop "${prop.id}" is not animatable; keyframes are not allowed`,
       });
       return issues;
-    }
-    const allowed = allowedKeyframeInterpolations(prop.kind);
-    const interpolation =
-      value.interpolation ?? defaultInterpolationForPropKind(prop.kind);
-    if (!allowed.has(interpolation)) {
-      issues.push({
-        path,
-        message: `Prop "${prop.id}" keyframes interpolation "${interpolation}" is invalid for kind "${prop.kind}"`,
-      });
     }
     let prevT: number | undefined;
     for (let i = 0; i < value.keys.length; i++) {

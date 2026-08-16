@@ -210,8 +210,8 @@ describe("export temporal parity (local-time bake)", () => {
           duration,
           playback: {},
           source: {
-            kind: "tracks" as const,
-            tracks: [
+            kind: "propertyAnimations" as const,
+            items: [
               {
                 layerId: `${id}.node`,
                 property: "appearance.opacity",
@@ -382,8 +382,8 @@ describe("export temporal parity (local-time bake)", () => {
       if (check?.schedule.kind === "absolute") {
         expect(check.schedule.at).toBeCloseTo(0, 5);
       }
-      if (check?.source.kind === "tracks") {
-        expect(check.source.tracks[0].keys[0]?.t).toBeCloseTo(0, 5);
+      if (check?.source.kind === "propertyAnimations") {
+        expect(check.source.items[0].keys[0]?.t).toBeCloseTo(0, 5);
       }
     }
   });

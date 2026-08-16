@@ -74,12 +74,12 @@ function mergeOverlayNodes(
   }));
   const remappedClips = (overlay.clips ?? []).map((clip) => {
     let source = clip.source;
-    if (source.kind === "tracks") {
+    if (source.kind === "propertyAnimations") {
       source = {
         ...source,
-        tracks: source.tracks.map((track) => ({
-          ...track,
-          layerId: remapId(track.layerId) ?? track.layerId,
+        items: source.items.map((item) => ({
+          ...item,
+          layerId: remapId(item.layerId) ?? item.layerId,
         })),
       };
     }

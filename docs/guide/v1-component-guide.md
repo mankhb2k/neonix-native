@@ -219,7 +219,7 @@ flowchart LR
 type PropKind = "string" | "number" | "boolean" | "color" | "choice" | "asset";
 ```
 
-| Kind | Dùng cho | Default `animatable` | Keyframe interpolation |
+| Kind | Dùng cho | Default `animatable` | Interpolate (theo type, không field) |
 | --- | --- | --- | --- |
 | `string` | title, label | `true` | step |
 | `number` | opacity, progress, size | `true` | linear / easing |
