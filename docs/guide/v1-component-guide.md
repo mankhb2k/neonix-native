@@ -307,13 +307,13 @@ Không có `component.variables`.
 
 - `t` là **local time của component instance layer** — `0..layer.timing.duration`
 - `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ layer.timing.duration`**
-- `number` / `color`: interpolate được
+- `number` → `linear`; `color` → `color`
 - `string` / `boolean` / `choice` / `asset`: chỉ **step**
 - `animatable: false` (hoặc omitted trên choice/asset) + keyframes → **reject**
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
 - Asset / choice: mỗi key phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- Không animate `payload.props.<propId>` qua animation track bên ngoài. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`.
+- Không animate `payload.props.<propId>` qua `timeline.clips`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`. Layer property (`transform`, `appearance.opacity`, …) của instance vỏ đi qua `timeline.clips`. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
 
 Prop keyframes animate **public signal**, không animate wrapper. Animation trên field wrapper của instance (`transform`, `appearance.opacity`, …) là vỏ. Prop keyframes fan-out vào layer nội bộ qua `propBindings`.
 

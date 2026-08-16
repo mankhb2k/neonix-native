@@ -532,7 +532,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "primitive.text",
     name: "Text",
-    description: "Rich text with font, color, alignment",
+    description: "One box, one string, one style",
     category: "primitive",
     experimental: false,
   },

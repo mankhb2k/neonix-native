@@ -5,7 +5,9 @@
  * V1 project-wide reference validation.
  */
 import {
+  isLayerPropertyAnimatable,
   isLayerPropertyBindable,
+  motionLiteralMatchesValueKind,
   motionPropKindFitsValueKind,
   motionPropertyCapability,
 } from "../../capabilities";
@@ -22,8 +24,12 @@ import {
   defaultInterpolationForPropKind,
   type ComponentPropV1,
 } from "../components";
-import { isPropKeyframesValue } from "../components/prop-values";
+import {
+  defaultInterpolationForValueKind,
+  allowedInterpolationsForValueKind,
+} from "../animation/interpolation";
 import { duplicates } from "./helpers";
+import { isPropKeyframesValue } from "../components/prop-values";
 import { validateLayerGraphV1 } from "./layer-graph";
 import { validateLayerAssetsV1 } from "./layer-assets";
 import type { ReferenceIssue } from "./types";
@@ -35,6 +41,80 @@ function isPropBindingPropertyValid(layer: LayerV1, property: string): boolean {
 
 function isPropAnimatable(prop: ComponentPropV1): boolean {
   return prop.animatable ?? defaultAnimatableForPropKind(prop.kind);
+}
+
+function validateTimelineClips(
+  clips: NonNullable<MotionProjectV1["timeline"]["clips"]>,
+  layerById: Map<string, LayerV1>,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  for (const [index, clip] of clips.entries()) {
+    const path = `timeline.clips.${index}`;
+    const layer = layerById.get(clip.layerId);
+    if (!layer) {
+      issues.push({
+        path: `${path}.layerId`,
+        message: `Unknown layer: ${clip.layerId}`,
+      });
+      continue;
+    }
+    if (clip.property.startsWith("payload.props.")) {
+      issues.push({
+        path: `${path}.property`,
+        message:
+          "Component prop keyframes belong on payload.props.<propId>, not timeline.clips",
+      });
+      continue;
+    }
+    if (!isLayerPropertyAnimatable(layer.type, clip.property)) {
+      issues.push({
+        path: `${path}.property`,
+        message: `Property "${clip.property}" is not animatable on ${layer.type} layer "${layer.id}"`,
+      });
+      continue;
+    }
+    const capability = motionPropertyCapability(layer.type, clip.property);
+    const valueKind = capability?.valueKind ?? "json";
+    const interpolation =
+      clip.interpolation ?? defaultInterpolationForValueKind(valueKind);
+    if (!allowedInterpolationsForValueKind(valueKind).has(interpolation)) {
+      issues.push({
+        path: `${path}.interpolation`,
+        message: `interpolation "${interpolation}" is invalid for ${clip.property} (${valueKind})`,
+      });
+    }
+    let prevT: number | undefined;
+    for (let i = 0; i < clip.keys.length; i++) {
+      const key = clip.keys[i]!;
+      if (prevT !== undefined) {
+        if (key.t === prevT) {
+          issues.push({
+            path: `${path}.keys.${i}.t`,
+            message: `clip "${clip.id}" must not duplicate t=${key.t}`,
+          });
+        } else if (key.t < prevT) {
+          issues.push({
+            path: `${path}.keys.${i}.t`,
+            message: `clip "${clip.id}" keys must be sorted by increasing t`,
+          });
+        }
+      }
+      prevT = key.t;
+      if (key.t > layer.timing.duration) {
+        issues.push({
+          path: `${path}.keys.${i}.t`,
+          message: `clip "${clip.id}" keyframe t=${key.t} exceeds layer duration ${layer.timing.duration}`,
+        });
+      }
+      if (!motionLiteralMatchesValueKind(valueKind, key.value)) {
+        issues.push({
+          path: `${path}.keys.${i}.value`,
+          message: `clip "${clip.id}" key value is incompatible with ${clip.property} (${valueKind})`,
+        });
+      }
+    }
+  }
+  return issues;
 }
 
 function assetTypeMatchesAssetKind(
@@ -68,9 +148,7 @@ function propKindsCompatible(parentKind: string, childKind: string): boolean {
 }
 
 function allowedKeyframeInterpolations(propKind: string): Set<string> {
-  if (propKind === "number") return new Set(["linear", "step"]);
-  if (propKind === "color") return new Set(["color", "step"]);
-  return new Set(["step"]);
+  return new Set(allowedInterpolationsForValueKind(propKind));
 }
 
 type AssetLike = { id: string; assetType: string };
@@ -391,6 +469,18 @@ export function validateMotionProjectV1References(
       message: `Duplicate component id: ${id}`,
     });
   }
+  for (const id of new Set(
+    duplicates((project.timeline.clips ?? []).map((clip) => clip.id)),
+  )) {
+    issues.push({
+      path: "timeline.clips",
+      message: `Duplicate clip id: ${id}`,
+    });
+  }
+
+  issues.push(
+    ...validateTimelineClips(project.timeline.clips ?? [], layerById),
+  );
 
   for (const binding of project.bindings) {
     const path = `bindings.${binding.id}`;
@@ -539,7 +629,7 @@ export function validateMotionProjectV1References(
             path: `components.${component.id}.propBindings`,
             message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${layer.type} layer "${layer.id}"`,
           });
-        } else if (!isOwnerPropSink(prop.kind, target.property)) {
+        } else if (!isOwnerPropSink(prop.kind, target.property, layer.type)) {
           issues.push({
             path: `components.${component.id}.propBindings`,
             message: `propBinding for "${binding.propId}" targets "${target.property}" which is not a V1 ${prop.kind} sink`,

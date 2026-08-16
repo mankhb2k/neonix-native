@@ -187,6 +187,7 @@ The detailed meaning of each field family now lives in dedicated guides:
   - [v1-layout-guide.md](./v1-layout-guide.md)
   - [v1-component-guide.md](./v1-component-guide.md)
   - [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md)
+  - [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md)
 
 - Production readiness:
   - [v1-production-surface-guide.md](./v1-production-surface-guide.md)

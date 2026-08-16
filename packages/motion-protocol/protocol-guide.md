@@ -18,7 +18,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Public authoring API (`.`). Runtime không export ở đây. |
-| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — `animation/clips`, `captions`. Không phải authoring JSON. |
+| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — compiler `animation/clips`, `captions`. Authoring clips: `v1/timeline/clips.ts`. |
 | `capabilities.ts` | `MOTION_PROTOCOL_LIMITS` + bảng `motionPropertyCapability` / `motionEffectPropertyCapability`. |
 | `ai-schema-capability.ts` | Ma trận E2E AI schema (`ai-schema.1`). |
 | `scene-registry.ts` | Legacy template registry — không còn trên public barrel. |
@@ -166,12 +166,13 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 
 ### 2.10 `src/v1/timeline/`
 
-Metadata only. Visual/audio/caption sống trên `project.layers`.
+Metadata only + authoring `clips`. Visual/audio sống trên `project.layers`.
 
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Barrel. |
-| `schema.ts` | `duration` / `workArea` / `markers`. |
+| `schema.ts` | `duration` / `workArea` / `markers` / `clips`. |
+| `clips.ts` | Authoring `timeline.clips` — layer/property keyframes. |
 | `duration.ts` | Derive duration từ root layer timing. |
 | `canonicalize.ts` | Điền duration thiếu + snap frame-grid. |
 | `frame-grid.ts` | Snap/validate thời gian về `n / fps`. |

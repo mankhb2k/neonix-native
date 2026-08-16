@@ -7,6 +7,7 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, PositiveNumberSchema } from "../common";
 import { TimelineMarkerV1Schema } from "../animation/tracks";
+import { TimelinePropertyClipV1Schema } from "./clips";
 
 export const WorkAreaSchema = z
   .object({
@@ -33,6 +34,10 @@ export const ProjectTimelineV1Schema = z
       .optional(),
     workArea: WorkAreaSchema.optional(),
     markers: z.array(TimelineMarkerV1Schema).max(256).optional(),
+    clips: z
+      .array(TimelinePropertyClipV1Schema)
+      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject)
+      .optional(),
   })
   .strict()
   .superRefine((timeline, ctx) => {

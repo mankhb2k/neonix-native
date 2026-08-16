@@ -1,5 +1,6 @@
 /**
  * Motion clip lịch trình — vocabulary compiler (không thuộc JSON authoring).
+ * Authoring layer/property animation: `timeline.clips` (src/v1/timeline/clips.ts).
  *
  * Import @motionvideo/motion-protocol/internal.
  */

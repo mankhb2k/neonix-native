@@ -1,6 +1,11 @@
 /**
  * Owner sink allowlist — prop public nối vào leaf nội bộ.
  * Project binding không dùng các path này; chỉ owner propBindings.
+ *
+ * Color sinks are per layer type:
+ * text/solid → payload.color
+ * shape/path → style.fill / style.stroke
+ * svg → style.fill only
  */
 
 const NUMBER_LEAVES = new Set([
@@ -29,12 +34,6 @@ const BOOLEAN_LEAVES = new Set(["appearance.visible"]);
 
 const STRING_LEAVES = new Set(["payload.text"]);
 
-const COLOR_LEAVES = new Set([
-  "payload.color",
-  "style.fill",
-  "style.stroke",
-]);
-
 const ASSET_LEAVES = new Set(["payload.assetId", "payload.fontAssetId"]);
 
 const CHOICE_LEAVES = new Set([
@@ -50,7 +49,27 @@ const EFFECT_NUMBER =
   /^effects\.[^.]+\.(radius|blur|offset\.x|offset\.y|opacity|brightness|contrast|saturation|hue-rotate)$/;
 const EFFECT_COLOR = /^effects\.[^.]+\.color$/;
 
-export function isOwnerPropSink(kind: string, property: string): boolean {
+function isColorOwnerSink(property: string, layerType: string): boolean {
+  if (EFFECT_COLOR.test(property)) return true;
+  switch (layerType) {
+    case "text":
+    case "solid":
+      return property === "payload.color";
+    case "shape":
+    case "path":
+      return property === "style.fill" || property === "style.stroke";
+    case "svg":
+      return property === "style.fill";
+    default:
+      return false;
+  }
+}
+
+export function isOwnerPropSink(
+  kind: string,
+  property: string,
+  layerType: string,
+): boolean {
   switch (kind) {
     case "number":
       return NUMBER_LEAVES.has(property) || EFFECT_NUMBER.test(property);
@@ -59,7 +78,7 @@ export function isOwnerPropSink(kind: string, property: string): boolean {
     case "string":
       return STRING_LEAVES.has(property);
     case "color":
-      return COLOR_LEAVES.has(property) || EFFECT_COLOR.test(property);
+      return isColorOwnerSink(property, layerType);
     case "asset":
       return ASSET_LEAVES.has(property);
     case "choice":

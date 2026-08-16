@@ -47,6 +47,8 @@ Mỗi project có đúng một `timeline`:
 
 Không có track array. Caption không phải type: một caption line = `type: "group"`; words = `type: "text"` children với timing local.
 
+Layer/property animation nằm ở `timeline.clips` (local time theo layer). Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md). Runtime `tracks` là output compiler, không phải JSON authoring.
+
 ---
 
 ## 3. Derive duration

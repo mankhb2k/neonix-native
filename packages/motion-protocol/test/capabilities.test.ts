@@ -5,6 +5,7 @@ import {
   LayerSchema,
   TransformSchema,
   isLayerPropertyBindable,
+  isLayerPropertyAnimatable,
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "../src/index";
@@ -81,6 +82,10 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(isLayerPropertyBindable("audio", "appearance.opacity")).toBe(false);
     expect(isLayerPropertyBindable("audio", "appearance.visible")).toBe(false);
     expect(isLayerPropertyBindable("text", "appearance.opacity")).toBe(true);
+    expect(isLayerPropertyAnimatable("text", "frame.width")).toBe(false);
+    expect(isLayerPropertyAnimatable("text", "transform.translate.x")).toBe(
+      true,
+    );
     expect(motionPropertyCapability("text", "effects.fx.radius")?.animatable).toBe(
       true,
     );

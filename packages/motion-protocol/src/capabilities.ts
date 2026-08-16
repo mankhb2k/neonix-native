@@ -101,7 +101,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.9";
+export const CAPABILITY_MANIFEST_VERSION = "3.0";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -142,7 +142,10 @@ function cap(
 
 const APPEARANCE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
-    "appearance.visible": cap("boolean"),
+    "appearance.visible": cap("boolean", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "appearance.opacity": cap("number", { min: 0, max: 100 }),
   });
 
@@ -151,10 +154,14 @@ const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> 
     "frame.width": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      animatable: false,
+      runtimeSupport: "compile-time",
     }),
     "frame.height": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      animatable: false,
+      runtimeSupport: "compile-time",
     }),
     "compositing.blend-mode": cap("string", {
       animatable: false,
@@ -179,6 +186,7 @@ const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>>
       min: 0,
       max: 1,
       public: false,
+      animatable: false,
     }),
     "style.stroke": cap("color"),
     "style.strokeWidth": cap("number", {
@@ -189,6 +197,7 @@ const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>>
       min: 0,
       max: 1,
       public: false,
+      animatable: false,
     }),
     "style.lineCap": cap("string", {
       animatable: false,
@@ -204,6 +213,7 @@ const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>>
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
       public: false,
+      animatable: false,
     }),
     "style.dash": cap("json", {
       animatable: false,
@@ -214,12 +224,16 @@ const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>>
       min: -MOTION_PROTOCOL_LIMITS.dashLength,
       max: MOTION_PROTOCOL_LIMITS.dashLength,
       public: false,
+      animatable: false,
     }),
   });
 
 const MEDIA_PAYLOAD_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
-    "payload.assetId": cap("asset"),
+    "payload.assetId": cap("asset", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "payload.fit": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
@@ -228,10 +242,30 @@ const MEDIA_PAYLOAD_PROPERTIES: Readonly<Record<string, MotionPropertyCapability
       animatable: false,
       runtimeSupport: "compile-time",
     }),
-    "payload.crop.x": cap("number", { min: 0, max: 1 }),
-    "payload.crop.y": cap("number", { min: 0, max: 1 }),
-    "payload.crop.width": cap("number", { minExclusive: 0, max: 1 }),
-    "payload.crop.height": cap("number", { minExclusive: 0, max: 1 }),
+    "payload.crop.x": cap("number", {
+      min: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.crop.y": cap("number", {
+      min: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.crop.width": cap("number", {
+      minExclusive: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.crop.height": cap("number", {
+      minExclusive: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   });
 
 
@@ -251,8 +285,18 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       min: -MOTION_PROTOCOL_LIMITS.transformScale,
       max: MOTION_PROTOCOL_LIMITS.transformScale,
     }),
-    "transform.origin.x": cap("number", { min: 0, max: 1 }),
-    "transform.origin.y": cap("number", { min: 0, max: 1 }),
+    "transform.origin.x": cap("number", {
+      min: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "transform.origin.y": cap("number", {
+      min: 0,
+      max: 1,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "transform.skew.x": cap("angle"),
     "transform.skew.y": cap("angle"),
     "transform.depth": cap("number", {
@@ -265,7 +309,10 @@ const NODE_PROPERTIES: Readonly<
   Record<string, Readonly<Record<string, MotionPropertyCapability>>>
 > = Object.freeze({
   text: {
-    "payload.text": cap("string"),
+    "payload.text": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "payload.fontAssetId": cap("asset", {
       animatable: false,
       runtimeSupport: "compile-time",
@@ -286,8 +333,13 @@ const NODE_PROPERTIES: Readonly<
     "payload.lineHeight": cap("number", {
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      animatable: false,
+      runtimeSupport: "compile-time",
     }),
-    "payload.letterSpacing": cap("number"),
+    "payload.letterSpacing": cap("number", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "payload.maxLines": cap("number", {
       minExclusive: 0,
       animatable: false,
@@ -300,10 +352,14 @@ const NODE_PROPERTIES: Readonly<
     "payload.counterProgress": cap("number", {
       bindable: false,
       public: false,
+      animatable: false,
       min: 0,
       max: 1,
     }),
-    "style.fill": cap("color"),
+    "style.fill": cap("color", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   },
   shape: {
     ...PAINT_STYLE_PROPERTIES,
@@ -314,6 +370,8 @@ const NODE_PROPERTIES: Readonly<
     "payload.cornerRadius": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
+      animatable: false,
+      runtimeSupport: "compile-time",
     }),
     "payload.points": cap("json", {
       animatable: false,
@@ -340,15 +398,15 @@ const NODE_PROPERTIES: Readonly<
     "payload.color": cap("color"),
   },
   svg: {
-    "payload.assetId": cap("asset"),
+    "payload.assetId": cap("asset", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     "payload.fit": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
     }),
-    "style.fill": cap("color", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
+    "style.fill": cap("color"),
   },
   image: {
     ...MEDIA_PAYLOAD_PROPERTIES,
@@ -492,6 +550,8 @@ export function motionPropertyCapability(
       return cap("number", {
         min: 0,
         max: MOTION_PROTOCOL_LIMITS.layerDimension,
+        animatable: false,
+        runtimeSupport: "compile-time",
       });
     if (
       property === "layout.mode" ||
@@ -509,6 +569,8 @@ export function motionPropertyCapability(
       return cap("number", {
         min: 0,
         max: MOTION_PROTOCOL_LIMITS.layerDimension,
+        animatable: false,
+        runtimeSupport: "compile-time",
       });
     if (
       property === "layoutItem.width" ||
@@ -588,7 +650,7 @@ export function motionPropertyCapability(
   ) {
     return {
       valueKind: "json",
-      animatable: true,
+      animatable: false,
       bindable: false,
       public: true,
       runtimeSupport: "compile-time",
@@ -699,6 +761,14 @@ export function publicMotionPropertyCapabilities(
   return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter(
     (capability) => capability.public,
   );
+}
+
+/** Authoring timeline.clips may target this path on this layer type. */
+export function isLayerPropertyAnimatable(
+  nodeType: string,
+  property: string,
+): boolean {
+  return motionPropertyCapability(nodeType, property)?.animatable === true;
 }
 
 /** Authoring bindings may target this path on this layer type. */

@@ -36,11 +36,16 @@ describe("Phase 0 AI schema expansion foundation", () => {
   });
 
   it("records capability matrix with production-ready rows", () => {
-    expect(AI_SCHEMA_CAPABILITY_VERSION).toBe("ai-schema.2");
+    expect(AI_SCHEMA_CAPABILITY_VERSION).toBe("ai-schema.3");
     const ready = listAiSchemaProductionCapabilities();
     expect(ready.some((r) => r.id === "baseline.hard-cut")).toBe(true);
     expect(ready.some((r) => r.id === "baseline.entrance-preset")).toBe(true);
     expect(ready.some((r) => r.id === "preset.timeline-end")).toBe(true);
+    expect(ready.some((r) => r.id === "text.plain-single-style")).toBe(true);
+    expect(ready.some((r) => r.id === "text.rich-runs")).toBe(false);
+    expect(AI_SCHEMA_CAPABILITY_MATRIX.some((r) => r.id === "text.rich-runs")).toBe(
+      false,
+    );
     expect(
       aiSchemaCapabilityReady(
         AI_SCHEMA_CAPABILITY_MATRIX.find((r) => r.id === "caption.text-layers")!,

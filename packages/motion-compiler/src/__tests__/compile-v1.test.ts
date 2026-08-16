@@ -130,4 +130,33 @@ describe("compileMotionProjectV1", () => {
     if (!ok.ok) return;
     expect(ok.project.assets[0]?.uri).toBe("https://signed.example/logo.png");
   });
+
+  it("compiles timeline.clips into runtime tracks", () => {
+    const project = structuredClone(representative);
+    const layer = project.layers.find((item) => item.type === "text");
+    expect(layer).toBeDefined();
+    if (!layer) return;
+    project.timeline.clips = [
+      {
+        id: "fade",
+        layerId: layer.id,
+        property: "appearance.opacity",
+        kind: "keyframes",
+        keys: [
+          { t: 0, value: 0 },
+          { t: 1, value: 100 },
+        ],
+        interpolation: "linear",
+      },
+    ];
+    const result = compileMotionProjectV1(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.project.tracks.some(
+        (track) =>
+          track.layerId === layer.id && track.property === "appearance.opacity",
+      ),
+    ).toBe(true);
+  });
 });

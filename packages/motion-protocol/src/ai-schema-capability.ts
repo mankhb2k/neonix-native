@@ -23,7 +23,7 @@ export type AiSchemaCapabilityRow = {
 };
 
 /** Bump when matrix rows/columns change for AI prompts. */
-export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.2";
+export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.3";
 
 export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   {
@@ -97,8 +97,8 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     },
   },
   {
-    id: "text.rich-runs",
-    label: "Rich text runs",
+    id: "text.plain-single-style",
+    label: "One text box, one string, one style (payload.text)",
     phase: 2,
     columns: {
       schema: "yes",
@@ -107,8 +107,9 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
       paint: "yes",
       pixi: "yes",
       remotion: "yes",
-      ai: "partial",
+      ai: "yes",
     },
+    notes: "V1 has no rich runs or content.kind",
   },
   {
     id: "caption.text-layers",

@@ -314,7 +314,6 @@
                       "primitive.video",
                       "primitive.path",
                       "primitive.audio",
-                      "text.rich",
                       "video.trim",
                       "video.loop",
                       "anim.transform",
@@ -3461,6 +3460,47 @@
                 "additionalProperties": false
               },
               "maxItems": 256
+            },
+            "clips": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
+                  },
+                  "layerId": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
+                  },
+                  "property": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "keyframes",
+                    "default": "keyframes"
+                  },
+                  "keys": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/PropKeyframesValue/properties/keys/items"
+                    },
+                    "minItems": 1,
+                    "maxItems": 10000
+                  },
+                  "interpolation": {
+                    "$ref": "#/definitions/PropKeyframesValue/properties/interpolation"
+                  }
+                },
+                "required": [
+                  "id",
+                  "layerId",
+                  "property",
+                  "keys"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 2000
             }
           },
           "additionalProperties": false

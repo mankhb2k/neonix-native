@@ -231,6 +231,12 @@ export const MotionProjectV1Schema =
       "component",
       ctx,
     );
+    addDuplicateIdIssues(
+      (project.timeline.clips ?? []).map((clip) => clip.id),
+      ["timeline", "clips"],
+      "clip",
+      ctx,
+    );
 
     collectLayerSchemaIssues(
       project.layers,

@@ -49,6 +49,7 @@ import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
+import { timelineClipsToMotionUnits } from "./timeline-clips";
 
 export { detectScheduleCycles } from "./semantics";
 
@@ -318,6 +319,7 @@ export function compileMotionProjectV1(
               ...((graph.motionUnits ?? []) as Parameters<
                 typeof compileLayerGraphToRuntime
               >[0]["motionUnits"]),
+              ...timelineClipsToMotionUnits(normalized.timeline.clips),
               ...(extraUnits as Parameters<
                 typeof compileLayerGraphToRuntime
               >[0]["motionUnits"]),

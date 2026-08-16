@@ -26,3 +26,9 @@ export {
 } from "./tracks";
 
 export { ProceduralDriverSchema, type ProceduralDriver } from "./drivers";
+
+export {
+  defaultInterpolationForValueKind,
+  allowedInterpolationsForValueKind,
+  type KeyframeInterpolationV1,
+} from "./interpolation";
