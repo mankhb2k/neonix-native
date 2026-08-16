@@ -59,8 +59,6 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   dashLength: 4_096,
   pathBendAmount: 1,
   parallaxFactor: 8,
-  /** Max rich-text runs per text node. */
-  richTextRuns: 64,
   /** Max tokens trong caption-compiler nội bộ — không phải project.captionTracks. */
   captionTokensPerTrack: 4_096,
   /** Max cue sau segment (caption-compiler nội bộ). */
@@ -75,10 +73,6 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   presetDistance: 2_048,
   /** Preset overshoot scale factor. */
   presetOvershoot: 2,
-  /** Highlight padding for rich-text runs. */
-  richTextHighlightPadding: 128,
-  /** Font scale relative multiplier for a run. */
-  richTextFontScale: 4,
 
   // ── 2.5D / pseudo-3D authoring (không phải true 3D render) ──────────
 
@@ -101,7 +95,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "3.0";
+export const CAPABILITY_MANIFEST_VERSION = "3.1";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -356,10 +350,6 @@ const NODE_PROPERTIES: Readonly<
       min: 0,
       max: 1,
     }),
-    "style.fill": cap("color", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
   },
   shape: {
     ...PAINT_STYLE_PROPERTIES,
@@ -535,6 +525,34 @@ const NODE_PROPERTIES: Readonly<
   },
 });
 
+/** Runtime IR only — not V1 authoring (no modifiers on MotionProjectV1 layers). */
+function runtimeModifierCapability(
+  property: string,
+): MotionPropertyCapability | undefined {
+  const hidden = {
+    animatable: true,
+    bindable: false,
+    public: false,
+    runtimeSupport: "evaluated" as const,
+  };
+  if (/^modifiers\.[^.]+\.progress$/.test(property))
+    return { valueKind: "number", ...hidden, min: 0, max: 1 };
+  if (/^modifiers\.[^.]+\.(start|end)$/.test(property))
+    return { valueKind: "number", ...hidden, min: 0, max: 1 };
+  if (/^modifiers\.[^.]+\.offset$/.test(property))
+    return { valueKind: "number", ...hidden };
+  if (/^modifiers\.[^.]+\.amount$/.test(property))
+    return {
+      valueKind: "number",
+      ...hidden,
+      min: -MOTION_PROTOCOL_LIMITS.pathBendAmount,
+      max: MOTION_PROTOCOL_LIMITS.pathBendAmount,
+    };
+  if (/^modifiers\.[^.]+\.weight$/.test(property))
+    return { valueKind: "number", ...hidden, min: 0, max: 1 };
+  return undefined;
+}
+
 export function motionPropertyCapability(
   nodeType: string,
   property: string,
@@ -586,54 +604,8 @@ export function motionPropertyCapability(
     const transform = TRANSFORM_PROPERTIES[property];
     if (transform) return transform;
   }
-  if (/^modifiers\.[^.]+\.progress$/.test(property))
-    return {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    };
-  if (/^modifiers\.[^.]+\.(start|end)$/.test(property))
-    return {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    };
-  if (/^modifiers\.[^.]+\.offset$/.test(property))
-    return {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    };
-  if (/^modifiers\.[^.]+\.amount$/.test(property))
-    return {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.pathBendAmount,
-      max: MOTION_PROTOCOL_LIMITS.pathBendAmount,
-    };
-  if (/^modifiers\.[^.]+\.weight$/.test(property))
-    return {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    };
+  const modifier = runtimeModifierCapability(property);
+  if (modifier) return modifier;
   if (nodeType !== "audio" && nodeType !== "camera") {
     const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
     if (effectMatch) {
@@ -652,7 +624,7 @@ export function motionPropertyCapability(
       valueKind: "json",
       animatable: false,
       bindable: false,
-      public: true,
+      public: false,
       runtimeSupport: "compile-time",
     };
   }
@@ -733,32 +705,23 @@ export function motionEffectPropertyCapability(
   }
 }
 
-/** Enumerable safe vocabulary for AI authoring and schema-driven controls. */
+/** Enumerable V1 authoring vocabulary — no runtime modifiers. */
 export function motionPropertyCapabilities(
   nodeType: string,
-  motionPathModifierIds: readonly string[] = [],
 ): MotionPropertyCapabilityEntry[] {
   return [
     ...(nodeType === "audio" ? [] : Object.entries(APPEARANCE_PROPERTIES)),
     ...Object.entries(LAYER_BASE_PROPERTIES),
     ...(nodeType === "audio" ? [] : Object.entries(TRANSFORM_PROPERTIES)),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
-    ...motionPathModifierIds.map(
-      (id) =>
-        [
-          `modifiers.${id}.progress`,
-          motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!,
-        ] as const,
-    ),
   ].map(([property, capability]) => ({ property, ...capability }));
 }
 
 /** Public AI/control surface only — callers must not expose non-public capabilities. */
 export function publicMotionPropertyCapabilities(
   nodeType: string,
-  motionPathModifierIds: readonly string[] = [],
 ): MotionPropertyCapabilityEntry[] {
-  return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter(
+  return motionPropertyCapabilities(nodeType).filter(
     (capability) => capability.public,
   );
 }
@@ -768,7 +731,8 @@ export function isLayerPropertyAnimatable(
   nodeType: string,
   property: string,
 ): boolean {
-  return motionPropertyCapability(nodeType, property)?.animatable === true;
+  const capability = motionPropertyCapability(nodeType, property);
+  return capability?.animatable === true && capability.public === true;
 }
 
 /** Authoring bindings may target this path on this layer type. */
@@ -776,7 +740,8 @@ export function isLayerPropertyBindable(
   nodeType: string,
   property: string,
 ): boolean {
-  return motionPropertyCapability(nodeType, property)?.bindable === true;
+  const capability = motionPropertyCapability(nodeType, property);
+  return capability?.bindable === true && capability.public === true;
 }
 
 /** Component prop.kind vs layer path valueKind from the capability table. */

@@ -133,9 +133,9 @@ Không phải absolute clock của `timeline.duration`. Runtime IR (`project.tra
 
 Không animate (cấu trúc / setup / playback):
 
-- `frame.width` / `frame.height` — scale bằng `transform.scale`
+- `frame.width` / `frame.height` — scale bằng `transform.scale`. Owner **có thể bind** frame/origin như setup tĩnh; **không** keyframe.
 - `timing.*`, `zIndex`
-- `transform.origin.*`, `appearance.visible`
+- `transform.origin.*`, `appearance.visible` — bindable setup, không animate
 - `payload.fit`, `wrap`, `alignment`, `overflow`, `fillRule`, `shape`, `assetId`
 - `payload.trimStart` / `trimEnd`, `loop`, `muted`, `framePolicy`
 - `payload.crop*`

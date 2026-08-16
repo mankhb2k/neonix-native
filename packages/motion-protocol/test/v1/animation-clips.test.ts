@@ -107,6 +107,7 @@ describe("V1 timeline.clips", () => {
     expect(isLayerPropertyAnimatable("image", "payload.fit")).toBe(false);
     expect(isLayerPropertyAnimatable("svg", "style.fill")).toBe(true);
     expect(isLayerPropertyAnimatable("text", "payload.color")).toBe(true);
+    expect(isLayerPropertyAnimatable("text", "style.fill")).toBe(false);
     expect(isLayerPropertyAnimatable("shape", "style.fill")).toBe(true);
 
     expect(() =>

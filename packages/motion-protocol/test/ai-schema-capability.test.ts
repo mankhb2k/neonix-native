@@ -10,7 +10,7 @@ import { SourceRefSchema, sourceRefKey } from "../src/v1/source-ref";
 
 describe("Phase 0 AI schema expansion foundation", () => {
   it("exposes new MOTION_PROTOCOL_LIMITS for expansion phases", () => {
-    expect(MOTION_PROTOCOL_LIMITS.richTextRuns).toBeGreaterThan(0);
+    expect(MOTION_PROTOCOL_LIMITS.captionTokensPerTrack).toBeGreaterThan(0);
     expect(MOTION_PROTOCOL_LIMITS.captionTokensPerTrack).toBeGreaterThan(0);
     expect(MOTION_PROTOCOL_LIMITS.audioBeatsPerAsset).toBeGreaterThan(0);
     expect(MOTION_PROTOCOL_LIMITS.presetDistance).toBeGreaterThan(0);

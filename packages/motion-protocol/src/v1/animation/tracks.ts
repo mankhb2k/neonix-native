@@ -1,5 +1,6 @@
 /**
- * Property track V1 — track, easing, extrapolation, keyframe.
+ * Property track V1 — compiler/runtime IR (không phải JSON authoring).
+ * Authoring: timeline.clips + isLayerPropertyAnimatable.
  */
 
 import { z } from "zod";
@@ -31,7 +32,9 @@ export const TimelineMarkerSchema = z
 // ── Value-kind compatibility map for property tracks ────────────────
 
 /**
- * Maps property path patterns to allowed value kinds for property tracks.
+ * Property track — compiler/runtime IR.
+ * Authoring animation allowlist is `isLayerPropertyAnimatable` (public + animatable).
+ * This map only checks valueKind when present; it is not the V1 authoring surface.
  */
 const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
   "transform.translate.x": ["number", "angle"],
@@ -39,15 +42,15 @@ const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
   "transform.rotate.z": ["number", "angle"],
   "transform.scale.x": ["number"],
   "transform.scale.y": ["number"],
-  "transform.origin.x": ["number"],
-  "transform.origin.y": ["number"],
   "transform.skew.x": ["number", "angle"],
   "transform.skew.y": ["number", "angle"],
   "transform.depth": ["number"],
   "appearance.opacity": ["number"],
-  "appearance.visible": ["boolean"],
-  "frame.width": ["number"],
-  "frame.height": ["number"],
+  "style.fill": ["color"],
+  "style.stroke": ["color"],
+  "style.strokeWidth": ["number"],
+  "payload.color": ["color"],
+  "payload.fontSize": ["number"],
 };
 
 /** Absolute seconds or marker-relative time resolved at compile time. */
