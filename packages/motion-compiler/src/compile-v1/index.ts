@@ -299,14 +299,10 @@ export function compileMotionProjectV1(
     const aiRecord =
       aiExt && typeof aiExt === "object" && !Array.isArray(aiExt)
         ? (aiExt as {
-            motionUnits?: unknown[];
             activeCameraLayerId?: string;
             space?: "flat-2d" | "layered-2.5d";
           })
         : undefined;
-    const extraUnits = Array.isArray(aiRecord?.motionUnits)
-      ? aiRecord.motionUnits
-      : [];
     const compiledGraph =
       duration > 0
         ? compileLayerGraphToRuntime({
@@ -320,9 +316,6 @@ export function compileMotionProjectV1(
                 typeof compileLayerGraphToRuntime
               >[0]["motionUnits"]),
               ...timelineClipsToMotionUnits(normalized.timeline.clips),
-              ...(extraUnits as Parameters<
-                typeof compileLayerGraphToRuntime
-              >[0]["motionUnits"]),
             ],
             variables: projectVariables,
             ...(aiRecord?.space ? { space: aiRecord.space } : {}),

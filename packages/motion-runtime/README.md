@@ -1,15 +1,19 @@
 # `@motionvideo/motion-runtime`
 
-Evaluator thời gian chạy cho **Runtime IR** (literal). Không parse authoring `.mt` — nhận scene/node/track đã compile và trả transform, bounds, hit-test, geometry tại timestamp xác định.
+Evaluator thời gian chạy cho **Runtime IR** đã compile từ MotiClip V1. Không parse authoring JSON — nhận `MotionRuntimeProject` và trả transform, bounds, hit-test, geometry tại timestamp xác định.
+
+Runtime **không** mở rộng protocol. Không modifier. `tracks` là animation units nội bộ sinh từ `timeline.clips`.
 
 ## Vai trò
 
 ```text
+MotionProjectV1
+        ↓ compileMotionProjectV1
 MotionRuntimeProject (Runtime IR)
         ↓
   evaluateScene / evaluateProperty
         ↓
-  world matrix · bounds · modifiers · secondary motion
+  world matrix · bounds · snapshot / paint
 ```
 
 Dùng chung bởi browser preview (`apps/web`) và worker raster (`apps/render-worker`).
@@ -25,23 +29,21 @@ import {
   quantizeTimeToFrame,
   hitTestScene,
   subtreeBounds,
-  trimPathContours,
-  bendPathContours,
   pathMorphContours,
 } from "@motionvideo/motion-runtime";
 ```
 
-| Module               | Chức năng                                          |
-| -------------------- | -------------------------------------------------- |
-| `evaluator`          | Property tracks, hierarchy, constraints, modifiers |
-| `matrix` / `spatial` | World matrix, bounds                               |
-| `hit-test`           | Hit-test theo draw order / mask                    |
-| `clock`              | Frame ↔ time deterministic                         |
-| `geometry`           | Path sample, trim, bend, morph                     |
-| `secondary-motion`   | Bone chain follow-through (rotation)               |
+| Module | Chức năng |
+| --- | --- |
+| `evaluator` | Property tracks, hierarchy |
+| `matrix` / `spatial` | World matrix, bounds |
+| `hit-test` | Hit-test theo draw order / mask |
+| `clock` | Frame ↔ time deterministic |
+| `geometry` | Path sample; morphTargets data-only |
 
 ## Docs
 
+- [`docs/guide/v1-compiler-runtime-guide.md`](../../docs/guide/v1-compiler-runtime-guide.md)
 - [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
 - [`docs/guide/v1-timeline-guide.md`](../../docs/guide/v1-timeline-guide.md)
 - Gate visual: `pnpm validate:primitives`

@@ -3,7 +3,6 @@ import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, SemanticSchema } from "../common";
 import { LayoutItemPolicySchema, RepeaterSchema } from "../layout";
 import { EffectSchema } from "../../v1/effects";
-import { MotionModifierSchema } from "../modifiers";
 import { TransformSchema } from "../../v1/transform";
 import { FrameSchema } from "../../v1/frame";
 import { AppearanceSchema } from "../../v1/appearance";
@@ -38,10 +37,6 @@ export const LayerBaseSchema = z
     layoutItem: LayoutItemPolicySchema.optional(),
     semantic: SemanticSchema.optional(),
     repeat: RepeaterSchema.optional(),
-    modifiers: z
-      .array(MotionModifierSchema)
-      .max(MOTION_PROTOCOL_LIMITS.modifiersPerLayer)
-      .optional(),
     effects: z
       .array(EffectSchema)
       .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)

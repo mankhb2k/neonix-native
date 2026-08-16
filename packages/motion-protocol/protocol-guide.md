@@ -37,7 +37,6 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `frame.ts` | `FrameSchema` — `{ width, height }` size box trước transform. Bắt buộc mọi visual layer; cấm audio/camera. |
 | `layer-atoms.ts` | Helper test/fixture `visualLayerAtoms()` / `defaultTransform()`. |
 | `layout.ts` | Repeater (khác `frame`) + `layout` / `layoutItem` native (`mode` row/column/grid). |
-| `modifiers.ts` | Legacy authoring file — not on V1 layer JSON. Runtime uses `src/runtime/modifiers.ts`. |
 | `canonical-hash.ts` | Hash deterministic (`projectHash` / `runtimeHash`). Exclude timestamp/provenance/extensions. |
 | `capabilities.ts` | Capability requirements project (`required` / `optional` / `experimental`). |
 | `captions.ts` | Legacy caption tokens — không thuộc `project.layers`; export qua `internal`. |
@@ -158,11 +157,10 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Barrel easing/clips/tracks/drivers. |
+| `index.ts` | Barrel easing/drivers/interpolation. |
 | `easing.ts` | Named / cubic / spring. |
-| `tracks.ts` | `PropertyTrackV1Schema` + markers dùng timeline. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
-| `clips.ts` | **Internal** `MotionClipV1` — `internal` export, không thuộc authoring JSON. |
+| `clips.ts` | **Internal** `MotionClipV1` cho compiler runtime, không thuộc authoring JSON. |
 
 ### 2.10 `src/v1/timeline/`
 
@@ -202,7 +200,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | `assets.ts` | Asset IR (cùng mime image png/jpeg/webp). |
 | `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
 | `layout.ts` | Repeater + native `layout` / `layoutItem` (same fields as V1; compiler normally bakes then strips). |
-| `modifiers.ts` | Motion modifiers trên runtime node. |
+| `modifiers.ts` | Removed from Runtime IR V1. Morph/bend/trim không qua modifier. |
 | `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
 | `project.ts` | `MotionRuntimeProjectSchema`. |
 | `values.ts` | JSON / resolvable values. |
@@ -212,7 +210,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Runtime node union theo `type`. |
-| `base.ts` | `LayerBaseSchema` — required frame (except camera/audio), layoutItem, V1 transform/appearance/compositing/effects; modifiers remain runtime-only. |
+| `base.ts` | `LayerBaseSchema` — required frame (except camera/audio), layoutItem, V1 transform/appearance/compositing/effects. |
 | `audio.ts` | Runtime audio leaf. No appearance. |
 | `geometry.ts` | Shape/path (primitive từ V1). |
 | `media.ts` | Image / svg / video. |

@@ -8,8 +8,6 @@ import {
 } from "@motionvideo/motion-protocol/runtime";
 import {
   IDENTITY_MATRIX,
-  applyMatrix,
-  decomposeMatrix,
   inheritedParentMatrix,
   localTransformMatrix,
   multiplyMatrix,
@@ -23,7 +21,7 @@ import {
   localTransformMatrix3D,
   multiplyMatrix4,
 } from "./matrix4";
-import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
+import { transformBounds, type Bounds2D } from "./spatial";
 
 function readNestedNumber(root: Record<string, unknown>, path: string): number {
   let cursor: unknown = root;
@@ -33,14 +31,7 @@ function readNestedNumber(root: Record<string, unknown>, path: string): number {
   }
   return typeof cursor === "number" && Number.isFinite(cursor) ? cursor : 0;
 }
-import {
-  bendPathContours,
-  localNodeBounds,
-  pathMorphContours,
-  samplePathContour,
-  trimPathContours,
-} from "./geometry";
-import { solveSecondaryMotionChain } from "./secondary-motion";
+import { localNodeBounds } from "./geometry";
 import {
   interpolateAngle,
   interpolateVec2,
@@ -756,10 +747,6 @@ function topologicalNodes(scene: RuntimeScene): RuntimeNode[] {
   };
   for (const node of scene.layers) {
     addEdge(node.parentLayerId, node.id);
-    for (const modifier of node.modifiers ?? []) {
-      if (modifier.type === "constraint")
-        addEdge(modifier.targetLayerId, node.id);
-    }
   }
   const ready = scene.layers.filter((node) => indegree.get(node.id) === 0);
   const ordered: RuntimeNode[] = [];
@@ -778,9 +765,35 @@ function topologicalNodes(scene: RuntimeScene): RuntimeNode[] {
   return ordered.length === scene.layers.length ? ordered : scene.layers;
 }
 
-function blendAngle(from: number, to: number, weight: number): number {
-  const delta = ((((to - from + 180) % 360) + 360) % 360) - 180;
-  return from + delta * weight;
+const SNAPSHOT_UNAPPLIED_PROPERTIES = new Set([
+  "style.fill",
+  "style.stroke",
+  "style.fillOpacity",
+  "style.strokeOpacity",
+  "payload.fit",
+  "payload.crop",
+  "payload.trimStart",
+  "payload.trimEnd",
+  "payload.loop",
+  "payload.color",
+]);
+
+function warnUnappliedTracks(
+  scene: RuntimeScene,
+  collector?: RuntimeDiagnosticCollector,
+): void {
+  if (!collector) return;
+  for (const track of scene.tracks) {
+    if (
+      SNAPSHOT_UNAPPLIED_PROPERTIES.has(track.property) ||
+      track.property.startsWith("payload.crop.")
+    ) {
+      collector.warn("TRACK_NOT_APPLIED", {
+        layerId: track.layerId,
+        message: `Runtime track "${track.property}" is not applied by snapshot/paint in V1.`,
+      });
+    }
+  }
 }
 
 export function evaluateScene(
@@ -825,40 +838,7 @@ export function evaluateScene(
       : undefined;
 
   const secondaryRotations = new Map<string, number>();
-  for (const node of scene.layers) {
-    for (const modifier of node.modifiers ?? []) {
-      if (modifier.type !== "secondary-motion" || modifier.axis !== "rotation")
-        continue;
-      const driver = byId.get(modifier.driverNodeId);
-      if (!driver) {
-        collector?.warn("SECONDARY_MOTION_DRIVER_MISSING", {
-          layerId: node.id,
-          message: `Secondary motion driver missing: ${modifier.driverNodeId}`,
-        });
-        continue;
-      }
-      const rotations = solveSecondaryMotionChain(
-        time,
-        {
-          chainLength: modifier.chainLayerIds.length,
-          stiffness: modifier.stiffness,
-          damping: modifier.damping,
-          lag: modifier.lag,
-          amplitude: modifier.amplitude,
-        },
-        (sampleTime) =>
-          evaluateTransform(scene, driver, sampleTime, driven, collector)
-            .rotation,
-      );
-      for (let index = 0; index < modifier.chainLayerIds.length; index += 1) {
-        const chainNodeId = modifier.chainLayerIds[index]!;
-        secondaryRotations.set(
-          chainNodeId,
-          (secondaryRotations.get(chainNodeId) ?? 0) + rotations[index]!,
-        );
-      }
-    }
-  }
+  warnUnappliedTracks(scene, collector);
   // Phase 3: Resolve effective timing for parent-relative time windows
   const effectiveTimings = resolveEffectiveTiming(
     topologicalNodes(scene),
@@ -975,180 +955,6 @@ export function evaluateScene(
       }
     }
 
-    const motionPath = node.modifiers?.find(
-      (modifier) => modifier.type === "motion-path",
-    );
-    if (motionPath) {
-      const pathNode = byId.get(motionPath.pathNodeId);
-      if (!pathNode || pathNode.type !== "path") {
-        collector?.warn("MOTION_PATH_SOURCE_MISSING", {
-          layerId: node.id,
-          message: `Motion Path source missing: ${motionPath.pathNodeId}`,
-        });
-        // Skip motion path — continue with current transform
-      } else {
-        const path = evaluate(pathNode);
-        const rawProgress = evaluateProperty(
-          scene,
-          node,
-          `modifiers.${motionPath.id}.progress`,
-          time,
-          motionPath.progress,
-        );
-        const progress =
-          typeof rawProgress === "number" ? rawProgress : motionPath.progress;
-        const mappedProgress =
-          motionPath.startOffset +
-          (motionPath.endOffset - motionPath.startOffset) * progress;
-        const sourceMorph = pathNode.modifiers?.find(
-          (modifier) => modifier.type === "path-morph",
-        );
-        const sourceProgress = sourceMorph
-          ? evaluateProperty(
-              scene,
-              pathNode,
-              `modifiers.${sourceMorph.id}.progress`,
-              time,
-              sourceMorph.progress,
-            )
-          : undefined;
-        const sourceContours = sourceMorph
-          ? pathMorphContours(
-              pathNode,
-              typeof sourceProgress === "number" ? sourceProgress : 0,
-            )
-          : pathNode.payload.contours;
-        const sample = samplePathContour(
-          pathNode,
-          motionPath.contourId,
-          mappedProgress,
-          sourceContours,
-        );
-        const worldPoint = applyMatrix(
-          path.worldMatrix,
-          sample.point.x,
-          sample.point.y,
-        );
-        const worldTangentPoint = applyMatrix(
-          path.worldMatrix,
-          sample.point.x + sample.tangent.x,
-          sample.point.y + sample.tangent.y,
-        );
-        const inverseParent = invertMatrix(parentMatrix);
-        if (!inverseParent) {
-          collector?.warn("MATRIX_NOT_INVERTIBLE", {
-            layerId: node.id,
-            message: `Motion Path parent matrix not invertible: ${node.id}. Skipping motion path.`,
-          });
-          // Skip motion path transform — keep current transform
-        } else {
-          const localPoint = applyMatrix(
-            inverseParent,
-            worldPoint.x,
-            worldPoint.y,
-          );
-          const localTangentPoint = applyMatrix(
-            inverseParent,
-            worldTangentPoint.x,
-            worldTangentPoint.y,
-          );
-          transform = {
-            ...transform,
-            x: localPoint.x,
-            y: localPoint.y,
-            rotation: motionPath.orientToPath
-              ? (Math.atan2(
-                  localTangentPoint.y - localPoint.y,
-                  localTangentPoint.x - localPoint.x,
-                ) *
-                  180) /
-                  Math.PI +
-                motionPath.rotationOffset
-              : transform.rotation,
-          };
-        } // else (inverseParent exists)
-      } // else (pathNode exists)
-    } // if (motionPath)
-
-    for (const constraint of (node.modifiers ?? []).filter(
-      (m) => m.type === "constraint",
-    )) {
-      const targetNode = byId.get(constraint.targetLayerId);
-      if (!targetNode) {
-        collector?.warn("CONSTRAINT_TARGET_MISSING", {
-          layerId: node.id,
-          message: `Constraint target missing: ${constraint.targetLayerId}. Skipping constraint.`,
-        });
-        continue;
-      }
-      const target = evaluated.get(targetNode.id) ?? evaluate(targetNode);
-      const rawWeight = evaluateProperty(
-        scene,
-        node,
-        `modifiers.${constraint.id}.weight`,
-        time,
-        constraint.weight,
-      );
-      const weight = Math.min(
-        1,
-        Math.max(
-          0,
-          typeof rawWeight === "number" ? rawWeight : constraint.weight,
-        ),
-      );
-      const targetWorld = decomposeMatrix(target.worldMatrix);
-      const parentWorld = decomposeMatrix(parentMatrix);
-      if (constraint.kind === "copy-position") {
-        const inverseParent = invertMatrix(parentMatrix);
-        if (!inverseParent) {
-          collector?.warn("MATRIX_NOT_INVERTIBLE", {
-            layerId: node.id,
-            message: `Constraint parent matrix not invertible: ${node.id}. Skipping position constraint.`,
-          });
-          continue;
-        }
-        const localTarget = applyMatrix(
-          inverseParent,
-          targetWorld.x,
-          targetWorld.y,
-        );
-        transform = {
-          ...transform,
-          x: transform.x + (localTarget.x - transform.x) * weight,
-          y: transform.y + (localTarget.y - transform.y) * weight,
-        };
-      } else if (constraint.kind === "copy-rotation") {
-        transform = {
-          ...transform,
-          rotation: blendAngle(
-            transform.rotation,
-            targetWorld.rotation - parentWorld.rotation,
-            weight,
-          ),
-        };
-      } else {
-        const baseWorld = multiplyMatrix(
-          parentMatrix,
-          localTransformMatrix(transform),
-        );
-        const worldAngle =
-          (Math.atan2(
-            targetWorld.y - baseWorld.f,
-            targetWorld.x - baseWorld.e,
-          ) *
-            180) /
-          Math.PI;
-        transform = {
-          ...transform,
-          rotation: blendAngle(
-            transform.rotation,
-            worldAngle - parentWorld.rotation,
-            weight,
-          ),
-        };
-      }
-    }
-
     const worldMatrix = multiplyMatrix(
       parentMatrix,
       localTransformMatrix(transform),
@@ -1173,67 +979,6 @@ export function evaluateScene(
 
     let paintContours =
       node.type === "path" ? node.payload.contours : undefined;
-    if (node.type === "path") {
-      for (const modifier of node.modifiers ?? []) {
-        if (modifier.type === "path-morph") {
-          const progress = evaluateProperty(
-            scene,
-            node,
-            `modifiers.${modifier.id}.progress`,
-            time,
-            modifier.progress,
-          );
-          paintContours = pathMorphContours(
-            node,
-            typeof progress === "number"
-              ? progress
-              : typeof modifier.progress === "number"
-                ? modifier.progress
-                : 0,
-          );
-        } else if (modifier.type === "path-bend") {
-          const amount = evaluateProperty(
-            scene,
-            node,
-            `modifiers.${modifier.id}.amount`,
-            time,
-            modifier.amount,
-          );
-          paintContours = bendPathContours(
-            paintContours ?? node.payload.contours,
-            typeof amount === "number" ? amount : modifier.amount,
-          );
-        } else if (modifier.type === "trim-path") {
-          const start = evaluateProperty(
-            scene,
-            node,
-            `modifiers.${modifier.id}.start`,
-            time,
-            modifier.start,
-          );
-          const end = evaluateProperty(
-            scene,
-            node,
-            `modifiers.${modifier.id}.end`,
-            time,
-            modifier.end,
-          );
-          const offset = evaluateProperty(
-            scene,
-            node,
-            `modifiers.${modifier.id}.offset`,
-            time,
-            modifier.offset,
-          );
-          paintContours = trimPathContours(
-            paintContours ?? node.payload.contours,
-            typeof start === "number" ? start : modifier.start,
-            typeof end === "number" ? end : modifier.end,
-            typeof offset === "number" ? offset : modifier.offset,
-          );
-        }
-      }
-    }
 
     const strokeWidth =
       (node.type === "shape" || node.type === "path") && node.style?.stroke
@@ -1289,14 +1034,9 @@ export function evaluateScene(
               cameraNode.payload.parallaxStrength ?? 1,
             )
           : 1;
-      let factor = 1;
-      for (const modifier of node.modifiers ?? []) {
-        if (modifier.type === "parallax") factor = modifier.factor;
-      }
-      // Orthographic layered projection: screen shift ≈ (camera − origin) × depth × strength × factor
       projectedOffset = {
-        x: -cameraX * depth * strength * factor * 0.01,
-        y: -cameraY * depth * strength * factor * 0.01,
+        x: -cameraX * depth * strength * 0.01,
+        y: -cameraY * depth * strength * 0.01,
       };
     }
     const projectedMatrix =

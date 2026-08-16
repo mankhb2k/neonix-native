@@ -60,7 +60,7 @@ Project binding dừng ở prop. Owner mới nối vào leaf protocol:
 | asset | `payload.assetId` (`assetKind` khớp) |
 | choice | `layout.mode/justify/align`, `layoutItem.width/height/alignSelf` |
 
-Không nối vào `timing.*`, `zIndex`, `semantic`, path, mask, `modifiers.*`, cả khối transform/appearance/effects, object/array.
+Không nối vào `timing.*`, `zIndex`, `semantic`, path, mask, cả khối transform/appearance/effects, object/array.
 
 `frame` / `origin` / `appearance.visible` là **bindable setup**, không phải animation target. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
 

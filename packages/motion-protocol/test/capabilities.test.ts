@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  ExtrapolationBehaviorSchema,
   KeyframeEasingSchema,
   LayerSchema,
   TransformSchema,
@@ -32,18 +31,6 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(TransformSchema.parse({ ...ATOMS.transform, depth: 1.5 }).depth).toBe(
       1.5,
     );
-  });
-
-  it("accepts cycle pingpong mode and rejects unknown modes", () => {
-    expect(
-      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "pingpong" }),
-    ).toEqual({
-      type: "cycle",
-      mode: "pingpong",
-    });
-    expect(() =>
-      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "bounce" }),
-    ).toThrow();
   });
 
   it("exposes transform.depth in public AI vocabulary", () => {
@@ -90,8 +77,8 @@ describe("motion-protocol R2–R5 contract", () => {
       false,
     );
     expect(
-      motionPropertyCapability("text", "modifiers.mp.progress")?.public,
-    ).toBe(false);
+      motionPropertyCapability("text", "modifiers.mp.progress"),
+    ).toBeUndefined();
     expect(
       publicMotionPropertyCapabilities("text").some((entry) =>
         entry.property.startsWith("modifiers."),

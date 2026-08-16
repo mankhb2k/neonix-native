@@ -334,3 +334,49 @@ describe("timeline.duration", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 });
+
+describe("runtime IR V1 contract", () => {
+  it("rejects modifiers on runtime layers", () => {
+    const ir = baseIR();
+    const layer = (ir.layers as Record<string, unknown>[])[0]!;
+    layer.modifiers = [
+      {
+        id: "mp",
+        type: "motion-path",
+        pathNodeId: "p",
+        contourId: "c",
+        progress: 0,
+        orientToPath: false,
+        rotationOffset: 0,
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects modifiers.* tracks", () => {
+    const ir = baseIR();
+    ir.tracks = [
+      {
+        layerId: "title",
+        property: "modifiers.mp.progress",
+        keys: [{ t: 0, v: 0 }],
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts tracks compiled from timeline.clips allowlist", () => {
+    const ir = baseIR();
+    ir.tracks = [
+      {
+        layerId: "title",
+        property: "appearance.opacity",
+        keys: [
+          { t: 0, v: 0 },
+          { t: 1, v: 100 },
+        ],
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+});

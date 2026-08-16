@@ -35,7 +35,6 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   repeaterInstances: 1_000,
   repeaterGridColumns: 100,
   textAnimatorUnits: 1_000,
-  modifiersPerLayer: 32,
   sourceImportsPerComponent: 16,
   sourcePartsPerImport: 2_048,
   sourceElementIdsPerPart: 1_024,
@@ -525,34 +524,6 @@ const NODE_PROPERTIES: Readonly<
   },
 });
 
-/** Runtime IR only — not V1 authoring (no modifiers on MotionProjectV1 layers). */
-function runtimeModifierCapability(
-  property: string,
-): MotionPropertyCapability | undefined {
-  const hidden = {
-    animatable: true,
-    bindable: false,
-    public: false,
-    runtimeSupport: "evaluated" as const,
-  };
-  if (/^modifiers\.[^.]+\.progress$/.test(property))
-    return { valueKind: "number", ...hidden, min: 0, max: 1 };
-  if (/^modifiers\.[^.]+\.(start|end)$/.test(property))
-    return { valueKind: "number", ...hidden, min: 0, max: 1 };
-  if (/^modifiers\.[^.]+\.offset$/.test(property))
-    return { valueKind: "number", ...hidden };
-  if (/^modifiers\.[^.]+\.amount$/.test(property))
-    return {
-      valueKind: "number",
-      ...hidden,
-      min: -MOTION_PROTOCOL_LIMITS.pathBendAmount,
-      max: MOTION_PROTOCOL_LIMITS.pathBendAmount,
-    };
-  if (/^modifiers\.[^.]+\.weight$/.test(property))
-    return { valueKind: "number", ...hidden, min: 0, max: 1 };
-  return undefined;
-}
-
 export function motionPropertyCapability(
   nodeType: string,
   property: string,
@@ -604,8 +575,6 @@ export function motionPropertyCapability(
     const transform = TRANSFORM_PROPERTIES[property];
     if (transform) return transform;
   }
-  const modifier = runtimeModifierCapability(property);
-  if (modifier) return modifier;
   if (nodeType !== "audio" && nodeType !== "camera") {
     const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
     if (effectMatch) {

@@ -247,11 +247,8 @@ export {
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
   KeyframeEasingSchema,
-  ExtrapolationBehaviorSchema,
   ProceduralDriverSchema,
   type ProceduralDriver,
-  TimelineMarkerSchema,
-  TrackTimeSchema,
 } from "./v1/animation";
 
 export { DesignTokensSchema, type DesignTokens } from "./v1/design-tokens";

@@ -328,7 +328,13 @@ export function compileLayerGraphToRuntime(input: {
   // Default it here so authoring → runtime IR stays lossless.
   const runtimeNodes: RuntimeNode[] = laidOut.map((node) =>
     node.type === "path"
-      ? { ...node, payload: { ...node.payload, fillRule: "nonzero" as const } }
+      ? {
+          ...node,
+          payload: {
+            ...node.payload,
+            fillRule: node.payload.fillRule ?? ("nonzero" as const),
+          },
+        }
       : node,
   ) as RuntimeNode[];
   const markers = new Map<string, number>(

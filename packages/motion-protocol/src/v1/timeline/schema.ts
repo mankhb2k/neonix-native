@@ -5,9 +5,17 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { FiniteNumberSchema, PositiveNumberSchema } from "../common";
-import { TimelineMarkerV1Schema } from "../animation/tracks";
+import { FiniteNumberSchema, IdSchema, PositiveNumberSchema } from "../common";
 import { TimelinePropertyClipV1Schema } from "./clips";
+
+export const TimelineMarkerV1Schema = z
+  .object({
+    id: IdSchema,
+    t: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
+  })
+  .strict();
 
 export const WorkAreaSchema = z
   .object({

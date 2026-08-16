@@ -44,15 +44,6 @@ function pathScene(): RuntimeScene {
         },
         style: { stroke: "#ffffff", strokeWidth: 4, fill: "#1877F2" },
         effects: [{ id: "fx.blur", type: "blur", radius: 2 }],
-        modifiers: [
-          {
-            id: "trim",
-            type: "trim-path",
-            start: 0,
-            end: 0.5,
-            offset: 0,
-          },
-        ],
       },
     ],
     tracks: [],
@@ -60,7 +51,7 @@ function pathScene(): RuntimeScene {
 }
 
 describe("wave2 path + camera paint", () => {
-  it("emits drawPath with trimmed contours and blur effects", () => {
+  it("emits drawPath with contours and blur effects", () => {
     const frame = evaluateFrame({
       scene: pathScene(),
       frame: 0,

@@ -40,6 +40,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |
 | [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | v1 |
 | [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md) | timeline.clips + prop keyframes; interpolation cứng | v1 |
+| [v1-compiler-runtime-guide.md](./v1-compiler-runtime-guide.md) | Compiler emit + runtime IR; không mở rộng protocol | v1 |
 | [v1-production-surface-guide.md](./v1-production-surface-guide.md) | Bề mặt AI mặc định / nâng cao | Nháp |
 
 ---
@@ -62,6 +63,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - Binding = variable → public prop. Kinds: string, number, boolean, color, asset, choice.
 - Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow không intensity. Không effects trên camera/audio.
 - Animation layer/property = `timeline.clips`. Prop = `payload.props` keyframes. `t` local. Không animate frame/trim/fit.
+- Compiler/runtime chỉ thực thi protocol. Runtime không modifier; tracks là IR nội bộ.
 
 ---
 
