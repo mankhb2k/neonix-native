@@ -1,13 +1,16 @@
 import { AtomPage } from "@/components/docs/AtomPage";
+import { DocsVisualExample } from "@/components/docs/DocsVisualExample";
 import { ATOM_ROTATE } from "@/lib/docs/atoms";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 import { SINGLE_ROOT } from "@/lib/docs/projects";
+import { ROTATE_VARIANTS } from "@/lib/docs/visual-fixtures";
 
 export function rotatePage(): DocsPageView {
   return withOnThisPage({
     title: "Rotate",
     toc: [
+      { id: "preview", title: "Preview" },
       { id: "quick-reference", title: "Quick Reference" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
@@ -20,6 +23,13 @@ export function rotatePage(): DocsPageView {
         human="2D rotation around Z, in degrees."
         jsonPath="transform.rotate.z"
         lede="Only rotate.z exists in V1. There is no 3D rotate.x or rotate.y."
+        visual={
+          <DocsVisualExample
+            path="transform.rotate.z"
+            overlay="origin"
+            variants={ROTATE_VARIANTS}
+          />
+        }
         quick={ATOM_ROTATE}
         meaning={[
           "Pivots around transform.origin.",

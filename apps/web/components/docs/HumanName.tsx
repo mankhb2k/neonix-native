@@ -16,8 +16,10 @@ export function HumanName({
         <p className="mt-2 text-[15px] text-[var(--fg-muted)]">{human}</p>
       ) : null}
       {jsonPath ? (
-        <p className="mt-2 font-mono text-[13px] text-[var(--accent-text,#0f766e)]">
-          JSON path: {jsonPath}
+        <p className="mt-3">
+          <code className="rounded-md border border-[var(--border-subtle,#e4e4e7)] bg-[#f8fafc] px-2 py-1 font-mono text-[12px] text-[var(--fg-primary)]">
+            {jsonPath}
+          </code>
         </p>
       ) : null}
     </header>

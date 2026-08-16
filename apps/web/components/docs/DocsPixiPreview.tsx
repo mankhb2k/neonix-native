@@ -8,14 +8,23 @@ import {
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { createStageRenderer } from "@/lib/editor/stage/stage-renderer-factory";
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
-import { compositionFps } from "@/lib/runtime/project-composition";
+import {
+  compositionAspectRatio,
+  compositionFps,
+} from "@/lib/runtime/project-composition";
+import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+
+const hostCanvasClass =
+  "relative h-[240px] w-full overflow-hidden bg-[var(--bg-surface)] [&_canvas]:absolute [&_canvas]:inset-0 [&_canvas]:h-full [&_canvas]:w-full [&_canvas]:object-contain";
 
 export function DocsPixiPreview({
   project,
   play = false,
+  chrome = "gallery",
 }: {
   project: unknown;
   play?: boolean;
+  chrome?: "gallery" | "bare";
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<StageRendererPort | null>(null);
@@ -53,7 +62,8 @@ export function DocsPixiPreview({
         return;
       }
       rendererRef.current = renderer;
-      renderer.setScale(0.28);
+      renderer.setScale(1);
+      renderer.setBackground(parsed.composition.background);
       renderer.setDocument({ project: parsed, clips: [], lanes: [] });
       const fps = compositionFps(parsed);
       renderer.paintFrame(0);
@@ -77,6 +87,25 @@ export function DocsPixiPreview({
     };
   }, [project, play]);
 
+  const stage = error ? null : (
+    <div
+      ref={hostRef}
+      className={hostCanvasClass}
+      data-testid="docs-pixi-preview"
+    />
+  );
+
+  if (chrome === "bare") {
+    if (error) {
+      return (
+        <pre className="h-[240px] overflow-auto p-3 text-[12px] text-red-700 whitespace-pre-wrap">
+          {error}
+        </pre>
+      );
+    }
+    return stage;
+  }
+
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-surface)]">
       <p className="border-b border-[var(--border-subtle,#e4e4e7)] px-3 py-2 text-[11px] text-[var(--fg-muted)]">
@@ -87,12 +116,20 @@ export function DocsPixiPreview({
           {error}
         </pre>
       ) : (
-        <div
-          ref={hostRef}
-          className="relative h-[220px] w-full overflow-hidden bg-white"
-          data-testid="docs-pixi-preview"
-        />
+        stage
       )}
     </div>
   );
+}
+
+export function docsStageViewBox(project: unknown): {
+  width: number;
+  height: number;
+} | null {
+  try {
+    const parsed = parseMotionProjectV1(project);
+    return stageSizeForAspect(compositionAspectRatio(parsed));
+  } catch {
+    return null;
+  }
 }

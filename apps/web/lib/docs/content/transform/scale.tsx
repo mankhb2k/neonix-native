@@ -1,13 +1,16 @@
 import { AtomPage } from "@/components/docs/AtomPage";
+import { DocsVisualExample } from "@/components/docs/DocsVisualExample";
 import { ATOM_SCALE } from "@/lib/docs/atoms";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 import { SINGLE_ROOT } from "@/lib/docs/projects";
+import { SCALE_VARIANTS } from "@/lib/docs/visual-fixtures";
 
 export function scalePage(): DocsPageView {
   return withOnThisPage({
     title: "Scale",
     toc: [
+      { id: "preview", title: "Preview" },
       { id: "quick-reference", title: "Quick Reference" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
@@ -20,6 +23,12 @@ export function scalePage(): DocsPageView {
         human="Per-axis size relative to the local frame. Negative values flip."
         jsonPath="transform.scale"
         lede="1 is the original size. scale.x = -1 flips horizontally. There is no flipX or flipY."
+        visual={
+          <DocsVisualExample
+            path="transform.scale"
+            variants={SCALE_VARIANTS}
+          />
+        }
         quick={ATOM_SCALE}
         meaning={[
           "Applies around transform.origin.",

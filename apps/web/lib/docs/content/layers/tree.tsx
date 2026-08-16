@@ -1,14 +1,16 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { LayerTreeFigure } from "@/components/docs/figures/LayerTreeFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function layerTreePage(): DocsPageView {
-  return withOnThisPage({
+  return withOnThisPage({ showToc: false,
     title: "Layer tree",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "roots", title: "Roots" },
       { id: "nesting", title: "Nesting" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -20,6 +22,8 @@ export function layerTreePage(): DocsPageView {
           human="Root list plus group.children. One parent pointer per child."
           jsonPath="layers[] / group.children[]"
         />
+        <H2 id="concept">Concept</H2>
+        <LayerTreeFigure />
         <H2 id="roots">Roots</H2>
         <P>
           <code>project.layers[]</code> holds only roots. Each root has{" "}

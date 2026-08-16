@@ -1,14 +1,16 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ZIndexLanesFigure } from "@/components/docs/figures/ZIndexLanesFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function rootZIndexPage(): DocsPageView {
-  return withOnThisPage({
+  return withOnThisPage({ showToc: false,
     title: "zIndex",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "lanes", title: "Root lanes" },
       { id: "nested", title: "Nested stacking" },
       { id: "unique", title: "Unique among siblings" },
@@ -21,6 +23,8 @@ export function rootZIndexPage(): DocsPageView {
           human="Lane order at the root. Paint order among siblings inside a group."
           jsonPath="layers[].zIndex"
         />
+        <H2 id="concept">Concept</H2>
+        <ZIndexLanesFigure />
         <P>
           Every layer must have an integer <code>zIndex</code>. It is never
           optional. Missing values are invalid. Do not use{" "}
@@ -31,8 +35,8 @@ export function rootZIndexPage(): DocsPageView {
           Root layers (<code>parentLayerId: null</code>) are timeline lanes.
           Visual roots use <code>zIndex &gt;= 0</code>. Audio is root-only and
           uses <code>zIndex &lt; 0</code> (typically <code>-1</code>,{" "}
-          <code>-2</code>, …). A group at root <code>zIndex: 2</code> paints
-          its entire subtree between root 1 and root 3.
+          <code>-2</code>, …). A group at root <code>zIndex: 2</code> paints its
+          entire subtree between root 1 and root 3.
         </P>
         <JsonBlock
           code={JSON.stringify(
@@ -51,9 +55,9 @@ export function rootZIndexPage(): DocsPageView {
         <H2 id="nested">Nested stacking</H2>
         <P>
           Nested visual layers also have <code>zIndex</code>, always{" "}
-          <code>&gt;= 0</code>. That number only orders siblings inside the
-          same parent. A child with <code>zIndex: 99</code> cannot jump above a
-          root lane that sits on top of its parent group.
+          <code>&gt;= 0</code>. That number only orders siblings inside the same
+          parent. A child with <code>zIndex: 99</code> cannot jump above a root
+          lane that sits on top of its parent group.
         </P>
         <H2 id="unique">Unique among siblings</H2>
         <P>

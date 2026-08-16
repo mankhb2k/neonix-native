@@ -1,12 +1,17 @@
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { adjustmentLayerPage } from "./adjustment";
 import { audioLayerPage } from "./audio";
 import { componentLayerPage } from "./component";
 import { framePage } from "./frame";
 import { groupLayerPage } from "./group";
-import { layoutPage } from "./layout";
 import { imageLayerPage } from "./image";
+import { layoutPage } from "./layout";
 import { layerTypesOverviewPage } from "./overview";
+import { pathLayerPage } from "./path";
 import { rootZIndexPage } from "./root-zindex";
+import { shapeLayerPage } from "./shape";
+import { solidLayerPage } from "./solid";
+import { svgLayerPage } from "./svg";
 import { textLayerPage } from "./text";
 import { layerTimingPage } from "./timing";
 import { layerTreePage } from "./tree";
@@ -23,9 +28,14 @@ export type LayersSlug =
   | "layers/group"
   | "layers/layout"
   | "layers/text"
+  | "layers/shape"
+  | "layers/path"
   | "layers/image"
+  | "layers/svg"
   | "layers/video"
   | "layers/audio"
+  | "layers/solid"
+  | "layers/adjustment"
   | "layers/component";
 
 const LAYERS_SLUGS = new Set<string>([
@@ -38,9 +48,14 @@ const LAYERS_SLUGS = new Set<string>([
   "layers/group",
   "layers/layout",
   "layers/text",
+  "layers/shape",
+  "layers/path",
   "layers/image",
+  "layers/svg",
   "layers/video",
   "layers/audio",
+  "layers/solid",
+  "layers/adjustment",
   "layers/component",
 ]);
 
@@ -68,12 +83,22 @@ export function getLayersPage(slug: LayersSlug): DocsPageView {
       return layoutPage();
     case "layers/text":
       return textLayerPage();
+    case "layers/shape":
+      return shapeLayerPage();
+    case "layers/path":
+      return pathLayerPage();
     case "layers/image":
       return imageLayerPage();
+    case "layers/svg":
+      return svgLayerPage();
     case "layers/video":
       return videoLayerPage();
     case "layers/audio":
       return audioLayerPage();
+    case "layers/solid":
+      return solidLayerPage();
+    case "layers/adjustment":
+      return adjustmentLayerPage();
     case "layers/component":
       return componentLayerPage();
   }

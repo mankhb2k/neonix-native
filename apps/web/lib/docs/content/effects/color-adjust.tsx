@@ -26,7 +26,11 @@ export function colorAdjustPage(): DocsPageView {
           brightness, contrast, and saturation at 100, hue-rotate at 0.
           Ranges: 0..200 for the three percents, −180..180 for hue-rotate.
           All four fields animate linearly. Do not emit exposure, gamma,
-          vibrance, curves, or temperature.
+          vibrance, curves, or temperature. A dedicated grade layer is{" "}
+          <a className="underline" href="/docs/layers/adjustment">
+            type adjustment
+          </a>
+          , not this effect.
         </P>
         <H2 id="example">Example</H2>
         <JsonBlock
@@ -46,6 +50,7 @@ export function colorAdjustPage(): DocsPageView {
         <AiWritingGuide
           items={[
             "Use color-adjust on the layer you want to grade, not as compositing.",
+            "A stack-wide grade is type adjustment, not this effect.",
             "Animate effects.fx-color-1.brightness and the other three leaves.",
             "100/100/100 and hue-rotate 0 is identity.",
           ]}

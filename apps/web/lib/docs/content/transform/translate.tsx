@@ -1,13 +1,16 @@
 import { AtomPage } from "@/components/docs/AtomPage";
+import { DocsVisualExample } from "@/components/docs/DocsVisualExample";
 import { ATOM_TRANSLATE } from "@/lib/docs/atoms";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 import { SINGLE_ROOT } from "@/lib/docs/projects";
+import { TRANSLATE_VARIANTS } from "@/lib/docs/visual-fixtures";
 
 export function translatePage(): DocsPageView {
   return withOnThisPage({
     title: "Move",
     toc: [
+      { id: "preview", title: "Preview" },
       { id: "quick-reference", title: "Quick Reference" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
@@ -21,6 +24,12 @@ export function translatePage(): DocsPageView {
         human="Position in composition pixels."
         jsonPath="transform.translate"
         lede="translate.x / translate.y move the layer. There is no translate.z — use depth."
+        visual={
+          <DocsVisualExample
+            path="transform.translate"
+            variants={TRANSLATE_VARIANTS}
+          />
+        }
         quick={ATOM_TRANSLATE}
         meaning={[
           "x/y are composition pixels.",

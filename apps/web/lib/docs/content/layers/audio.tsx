@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { AudioFigure } from "@/components/docs/figures/AudioFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function audioLayerPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Audio",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "exception", title: "Not a visual layer" },
       { id: "root", title: "Root-only lane" },
       { id: "payload", title: "Playback payload" },
@@ -21,6 +24,8 @@ export function audioLayerPage(): DocsPageView {
           human="A root-only timeline sound object. Not a visual primitive."
           jsonPath='layers[] type: "audio"'
         />
+        <H2 id="concept">Concept</H2>
+        <AudioFigure />
         <H2 id="exception">Not a visual layer</H2>
         <P>
           Audio still lives on <code>project.layers</code> and uses{" "}
@@ -61,9 +66,9 @@ export function audioLayerPage(): DocsPageView {
         <P>
           Native fields: <code>assetId</code>, <code>trimStart</code>,{" "}
           <code>trimEnd</code>, <code>playbackRate</code>, <code>volume</code>{" "}
-          (0..100), <code>fadeIn</code>, <code>fadeOut</code>,{" "}
-          <code>loop</code>, <code>muted</code>. <code>trim*</code> cuts the
-          source, not layer timing.
+          (0..100), <code>fadeIn</code>, <code>fadeOut</code>, <code>loop</code>
+          , <code>muted</code>. <code>trim*</code> cuts the source, not layer
+          timing.
         </P>
         <AiWritingGuide
           items={[

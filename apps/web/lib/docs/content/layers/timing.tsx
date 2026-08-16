@@ -4,18 +4,12 @@ import { JsonBlock } from "@/components/docs/JsonBlock";
 import { TimelineStrip } from "@/components/docs/TimelineStrip";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
-import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function layerTimingPage(): DocsPageView {
-  return withOnThisPage({
+  return {
     title: "Layer timing",
-    toc: [
-      { id: "required", title: "Required on every layer" },
-      { id: "local", title: "Child timing is local" },
-      { id: "effective", title: "Effective window" },
-      { id: "trim", title: "No layer trim field" },
-      { id: "ai-guide", title: "AI writing guide" },
-    ],
+    toc: [],
+    showToc: false,
     body: (
       <article className="pb-20">
         <HumanName
@@ -43,14 +37,6 @@ export function layerTimingPage(): DocsPageView {
           not exceed the parent <code>duration</code>.
         </P>
         <H2 id="effective">Effective window</H2>
-        <P>
-          The layer is visible only in the intersection of its window and every
-          ancestor:
-        </P>
-        <JsonBlock
-          code={`globalStart = parentGlobalStart + child.start
-globalEnd   = min(parentGlobalEnd, globalStart + child.duration)`}
-        />
         <TimelineStrip
           hideHeading
           duration={8}
@@ -58,6 +44,14 @@ globalEnd   = min(parentGlobalEnd, globalStart + child.duration)`}
             { id: "parent", start: 2, duration: 4 },
             { id: "child (local 1+2)", start: 3, duration: 2 },
           ]}
+        />
+        <P>
+          The layer is visible only in the intersection of its window and every
+          ancestor:
+        </P>
+        <JsonBlock
+          code={`globalStart = parentGlobalStart + child.start
+globalEnd   = min(parentGlobalEnd, globalStart + child.duration)`}
         />
         <H2 id="trim">No layer trim field</H2>
         <P>
@@ -75,5 +69,5 @@ globalEnd   = min(parentGlobalEnd, globalStart + child.duration)`}
         />
       </article>
     ),
-  });
+  };
 }

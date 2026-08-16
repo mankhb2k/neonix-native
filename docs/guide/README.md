@@ -15,6 +15,7 @@ Các file này đã có và là nguồn sự thật đang chạy:
 - [v1-component-guide.md](./v1-component-guide.md)
 - [v1-group-guide.md](./v1-group-guide.md)
 - [asset-format-storage.md](./asset-format-storage.md)
+- [AI AUTHORING](./ai-authoring/) — một trang `/docs/ai` trong Getting started; 12 mục ở On this page
 
 ---
 

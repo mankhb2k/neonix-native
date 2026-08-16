@@ -21,7 +21,7 @@ export const DOCS_NAV: DocsNavGroup[] = [
         label: "How a video is described",
       },
       { href: "/docs/minimal-project", label: "Minimal project" },
-      { href: "/docs/ai", label: "How AI/MCP should write JSON" },
+      { href: "/docs/ai", label: "AI authoring" },
     ],
   },
   {
@@ -41,16 +41,21 @@ export const DOCS_NAV: DocsNavGroup[] = [
     items: [
       { href: "/docs/layer", label: "What is a layer" },
       { href: "/docs/layers/tree", label: "Layer tree" },
-      { href: "/docs/layers/root-zindex", label: "zIndex" },
+      { href: "/docs/layers/root-zindex", label: "Root layers and zIndex" },
       { href: "/docs/layers/timing", label: "Layer timing" },
       { href: "/docs/frame", label: "Frame" },
       { href: "/docs/layers", label: "Layer types overview" },
       { href: "/docs/layers/group", label: "Group" },
       { href: "/docs/layers/layout", label: "Layout" },
       { href: "/docs/layers/text", label: "Text" },
+      { href: "/docs/layers/shape", label: "Shape" },
+      { href: "/docs/layers/path", label: "Path" },
       { href: "/docs/layers/image", label: "Image" },
+      { href: "/docs/layers/svg", label: "SVG" },
       { href: "/docs/layers/video", label: "Video" },
       { href: "/docs/layers/audio", label: "Audio" },
+      { href: "/docs/layers/solid", label: "Solid" },
+      { href: "/docs/layers/adjustment", label: "Adjustment" },
       { href: "/docs/layers/component", label: "Component layer" },
     ],
   },
@@ -109,16 +114,6 @@ export const DOCS_NAV: DocsNavGroup[] = [
     ],
   },
   {
-    id: "ai-authoring",
-    label: "AI authoring",
-    items: [
-      { href: "/docs/ai/rules", label: "Authoring rules" },
-      { href: "/docs/ai/property-paths", label: "Canonical property paths" },
-      { href: "/docs/ai/patterns", label: "Valid and invalid patterns" },
-      { href: "/docs/ai/checklist", label: "AI output checklist" },
-    ],
-  },
-  {
     id: "examples",
     label: "Examples",
     items: [
@@ -137,6 +132,18 @@ const LEGACY_SLUGS = [
   "effects",
   "motion",
   "examples",
+  "ai/rules",
+  "ai/decision-guide",
+  "ai/layer-patterns",
+  "ai/component-rules",
+  "ai/bindings",
+  "ai/property-paths",
+  "ai/defaults",
+  "ai/patterns",
+  "ai/error-fixes",
+  "ai/patching",
+  "ai/naming",
+  "ai/checklist",
 ] as const;
 
 export const DOCS_PAGE_SLUGS = [

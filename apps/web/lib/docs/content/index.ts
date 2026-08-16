@@ -47,7 +47,7 @@ export function getDocsPage(slug: string): DocsPageView {
   if (isEffectsSlug(slug)) return getEffectsPage(slug);
   if (isAnimationSlug(slug)) return getAnimationPage(slug);
   if (isComponentsSlug(slug)) return getComponentsPage(slug);
-  if (isAiAuthoringSlug(slug)) return getAiAuthoringPage(slug);
+  if (isAiAuthoringSlug(slug)) return getAiAuthoringPage();
   if (isExamplesSlug(slug)) return getExamplesPage(slug);
   return stubPage(navLabelForSlug(slug) ?? slug);
 }

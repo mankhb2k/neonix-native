@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 
 export function P({ children }: { children: ReactNode }) {
   return (
-    <p className="my-4 text-[15px] leading-7 text-[var(--fg-primary)]">{children}</p>
+    <p className="my-4 text-[15px] leading-7 text-[var(--fg-primary)]">
+      {children}
+    </p>
   );
 }
 
@@ -24,10 +26,10 @@ export function DocsTable({
   return (
     <div className="my-6 overflow-x-auto rounded-xl border border-[var(--border-subtle,#e4e4e7)]">
       <table className="w-full text-left text-[14px]">
-        <thead className="bg-[var(--bg-surface)] text-[13px] text-[var(--fg-muted)]">
+        <thead className="bg-[#f1f5f9] text-[12px] uppercase tracking-wide text-[var(--fg-primary)]">
           <tr>
             {headers.map((h) => (
-              <th key={h} className="px-3 py-2 font-medium">
+              <th key={h} className="px-3 py-2.5 font-semibold">
                 {h}
               </th>
             ))}

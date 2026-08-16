@@ -1,14 +1,16 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { GroupFigure } from "@/components/docs/figures/GroupFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function groupLayerPage(): DocsPageView {
-  return withOnThisPage({
+  return withOnThisPage({ showToc: false,
     title: "Group",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "what", title: "What a group is" },
       { id: "jobs", title: "Four jobs" },
       { id: "not", title: "What it is not" },
@@ -22,6 +24,8 @@ export function groupLayerPage(): DocsPageView {
           human="A visual container that treats child layers as one unit."
           jsonPath='layers[] type: "group"'
         />
+        <H2 id="concept">Concept</H2>
+        <GroupFigure />
         <H2 id="what">What a group is</H2>
         <P>
           A group is valid only when it has children. It is not a leaf. Every
@@ -63,16 +67,20 @@ export function groupLayerPage(): DocsPageView {
         <P>
           A group does not invent graphic content without children. It does not
           rewrite a child&apos;s shape, text, or media. It does not clip
-          children to its box by default. It does not replace a child&apos;s
-          own animation.
+          children to its box by default. It does not replace a child&apos;s own
+          animation.
         </P>
         <H2 id="frame">Group vs frame</H2>
         <P>
-          A group must have a <code>frame</code> for its own box; that box
-          does not clip children. Do not derive it from children in canonical
-          JSON. Want a cut-out? Use a mask. Want children packed in a row,
-          column, or grid? Set <code>layout</code> on the group and{" "}
-          <code>layoutItem</code> on children.
+          A group must have a <code>frame</code> for its own box; that box does
+          not clip children. Do not derive it from children in canonical JSON.
+          Want a cut-out? Use a mask. Want children packed in a row, column, or
+          grid? Set <code>layout</code> on the group and <code>layoutItem</code>{" "}
+          on children. Details:{" "}
+          <a className="underline" href="/docs/layers/layout">
+            Layout
+          </a>
+          .
         </P>
         <AiWritingGuide
           items={[
