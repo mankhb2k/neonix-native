@@ -1,54 +1,57 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { ATOM_VISIBLE } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
 
 export function visiblePage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Visible",
     toc: [
-      { id: "quick-reference", title: "Quick Reference" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
-      { id: "valid-invalid", title: "Valid / Invalid" },
-      { id: "mistakes", title: "Common mistakes" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Visible"
-        human="Whether the visual layer is rendered."
-        jsonPath="appearance.visible"
-        lede="appearance.visible is render on/off for visual layers. It is not hit-test, selection, or editor lock. Audio has no appearance; mute with payload.muted."
-        quick={ATOM_VISIBLE}
-        meaning={[
-          "false means the layer is not painted. Opacity can stay 100.",
-          "JSON protocol does not define hit-test or UI selection from this field.",
-        ]}
-        authoringExample={{ appearance: { visible: false, opacity: 100 } }}
-        valid={SINGLE_ROOT}
-        invalid={
-          {
-            ...SINGLE_ROOT,
-            metadata: { ...SINGLE_ROOT.metadata, id: "bad-visible" },
-            layers: [
-              {
-                ...SINGLE_ROOT.layers[0],
-                appearance: { visible: "hidden", opacity: 100 },
-              },
-            ],
-          } as unknown
-        }
-        mistakes={[
-          "Do not use appearance.visible to mute audio.",
-          "Do not invent pointer-events or hitTest on appearance.",
-        ]}
-        ai={[
-          "Set appearance.visible on visual layers only.",
-          "Do not emit hit-test fields.",
-        ]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Visible"
+          human="Whether the visual layer is rendered."
+          jsonPath="appearance.visible"
+        />
+        <P>
+          <code>appearance.visible</code> is render on/off for visual layers.
+          It is not hit-test, selection, or editor lock. Audio has no
+          appearance — mute with <code>payload.muted</code>.
+        </P>
+
+        <H2 id="meaning">Meaning</H2>
+        <P>
+          <code>false</code> means the layer is not painted. Opacity can stay
+          100. The JSON protocol does not define hit-test or UI selection from
+          this field.
+        </P>
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { appearance: { visible: false, opacity: 100 } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Set appearance.visible on visual layers only.",
+            "Do not emit pointer-events or hitTest fields.",
+            "Do not use appearance.visible to mute audio.",
+          ]}
+        />
+      </article>
     ),
   });
 }

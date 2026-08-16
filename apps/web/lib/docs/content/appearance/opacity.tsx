@@ -1,55 +1,56 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { ATOM_OPACITY, ATOM_VISIBLE } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
+import { OpacityFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
 
 export function opacityPage(): DocsPageView {
   return withOnThisPage({
-    title: "Look",
+    showToc: false,
+    title: "Opacity",
     toc: [
-      { id: "quick-reference", title: "Quick Reference" },
-      { id: "meaning", title: "Meaning" },
+      { id: "concept", title: "Concept" },
       { id: "example", title: "Example" },
-      { id: "valid-invalid", title: "Valid / Invalid" },
-      { id: "mistakes", title: "Common mistakes" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Look"
-        human="Visibility and opacity."
-        jsonPath="appearance"
-        lede="appearance is the minimum visual display layer: visible plus opacity. Opacity is an integer percent 0..100 (100 = fully opaque). Not a 0..1 float. Not transform.opacity. Not hit-test."
-        quick={ATOM_OPACITY}
-        meaning={[
-          `${ATOM_VISIBLE.path} turns render on or off. It does not define hit-test or editor selection.`,
-          "Parent opacity can multiply down to children. Audio has no appearance.",
-        ]}
-        authoringExample={{ appearance: { visible: true, opacity: 80 } }}
-        valid={SINGLE_ROOT}
-        invalid={{
-          ...SINGLE_ROOT,
-          metadata: { ...SINGLE_ROOT.metadata, id: "bad-opacity" },
-          layers: [
-            {
-              ...SINGLE_ROOT.layers[0],
-              appearance: { visible: true, opacity: 0.5 },
-            },
-          ],
-        }}
-        mistakes={[
-          "Do not use opacity 0..1.",
-          "Do not put opacity on transform.",
-          "Do not put hit-test or pointer-events on appearance.",
-          "Do not put appearance on audio.",
-        ]}
-        ai={[
-          "Use appearance.opacity for opacity.",
-          "Use appearance.visible for hide/show.",
-          "Do not emit hit-test fields. Audio uses payload.muted and payload.volume.",
-        ]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Opacity"
+          human="How opaque the layer is, as an integer percent."
+          jsonPath="appearance.opacity"
+        />
+        <P>
+          <code>appearance</code> is the minimum display layer:{" "}
+          <code>visible</code> plus <code>opacity</code>. Opacity is an
+          integer percent <code>0..100</code> (100 = fully opaque) — not a
+          0..1 float, never on <code>transform</code>. Parent opacity
+          multiplies down to children. Audio has no appearance.
+        </P>
+
+        <H2 id="concept">Concept</H2>
+        <OpacityFigure />
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { appearance: { visible: true, opacity: 80 } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Use appearance.opacity as an integer 0..100 — never 0..1.",
+            "Do not put opacity on transform.",
+            "Audio uses payload.muted and payload.volume, not appearance.",
+          ]}
+        />
+      </article>
     ),
   });
 }

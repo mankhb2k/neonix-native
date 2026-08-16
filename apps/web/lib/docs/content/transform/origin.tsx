@@ -1,63 +1,53 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { DocsVisualExample } from "@/components/docs/DocsVisualExample";
-import { ATOM_ORIGIN } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
+import { OriginFigure } from "@/components/docs/figures/TransformFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
-import { ORIGIN_VARIANTS } from "@/lib/docs/visual-fixtures";
 
 export function originPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Origin",
     toc: [
-      { id: "preview", title: "Preview" },
-      { id: "quick-reference", title: "Quick Reference" },
-      { id: "meaning", title: "Meaning" },
+      { id: "concept", title: "Concept" },
       { id: "example", title: "Example" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Origin"
-        human="Normalized pivot inside the local frame."
-        jsonPath="transform.origin"
-        lede="0,0 is top-left. 0.5,0.5 is center. 1,1 is bottom-right. Schema allows any 0..1; AI should prefer 0, 0.5, or 1."
-        visual={
-          <DocsVisualExample
-            path="transform.origin"
-            overlay="origin"
-            play
-            variants={ORIGIN_VARIANTS}
-          />
-        }
-        quick={ATOM_ORIGIN}
-        meaning={[
-          "Scale, rotate, and skew pivot around this point.",
-          "Not anchorX/anchorY.",
-        ]}
-        authoringExample={{
-          transform: { origin: { x: 0.5, y: 0.5 } },
-        }}
-        valid={SINGLE_ROOT}
-        invalid={{
-          ...SINGLE_ROOT,
-          metadata: { ...SINGLE_ROOT.metadata, id: "bad-origin" },
-          layers: [
-            {
-              ...SINGLE_ROOT.layers[0],
-              transform: {
-                ...SINGLE_ROOT.layers[0]!.transform,
-                origin: { x: 0.5, y: 0.5, z: 0 },
-              },
-            },
-          ],
-        }}
-        mistakes={["Do not write origin.z or anchorX."]}
-        ai={[
-          "Prefer origin 0, 0.5, or 1.",
-          "Use transform.origin.x/y, never anchorX.",
-        ]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Origin"
+          human="Normalized pivot inside the local frame."
+          jsonPath="transform.origin"
+        />
+        <P>
+          <code>0,0</code> is top-left. <code>0.5,0.5</code> is center.{" "}
+          <code>1,1</code> is bottom-right. Scale, rotate, and skew pivot around
+          this point. Not <code>anchorX</code> / <code>anchorY</code>.
+        </P>
+
+        <H2 id="concept">Concept</H2>
+        <OriginFigure />
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { transform: { origin: { x: 0.5, y: 0.5 } } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Prefer origin 0, 0.5, or 1. Schema allows any 0..1.",
+            "Use transform.origin.x/y, never anchorX or origin.z.",
+          ]}
+        />
+      </article>
     ),
   });
 }

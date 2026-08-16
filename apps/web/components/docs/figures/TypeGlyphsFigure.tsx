@@ -62,39 +62,8 @@ export function TypeGlyphsFigure() {
         role="img"
         aria-label="Layer type glyphs"
       >
-        {/* row 1: group, text, shape, path */}
-        <GlyphCell x={col(0)} y={ROW[0]} label="group">
-          <rect
-            x={18}
-            y={14}
-            width={60}
-            height={44}
-            rx={6}
-            fill="#ccfbf1"
-            stroke={ACCENT}
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
-          />
-          <rect
-            x={26}
-            y={22}
-            width={22}
-            height={12}
-            rx={3}
-            fill="#fff"
-            stroke={MUTED}
-          />
-          <rect
-            x={52}
-            y={38}
-            width={22}
-            height={12}
-            rx={3}
-            fill="#fff"
-            stroke={MUTED}
-          />
-        </GlyphCell>
-        <GlyphCell x={col(1)} y={ROW[0]} label="text">
+        {/* row 1: text, shape, path, image */}
+        <GlyphCell x={col(0)} y={ROW[0]} label="text">
           <text
             x={48}
             y={52}
@@ -106,7 +75,7 @@ export function TypeGlyphsFigure() {
             A
           </text>
         </GlyphCell>
-        <GlyphCell x={col(2)} y={ROW[0]} label="shape">
+        <GlyphCell x={col(1)} y={ROW[0]} label="shape">
           <rect
             x={18}
             y={16}
@@ -126,7 +95,7 @@ export function TypeGlyphsFigure() {
             strokeWidth={1.5}
           />
         </GlyphCell>
-        <GlyphCell x={col(3)} y={ROW[0]} label="path">
+        <GlyphCell x={col(2)} y={ROW[0]} label="path">
           <path
             d="M20 54 C 36 18, 60 18, 78 44"
             fill="none"
@@ -136,21 +105,29 @@ export function TypeGlyphsFigure() {
           <circle cx={20} cy={54} r={3.5} fill={INK} />
           <circle cx={78} cy={44} r={3.5} fill={INK} />
         </GlyphCell>
-        {/* row 2: image, svg, video, audio */}
-        <GlyphCell x={col(0)} y={ROW[1]} label="image">
+        <GlyphCell x={col(3)} y={ROW[0]} label="image">
+          <defs>
+            <clipPath id="glyph-img">
+              <rect x={18} y={14} width={60} height={44} rx={6} />
+            </clipPath>
+          </defs>
+          <g clipPath="url(#glyph-img)">
+            <rect x={18} y={14} width={60} height={44} fill="#dbeafe" />
+            <circle cx={62} cy={26} r={6} fill="#fbbf24" />
+            <path d="M18 58 L38 38 L52 50 L62 42 L78 58 Z" fill="#34d399" />
+          </g>
           <rect
             x={18}
             y={14}
             width={60}
             height={44}
             rx={6}
-            fill="#dbeafe"
+            fill="none"
             stroke={MUTED}
           />
-          <circle cx={62} cy={26} r={6} fill="#fbbf24" />
-          <path d="M18 58 L38 38 L52 50 L62 42 L78 58 Z" fill="#34d399" />
         </GlyphCell>
-        <GlyphCell x={col(1)} y={ROW[1]} label="svg">
+        {/* row 2: svg, video, audio, solid */}
+        <GlyphCell x={col(0)} y={ROW[1]} label="svg">
           <path
             d="M48 16 L74 56 L22 56 Z"
             fill="none"
@@ -159,11 +136,11 @@ export function TypeGlyphsFigure() {
             strokeLinejoin="round"
           />
         </GlyphCell>
-        <GlyphCell x={col(2)} y={ROW[1]} label="video">
+        <GlyphCell x={col(1)} y={ROW[1]} label="video">
           <rect x={18} y={16} width={60} height={40} rx={6} fill={INK} />
           <path d="M42 27 L60 36 L42 45 Z" fill="#fff" />
         </GlyphCell>
-        <GlyphCell x={col(3)} y={ROW[1]} label="audio">
+        <GlyphCell x={col(2)} y={ROW[1]} label="audio">
           {[0, 1, 2, 3, 4, 5, 6].map((i) => (
             <rect
               key={i}
@@ -176,11 +153,11 @@ export function TypeGlyphsFigure() {
             />
           ))}
         </GlyphCell>
-        {/* row 3: solid, adjustment, component */}
-        <GlyphCell x={col(0)} y={ROW[2]} label="solid">
+        <GlyphCell x={col(3)} y={ROW[1]} label="solid">
           <rect x={18} y={16} width={60} height={40} rx={6} fill={ACCENT} />
         </GlyphCell>
-        <GlyphCell x={col(1)} y={ROW[2]} label="adjustment">
+        {/* row 3: adjustment, group, component */}
+        <GlyphCell x={col(0)} y={ROW[2]} label="adjustment">
           <line
             x1={24}
             y1={28}
@@ -212,6 +189,37 @@ export function TypeGlyphsFigure() {
             fill="#fff"
             stroke={ACCENT}
             strokeWidth={2}
+          />
+        </GlyphCell>
+        <GlyphCell x={col(1)} y={ROW[2]} label="group">
+          <rect
+            x={18}
+            y={14}
+            width={60}
+            height={44}
+            rx={6}
+            fill="#ccfbf1"
+            stroke={ACCENT}
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+          />
+          <rect
+            x={26}
+            y={22}
+            width={22}
+            height={12}
+            rx={3}
+            fill="#fff"
+            stroke={MUTED}
+          />
+          <rect
+            x={52}
+            y={38}
+            width={22}
+            height={12}
+            rx={3}
+            fill="#fff"
+            stroke={MUTED}
           />
         </GlyphCell>
         <GlyphCell x={col(2)} y={ROW[2]} label="component">

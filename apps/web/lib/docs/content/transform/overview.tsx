@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
+import { TransformPipelineFigure } from "@/components/docs/figures/TransformPipelineFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { DEPTH_DEMO } from "@/lib/docs/projects";
 
 export function transformOverviewPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Transform",
-    previewProject: DEPTH_DEMO,
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "atoms", title: "Atoms" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
@@ -22,10 +23,11 @@ export function transformOverviewPage(): DocsPageView {
           jsonPath="transform"
         />
         <P>
-          Same object on every visual layer. Not layout, not timing, not
-          paint order. Audio has no transform. Pipeline: origin, then
-          scale/rotate/skew, then translate and depth.
+          Same object on every visual layer. Not layout, not timing, not paint
+          order. Audio has no transform.
         </P>
+        <H2 id="concept">Concept</H2>
+        <TransformPipelineFigure />
         <H2 id="atoms">Atoms</H2>
         <ul className="list-disc space-y-2 pl-5 text-[15px]">
           <li>

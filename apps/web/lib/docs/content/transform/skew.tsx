@@ -1,46 +1,53 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { ATOM_SKEW } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
+import { SkewFigure } from "@/components/docs/figures/TransformFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
 
 export function skewPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Skew",
     toc: [
-      { id: "quick-reference", title: "Quick Reference" },
-      { id: "meaning", title: "Meaning" },
+      { id: "concept", title: "Concept" },
       { id: "example", title: "Example" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Skew"
-        human="Shear the local box, in degrees."
-        jsonPath="transform.skew"
-        lede="skew.x and skew.y stay in V1. They apply around origin after scale/rotate in the transform pipeline."
-        quick={ATOM_SKEW}
-        meaning={["Kept in V1.", "Not a layout or effect."]}
-        authoringExample={{
-          transform: { skew: { x: 8, y: 0 } },
-        }}
-        valid={SINGLE_ROOT}
-        invalid={{
-          ...SINGLE_ROOT,
-          metadata: { ...SINGLE_ROOT.metadata, id: "bad-skew" },
-          layers: [
-            {
-              ...SINGLE_ROOT.layers[0],
-              transform: {
-                ...SINGLE_ROOT.layers[0]!.transform,
-                matrix: [1, 0, 0, 1, 0, 0],
-              },
-            },
-          ],
-        }}
-        mistakes={["Do not use a matrix field instead of skew."]}
-        ai={["Use transform.skew.x/y. Do not emit a matrix."]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Skew"
+          human="Shear the local box, in degrees."
+          jsonPath="transform.skew"
+        />
+        <P>
+          <code>skew.x</code> and <code>skew.y</code> stay in V1. They apply
+          around origin after scale/rotate in the transform pipeline. Not a
+          layout or an effect.
+        </P>
+
+        <H2 id="concept">Concept</H2>
+        <SkewFigure />
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { transform: { skew: { x: 8, y: 0 } } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Use transform.skew.x/y. Do not emit a matrix field.",
+            "Skew applies around origin, after scale/rotate.",
+          ]}
+        />
+      </article>
     ),
   });
 }

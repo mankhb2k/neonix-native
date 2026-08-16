@@ -1,64 +1,68 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { ATOM_DEPTH } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
+import { DepthFigure } from "@/components/docs/figures/TransformFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { DEPTH_DEMO, INVALID_TRANSFORM_Z } from "@/lib/docs/projects";
 
 export function depthPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Depth",
     toc: [
-      { id: "quick-reference", title: "Quick Reference" },
-      { id: "meaning", title: "Meaning" },
+      { id: "concept", title: "Concept" },
+      { id: "vs-zindex", title: "Depth vs zIndex" },
       { id: "example", title: "Example" },
-      { id: "timeline", title: "Timeline" },
-      { id: "keyframes", title: "With Keyframes" },
-      { id: "valid-invalid", title: "Valid / Invalid" },
-      { id: "mistakes", title: "Common mistakes" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Depth"
-        human="Near/far for pseudo-3D and parallax."
-        jsonPath="transform.depth"
-        lede="Depth controls near/far position for pseudo-3D and parallax."
-        quick={ATOM_DEPTH}
-        meaning={[
-          "0 = normal plane",
-          "positive = closer",
-          "negative = farther",
-          "does not affect zIndex",
-        ]}
-        authoringExample={{
-          transform: {
-            translate: { x: 0, y: 0 },
-            depth: 120,
-          },
-        }}
-        projectForTimeline={DEPTH_DEMO}
-        compiledTrack={{
-          layerId: "photo",
-          property: "transform.depth",
-          valueKind: "number",
-          keys: [
-            { t: 0, v: -200 },
-            { t: 3, v: 120 },
-          ],
-        }}
-        valid={DEPTH_DEMO}
-        invalid={INVALID_TRANSFORM_Z}
-        mistakes={[
-          "Do not use zIndex for parallax.",
-          "Do not use depth for stacking order.",
-          "Do not write transform.z.",
-        ]}
-        ai={[
-          "Use transform.depth for parallax.",
-          "Never invent transform.z.",
-          "Keep zIndex for paint order.",
-        ]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Depth"
+          human="Near/far for pseudo-3D and parallax."
+          jsonPath="transform.depth"
+        />
+        <P>
+          <code>0</code> is the normal plane. Positive values come closer,
+          negative values go farther. Depth never changes paint order.
+        </P>
+
+        <H2 id="concept">Concept</H2>
+        <DepthFigure />
+
+        <H2 id="vs-zindex">Depth vs zIndex</H2>
+        <DocsTable
+          headers={["", "zIndex", "depth"]}
+          rows={[
+            ["Job", "Lane / paint order", "Position in space"],
+            [
+              "Rule",
+              "Higher paints on top, same sibling scope",
+              "Geometry / camera / parallax",
+            ],
+            ["Not", "Not a Z position", "Does not change paint order"],
+          ]}
+        />
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { transform: { translate: { x: 0, y: 0 }, depth: 120 } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Use transform.depth for parallax and pseudo-3D.",
+            "Never invent transform.z.",
+            "Keep zIndex for paint order. Do not use zIndex for parallax.",
+          ]}
+        />
+      </article>
     ),
   });
 }

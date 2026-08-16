@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { MaskFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function maskPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Mask",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "why", title: "Why mask exists" },
       { id: "shape", title: "Shape" },
       { id: "ai", title: "AI defaults" },
@@ -21,6 +24,8 @@ export function maskPage(): DocsPageView {
           human="Explicit clip or reveal. Not group.frame."
           jsonPath="compositing.mask"
         />
+        <H2 id="concept">Concept</H2>
+        <MaskFigure />
         <H2 id="why">Why mask exists</H2>
         <P>
           A group does not clip to its frame. Use{" "}

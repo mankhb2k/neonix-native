@@ -7,6 +7,7 @@ import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function isolationPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Isolation",
     toc: [
       { id: "advanced", title: "Advanced field" },

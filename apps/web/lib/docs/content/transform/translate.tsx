@@ -1,63 +1,56 @@
-import { AtomPage } from "@/components/docs/AtomPage";
-import { DocsVisualExample } from "@/components/docs/DocsVisualExample";
-import { ATOM_TRANSLATE } from "@/lib/docs/atoms";
+import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
+import { HumanName } from "@/components/docs/HumanName";
+import { JsonBlock } from "@/components/docs/JsonBlock";
+import { TranslateFigure } from "@/components/docs/figures/TransformFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
-import { TRANSLATE_VARIANTS } from "@/lib/docs/visual-fixtures";
 
 export function translatePage(): DocsPageView {
   return withOnThisPage({
-    title: "Move",
+    showToc: false,
+    title: "Translate",
     toc: [
-      { id: "preview", title: "Preview" },
-      { id: "quick-reference", title: "Quick Reference" },
-      { id: "meaning", title: "Meaning" },
+      { id: "concept", title: "Concept" },
       { id: "example", title: "Example" },
-      { id: "valid-invalid", title: "Valid / Invalid" },
-      { id: "mistakes", title: "Common mistakes" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
-      <AtomPage
-        title="Move"
-        human="Position in composition pixels."
-        jsonPath="transform.translate"
-        lede="translate.x / translate.y move the layer. There is no translate.z — use depth."
-        visual={
-          <DocsVisualExample
-            path="transform.translate"
-            variants={TRANSLATE_VARIANTS}
-          />
-        }
-        quick={ATOM_TRANSLATE}
-        meaning={[
-          "x/y are composition pixels.",
-          "Origin is transform.origin (0..1).",
-        ]}
-        authoringExample={{
-          transform: { translate: { x: 960, y: 540 }, depth: 0 },
-        }}
-        valid={SINGLE_ROOT}
-        invalid={{
-          ...SINGLE_ROOT,
-          metadata: { ...SINGLE_ROOT.metadata, id: "bad-xy" },
-          layers: [
-            {
-              ...SINGLE_ROOT.layers[0],
-              transform: { x: 10, y: 20 },
-            },
-          ],
-        }}
-        mistakes={[
-          "Do not use transform.x / transform.y.",
-          "Do not put z on translate.",
-        ]}
-        ai={[
-          "Use transform.translate.x/y for position.",
-          "Use transform.depth for near/far.",
-        ]}
-      />
+      <article className="pb-20">
+        <HumanName
+          title="Translate"
+          human="Position in composition pixels."
+          jsonPath="transform.translate"
+        />
+        <P>
+          <code>translate.x</code> / <code>translate.y</code> move the layer in
+          composition pixels. There is no <code>translate.z</code> — use{" "}
+          <a className="underline" href="/docs/transform/depth">
+            depth
+          </a>{" "}
+          for near/far.
+        </P>
+
+        <H2 id="concept">Concept</H2>
+        <TranslateFigure />
+
+        <H2 id="example">Example</H2>
+        <JsonBlock
+          caption="Authoring JSON (fragment)"
+          code={JSON.stringify(
+            { transform: { translate: { x: 960, y: 540 }, depth: 0 } },
+            null,
+            2,
+          )}
+        />
+
+        <AiWritingGuide
+          items={[
+            "Use transform.translate.x/y for position. Never transform.x / transform.y.",
+            "Use transform.depth for near/far — do not put z on translate.",
+          ]}
+        />
+      </article>
     ),
   });
 }
