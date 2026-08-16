@@ -209,11 +209,11 @@ describe("compiler V1 emit contract", () => {
     expect(video).not.toHaveProperty("style");
   });
 
-  it("compiles timeline.clips to propertyAnimations and ignores AI motionUnits", () => {
+  it("compiles timeline.clips to propertyAnimations and ignores AI animationUnits", () => {
     const project = baseProject({
       extensions: {
         "com.moticlip.ai": {
-          motionUnits: [
+          animationUnits: [
             {
               id: "legacy",
               layerId: "title",
@@ -386,28 +386,16 @@ describe("compiler V1 emit contract", () => {
           payload: { text: "Hi", fontSize: 24, color: "#000000" },
         },
       ] as never,
-      motionUnits: [
+      propertyAnimations: [
         {
-          id: "fade",
           layerId: "title",
-          schedule: { kind: "absolute", at: 0 },
-          duration: 1,
-          playback: { rate: 1, iterations: 1, direction: "normal" },
-          source: {
-            kind: "propertyAnimations",
-            items: [
-              {
-                layerId: "title",
-                property: "appearance.opacity",
-                keys: [
-                  {
-                    t: 0,
-                    v: { ref: { kind: "variable", id: "op" } },
-                  },
-                ],
-              },
-            ],
-          },
+          property: "appearance.opacity",
+          keys: [
+            {
+              t: 0,
+              v: { ref: { kind: "variable", id: "op" } },
+            },
+          ],
         },
       ],
     });

@@ -28,7 +28,7 @@ Authoring **không** có `scenes`, `visualTracks`, `audioTracks`, `captionTracks
 }
 ```
 
-Runtime IR shares the same layers-only contract: compiler emits flat `layers[]` (visual + audio) plus animation `tracks`. Evaluate may use an in-memory graph id `"root"` — there is no serialized `scenes` array or visual/audio clip tracks.
+Runtime IR shares the same layers-only contract: compiler emits flat `layers[]` (visual + audio) plus `propertyAnimations`. Evaluate may use an in-memory graph id `"root"` — there is no serialized `scenes` array or visual/audio clip tracks.
 
 ---
 
@@ -48,7 +48,7 @@ Mỗi project có đúng một `timeline`:
 
 Không có track array. Caption không phải type: một caption line = `type: "group"`; words = `type: "text"` children với timing local.
 
-Layer/property animation nằm ở `timeline.clips` (local time theo layer). Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md). Runtime `tracks` là output compiler, không phải JSON authoring.
+Layer/property animation nằm ở `timeline.clips` (local time theo layer). Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md). Runtime `propertyAnimations` là output compiler, không phải JSON authoring.
 
 ---
 

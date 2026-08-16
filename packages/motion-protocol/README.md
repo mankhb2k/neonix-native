@@ -8,7 +8,7 @@ Three package entries:
 | --- | --- |
 | `@motionvideo/motion-protocol` | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings, patch, MCP |
 | `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
-| `@motionvideo/motion-protocol/internal` | Compiler leftovers (motion units, caption token schemas) — not authoring |
+| `@motionvideo/motion-protocol/internal` | Leftovers (`InternalAnimationUnitV1` / AI `animationUnits`, caption schemas) — not authoring or V1 compile |
 
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
@@ -19,7 +19,7 @@ Three package entries:
 ## Design
 
 1. **Single contract** — Editor, AI planner, and compiler validate the same Zod schemas.
-2. **Authoring → Runtime** — `MotionProjectV1` (variables, props, bindings) compiles to `MotionRuntimeProject` (literal layer graph + animation tracks).
+2. **Authoring → Runtime** — `MotionProjectV1` (variables, props, bindings) compiles to `MotionRuntimeProject` (literal layer graph + `propertyAnimations`).
 3. **Strict bounds** — `.strict()`, finite numbers, `MOTION_PROTOCOL_LIMITS`.
 4. **Parse path** — `parseMotionProjectV1`: normalize → schema → reference validation.
 

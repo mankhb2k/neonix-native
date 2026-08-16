@@ -18,7 +18,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Public authoring API (`.`). Runtime không export ở đây. |
-| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — compiler `animation/clips`, `captions`. Authoring clips: `v1/timeline/clips.ts`. |
+| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — leftover `animation/clips`, `captions`. Authoring clips: `v1/timeline/clips.ts`. Compiler V1 does not ingest motion clips. |
 | `capabilities.ts` | `MOTION_PROTOCOL_LIMITS` + bảng `motionPropertyCapability` / `motionEffectPropertyCapability`. |
 | `ai-schema-capability.ts` | Ma trận E2E AI schema (`ai-schema.1`). |
 | `scene-registry.ts` | Legacy template registry — không còn trên public barrel. |
@@ -160,7 +160,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `index.ts` | Barrel easing/drivers; interpolation derived from type (not authoring). |
 | `easing.ts` | Named / cubic / spring. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
-| `clips.ts` | **Internal** `MotionClipV1` cho compiler runtime, không thuộc authoring JSON. |
+| `clips.ts` | Leftover `InternalAnimationUnitV1` (editor/AI `animationUnits`). Not authoring JSON. Compiler V1 emits `propertyAnimations` from `timeline.clips`. |
 
 ### 2.10 `src/v1/timeline/`
 

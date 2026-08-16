@@ -41,7 +41,7 @@ User chỉnh props
 
 - **User / app / AI consumer** chỉnh wrapper atoms + `payload.props` / `variantId`.
 - **Owner / designer AI** thiết kế `propBindings` và internals.
-- **Compiler** bung instance và biến props thành giá trị / motion tracks trên layer nội bộ.
+- **Compiler** bung instance và biến props thành giá trị / `propertyAnimations` trên layer nội bộ.
 
 Timeline **không biết** component. Root/group đặt instance. Definition mô tả bên trong.
 
@@ -189,7 +189,7 @@ flowchart TB
 | --- | --- | --- |
 | **User / consumer** | Wrapper atoms + `payload.props` / `variantId` | Không sửa `layers` / `propBindings` / internals |
 | **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers`, `variants[].props` | Variant không đổi tree |
-| **Compiler** | Expand instance → wrapper + internals; resolve props → apply / emit tracks | Không suy luận binding thiếu |
+| **Compiler** | Expand instance → wrapper + internals; resolve props → apply / emit `propertyAnimations` | Không suy luận binding thiếu |
 
 ---
 
@@ -380,7 +380,7 @@ root source
   -> internal layerProperty
 ```
 
-Mọi nguồn đều là **prop source**. Binding chỉ drive public prop. Compiler merge cascade xong rồi mới apply `layerProperty` / emit tracks.
+Mọi nguồn đều là **prop source**. Binding chỉ drive public prop. Compiler merge cascade xong rồi mới apply `layerProperty` / emit `propertyAnimations`.
 
 Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 
@@ -398,7 +398,7 @@ flowchart TD
   sources[Resolve prop sources per instance]
   merge[Merge cascade into resolvedProps]
   forward[Forward childProp to nested instances]
-  apply[Apply layerProperty + emit keyframe tracks]
+  apply[Apply layerProperty + emit propertyAnimations]
   collect --> sources --> merge --> forward --> apply
 ```
 
@@ -474,7 +474,7 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | Animate internal bằng track ngoài | Prop keyframes hoặc wrapper atoms trên instance |
 | Variant đổi tree / bindings | Variant chỉ `props` |
 | Skip-level vào nested child | `childProp` từng tầng |
-| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
+| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc `timeline.clips` |
 | `PublicParamSchema` / `ComponentBindingSchema` | `ComponentPropV1Schema` + `propBindings` |
 
 ---
@@ -493,6 +493,6 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | `src/v1/components/prop-values.ts` | Literal / keyframes. Không inline variable ref. |
 | `src/v1/layers/component.ts` | Instance `payload.props` |
 | `src/v1/references/project.ts` | Validation |
-| `motion-compiler/compile-v1.ts` | Resolve + fan-out + keyframe tracks |
+| `motion-compiler/compile-v1.ts` | Resolve + fan-out + `propertyAnimations` |
 
 Xem thêm: [v1-format-guide.md](v1-format-guide.md), [v1-timeline-guide.md](v1-timeline-guide.md), [v1-group-guide.md](v1-group-guide.md).

@@ -4,13 +4,13 @@
  * so animations continue across timeline segment boundaries.
  */
 
-import type { MotionClipV1 } from "@motionvideo/motion-protocol/internal";
+import type { InternalAnimationUnitV1 } from "@motionvideo/motion-protocol/internal";
 import type {
   MotionScene,
 } from "@motionvideo/motion-protocol/runtime";
 
 type TrackTime = Extract<
-  MotionClipV1["source"],
+  InternalAnimationUnitV1["source"],
   { kind: "propertyAnimations" }
 >["items"][number]["keys"][number]["t"];
 
@@ -21,9 +21,9 @@ function shiftTrackTime(t: TrackTime, localStart: number): TrackTime {
 }
 
 function shiftClipSource(
-  source: MotionClipV1["source"],
+  source: InternalAnimationUnitV1["source"],
   localStart: number,
-): MotionClipV1["source"] {
+): InternalAnimationUnitV1["source"] {
   if (source.kind !== "propertyAnimations") return source;
   return {
     ...source,
@@ -37,7 +37,7 @@ function shiftClipSource(
   };
 }
 
-function shiftClip(clip: MotionClipV1, localStart: number): MotionClipV1 {
+function shiftClip(clip: InternalAnimationUnitV1, localStart: number): InternalAnimationUnitV1 {
   const source = shiftClipSource(clip.source, localStart);
   if (clip.schedule.kind === "absolute") {
     return {

@@ -2,9 +2,9 @@
   "format": "motion-project",
   "formatVersion": 1,
   "metadata": {
-    "id": "clips-and-tracks",
-    "name": "Clips And Tracks",
-    "description": "Text layers with property tracks and a motion preset",
+    "id": "timeline-clips",
+    "name": "Timeline Clips",
+    "description": "Text layers with timeline.clips compiled to propertyAnimations",
     "locale": "vi-VN"
   },
   "composition": {
@@ -125,7 +125,7 @@
         "alignment": "center",
         "wrap": "word",
         "overflow": "visible",
-        "text": "Property track clip"
+        "text": "Property animation clip"
       },
       "timing": {
         "start": 0,

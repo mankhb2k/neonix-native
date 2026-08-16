@@ -32,7 +32,7 @@ const UPDATE_GOLDENS = process.env.UPDATE_GOLDENS === "1";
 const FIXTURE_NAMES = [
   "single-root",
   "multi-asset",
-  "clips-and-tracks",
+  "timeline-clips",
   "captions",
   "transition",
   "variables-bindings",

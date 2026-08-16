@@ -24,7 +24,7 @@ export const PropKeyframesValueSchema = z
     keys: z
       .array(PropKeyframeSchema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
   })
   .strict();
 

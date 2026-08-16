@@ -3,7 +3,6 @@ import {
   clone,
   pixelFormatHasAlpha,
   type JsonRecord,
-  type LayerMotionUnit,
 } from "./helpers";
 
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
@@ -188,10 +187,6 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
         payload: clone(node.payload),
       };
   }
-}
-
-export function prepareRuntimeMotionUnit(unit: LayerMotionUnit): JsonRecord {
-  return clone(unit);
 }
 
 export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {

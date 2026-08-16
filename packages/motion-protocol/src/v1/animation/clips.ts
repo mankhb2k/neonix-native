@@ -1,6 +1,7 @@
 /**
- * Motion clip lịch trình — vocabulary compiler (không thuộc JSON authoring).
- * Authoring layer/property animation: `timeline.clips` (src/v1/timeline/clips.ts).
+ * Leftover scheduled animation-unit envelope for editor/AI internals.
+ * V1 authoring animation is `timeline.clips`; compiler/runtime emit
+ * `propertyAnimations`. Do not use this as a second authoring language.
  *
  * Import @motionvideo/motion-protocol/internal.
  */
@@ -124,7 +125,7 @@ const InternalClipPropertyAnimationSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
   })
   .strict()
   .superRefine((track, ctx) => {
@@ -155,14 +156,14 @@ export const ClipSourceV1Schema = z.discriminatedUnion("kind", [
       items: z
         .array(InternalClipPropertyAnimationSchema)
         .min(1)
-        .max(MOTION_PROTOCOL_LIMITS.tracksPerClip),
+        .max(MOTION_PROTOCOL_LIMITS.propertyAnimationsPerUnit),
     })
     .strict(),
 ]);
 
-// ── V1 motion clip ────────────────────────────────────────────────────
+// ── Internal animation unit ───────────────────────────────────────────
 
-export const MotionClipV1Schema = z
+export const InternalAnimationUnitV1Schema = z
   .object({
     id: IdSchema,
     layerId: IdSchema.optional(),
@@ -191,8 +192,6 @@ export const MotionClipV1Schema = z
 export const ScheduleV1Schema = ClipScheduleSchema;
 export const PlaybackV1Schema = PlaybackSchema;
 
-export type MotionClipV1 = z.infer<typeof MotionClipV1Schema>;
-export type LayerMotionUnit = MotionClipV1;
-export const LayerMotionUnitSchema = MotionClipV1Schema;
+export type InternalAnimationUnitV1 = z.infer<typeof InternalAnimationUnitV1Schema>;
 export type ScheduleV1 = z.infer<typeof ScheduleV1Schema>;
 export type ClipSourceV1 = z.infer<typeof ClipSourceV1Schema>;

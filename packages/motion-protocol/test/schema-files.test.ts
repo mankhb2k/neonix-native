@@ -320,6 +320,7 @@ describe("Phase 7 — public API V1 naming", () => {
     expect(runtimeExports).not.toContain("CaptionTrackSchema");
     expect(runtimeExports).not.toContain("ClipScheduleSchema");
     expect(runtimeExports).not.toContain("MotionClipV1");
+    expect(runtimeExports).not.toContain("InternalAnimationUnitV1");
     expect(runtimeExports).not.toContain("PlaybackSchema");
   });
 
@@ -362,6 +363,7 @@ describe("V1 authoring namespace", () => {
     const names = Object.keys(V1Public);
     expect(names).not.toContain("CaptionTrackSchema");
     expect(names).not.toContain("MotionClipV1Schema");
+    expect(names).not.toContain("InternalAnimationUnitV1Schema");
     expect(names).not.toContain("ClipScheduleSchema");
   });
 });

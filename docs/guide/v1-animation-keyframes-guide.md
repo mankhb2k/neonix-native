@@ -17,7 +17,7 @@ Hai lớp dữ liệu:
 | Base state | `layer` / `payload` / `style` / `payload.props` literal | Giá trị lúc t = 0 / khi không có clip |
 | Animation | `timeline.clips` (layer property) hoặc `payload.props.<propId>` keyframes (component) | Chuyển động |
 
-Layer **không** ôm keyframe trên field thường. Không nhầm authoring JSON với runtime `tracks` / compiler motion-units.
+Layer **không** ôm keyframe trên field thường. Không nhầm authoring JSON với runtime `propertyAnimations`.
 
 ---
 
@@ -148,7 +148,7 @@ Không animate (cấu trúc / setup / playback):
 - Animate `frame` để “phóng to”
 - Animate trim video
 - Dùng `timeline.clips` cho prop component
-- Nhầm `timeline.clips` với compiler `MotionClip` / runtime `tracks`
+- Nhầm `timeline.clips` với runtime `propertyAnimations`
 
 ---
 

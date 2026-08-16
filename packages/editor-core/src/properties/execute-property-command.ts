@@ -495,7 +495,7 @@ function upsertKeyframeOnScene(
       };
       if (keyIdx >= 0) keys[keyIdx] = key;
       else {
-        if (keys.length >= MOTION_PROTOCOL_LIMITS.keysPerTrack) {
+        if (keys.length >= MOTION_PROTOCOL_LIMITS.keysPerAnimation) {
           overflow = true;
           return tr;
         }
@@ -508,7 +508,7 @@ function upsertKeyframeOnScene(
       return {
         project,
         missing: false,
-        invalid: `Keyframe track exceeds keysPerTrack (${MOTION_PROTOCOL_LIMITS.keysPerTrack}).`,
+        invalid: `Keyframe animation exceeds keysPerAnimation (${MOTION_PROTOCOL_LIMITS.keysPerAnimation}).`,
       };
     }
     clips[clipIdx] = {

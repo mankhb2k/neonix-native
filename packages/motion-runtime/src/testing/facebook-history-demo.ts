@@ -5,7 +5,7 @@ import {
   type MotionProjectV1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
-import type { MotionClipV1 } from "@motionvideo/motion-protocol/internal";
+import type { InternalAnimationUnitV1 } from "@motionvideo/motion-protocol/internal";
 import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
 
 export const FB_HISTORY_SCENE_IDS = {
@@ -130,7 +130,7 @@ function fadeInClip(
   at: number,
   duration: number,
   fromY?: number,
-): MotionClipV1 {
+): InternalAnimationUnitV1 {
   const tracks: Array<{
     layerId: string;
     property: string;
@@ -166,7 +166,7 @@ function fadeInClip(
 }
 
 function flattenClipPropertyAnimations(
-  clips: MotionClipV1[],
+  clips: InternalAnimationUnitV1[],
 ): RuntimeLayerGraph["propertyAnimations"] {
   const items: RuntimeLayerGraph["propertyAnimations"] = [];
   for (const clip of clips) {
@@ -193,7 +193,7 @@ function scene(
   _name: string,
   duration: number,
   layers: MotionLayer[],
-  clips: MotionClipV1[],
+  clips: InternalAnimationUnitV1[],
 ): RuntimeLayerGraph {
   return {
     id,

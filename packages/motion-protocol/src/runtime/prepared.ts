@@ -100,7 +100,7 @@ export type DepGraphNode = {
  * PreparedRuntimeProject — compiled project with all indexes pre-built.
  *
  * Created by the compiler. Consumed by:
- *   - evaluator (O(1) layer/track lookups)
+ *   - evaluator (O(1) layer / propertyAnimation lookups)
  *   - painter (static geometry, compositing scopes)
  *   - renderer (capability fingerprint, asset URIs)
  */

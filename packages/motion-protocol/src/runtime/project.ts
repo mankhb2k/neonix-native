@@ -192,14 +192,14 @@ const RuntimePropertyAnimationSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
   })
   .strict();
 
 // â”€â”€ Runtime IR VNext â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The runtime IR (`MotionRuntimeProject`) is the compiler's serializable
-// output: composition metadata, layer graph, property tracks, source refs.
+// output: composition metadata, layer graph, propertyAnimations, source refs.
 
 /**
  * Composition-level runtime metadata.
@@ -276,7 +276,7 @@ export const RuntimeLayerGraphSchema = z
       .array(RuntimePropertyAnimationSchema)
       .max(
         MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.tracksPerClip,
+          MOTION_PROTOCOL_LIMITS.propertyAnimationsPerUnit,
       )
       .default([]),
   })
@@ -307,7 +307,7 @@ const MotionRuntimeProjectBaseSchema = z
       .array(RuntimePropertyAnimationSchema)
       .max(
         MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.tracksPerClip,
+          MOTION_PROTOCOL_LIMITS.propertyAnimationsPerUnit,
       )
       .default([]),
     timeline: z

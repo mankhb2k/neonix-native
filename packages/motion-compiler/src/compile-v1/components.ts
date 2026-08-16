@@ -1,10 +1,13 @@
 import { V1 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import {
   clone,
   setPropertyPath,
   type JsonRecord,
 } from "./helpers";
 import { prepareRuntimeLayer } from "./prepare";
+
+type RuntimePropertyAnimation = MotionRuntimeProject["propertyAnimations"][number];
 
 export type ComponentInstanceRef = {
   componentLayerId: string;
@@ -156,9 +159,9 @@ function applyComponentPropForwards(
   });
 }
 
-function buildPropKeyframeMotionUnit(
+function buildPropKeyframePropertyAnimation(
   instanceId: string,
-  propId: string,
+  _propId: string,
   layer: Extract<
     V1.ComponentPropBindingV1["target"],
     { kind: "layerProperty" }
@@ -167,7 +170,7 @@ function buildPropKeyframeMotionUnit(
     keys: Array<{ t: number; value: unknown; easing?: unknown }>;
   },
   propKind: string,
-): JsonRecord {
+): RuntimePropertyAnimation {
   const targetId = `${instanceId}__${layer.layerId}`;
   const valueKind =
     propKind === "number"
@@ -180,33 +183,23 @@ function buildPropKeyframeMotionUnit(
             ? "asset"
             : "string";
   return {
-    id: `${instanceId}__prop__${propId}__${layer.layerId}`,
     layerId: targetId,
-    schedule: { kind: "absolute", at: 0 },
-    duration: Math.max(...keyframes.keys.map((k) => k.t), 0),
-    playback: { rate: 1, iterations: 1, direction: "normal" },
-    source: {
-      kind: "propertyAnimations",
-      items: [
-        {
-          layerId: targetId,
-          property: layer.property,
-          valueKind,
-          keys: keyframes.keys.map((k) => ({
-            t: k.t,
-            v: k.value,
-            ...(k.easing !== undefined ? { easing: k.easing } : {}),
-          })),
-        },
-      ],
-    },
+    property: layer.property,
+    valueKind,
+    keys: keyframes.keys.map((k) => ({
+      t: k.t,
+      v: k.value as RuntimePropertyAnimation["keys"][number]["v"],
+      ...(k.easing !== undefined
+        ? { easing: k.easing as NonNullable<RuntimePropertyAnimation["keys"][number]["easing"]> }
+        : {}),
+    })),
   };
 }
 
 type ExpandComponentResult = {
   layers: V1.LayerV1[];
   wrapperId: string;
-  propMotionUnits: JsonRecord[];
+  propertyAnimations: RuntimePropertyAnimation[];
 };
 
 function expandOneComponentInstance(
@@ -220,7 +213,7 @@ function expandOneComponentInstance(
 ): ExpandComponentResult {
   const component = components.get(instanceNode.payload.componentId);
   if (!component) {
-    return { layers: [instanceNode], wrapperId: instanceId, propMotionUnits: [] };
+    return { layers: [instanceNode], wrapperId: instanceId, propertyAnimations: [] };
   }
 
   if (componentInstances && runtimeGraphId) {
@@ -254,7 +247,7 @@ function expandOneComponentInstance(
     resolvedProps,
   );
 
-  const propMotionUnits: JsonRecord[] = [];
+  const propertyAnimations: RuntimePropertyAnimation[] = [];
   const expandedInternals: V1.LayerV1[] = [];
   for (const internal of processedInternals) {
     if (internal.type === "component") {
@@ -277,7 +270,7 @@ function expandOneComponentInstance(
         nestedWrapper.parentLayerId = nestedParentId;
       }
       expandedInternals.push(...nested.layers);
-      propMotionUnits.push(...nested.propMotionUnits);
+      propertyAnimations.push(...nested.propertyAnimations);
       continue;
     }
 
@@ -311,8 +304,8 @@ function expandOneComponentInstance(
       const value = resolvedProps[binding.propId];
       if (isKeyframesPropValue(value)) {
         const prop = component.props.find((p) => p.id === binding.propId);
-        propMotionUnits.push(
-          buildPropKeyframeMotionUnit(
+        propertyAnimations.push(
+          buildPropKeyframePropertyAnimation(
             instanceId,
             binding.propId,
             binding.target,
@@ -374,7 +367,7 @@ function expandOneComponentInstance(
       : {}),
   } as V1.LayerV1;
 
-  return { layers: [wrapper, ...expandedInternals], wrapperId, propMotionUnits };
+  return { layers: [wrapper, ...expandedInternals], wrapperId, propertyAnimations };
 }
 
 /**
@@ -394,11 +387,11 @@ function expandComponentLayersV1(
 ): {
   layers: V1.LayerV1[];
   wrapperByLayerId: Map<string, string>;
-  propMotionUnits: JsonRecord[];
+  propertyAnimations: RuntimePropertyAnimation[];
 } {
   const out: V1.LayerV1[] = [];
   const wrapperByLayerId = new Map<string, string>();
-  const propMotionUnits: JsonRecord[] = [];
+  const propertyAnimations: RuntimePropertyAnimation[] = [];
   for (const node of layers) {
     if (node.type !== "component") {
       out.push(node);
@@ -415,9 +408,9 @@ function expandComponentLayersV1(
     );
     wrapperByLayerId.set(node.id, expanded.wrapperId);
     out.push(...expanded.layers);
-    propMotionUnits.push(...expanded.propMotionUnits);
+    propertyAnimations.push(...expanded.propertyAnimations);
   }
-  return { layers: out, wrapperByLayerId, propMotionUnits };
+  return { layers: out, wrapperByLayerId, propertyAnimations };
 }
 
 /**
@@ -439,7 +432,7 @@ export function prepareRuntimeLayerGraph(
   const {
     layers: expandedLayers,
     wrapperByLayerId,
-    propMotionUnits,
+    propertyAnimations,
   } = expandComponentLayersV1(
     graph.layers.filter((layer) => layer.type !== "audio"),
     components,
@@ -469,7 +462,7 @@ export function prepareRuntimeLayerGraph(
       }
       return prepared;
     }),
-    motionUnits: propMotionUnits,
+    propertyAnimations,
   };
   if (graph.name) result.name = graph.name;
   return result;

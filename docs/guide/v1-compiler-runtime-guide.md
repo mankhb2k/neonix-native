@@ -42,7 +42,7 @@ Runtime `propertyAnimations[]` là **internal evaluated animation units** sinh t
 
 Không emit: `modifiers`, rich text runs, `modifiers.*` propertyAnimations, `payload.color` trên shape/path/svg, `style` trên image/video.
 
-Animation nguồn compile: `timeline.clips` + component `payload.props` keyframes. **Không** ingest `extensions["com.moticlip.ai"].motionUnits`.
+Animation nguồn compile: `timeline.clips` + component `payload.props` keyframes, emit thẳng `propertyAnimations`. **Không** ingest `extensions["com.moticlip.ai"].animationUnits`. **Không** đi qua InternalAnimationUnitV1.
 
 Variable chỉ vào layer qua `project.bindings` → public prop. Compiler **không** resolve `{ ref: { kind: "variable" } }` trên field/keyframe.
 
@@ -52,7 +52,7 @@ Variable chỉ vào layer qua `project.bindings` → public prop. Compiler **kh�
 
 - Modifier (motion-path, path-morph, path-bend, trim-path, constraint, secondary-motion, parallax-as-modifier)
 - Authoring `tracks` / public property-track language (`propertyAnimations` chỉ là runtime IR)
-- AI extra motionUnits / presets như animation thứ hai
+- AI extra animationUnits / presets như animation thứ hai (compiler không ingest)
 - Animate morph/bend/trim-path qua modifier — nếu cần sau này: field canonical trên payload, không modifier
 
 ---

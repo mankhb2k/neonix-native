@@ -1,6 +1,6 @@
 /**
  * Authoring property clip — layer/property animation trên timeline.clips.
- * Khác MotionClipV1 (internal compiler) ở src/v1/animation/clips.ts.
+ * Compiler lowers these to runtime `propertyAnimations`.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -16,7 +16,7 @@ export const TimelinePropertyClipV1Schema = z
     keys: z
       .array(PropKeyframeSchema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
   })
   .strict();
 

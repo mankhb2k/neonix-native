@@ -1,5 +1,5 @@
 /**
- * Compiler / leftover schemas — not authoring public API.
+ * Leftover schemas — not authoring public API and not the V1 compile path.
  *
  * Import `@motionvideo/motion-protocol/internal`.
  */

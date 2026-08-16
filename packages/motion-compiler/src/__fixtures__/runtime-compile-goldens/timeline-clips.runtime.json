@@ -3,15 +3,15 @@
   "formatVersion": 1,
   "runtimeVersion": 4,
   "metadata": {
-    "id": "clips-and-tracks",
-    "name": "Clips And Tracks",
+    "id": "timeline-clips",
+    "name": "Timeline Clips",
     "aspectRatio": "16:9",
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Clips And Tracks"
+      "name": "Timeline Clips"
     },
-    "description": "Text layers with property tracks and a motion preset"
+    "description": "Text layers with timeline.clips compiled to propertyAnimations"
   },
   "assets": [],
   "composition": {
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "660e6ccb5ee01af4c5ac9d1366c1e08c",
+  "runtimeHash": "e0d1a6da9ba8a5a9068c7e58114adee4",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -131,7 +131,7 @@
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "text": "Property track clip",
+        "text": "Property animation clip",
         "fontSize": 32,
         "color": "#000000",
         "alignment": "center",

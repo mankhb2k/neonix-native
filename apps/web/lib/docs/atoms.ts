@@ -14,7 +14,7 @@ export const ATOM_FRAME: QuickRef = {
   path: "frame",
   type: "{ width, height }",
   defaultValue: "required on every visual layer",
-  animatable: "width/height: yes (compiled tracks)",
+  animatable: "width/height: yes (propertyAnimations)",
   appliesTo: "group, component, text, image, svg, video, shape, path, solid, bone, adjustment",
   doesNotApplyTo: "audio, camera",
   range: `0..${MOTION_PROTOCOL_LIMITS.layerDimension}`,

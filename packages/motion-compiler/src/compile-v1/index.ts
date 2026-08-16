@@ -10,8 +10,9 @@
  *   project.layers         → runtime `layers` (flat parentLayerId graph)
  *   root audio layers      → runtime audio layers on the same `layers` list
  *   variables / bindings   → component props via project.bindings (no inline `{ ref }`)
- *   component layers        → sealed wrapper-group expansion in the layer
- *                            graph
+ *   component layers       → sealed wrapper-group expansion in the layer graph
+ *   timeline.clips         → runtime `propertyAnimations`
+ *   component prop keyframes → runtime `propertyAnimations`
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
  * callers can surface structured errors instead of string exceptions.
@@ -311,10 +312,10 @@ export function compileMotionProjectV1(
             layers: (graph.layers ?? []) as Parameters<
               typeof compileLayerGraphToRuntime
             >[0]["layers"],
-            motionUnits: [
-              ...((graph.motionUnits ?? []) as Parameters<
-                typeof compileLayerGraphToRuntime
-              >[0]["motionUnits"]),
+            propertyAnimations: [
+              ...((Array.isArray(graph.propertyAnimations)
+                ? graph.propertyAnimations
+                : []) as MotionRuntimeProject["propertyAnimations"]),
               ...timelineClipsToPropertyAnimations(normalized.timeline.clips),
             ],
             variables: projectVariables,

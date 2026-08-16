@@ -533,7 +533,7 @@ function applyOne(
         visit(command.layerId);
         removeLayers(scene, removeIds);
         const ext = getAiExt(next);
-        ext.motionUnits = ext.motionUnits.filter(
+        ext.animationUnits = ext.animationUnits.filter(
           (unit) => !unit.layerId || !removeIds.has(unit.layerId),
         );
         setAiExt(next, ext);
@@ -595,7 +595,7 @@ function applyOne(
           };
         }
         const ext = getAiExt(next);
-        if (ext.motionUnits.some((unit) => unit.id === command.clipId)) {
+        if (ext.animationUnits.some((unit) => unit.id === command.clipId)) {
           return {
             project,
             receipt: {
@@ -611,7 +611,7 @@ function applyOne(
             },
           };
         }
-        ext.motionUnits.push({
+        ext.animationUnits.push({
           id: command.clipId,
           layerId: command.layerId,
           schedule: { kind: "absolute", at: command.at ?? 0 },
@@ -1267,7 +1267,7 @@ function applyOne(
             command.clipId ??
             `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
           const ext = getAiExt(next);
-          ext.motionUnits.push({
+          ext.animationUnits.push({
             id: clipId,
             layerId: command.targetLayerId,
             schedule: { kind: "absolute", at: 0 },

@@ -1,32 +1,19 @@
-import type { LayerMotionUnit } from "@motionvideo/motion-protocol/internal";
 import { V1 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 
-/** Compile authoring timeline.clips into internal motion-units of propertyAnimations. */
+type RuntimePropertyAnimation = MotionRuntimeProject["propertyAnimations"][number];
+
+/** Compile authoring timeline.clips into runtime propertyAnimations. */
 export function timelineClipsToPropertyAnimations(
   clips: V1.TimelinePropertyClipV1[] | undefined,
-): LayerMotionUnit[] {
-  return (clips ?? []).map((clip) => {
-    const maxT = Math.max(...clip.keys.map((key) => key.t), 0);
-    return {
-      id: clip.id,
-      layerId: clip.layerId,
-      schedule: { kind: "absolute", at: 0 },
-      duration: Math.max(maxT, 1e-6),
-      playback: { rate: 1, iterations: 1, direction: "normal" },
-      source: {
-        kind: "propertyAnimations",
-        items: [
-          {
-            layerId: clip.layerId,
-            property: clip.property,
-            keys: clip.keys.map((key) => ({
-              t: key.t,
-              v: key.value,
-              ...(key.easing !== undefined ? { easing: key.easing } : {}),
-            })),
-          },
-        ],
-      },
-    };
-  });
+): RuntimePropertyAnimation[] {
+  return (clips ?? []).map((clip) => ({
+    layerId: clip.layerId,
+    property: clip.property,
+    keys: clip.keys.map((key) => ({
+      t: key.t,
+      v: key.value as RuntimePropertyAnimation["keys"][number]["v"],
+      ...(key.easing !== undefined ? { easing: key.easing } : {}),
+    })),
+  }));
 }

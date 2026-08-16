@@ -63,7 +63,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - Binding = variable → public prop. Kinds: string, number, boolean, color, asset, choice.
 - Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow không intensity. Không effects trên camera/audio.
 - Animation layer/property = `timeline.clips`. Prop = `payload.props` keyframes. `t` local. Không animate frame/trim/fit. Interpolation theo type, không field riêng.
-- Compiler/runtime chỉ thực thi protocol. Runtime không modifier; tracks là IR nội bộ.
+- Compiler/runtime chỉ thực thi protocol. Runtime không modifier; `propertyAnimations` là IR nội bộ.
 
 ---
 

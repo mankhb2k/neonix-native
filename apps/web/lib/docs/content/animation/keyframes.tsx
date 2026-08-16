@@ -10,14 +10,14 @@ export function keyframesPage(): DocsPageView {
     title: "Motion",
     toc: [
       { id: "authoring", title: "Authoring" },
-      { id: "compiled", title: "Compiled tracks" },
+      { id: "compiled", title: "Compiled propertyAnimations" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
     body: (
       <article className="pb-20">
         <HumanName
           title="Motion"
-          human="Timing on layers vs compiled property tracks."
+          human="Timing on layers vs compiled propertyAnimations."
         />
         <H2 id="authoring">Authoring</H2>
         <P>
