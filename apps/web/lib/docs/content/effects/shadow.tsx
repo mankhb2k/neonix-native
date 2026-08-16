@@ -1,10 +1,24 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { ShadowFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+
+const SHADOW = {
+  id: "fx-shadow-1",
+  type: "shadow",
+  offset: { x: 8, y: 12 },
+  blur: 24,
+  color: "#000000",
+  opacity: 25,
+};
 
 export function shadowPage(): DocsPageView {
   return withOnThisPage({
@@ -34,19 +48,21 @@ export function shadowPage(): DocsPageView {
           <code>color</code>.
         </P>
         <H2 id="example">Example</H2>
-        <JsonBlock
-          code={JSON.stringify(
-            {
-              id: "fx-shadow-1",
-              type: "shadow",
-              offset: { x: 8, y: 12 },
-              blur: 24,
-              color: "#000000",
-              opacity: 25,
-            },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({}, { effects: [SHADOW] }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="no shadow" />
+              <TransformExamplePhoto
+                label="offset 8, 12"
+                boxShadow="8px 12px 16px rgba(0,0,0,0.25)"
+              />
+            </TransformExampleRow>
+          }
         />
         <AiWritingGuide
           items={[

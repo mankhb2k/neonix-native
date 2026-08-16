@@ -1,9 +1,25 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+
+const STACK = [
+  { id: "fx-blur-1", type: "blur", radius: 12 },
+  {
+    id: "fx-glow-1",
+    type: "glow",
+    radius: 16,
+    color: "#ffffff",
+    opacity: 80,
+  },
+];
 
 export function effectsOverviewPage(): DocsPageView {
   return withOnThisPage({
@@ -45,23 +61,22 @@ export function effectsOverviewPage(): DocsPageView {
           not animate effect color in v1.
         </P>
         <H2 id="example">Example</H2>
-        <JsonBlock
-          code={JSON.stringify(
-            {
-              effects: [
-                { id: "fx-blur-1", type: "blur", radius: 12 },
-                {
-                  id: "fx-glow-1",
-                  type: "glow",
-                  radius: 16,
-                  color: "#ffffff",
-                  opacity: 80,
-                },
-              ],
-            },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({}, { effects: STACK }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="none" />
+              <TransformExamplePhoto
+                label="blur + glow"
+                filter="blur(3px)"
+                boxShadow="0 0 16px 4px rgba(255,255,255,0.75)"
+              />
+            </TransformExampleRow>
+          }
         />
         <AiWritingGuide
           items={[

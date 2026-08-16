@@ -1,10 +1,24 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { ColorAdjustFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+
+const COLOR_ADJUST = {
+  id: "fx-color-1",
+  type: "color-adjust",
+  brightness: 100,
+  contrast: 110,
+  saturation: 40,
+  "hue-rotate": 0,
+};
 
 export function colorAdjustPage(): DocsPageView {
   return withOnThisPage({
@@ -38,19 +52,25 @@ export function colorAdjustPage(): DocsPageView {
           , not this effect.
         </P>
         <H2 id="example">Example</H2>
-        <JsonBlock
-          code={JSON.stringify(
-            {
-              id: "fx-color-1",
-              type: "color-adjust",
-              brightness: 100,
-              contrast: 100,
-              saturation: 100,
-              "hue-rotate": 0,
-            },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({}, { effects: [COLOR_ADJUST] }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="identity" />
+              <TransformExamplePhoto
+                label="saturation 40"
+                filter="saturate(0.4)"
+              />
+              <TransformExamplePhoto
+                label="hue-rotate 40"
+                filter="hue-rotate(40deg)"
+              />
+            </TransformExampleRow>
+          }
         />
         <AiWritingGuide
           items={[

@@ -37,6 +37,7 @@ export function squareImageLayerExample(
   extras: {
     appearance?: { visible?: boolean; opacity?: number };
     compositing?: Record<string, unknown>;
+    effects?: unknown[];
   } = {},
 ) {
   return visualLayerExample({
@@ -48,6 +49,7 @@ export function squareImageLayerExample(
       ? { ...EXAMPLE_APPEARANCE, ...extras.appearance }
       : EXAMPLE_APPEARANCE,
     ...(extras.compositing ? { compositing: extras.compositing } : {}),
+    ...(extras.effects ? { effects: extras.effects } : {}),
     payload: {
       assetId: DOCS_ASSET_PHOTO_SQUARE.id,
       fit: "cover",

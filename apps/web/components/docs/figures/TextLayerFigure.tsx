@@ -51,10 +51,13 @@ export function TextLayerFigure() {
           strokeWidth={1}
           strokeDasharray="4 4"
         />
-        <text x={44} y={116} fontSize={14} fill={INK} fontFamily="monospace">
-          fontSize · color · alignment · lineHeight
+        <text x={44} y={110} fontSize={11} fill={INK} fontFamily="monospace">
+          fontSize · color
         </text>
-        <text x={44} y={132} fontSize={14} fill={MUTED} fontFamily="monospace">
+        <text x={44} y={126} fontSize={11} fill={INK} fontFamily="monospace">
+          alignment · lineHeight
+        </text>
+        <text x={44} y={146} fontSize={11} fill={MUTED} fontFamily="monospace">
           one style for the whole box
         </text>
 

@@ -1,10 +1,23 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { GlowFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+
+const GLOW = {
+  id: "fx-glow-1",
+  type: "glow",
+  radius: 16,
+  color: "#ffffff",
+  opacity: 80,
+};
 
 export function glowPage(): DocsPageView {
   return withOnThisPage({
@@ -33,18 +46,21 @@ export function glowPage(): DocsPageView {
           <code>opacity</code> linearly. Do not animate <code>color</code>.
         </P>
         <H2 id="example">Example</H2>
-        <JsonBlock
-          code={JSON.stringify(
-            {
-              id: "fx-glow-1",
-              type: "glow",
-              radius: 16,
-              color: "#ffffff",
-              opacity: 80,
-            },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({}, { effects: [GLOW] }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="no glow" />
+              <TransformExamplePhoto
+                label="radius 16"
+                boxShadow="0 0 18px 6px rgba(255,255,255,0.8)"
+              />
+            </TransformExampleRow>
+          }
         />
         <AiWritingGuide
           items={[

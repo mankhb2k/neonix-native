@@ -1,10 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { BlurFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+
+const BLUR = { id: "fx-blur-1", type: "blur", radius: 12 };
 
 export function blurPage(): DocsPageView {
   return withOnThisPage({
@@ -33,12 +40,25 @@ export function blurPage(): DocsPageView {
           not emit directional blur, radiusX/radiusY, or quality.
         </P>
         <H2 id="example">Example</H2>
-        <JsonBlock
-          code={JSON.stringify(
-            { id: "fx-blur-1", type: "blur", radius: 12 },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({}, { effects: [BLUR] }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="radius 0" />
+              <TransformExamplePhoto
+                label="radius 6"
+                filter="blur(3px)"
+              />
+              <TransformExamplePhoto
+                label="radius 12"
+                filter="blur(6px)"
+              />
+            </TransformExampleRow>
+          }
         />
         <AiWritingGuide
           items={[
