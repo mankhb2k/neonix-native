@@ -1,6 +1,6 @@
 # `@motionvideo/motion-compiler`
 
-Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand Component instance, Repeater, Text Animator, bindings, presets/actions thành layers/tracks không còn tham chiếu authoring.
+Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand component instance, repeater, text animator, bindings, và `timeline.clips` thành `layers` + `propertyAnimations` — không còn tham chiếu authoring.
 
 ## Vai trò
 
@@ -36,6 +36,7 @@ const runtime = compileMotionProject(project, { components });
 
 ## Docs
 
+- [`docs/guide/v1-compiler-runtime-guide.md`](../../docs/guide/v1-compiler-runtime-guide.md)
 - [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
 - [`docs/guide/v1-timeline-guide.md`](../../docs/guide/v1-timeline-guide.md)
 - [`docs/guide/v1-group-guide.md`](../../docs/guide/v1-group-guide.md)

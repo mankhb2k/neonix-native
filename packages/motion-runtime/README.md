@@ -2,7 +2,7 @@
 
 Evaluator thời gian chạy cho **Runtime IR** đã compile từ MotiClip V1. Không parse authoring JSON — nhận `MotionRuntimeProject` và trả transform, bounds, hit-test, geometry tại timestamp xác định.
 
-Runtime **không** mở rộng protocol. Không modifier. `tracks` là animation units nội bộ sinh từ `timeline.clips`.
+Runtime **không** mở rộng protocol. Animation runtime là `propertyAnimations`, compile từ `timeline.clips`.
 
 ## Vai trò
 
@@ -35,7 +35,7 @@ import {
 
 | Module | Chức năng |
 | --- | --- |
-| `evaluator` | Property tracks, hierarchy |
+| `evaluator` | `propertyAnimations`, hierarchy |
 | `matrix` / `spatial` | World matrix, bounds |
 | `hit-test` | Hit-test theo draw order / mask |
 | `clock` | Frame ↔ time deterministic |

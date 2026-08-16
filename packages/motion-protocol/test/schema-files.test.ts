@@ -365,6 +365,8 @@ describe("V1 authoring namespace", () => {
     expect(names).not.toContain("MotionClipV1Schema");
     expect(names).not.toContain("InternalAnimationUnitV1Schema");
     expect(names).not.toContain("ClipScheduleSchema");
+    expect(names).not.toContain("defaultInterpolationForValueKind");
+    expect(names).not.toContain("allowedInterpolationsForValueKind");
   });
 });
 
@@ -377,5 +379,6 @@ describe("runtime entry", () => {
     expect(names).toContain("ImageAssetSchema");
     expect(names).toContain("MotionRuntimeProjectSchema");
     expect(names).toContain("MOTION_RUNTIME_VERSION");
+    expect(names).toContain("defaultInterpolationForValueKind");
   });
 });

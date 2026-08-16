@@ -389,14 +389,17 @@ export function compileMotionProjectV1(
         }>;
       };
       for (const issue of zodErr.issues) {
-        collector.error("RUNTIME_VALIDATION_ERROR", issue.message, {
+        const code = issue.message.includes("Unknown runtime node")
+          ? "UNKNOWN_CLIP_TARGET"
+          : "RUNTIME_VALIDATION_ERROR";
+        collector.error(code, issue.message, {
           path: issue.path,
           details: { zodCode: issue.code },
         });
       }
     } else if (err instanceof Error) {
       const msg = err.message;
-      if (msg.includes("Unknown motion-unit target layer")) {
+      if (msg.includes("Unknown runtime node")) {
         collector.error("UNKNOWN_CLIP_TARGET", msg);
       } else {
         collector.error("COMPILE_ERROR", msg);

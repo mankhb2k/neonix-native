@@ -25,7 +25,7 @@ export type CompiledCaptionTrack = {
 };
 
 /**
- * Compiler motion-unit → cue segmentation. Caption tracks are not authoring JSON.
+ * Segment leftover caption tokens into cues. Caption tracks are not authoring JSON.
  * Timing stays in global project seconds.
  */
 export function compileCaptionTracks(tracks: CaptionTrack[]): CompiledCaptionTrack[] {

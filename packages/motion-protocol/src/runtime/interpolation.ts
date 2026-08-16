@@ -1,12 +1,12 @@
 /**
  * Derived interpolation — not an authoring JSON field.
- * number/angle → tween (linear), color → color blend, else step/hold.
+ * number/angle → linear, color → color blend, else step.
  */
-export type KeyframeInterpolationV1 = "step" | "linear" | "color";
+export type RuntimeKeyframeInterpolation = "step" | "linear" | "color";
 
 export function defaultInterpolationForValueKind(
   valueKind: string,
-): KeyframeInterpolationV1 {
+): RuntimeKeyframeInterpolation {
   if (valueKind === "number" || valueKind === "angle") return "linear";
   if (valueKind === "color") return "color";
   return "step";
@@ -14,7 +14,7 @@ export function defaultInterpolationForValueKind(
 
 export function allowedInterpolationsForValueKind(
   valueKind: string,
-): ReadonlySet<KeyframeInterpolationV1> {
+): ReadonlySet<RuntimeKeyframeInterpolation> {
   if (valueKind === "number" || valueKind === "angle")
     return new Set(["linear"]);
   if (valueKind === "color") return new Set(["color"]);

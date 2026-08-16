@@ -283,10 +283,7 @@ export const RuntimeLayerGraphSchema = z
       .max(MOTION_PROTOCOL_LIMITS.layersPerProject),
     propertyAnimations: z
       .array(RuntimePropertyAnimationSchema)
-      .max(
-        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.propertyAnimationsPerUnit,
-      )
+      .max(MOTION_PROTOCOL_LIMITS.propertyAnimationsPerProject)
       .default([]),
   })
   .strict();
@@ -314,10 +311,7 @@ const MotionRuntimeProjectBaseSchema = z
       .default([]),
     propertyAnimations: z
       .array(RuntimePropertyAnimationSchema)
-      .max(
-        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
-          MOTION_PROTOCOL_LIMITS.propertyAnimationsPerUnit,
-      )
+      .max(MOTION_PROTOCOL_LIMITS.propertyAnimationsPerProject)
       .default([]),
     timeline: z
       .object({

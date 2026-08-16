@@ -32,3 +32,9 @@ export {
   type CompositingScope,
   type DepGraphNode,
 } from "./prepared";
+
+export {
+  defaultInterpolationForValueKind,
+  allowedInterpolationsForValueKind,
+  type RuntimeKeyframeInterpolation,
+} from "./interpolation";

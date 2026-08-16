@@ -1,6 +1,6 @@
 /**
- * Barrel animation V1 — easing / drivers.
- * Interpolation is derived from value type; not an authoring field.
+ * Barrel animation V1 — easing / drivers (JSON / runtime evaluate).
+ * Interpolation is not an authoring field; see `@motionvideo/motion-protocol/runtime`.
  */
 
 // Easing
@@ -13,9 +13,3 @@ export {
 } from "./easing";
 
 export { ProceduralDriverSchema, type ProceduralDriver } from "./drivers";
-
-export {
-  defaultInterpolationForValueKind,
-  allowedInterpolationsForValueKind,
-  type KeyframeInterpolationV1,
-} from "./interpolation";

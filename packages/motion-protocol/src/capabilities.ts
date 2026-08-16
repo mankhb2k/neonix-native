@@ -2,10 +2,10 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
   layersPerProject: 2_000,
   layersPerComponent: 2_000,
-  /** Max motion-unit trên compiled layer graph (internal compiler, không phải timeline clip). */
-  motionClipsPerProject: 2_000,
-  /** Max propertyAnimations on a compiled runtime graph. */
-  propertyAnimationsPerUnit: 2_000,
+  /** Max authoring `timeline.clips`. */
+  timelineClipsPerProject: 2_000,
+  /** Max `propertyAnimations` on a compiled runtime project / layer graph. */
+  propertyAnimationsPerProject: 2_000,
   /** Max keyframes trên một propertyAnimation (và authoring clip/prop keys). */
   keysPerPropertyAnimation: 10_000,
   hierarchyDepth: 64,

@@ -18,7 +18,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Public authoring API (`.`). Runtime không export ở đây. |
-| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — leftover `animation/clips`, `captions`. Authoring clips: `v1/timeline/clips.ts`. Compiler V1 does not ingest motion clips. |
+| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — leftover caption tokens. Authoring clips: `v1/timeline/clips.ts`. |
 | `capabilities.ts` | `MOTION_PROTOCOL_LIMITS` + bảng `motionPropertyCapability` / `motionEffectPropertyCapability`. |
 | `ai-schema-capability.ts` | Ma trận E2E AI schema (`ai-schema.1`). |
 | `scene-registry.ts` | Legacy template registry — không còn trên public barrel. |
@@ -31,7 +31,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Barrel V1 — layers, assets, components, patch, MCP. Không export captions / motion-clip units. |
+| `index.ts` | Barrel V1 — layers, assets, components, patch, MCP. Không export captions. |
 | `common.ts` | Primitive: `IdSchema`, `FiniteNumberSchema`, `PercentSchema` (0..100 int), `ColorAdjustPercentSchema` (0..200 int), `HueRotateSchema` (−180..180), `ratioFromPercent`, `MOTION_PROJECT_V1_FORMAT_VERSION`. |
 | `values.ts` | `JsonValueSchema`, `LiteralValueSchema`. Prop values không dùng `VariableReferenceSchema`. |
 | `frame.ts` | `FrameSchema` — `{ width, height }` size box trước transform. Bắt buộc mọi visual layer; cấm audio/camera. |
@@ -157,7 +157,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Barrel easing/drivers; interpolation derived from type (not authoring). |
+| `index.ts` | Barrel easing / drivers. |
 | `easing.ts` | Named / cubic / spring. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
 | `clips.ts` | *Removed.* Animation authoring is `timeline/clips.ts`. Runtime output is `propertyAnimations`. |
@@ -202,6 +202,7 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | `layout.ts` | Repeater + native `layout` / `layoutItem` (same fields as V1; compiler normally bakes then strips). |
 | `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
 | `project.ts` | `MotionRuntimeProjectSchema`. |
+| `interpolation.ts` | Derived interpolation from value kind (not JSON). |
 | `values.ts` | JSON / resolvable values. |
 
 ### 3.1 `src/runtime/layers/`

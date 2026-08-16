@@ -31,7 +31,7 @@ Three package entries:
 | --- | --- |
 | [`src/index.ts`](./src/index.ts) | Authoring barrel (`.`) |
 | [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`) |
-| [`src/internal.ts`](./src/internal.ts) | Compiler leftovers (`./internal`) |
+| [`src/internal.ts`](./src/internal.ts) | Caption leftover schemas (`./internal`) |
 | [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, timeline, variables, animation, references) |
 | [`src/runtime/`](./src/runtime) | Runtime IR schemas |
 | [`src/capabilities.ts`](./src/capabilities.ts) | Limits + property capability registry |
@@ -57,7 +57,7 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and
 - Sealed definition: public `props` / `variants`; owner-only `propBindings` + internal `layers`
 - Instance = `type: "component"` layer on the **project layer tree**
 - Prop keyframe `t` is local to the instance: `0..layer.timing.duration`
-- No `actions` — timeline motion uses `timeline.clips` / prop keyframes only
+- Timeline motion uses `timeline.clips` / prop keyframes
 
 ### Bindings (`ProjectBindingV1Schema`)
 

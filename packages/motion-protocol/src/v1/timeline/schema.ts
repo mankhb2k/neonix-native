@@ -34,7 +34,7 @@ export const ProjectTimelineV1Schema = z
     workArea: WorkAreaSchema.optional(),
     clips: z
       .array(TimelinePropertyClipV1Schema)
-      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject)
+      .max(MOTION_PROTOCOL_LIMITS.timelineClipsPerProject)
       .optional(),
   })
   .strict()
