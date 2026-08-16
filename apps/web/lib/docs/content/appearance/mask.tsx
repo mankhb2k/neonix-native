@@ -1,8 +1,13 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { MaskFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
@@ -14,6 +19,7 @@ export function maskPage(): DocsPageView {
       { id: "concept", title: "Concept" },
       { id: "why", title: "Why mask exists" },
       { id: "shape", title: "Shape" },
+      { id: "example", title: "Example" },
       { id: "ai", title: "AI defaults" },
       { id: "ai-guide", title: "AI writing guide" },
     ],
@@ -41,6 +47,34 @@ export function maskPage(): DocsPageView {
           <code>inverse-luma</code>. Visibility: <code>mask-only</code> or{" "}
           <code>content-and-mask</code>.
         </P>
+        <H2 id="example">Example</H2>
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample(
+              {},
+              {
+                compositing: {
+                  mask: {
+                    sourceLayerId: "cutout",
+                    mode: "alpha",
+                    "source-visibility": "mask-only",
+                  },
+                },
+              },
+            ),
+            null,
+            2,
+          )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="no mask" />
+              <TransformExamplePhoto
+                label="mask alpha"
+                clipPath="circle(42% at 50% 50%)"
+              />
+            </TransformExampleRow>
+          }
+        />
         <H2 id="ai">AI defaults</H2>
         <P>
           Prefer <code>clip</code> or <code>alpha</code> with{" "}
@@ -48,21 +82,6 @@ export function maskPage(): DocsPageView {
           <code>luma</code>, <code>inverse-luma</code>, and{" "}
           <code>content-and-mask</code> in schema, but treat them as advanced.
         </P>
-        <JsonBlock
-          code={JSON.stringify(
-            {
-              compositing: {
-                mask: {
-                  sourceLayerId: "cutout",
-                  mode: "alpha",
-                  "source-visibility": "mask-only",
-                },
-              },
-            },
-            null,
-            2,
-          )}
-        />
         <AiWritingGuide
           items={[
             "Cut with compositing.mask, never with group.frame.",

@@ -1,8 +1,13 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { ScaleFigure } from "@/components/docs/figures/TransformFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
@@ -36,13 +41,25 @@ export function scalePage(): DocsPageView {
         <ScaleFigure />
 
         <H2 id="example">Example</H2>
-        <JsonBlock
-          caption="Authoring JSON (fragment)"
-          code={JSON.stringify(
-            { transform: { scale: { x: -1, y: 1 } } },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample({ scale: { x: -1, y: 1 } }),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="1, 1" transform="none" />
+              <TransformExamplePhoto
+                label="1.4, 1.4"
+                transform="scale(1.4)"
+              />
+              <TransformExamplePhoto
+                label="-1, 1"
+                transform="scaleX(-1)"
+              />
+            </TransformExampleRow>
+          }
         />
 
         <AiWritingGuide

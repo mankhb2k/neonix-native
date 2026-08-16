@@ -1,3 +1,5 @@
+import { DOCS_ASSET_PHOTO_SQUARE } from "@/lib/docs/visual-fixtures";
+
 /** Shared authoring envelope for docs “Example layer” JSON. */
 export const EXAMPLE_TRANSFORM = {
   translate: { x: 120, y: 80 },
@@ -27,4 +29,28 @@ export function visualLayerExample<T extends Record<string, unknown>>(
     appearance: EXAMPLE_APPEARANCE,
     ...layer,
   };
+}
+
+/** 1:1 docs photo layer used across Transform / Appearance examples. */
+export function squareImageLayerExample(
+  transform: Partial<typeof EXAMPLE_TRANSFORM> = {},
+  extras: {
+    appearance?: { visible?: boolean; opacity?: number };
+    compositing?: Record<string, unknown>;
+  } = {},
+) {
+  return visualLayerExample({
+    id: "photo",
+    type: "image",
+    frame: { width: 400, height: 400 },
+    transform: { ...EXAMPLE_TRANSFORM, ...transform },
+    appearance: extras.appearance
+      ? { ...EXAMPLE_APPEARANCE, ...extras.appearance }
+      : EXAMPLE_APPEARANCE,
+    ...(extras.compositing ? { compositing: extras.compositing } : {}),
+    payload: {
+      assetId: DOCS_ASSET_PHOTO_SQUARE.id,
+      fit: "cover",
+    },
+  });
 }

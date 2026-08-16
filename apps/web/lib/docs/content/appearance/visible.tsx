@@ -1,8 +1,13 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { VisibleFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
@@ -40,13 +45,21 @@ export function visiblePage(): DocsPageView {
         </P>
 
         <H2 id="example">Example</H2>
-        <JsonBlock
-          caption="Authoring JSON (fragment)"
-          code={JSON.stringify(
-            { appearance: { visible: false, opacity: 100 } },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample(
+              {},
+              { appearance: { visible: false, opacity: 100 } },
+            ),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="visible true" />
+              <TransformExamplePhoto label="visible false" hidden />
+            </TransformExampleRow>
+          }
         />
 
         <AiWritingGuide

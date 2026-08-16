@@ -17,6 +17,7 @@ function Canvas({ label }: { label: string }) {
         rx={10}
         fill="#fff"
         stroke={MUTED}
+        strokeWidth={1.5}
         strokeDasharray="6 5"
       />
       <text
@@ -274,6 +275,7 @@ export function SkewFigure() {
         aria-label="Skew"
       >
         <Canvas label="skew around origin" />
+        <Box x={140} y={130} dashed />
         <Box x={140} y={130} />
         <text
           x={140}
@@ -285,6 +287,7 @@ export function SkewFigure() {
         >
           0, 0
         </text>
+        <Box x={320} y={130} dashed />
         <Box x={320} y={130} skewX={20} />
         <text
           x={320}
@@ -296,6 +299,7 @@ export function SkewFigure() {
         >
           skew.x 20
         </text>
+        <Box x={500} y={130} dashed />
         <Box x={500} y={130} skewY={16} />
         <text
           x={500}

@@ -1,8 +1,13 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
+import {
+  TransformExamplePhoto,
+  TransformExampleRow,
+} from "@/components/docs/figures/TransformExamplePhoto";
 import { OpacityFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
+import { squareImageLayerExample } from "@/lib/docs/content/layers/example-json";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
@@ -34,13 +39,22 @@ export function opacityPage(): DocsPageView {
         <OpacityFigure />
 
         <H2 id="example">Example</H2>
-        <JsonBlock
-          caption="Authoring JSON (fragment)"
-          code={JSON.stringify(
-            { appearance: { visible: true, opacity: 80 } },
+        <ExampleWithResult
+          json={JSON.stringify(
+            squareImageLayerExample(
+              {},
+              { appearance: { visible: true, opacity: 80 } },
+            ),
             null,
             2,
           )}
+          result={
+            <TransformExampleRow>
+              <TransformExamplePhoto label="opacity 100" opacity={100} />
+              <TransformExamplePhoto label="opacity 80" opacity={80} />
+              <TransformExamplePhoto label="opacity 40" opacity={40} />
+            </TransformExampleRow>
+          }
         />
 
         <AiWritingGuide
