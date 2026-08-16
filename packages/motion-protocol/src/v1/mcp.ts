@@ -762,7 +762,7 @@ function explainSingle(diag: {
   // formatVersion must be 1
   if (diag.message.includes("formatVersion") || diag.path.includes("formatVersion")) {
     return {
-      explanation: `Authoring only accepts formatVersion 1 (project.layers, no scenes or timeline tracks).`,
+      explanation: `Authoring only accepts formatVersion 1 (project.layers). V1 has no tracks in authoring/runtime animation.`,
       suggestedAction:
         "Set formatVersion to 1 and use V1 conventions (root layers with type and zIndex).",
     };

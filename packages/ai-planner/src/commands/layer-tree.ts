@@ -1,10 +1,8 @@
 import { type MotionLayer, type MotionProject } from "@motionvideo/motion-protocol";
-import type { InternalAnimationUnitV1 } from "@motionvideo/motion-protocol/internal";
 
 export const AI_EXT_KEY = "com.moticlip.ai";
 
 export type AiPlannerExt = {
-  animationUnits: InternalAnimationUnitV1[];
   activeCameraLayerId?: string;
   space?: "flat-2d" | "layered-2.5d";
 };
@@ -28,12 +26,11 @@ export function getAiExt(project: MotionProject): AiPlannerExt {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     const rec = raw as AiPlannerExt;
     return {
-      animationUnits: Array.isArray(rec.animationUnits) ? rec.animationUnits : [],
       activeCameraLayerId: rec.activeCameraLayerId,
       space: rec.space,
     };
   }
-  return { animationUnits: [] };
+  return {};
 }
 
 export function setAiExt(project: MotionProject, ext: AiPlannerExt): void {

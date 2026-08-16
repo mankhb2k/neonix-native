@@ -163,7 +163,7 @@ export const RUNTIME_DIAGNOSTIC_CODE_META: Record<
   },
   TRACK_NOT_APPLIED: {
     severity: "warning",
-    message: "A compiled track exists but snapshot/paint does not apply it in V1.",
+    message: "A compiled propertyAnimation exists but snapshot/paint does not apply it in V1.",
   },
   OUT_OF_RANGE_VALUE: {
     severity: "warning",

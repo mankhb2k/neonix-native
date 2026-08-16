@@ -32,7 +32,6 @@ Audio là ngoại lệ: vẫn là timeline object trên `project.layers`, nhưng
 - Root visual: `zIndex >= 0`. Nested visual: `zIndex >= 0`. Root audio: `zIndex < 0` (lane rule, không phải visual stacking) — chi tiết ở audio guide.
 - `semantic` chỉ là metadata; không đổi render.
 - Không emit `locked`.
-- Không dùng `modifier` như khái niệm authoring tổng quát.
 - Layout native:
   - `layout` chỉ trên `group`
   - `layoutItem` trên child visual trong group

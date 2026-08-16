@@ -400,22 +400,12 @@ export function fixtureMultiSceneReferences() {
           {
             id: "anim.a",
             layerId: "node.a.child",
-            schedule: { kind: "absolute", at: 0 },
-            duration: 1,
-            playback: { iterations: 1, direction: "normal", rate: 1 },
-            source: {
-              kind: "propertyAnimations",
-              items: [
-                {
-                  layerId: "node.a.child",
-                  property: "appearance.opacity",
-                  keys: [
-                    { t: 0, v: 0 },
-                    { t: 1, v: 1, easing: "linear" },
-                  ],
-                },
-              ],
-            },
+            property: "appearance.opacity",
+            kind: "keyframes",
+            keys: [
+              { t: 0, value: 0 },
+              { t: 1, value: 1, easing: "linear" },
+            ],
           },
         ],
       },

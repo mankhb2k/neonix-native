@@ -76,7 +76,7 @@ Layout tính placement / base size **trước**. Transform áp **sau**. Layout =
 
 ## Không có trong V1
 
-`flipX` / `flipY`, matrix, perspective trên transform, 3D rotate (`x`/`y`), transform modifier.
+`flipX` / `flipY`, matrix, perspective trên transform, 3D rotate (`x`/`y`).
 
 ---
 

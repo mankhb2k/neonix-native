@@ -2,7 +2,7 @@
 
 Module protocol tại `packages/motion-protocol/src/v1/timeline/`.
 
-Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm trên `project.layers` — root layer = lane. Compiler / runtime / render-worker đọc `timeline.duration` và timing của **root layer**; không dựng lại từ scene/track cũ.
+Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm trên `project.layers` — root layer = lane. Compiler / runtime / render-worker đọc `timeline.duration` và timing của **root layer**.
 
 ---
 
@@ -16,7 +16,7 @@ Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm
 | `project.layers[]` | Root layers = timeline lanes. Every layer requires `zIndex`: `>= 0` visual, `< 0` audio at root; nested always `>= 0`; unique among siblings |
 | `group.children[]` | ≥1 child. Timing con **bắt buộc**, local so với parent, không vượt `parent.timing.duration`. Group không clip mặc định. |
 
-Authoring **không** có `scenes`, `visualTracks`, `audioTracks`, `captionTracks`. Extra keys bị strict reject.
+Authoring **không** có `scenes`. Extra keys bị strict reject. V1 không có tracks trong authoring/runtime animation.
 
 ```jsonc
 {
@@ -28,7 +28,7 @@ Authoring **không** có `scenes`, `visualTracks`, `audioTracks`, `captionTracks
 }
 ```
 
-Runtime IR shares the same layers-only contract: compiler emits flat `layers[]` (visual + audio) plus `propertyAnimations`. Evaluate may use an in-memory graph id `"root"` — there is no serialized `scenes` array or visual/audio clip tracks.
+Runtime IR cùng contract layers-only: compiler emit `layers[]` (visual + audio) plus `propertyAnimations`. Evaluate có thể dùng graph id in-memory `"root"`.
 
 ---
 
@@ -46,7 +46,7 @@ Mỗi project có đúng một `timeline`:
 }
 ```
 
-Không có track array. Caption không phải type: một caption line = `type: "group"`; words = `type: "text"` children với timing local.
+Caption không phải type: một caption line = `type: "group"`; words = `type: "text"` children với timing local.
 
 Layer/property animation nằm ở `timeline.clips` (local time theo layer). Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md). Runtime `propertyAnimations` là output compiler, không phải JSON authoring.
 

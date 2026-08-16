@@ -23,9 +23,10 @@ Ngôn ngữ:
 - `clip` — khai báo animation trên authoring `timeline.clips`
 - `keyframe` — điểm `{ t, value }` (authoring) / `{ t, v }` (runtime)
 - `propertyAnimation` — output runtime đã compile từ clip / prop keyframes
-- `track` — không dùng cho protocol animation V1 (audio/caption UI tracks vẫn giữ)
 
-Runtime `propertyAnimations[]` là **internal evaluated animation units** sinh từ `timeline.clips` (và component prop keyframes). Không phải authoring. Clip nội bộ compiler (nếu còn) dùng `source.kind: "propertyAnimations"`.
+V1 không có tracks trong authoring/runtime animation.
+
+Runtime `propertyAnimations[]` sinh từ `timeline.clips` (và component prop keyframes). Không phải authoring.
 
 ---
 
@@ -40,9 +41,9 @@ Runtime `propertyAnimations[]` là **internal evaluated animation units** sinh t
 | video | `assetId`, `fit` default **cover**, `loop: false`, `muted: false`, optional trim. Không crop, không `style`. |
 | component | Sealed instance: expand thành wrapper + internals. Prop keyframes → propertyAnimations trên internal paths. |
 
-Không emit: `modifiers`, rich text runs, `modifiers.*` propertyAnimations, `payload.color` trên shape/path/svg, `style` trên image/video.
+Không emit: rich text runs, `payload.color` trên shape/path/svg, `style` trên image/video.
 
-Animation nguồn compile: `timeline.clips` + component `payload.props` keyframes, emit thẳng `propertyAnimations`. **Không** ingest `extensions["com.moticlip.ai"].animationUnits`. **Không** đi qua InternalAnimationUnitV1.
+Animation nguồn compile: `timeline.clips` + component `payload.props` keyframes, emit thẳng `propertyAnimations`. Compiler là hàm chuyển đổi, không có object animation trung gian.
 
 Variable chỉ vào layer qua `project.bindings` → public prop. Compiler **không** resolve `{ ref: { kind: "variable" } }` trên field/keyframe.
 
@@ -50,10 +51,9 @@ Variable chỉ vào layer qua `project.bindings` → public prop. Compiler **kh�
 
 ## Cấm V1 production
 
-- Modifier (motion-path, path-morph, path-bend, trim-path, constraint, secondary-motion, parallax-as-modifier)
-- Authoring `tracks` / public property-track language (`propertyAnimations` chỉ là runtime IR)
-- AI extra animationUnits / presets như animation thứ hai (compiler không ingest)
-- Animate morph/bend/trim-path qua modifier — nếu cần sau này: field canonical trên payload, không modifier
+- AI extra extension fields / presets như animation thứ hai (compiler không ingest; preset compile thẳng `propertyAnimations`)
+
+Migration artifact cũ (modifier): [v1-modifier-migration.md](./v1-modifier-migration.md).
 
 ---
 

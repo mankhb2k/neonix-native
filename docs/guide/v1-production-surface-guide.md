@@ -18,13 +18,12 @@
 ## Đã chốt
 
 - Bề mặt AI mặc định **nhỏ hơn** full schema.
-- Generic `modifier` không thuộc JSON authoring V1 (chỉ runtime IR).
 - Field native theo domain được ưu tiên hơn bucket extension.
 - AI luôn ghi: `id`, `name`, `type`, `parentLayerId`, `zIndex`, `timing`.
 - AI ghi `frame` trên mọi visual layer (kể cả group). Không ghi trên audio/camera. Không suy group.frame từ children.
 - AI không ghi `locked`.
 - `semantic` tùy chọn; không dùng để “vẽ khác”.
-- `inheritFlags` không dùng trừ khi user/tool cố ý. Không emit `modifiers`.
+- `inheritFlags` không dùng trừ khi user/tool cố ý.
 - Layout: chỉ `group.layout` + child `layoutItem`. Field: `mode`, `gap`, `padding`, `justify`, `align`, size `fixed|hug|fill`, `alignSelf`, min/max. Grid cần `columns`. Không `wrap` / `grow` / `shrink` / span.
 - Transform: mọi visual layer cùng `{ translate, scale, rotate.z, skew, origin, depth }`. Lật bằng scale âm. Origin AI: `0` \| `0.5` \| `1`. Không `flipX/Y`, không `transform.z`.
 - Appearance: chỉ `visible` + `opacity` trên visual layer. Integer opacity `0..100`. Không hit-test. Audio không có `appearance`; mute/volume trên payload.
@@ -55,3 +54,4 @@
 - [v1-layer-guide.md](./v1-layer-guide.md)
 - [v1-format-guide.md](./v1-format-guide.md)
 - [README.md](./README.md)
+- Migration artifact cũ: [v1-modifier-migration.md](./v1-modifier-migration.md)

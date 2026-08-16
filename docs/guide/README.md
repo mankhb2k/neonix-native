@@ -47,15 +47,14 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 
 ## Quyết định đã chốt
 
-- `modifier` không thuộc bề mặt authoring ưu tiên.
-- Hành vi hình học, layout, media nằm trên object sở hữu chúng, không nhét generic modifier.
+- Hành vi hình học, layout, media nằm trên object sở hữu chúng.
 - `frame` là size box, không phải khái niệm container.
 - `group` là visual container có children, không phải clipping box.
 - Không ghi `locked` vào JSON authoring.
 - `semantic` chỉ là metadata, không đổi cách vẽ.
 - Mọi layer bắt buộc `zIndex` và `timing`.
 - Child timing tính local theo cha; cửa sổ hiệu lực là phần giao.
-- `layout` chỉ trên `group`; `layoutItem` trên child visual. Không phải modifier.
+- `layout` chỉ trên `group`; `layoutItem` trên child visual.
 - `transform` chung cho mọi visual layer; audio không có. Scale âm = lật. `depth` ≠ `zIndex`.
 - `appearance` chỉ `visible` + `opacity` trên visual layer. Audio không có appearance. Protocol không định nghĩa hit-test.
 - `compositing` tách khỏi appearance/effects: `blend-mode`, `isolation`, `mask`. AI mặc định: blend khi cần; mask `clip`/`alpha` + `mask-only`; không emit isolation.
@@ -63,7 +62,9 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - Binding = variable → public prop. Kinds: string, number, boolean, color, asset, choice.
 - Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow không intensity. Không effects trên camera/audio.
 - Animation layer/property = `timeline.clips`. Prop = `payload.props` keyframes. `t` local. Không animate frame/trim/fit. Interpolation theo type, không field riêng.
-- Compiler/runtime chỉ thực thi protocol. Runtime không modifier; `propertyAnimations` là IR nội bộ.
+- Compiler/runtime chỉ thực thi protocol. `propertyAnimations` là IR nội bộ.
+
+Migration artifact cũ: [v1-modifier-migration.md](./v1-modifier-migration.md).
 
 ---
 

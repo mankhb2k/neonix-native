@@ -532,11 +532,12 @@ function applyOne(
         };
         visit(command.layerId);
         removeLayers(scene, removeIds);
-        const ext = getAiExt(next);
-        ext.animationUnits = ext.animationUnits.filter(
-          (unit) => !unit.layerId || !removeIds.has(unit.layerId),
-        );
-        setAiExt(next, ext);
+        next.timeline = {
+          ...next.timeline,
+          clips: (next.timeline.clips ?? []).filter(
+            (clip) => !clip.layerId || !removeIds.has(clip.layerId),
+          ),
+        };
         changedIds.push(...removeIds);
         return {
           project: parseMotionProject(next),
@@ -594,8 +595,8 @@ function applyOne(
             },
           };
         }
-        const ext = getAiExt(next);
-        if (ext.animationUnits.some((unit) => unit.id === command.clipId)) {
+        const clips = [...(next.timeline.clips ?? [])];
+        if (clips.some((clip) => clip.id === command.clipId)) {
           return {
             project,
             receipt: {
@@ -604,31 +605,25 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `clips.${command.clipId}`,
+                  `timeline.clips.${command.clipId}`,
                   `Clip already exists: ${command.clipId}`,
                 ),
               ],
             },
           };
         }
-        ext.animationUnits.push({
+        clips.push({
           id: command.clipId,
           layerId: command.layerId,
-          schedule: { kind: "absolute", at: command.at ?? 0 },
-          duration: command.duration,
-          playback: { iterations: 1, direction: "normal", rate: 1 },
-          source: {
-            kind: "propertyAnimations",
-            items: [
-              {
-                layerId: command.layerId,
-                property: command.property,
-                keys: command.keys,
-              },
-            ],
-          },
+          property: command.property,
+          kind: "keyframes",
+          keys: command.keys.map((key) => ({
+            t: key.t,
+            value: key.v,
+            ...(key.easing !== undefined ? { easing: key.easing } : {}),
+          })),
         });
-        setAiExt(next, ext);
+        next.timeline = { ...next.timeline, clips };
         changedIds.push(command.clipId);
         return {
           project: parseMotionProject(next),
@@ -1266,29 +1261,23 @@ function applyOne(
           const clipId =
             command.clipId ??
             `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
-          const ext = getAiExt(next);
-          ext.animationUnits.push({
-            id: clipId,
-            layerId: command.targetLayerId,
-            schedule: { kind: "absolute", at: 0 },
-            duration: command.duration,
-            playback: { rate: 1, direction: "normal", iterations: 1 },
-            source: {
-              kind: "propertyAnimations",
-              items: baked.propertyAnimations.map((track) => ({
-                layerId: track.layerId,
-                property: track.property,
-                keys: track.keys.map((key) => ({
-                  t: key.t,
-                  v: key.v,
-                  ...(key.easing
-                    ? { easing: key.easing as "easeOut" | "linear" | "step" }
-                    : {}),
-                })),
+          const clips = [...(next.timeline.clips ?? [])];
+          for (const animation of baked.propertyAnimations) {
+            clips.push({
+              id: `${clipId}.${animation.layerId}.${animation.property}`,
+              layerId: animation.layerId,
+              property: animation.property,
+              kind: "keyframes",
+              keys: animation.keys.map((key) => ({
+                t: key.t,
+                value: key.v,
+                ...(key.easing
+                  ? { easing: key.easing as "easeOut" | "linear" | "step" }
+                  : {}),
               })),
-            },
-          });
-          setAiExt(next, ext);
+            });
+          }
+          next.timeline = { ...next.timeline, clips };
           changedIds.push(clipId);
         }
         return {

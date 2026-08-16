@@ -252,7 +252,6 @@ Mỗi target là một bộ `contours` thay thế. Morph hợp lệ khi topology
 - `trim` trên payload (nếu có, thuộc runtime / nâng cao sau)
 - `payload.color`
 - quadratic / arc segment
-- generic `modifier`
 
 ---
 

@@ -11,8 +11,8 @@ export type PresetValidationResult =
   | { ok: false; unknown: UnknownPresetRef[] };
 
 /**
- * Semantic check: every Clip.source.presetId must be in the compiler allowlist.
- * Authoring V1 has no timeline clip tracks; presets live on motion clip sources.
+ * Semantic check: unknown preset ids are rejected.
+ * Presets compile to `propertyAnimations`.
  */
 export function validateMotionProjectPresets(
   _project: MotionProject,

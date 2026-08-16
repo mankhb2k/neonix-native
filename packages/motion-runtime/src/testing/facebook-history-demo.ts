@@ -5,8 +5,10 @@ import {
   type MotionProjectV1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
-import type { InternalAnimationUnitV1 } from "@motionvideo/motion-protocol/internal";
-import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
+import type {
+  MotionRuntimePropertyAnimation,
+  RuntimeLayerGraph,
+} from "@motionvideo/motion-protocol/runtime";
 
 export const FB_HISTORY_SCENE_IDS = {
   hook: "scene.hook",
@@ -124,66 +126,31 @@ function textNode(
   };
 }
 
-function fadeInClip(
-  id: string,
+function fadeInPropertyAnimations(
   layerId: string,
   at: number,
   duration: number,
   fromY?: number,
-): InternalAnimationUnitV1 {
-  const tracks: Array<{
-    layerId: string;
-    property: string;
-    keys: Array<{ t: number; v: number; easing?: "easeOut" }>;
-  }> = [
+): MotionRuntimePropertyAnimation[] {
+  const items: MotionRuntimePropertyAnimation[] = [
     {
       layerId,
       property: "appearance.opacity",
       keys: [
-        { t: 0, v: 0 },
-        { t: duration, v: 100, easing: "easeOut" },
+        { t: at, v: 0 },
+        { t: at + duration, v: 100, easing: "easeOut" },
       ],
     },
   ];
   if (fromY != null) {
-    tracks.push({
+    items.push({
       layerId,
       property: "transform.translate.y",
       keys: [
-        { t: 0, v: fromY },
-        { t: duration, v: fromY - 40, easing: "easeOut" },
+        { t: at, v: fromY },
+        { t: at + duration, v: fromY - 40, easing: "easeOut" },
       ],
     });
-  }
-  return {
-    id,
-    layerId,
-    schedule: { kind: "absolute", at },
-    duration,
-    playback: { iterations: 1, direction: "normal", rate: 1 },
-    source: { kind: "propertyAnimations", items: tracks },
-  };
-}
-
-function flattenClipPropertyAnimations(
-  clips: InternalAnimationUnitV1[],
-): RuntimeLayerGraph["propertyAnimations"] {
-  const items: RuntimeLayerGraph["propertyAnimations"] = [];
-  for (const clip of clips) {
-    if (clip.source.kind !== "propertyAnimations") continue;
-    const start = clip.schedule.kind === "absolute" ? clip.schedule.at : 0;
-    for (const item of clip.source.items) {
-      items.push({
-        layerId: item.layerId,
-        property: item.property,
-        ...(item.valueKind ? { valueKind: item.valueKind } : {}),
-        keys: item.keys.map((key) => ({
-          t: typeof key.t === "number" ? key.t + start : 0,
-          v: key.v as RuntimeLayerGraph["propertyAnimations"][number]["keys"][number]["v"],
-          ...(key.easing ? { easing: key.easing } : {}),
-        })),
-      });
-    }
   }
   return items;
 }
@@ -193,13 +160,13 @@ function scene(
   _name: string,
   duration: number,
   layers: MotionLayer[],
-  clips: InternalAnimationUnitV1[],
+  propertyAnimations: MotionRuntimePropertyAnimation[],
 ): RuntimeLayerGraph {
   return {
     id,
     duration,
     layers: layers as RuntimeLayerGraph["layers"],
-    propertyAnimations: flattenClipPropertyAnimations(clips),
+    propertyAnimations,
   };
 }
 
@@ -246,35 +213,23 @@ function buildHook(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.hook.title", titleId, 0.2, 0.8, 500),
-      fadeInClip("clip.hook.sub", subId, 0.6, 0.7),
+      ...fadeInPropertyAnimations(titleId, 0.2, 0.8, 500),
+      ...fadeInPropertyAnimations(subId, 0.6, 0.7),
       {
-        id: "clip.hook.accent",
         layerId: accentId,
-        schedule: { kind: "absolute", at: 0.9 },
-        duration: 0.6,
-        playback: { iterations: 1, direction: "normal", rate: 1 },
-        source: {
-          kind: "propertyAnimations",
-          items: [
-            {
-              layerId: accentId,
-              property: "appearance.opacity",
-              keys: [
-                { t: 0, v: 0 },
-                { t: 0.6, v: 100, easing: "easeOut" },
-              ],
-            },
-            {
-              layerId: accentId,
-              property: "frame.width",
-              keys: [
-                { t: 0, v: 40 },
-                { t: 0.6, v: 120, easing: "easeOut" },
-              ],
-            },
-          ],
-        },
+        property: "appearance.opacity",
+        keys: [
+          { t: 0.9, v: 0 },
+          { t: 1.5, v: 100, easing: "easeOut" },
+        ],
+      },
+      {
+        layerId: accentId,
+        property: "frame.width",
+        keys: [
+          { t: 0.9, v: 40 },
+          { t: 1.5, v: 120, easing: "easeOut" },
+        ],
       },
     ],
   );
@@ -332,10 +287,10 @@ function buildHarvard(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.harvard.year", yearId, 0.1, 0.7),
-      fadeInClip("clip.harvard.card", cardId, 0.35, 0.6),
-      fadeInClip("clip.harvard.label", labelId, 0.5, 0.5),
-      fadeInClip("clip.harvard.body", bodyId, 0.65, 0.55),
+      ...fadeInPropertyAnimations(yearId, 0.1, 0.7),
+      ...fadeInPropertyAnimations(cardId, 0.35, 0.6),
+      ...fadeInPropertyAnimations(labelId, 0.5, 0.5),
+      ...fadeInPropertyAnimations(bodyId, 0.65, 0.55),
     ],
   );
 }
@@ -431,14 +386,14 @@ function buildNewsfeed(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.nf.year", yearId, 0.1, 0.5),
-      fadeInClip("clip.nf.title", titleId, 0.2, 0.5),
-      fadeInClip("clip.nf.p1", post1, 0.5, 0.45, 440),
-      fadeInClip("clip.nf.p1t", "newsfeed.post1text", 0.55, 0.4),
-      fadeInClip("clip.nf.p2", post2, 0.85, 0.45, 580),
-      fadeInClip("clip.nf.p2t", "newsfeed.post2text", 0.9, 0.4),
-      fadeInClip("clip.nf.p3", post3, 1.2, 0.45, 720),
-      fadeInClip("clip.nf.p3t", "newsfeed.post3text", 1.25, 0.4),
+      ...fadeInPropertyAnimations(yearId, 0.1, 0.5),
+      ...fadeInPropertyAnimations(titleId, 0.2, 0.5),
+      ...fadeInPropertyAnimations(post1, 0.5, 0.45, 440),
+      ...fadeInPropertyAnimations("newsfeed.post1text", 0.55, 0.4),
+      ...fadeInPropertyAnimations(post2, 0.85, 0.45, 580),
+      ...fadeInPropertyAnimations("newsfeed.post2text", 0.9, 0.4),
+      ...fadeInPropertyAnimations(post3, 1.2, 0.45, 720),
+      ...fadeInPropertyAnimations("newsfeed.post3text", 1.25, 0.4),
     ],
   );
 }
@@ -508,38 +463,26 @@ function buildIpo(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.ipo.year", yearId, 0.1, 0.6),
-      fadeInClip("clip.ipo.title", titleId, 0.35, 0.55),
+      ...fadeInPropertyAnimations(yearId, 0.1, 0.6),
+      ...fadeInPropertyAnimations(titleId, 0.35, 0.55),
       {
-        id: "clip.ipo.bar",
         layerId: barId,
-        schedule: { kind: "absolute", at: 0.6 },
-        duration: 0.5,
-        playback: { iterations: 1, direction: "normal", rate: 1 },
-        source: {
-          kind: "propertyAnimations",
-          items: [
-            {
-              layerId: barId,
-              property: "appearance.opacity",
-              keys: [
-                { t: 0, v: 0 },
-                { t: 0.5, v: 100, easing: "easeOut" },
-              ],
-            },
-            {
-              layerId: barId,
-              property: "frame.width",
-              keys: [
-                { t: 0, v: 40 },
-                { t: 0.5, v: 200, easing: "easeOut" },
-              ],
-            },
-          ],
-        },
+        property: "appearance.opacity",
+        keys: [
+          { t: 0.6, v: 0 },
+          { t: 1.1, v: 100, easing: "easeOut" },
+        ],
       },
-      fadeInClip("clip.ipo.s1", stat1, 1.0, 0.55),
-      fadeInClip("clip.ipo.s2", stat2, 1.25, 0.55),
+      {
+        layerId: barId,
+        property: "frame.width",
+        keys: [
+          { t: 0.6, v: 40 },
+          { t: 1.1, v: 200, easing: "easeOut" },
+        ],
+      },
+      ...fadeInPropertyAnimations(stat1, 1.0, 0.55),
+      ...fadeInPropertyAnimations(stat2, 1.25, 0.55),
     ],
   );
 }
@@ -601,29 +544,17 @@ function buildMeta(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.meta.year", yearId, 0.1, 0.5),
-      fadeInClip("clip.meta.old", oldId, 0.4, 0.5),
-      fadeInClip("clip.meta.new", newId, 0.7, 0.55),
-      fadeInClip("clip.meta.note", noteId, 1.1, 0.5),
+      ...fadeInPropertyAnimations(yearId, 0.1, 0.5),
+      ...fadeInPropertyAnimations(oldId, 0.4, 0.5),
+      ...fadeInPropertyAnimations(newId, 0.7, 0.55),
+      ...fadeInPropertyAnimations(noteId, 1.1, 0.5),
       {
-        id: "clip.meta.dark",
         layerId: "meta.overlay",
-        schedule: { kind: "absolute", at: 2.2 },
-        duration: 0.8,
-        playback: { iterations: 1, direction: "normal", rate: 1 },
-        source: {
-          kind: "propertyAnimations",
-          items: [
-            {
-              layerId: "meta.overlay",
-              property: "appearance.opacity",
-              keys: [
-                { t: 0, v: 0 },
-                { t: 0.8, v: 55, easing: "easeInOut" },
-              ],
-            },
-          ],
-        },
+        property: "appearance.opacity",
+        keys: [
+          { t: 2.2, v: 0 },
+          { t: 3.0, v: 55, easing: "easeInOut" },
+        ],
       },
     ],
   );
@@ -677,9 +608,9 @@ function buildOutro(): RuntimeLayerGraph {
       ),
     ],
     [
-      fadeInClip("clip.outro.title", titleId, 0.2, 0.7, 460),
-      fadeInClip("clip.outro.cta", ctaId, 0.7, 0.6),
-      fadeInClip("clip.outro.brand", brandId, 1.2, 0.5),
+      ...fadeInPropertyAnimations(titleId, 0.2, 0.7, 460),
+      ...fadeInPropertyAnimations(ctaId, 0.7, 0.6),
+      ...fadeInPropertyAnimations(brandId, 1.2, 0.5),
     ],
   );
 }
@@ -696,7 +627,7 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
     buildOutro(),
   ];
 
-  // Sequential main-track placement (durations: 4+5+5+5+4+4 = 27s).
+  // Sequential placement (durations: 4+5+5+5+4+4 = 27s).
   const starts = scenes.map((scene, index) =>
     scenes.slice(0, index).reduce((sum, s) => sum + s.duration, 0),
   );

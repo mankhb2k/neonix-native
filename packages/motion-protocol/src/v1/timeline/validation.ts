@@ -1,6 +1,5 @@
 /**
- * Toàn vẹn timeline. Không còn track visual/audio/caption.
- * Lane gốc unique nhờ zIndex trên layer parentLayerId null.
+ * Toàn vẹn timeline. Lane gốc unique nhờ zIndex trên layer `parentLayerId: null`.
  */
 import type { ProjectTimelineV1 } from "./schema";
 

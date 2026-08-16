@@ -72,7 +72,7 @@ export function groupLayerPage(): DocsPageView {
           does not clip children. Do not derive it from children in canonical
           JSON. Want a cut-out? Use a mask. Want children packed in a row,
           column, or grid? Set <code>layout</code> on the group and{" "}
-          <code>layoutItem</code> on children — not a modifier.
+          <code>layoutItem</code> on children.
         </P>
         <AiWritingGuide
           items={[

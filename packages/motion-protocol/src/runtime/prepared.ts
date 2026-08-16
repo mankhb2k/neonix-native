@@ -84,7 +84,7 @@ export type CompositingScope = {
 // ── Dependency graph ──────────────────────────────────────────────────
 
 /**
- * A minimal dependency graph node for invalidation tracking.
+ * A minimal dependency graph node for invalidation.
  */
 export type DepGraphNode = {
   layerId: string;

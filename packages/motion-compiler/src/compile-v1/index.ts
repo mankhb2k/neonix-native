@@ -50,9 +50,13 @@ import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
-import { timelineClipsToPropertyAnimations } from "./timeline-clips";
+import { timelineClipsToPropertyAnimations } from "./to-property-animations";
 
 export { detectScheduleCycles } from "./semantics";
+export {
+  timelineClipsToPropertyAnimations,
+  componentPropKeyframesToPropertyAnimations,
+} from "./to-property-animations";
 
 function resolveCompileAssetUri(
   asset: V1.AssetV1,

@@ -533,6 +533,6 @@ export function expandMotionPreset(input: {
 /** Document ownership when IDs overlap preset vs recipe surfaces. */
 export const PRESET_RECIPE_OWNERSHIP = {
   counter:
-    "both — preset is finite progress bake; recipe is driver/track recipe API",
+    "both — preset is finite progress bake; recipe is driver/recipe API",
   stagger: "recipe-only",
 } as const;

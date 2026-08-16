@@ -378,13 +378,7 @@ describe("export temporal parity (local-time bake)", () => {
         (c) => c.layerId === "scene.base.node",
       );
       const check = baseAnim ?? anim;
-      expect(check?.schedule.kind).toBe("absolute");
-      if (check?.schedule.kind === "absolute") {
-        expect(check.schedule.at).toBeCloseTo(0, 5);
-      }
-      if (check?.source.kind === "propertyAnimations") {
-        expect(check.source.items[0].keys[0]?.t).toBeCloseTo(0, 5);
-      }
+      expect(check?.keys[0]?.t).toBeCloseTo(0, 5);
     }
   });
 

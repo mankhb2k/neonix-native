@@ -471,7 +471,7 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | Bind thẳng internals từ project | Cấm. Chỉ `type: "prop"`; default AI: `payload.props` |
 | Global bulk binding mọi instance cùng `componentId` | Từng instance `prop`; nested qua `childProp` |
 | `target.type: "layer"` / `"componentLayer"` / `"component"` | `target.type: "prop"` |
-| Animate internal bằng track ngoài | Prop keyframes hoặc wrapper atoms trên instance |
+| Animate internals từ `timeline.clips` của project | Prop keyframes hoặc wrapper atoms trên instance |
 | Variant đổi tree / bindings | Variant chỉ `props` |
 | Skip-level vào nested child | `childProp` từng tầng |
 | `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc `timeline.clips` |

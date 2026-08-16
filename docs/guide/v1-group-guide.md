@@ -80,4 +80,4 @@ Root `title` với `zIndex: 2` luôn vẽ trên toàn bộ `hero`, kể cả chi
 - Đừng bỏ `frame` trên group. Đó là box size/layout, không clip.
 - Đừng bỏ `zIndex` / `timing` trên child.
 - Muốn cắt subtree: `compositing.mask` (`clip`/`alpha`, `mask-only` mặc định AI), không phải frame của group.
-- Muốn xếp children: `layout` trên group + `layoutItem` trên child. Không dùng modifier. Xem [v1-layout-guide.md](v1-layout-guide.md).
+- Muốn xếp children: `layout` trên group + `layoutItem` trên child. Xem [v1-layout-guide.md](v1-layout-guide.md).

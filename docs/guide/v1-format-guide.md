@@ -198,7 +198,6 @@ The detailed meaning of each field family now lives in dedicated guides:
 
 ## 7. Current format decisions
 
-- `modifier` is not part of the preferred AI authoring surface.
 - Behavior should live on the domain object that owns it.
 - `frame` is a size box. Required on every visual layer, including group. Forbidden on audio and camera.
 - `transform` is shared visual geometry: translate, scale (negative = flip), rotate.z, skew, origin, depth. Not layout, not zIndex. Audio has no transform.

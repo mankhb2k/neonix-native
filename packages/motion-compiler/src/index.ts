@@ -53,7 +53,10 @@ export {
   type CompileV1Options,
   type CompileV1Profile,
 } from "./compile-v1";
-export { compileLayerGraphToRuntime } from "./compile-layer-graph";
+export {
+  timelineClipsToPropertyAnimations,
+  componentPropKeyframesToPropertyAnimations,
+} from "./compile-v1/to-property-animations";
 export {
   DiagnosticCollector,
   CompileDiagnosticError,

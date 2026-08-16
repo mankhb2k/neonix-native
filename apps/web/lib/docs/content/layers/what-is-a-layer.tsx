@@ -76,7 +76,7 @@ export function whatIsALayerPage(): DocsPageView {
             "Give every layer unique sibling zIndex and required timing.",
             "Treat audio as a special root-only exception. See the audio page.",
             "Skip locked. Use semantic only as labels, never as render hints.",
-            "Pack children with group.layout and child.layoutItem, not modifiers.",
+            "Pack children with group.layout and child.layoutItem.",
             "Do not put hit-test or editor selection into JSON.",
           ]}
         />

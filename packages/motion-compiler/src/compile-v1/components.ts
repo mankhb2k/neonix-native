@@ -1,13 +1,12 @@
 import { V1 } from "@motionvideo/motion-protocol";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
+import type { RuntimePropertyAnimation } from "@motionvideo/motion-protocol/runtime";
 import {
   clone,
   setPropertyPath,
   type JsonRecord,
 } from "./helpers";
 import { prepareRuntimeLayer } from "./prepare";
-
-type RuntimePropertyAnimation = MotionRuntimeProject["propertyAnimations"][number];
+import { componentPropKeyframesToPropertyAnimations } from "./to-property-animations";
 
 export type ComponentInstanceRef = {
   componentLayerId: string;
@@ -159,43 +158,6 @@ function applyComponentPropForwards(
   });
 }
 
-function buildPropKeyframePropertyAnimation(
-  instanceId: string,
-  _propId: string,
-  layer: Extract<
-    V1.ComponentPropBindingV1["target"],
-    { kind: "layerProperty" }
-  >,
-  keyframes: {
-    keys: Array<{ t: number; value: unknown; easing?: unknown }>;
-  },
-  propKind: string,
-): RuntimePropertyAnimation {
-  const targetId = `${instanceId}__${layer.layerId}`;
-  const valueKind =
-    propKind === "number"
-      ? "number"
-      : propKind === "color"
-        ? "color"
-        : propKind === "boolean"
-          ? "boolean"
-          : propKind === "asset"
-            ? "asset"
-            : "string";
-  return {
-    layerId: targetId,
-    property: layer.property,
-    valueKind,
-    keys: keyframes.keys.map((k) => ({
-      t: k.t,
-      v: k.value as RuntimePropertyAnimation["keys"][number]["v"],
-      ...(k.easing !== undefined
-        ? { easing: k.easing as NonNullable<RuntimePropertyAnimation["keys"][number]["easing"]> }
-        : {}),
-    })),
-  };
-}
-
 type ExpandComponentResult = {
   layers: V1.LayerV1[];
   wrapperId: string;
@@ -305,13 +267,13 @@ function expandOneComponentInstance(
       if (isKeyframesPropValue(value)) {
         const prop = component.props.find((p) => p.id === binding.propId);
         propertyAnimations.push(
-          buildPropKeyframePropertyAnimation(
+          componentPropKeyframesToPropertyAnimations({
             instanceId,
-            binding.propId,
-            binding.target,
-            value,
-            prop?.kind ?? "number",
-          ),
+            internalLayerId: binding.target.layerId,
+            property: binding.target.property,
+            keys: value.keys,
+            propKind: prop?.kind ?? "number",
+          }),
         );
         // Apply first key value as initial static so frame 0 is defined.
         const first = value.keys[0];

@@ -297,14 +297,12 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(withKey.status).toBe("applied");
     if (withKey.status !== "applied") return;
-    const sceneClips = withKey.document.project.scenes[0]!.clips;
+    const sceneClips = withKey.document.project.timeline.clips ?? [];
     expect(sceneClips.length).toBeGreaterThan(0);
-    const trackClip = sceneClips.find((c) => c.source.kind === "propertyAnimations");
-    expect(trackClip?.source.kind).toBe("propertyAnimations");
-    if (trackClip?.source.kind !== "propertyAnimations") return;
-    expect(trackClip.source.items[0]!.keys[0]).toMatchObject({
+    const trackClip = sceneClips.find((c) => c.property === "transform.translate.x");
+    expect(trackClip?.keys[0]).toMatchObject({
       t: 0.5,
-      v: 200,
+      value: 200,
     });
   });
 
@@ -537,7 +535,7 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(b.status).toBe("applied");
     if (b.status !== "applied") return;
-    const sceneClips = b.document.project.scenes[0]!.clips;
+    const sceneClips = b.document.project.timeline.clips ?? [];
     const kfClips = sceneClips.filter((c) => c.id.startsWith("kf_"));
     expect(kfClips.length).toBeGreaterThanOrEqual(2);
     expect(new Set(kfClips.map((c) => c.id)).size).toBe(kfClips.length);
@@ -562,13 +560,11 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const kf = result.document.project.scenes[0]!.clips.find(
-      (c) =>
-        c.source.kind === "propertyAnimations" &&
-        c.source.items.some((tr) => tr.property === "transform.translate.x"),
+    const kf = result.document.project.timeline.clips?.find(
+      (c) => c.property === "transform.translate.x",
     );
     expect(kf).toBeTruthy();
-    expect(kf!.duration).toBeLessThanOrEqual(
+    expect(kf!.keys[0]!.t).toBeLessThanOrEqual(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     );
     expect(() => parseMotionProject(result.document.project)).not.toThrow();

@@ -209,29 +209,11 @@ describe("compiler V1 emit contract", () => {
     expect(video).not.toHaveProperty("style");
   });
 
-  it("compiles timeline.clips to propertyAnimations and ignores AI animationUnits", () => {
+  it("compiles timeline.clips to propertyAnimations and ignores extra AI extension fields", () => {
     const project = baseProject({
       extensions: {
         "com.moticlip.ai": {
-          animationUnits: [
-            {
-              id: "legacy",
-              layerId: "title",
-              schedule: { kind: "absolute", at: 0 },
-              duration: 1,
-              playback: { rate: 1, iterations: 1, direction: "normal" },
-              source: {
-                kind: "propertyAnimations",
-                items: [
-                  {
-                    layerId: "title",
-                    property: "modifiers.mp.progress",
-                    keys: [{ t: 0, v: 0 }],
-                  },
-                ],
-              },
-            },
-          ],
+          ignoredJunk: true,
         },
       },
       layers: [

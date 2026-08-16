@@ -2,7 +2,7 @@
  * Compile an in-memory layer graph plus runtime propertyAnimations.
  *
  * V1 animation input is already propertyAnimations (from timeline.clips and
- * component prop keyframes). There is no InternalAnimationUnitV1 bridge.
+ * component prop keyframes). Compiler maps clips → propertyAnimations; no intermediate model.
  */
 import { type MotionLayer } from "@motionvideo/motion-protocol";
 import {

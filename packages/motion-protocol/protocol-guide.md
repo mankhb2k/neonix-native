@@ -130,7 +130,7 @@ Catalog (definition). Instance layer ở `layers/component.ts`.
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Definition: props, variants (props-only preset), owner `propBindings`, internals. |
-| `prop-values.ts` | Literal \| keyframes (`value`, không track `v`). Không inline variable ref. Keyframes = public signal, không wrapper. |
+| `prop-values.ts` | Literal \| keyframes (`value` authoring; runtime compile thành `v`). Không inline variable ref. Keyframes = public signal, không wrapper. |
 
 ### 2.8 `src/v1/layers/`
 
@@ -139,7 +139,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
-| `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`, no `modifiers`. |
+| `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
 | `component.ts` | Sealed instance leaf. Wrapper atoms + `payload.componentId` / `variantId?` / `props`. Compiler expand. |
 | `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
@@ -160,7 +160,7 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `index.ts` | Barrel easing/drivers; interpolation derived from type (not authoring). |
 | `easing.ts` | Named / cubic / spring. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
-| `clips.ts` | Leftover `InternalAnimationUnitV1` (editor/AI `animationUnits`). Not authoring JSON. Compiler V1 emits `propertyAnimations` from `timeline.clips`. |
+| `clips.ts` | *Removed.* Animation authoring is `timeline/clips.ts`. Runtime output is `propertyAnimations`. |
 
 ### 2.10 `src/v1/timeline/`
 
@@ -174,7 +174,7 @@ Metadata only + authoring `clips`. Visual/audio sống trên `project.layers`.
 | `duration.ts` | Derive duration từ root layer timing. |
 | `canonicalize.ts` | Điền duration thiếu + snap frame-grid. |
 | `frame-grid.ts` | Snap/validate thời gian về `n / fps`. |
-| `validation.ts` | Integrity timeline (không còn visual/audio/caption tracks). |
+| `validation.ts` | Integrity timeline. |
 
 ### 2.11 `src/v1/references/`
 
@@ -200,7 +200,6 @@ Literal, renderer-ready. Transform / appearance / compositing / effects **reuse 
 | `assets.ts` | Asset IR (cùng mime image png/jpeg/webp). |
 | `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
 | `layout.ts` | Repeater + native `layout` / `layoutItem` (same fields as V1; compiler normally bakes then strips). |
-| `modifiers.ts` | Removed from Runtime IR V1. Morph/bend/trim không qua modifier. |
 | `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
 | `project.ts` | `MotionRuntimeProjectSchema`. |
 | `values.ts` | JSON / resolvable values. |

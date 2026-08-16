@@ -8,7 +8,7 @@ Three package entries:
 | --- | --- |
 | `@motionvideo/motion-protocol` | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings, patch, MCP |
 | `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
-| `@motionvideo/motion-protocol/internal` | Leftovers (`InternalAnimationUnitV1` / AI `animationUnits`, caption schemas) — not authoring or V1 compile |
+| `@motionvideo/motion-protocol/internal` | Leftover caption schemas — not authoring or V1 compile |
 
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
@@ -57,7 +57,7 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and
 - Sealed definition: public `props` / `variants`; owner-only `propBindings` + internal `layers`
 - Instance = `type: "component"` layer on the **project layer tree**
 - Prop keyframe `t` is local to the instance: `0..layer.timing.duration`
-- No `actions` — timeline motion uses layer tracks / prop keyframes only
+- No `actions` — timeline motion uses `timeline.clips` / prop keyframes only
 
 ### Bindings (`ProjectBindingV1Schema`)
 
@@ -76,7 +76,7 @@ See [docs/guide/v1-component-guide.md](../../docs/guide/v1-component-guide.md).
 JSON  →  parseMotionProjectV1()  →  MotionProjectV1
                 │
                 ▼  @motionvideo/motion-compiler
-         MotionRuntimeProject (flat layers[] + tracks)
+         MotionRuntimeProject (flat layers[] + propertyAnimations)
 ```
 
 ---

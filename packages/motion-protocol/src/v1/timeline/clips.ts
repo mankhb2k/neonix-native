@@ -16,7 +16,7 @@ export const TimelinePropertyClipV1Schema = z
     keys: z
       .array(PropKeyframeSchema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation),
   })
   .strict();
 

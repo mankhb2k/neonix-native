@@ -30,7 +30,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 ### 1) `src/v1/project.ts` — Root schema
 
 - Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `layers`, `timeline`, `bindings`, `provenance`, `extensions`.
-- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số layer / track / key / component tối đa.
+- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số layer / clip / key / component tối đa.
 - Kiểm tra `.strict()` và `.superRefine()` — duplicate id có bị chặn ngay ở parse không.
 
 ### 2) `src/v1/timeline/schema.ts` — Timeline metadata
@@ -51,7 +51,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Consumer: wrapper atoms + public `props` / `variantId`. Wiring owner = `propBindings`. Variant chỉ override props.
 - Prop values: static literal | keyframes (chỉ khi `animatable`). Không inline `{ ref: variable }`. Variable chỉ vào prop qua `project.bindings`.
 - Không có `component.variables`.
-- Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
+- Asset props bắt buộc `assetKind`. Animate internals từ `project.timeline.clips` → reject; prop animation phải nằm trong prop value keyframes.
 - Project binding chỉ `type: "prop"`; nested chỉ `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model

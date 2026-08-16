@@ -10,7 +10,6 @@
 
 - Chỉ **`group`** có `layout`.
 - Child visual trong group có `layout` mới được `layoutItem` (không root, không audio, không camera).
-- Không `modifiers`.
 - Compiler nướng thành `frame` + `translate`, rồi xóa `layout` / `layoutItem` trước runtime.
 - Container: `mode: "row" | "column" | "grid"`, `gap`, `padding`, `justify`, `align`.
 - Grid: `columns` bắt buộc. Flow trái→phải, trên→dưới. Không span, không rowGap/columnGap riêng, không template, không autoFlow.

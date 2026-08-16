@@ -2,7 +2,6 @@
  * MotionRuntimeProject â€” canonical runtime IR schemas and types.
  *
  * Authoring and runtime share one layer graph: `layers` + `propertyAnimations`.
- * There is no serialized `scenes` array or visual/audio clip tracks.
  */
 
 import { z } from "zod";
@@ -12,7 +11,6 @@ import {
   motionPropertyCapability,
   motionPropertyValueError,
 } from "../capabilities";
-import { ExtrapolationBehaviorSchema } from "../v1/animation/clips";
 import { ProceduralDriverSchema } from "../v1/animation/drivers";
 import { KeyframeEasingSchema } from "../v1/animation/easing";
 import { AssetSchema } from "./assets";
@@ -171,7 +169,18 @@ const RuntimeLayerSchema = z.discriminatedUnion("type", [
   RuntimeAudioLayerSchema,
 ]);
 
-/** Internal evaluated property animations compiled from timeline.clips — not authoring. */
+const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("clamp") }).strict(),
+  z
+    .object({
+      type: z.literal("cycle"),
+      mode: z.enum(["repeat", "pingpong"]).optional(),
+    })
+    .strict(),
+  z.object({ type: z.literal("continue") }).strict(),
+]);
+
+/** Evaluated property animations compiled from timeline.clips — not authoring. */
 const RuntimePropertyAnimationSchema = z
   .object({
     layerId: IdSchema,
@@ -192,7 +201,7 @@ const RuntimePropertyAnimationSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerAnimation),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerPropertyAnimation),
   })
   .strict();
 

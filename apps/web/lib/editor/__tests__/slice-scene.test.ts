@@ -15,23 +15,13 @@ describe("sliceScene", () => {
         {
           id: "c1",
           layerId: "n1",
-          schedule: { kind: "absolute" as const, at: 0 },
-          duration: 5,
-          playback: {},
-          source: {
-            kind: "propertyAnimations" as const,
-            items: [
-              {
-                layerId: "n1",
-                property: "appearance.opacity",
-                keys: [
-                  { t: 0, v: 0 },
-                  { t: 2, v: 0.5 },
-                  { t: 5, v: 1 },
-                ],
-              },
-            ],
-          },
+          property: "appearance.opacity",
+          kind: "keyframes" as const,
+          keys: [
+            { t: 0, value: 0 },
+            { t: 2, value: 0.5 },
+            { t: 5, value: 1 },
+          ],
         },
       ],
     } as unknown as MotionScene;
@@ -39,10 +29,7 @@ describe("sliceScene", () => {
     const sliced = sliceScene(scene, 2, 2);
     expect(sliced.duration).toBe(2);
     const clip = sliced.clips![0];
-    expect(clip.schedule).toEqual({ kind: "absolute", at: 0 });
-    if (clip.source.kind === "propertyAnimations") {
-      expect(clip.source.items[0].keys.map((k) => k.t)).toEqual([0, 0, 3]);
-    }
+    expect(clip.keys.map((k: { t: number }) => k.t)).toEqual([0, 0, 3]);
   });
 
   it("clipLocalTime matches preview semantics", () => {

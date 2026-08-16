@@ -18,7 +18,7 @@ export function layoutPage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="Layout"
-          human="How a group arranges its children. Not a modifier, not a frame."
+          human="How a group arranges its children. Not a frame."
           jsonPath="group.layout / child.layoutItem"
         />
         <H2 id="what">What layout is</H2>
@@ -74,7 +74,7 @@ export function layoutPage(): DocsPageView {
           items={[
             "Put layout only on group. Put layoutItem only on children of that group.",
             "Use mode row, column, or grid. Size with fixed, hug, or fill — never content.",
-            "Do not emit layout modifiers, wrap, grow, or shrink.",
+            "Do not emit wrap, grow, or shrink.",
           ]}
         />
       </article>
