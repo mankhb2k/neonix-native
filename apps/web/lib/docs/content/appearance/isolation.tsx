@@ -1,6 +1,7 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { IsolationFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
@@ -10,6 +11,7 @@ export function isolationPage(): DocsPageView {
     showToc: false,
     title: "Isolation",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "advanced", title: "Advanced field" },
       { id: "values", title: "Values" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -21,6 +23,8 @@ export function isolationPage(): DocsPageView {
           human="Whether this layer starts a new compositing group."
           jsonPath="compositing.isolation"
         />
+        <H2 id="concept">Concept</H2>
+        <IsolationFigure />
         <H2 id="advanced">Advanced field</H2>
         <P>
           Isolation stays in the schema because blend, mask, and effect scope

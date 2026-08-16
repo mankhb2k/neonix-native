@@ -24,10 +24,10 @@ export function opacityPage(): DocsPageView {
         />
         <P>
           <code>appearance</code> is the minimum display layer:{" "}
-          <code>visible</code> plus <code>opacity</code>. Opacity is an
-          integer percent <code>0..100</code> (100 = fully opaque) — not a
-          0..1 float, never on <code>transform</code>. Parent opacity
-          multiplies down to children. Audio has no appearance.
+          <code>visible</code> plus <code>opacity</code>. Opacity is an integer
+          percent <code>0..100</code> (100 = fully opaque) — not a 0..1 float,
+          never on <code>transform</code>. Parent opacity multiplies down to
+          children. Audio has no appearance.
         </P>
 
         <H2 id="concept">Concept</H2>

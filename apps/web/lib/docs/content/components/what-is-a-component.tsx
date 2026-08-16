@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ComponentDefFigure } from "@/components/docs/figures/ComponentDefFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function whatIsAComponentPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "What is a component",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "two", title: "Definition vs instance" },
       { id: "compile", title: "What compile does" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -20,13 +23,15 @@ export function whatIsAComponentPage(): DocsPageView {
           human="A sealed template. The project tree holds instances, not the inner tree."
           jsonPath="components[]"
         />
+        <H2 id="concept">Concept</H2>
+        <ComponentDefFigure />
         <H2 id="two">Definition vs instance</H2>
         <P>
           The definition in <code>project.components[]</code> is the sealed
-          template: internal layers, propBindings, and prop presets
-          (variants). The instance is a <code>type: &quot;component&quot;</code>{" "}
-          leaf on <code>project.layers</code>. To AI and users it is one
-          layer. The compiler expands it into a wrapper plus internals.
+          template: internal layers, propBindings, and prop presets (variants).
+          The instance is a <code>type: &quot;component&quot;</code> leaf on{" "}
+          <code>project.layers</code>. To AI and users it is one layer. The
+          compiler expands it into a wrapper plus internals.
         </P>
         <JsonBlock
           code={JSON.stringify(

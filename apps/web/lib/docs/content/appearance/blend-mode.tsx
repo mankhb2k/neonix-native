@@ -27,8 +27,8 @@ export function blendModePage(): DocsPageView {
         <BlendModeFigure />
         <H2 id="where">Where it lives</H2>
         <P>
-          Blend is compositing, not appearance and not an effect. Do not put
-          it on <code>transform</code> or inside <code>effects[]</code>.
+          Blend is compositing, not appearance and not an effect. Do not put it
+          on <code>transform</code> or inside <code>effects[]</code>.
         </P>
         <H2 id="modes">Allowed modes</H2>
         <P>

@@ -1,6 +1,7 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { VisibleFigure } from "@/components/docs/figures/CompositingFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
@@ -10,6 +11,7 @@ export function visiblePage(): DocsPageView {
     showToc: false,
     title: "Visible",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -22,10 +24,13 @@ export function visiblePage(): DocsPageView {
           jsonPath="appearance.visible"
         />
         <P>
-          <code>appearance.visible</code> is render on/off for visual layers.
-          It is not hit-test, selection, or editor lock. Audio has no
-          appearance — mute with <code>payload.muted</code>.
+          <code>appearance.visible</code> is render on/off for visual layers. It
+          is not hit-test, selection, or editor lock. Audio has no appearance —
+          mute with <code>payload.muted</code>.
         </P>
+
+        <H2 id="concept">Concept</H2>
+        <VisibleFigure />
 
         <H2 id="meaning">Meaning</H2>
         <P>

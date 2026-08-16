@@ -7,6 +7,7 @@ import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function effectsOverviewPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Effects",
     toc: [
       { id: "meaning", title: "Meaning" },
@@ -25,9 +26,9 @@ export function effectsOverviewPage(): DocsPageView {
         <H2 id="meaning">Meaning</H2>
         <P>
           Effects do not change frame, layout, transform, appearance, or
-          compositing. Appearance is show/fade. Compositing is blend, mask,
-          and isolation. Effects process pixels. Isolation or an offscreen
-          pass is an engine concern — not a new authoring field.
+          compositing. Appearance is show/fade. Compositing is blend, mask, and
+          isolation. Effects process pixels. Isolation or an offscreen pass is
+          an engine concern — not a new authoring field.
         </P>
         <H2 id="stack">Stack</H2>
         <P>
@@ -35,14 +36,13 @@ export function effectsOverviewPage(): DocsPageView {
           order. Each effect needs a stable <code>id</code>, unique on the
           layer. Max 16 per layer. Types in v1: <code>blur</code>, outer{" "}
           <code>shadow</code>, outer <code>glow</code>,{" "}
-          <code>color-adjust</code>. Visual layers only — not audio, not
-          camera.
+          <code>color-adjust</code>. Visual layers only — not audio, not camera.
         </P>
         <H2 id="animation">Animation</H2>
         <P>
           Target <code>effects.&lt;id&gt;.field</code>, never an index. Only
-          numeric leaves interpolate linearly. Do not animate a whole object.
-          Do not animate effect color in v1.
+          numeric leaves interpolate linearly. Do not animate a whole object. Do
+          not animate effect color in v1.
         </P>
         <H2 id="example">Example</H2>
         <JsonBlock

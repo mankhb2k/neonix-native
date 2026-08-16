@@ -7,6 +7,7 @@ import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function animationTimingPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Timing",
     toc: [
       { id: "layer", title: "Layer window" },

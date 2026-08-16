@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { GlowFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function glowPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Glow",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -20,10 +23,12 @@ export function glowPage(): DocsPageView {
           human="Even outer halo around the layer silhouette."
           jsonPath="effects[].type = glow"
         />
+        <H2 id="concept">Concept</H2>
+        <GlowFigure />
         <H2 id="meaning">Meaning</H2>
         <P>
-          v1 glow is outer only. Inner glow would be a later effect type, not
-          a flag. Strength is <code>opacity</code> (0..100) — do not emit{" "}
+          v1 glow is outer only. Inner glow would be a later effect type, not a
+          flag. Strength is <code>opacity</code> (0..100) — do not emit{" "}
           <code>intensity</code>. Animate <code>radius</code> and{" "}
           <code>opacity</code> linearly. Do not animate <code>color</code>.
         </P>

@@ -28,11 +28,10 @@ export function maskPage(): DocsPageView {
         <MaskFigure />
         <H2 id="why">Why mask exists</H2>
         <P>
-          A group does not clip to its frame. Use{" "}
-          <code>compositing.mask</code> to cut or reveal. The source layer
-          must exist, must not be the masked layer itself, and must be{" "}
-          <code>path</code>, <code>shape</code>, <code>solid</code>,{" "}
-          <code>group</code>, or <code>component</code>.
+          A group does not clip to its frame. Use <code>compositing.mask</code>{" "}
+          to cut or reveal. The source layer must exist, must not be the masked
+          layer itself, and must be <code>path</code>, <code>shape</code>,{" "}
+          <code>solid</code>, <code>group</code>, or <code>component</code>.
         </P>
         <H2 id="shape">Shape</H2>
         <P>

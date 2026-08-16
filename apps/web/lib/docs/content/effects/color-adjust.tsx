@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { ColorAdjustFigure } from "@/components/docs/figures/EffectsFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function colorAdjustPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Color adjust",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "meaning", title: "Meaning" },
       { id: "example", title: "Example" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -20,13 +23,15 @@ export function colorAdjustPage(): DocsPageView {
           human="Pixel color grade on this layer."
           jsonPath="effects[].type = color-adjust"
         />
+        <H2 id="concept">Concept</H2>
+        <ColorAdjustFigure />
         <H2 id="meaning">Meaning</H2>
         <P>
-          This does not change geometry or compositing. Identity is
-          brightness, contrast, and saturation at 100, hue-rotate at 0.
-          Ranges: 0..200 for the three percents, −180..180 for hue-rotate.
-          All four fields animate linearly. Do not emit exposure, gamma,
-          vibrance, curves, or temperature. A dedicated grade layer is{" "}
+          This does not change geometry or compositing. Identity is brightness,
+          contrast, and saturation at 100, hue-rotate at 0. Ranges: 0..200 for
+          the three percents, −180..180 for hue-rotate. All four fields animate
+          linearly. Do not emit exposure, gamma, vibrance, curves, or
+          temperature. A dedicated grade layer is{" "}
           <a className="underline" href="/docs/layers/adjustment">
             type adjustment
           </a>

@@ -1,14 +1,17 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
+import { KeyframesFigure } from "@/components/docs/figures/AnimationFigures";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
 
 export function keyframesPage(): DocsPageView {
   return withOnThisPage({
+    showToc: false,
     title: "Motion",
     toc: [
+      { id: "concept", title: "Concept" },
       { id: "authoring", title: "Authoring" },
       { id: "compiled", title: "Compiled propertyAnimations" },
       { id: "ai-guide", title: "AI writing guide" },
@@ -19,6 +22,8 @@ export function keyframesPage(): DocsPageView {
           title="Motion"
           human="Timing on layers vs compiled propertyAnimations."
         />
+        <H2 id="concept">Concept</H2>
+        <KeyframesFigure />
         <H2 id="authoring">Authoring</H2>
         <P>
           <code>layer.timing</code> places a layer on the clock. Component props
