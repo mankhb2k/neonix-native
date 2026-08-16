@@ -19,6 +19,10 @@ import {
   isExamplesSlug,
 } from "@/lib/docs/content/examples";
 import {
+  getAiAuthoringPage,
+  isAiAuthoringSlug,
+} from "@/lib/docs/content/ai-authoring";
+import {
   getGettingStartedPage,
   isGettingStartedSlug,
 } from "@/lib/docs/content/getting-started";
@@ -43,6 +47,7 @@ export function getDocsPage(slug: string): DocsPageView {
   if (isEffectsSlug(slug)) return getEffectsPage(slug);
   if (isAnimationSlug(slug)) return getAnimationPage(slug);
   if (isComponentsSlug(slug)) return getComponentsPage(slug);
+  if (isAiAuthoringSlug(slug)) return getAiAuthoringPage(slug);
   if (isExamplesSlug(slug)) return getExamplesPage(slug);
   return stubPage(navLabelForSlug(slug) ?? slug);
 }

@@ -109,6 +109,16 @@ export const DOCS_NAV: DocsNavGroup[] = [
     ],
   },
   {
+    id: "ai-authoring",
+    label: "AI authoring",
+    items: [
+      { href: "/docs/ai/rules", label: "Authoring rules" },
+      { href: "/docs/ai/property-paths", label: "Canonical property paths" },
+      { href: "/docs/ai/patterns", label: "Valid and invalid patterns" },
+      { href: "/docs/ai/checklist", label: "AI output checklist" },
+    ],
+  },
+  {
     id: "examples",
     label: "Examples",
     items: [
