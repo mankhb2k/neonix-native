@@ -1,4 +1,4 @@
-# Bản đồ guide MotiClip V1
+# Bản đồ guide NeonVideo V1
 
 > Trạng thái: bản đồ nháp cho bề mặt authoring V1.
 >
@@ -31,6 +31,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 | [v1-appearance-guide.md](./v1-appearance-guide.md) | `visible` + `opacity` (visual only) | v1 |
 | [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | v1 |
 | [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | v1 |
+| [v1-cyber-recipe.md](./v1-cyber-recipe.md) | Glow + inner-glow + noise trên HUD tối | v1 |
 | [v1-shape-guide.md](./v1-shape-guide.md) | Rectangle / ellipse / polygon; paint trên style | v1 |
 | [v1-path-guide.md](./v1-path-guide.md) | Vector tự do: contours, fillRule, paint trên style | v1 |
 | [v1-text-guide.md](./v1-text-guide.md) | Một hộp, một đoạn, một style | v1 |
@@ -61,7 +62,7 @@ Các file này tách từng miền để AI không nhồi mọi thứ vào một
 - `compositing` tách khỏi appearance/effects: `blend-mode`, `isolation`, `mask`. AI mặc định: blend khi cần; mask `clip`/`alpha` + `mask-only`; không emit isolation.
 - Component instance = leaf + wrapper atoms. Props = ruột public. Variant = preset props. Project binding chỉ `type: "prop"`.
 - Binding = variable → public prop. Kinds: string, number, boolean, color, asset, choice.
-- Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow không intensity. Không effects trên camera/audio.
+- Effects = pixel stack có thứ tự. Animate `effects.<id>.field`. Glow/inner-glow không intensity. Noise không seed. Không effects trên camera/audio.
 - Animation layer/property = `timeline.clips`. Prop = `payload.props` keyframes. `t` local. Không animate frame/trim/fit. Interpolation theo type, không field riêng.
 - Compiler/runtime chỉ thực thi protocol. `propertyAnimations` là IR nội bộ.
 

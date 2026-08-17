@@ -67,7 +67,7 @@ Clip property: `transform.translate.x` — never `transform.x`.
 
 ## Effects paths
 
-Animate `effects.<effectId>.<field>`. Glow has no `intensity` alias. No effects on audio or camera.
+Animate `effects.<effectId>.<field>`. Glow and inner-glow have no `intensity` alias. Noise has no `seed` field. No effects on audio or camera.
 
 ## Invalid legacy paths
 

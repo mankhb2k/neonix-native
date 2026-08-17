@@ -1,42 +1,44 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   MotiClip tokens — chỉ biến app đang dùng.
-   Palette giấy/neutral theo hệ --color-* (background #f7f7f4, surface, border).
-   Tên MotiClip (--bg-site, --accent, …) giữ nguyên để không đụng component.
-   Brand MotiClip = teal, không lấy primary cam của dashboard mẫu.
+   NeonVideo tokens — dark neon mặc định, light là opt-in.
+   Accent UI = cyan-teal; --accent-magenta cho example effect, không nhuộm chrome.
    ========================================================================== */
 
 :root {
-  /* Neutral */
-  --bg-site: #f7f7f4;
-  --bg-editor: #f5f4f0;
-  --bg-surface: #f5f5f5;
-  --bg-elevated: #ffffff;
-  --bg-hover: #ecece8;
-  --fg-primary: #171717;
-  --fg-secondary: #555555;
-  --fg-muted: #919191;
-  --fg-disabled: #9e9e9e;
-  --border-subtle: #dfdfdf;
-  --border-strong: #cecece;
-  --border-focus: #0d9488;
+  /* Cool blue-black — cyber, not pure black, not rainbow */
+  --bg-site: #07090f;
+  --bg-editor: #0a0c14;
+  --bg-surface: #11151f;
+  --bg-elevated: #161b28;
+  --bg-hover: #1c2333;
+  --fg-primary: #eef1f8;
+  --fg-secondary: #b4bccf;
+  --fg-muted: #8e97ab;
+  --fg-disabled: #5c6578;
+  --border-subtle: rgba(125, 211, 252, 0.1);
+  --border-strong: rgba(148, 163, 184, 0.24);
+  --border-focus: #22d3ee;
 
-  /* Brand */
-  --accent: #0d9488;
-  --accent-hover: #0f766e;
-  --accent-soft: rgba(13, 148, 136, 0.12);
-  --accent-text: #0f766e;
-  --accent-on: #fafafa;
-  --danger: #e11d48;
+  /* Brand — cyan-teal chrome; magenta only for effect examples */
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+  --accent-text: #5eead4;
+  --accent-on: #031018;
+  --accent-magenta: #c084fc;
+  --danger: #fb7185;
+  --success: #34d399;
 
   /* Surfaces */
   --stage-bg: var(--bg-editor);
-  --preview-bg: var(--bg-elevated);
+  --preview-bg: #05060b;
+  --callout-bg: #121826;
+  --callout-border: rgba(34, 211, 238, 0.22);
 
   /* Code (docs JsonBlock — luôn tối) */
-  --code-block-bg: #1d1818;
-  --code-block-fg: #f4f4f5;
+  --code-block-bg: #0b0e16;
+  --code-block-fg: #e2e8f4;
 
   /* Fonts — --font-sans / --font-display do next/font gắn trên <html> */
   --font-sans-fallback: "Be Vietnam Pro", "Segoe UI", sans-serif;
@@ -55,51 +57,54 @@
   --editor-right-w: 480px;
 
   /* Timeline */
-  --timeline-track-lane: #f3f2f5;
-  --timeline-clip-frame: #cfcad9;
-  --timeline-clip-frame-hover: #bbb5c9;
-  --timeline-clip-frame-fg: #3d3550;
-  --timeline-clip-audio: #a8b8e0;
-  --timeline-clip-audio-hover: #93a4d1;
-  --timeline-clip-audio-fg: #2c3a5c;
-  --timeline-clip-overlay: #c4b5e8;
-  --timeline-clip-overlay-hover: #b09fd9;
-  --timeline-clip-overlay-fg: #3b2f5c;
+  --timeline-track-lane: #0e121c;
+  --timeline-clip-frame: #0f766e;
+  --timeline-clip-frame-hover: #14b8a6;
+  --timeline-clip-frame-fg: #ecfeff;
+  --timeline-clip-audio: #164e63;
+  --timeline-clip-audio-hover: #0891b2;
+  --timeline-clip-audio-fg: #ecfeff;
+  --timeline-clip-overlay: #6b21a8;
+  --timeline-clip-overlay-hover: #7e22ce;
+  --timeline-clip-overlay-fg: #f5d0fe;
   --timeline-playhead: var(--fg-primary);
-  --timeline-ruler-tick: rgba(23, 23, 23, 0.38);
-  --timeline-ruler-label: rgba(23, 23, 23, 0.58);
+  --timeline-ruler-tick: rgba(238, 241, 248, 0.38);
+  --timeline-ruler-label: rgba(238, 241, 248, 0.58);
   --timeline-transport-h: 36px;
   --timeline-ruler-h: 28px;
   --timeline-label-w: 96px;
 
-  color-scheme: light;
+  color-scheme: dark;
 }
 
-[data-theme="dark"] {
-  --bg-site: #141414;
-  --bg-editor: #171717;
-  --bg-surface: #202020;
-  --bg-elevated: #262626;
-  --bg-hover: #2a2a2a;
-  --fg-primary: #dbdbdb;
-  --fg-secondary: #9e9e9e;
-  --fg-muted: #777777;
-  --fg-disabled: #737373;
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-strong: #535353;
-  --border-focus: #14b8a6;
-  --accent: #14b8a6;
-  --accent-hover: #2dd4bf;
-  --accent-soft: rgba(20, 184, 166, 0.14);
-  --accent-text: #5eead4;
+[data-theme="light"] {
+  --bg-site: #f7f7f4;
+  --bg-editor: #f5f4f0;
+  --bg-surface: #f5f5f5;
+  --bg-elevated: #ffffff;
+  --bg-hover: #ecece8;
+  --fg-primary: #171717;
+  --fg-secondary: #555555;
+  --fg-muted: #919191;
+  --fg-disabled: #9e9e9e;
+  --border-subtle: #dfdfdf;
+  --border-strong: #cecece;
+  --border-focus: #0d9488;
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --accent-text: #0f766e;
   --accent-on: #fafafa;
-  --danger: #f43f5e;
+  --danger: #e11d48;
+  --success: #059669;
+  --callout-bg: #eef6f6;
+  --callout-border: rgba(13, 148, 136, 0.28);
   --stage-bg: var(--bg-editor);
-  --preview-bg: #0a0a0a;
-  --timeline-track-lane: #1a1a1a;
-  --timeline-ruler-tick: rgba(219, 219, 219, 0.38);
-  --timeline-ruler-label: rgba(219, 219, 219, 0.58);
-  color-scheme: dark;
+  --preview-bg: var(--bg-elevated);
+  --timeline-track-lane: #f3f2f5;
+  --timeline-ruler-tick: rgba(23, 23, 23, 0.38);
+  --timeline-ruler-label: rgba(23, 23, 23, 0.58);
+  color-scheme: light;
 }
 
 @theme inline {
@@ -145,12 +150,12 @@ body:has([data-surface="editor"]) {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(23, 23, 23, 0.14);
+  background: rgba(125, 211, 252, 0.18);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(23, 23, 23, 0.24);
+  background: rgba(125, 211, 252, 0.32);
 }
 
 /* GitHub-like markdown for AI AUTHORING pages */

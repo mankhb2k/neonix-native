@@ -1,4 +1,4 @@
-# MotiClip V1 Components
+# NeonVideo V1 Components
 
 > Trạng thái: v1
 >

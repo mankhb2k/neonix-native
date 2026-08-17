@@ -26,7 +26,7 @@ export function DocsTable({
   return (
     <div className="my-6 overflow-x-auto rounded-xl border border-[var(--border-subtle,#e4e4e7)]">
       <table className="w-full text-left text-[14px]">
-        <thead className="bg-[#f1f5f9] text-[12px] uppercase tracking-wide text-[var(--fg-primary)]">
+        <thead className="bg-[var(--bg-surface)] text-[12px] uppercase tracking-wide text-[var(--fg-muted)]">
           <tr>
             {headers.map((h) => (
               <th key={h} className="px-3 py-2.5 font-semibold">

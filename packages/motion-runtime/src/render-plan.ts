@@ -50,6 +50,7 @@ export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<R
     if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offset.x) + Math.abs(effect.offset.y);
     if (effect.type === "glow")
       inflation += effect.radius * (effect.opacity / 100);
+    if (effect.type === "inner-glow" || effect.type === "noise") continue;
   }
   if (inflation === 0) return bounds;
   return {

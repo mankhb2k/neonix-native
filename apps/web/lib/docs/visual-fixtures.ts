@@ -50,17 +50,17 @@ export const DOCS_ASSET_VIDEO = {
 
 export const DOCS_ASSET_TREE = {
   id: "docs-tree",
-  uri: "/docs/tree-svgrepo-com.svg",
-  integrity: "sha256:docs-tree-svg",
+  uri: "/docs/example-image.svg",
+  integrity: "sha256:docs-example-image-svg",
   assetType: "svg" as const,
   mimeType: "image/svg+xml" as const,
   width: 800,
   height: 800,
-  viewBox: "0 0 1024 1024",
+  viewBox: "0 -2 20 20",
   sanitized: true as const,
 };
 
-const STAGE_BG = "#ecece8";
+const STAGE_BG = "#121218";
 
 function squareProject(id: string, name: string) {
   return {

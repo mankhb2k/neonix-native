@@ -297,6 +297,8 @@
                       "effect.blur",
                       "effect.shadow",
                       "effect.glow",
+                      "effect.inner-glow",
+                      "effect.noise",
                       "effect.color-adjust",
                       "primitive.group",
                       "primitive.text",
@@ -1720,6 +1722,72 @@
                                   },
                                   "type": {
                                     "type": "string",
+                                    "const": "inner-glow"
+                                  },
+                                  "radius": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 512
+                                  },
+                                  "color": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
+                                  },
+                                  "opacity": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 100
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "type",
+                                  "radius",
+                                  "color"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "noise"
+                                  },
+                                  "amount": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 12
+                                  },
+                                  "scale": {
+                                    "type": "number",
+                                    "minimum": 0.25,
+                                    "maximum": 8,
+                                    "default": 1
+                                  },
+                                  "opacity": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 25
+                                  },
+                                  "animated": {
+                                    "type": "boolean",
+                                    "default": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
+                                  },
+                                  "type": {
+                                    "type": "string",
                                     "const": "color-adjust"
                                   },
                                   "brightness": {
@@ -1729,11 +1797,11 @@
                                     "default": 100
                                   },
                                   "contrast": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/brightness",
                                     "default": 100
                                   },
                                   "saturation": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/brightness",
                                     "default": 100
                                   },
                                   "hue-rotate": {
@@ -3179,16 +3247,16 @@
                           "type": "object",
                           "properties": {
                             "brightness": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/brightness"
                             },
                             "contrast": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/brightness"
                             },
                             "saturation": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/brightness"
                             },
                             "hue-rotate": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/hue-rotate"
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/5/properties/hue-rotate"
                             }
                           },
                           "additionalProperties": false

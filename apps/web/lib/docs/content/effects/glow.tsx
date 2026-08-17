@@ -40,9 +40,12 @@ export function glowPage(): DocsPageView {
         <GlowFigure />
         <H2 id="meaning">Meaning</H2>
         <P>
-          v1 glow is outer only. Inner glow would be a later effect type, not a
-          flag. Strength is <code>opacity</code> (0..100) — do not emit{" "}
-          <code>intensity</code>. Animate <code>radius</code> and{" "}
+          v1 glow is outer only. Inner glow is a separate type{" "}
+          <a className="underline" href="/docs/effects/inner-glow">
+            inner-glow
+          </a>
+          , not a flag on this effect. Strength is <code>opacity</code> (0..100)
+          — do not emit <code>intensity</code>. Animate <code>radius</code> and{" "}
           <code>opacity</code> linearly. Do not animate <code>color</code>.
         </P>
         <H2 id="example">Example</H2>

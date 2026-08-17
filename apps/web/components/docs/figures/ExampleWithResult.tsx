@@ -26,7 +26,7 @@ export function ExampleWithResult({
 
   return (
     <div className="my-6 overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)]">
-      <div className="flex items-center justify-center bg-[#f8fafc] p-6">
+      <div className="flex items-center justify-center bg-[var(--bg-surface)] p-6">
         {result}
       </div>
       <div className="relative border-t border-[var(--border-subtle,#e4e4e7)] bg-[var(--code-block-bg)]">
@@ -49,7 +49,7 @@ export function ExampleWithResult({
             >
               {open ? (
                 <>
-                  Thu gọn
+                  Show less
                   <svg
                     width="12"
                     height="12"
@@ -68,7 +68,7 @@ export function ExampleWithResult({
                 </>
               ) : (
                 <>
-                  Xem thêm
+                  Show more
                   <svg
                     width="12"
                     height="12"
@@ -91,7 +91,7 @@ export function ExampleWithResult({
         ) : null}
       </div>
       {caption ? (
-        <p className="border-t border-[var(--border-subtle,#e4e4e7)] bg-white px-4 py-2 text-[12px] text-[var(--fg-muted)]">
+        <p className="border-t border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-elevated)] px-4 py-2 text-[12px] text-[var(--fg-muted)]">
           {caption}
         </p>
       ) : null}

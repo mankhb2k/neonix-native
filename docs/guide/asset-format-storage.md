@@ -1,4 +1,4 @@
-# MotiClip — Asset Format & Storage
+# NeonVideo — Asset Format & Storage
 
 Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/assets/`
 

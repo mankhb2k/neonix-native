@@ -1,4 +1,4 @@
-# MotiClip V1 Timeline
+# NeonVideo V1 Timeline
 
 Module protocol tại `packages/motion-protocol/src/v1/timeline/`.
 

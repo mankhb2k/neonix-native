@@ -1,4 +1,4 @@
-# MotiClip V1 Layout
+# NeonVideo V1 Layout
 
 > Trạng thái: v1
 >

@@ -516,6 +516,20 @@ const KNOWN_CAPABILITIES: Array<{
     experimental: false,
   },
   {
+    id: "effect.inner-glow",
+    name: "Inner Glow Effect",
+    description: "Inward glow along the layer silhouette",
+    category: "effect",
+    experimental: false,
+  },
+  {
+    id: "effect.noise",
+    name: "Noise Effect",
+    description: "Deterministic grain overlay (amount, scale, opacity, animated)",
+    category: "effect",
+    experimental: false,
+  },
+  {
     id: "effect.color-adjust",
     name: "Color Adjustment",
     description: "Brightness, contrast, saturation, hue-rotate adjustment",

@@ -5,7 +5,7 @@
 
 ## What this is
 
-Global contract for writing MotiClip JSON. Schema is the law. Preview is not a validator.
+Global contract for writing NeonVideo JSON. Schema is the law. Preview is not a validator.
 
 ## Hard rules
 

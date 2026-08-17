@@ -37,7 +37,7 @@ When the prompt reuses a badge, card, or other definition in `project.components
     "componentId": "BrandBadge",
     "variantId": "light",
     "props": {
-      "label": "MotiClip",
+      "label": "NeonVideo",
       "accent": "#0d9488"
     }
   }
@@ -54,7 +54,7 @@ Animate a public prop on the instance:
     "kind": "keyframes",
     "keys": [
       { "t": 0, "value": "" },
-      { "t": 0.2, "value": "MotiClip" }
+      { "t": 0.2, "value": "NeonVideo" }
     ]
   }
 }

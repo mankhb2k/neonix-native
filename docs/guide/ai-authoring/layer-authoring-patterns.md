@@ -109,7 +109,7 @@ Invalid: `zIndex >= 0`, `frame`, or `parentLayerId` of a group.
   "appearance": { "visible": true, "opacity": 100 },
   "timing": { "start": 0, "duration": 5 },
   "payload": {
-    "content": { "kind": "plain", "text": "Hello MotiClip" },
+    "content": { "kind": "plain", "text": "Hello NeonVideo" },
     "fontSize": 64,
     "color": "#000000",
     "alignment": "center",

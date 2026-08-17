@@ -11,6 +11,8 @@ export function TransformExamplePhoto({
   clipPath,
   filter,
   boxShadow,
+  insetBoxShadow,
+  grain = 0,
 }: {
   label: string;
   transform?: string;
@@ -21,16 +23,19 @@ export function TransformExamplePhoto({
   clipPath?: string;
   filter?: string;
   boxShadow?: string;
+  insetBoxShadow?: string;
+  /** 0..100 overlay grain for noise docs examples. */
+  grain?: number;
 }) {
-  const clip = Boolean(boxShadow);
+  const outerOnly = Boolean(boxShadow) && !insetBoxShadow;
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className="border border-dashed border-[#94a3b8] bg-white"
+        className="relative border border-dashed border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
         style={{
           width: 96,
           height: 96,
-          overflow: clip ? "visible" : "hidden",
+          overflow: outerOnly ? "visible" : "hidden",
         }}
       >
         {hidden ? null : (
@@ -45,12 +50,31 @@ export function TransformExamplePhoto({
                 opacity === undefined ? undefined : opacity / 100,
               clipPath,
               filter,
-              boxShadow,
+              boxShadow: insetBoxShadow ? undefined : boxShadow,
             }}
           />
         )}
+        {insetBoxShadow ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{ boxShadow: insetBoxShadow }}
+          />
+        ) : null}
+        {grain > 0 ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 mix-blend-overlay"
+            style={{
+              opacity: Math.min(1, grain / 50),
+              backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+                `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>`,
+              )}")`,
+            }}
+          />
+        ) : null}
       </div>
-      <p className="font-mono text-[10px] text-[#94a3b8]">{label}</p>
+      <p className="font-mono text-[10px] text-[var(--fg-muted)]">{label}</p>
     </div>
   );
 }

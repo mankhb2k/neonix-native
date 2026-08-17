@@ -46,6 +46,9 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   effectRadius: 512,
   effectOffset: 32_768,
   effectIntensity: 100,
+  /** Noise grain scale (authoring). Default 1. */
+  noiseScaleMin: 0.25,
+  noiseScaleMax: 8,
   /** Authoring percent for opacity / volume / glow-shadow opacity. 100 = full. */
   percent: 100,
   /** Color-adjust percent. 100 = normal, 200 = 2×. */
@@ -579,7 +582,14 @@ export function motionPropertyCapability(
   if (nodeType !== "audio" && nodeType !== "camera") {
     const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
     if (effectMatch) {
-      for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
+      for (const type of [
+        "blur",
+        "shadow",
+        "glow",
+        "inner-glow",
+        "noise",
+        "color-adjust",
+      ] as const) {
         const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
         if (capability) return capability;
       }
@@ -606,7 +616,13 @@ export type MotionPropertyCapabilityEntry = MotionPropertyCapability & {
 };
 
 export function motionEffectPropertyCapability(
-  effectType: "blur" | "shadow" | "glow" | "color-adjust",
+  effectType:
+    | "blur"
+    | "shadow"
+    | "glow"
+    | "inner-glow"
+    | "noise"
+    | "color-adjust",
   field: string,
 ): MotionPropertyCapability | undefined {
   const number = (min?: number, max?: number): MotionPropertyCapability => ({
@@ -642,6 +658,7 @@ export function motionEffectPropertyCapability(
         };
       return undefined;
     case "glow":
+    case "inner-glow":
       if (field === "radius")
         return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
       if (field === "opacity") return number(0, 100);
@@ -653,6 +670,20 @@ export function motionEffectPropertyCapability(
           public: true,
           runtimeSupport: "compile-time",
         };
+      return undefined;
+    case "noise":
+      if (field === "amount" || field === "opacity") return number(0, 100);
+      if (field === "scale")
+        return number(
+          MOTION_PROTOCOL_LIMITS.noiseScaleMin,
+          MOTION_PROTOCOL_LIMITS.noiseScaleMax,
+        );
+      if (field === "animated")
+        return cap("boolean", {
+          animatable: false,
+          bindable: false,
+          runtimeSupport: "compile-time",
+        });
       return undefined;
     case "color-adjust":
       if (

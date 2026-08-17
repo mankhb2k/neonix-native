@@ -1,4 +1,4 @@
-# MotiClip V1 Group
+# NeonVideo V1 Group
 
 `type: "group"` là **visual container** của một tập layer con. Không phải folder tên, không phải clipping box, không phải size box.
 

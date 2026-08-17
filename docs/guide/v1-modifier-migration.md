@@ -1,4 +1,4 @@
-# MotiClip V1 — migration: không còn `modifier`
+# NeonVideo V1 — migration: không còn `modifier`
 
 > Không phải guide production. AI viết JSON mới **không** đọc file này trừ khi migrate artifact cũ.
 

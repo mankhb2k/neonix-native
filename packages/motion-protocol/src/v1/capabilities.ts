@@ -13,6 +13,8 @@ const KNOWN_CAPABILITY_IDS = [
   "effect.blur",
   "effect.shadow",
   "effect.glow",
+  "effect.inner-glow",
+  "effect.noise",
   "effect.color-adjust",
   "primitive.group",
   "primitive.text",

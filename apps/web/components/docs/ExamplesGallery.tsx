@@ -34,8 +34,8 @@ export function ExamplesGallery({ items }: { items: GalleryItem[] }) {
             onClick={() => setId(item.id)}
             className={`rounded-full border px-3 py-1 text-[13px] ${
               item.id === selected.id
-                ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,white)]"
-                : "border-[var(--border-subtle,#e4e4e7)] bg-white"
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                : "border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
             }`}
           >
             {item.label}
@@ -43,7 +43,7 @@ export function ExamplesGallery({ items }: { items: GalleryItem[] }) {
         ))}
       </div>
       {parsed ? (
-        <p className={`text-[13px] ${parsed.ok ? "text-emerald-700" : "text-red-700"}`}>
+        <p className={`text-[13px] ${parsed.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
           {parsed.message}
         </p>
       ) : null}

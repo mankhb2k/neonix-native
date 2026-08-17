@@ -18,7 +18,7 @@ export function whatIsMotionJsonPage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="What is Motion JSON?"
-          human="Authoring source of truth for a MotiClip video."
+          human="Authoring source of truth for a NeonVideo video."
         />
         <P>
           Motion JSON is <code>MotionProjectV1</code>: one strict JSON document

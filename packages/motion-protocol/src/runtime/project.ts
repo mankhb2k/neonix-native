@@ -468,7 +468,7 @@ export const MotionRuntimeProjectSchema =
 type RuntimeLayerWithEffects = z.infer<typeof RuntimeLayerSchema> & {
   effects?: Array<{
     id: string;
-    type: "blur" | "shadow" | "glow" | "color-adjust";
+    type: "blur" | "shadow" | "glow" | "inner-glow" | "noise" | "color-adjust";
   }>;
 };
 

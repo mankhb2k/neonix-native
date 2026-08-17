@@ -41,7 +41,7 @@ describe("docs visual fixtures", () => {
   it("matches public raster dimensions", () => {
     const square = path.join(PUBLIC_DOCS, "example1-1.jpg");
     const wide = path.join(PUBLIC_DOCS, "example16-9.jpg");
-    const tree = path.join(PUBLIC_DOCS, "tree-svgrepo-com.svg");
+    const tree = path.join(PUBLIC_DOCS, "example-image.svg");
     expect(existsSync(square)).toBe(true);
     expect(existsSync(wide)).toBe(true);
     expect(existsSync(tree)).toBe(true);

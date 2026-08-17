@@ -3,7 +3,7 @@ import { APP_NAME } from "@/lib/app-config";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MotionVideo — TVC motion 2D cho doanh nghiệp Việt",
+  title: "NeonVideo — TVC motion 2D cho doanh nghiệp Việt",
   description:
     "Tạo video quảng cáo motion graphic tiếng Việt từ logo, màu brand và kịch bản.",
 };
@@ -60,13 +60,13 @@ export default function MarketingHomePage() {
       <div className="flex flex-wrap gap-3">
       <a
         href={appUrl("/")}
-        className="inline-flex h-10 items-center justify-center rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] no-underline shadow-[0_6px_18px_rgba(13,148,136,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(13,148,136,0.34)]"
+        className="inline-flex h-10 items-center justify-center rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] no-underline shadow-[0_6px_18px_rgba(34,211,238,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(34,211,238,0.34)]"
       >
         Mở app
       </a>
       <a
         href="/docs"
-        className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-subtle,#e4e4e7)] bg-white px-4 font-semibold text-[var(--fg-primary)] no-underline"
+        className="inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-elevated)] px-4 font-semibold text-[var(--fg-primary)] no-underline"
       >
         Docs
       </a>

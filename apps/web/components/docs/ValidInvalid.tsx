@@ -15,7 +15,7 @@ export function ValidInvalid({
       <div>
         <h2 className="mb-2 text-xl font-semibold tracking-tight">Valid</h2>
         <p
-          className={`mb-2 text-[12px] ${good.ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`mb-2 text-[12px] ${good.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
         >
           {good.message}
         </p>
@@ -24,7 +24,7 @@ export function ValidInvalid({
       <div>
         <h2 className="mb-2 text-xl font-semibold tracking-tight">Invalid</h2>
         <p
-          className={`mb-2 text-[12px] ${bad.ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`mb-2 text-[12px] ${bad.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}
         >
           {bad.message}
         </p>

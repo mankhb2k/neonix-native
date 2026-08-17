@@ -30,6 +30,8 @@ Whenever the prompt is a visual intent (“fade”, “glow”, “closer”, �
 | Spin | `transform.rotate.z` |
 | Soft blur | `effects` blur |
 | Glow | `effects` glow |
+| Inner glow | `effects` inner-glow |
+| Grain | `effects` noise |
 | Drop shadow | `effects` shadow |
 | Formula box (rect / ellipse / polygon) | `type: "shape"` |
 | Freeform vector | `type: "path"` + `payload.contours` |

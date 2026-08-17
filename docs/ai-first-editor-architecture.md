@@ -10,7 +10,7 @@
 
 ## 1. Core Principle: The Editor Is Optional UI Over V1
 
-The MotiClip system has exactly one source of truth: **`MotionProjectV1`** JSON.
+The NeonVideo system has exactly one source of truth: **`MotionProjectV1`** JSON.
 Everything else — the editor UI, AI planner, MCP tools, Skill templates,
 CLI scripts — reads and writes this single format.
 

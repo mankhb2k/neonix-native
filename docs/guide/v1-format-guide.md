@@ -1,4 +1,4 @@
-# MotiClip V1 Canonical Format
+# NeonVideo V1 Canonical Format
 
 > Status: source-of-truth overview
 >
@@ -8,7 +8,7 @@
 
 ## 1. What this file is
 
-`MotionProjectV1` is the single authoring format of MotiClip.
+`MotionProjectV1` is the single authoring format of NeonVideo.
 
 - All product paths accept the same root JSON document.
 - The parser accepts only:

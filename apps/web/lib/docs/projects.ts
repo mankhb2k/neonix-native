@@ -52,7 +52,7 @@ export const SINGLE_ROOT = {
       appearance: { visible: true, opacity: 100 },
       timing: { start: 0, duration: 5 },
       payload: {
-        text: "Hello MotiClip" ,
+        text: "Hello NeonVideo" ,
         fontSize: 64,
         color: "#000000",
         alignment: "center",

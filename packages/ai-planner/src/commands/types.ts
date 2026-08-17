@@ -277,6 +277,23 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
           .strict(),
         z
           .object({
+            type: z.literal("inner-glow"),
+            radius: Finite.nonnegative(),
+            color: z.string().min(1),
+            opacity: Finite.min(0).max(100).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            type: z.literal("noise"),
+            amount: Finite.min(0).max(100).optional(),
+            scale: Finite.min(0.25).max(8).optional(),
+            opacity: Finite.min(0).max(100).optional(),
+            animated: z.boolean().optional(),
+          })
+          .strict(),
+        z
+          .object({
             type: z.literal("glow"),
             radius: Finite.nonnegative(),
             color: z.string().min(1),

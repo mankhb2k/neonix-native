@@ -2,39 +2,39 @@
 
 /* Design tokens only — layout/components use Tailwind classes. */
 :root {
-  --bg-app: #0e0e10;
-  --bg-panel: #1b1b1a;
-  --bg-elevated: #222226;
-  --bg-surface: #222226;
-  --bg-hover: #2a2a2e;
-  --bg-active: #323238;
+  --bg-app: #07090f;
+  --bg-panel: #11151f;
+  --bg-elevated: #161b28;
+  --bg-surface: #161b28;
+  --bg-hover: #1c2333;
+  --bg-active: #242b3c;
 
-  --fg-primary: #d6d6d6;
-  --fg-secondary: #cecece;
-  --fg-muted: #808085;
-  --fg-disabled: #45454a;
+  --fg-primary: #eef1f8;
+  --fg-secondary: #b4bccf;
+  --fg-muted: #8e97ab;
+  --fg-disabled: #5c6578;
 
-  --border-subtle: var(--bg-app);
-  --border-strong: #3f3f46;
-  --border-focus: #3f9a62;
+  --border-subtle: rgba(125, 211, 252, 0.1);
+  --border-strong: rgba(148, 163, 184, 0.24);
+  --border-focus: #22d3ee;
   --line: var(--border-subtle);
   --line-strong: var(--border-strong);
 
-  --accent: #3f9a62;
-  --accent-soft: rgba(63, 154, 98, 0.16);
-  --danger: #d45c5c;
-  --warning: #d4a017;
-  --success: #22c55e;
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.16);
+  --danger: #fb7185;
+  --warning: #eab308;
+  --success: #34d399;
 
-  --timeline-track-lane: #20201f;
-  --timeline-track-lane-mute: #1a1a18;
+  --timeline-track-lane: #0e121c;
+  --timeline-track-lane-mute: #0a0c14;
   --timeline-clip-frame: #0f766e;
-  --timeline-clip-frame-hover: #0d9488;
+  --timeline-clip-frame-hover: #14b8a6;
   --timeline-clip-audio: #164e63;
   --timeline-clip-audio-hover: #0891b2;
-  --timeline-playhead: #ffffff;
-  --stage-bg: #0c0c0e;
-  --preview-bg: #09090b;
+  --timeline-playhead: #eef1f8;
+  --stage-bg: #0a0c14;
+  --preview-bg: #05060b;
 
   /* Legacy aliases (editor CSS / existing className vars) */
   --bg: var(--bg-app);

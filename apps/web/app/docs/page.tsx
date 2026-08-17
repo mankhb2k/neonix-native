@@ -3,7 +3,7 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Motion JSON docs — MotiClip",
+  title: "Motion JSON docs — NeonVideo",
   description: "Authoring law for MotionProjectV1: mental model, atoms, validation.",
 };
 
