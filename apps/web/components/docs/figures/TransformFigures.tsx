@@ -130,7 +130,7 @@ export function TranslateFigure() {
         </defs>
         <text
           x={300}
-          y={108}
+          y={76}
           textAnchor="middle"
           fontSize={13}
           fill={ACCENT}

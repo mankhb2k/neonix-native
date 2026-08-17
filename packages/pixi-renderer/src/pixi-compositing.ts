@@ -144,10 +144,20 @@ export function createRenderTexturePool(): RenderTexturePool {
 
 // ── Compositing context ───────────────────────────────────────────────
 
+export type OffscreenFlushRenderer = {
+  render(args: {
+    container: Container;
+    target: RenderTexture;
+    clear?: boolean;
+  }): void;
+};
+
 export type CompositingContextOptions = {
   root: Container;
   width: number;
   height: number;
+  /** When set, offscreen child containers are rendered into their RTs. */
+  renderer?: OffscreenFlushRenderer;
 };
 
 /**
@@ -390,9 +400,15 @@ export function createCompositingContext(
     }
     pendingMasks.clear();
 
-    // Flush offscreen textures into their proxies
+    // Rasterize orphan offscreen containers into their proxy textures.
+    // Without this, effect layers (needsOffscreen) stay blank in Pixi preview.
     for (const [, layer] of layers) {
       if (layer.offscreen?.live) {
+        opts.renderer?.render({
+          container: layer.offscreen.container,
+          target: layer.offscreen.renderTexture,
+          clear: true,
+        });
         layer.offscreen.proxy.texture = layer.offscreen.renderTexture;
       }
     }

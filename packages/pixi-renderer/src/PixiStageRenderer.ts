@@ -14,6 +14,7 @@ import {
   createPixiFramePainter,
   hexToNumber,
   type PixiFramePainter,
+  type PixiFramePainterOptions,
 } from "./PixiFramePainter";
 
 export type StageViewport = {
@@ -70,9 +71,19 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         preference: "webgl",
       });
       host.appendChild(app.canvas as HTMLCanvasElement);
+      (app.canvas as HTMLCanvasElement).dataset.testid = "runtime-preview-canvas";
       app.stage.addChild(world);
       world.position.set(viewport.offsetX, viewport.offsetY);
       world.scale.set(viewport.scale);
+      painter = createPixiFramePainter({
+        root: world,
+        getBackground: () => background,
+        onBackground: (color) => {
+          if (color) background = color;
+          if (app) app.renderer.background.color = hexToNumber(background);
+        },
+        renderer: app.renderer as PixiFramePainterOptions["renderer"],
+      });
     },
 
     setProject(next) {

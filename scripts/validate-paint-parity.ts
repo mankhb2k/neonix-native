@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { evaluateFrame, type RuntimeScene } from "@motionvideo/motion-runtime";
 import { drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
 import { drawSceneFramePaint } from "../apps/render-worker/src/runtime/paint-canvas";
@@ -19,13 +20,14 @@ function fixtureScene(): RuntimeScene {
   return {
     id: "scene.paint_parity",
     duration: 1,
-    nodes: [
+    layers: [
       {
         id: "bg",
         type: "shape",
         parentLayerId: null,
         zIndex: 0,
-        transform: {
+        timing: { start: 0, duration: 1 },
+        ...visualLayerAtoms({
           x: 0,
           y: 0,
           width: 320,
@@ -33,13 +35,11 @@ function fixtureScene(): RuntimeScene {
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
-          opacity: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
           visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        }),
         payload: { shape: "rectangle" },
         style: { fill: "#1877F2" },
       },
@@ -48,7 +48,8 @@ function fixtureScene(): RuntimeScene {
         type: "text",
         parentLayerId: null,
         zIndex: 1,
-        transform: {
+        timing: { start: 0, duration: 1 },
+        ...visualLayerAtoms({
           x: 24,
           y: 64,
           width: 272,
@@ -56,14 +57,12 @@ function fixtureScene(): RuntimeScene {
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
-          opacity: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
           visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
-        payload: { text: "Paint", fontSize: 32, fontWeight: 700, align: "left" },
+        }),
+        payload: { text: "Paint", fontSize: 32, alignment: "left" },
         style: { fill: "#ffffff" },
       },
       {
@@ -71,7 +70,8 @@ function fixtureScene(): RuntimeScene {
         type: "path",
         parentLayerId: null,
         zIndex: 2,
-        transform: {
+        timing: { start: 0, duration: 1 },
+        ...visualLayerAtoms({
           x: 0,
           y: 0,
           width: 320,
@@ -79,13 +79,11 @@ function fixtureScene(): RuntimeScene {
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
-          opacity: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
           visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        }),
         payload: {
           contours: [
             {
@@ -100,7 +98,7 @@ function fixtureScene(): RuntimeScene {
         style: { stroke: "#ffffff", strokeWidth: 3 },
       },
     ],
-    tracks: [],
+    propertyAnimations: [],
   } as unknown as RuntimeScene;
 }
 

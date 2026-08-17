@@ -81,7 +81,27 @@ const NODE_CAPABILITY: Record<string, string> = {
 type LayerLike = {
   type: string;
   children?: LayerLike[];
+  effects?: Array<{ type?: string }>;
 };
+
+const EFFECT_CAPABILITY: Record<string, string> = {
+  blur: "effect.blur",
+  shadow: "effect.shadow",
+  glow: "effect.glow",
+  "inner-glow": "effect.inner-glow",
+  noise: "effect.noise",
+  "color-adjust": "effect.color-adjust",
+};
+
+function collectNodeCapabilities(node: LayerLike, caps: Set<string>): void {
+  const cap = NODE_CAPABILITY[node.type];
+  if (cap) caps.add(cap);
+  if (node.type === "component") caps.add("component.embedding");
+  for (const effect of node.effects ?? []) {
+    const effectCap = EFFECT_CAPABILITY[effect.type ?? ""];
+    if (effectCap) caps.add(effectCap);
+  }
+}
 
 function walkLayers(layers: LayerLike[] | undefined, visit: (node: LayerLike) => void): void {
   for (const node of layers ?? []) {
@@ -97,17 +117,14 @@ export function inspectProjectCapabilities(project: {
   const caps = new Set<string>();
 
   walkLayers(project.layers, (node) => {
-    const cap = NODE_CAPABILITY[node.type];
-    if (cap) caps.add(cap);
-    if (node.type === "component") caps.add("component.embedding");
+    collectNodeCapabilities(node, caps);
   });
 
   if ((project.components ?? []).length > 0) {
     caps.add("component.embedding");
     for (const component of project.components ?? []) {
       walkLayers(component.layers, (node) => {
-        const cap = NODE_CAPABILITY[node.type];
-        if (cap) caps.add(cap);
+        collectNodeCapabilities(node, caps);
       });
     }
   }
