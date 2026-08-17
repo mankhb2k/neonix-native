@@ -1,5 +1,7 @@
 /**
- * Film grain V1 — overlay noise trên pixel layer.
+ * Film grain V1 — overlay noise trên pixel opaque của layer (alpha > 0).
+ * Không phải full-screen grain mặc định. Muốn grain cả frame: gắn noise lên
+ * shape/solid full-frame, không gắn vào card nhỏ.
  * Không seed trên JSON. Runtime hash metadata.id + layer.id + effect.id + frame.
  * Không displacement / glitch / chromatic / scanline.
  */

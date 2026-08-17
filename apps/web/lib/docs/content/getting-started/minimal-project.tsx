@@ -9,7 +9,6 @@ export function minimalProjectPage(): DocsPageView {
   const strip = lanesFromProject(SINGLE_ROOT);
   return {
     title: "Minimal project",
-    previewProject: SINGLE_ROOT,
     toc: [
       { id: "empty", title: "Empty" },
       { id: "one-layer", title: "One text layer" },

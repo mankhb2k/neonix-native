@@ -34,17 +34,20 @@ export function noisePage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="Noise"
-          human="Deterministic grain over the layer pixels."
+          human="Grain overlay on this layer's opaque pixels."
           jsonPath="effects[].type = noise"
         />
         <H2 id="concept">Concept</H2>
         <NoiseFigure />
         <H2 id="meaning">Meaning</H2>
         <P>
-          Grain overlay only. No displacement, glitch slices, chromatic split,
-          or scanlines. There is no authoring <code>seed</code> — runtime hashes
-          project, layer, effect, and frame when <code>animated</code> is true.{" "}
-          <code>amount</code> and <code>opacity</code> are 0..100.{" "}
+          Grain overlay on this layer&apos;s opaque pixels only — not a default
+          full-screen film grain. Transparent pixels stay untouched. For
+          full-screen cyber grain, put <code>noise</code> on a full-frame shape
+          or solid, not a small card. No displacement, glitch slices, chromatic
+          split, or scanlines. There is no authoring <code>seed</code> — runtime
+          hashes project, layer, effect, and frame when <code>animated</code> is
+          true. <code>amount</code> and <code>opacity</code> are 0..100.{" "}
           <code>scale</code> is 0.25..8 (default 1). Animate those three
           linearly. Do not animate <code>animated</code> (default{" "}
           <code>false</code>).
@@ -69,6 +72,7 @@ export function noisePage(): DocsPageView {
             "Use type noise with amount, scale, opacity, and optional animated.",
             "Do not emit seed. Runtime derives a deterministic seed.",
             "Animate effects.fx-noise-1.amount, .scale, and .opacity. Never animate animated.",
+            "Noise covers this layer's alpha only. Full-screen grain goes on a full-frame solid or shape, not a small card.",
             "Keep amount low on HUD cards. Do not fake scanlines with noise.",
           ]}
         />

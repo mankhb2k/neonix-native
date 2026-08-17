@@ -105,7 +105,7 @@ Animate (linear): `radius`, `opacity`. Không animate `color`.
 
 ## Noise
 
-Grain overlay. Không seed trên JSON. Runtime hash `metadata.id` + `layer.id` + `effect.id` + (`animated` ? frame : 0). Không displacement / glitch / chromatic / scanline.
+Grain overlay trên pixel opaque của layer (`alpha > 0`). Không phải full-screen grain mặc định. Muốn grain cả frame: gắn `noise` lên shape/solid full-frame, không gắn vào card nhỏ. Không seed trên JSON. Runtime hash `metadata.id` + `layer.id` + `effect.id` + (`animated` ? frame : 0). Không displacement / glitch / chromatic / scanline.
 
 ```json
 {

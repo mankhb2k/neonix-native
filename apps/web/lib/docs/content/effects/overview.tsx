@@ -85,6 +85,7 @@ export function effectsOverviewPage(): DocsPageView {
             "Give every effect a stable id. Animate effects.fx-blur-1.radius, not effects[0].",
             "Do not emit glow.intensity or inner-glow.intensity. Do not animate effect color.",
             "Neon card = glow + inner-glow; keep noise amount low. Do not fake scanlines.",
+            "Noise is a pixel overlay on that layer's alpha, not a default full-screen grain.",
             "Do not put effects on audio or camera.",
           ]}
         />

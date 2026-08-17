@@ -1,7 +1,6 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
 import { JsonBlock } from "@/components/docs/JsonBlock";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 import { AI_GLOBAL } from "./ai-rules";
@@ -9,7 +8,6 @@ import { AI_GLOBAL } from "./ai-rules";
 export function whatIsMotionJsonPage(): DocsPageView {
   return {
     title: "What is Motion JSON?",
-    previewProject: SINGLE_ROOT,
     toc: [
       { id: "pipeline", title: "Pipeline" },
       { id: "ai-guide", title: "AI writing guide" },

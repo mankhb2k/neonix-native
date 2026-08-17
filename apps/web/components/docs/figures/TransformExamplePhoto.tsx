@@ -31,7 +31,7 @@ export function TransformExamplePhoto({
   return (
     <div className="flex flex-col items-center gap-2">
       <div
-        className="relative border border-dashed border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
+        className="relative border border-dashed border-white/70 bg-[var(--bg-elevated)]"
         style={{
           width: 96,
           height: 96,

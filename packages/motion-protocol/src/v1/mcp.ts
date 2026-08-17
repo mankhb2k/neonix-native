@@ -525,7 +525,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "effect.noise",
     name: "Noise Effect",
-    description: "Deterministic grain overlay (amount, scale, opacity, animated)",
+    description: "Grain overlay on the layer's opaque pixels — not a default full-screen grain",
     category: "effect",
     experimental: false,
   },

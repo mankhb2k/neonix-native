@@ -324,7 +324,7 @@ export function NoiseFigure() {
   return (
     <Figure
       label='effects[].type = "noise"'
-      caption="Deterministic grain. No seed field, no displacement, glitch, chromatic, or scanline."
+      caption="Grain on this layer's opaque pixels. Not a default full-screen grain. No seed, displacement, glitch, chromatic, or scanline."
     >
       <svg
         viewBox="0 0 640 200"

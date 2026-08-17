@@ -31,7 +31,8 @@ Whenever the prompt is a visual intent (“fade”, “glow”, “closer”, �
 | Soft blur | `effects` blur |
 | Glow | `effects` glow |
 | Inner glow | `effects` inner-glow |
-| Grain | `effects` noise |
+| Grain on a layer | `effects` noise (layer alpha only) |
+| Full-screen grain | noise on a full-frame solid/shape, not a small card |
 | Drop shadow | `effects` shadow |
 | Formula box (rect / ellipse / polygon) | `type: "shape"` |
 | Freeform vector | `type: "path"` + `payload.contours` |

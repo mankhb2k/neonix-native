@@ -130,7 +130,6 @@ export function EasingFigure() {
               y={0}
               width={100}
               height={100}
-              rx={8}
               fill="#f8fafc"
               stroke={MUTED}
               strokeWidth={1}

@@ -74,7 +74,7 @@ export function componentLayerPage(): DocsPageView {
                 height={56}
                 rx={8}
                 fill="#0d9488"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
               <text

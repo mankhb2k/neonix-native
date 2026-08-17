@@ -67,7 +67,7 @@ export function imageLayerPage(): DocsPageView {
           result={
             <figure className="flex w-full max-w-[320px] flex-col items-center gap-2">
               <div
-                className="overflow-hidden border border-dashed border-[#94a3b8]"
+                className="overflow-hidden border border-dashed border-white/70"
                 style={{ width: 240, height: 180 }}
               >
                 <img

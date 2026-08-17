@@ -81,7 +81,7 @@ export function shapeLayerPage(): DocsPageView {
                 height={130}
                 rx={16}
                 fill="#0d9488"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
             </ExampleResultFrame>

@@ -97,7 +97,7 @@ export function videoLayerPage(): DocsPageView {
           result={
             <figure className="flex w-full max-w-[320px] flex-col items-center gap-2">
               <div
-                className="overflow-hidden border border-dashed border-[#94a3b8] bg-black"
+                className="overflow-hidden border border-dashed border-white/70 bg-black"
                 style={{ width: 256, height: 144 }}
               >
                 <video

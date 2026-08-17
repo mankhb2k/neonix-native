@@ -50,6 +50,7 @@ void main(void) {
     float inner = src.a * (1.0 - blurred);
     float mixAmt = clamp(inner * uOpacity * 6.0, 0.0, 1.0);
     vec3 rgb = mix(src.rgb, uColor, mixAmt);
+    // Keep source alpha so padding does not inflate the visible silhouette.
     finalColor = vec4(rgb, src.a);
 }
 `;
@@ -70,8 +71,10 @@ export function createInnerGlowFilter(opts: {
   color: string;
   opacity: number;
 }): Filter {
-  return new Filter({
+  const padding = Math.max(0, Math.ceil(opts.radius));
+  const filter = new Filter({
     glProgram: new GlProgram({ vertex, fragment }),
+    padding,
     resources: {
       innerGlowUniforms: {
         uRadius: { value: opts.radius, type: "f32" },
@@ -80,4 +83,8 @@ export function createInnerGlowFilter(opts: {
       },
     },
   });
+  // Flush-fill rectangles need outside-alpha samples. Padding expands the
+  // filter input; the shader still writes src.a so bounds do not grow.
+  filter.padding = padding;
+  return filter;
 }

@@ -188,7 +188,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       parity: "planned",
       editor: "partial",
     },
-    notes: "Deterministic seed from scene+layer+effect+frame. No authoring seed.",
+    notes: "Grain on layer alpha only, not full-screen. Deterministic seed from scene+layer+effect+frame. No authoring seed.",
   },
   {
     id: "primitive.video",
