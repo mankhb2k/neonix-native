@@ -86,7 +86,7 @@ export function groupLayerPage(): DocsPageView {
                 width={300}
                 height={130}
                 fill="none"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
               <rect x={62} y={28} width={276} height={90} fill="#e8eef5" />

@@ -46,7 +46,7 @@ const CHOICE_LEAVES = new Set([
 ]);
 
 const EFFECT_NUMBER =
-  /^effects\.[^.]+\.(radius|blur|offset\.x|offset\.y|opacity|brightness|contrast|saturation|hue-rotate)$/;
+  /^effects\.[^.]+\.(radius|blur|offset\.x|offset\.y|opacity|brightness|contrast|saturation|hue-rotate|amount|scale)$/;
 const EFFECT_COLOR = /^effects\.[^.]+\.color$/;
 
 function isColorOwnerSink(property: string, layerType: string): boolean {

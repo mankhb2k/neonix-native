@@ -75,7 +75,7 @@ export function adjustmentLayerPage(): DocsPageView {
                 width={320}
                 height={88}
                 fill="#e8eef5"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
               <rect x={40} y={20} width={320} height={88} fill="#0d9488" opacity={0.18} />

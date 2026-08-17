@@ -1,12 +1,10 @@
 import { HumanName } from "@/components/docs/HumanName";
-import { SINGLE_ROOT } from "@/lib/docs/projects";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { H2, P } from "@/lib/docs/content/prose";
 
 export function howAVideoIsDescribedPage(): DocsPageView {
   return {
     title: "How a video is described",
-    previewProject: SINGLE_ROOT,
     toc: [
       { id: "mental-model", title: "Mental model" },
       { id: "clock", title: "Clock vs lanes" },

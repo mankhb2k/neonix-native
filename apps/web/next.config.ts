@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    // Same freeze as eslint: editor TS debt is `pnpm typecheck`, not Vercel.
+    ignoreBuildErrors: true,
+  },
   transpilePackages: [
     "@motionvideo/render-contracts",
     "@motionvideo/motion-protocol",

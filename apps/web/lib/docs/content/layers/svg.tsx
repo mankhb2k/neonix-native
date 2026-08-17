@@ -1,12 +1,12 @@
 import { AiWritingGuide } from "@/components/docs/AiWritingGuide";
 import { HumanName } from "@/components/docs/HumanName";
-import { ExampleResultFrame } from "@/components/docs/figures/ExampleResultFrame";
 import { ExampleWithResult } from "@/components/docs/figures/ExampleWithResult";
 import { MediaFitFigure } from "@/components/docs/figures/MediaFitFigure";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { visualLayerExample } from "@/lib/docs/content/layers/example-json";
 import { DocsTable, H2, P } from "@/lib/docs/content/prose";
 import { withOnThisPage } from "@/lib/docs/content/with-on-this-page";
+import { DOCS_ASSET_TREE } from "@/lib/docs/visual-fixtures";
 
 export function svgLayerPage(): DocsPageView {
   return withOnThisPage({
@@ -54,35 +54,27 @@ export function svgLayerPage(): DocsPageView {
               id: "logo-svg",
               type: "svg",
               frame: { width: 240, height: 240 },
-              payload: { assetId: "svg-logo", fit: "contain" },
-              style: { fill: "#111111" },
+              payload: { assetId: DOCS_ASSET_TREE.id, fit: "contain" },
             }),
             null,
             2,
           )}
           result={
-            <ExampleResultFrame
-              label="Rendered SVG layer"
-              caption="frame 240×240 · fit contain · style.fill #111111"
-              viewBox="0 0 400 200"
-            >
-              <rect
-                x={110}
-                y={20}
-                width={180}
-                height={150}
-                fill="none"
-                stroke="#94a3b8"
-                strokeDasharray="5 4"
-              />
-              <path
-                d="M200 40 L270 150 L130 150 Z"
-                fill="none"
-                stroke="#111111"
-                strokeWidth={3}
-                strokeLinejoin="round"
-              />
-            </ExampleResultFrame>
+            <figure className="flex w-full max-w-[320px] flex-col items-center gap-2">
+              <div
+                className="overflow-hidden border border-dashed border-white/70 bg-white"
+                style={{ width: 180, height: 180 }}
+              >
+                <img
+                  src={DOCS_ASSET_TREE.uri}
+                  alt="SVG asset fitted with contain"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <figcaption className="font-mono text-[10px] text-[#94a3b8]">
+                frame 240×240 · fit contain · {DOCS_ASSET_TREE.id}
+              </figcaption>
+            </figure>
           }
         />
 

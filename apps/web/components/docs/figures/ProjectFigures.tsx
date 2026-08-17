@@ -327,8 +327,7 @@ export function AssetsFigure() {
           width={200}
           height={64}
           rx={10}
-          fill="#ccfbf1"
-          fillOpacity={0.4}
+          fill="#ffffff"
           stroke={ACCENT}
           strokeWidth={2}
         />
@@ -342,7 +341,7 @@ export function AssetsFigure() {
         >
           photo · image layer
         </text>
-        <text x={418} y={126} fontSize={11} fill={MUTED} fontFamily="monospace">
+        <text x={418} y={126} fontSize={11} fill={INK} fontFamily="monospace">
           payload.assetId
         </text>
         <line
@@ -407,8 +406,7 @@ export function ValidationFigure() {
                 width={130}
                 height={52}
                 rx={10}
-                fill={last ? "#ccfbf1" : "#fff"}
-                fillOpacity={last ? 0.5 : 1}
+                fill="#ffffff"
                 stroke={last ? ACCENT : MUTED}
                 strokeWidth={last ? 2 : 1.5}
               />

@@ -44,6 +44,8 @@ import {
   createCompositingContext,
   type CompositingContext,
 } from "./pixi-compositing";
+import { createInnerGlowFilter } from "./filters/inner-glow-filter";
+import { createNoiseFilter } from "./filters/noise-filter";
 
 type CachedObject = {
   kind: string;
@@ -350,9 +352,35 @@ function applyEffects(
   for (const effect of effects) {
     if (effect.type === "blur" && effect.radius > 0) {
       filters.push(new BlurFilter({ strength: effect.radius }));
+    } else if (effect.type === "inner-glow" && effect.radius > 0) {
+      filters.push(
+        createInnerGlowFilter({
+          radius: effect.radius,
+          color: effect.color,
+          opacity: effect.opacity,
+        }),
+      );
+    } else if (effect.type === "noise") {
+      filters.push(
+        createNoiseFilter({
+          amount: effect.amount,
+          scale: effect.scale,
+          opacity: effect.opacity,
+          seed: (effect.seed ?? hashSeed(effect.id) * 4294967295) / 4294967296,
+        }),
+      );
     }
   }
   display.filters = filters.length ? filters : null;
+}
+
+function hashSeed(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i += 1) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 4294967295;
 }
 
 function strokePathContours(

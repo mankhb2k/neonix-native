@@ -52,6 +52,7 @@ export function effectsOverviewPage(): DocsPageView {
           order. Each effect needs a stable <code>id</code>, unique on the
           layer. Max 16 per layer. Types in v1: <code>blur</code>, outer{" "}
           <code>shadow</code>, outer <code>glow</code>,{" "}
+          <code>inner-glow</code>, <code>noise</code>,{" "}
           <code>color-adjust</code>. Visual layers only — not audio, not camera.
         </P>
         <H2 id="animation">Animation</H2>
@@ -82,7 +83,9 @@ export function effectsOverviewPage(): DocsPageView {
           items={[
             "Put pixel filters in effects[], not on transform or appearance.",
             "Give every effect a stable id. Animate effects.fx-blur-1.radius, not effects[0].",
-            "Do not emit glow.intensity. Do not animate effect color.",
+            "Do not emit glow.intensity or inner-glow.intensity. Do not animate effect color.",
+            "Neon card = glow + inner-glow; keep noise amount low. Do not fake scanlines.",
+            "Noise is a pixel overlay on that layer's alpha, not a default full-screen grain.",
             "Do not put effects on audio or camera.",
           ]}
         />

@@ -1,6 +1,6 @@
 # MotionVideo
 
-> **MotiClip** — AI-first motion graphics studio for Vietnamese TVC.
+> **NeonVideo** — AI-first motion graphics studio for Vietnamese TVC.
 
 MotionVideo là studio tạo motion graphic 2D, kết hợp giữa AI generation và editor
 trực quan. Hệ thống nhận brief từ người dùng hoặc AI agent, sinh project có cấu

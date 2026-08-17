@@ -1,6 +1,6 @@
 /**
  * Outer glow V1 — halo đều ra ngoài silhouette.
- * Không inner glow, không intensity (dùng opacity).
+ * Inner glow là type `inner-glow` riêng. Không intensity (dùng opacity).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

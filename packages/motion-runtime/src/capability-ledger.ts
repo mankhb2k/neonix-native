@@ -144,7 +144,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
   },
   {
     id: "effect.blur",
-    label: "Blur / shadow / glow / color-adjust",
+    label: "Blur / shadow / glow / inner-glow / noise / color-adjust",
     columns: {
       schema: "yes",
       command: "yes",
@@ -156,7 +156,39 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       parity: "planned",
       editor: "partial",
     },
-    notes: "Pixi: blur + drop-shadow first; glow/color-adjust follow",
+    notes: "Pixi: blur + inner-glow + noise filters; worker canvas paints glow/inner-glow/noise",
+  },
+  {
+    id: "effect.inner-glow",
+    label: "Inner glow",
+    columns: {
+      schema: "yes",
+      command: "yes",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "yes",
+      remotion: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes: "Does not inflate bounds. No intensity/spread/choke.",
+  },
+  {
+    id: "effect.noise",
+    label: "Noise grain",
+    columns: {
+      schema: "yes",
+      command: "yes",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "yes",
+      remotion: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes: "Grain on layer alpha only, not full-screen. Deterministic seed from scene+layer+effect+frame. No authoring seed.",
   },
   {
     id: "primitive.video",
@@ -255,7 +287,7 @@ export function wave1CapabilityPromptBlock(): string {
     `Wave-1 vertical slice: ${wave1}`,
     `Wave-2 (partial): ${wave2}`,
     "Prefer group, text, shape, image, path + transform/opacity keyframes.",
-    "Path: stroke + trim-path ok. Camera via setCamera. Effects via addEffect (blur/glow/color-adjust/shadow).",
+    "Path: stroke + trim-path ok. Camera via setCamera. Effects via addEffect (blur/glow/inner-glow/noise/color-adjust/shadow).",
     "Do not invent mesh/shader/3d capabilities outside the ledger.",
   ].join("\n");
 }

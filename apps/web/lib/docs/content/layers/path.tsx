@@ -80,7 +80,7 @@ export function pathLayerPage(): DocsPageView {
                 ],
                 fillRule: "nonzero",
               },
-              style: { fill: "#111111" },
+              style: { fill: "#22d3ee" },
             }),
             null,
             2,
@@ -88,7 +88,7 @@ export function pathLayerPage(): DocsPageView {
           result={
             <ExampleResultFrame
               label="Rendered path layer"
-              caption="frame 200×120 · 1 contour · fill #111111"
+              caption="frame 200×120 · 1 contour · fill #22d3ee"
               viewBox="0 0 400 170"
             >
               <rect
@@ -97,12 +97,12 @@ export function pathLayerPage(): DocsPageView {
                 width={220}
                 height={120}
                 fill="none"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
               <path
                 d="M120 40 L280 40 L280 118 L120 118 Z"
-                fill="#111111"
+                fill="#22d3ee"
               />
             </ExampleResultFrame>
           }

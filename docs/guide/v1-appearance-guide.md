@@ -1,4 +1,4 @@
-# MotiClip V1 Appearance
+# NeonVideo V1 Appearance
 
 > Trạng thái: v1
 >

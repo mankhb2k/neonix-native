@@ -89,6 +89,8 @@ export const DOCS_NAV: DocsNavGroup[] = [
       { href: "/docs/effects/blur", label: "Blur" },
       { href: "/docs/effects/shadow", label: "Shadow" },
       { href: "/docs/effects/glow", label: "Glow" },
+      { href: "/docs/effects/inner-glow", label: "Inner glow" },
+      { href: "/docs/effects/noise", label: "Noise" },
       { href: "/docs/effects/color-adjust", label: "Color adjust" },
     ],
   },

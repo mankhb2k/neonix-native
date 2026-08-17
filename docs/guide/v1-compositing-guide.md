@@ -1,4 +1,4 @@
-# MotiClip V1 Compositing
+# NeonVideo V1 Compositing
 
 > Trạng thái: v1
 >
@@ -23,7 +23,7 @@
 | --- | --- |
 | `appearance` | `visible`, `opacity` |
 | `compositing` | `blend-mode`, `isolation`, `mask` |
-| `effects` | `blur`, `shadow`, `glow`, `color-adjust` |
+| `effects` | `blur`, `shadow`, `glow`, `inner-glow`, `noise`, `color-adjust` |
 | media `payload` | `fit`, `crop` |
 
 Không nhét vào compositing: blur, shadow, glow, brightness, color-adjust, opacity, visibility, crop, fit.

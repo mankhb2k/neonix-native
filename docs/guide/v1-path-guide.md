@@ -1,4 +1,4 @@
-# MotiClip V1 Path
+# NeonVideo V1 Path
 
 > Trạng thái: v1
 >

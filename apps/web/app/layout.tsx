@@ -24,8 +24,8 @@ const mono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotiClip",
-  description: "AI Studio — motion graphics 2.5D từ brief đến export",
+  title: "NeonVideo",
+  description: "AI Studio — neon / cyber motion graphics từ brief đến export",
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      data-theme="light"
+      data-theme="dark"
       className={`${sans.variable} ${display.variable} ${mono.variable}`}
     >
       <body>{children}</body>

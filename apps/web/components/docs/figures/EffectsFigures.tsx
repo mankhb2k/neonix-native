@@ -141,7 +141,7 @@ export function GlowFigure() {
   return (
     <Figure
       label='effects[].type = "glow"'
-      caption="Outer glow — an even halo around the silhouette. Strength is opacity (0..100); there is no intensity field. Inner glow is not in V1."
+      caption="Outer glow — an even halo around the silhouette. Strength is opacity (0..100); there is no intensity field. Inner glow is a separate type."
     >
       <svg
         viewBox="0 0 640 200"
@@ -258,6 +258,116 @@ export function ColorAdjustFigure() {
           fontFamily="monospace"
         >
           brightness · contrast · saturation 0..200 · hue-rotate −180..180
+        </text>
+      </svg>
+    </Figure>
+  );
+}
+
+/** inner-glow: even halo inside the silhouette. */
+export function InnerGlowFigure() {
+  return (
+    <Figure
+      label='effects[].type = "inner-glow"'
+      caption="Inward halo along the silhouette. Own type — not a flag on glow. No intensity, spread, or choke. Bounds do not inflate."
+    >
+      <svg
+        viewBox="0 0 640 200"
+        className="w-full max-w-[576px]"
+        role="img"
+        aria-label="Inner glow"
+      >
+        <defs>
+          <filter id="fx-ig1" x="-10%" y="-10%" width="120%" height="120%">
+            <feFlood floodColor="#A855FF" floodOpacity="0.85" result="flood" />
+            <feComposite
+              in="flood"
+              in2="SourceAlpha"
+              operator="out"
+              result="inverse"
+            />
+            <feGaussianBlur in="inverse" stdDeviation="3" result="blur" />
+            <feComposite in="blur" in2="SourceAlpha" operator="in" />
+          </filter>
+          <filter id="fx-ig2" x="-10%" y="-10%" width="120%" height="120%">
+            <feFlood floodColor="#A855FF" floodOpacity="0.9" result="flood" />
+            <feComposite
+              in="flood"
+              in2="SourceAlpha"
+              operator="out"
+              result="inverse"
+            />
+            <feGaussianBlur in="inverse" stdDeviation="7" result="blur" />
+            <feComposite in="blur" in2="SourceAlpha" operator="in" />
+          </filter>
+        </defs>
+        <Card x={60} y={50} label="none" />
+        <Card x={265} y={50} filter="url(#fx-ig1)" label="radius 8" />
+        <Card x={470} y={50} filter="url(#fx-ig2)" label="radius 18" />
+        <text
+          x={320}
+          y={170}
+          textAnchor="middle"
+          fontSize={12}
+          fill={MUTED}
+          fontFamily="monospace"
+        >
+          animate radius and opacity — never color or intensity
+        </text>
+      </svg>
+    </Figure>
+  );
+}
+
+/** noise: grain overlay. */
+export function NoiseFigure() {
+  return (
+    <Figure
+      label='effects[].type = "noise"'
+      caption="Grain on this layer's opaque pixels. Not a default full-screen grain. No seed, displacement, glitch, chromatic, or scanline."
+    >
+      <svg
+        viewBox="0 0 640 200"
+        className="w-full max-w-[576px]"
+        role="img"
+        aria-label="Noise"
+      >
+        <defs>
+          <filter id="fx-n1">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.7"
+              numOctaves="2"
+              seed="2"
+              result="n"
+            />
+            <feColorMatrix type="saturate" values="0" in="n" result="g" />
+            <feBlend in="SourceGraphic" in2="g" mode="overlay" />
+          </filter>
+          <filter id="fx-n2">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.55"
+              numOctaves="3"
+              seed="2"
+              result="n"
+            />
+            <feColorMatrix type="saturate" values="0" in="n" result="g" />
+            <feBlend in="SourceGraphic" in2="g" mode="overlay" />
+          </filter>
+        </defs>
+        <Card x={60} y={50} label="amount 0" />
+        <Card x={265} y={50} filter="url(#fx-n1)" label="amount 12" />
+        <Card x={470} y={50} filter="url(#fx-n2)" label="amount 40" />
+        <text
+          x={320}
+          y={170}
+          textAnchor="middle"
+          fontSize={12}
+          fill={MUTED}
+          fontFamily="monospace"
+        >
+          animate amount, scale, opacity — not animated
         </text>
       </svg>
     </Figure>

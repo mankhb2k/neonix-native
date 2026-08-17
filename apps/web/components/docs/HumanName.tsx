@@ -17,7 +17,7 @@ export function HumanName({
       ) : null}
       {jsonPath ? (
         <p className="mt-3">
-          <code className="rounded-md border border-[var(--border-subtle,#e4e4e7)] bg-[#f8fafc] px-2 py-1 font-mono text-[12px] text-[var(--fg-primary)]">
+          <code className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-1 font-mono text-[12px] text-[var(--accent-text)]">
             {jsonPath}
           </code>
         </p>

@@ -13,7 +13,7 @@ export function DocsSidebar() {
           <p className="mb-3 text-[13px] font-semibold tracking-[0.14em] text-[var(--fg-muted)] uppercase">
             {group.label}
           </p>
-          <ul className="border-l border-zinc-200">
+          <ul className="border-l border-[var(--border-subtle)]">
             {group.items.map((item) => {
               const active = pathname === item.href;
               const pad = "block border-l py-1.5 pl-4 -ml-px no-underline";
@@ -23,8 +23,8 @@ export function DocsSidebar() {
                     href={item.href}
                     className={
                       active
-                        ? `${pad} border-zinc-900 font-semibold text-zinc-900`
-                        : `${pad} border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900`
+                        ? `${pad} border-[var(--accent)] font-semibold text-[var(--fg-primary)]`
+                        : `${pad} border-transparent text-[var(--fg-muted)] hover:border-[var(--border-strong)] hover:text-[var(--fg-primary)]`
                     }
                   >
                     {item.label}

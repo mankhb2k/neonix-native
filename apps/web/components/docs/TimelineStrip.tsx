@@ -29,7 +29,7 @@ export function TimelineStrip({
               <span className="w-28 shrink-0 truncate text-[var(--fg-muted)]">
                 {lane.id}
               </span>
-              <div className="relative h-4 flex-1 rounded bg-white">
+              <div className="relative h-4 flex-1 rounded bg-[var(--bg-elevated)]">
                 <div
                   className="absolute top-0 h-4 rounded bg-[var(--accent)]/70"
                   style={{ left: `${left}%`, width: `${width}%` }}

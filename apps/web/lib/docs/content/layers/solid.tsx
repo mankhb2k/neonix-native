@@ -76,7 +76,7 @@ export function solidLayerPage(): DocsPageView {
                 width={320}
                 height={110}
                 fill="#e8eef5"
-                stroke="#94a3b8"
+                stroke="#f1f5f9"
                 strokeDasharray="5 4"
               />
             </ExampleResultFrame>

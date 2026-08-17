@@ -13,7 +13,7 @@ import { marketingUrl } from "@/lib/hosts";
 import { Clapperboard, Plus, Smartphone, Tv, Square } from "lucide-react";
 
 const hubBg =
-  "[background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-site)]";
+  "[background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(34,211,238,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(168,85,255,0.08)_0%,transparent_50%),var(--bg-site)]";
 
 export function WorkspaceHome() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export function WorkspaceHome() {
           href="/"
           className="font-semibold tracking-[-0.02em] text-[var(--fg-primary)] no-underline text-[1.2rem] [font-family:var(--font-display)]"
         >
-          MotiClip
+          NeonVideo
         </AppLink>
         <nav className="flex items-center gap-4">
           <button
@@ -82,7 +82,7 @@ export function WorkspaceHome() {
         <div className="my-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] shadow-[0_6px_18px_rgba(13,148,136,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(13,148,136,0.34)]"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] shadow-[0_6px_18px_rgba(34,211,238,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(34,211,238,0.34)]"
             onClick={() => setModalOpen(true)}
           >
             <Plus size={16} strokeWidth={2} />

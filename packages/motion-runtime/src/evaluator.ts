@@ -41,6 +41,7 @@ import {
 } from "./curve-sampler";
 import { evaluateDriverGraph } from "./procedural-driver";
 import { RuntimeDiagnosticCollector } from "./diagnostics";
+import { FRAME_EPSILON, deterministicUint32 } from "./determinism";
 import {
   resolveEffectiveTiming,
   isNodeTimeActive,
@@ -51,7 +52,10 @@ export type RuntimeScene = RuntimeLayerGraph;
 export type RuntimeNode = RuntimeScene["layers"][number];
 export type RuntimePropertyAnimation =
   MotionRuntimeProject["propertyAnimations"][number];
-export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
+export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number] & {
+  /** Evaluated-only noise seed. Not an authoring field. */
+  seed?: number;
+};
 type PathNodeContours = Extract<
   RuntimeNode,
   { type: "path" }
@@ -421,6 +425,7 @@ export function evaluateEffect(
         ),
       };
     case "glow":
+    case "inner-glow":
       return {
         ...effect,
         radius: effectNumber(
@@ -436,6 +441,24 @@ export function evaluateEffect(
           effectNumber(scene, node, effect, "opacity", time, effect.opacity),
         ),
       };
+    case "noise": {
+      const frame = effect.animated
+        ? Math.max(0, Math.floor(time * 1000 + FRAME_EPSILON))
+        : 0;
+      return {
+        ...effect,
+        amount: effectNumber(scene, node, effect, "amount", time, effect.amount),
+        scale: effectNumber(scene, node, effect, "scale", time, effect.scale),
+        opacity: ratioFromPercent(
+          effectNumber(scene, node, effect, "opacity", time, effect.opacity),
+        ),
+        seed: deterministicUint32(
+          `${scene.id}:${node.id}:${effect.id}`,
+          "noise",
+          frame,
+        ),
+      };
+    }
     case "color-adjust":
       return {
         ...effect,
@@ -471,6 +494,8 @@ export function evaluateEffect(
           effect["hue-rotate"],
         ),
       };
+    default:
+      return effect;
   }
 }
 

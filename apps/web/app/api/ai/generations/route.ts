@@ -91,7 +91,7 @@ async function handleGenerate(
       aspectRatio: "9:16",
       script: body.prompt,
       language: "vi",
-      brand: { name: "MotiClip", primaryColor: "#f97316" },
+      brand: { name: "NeonVideo", primaryColor: "#22d3ee" },
       constraints: { maxScenes: 3, mustIncludeCta: true },
     };
   }

@@ -395,7 +395,12 @@ function effectPadding(effect: RuntimeEffect): number {
     case "blur": return effect.radius;
     case "shadow": return Math.max(Math.abs(effect.offset.x), Math.abs(effect.offset.y)) + effect.blur;
     case "glow": return effect.radius;
-    case "color-adjust": return 0;
+    case "inner-glow":
+    case "noise":
+    case "color-adjust":
+      return 0;
+    default:
+      return 0;
   }
 }
 
@@ -419,6 +424,64 @@ function colorWithOpacity(color: string, opacity: number): string {
   return color;
 }
 
+function applyInnerGlow(layer: Canvas, effect: Extract<RuntimeEffect, { type: "inner-glow" }>): Canvas {
+  const output = createCanvas(layer.width, layer.height);
+  const out = output.getContext("2d");
+  out.drawImage(layer, 0, 0);
+
+  const inverted = createCanvas(layer.width, layer.height);
+  const inv = inverted.getContext("2d");
+  inv.fillStyle = "#ffffff";
+  inv.fillRect(0, 0, layer.width, layer.height);
+  inv.globalCompositeOperation = "destination-out";
+  inv.drawImage(layer, 0, 0);
+
+  const glow = createCanvas(layer.width, layer.height);
+  const g = glow.getContext("2d");
+  if (effect.radius > 0) g.filter = `blur(${effect.radius}px)`;
+  g.drawImage(inverted, 0, 0);
+  g.filter = "none";
+  g.globalCompositeOperation = "destination-in";
+  g.drawImage(layer, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = colorWithOpacity(effect.color, effect.opacity);
+  g.fillRect(0, 0, layer.width, layer.height);
+
+  out.drawImage(glow, 0, 0);
+  return output;
+}
+
+function noiseHash(x: number, y: number, seed: number): number {
+  let h = seed >>> 0;
+  h = Math.imul(h ^ (x >>> 0), 0x9e3779b1);
+  h = Math.imul(h ^ (y >>> 0), 0x85ebca6b);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+function applyNoise(layer: Canvas, effect: Extract<RuntimeEffect, { type: "noise" }>): Canvas {
+  const output = createCanvas(layer.width, layer.height);
+  const ctx = output.getContext("2d");
+  ctx.drawImage(layer, 0, 0);
+  const image = ctx.getImageData(0, 0, layer.width, layer.height);
+  const data = image.data;
+  const scale = Math.max(0.25, effect.scale);
+  const strength = (effect.amount / 50) * effect.opacity;
+  const seed = effect.seed ?? 0;
+  for (let y = 0; y < layer.height; y += 1) {
+    for (let x = 0; x < layer.width; x += 1) {
+      const i = (y * layer.width + x) * 4;
+      if (data[i + 3] === 0) continue;
+      const grain = (noiseHash(Math.floor(x / scale), Math.floor(y / scale), seed) - 0.5) * strength * 255;
+      data[i] = Math.min(255, Math.max(0, data[i]! + grain));
+      data[i + 1] = Math.min(255, Math.max(0, data[i + 1]! + grain));
+      data[i + 2] = Math.min(255, Math.max(0, data[i + 2]! + grain));
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return output;
+}
+
 function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
   const output = createCanvas(layer.width, layer.height);
   const outputContext = output.getContext("2d");
@@ -426,7 +489,9 @@ function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
     outputContext.filter = `blur(${effect.radius}px)`;
     outputContext.drawImage(layer, 0, 0);
     outputContext.filter = "none";
-  } else if (effect.type === "shadow") {
+    return output;
+  }
+  if (effect.type === "shadow") {
     outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
     outputContext.shadowBlur = effect.blur;
     outputContext.shadowOffsetX = effect.offset.x;
@@ -436,17 +501,21 @@ function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
     outputContext.shadowBlur = 0;
     outputContext.shadowOffsetX = 0;
     outputContext.shadowOffsetY = 0;
-  } else if (effect.type === "glow") {
+    return output;
+  }
+  if (effect.type === "glow") {
     outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
     outputContext.shadowBlur = effect.radius;
     outputContext.drawImage(layer, 0, 0);
     outputContext.shadowColor = "transparent";
     outputContext.shadowBlur = 0;
-  } else {
-    outputContext.filter = `brightness(${(1 + effect.brightness) * 100}%) contrast(${effect.contrast * 100}%) saturate(${effect.saturation * 100}%)`;
-    outputContext.drawImage(layer, 0, 0);
-    outputContext.filter = "none";
+    return output;
   }
+  if (effect.type === "inner-glow") return applyInnerGlow(layer, effect);
+  if (effect.type === "noise") return applyNoise(layer, effect);
+  outputContext.filter = `brightness(${(1 + effect.brightness) * 100}%) contrast(${effect.contrast * 100}%) saturate(${effect.saturation * 100}%)`;
+  outputContext.drawImage(layer, 0, 0);
+  outputContext.filter = "none";
   return output;
 }
 

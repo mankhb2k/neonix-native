@@ -1,4 +1,4 @@
-# MotiClip V1 Variables và Bindings
+# NeonVideo V1 Variables và Bindings
 
 > Trạng thái: v1
 >

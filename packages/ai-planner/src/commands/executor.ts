@@ -993,6 +993,23 @@ function applyOne(
             color: command.effect.color,
             opacity: command.effect.opacity ?? 25,
           });
+        } else if (command.effect.type === "inner-glow") {
+          effects.push({
+            id: command.effectId,
+            type: "inner-glow",
+            radius: command.effect.radius,
+            color: command.effect.color,
+            opacity: command.effect.opacity ?? 100,
+          });
+        } else if (command.effect.type === "noise") {
+          effects.push({
+            id: command.effectId,
+            type: "noise",
+            amount: command.effect.amount ?? 12,
+            scale: command.effect.scale ?? 1,
+            opacity: command.effect.opacity ?? 25,
+            animated: command.effect.animated ?? false,
+          });
         } else if (command.effect.type === "glow") {
           effects.push({
             id: command.effectId,

@@ -1,6 +1,6 @@
 # AI AUTHORING
 
-Source-of-truth Markdown for MotiClip AI emit/patch rules. One page at `/docs/ai` (Getting started). Right rail lists the twelve H2 sections.
+Source-of-truth Markdown for NeonVideo AI emit/patch rules. One page at `/docs/ai` (Getting started). Right rail lists the twelve H2 sections.
 
 Do not explain preview/renderer internals here. Schema contract: `packages/motion-protocol`.
 

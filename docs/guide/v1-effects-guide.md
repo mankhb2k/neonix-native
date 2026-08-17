@@ -1,4 +1,4 @@
-# MotiClip V1 Effects
+# NeonVideo V1 Effects
 
 > Trạng thái: v1
 >
@@ -11,7 +11,7 @@
 - `effects` là mảng có thứ tự. Runtime giữ đúng thứ tự authoring.
 - Mỗi effect có `id` ổn định, unique trên layer. Animation theo `effects.<id>.field`, không theo index.
 - Chỉ numeric leaf được keyframe linear. Không animate cả object. Không animate `color` của effect trong V1.
-- Họ: `blur`, `shadow` (outer), `glow` (outer), `color-adjust`.
+- Họ: `blur`, `shadow` (outer), `glow` (outer), `inner-glow`, `noise`, `color-adjust`.
 - Áp dụng visual layer (kể cả group/component). Không audio. Camera không phải bề mặt authoring effects V1.
 - Authoring chỉ ghi `effects`. Isolation/offscreen là việc engine, không thêm field JSON.
 
@@ -69,7 +69,7 @@ Animate (linear): `offset.x`, `offset.y`, `blur`, `opacity`. Không animate `col
 
 ## Glow
 
-Outer glow — halo đều ra ngoài silhouette. Không inner glow (sau này effect `inner-glow` riêng). Không `intensity` (dùng `opacity`).
+Outer glow — halo đều ra ngoài silhouette. Inner glow là type `inner-glow` riêng, không phải flag. Không `intensity` (dùng `opacity`).
 
 ```json
 {
@@ -82,6 +82,43 @@ Outer glow — halo đều ra ngoài silhouette. Không inner glow (sau này eff
 ```
 
 Animate (linear): `radius`, `opacity`. Không animate `color`.
+
+---
+
+## Inner glow
+
+Halo đều vào trong silhouette. Không inflate bounds. Không `intensity` / spread / choke.
+
+```json
+{
+  "id": "fx-inner-glow-1",
+  "type": "inner-glow",
+  "radius": 18,
+  "color": "#A855FF",
+  "opacity": 60
+}
+```
+
+Animate (linear): `radius`, `opacity`. Không animate `color`.
+
+---
+
+## Noise
+
+Grain overlay trên pixel opaque của layer (`alpha > 0`). Không phải full-screen grain mặc định. Muốn grain cả frame: gắn `noise` lên shape/solid full-frame, không gắn vào card nhỏ. Không seed trên JSON. Runtime hash `metadata.id` + `layer.id` + `effect.id` + (`animated` ? frame : 0). Không displacement / glitch / chromatic / scanline.
+
+```json
+{
+  "id": "fx-noise-1",
+  "type": "noise",
+  "amount": 12,
+  "scale": 1,
+  "opacity": 25,
+  "animated": true
+}
+```
+
+Animate (linear): `amount`, `scale`, `opacity`. Không animate `animated` (boolean, default `false`).
 
 ---
 
@@ -106,6 +143,7 @@ Animate (linear): cả bốn field. Không exposure / gamma / curves / …
 
 ## Xem thêm
 
+- [v1-cyber-recipe.md](./v1-cyber-recipe.md)
 - [v1-appearance-guide.md](./v1-appearance-guide.md)
 - [v1-compositing-guide.md](./v1-compositing-guide.md)
 - [v1-production-surface-guide.md](./v1-production-surface-guide.md)

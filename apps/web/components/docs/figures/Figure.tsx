@@ -19,14 +19,14 @@ export function Figure({
   stageClassName?: string;
 }) {
   return (
-    <figure className="my-8 overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)] bg-white">
+    <figure className="my-8 overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-elevated)]">
       {label ? (
         <figcaption className="border-b border-[var(--border-subtle,#e4e4e7)] px-4 py-2 font-mono text-[11px] text-[var(--fg-muted)]">
           {label}
         </figcaption>
       ) : null}
       <div
-        className={`flex items-center justify-center bg-[#f8fafc] px-6 py-8 ${
+        className={`flex items-center justify-center bg-[var(--bg-surface)] px-6 py-8 ${
           stageClassName ?? ""
         }`}
       >

@@ -1,6 +1,6 @@
 # `@motionvideo/motion-runtime`
 
-Evaluator thời gian chạy cho **Runtime IR** đã compile từ MotiClip V1. Không parse authoring JSON — nhận `MotionRuntimeProject` và trả transform, bounds, hit-test, geometry tại timestamp xác định.
+Evaluator thời gian chạy cho **Runtime IR** đã compile từ NeonVideo V1. Không parse authoring JSON — nhận `MotionRuntimeProject` và trả transform, bounds, hit-test, geometry tại timestamp xác định.
 
 Runtime **không** mở rộng protocol. Animation runtime là `propertyAnimations`, compile từ `timeline.clips`.
 

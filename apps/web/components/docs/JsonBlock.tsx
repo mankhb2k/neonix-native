@@ -35,7 +35,7 @@ export function JsonBlock({
           onClick={() => setOpen((value) => !value)}
           className="mt-2 text-[12px] font-medium text-[var(--accent-text)]"
         >
-          {open ? "Ẩn bớt" : "Xem thêm"}
+          {open ? "Show less" : "Show more"}
         </button>
       ) : null}
     </figure>
