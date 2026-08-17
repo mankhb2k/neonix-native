@@ -88,6 +88,11 @@ export type PixiFramePainterOptions = {
     };
     width: number;
     height: number;
+    render?(args: {
+      container: Container;
+      target: import("pixi.js").RenderTexture;
+      clear?: boolean;
+    }): void;
   };
 };
 
@@ -628,6 +633,9 @@ export function createPixiFramePainter(
       root,
       width: frameW,
       height: frameH,
+      renderer: options.renderer?.render
+        ? { render: options.renderer.render.bind(options.renderer) }
+        : undefined,
     });
 
     for (const cmd of buffer.commands) {

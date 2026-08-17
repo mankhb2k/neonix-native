@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { DocsSidebar } from "@/components/docs/DocsSidebar";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { SITE_DOCS_SHELL_X } from "@/lib/site-shell";
 
 const shellClass = "min-h-screen bg-[var(--bg-site)] text-[var(--fg-primary)]";
 const gridClass =
@@ -8,13 +9,13 @@ const gridClass =
 const mobileNavClass =
   "border-b border-[var(--border-subtle,#e4e4e7)] px-4 py-3 md:hidden";
 const desktopNavClass =
-  "sticky top-14 hidden h-[calc(100vh-3.5rem)] w-80 self-start overflow-y-auto px-6 py-8 md:block";
+  "sticky top-16 hidden h-[calc(100vh-4rem)] w-80 self-start overflow-y-auto px-6 py-8 md:block";
 
 export default function DocsLayout({ children }: { children: ReactNode }) {
   return (
     <div className={shellClass}>
       <SiteHeader active="docs" />
-      <div className="px-4 xl:px-[14rem]">
+      <div className={SITE_DOCS_SHELL_X}>
         <div className={gridClass}>
           <aside className={mobileNavClass}>
             <details>

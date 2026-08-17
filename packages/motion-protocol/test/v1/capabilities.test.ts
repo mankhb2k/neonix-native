@@ -116,6 +116,25 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.has("audio.render-plan")).toBe(true);
   });
 
+  it("detects inner-glow, noise, and glow from effects[]", () => {
+    const caps = inspectProjectCapabilities({
+      layers: [
+        {
+          type: "shape",
+          effects: [
+            { type: "glow" },
+            { type: "inner-glow" },
+            { type: "noise" },
+          ],
+        },
+      ],
+    });
+    expect(caps.has("primitive.shape")).toBe(true);
+    expect(caps.has("effect.glow")).toBe(true);
+    expect(caps.has("effect.inner-glow")).toBe(true);
+    expect(caps.has("effect.noise")).toBe(true);
+  });
+
   it("does not emit caption.track from timeline", () => {
     const caps = inspectProjectCapabilities({
       layers: [{ type: "group", children: [{ type: "text" }] }],

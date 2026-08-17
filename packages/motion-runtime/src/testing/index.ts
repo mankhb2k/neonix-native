@@ -1,4 +1,5 @@
 export { createDemoMotionProject, DEMO_SCENE_ID } from "./demo-project";
+export { createNeonEffectsPreviewProject } from "./effects-preview-project";
 export { compileProjectV1 } from "./compile";
 export {
   PAINT_PARITY_FIXTURES,

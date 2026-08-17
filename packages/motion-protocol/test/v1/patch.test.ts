@@ -318,7 +318,7 @@ describe("V1 patch contract", () => {
           zIndex: 0,
           timing: { start: 0, duration: 3 },
           ...ATOMS,
-          payload: { componentId: "btn" },
+          payload: { componentId: "btn", props: {} },
         },
       ],
     };
