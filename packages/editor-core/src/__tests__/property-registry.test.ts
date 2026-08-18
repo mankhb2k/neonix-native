@@ -30,14 +30,6 @@ function firstChild(project: MotionProject): MotionLayer | undefined {
   return scene?.type === "group" ? scene.children[0] : undefined;
 }
 
-function firstChildStyle(
-  project: MotionProject,
-): Record<string, unknown> | undefined {
-  const node = firstChild(project);
-  if (!node || !("style" in node) || !node.style) return undefined;
-  return node.style as Record<string, unknown>;
-}
-
 function setFirstChildX(project: MotionProject, x: number): MotionProject {
   const layers = project.layers.map((scene, i) => {
     if (i !== 0 || scene.type !== "group") return scene;
@@ -149,9 +141,15 @@ describe("property commands", () => {
     const doc: TimelineDocument = {
       project: {
         ...project,
-        layers: [
-          { ...scene, type: "group" as const, children: layers } as MotionLayer,
-        ],
+        layers: project.layers.map((l) =>
+          l.id === scene.id
+            ? ({
+                ...l,
+                type: "group" as const,
+                children: layers,
+              } as MotionLayer)
+            : l,
+        ),
       },
       clips,
       lanes,
@@ -244,7 +242,52 @@ describe("Logic-2 property domain depth", () => {
     ).toBe(2.5);
   });
 
-  it("sets fill/stroke style on text layers", () => {
+  it("sets fill/stroke style on shape layers", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const scene = project.layers[0]!;
+    const shapeId = "node.shape";
+    const shapeNode = {
+      id: shapeId,
+      type: "shape" as const,
+      parentLayerId: scene.id,
+      zIndex: 1,
+      ...visualLayerAtoms({ width: 100, height: 100 }),
+      timing: { start: 0, duration: 1 },
+      payload: { shape: "rectangle" as const },
+    } as MotionLayer;
+    const withShape = {
+      ...project,
+      layers: project.layers.map((l) =>
+        l.id === scene.id
+          ? ({
+              ...l,
+              type: "group" as const,
+              children: [...(l.type === "group" ? l.children : []), shapeNode],
+            } as MotionLayer)
+          : l,
+      ),
+    };
+    const doc: TimelineDocument = { project: withShape, clips, lanes };
+    const result = executePropertyCommand(doc, {
+      type: "set-node-style",
+      targets: [{ rootLayerId: scene.id, layerId: shapeId }],
+      patch: { fill: "#ff0000", stroke: "#00ff00", strokeWidth: 2 },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const nextScene = result.document.project.layers[0];
+    const node =
+      nextScene?.type === "group"
+        ? nextScene.children.find((n) => n.id === shapeId)
+        : undefined;
+    expect(node?.type).toBe("shape");
+    if (!node || node.type !== "shape") return;
+    expect(node.style?.fill).toBe("#ff0000");
+    expect(node.style?.stroke).toBe("#00ff00");
+    expect(node.style?.strokeWidth).toBe(2);
+  });
+
+  it("rejects style on text layers (protocol has no text style)", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
     const targets = resolvePropertyTargets(
@@ -258,15 +301,7 @@ describe("Logic-2 property domain depth", () => {
       targets,
       patch: { fill: "#ff0000", stroke: "#00ff00", strokeWidth: 2 },
     });
-    expect(result.status).toBe("applied");
-    if (result.status !== "applied") return;
-    const node = firstChild(result.document.project);
-    expect(node?.type).toBe("text");
-    if (!node || node.type !== "text") return;
-    const style = firstChildStyle(result.document.project);
-    expect(style?.fill).toBe("#ff0000");
-    expect(style?.stroke).toBe("#00ff00");
-    expect(style?.strokeWidth).toBe(2);
+    expect(result.status).toBe("rejected");
   });
 
   it("updates typography payload", () => {
@@ -417,7 +452,7 @@ describe("Logic-2 property domain depth", () => {
       { project: withGroup, clips, lanes },
       {
         type: "set-node-style",
-        targets: [{ sceneId: scene.id, layerId: groupId }],
+        targets: [{ rootLayerId: scene.id, layerId: groupId }],
         patch: { fill: "#fff" },
       },
     );
@@ -433,7 +468,7 @@ describe("Logic-2 property domain depth", () => {
       id: imageId,
       type: "image" as const,
       parentLayerId: scene.id,
-      zIndex: 0,
+      zIndex: 1,
       ...visualLayerAtoms({ width: 100, height: 100 }),
       timing: { start: 0, duration: 1 },
       payload: { assetId, fit: "cover" as const },
@@ -455,7 +490,7 @@ describe("Logic-2 property domain depth", () => {
       { project: withImage, clips, lanes },
       {
         type: "set-node-media",
-        targets: [{ sceneId: scene.id, layerId: imageId }],
+        targets: [{ rootLayerId: scene.id, layerId: imageId }],
         patch: { crop: { x: 0.7, y: 0.8, width: 0.5, height: 0.5 } },
       },
     );

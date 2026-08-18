@@ -1,5 +1,7 @@
 export type NodeTargetRef = {
-  sceneId: string;
+  /** Id của layer gốc (top-level ancestor) — trước đây gọi là "sceneId". */
+  rootLayerId: string;
+  /** Id của layer đang edit. */
   layerId: string;
 };
 
@@ -126,7 +128,13 @@ export type DocumentPropertyCommand =
       property: string;
       t: number;
       v: number | string | boolean;
-      easing?: "linear" | "easeIn" | "easeOut" | "easeInOut" | "spring" | "step";
+      easing?:
+        | "linear"
+        | "easeIn"
+        | "easeOut"
+        | "easeInOut"
+        | "spring"
+        | "step";
     }
   | {
       type: "move-property-keyframe";

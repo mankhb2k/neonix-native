@@ -7,6 +7,7 @@ import {
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 import type { TimelineDocument } from "../document/document";
+import { finalizeDocumentMutation } from "../document/finalize-document-mutation";
 import { mapNode } from "../timeline/internal/scene-utils";
 import { findNode } from "./resolve-targets";
 import type {
@@ -30,7 +31,13 @@ export type PropertyCommandResult =
     }
   | {
       status: "rejected";
-      reason: "no_project" | "empty_targets" | "missing_node" | "invalid_value";
+      reason:
+        | "no_project"
+        | "empty_targets"
+        | "missing_node"
+        | "invalid_value"
+        | "invalid_protocol"
+        | "invalid_document";
       message: string;
     };
 
@@ -151,12 +158,10 @@ function applyMetadata(node: MotionLayer, patch: MetadataPatch): MotionLayer {
 }
 
 function applyStyle(node: MotionLayer, patch: StylePatch): MotionLayer | null {
-  if (
-    node.type !== "text" &&
-    node.type !== "shape" &&
-    node.type !== "path" &&
-    node.type !== "svg"
-  ) {
+  // Protocol V1: shape/path mang PaintStyleSchema (fill + stroke); svg chỉ mang
+  // SvgStyleSchema { fill } (.strict(), không stroke); text/image/video/... không có
+  // field style trên layer. Chỉ nhận shape/path/svg để không sinh JSON không hợp lệ.
+  if (node.type !== "shape" && node.type !== "path" && node.type !== "svg") {
     return null;
   }
   const prev =
@@ -164,6 +169,11 @@ function applyStyle(node: MotionLayer, patch: StylePatch): MotionLayer | null {
       ? { ...node.style }
       : {};
   const nextStyle = { ...prev };
+  if (node.type === "svg") {
+    // SvgStyleSchema .strict() chỉ cho phép fill — stroke/strokeWidth bị bỏ qua.
+    if (patch.fill !== undefined) nextStyle.fill = patch.fill;
+    return { ...node, style: nextStyle } as MotionLayer;
+  }
   if (patch.fill !== undefined) nextStyle.fill = patch.fill;
   if (patch.fillOpacity !== undefined) {
     nextStyle.fillOpacity = Math.min(1, Math.max(0, patch.fillOpacity));
@@ -224,6 +234,12 @@ function applyMedia(
   patch: MediaPayloadPatch,
 ): MotionLayer | null {
   if (node.type !== "image" && node.type !== "svg" && node.type !== "video") {
+    return null;
+  }
+  // Protocol: crop chỉ tồn tại trên image (svg/video payload là .strict() và
+  // không có field crop). Nếu patch mang crop nhưng target không phải image →
+  // incompatible để tránh sinh ra JSON protocol không hợp lệ.
+  if (patch.crop !== undefined && node.type !== "image") {
     return null;
   }
   const payload = { ...node.payload } as Record<string, unknown>;
@@ -344,12 +360,12 @@ function applyToTargets(
 ): { project: MotionProject; missing: boolean } {
   let next = project;
   for (const target of targets) {
-    const scene = next.layers.find((s) => s.id === target.sceneId);
-    const node = findNode(next, target.sceneId, target.layerId);
+    const scene = next.layers.find((s) => s.id === target.rootLayerId);
+    const node = findNode(next, target.rootLayerId, target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true };
     }
-    next = mapNode(next, target.sceneId, target.layerId, transform);
+    next = mapNode(next, target.rootLayerId, target.layerId, transform);
   }
   return { project: next, missing: false };
 }
@@ -362,8 +378,8 @@ function applyToCompatibleTargets(
 ): { project: MotionProject; missing: boolean; incompatible: boolean } {
   let next = project;
   for (const target of targets) {
-    const scene = next.layers.find((s) => s.id === target.sceneId);
-    const node = findNode(next, target.sceneId, target.layerId);
+    const scene = next.layers.find((s) => s.id === target.rootLayerId);
+    const node = findNode(next, target.rootLayerId, target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true, incompatible: false };
     }
@@ -371,7 +387,7 @@ function applyToCompatibleTargets(
     if (!updated) {
       return { project: next, missing: false, incompatible: true };
     }
-    next = mapNode(next, target.sceneId, target.layerId, () => updated);
+    next = mapNode(next, target.rootLayerId, target.layerId, () => updated);
   }
   return { project: next, missing: false, incompatible: false };
 }
@@ -463,7 +479,7 @@ function upsertKeyframeOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "set-property-keyframe" }>,
 ): { project: MotionProject; missing: boolean; invalid?: string } {
-  const node = findNode(project, target.sceneId, target.layerId);
+  const node = findNode(project, target.rootLayerId, target.layerId);
   if (!node) return { project, missing: true };
 
   const t = clampKeyframeTime(command.t);
@@ -1062,12 +1078,18 @@ export function executePropertyCommand(
     };
   }
 
+  const finalized = finalizeDocumentMutation(result.project, document);
+  if (!finalized.ok) {
+    return {
+      status: "rejected",
+      reason: finalized.reason,
+      message: finalized.message,
+    };
+  }
+
   return {
     status: "applied",
-    document: {
-      ...document,
-      project: result.project,
-    },
+    document: finalized.document,
     events,
   };
 }

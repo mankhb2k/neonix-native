@@ -66,7 +66,7 @@ export function applyAudioPlacement(
       }
     }
     let nextLanes = shiftAudioLaneOrders(lanes, resolved.insertOrder, 1);
-    const created = createAudioLane(resolved.insertOrder);
+    const created = createAudioLane(resolved.insertOrder, undefined, nextLanes);
     nextLanes = [...nextLanes, created];
     return {
       lanes: nextLanes,

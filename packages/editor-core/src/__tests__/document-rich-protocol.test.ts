@@ -8,12 +8,14 @@ import {
 import {
   collectLayerIds,
   validateTimelineDocument,
+  type TimelineDocument,
 } from "../document/document";
 import { resolveGroupPath } from "../document/group-path";
 import {
   projectToTimelineDocument,
   rederiveDocument,
   isDocumentFresh,
+  validateStableIds,
 } from "../document/canonical-projection";
 import { syncProjectProtocolContract } from "../document/sync-project-protocol-contract";
 
@@ -199,6 +201,50 @@ describe("collectLayerIds", () => {
     const ids = collectLayerIds(project.layers);
     expect(ids.has("audio.music")).toBe(false);
     expect(ids.has("audio.vo")).toBe(false);
+  });
+});
+
+describe("validateStableIds deep nested media", () => {
+  it("catches a media layer buried in nested groups referencing a missing asset", () => {
+    const parsed = parseMotionProjectV1(richProjectInput());
+    const deepVideo = {
+      ...videoLayer("video.deep", 0, 0, 2),
+      parentLayerId: "group.deeper",
+      payload: { assetId: "asset.missing", trimStart: 0 },
+    } as MotionLayer;
+    const deeperGroup = {
+      id: "group.deeper",
+      type: "group",
+      parentLayerId: "group.deep",
+      name: "Deeper",
+      zIndex: 0,
+      timing: { start: 0, duration: 8 },
+      ...ATOMS,
+      children: [deepVideo],
+    } as MotionLayer;
+    const deepGroup = {
+      id: "group.deep",
+      type: "group",
+      parentLayerId: null,
+      name: "Deep",
+      zIndex: 2,
+      timing: { start: 0, duration: 8 },
+      ...ATOMS,
+      children: [deeperGroup],
+    } as MotionLayer;
+
+    const doc: TimelineDocument = {
+      project: { ...parsed, layers: [...parsed.layers, deepGroup] },
+      lanes: [],
+      clips: [],
+    };
+
+    const violations = validateStableIds(doc);
+    expect(
+      violations.some(
+        (v) => v.kind === "dangling_asset" && v.refId === "asset.missing",
+      ),
+    ).toBe(true);
   });
 });
 

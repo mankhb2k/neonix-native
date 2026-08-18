@@ -150,11 +150,11 @@ function PropertyControl({
   const mixed = isMixedValue(raw);
   const target = context.targets[0];
   const locked = target
-    ? isPropertyLocked(envelope, target.sceneId, target.layerId, prop.id)
+    ? isPropertyLocked(envelope, target.rootLayerId, target.layerId, prop.id)
     : false;
 
   const nodeType = target
-    ? findNode(context.project, target.sceneId, target.layerId)?.type
+    ? findNode(context.project, target.rootLayerId, target.layerId)?.type
     : undefined;
 
   const trackProperty = trackPropertyForProp(prop.id);
@@ -163,7 +163,7 @@ function PropertyControl({
     Boolean(target && trackProperty) &&
     findKeyframeAtTime(
       context.project,
-      target!.sceneId,
+      target!.rootLayerId,
       target!.layerId,
       trackProperty!,
       currentTime,
@@ -233,7 +233,12 @@ function PropertyControl({
         className="cursor-pointer border-0 bg-transparent p-0 text-[var(--fg-muted)] hover:text-[var(--accent-text)]"
         title={locked ? "Unlock property" : "Lock property"}
         onClick={() =>
-          setPropertyLocked(target.sceneId, target.layerId, prop.id, !locked)
+          setPropertyLocked(
+            target.rootLayerId,
+            target.layerId,
+            prop.id,
+            !locked,
+          )
         }
       >
         {locked ? <Lock size={11} /> : <Unlock size={11} />}

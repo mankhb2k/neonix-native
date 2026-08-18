@@ -29,10 +29,10 @@ function sanitizeLayer(layer: MotionLayer): MotionLayer {
     next = rest as MotionLayer;
   }
   if ("style" in next && next.style) {
-    const style = { ...next.style };
+    const style = { ...next.style } as Record<string, unknown>;
     let changed = false;
     if (style.fill === "") {
-      if (next.type === "shape" || next.type === "solid") {
+      if (next.type === "shape") {
         style.fill = DEFAULT_SHAPE_FILL;
       } else {
         delete style.fill;

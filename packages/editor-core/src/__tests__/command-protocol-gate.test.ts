@@ -97,6 +97,14 @@ describe("command → protocol contract", () => {
     });
   });
 
+  it("move-clips → protocol-valid (group move qua finishSuccess)", () => {
+    assertAppliedValid(baseDoc, {
+      type: "move-clips",
+      clipIds: ["clip.main.a", "clip.main.b"],
+      deltaTime: 1,
+    });
+  });
+
   it("clip/trim → protocol-valid", () => {
     assertAppliedValid(baseDoc, {
       type: "clip/trim",

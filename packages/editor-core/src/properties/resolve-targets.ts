@@ -11,10 +11,14 @@ import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import type { NodeTarget } from "./types";
 
 function firstEditableNodeId(scene: MotionLayer | undefined): string | null {
-  if (scene?.type === "group") {
+  if (!scene) return null;
+  // Group root → child đầu tiên là node edit được (Layer Mode).
+  if (scene.type === "group") {
     return scene.children[0]?.id ?? null;
   }
-  return null;
+  // Primitive root (text/shape/image/...) → chính nó là node edit được.
+  // Protocol canonical cho phép root layer không phải group (đã unwrap).
+  return scene.id;
 }
 
 /**
@@ -33,7 +37,8 @@ export function resolvePropertyTargets(
   if (selection.kind === "node") {
     return [
       {
-        sceneId: rootLayerIdOf(project, selection.layerId) ?? selection.layerId,
+        rootLayerId:
+          rootLayerIdOf(project, selection.layerId) ?? selection.layerId,
         layerId: selection.layerId,
       },
     ];
@@ -64,7 +69,7 @@ export function resolvePropertyTargets(
     const key = `${sceneId}::${layerId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    targets.push({ sceneId, layerId });
+    targets.push({ rootLayerId: sceneId, layerId });
   }
 
   // Fallback: primary scene focused node when ids empty of scene clips
@@ -77,7 +82,7 @@ export function resolvePropertyTargets(
       project,
       firstEditableNodeId,
     );
-    if (sceneId && layerId) targets.push({ sceneId, layerId });
+    if (sceneId && layerId) targets.push({ rootLayerId: sceneId, layerId });
   }
 
   return targets;
@@ -85,7 +90,7 @@ export function resolvePropertyTargets(
 
 export function findNode(
   project: MotionProject,
-  _sceneId: string,
+  _rootLayerId: string,
   layerId: string,
 ): MotionLayer | null {
   const walk = (nodes: MotionLayer[]): MotionLayer | null => {

@@ -6,7 +6,7 @@
  * Quy tắc: project (chính tắc) → projectToTimelineDocument → TimelineDocument (dẫn xuất).
  */
 
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import { computeProjectHashShort } from "@motionvideo/motion-protocol";
 import {
   groupPathToTimelineClips,
@@ -46,9 +46,9 @@ export function documentFingerprint(doc: TimelineDocument): string {
 /**
  * Dẫn xuất TimelineDocument hoàn chỉnh từ MotionProject.
  * Đây là phép chiếu một chiều chính tắc:
- *   project.timeline.visualTracks → lanes + clips
+ *   project.layers → lanes + clips
  *
- * Audio clips được dẫn xuất từ project.timeline.audioTracks.
+ * Audio clips được dẫn xuất từ các layer type "audio" trong project.layers.
  *
  * @param project Project tác giả (nguồn dữ liệu chính tắc)
  * @param previousRevision Nếu có, revision = previousRevision + 1; ngược lại dùng INITIAL_REVISION
@@ -173,26 +173,35 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
     }
   }
 
-  // Kiểm tra tham chiếu asset của các layer con trong group (media leaf tham chiếu asset)
-  for (const rootLayer of rootLayers) {
-    const childLayers = rootLayer.type === "group" ? rootLayer.children : [];
-    for (const childLayer of childLayers) {
+  // Kiểm tra tham chiếu asset của MỌI media layer (image/video/audio) trong cây,
+  // kể cả media nằm sâu trong nested group (recurse qua children của group).
+  const walkAssetBindings = (
+    layers: readonly MotionLayer[],
+    groupId?: string,
+  ) => {
+    for (const layer of layers) {
+      if (layer.type === "group") {
+        walkAssetBindings(layer.children, layer.id);
+        continue;
+      }
       const assetId =
-        childLayer.type === "image" ||
-        childLayer.type === "video" ||
-        childLayer.type === "audio"
-          ? childLayer.payload.assetId
+        layer.type === "image" ||
+        layer.type === "video" ||
+        layer.type === "audio"
+          ? layer.payload.assetId
           : undefined;
       if (assetId && !assetIds.has(assetId)) {
+        const where = groupId ? ` trong group "${groupId}"` : "";
         violations.push({
           kind: "dangling_asset",
-          message: `Layer "${childLayer.id}" trong group "${rootLayer.id}" tham chiếu asset không tồn tại "${assetId}"`,
+          message: `Layer "${layer.id}"${where} tham chiếu asset không tồn tại "${assetId}"`,
           refId: assetId,
-          source: childLayer.id,
+          source: layer.id,
         });
       }
     }
-  }
+  };
+  walkAssetBindings(doc.project.layers);
 
   return violations;
 }

@@ -27,8 +27,20 @@ export {
 /** Alias tương thích — UI cũ dùng TimelineLaneKind. */
 export type TimelineLaneKind = "visual" | "audio" | "main" | "overlay";
 
-function uid(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+/**
+ * Sinh id lane ổn định (không dùng Math.random) từ suffix số lớn nhất hiện có
+ * cùng prefix — deterministic cho cùng input và không va chạm khi lane bị
+ * shift order (id tách khỏi order).
+ */
+function nextLaneId(lanes: readonly TimelineLane[], prefix: string): string {
+  let max = -1;
+  for (const lane of lanes) {
+    if (lane.id.startsWith(prefix)) {
+      const n = Number(lane.id.slice(prefix.length));
+      if (Number.isInteger(n) && n > max) max = n;
+    }
+  }
+  return `${prefix}${max + 1}`;
 }
 
 /* ========================================================================== */
@@ -75,7 +87,7 @@ export function ensureMainLane(lanes: TimelineLane[]): TimelineLane {
   );
   if (existing) return existing;
   return {
-    id: uid("lane"),
+    id: "lane.base",
     kind: "visual",
     role: "base",
     name: "Main",
@@ -118,9 +130,13 @@ export function isLaneLocked(lanes: TimelineLane[], laneId: string): boolean {
 /* 3. TẠO, SẮP LẠI & DỌN LANE                                                 */
 /* ========================================================================== */
 
-export function createOverlayLane(order: number, name?: string): TimelineLane {
+export function createOverlayLane(
+  order: number,
+  name?: string,
+  lanes: readonly TimelineLane[] = [],
+): TimelineLane {
   return {
-    id: uid("lane"),
+    id: nextLaneId(lanes, "lane.overlay."),
     kind: "visual",
     role: "overlay",
     name: name ?? `Lớp ${order + 1}`,
@@ -129,9 +145,13 @@ export function createOverlayLane(order: number, name?: string): TimelineLane {
   };
 }
 
-export function createAudioLane(order: number, name?: string): TimelineLane {
+export function createAudioLane(
+  order: number,
+  name?: string,
+  lanes: readonly TimelineLane[] = [],
+): TimelineLane {
   return {
-    id: uid("lane"),
+    id: nextLaneId(lanes, "lane.audio."),
     kind: "audio",
     role: "audio",
     name: name ?? `Âm thanh ${order + 1}`,

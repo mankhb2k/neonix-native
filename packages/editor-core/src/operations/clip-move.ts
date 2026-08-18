@@ -105,11 +105,7 @@ export function resolveVisualPlacement(
 
   // overlay-lane — giữ đúng laneId.
   const lane = lanes.find((l) => l.id === intent.laneId);
-  if (
-    !lane ||
-    lane.kind !== "visual" ||
-    lane.role !== "overlay"
-  ) {
+  if (!lane || lane.kind !== "visual" || lane.role !== "overlay") {
     return { status: "blocked", reason: "missing-lane" };
   }
   if (isLaneLocked(lanes, intent.laneId)) {
@@ -188,7 +184,7 @@ export function createOverlayLaneAt(
   if (insertOrder != null) {
     nextLanes = shiftOverlayLaneOrders(lanes, insertOrder, 1);
   }
-  const lane = createOverlayLane(order);
+  const lane = createOverlayLane(order, undefined, nextLanes);
   return { lanes: [...nextLanes, lane], lane };
 }
 

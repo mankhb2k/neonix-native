@@ -207,31 +207,31 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
 
       const nextProject = syncProjectProtocolContract(
         mapNode(state.project, sceneId, layerId, (node) => {
-        if (!("transform" in node) || !node.transform) return node;
-        return {
-          ...node,
-          ...("frame" in node
-            ? {
-                frame: {
-                  width: patch.width ?? node.frame.width,
-                  height: patch.height ?? node.frame.height,
-                },
-              }
-            : {}),
-          transform: {
-            ...node.transform,
-            translate: {
-              ...node.transform.translate,
-              x: patch.x ?? node.transform.translate.x,
-              y: patch.y ?? node.transform.translate.y,
+          if (!("transform" in node) || !node.transform) return node;
+          return {
+            ...node,
+            ...("frame" in node
+              ? {
+                  frame: {
+                    width: patch.width ?? node.frame.width,
+                    height: patch.height ?? node.frame.height,
+                  },
+                }
+              : {}),
+            transform: {
+              ...node.transform,
+              translate: {
+                ...node.transform.translate,
+                x: patch.x ?? node.transform.translate.x,
+                y: patch.y ?? node.transform.translate.y,
+              },
+              rotate: {
+                ...node.transform.rotate,
+                z: patch.rotation ?? node.transform.rotate.z,
+              },
             },
-            rotate: {
-              ...node.transform.rotate,
-              z: patch.rotation ?? node.transform.rotate.z,
-            },
-          },
-        };
-      }),
+          };
+        }),
       );
 
       const envelope = state.envelope
@@ -290,7 +290,9 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       if (!project) return;
 
       if (project.layers.length === 0) {
-        project = syncProjectProtocolContract(createFacebookHistoryDemoProject());
+        project = syncProjectProtocolContract(
+          createFacebookHistoryDemoProject(),
+        );
         const { lanes, clips } = packRootLayersToTimeline(project);
         set({
           project,
@@ -327,7 +329,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
             paths.some((path) =>
               isPropertyLocked(
                 get().envelope,
-                target.sceneId,
+                target.rootLayerId,
                 target.layerId,
                 path,
               ),
@@ -360,7 +362,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
                 : Object.keys(command.patch).map((k) => `text.${k}`);
           envelope = markUserModified(
             envelope,
-            target.sceneId,
+            target.rootLayerId,
             target.layerId,
             paths,
           );

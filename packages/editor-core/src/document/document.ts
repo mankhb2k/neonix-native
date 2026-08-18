@@ -48,9 +48,7 @@ export type TimelineViolationReason =
   | "dangling_audio_track_reference"
   | "clip_overlap_violation"
   | "dangling_transition_clip"
-  | "duplicate_transition_id"
-  | "stale_fingerprint"
-  | "missing_revision";
+  | "duplicate_transition_id";
 
 export type TimelineViolation = {
   reason: TimelineViolationReason;

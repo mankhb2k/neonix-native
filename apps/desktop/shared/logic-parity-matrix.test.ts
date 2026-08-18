@@ -38,12 +38,15 @@ describe("logic parity matrix seams (Logic-6)", () => {
       undefined,
       { createId: (p) => `${p}_fixed` },
     );
-    expect(moved.status === "applied" || moved.status === "rejected").toBe(true);
+    expect(moved.status === "applied" || moved.status === "rejected").toBe(
+      true,
+    );
 
+    const root = project.layers[0]!;
     const targets = [
       {
-        sceneId: project.scenes[0]!.id,
-        layerId: project.scenes[0]!.layers[0]!.id,
+        rootLayerId: root.id,
+        layerId: root.type === "group" ? root.children[0]!.id : root.id,
       },
     ];
     const prop = executePropertyCommand(

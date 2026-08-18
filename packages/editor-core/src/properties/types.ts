@@ -4,7 +4,10 @@
 
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { EditorSelection } from "../selection/editor-selection";
-import type { TimelineClip, TimelineLane } from "../timeline/model/timeline-types";
+import type {
+  TimelineClip,
+  TimelineLane,
+} from "../timeline/model/timeline-types";
 import type { DocumentPropertyCommand } from "./property-commands";
 
 export type MixedValue = { mixed: true };
@@ -32,7 +35,9 @@ export type ValidationResult =
   | { ok: false; message: string };
 
 export type NodeTarget = {
-  sceneId: string;
+  /** Id của layer gốc (top-level ancestor) — trước đây gọi là "sceneId". */
+  rootLayerId: string;
+  /** Id của layer đang edit (có thể là chính root layer hoặc node con trong group). */
   layerId: string;
 };
 

@@ -38,3 +38,22 @@ describe("public timeline vocabulary", () => {
     expect(typeof core.isMainLane).toBe("function");
   });
 });
+
+describe("deterministic lane id generation", () => {
+  it("generates stable ids without Math.random", () => {
+    expect(core.ensureBaseLane([]).id).toBe("lane.base");
+    expect(core.ensureMainLane([]).id).toBe("lane.base");
+    expect(core.createOverlayLane(0).id).toBe("lane.overlay.0");
+    expect(core.createAudioLane(0).id).toBe("lane.audio.0");
+  });
+
+  it("bumps the numeric suffix past existing lanes to stay collision-free", () => {
+    const overlay = core.createOverlayLane(0);
+    expect(core.createOverlayLane(1, undefined, [overlay]).id).toBe(
+      "lane.overlay.1",
+    );
+
+    const audio = core.createAudioLane(0);
+    expect(core.createAudioLane(1, undefined, [audio]).id).toBe("lane.audio.1");
+  });
+});

@@ -9,17 +9,13 @@ import type { OverlaySceneItem } from "../../overlay-scenes";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import { packRootLayersToTimeline } from "../selectors/scene-order-clips";
 
-function uid(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
 export function ensureBaseLane(lanes: TimelineLane[]): TimelineLane {
   const existing = lanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
   );
   if (existing) return existing;
   return {
-    id: uid("lane"),
+    id: "lane.base",
     kind: "visual",
     role: "base",
     name: "Main",
@@ -117,7 +113,7 @@ export function migrateLanesAndClips(
       const idx = clip.layerIndex ?? 0;
       if (!layerToLane.has(idx)) {
         const lane: TimelineLane = {
-          id: uid("lane"),
+          id: `lane.overlay.${idx}`,
           kind: "visual",
           role: "overlay",
           name: `Lớp ${idx + 1}`,
@@ -254,7 +250,7 @@ export function migrateClipsFromLegacy(
 
 function createAudioLane(order: number, name?: string): TimelineLane {
   return {
-    id: uid("lane"),
+    id: `lane.audio.${order}`,
     kind: "audio",
     role: "audio",
     name: name ?? `Âm thanh ${order + 1}`,

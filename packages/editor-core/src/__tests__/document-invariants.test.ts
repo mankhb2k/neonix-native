@@ -162,7 +162,7 @@ describe("TimelineDocument Invariants & Validation", () => {
   it("catches dangling scene reference violation", () => {
     const { project, clips, lanes } = fixtureBasePlusOverlay();
     const ghost: TimelineClip = {
-      ...clips[0]!,
+      kind: "scene",
       id: "clip.ghost",
       sceneId: "scene.missing",
       laneId: "lane.overlay.0",

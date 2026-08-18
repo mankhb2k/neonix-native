@@ -23,7 +23,7 @@ function allTargetsOfType(
 ): boolean {
   if (!context.targets.length) return false;
   return context.targets.every((t) => {
-    const node = findNode(context.project, t.sceneId, t.layerId);
+    const node = findNode(context.project, t.rootLayerId, t.layerId);
     return node != null && types.includes(node.type);
   });
 }
@@ -39,7 +39,7 @@ function validateNumber(
   const node = context.targets[0]
     ? findNode(
         context.project,
-        context.targets[0].sceneId,
+        context.targets[0].rootLayerId,
         context.targets[0].layerId,
       )
     : null;
@@ -58,7 +58,7 @@ function readTransformNumber(
   key: "x" | "y" | "rotation" | "scaleX" | "scaleY" | "opacity",
 ): number | MixedValue {
   const values = context.targets.map((t) => {
-    const node = findNode(context.project, t.sceneId, t.layerId);
+    const node = findNode(context.project, t.rootLayerId, t.layerId);
     if (!node || !("transform" in node)) return 0;
     const tr = node.transform;
     const appearance = "appearance" in node ? node.appearance : undefined;
@@ -157,7 +157,7 @@ const transformScaleUniform: PropertyDefinition<number> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       if (!node || !("transform" in node)) return 1;
       return Math.abs(node.transform.scale.x - node.transform.scale.y) < 1e-6
         ? node.transform.scale.x
@@ -165,13 +165,13 @@ const transformScaleUniform: PropertyDefinition<number> = {
     });
     const sx = readUniform(
       ctx.targets.map((t) => {
-        const node = findNode(ctx.project, t.sceneId, t.layerId);
+        const node = findNode(ctx.project, t.rootLayerId, t.layerId);
         return node && "transform" in node ? node.transform.scale.x : 1;
       }),
     );
     const sy = readUniform(
       ctx.targets.map((t) => {
-        const node = findNode(ctx.project, t.sceneId, t.layerId);
+        const node = findNode(ctx.project, t.rootLayerId, t.layerId);
         return node && "transform" in node ? node.transform.scale.y : 1;
       }),
     );
@@ -212,7 +212,7 @@ const metadataName: PropertyDefinition<string> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       return node?.name ?? node?.id ?? "";
     });
     return readUniform(values);
@@ -241,7 +241,7 @@ const metadataVisible: PropertyDefinition<boolean> = {
   isVisible: hasTargets,
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       return node && "appearance" in node
         ? node.appearance?.visible !== false
         : true;
@@ -261,14 +261,17 @@ const metadataVisible: PropertyDefinition<boolean> = {
   },
 };
 
-const PAINT_TYPES = ["text", "shape", "path", "svg"] as const;
+// Protocol V1: shape/path có PaintStyleSchema (fill + stroke); svg chỉ SvgStyleSchema
+// { fill } (.strict()); text không có field style (màu nằm ở payload.color).
+const FILL_TYPES = ["shape", "path", "svg"] as const;
+const STROKE_TYPES = ["shape", "path"] as const;
 
 function readStyleColor(
   ctx: PropertyContext,
   key: "fill" | "stroke",
 ): string | MixedValue {
   const values = ctx.targets.map((t) => {
-    const node = findNode(ctx.project, t.sceneId, t.layerId);
+    const node = findNode(ctx.project, t.rootLayerId, t.layerId);
     if (!node || !("style" in node) || !node.style) return "";
     const style = node.style as Record<string, unknown>;
     const raw = key in style ? style[key] : undefined;
@@ -282,7 +285,7 @@ const styleFill: PropertyDefinition<string> = {
   label: "Fill",
   group: "Fill / Stroke",
   editor: "color",
-  isVisible: (ctx) => allTargetsOfType(ctx, PAINT_TYPES),
+  isVisible: (ctx) => allTargetsOfType(ctx, FILL_TYPES),
   read: (ctx) => readStyleColor(ctx, "fill"),
   createCommand: (value, ctx) => ({
     type: "set-node-style",
@@ -302,7 +305,7 @@ const styleStroke: PropertyDefinition<string> = {
   label: "Stroke",
   group: "Fill / Stroke",
   editor: "color",
-  isVisible: (ctx) => allTargetsOfType(ctx, PAINT_TYPES),
+  isVisible: (ctx) => allTargetsOfType(ctx, STROKE_TYPES),
   read: (ctx) => readStyleColor(ctx, "stroke"),
   createCommand: (value, ctx) => ({
     type: "set-node-style",
@@ -322,10 +325,10 @@ const styleStrokeWidth: PropertyDefinition<number> = {
   label: "Stroke Width",
   group: "Fill / Stroke",
   editor: "number",
-  isVisible: (ctx) => allTargetsOfType(ctx, PAINT_TYPES),
+  isVisible: (ctx) => allTargetsOfType(ctx, STROKE_TYPES),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       if (!node || !("style" in node) || !node.style) return 0;
       const sw = (node.style as Record<string, unknown>).strokeWidth;
       return typeof sw === "number" ? sw : 0;
@@ -348,7 +351,7 @@ const textContent: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
     });
     return readUniform(values);
@@ -372,7 +375,7 @@ const textFontSize: PropertyDefinition<number> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       return node?.type === "text" ? node.payload.fontSize : 16;
     });
     return readUniform(values);
@@ -398,7 +401,7 @@ const textAlign: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["text"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       return node?.type === "text"
         ? (node.payload.alignment ?? "left")
         : "left";
@@ -432,7 +435,7 @@ const mediaFit: PropertyDefinition<string> = {
   isVisible: (ctx) => allTargetsOfType(ctx, ["image", "svg", "video"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
       if (
         node &&
         (node.type === "image" || node.type === "svg" || node.type === "video")
@@ -463,13 +466,13 @@ const mediaCropOrigin: PropertyDefinition<Vector2> = {
   label: "Crop Origin",
   group: "Media",
   editor: "vector",
-  isVisible: (ctx) => allTargetsOfType(ctx, ["image", "svg"]),
+  // Protocol: crop chỉ tồn tại trên image (svg/video payload không có crop).
+  isVisible: (ctx) => allTargetsOfType(ctx, ["image"]),
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
-      const node = findNode(ctx.project, t.sceneId, t.layerId);
-      if (node && (node.type === "image" || node.type === "svg")) {
-        const crop = node.type === "image" ? node.payload.crop : undefined;
-        return { x: crop?.x ?? 0, y: crop?.y ?? 0 };
+      const node = findNode(ctx.project, t.rootLayerId, t.layerId);
+      if (node?.type === "image") {
+        return { x: node.payload.crop?.x ?? 0, y: node.payload.crop?.y ?? 0 };
       }
       return { x: 0, y: 0 };
     });
