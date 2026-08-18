@@ -59,6 +59,8 @@ export type ClipMoveHost = {
   ) => ClipMovePolicyTarget | null;
   trackForLane: (lane: TimelineLane | undefined) => TimelineTrackKind;
   laneRowHeightPx: (lane: TimelineLane) => number;
+  /** Group surface: one child per row (swap / insert, never pack). */
+  exclusiveRows?: boolean;
 };
 
 export type LayerMoveInsertGap = {

@@ -192,6 +192,7 @@ export function TimelineViewport({
       pixelsPerSecond: pps,
       lanes: rows,
       clips,
+      clipsByLane: clipsByLaneMap,
       tracksOriginX: TIMELINE_START_GUTTER_PX,
       laneHitLayout: {
         topPadding: TIMELINE_RULER_HEIGHT_PX + verticalInsets.top,
@@ -203,6 +204,7 @@ export function TimelineViewport({
     pps,
     rows,
     clips,
+    clipsByLaneMap,
     verticalInsets.top,
     laneHeightPrefix,
     laneContentHeights,
@@ -413,6 +415,7 @@ export function TimelineViewport({
                 onMarqueePointerDown={beginMarquee}
                 onClipSelectPointerDown={onClipSelectPointerDown}
                 onClipDoubleClick={onClipDoubleClick}
+                exclusiveRows={mode === "layer"}
                 timelineEmpty={timelineEmpty}
               />
             </div>

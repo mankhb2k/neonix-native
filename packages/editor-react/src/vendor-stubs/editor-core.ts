@@ -22,6 +22,8 @@ export type ClipMovePatch = {
   laneId?: string | null;
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  exclusiveRows?: boolean;
+  swapClipId?: string | null;
 };
 
 export type EditorSelection =

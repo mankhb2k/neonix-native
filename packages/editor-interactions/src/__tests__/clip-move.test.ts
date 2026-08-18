@@ -322,4 +322,38 @@ describe("resolveClipMoveDrag", () => {
     expect(result.commit.insertOrder).toBe(0);
     expect(result.commit.track).toBe("overlay");
   });
+
+  it("exclusiveRows swaps with the occupant instead of packing", () => {
+    const result = resolveClipMoveDrag({
+      ...base,
+      originLaneId: "lane.overlay.0",
+      originTrack: "overlay",
+      pointerContentX: 50,
+      exclusiveRows: true,
+      drop: {
+        laneId: "lane.main",
+        track: "main",
+        laneRole: "base",
+        laneOrder: -1,
+      },
+      occupancyClips: [
+        {
+          id: "title",
+          laneId: "lane.main",
+          startTime: 4,
+          duration: 2,
+        },
+        {
+          id: "c1",
+          laneId: "lane.overlay.0",
+          startTime: 2,
+          duration: 3,
+        },
+      ],
+      excludeIds: new Set(["c1"]),
+    });
+    expect(result.commit.insertNewLane).toBeFalsy();
+    expect(result.commit.swapClipId).toBe("title");
+    expect(result.commit.laneId).toBe("lane.main");
+  });
 });

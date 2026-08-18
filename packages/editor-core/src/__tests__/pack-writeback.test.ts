@@ -237,8 +237,36 @@ describe("rebuildMainProject unique zIndex", () => {
     const packed = packRootLayersToTimeline(project);
     expect(packed.clips.every((c) => c.laneId === "lane.main")).toBe(true);
     const rebuilt = rebuildMainProject(project, packed.clips, packed.lanes);
-    const z = rebuilt.layers.map((l) => l.zIndex);
-    expect(z).toEqual([0, 1]);
+    const byId = Object.fromEntries(rebuilt.layers.map((l) => [l.id, l.zIndex]));
+    // Canva: rightmost on Main is 0, increase toward the left.
+    expect(byId.b).toBe(0);
+    expect(byId.a).toBe(1);
+    expect(new Set(Object.values(byId)).size).toBe(2);
+  });
+
+  it("assigns a continuous unique zIndex: right-to-left then up", () => {
+    const project = projectWith([
+      videoLayer("a", { z: 0, start: 0, duration: 2 }),
+      videoLayer("b", { z: 1, start: 2, duration: 2 }),
+      videoLayer("c", { z: 2, start: 4, duration: 2 }),
+      videoLayer("d", { z: 3, start: 1, duration: 2 }),
+      videoLayer("e", { z: 4, start: 3, duration: 2 }),
+    ]);
+    const packed = packRootLayersToTimeline(project);
+    const rebuilt = rebuildMainProject(project, packed.clips, packed.lanes);
+    expect(() => parseMotionProjectV1(rebuilt)).not.toThrow();
+    const z = Object.fromEntries(
+      rebuilt.layers.map((layer) => [layer.id, layer.zIndex]),
+    );
+    expect(packed.clips.find((c) => c.id === "a")?.laneId).toBe("lane.main");
+    expect(packed.clips.find((c) => c.id === "b")?.laneId).toBe("lane.main");
+    expect(packed.clips.find((c) => c.id === "c")?.laneId).toBe("lane.main");
+    expect(packed.clips.find((c) => c.id === "d")?.laneId).toBe("lane.overlay.0");
+    expect(packed.clips.find((c) => c.id === "e")?.laneId).toBe("lane.overlay.0");
+    // Main 2|1|0, overlay 4|3 — no duplicates.
+    expect(z).toMatchObject({ c: 0, b: 1, a: 2, e: 3, d: 4 });
+    const visualZ = rebuilt.layers.map((l) => l.zIndex);
+    expect(new Set(visualZ).size).toBe(visualZ.length);
   });
 
   it("keeps audio zIndex unique and negative", () => {

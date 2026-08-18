@@ -49,6 +49,7 @@ export {
   findFreeOverlayLane,
   findLaneAbove,
   rangesOverlap,
+  resolveExclusiveRowPlacement,
   resolveLaneStartTimeNearest,
   resolveLayerStackPlacement,
   resolveMainStartTime,

@@ -218,6 +218,7 @@ export function useClipMove({
         groupDelta: number;
         insertNewLane: boolean;
         insertOrder: number | null;
+        swapClipId: string | null;
       };
       beginGesture<MoveState, void>(
         {
@@ -231,6 +232,7 @@ export function useClipMove({
             groupDelta: 0,
             insertNewLane: false,
             insertOrder: null,
+            swapClipId: null,
           }),
           onUpdate: (pos, state) => {
             const dx = pos.x - originX;
@@ -321,6 +323,7 @@ export function useClipMove({
               siblingLaneRefs: isGroup ? undefined : dropCtx?.siblingLaneRefs,
               overlayLaneRefs: isGroup ? undefined : dropCtx?.overlayLaneRefs,
               audioLaneRefs: isGroup ? undefined : dropCtx?.audioLaneRefs,
+              exclusiveRows: host.exclusiveRows,
             });
             const rawDelta = resolved.commit.startTime - originStart;
             const groupDelta = Math.max(rawDelta, -minStartInGroup);
@@ -399,6 +402,9 @@ export function useClipMove({
               insertOrder: isGroup
                 ? null
                 : (resolved.commit.insertOrder ?? null),
+              swapClipId: isGroup
+                ? null
+                : (resolved.commit.swapClipId ?? null),
             };
           },
           onCommit: (state) => {
@@ -417,6 +423,8 @@ export function useClipMove({
                     insertOrder: state.insertNewLane
                       ? (state.insertOrder ?? 0)
                       : undefined,
+                    exclusiveRows: host.exclusiveRows || undefined,
+                    swapClipId: state.swapClipId || undefined,
                   },
                 },
                 state.insertNewLane ? "Move clip to new lane" : "Move clip",

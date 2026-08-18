@@ -7,6 +7,7 @@ import {
   DEFAULT_VISUAL_POLICY,
   resolveLaneStartTimeNearest,
   resolveLayerStackPlacement,
+  resolveExclusiveRowPlacement,
   resolveOccupancyAwarePlacement,
   type TimelineClip,
   type TimelineLane,
@@ -365,5 +366,60 @@ describe("visual clip placement operations", () => {
     const next = applyRippleAfter(clips, "lane.main", 2, 1, true);
     expect(next.find((c) => c.id === "c2")?.startTime).toBe(3);
     expect(next.find((c) => c.id === "c1")?.startTime).toBe(0);
+  });
+});
+
+describe("resolveExclusiveRowPlacement", () => {
+  const occupant = [{ id: "title", startTime: 4, duration: 2 }];
+
+  it("places on an empty row", () => {
+    expect(
+      resolveExclusiveRowPlacement({
+        clipsOnLane: [],
+        desiredStart: 1.5,
+      }),
+    ).toMatchObject({
+      startTime: 1.5,
+      insertNewLane: false,
+    });
+    expect(
+      resolveExclusiveRowPlacement({
+        clipsOnLane: [],
+        desiredStart: 1.5,
+      }).swapClipId,
+    ).toBeUndefined();
+  });
+
+  it("swaps with the occupant even when times do not overlap", () => {
+    expect(
+      resolveExclusiveRowPlacement({
+        clipsOnLane: occupant,
+        desiredStart: 0,
+      }),
+    ).toMatchObject({
+      startTime: 0,
+      insertNewLane: false,
+      swapClipId: "title",
+    });
+  });
+
+  it("ignores the moving clip via excludeIds", () => {
+    expect(
+      resolveExclusiveRowPlacement({
+        clipsOnLane: occupant,
+        desiredStart: 4,
+        excludeIds: new Set(["title"]),
+      }),
+    ).toMatchObject({
+      startTime: 4,
+      insertNewLane: false,
+    });
+    expect(
+      resolveExclusiveRowPlacement({
+        clipsOnLane: occupant,
+        desiredStart: 4,
+        excludeIds: new Set(["title"]),
+      }).swapClipId,
+    ).toBeUndefined();
   });
 });

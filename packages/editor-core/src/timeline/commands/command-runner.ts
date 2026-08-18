@@ -484,6 +484,53 @@ export function executeTimelineCommand(
         command.patch.track ?? trackKindForLane(lanes, existing.laneId);
       let moved: TimelineClip;
 
+      if (
+        command.patch.exclusiveRows &&
+        effectiveTrack !== "audio" &&
+        existing.kind === "scene" &&
+        !command.patch.insertNewLane
+      ) {
+        if (existingOnAudio) {
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Audio clip không thể di chuyển sang visual lane.",
+          };
+        }
+        const targetLaneId = command.patch.laneId ?? existing.laneId;
+        const occupant =
+          (command.patch.swapClipId
+            ? otherClips.find((c) => c.id === command.patch.swapClipId)
+            : undefined) ??
+          otherClips.find((c) => c.laneId === targetLaneId);
+        if (occupant && occupant.laneId === targetLaneId) {
+          occupant.laneId = existing.laneId;
+        }
+        moved = {
+          ...existing,
+          kind: "scene",
+          sceneId: existing.sceneId,
+          laneId: targetLaneId || existing.laneId,
+          startTime,
+        };
+        otherClips.push(moved);
+        lanes = pruneEmptyLanes(lanes, otherClips);
+        nextProject = rebuildMainProject(nextProject, otherClips, lanes);
+        events.push({
+          type: "clip-moved",
+          clipId: moved.id,
+          fromLaneId: existing.laneId,
+          toLaneId: moved.laneId,
+        });
+        return finish(
+          nextProject,
+          lanes,
+          otherClips,
+          selectionClips([moved.id]),
+          events,
+        );
+      }
+
       if (effectiveTrack === "audio") {
         if (!existingOnAudio) {
           return {

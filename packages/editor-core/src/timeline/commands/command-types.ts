@@ -43,6 +43,10 @@ export type ClipMovePatch = {
   laneId?: string | null;
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  /** Group surface: never pack two children on one row. */
+  exclusiveRows?: boolean;
+  /** Exchange lanes with this clip (group vertical reorder). */
+  swapClipId?: string | null;
 };
 
 export type TimelineLaneFlags = {

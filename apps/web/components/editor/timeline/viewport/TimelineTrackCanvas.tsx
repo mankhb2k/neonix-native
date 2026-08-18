@@ -53,6 +53,8 @@ type Props = {
     clip: TimelineClip,
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
+  /** Group surface: one child per row (swap / insert, never pack). */
+  exclusiveRows?: boolean;
   /** Replace lane rows with the dashed Main drop hint. */
   timelineEmpty?: boolean;
 };
@@ -77,6 +79,7 @@ type LaneRowClipsProps = {
     clip: TimelineClip,
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
+  exclusiveRows?: boolean;
 };
 
 function LaneRowClips({
@@ -94,6 +97,7 @@ function LaneRowClips({
   scrollRef,
   onClipSelectPointerDown,
   onClipDoubleClick,
+  exclusiveRows = false,
 }: LaneRowClipsProps) {
   const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
@@ -115,6 +119,7 @@ function LaneRowClips({
     onExecute,
     onMovePreview: setMovePreview,
     scrollRef,
+    exclusiveRows,
   });
 
   const { beginTrim } = useClipTrim({
@@ -190,6 +195,7 @@ export function TimelineTrackCanvas({
   onMarqueePointerDown,
   onClipSelectPointerDown,
   onClipDoubleClick,
+  exclusiveRows = false,
   timelineEmpty = false,
 }: Props) {
   const { clipsForLane } = useVisibleTimeline({
@@ -294,6 +300,7 @@ export function TimelineTrackCanvas({
                 scrollRef={scrollRef}
                 onClipSelectPointerDown={onClipSelectPointerDown}
                 onClipDoubleClick={onClipDoubleClick}
+                exclusiveRows={exclusiveRows}
               />
             </div>
           );

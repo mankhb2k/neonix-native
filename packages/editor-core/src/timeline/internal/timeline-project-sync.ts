@@ -53,18 +53,22 @@ function mergeSceneTiming(clips: readonly SceneClip[]): {
 function clipsOnLane(
   clips: readonly TimelineClip[],
   laneId: string,
+  timeOrder: "asc" | "desc" = "asc",
 ): TimelineClip[] {
+  const dir = timeOrder === "desc" ? -1 : 1;
   return clips
     .filter((clip) => clip.laneId === laneId)
     .sort(
-      (a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id),
+      (a, b) =>
+        dir * (a.startTime - b.startTime) || dir * a.id.localeCompare(b.id),
     );
 }
 
 /**
  * Assign a unique zIndex per clip from lane membership.
- * Visual: base then overlays, left → right → 0..n.
- * Audio: audio lanes in order, left → right → -1, -2, …
+ * Visual Canva order: Main then overlays; within a lane right → left
+ * (later startTime first) so numbers increase toward the left, then up.
+ * Never reset per lane — one continuous 0..n. Audio: left → right → -1, -2, …
  */
 export function uniqueZIndexByLayerId(
   clips: readonly TimelineClip[],
@@ -73,7 +77,7 @@ export function uniqueZIndexByLayerId(
   const assigned = new Map<string, number>();
   let visualZ = 0;
   for (const lane of visualWriteOrder(lanes)) {
-    for (const clip of clipsOnLane(clips, lane.id)) {
+    for (const clip of clipsOnLane(clips, lane.id, "desc")) {
       if (clip.kind !== "scene") continue;
       assigned.set(clip.sceneId, visualZ);
       visualZ += 1;
@@ -81,7 +85,7 @@ export function uniqueZIndexByLayerId(
   }
   let audioZ = -1;
   for (const lane of audioWriteOrder(lanes)) {
-    for (const clip of clipsOnLane(clips, lane.id)) {
+    for (const clip of clipsOnLane(clips, lane.id, "asc")) {
       if (clip.kind !== "audio") continue;
       assigned.set(clip.audioTrackId ?? clip.id, audioZ);
       audioZ -= 1;

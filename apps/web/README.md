@@ -38,19 +38,20 @@ Editor crash rồi mở lại: JSON phải còn nguyên, không kèm artifact UI
 
 Editor là **IDE trên JSON**, không phải timeline-as-document.
 
-- Gesture (kéo clip, trim, inspector, drop library) **ghi** `project.layers` theo luật protocol: sibling `zIndex` unique, audio chỉ ở root, group children ≥ 1.
+- Gesture (kéo clip, trim, inspector, drop library) **ghi** `project.layers` theo luật protocol: sibling `zIndex` unique, visual `≥ 0`, audio root `zIndex < 0`, group children ≥ 1.
 - Timeline **chiếu** layers ra hàng. Packing vài root không chồng thời gian lên một lane là view-only — không ghi `laneId` vào V1.
+- `zIndex` unique, một chiều kiểu Canva: Main rồi overlay; **trong một hàng tăng sang trái** (clip phải = số nhỏ hơn), rồi lên hàng trên. Không reset mỗi lane — ví dụ `2|1|0` trên Main rồi `4|3` overlay.
 - Preview **không** đọc lane đã pack. Stage compile JSON, evaluate tại playhead, Pixi paint. Playhead chỉ là session.
 - Tab **JSON** trong sidebar là `serializeMotionProjectV1(project)` — không phải envelope clips.
 
 Hai bề mặt timeline:
 
-| Scope | `groupPath` | Hàng trên timeline |
-| --- | --- | --- |
-| Main | `[]` | Pack root visual không chồng thời gian. Audio chỉ ở đây. |
-| Trong group | ids tổ tiên | 1 child = 1 hàng. Không pack, không audio. Thời gian clip = global (`timeOffset` + `child.timing.start`). |
+| Scope | `groupPath` | Hàng trên timeline | DnD |
+| --- | --- | --- | --- |
+| Main | `[]` | Pack root visual không chồng thời gian (nhiều clip / lane). Audio chỉ ở đây. | Kéo ngang đổi `timing.start`; thả lane khác rồi write-back `zIndex`. Visual không xuống audio. |
+| Trong group | ids tổ tiên | 1 child = 1 hàng. Không pack, không audio. Thời gian clip = global (`timeOffset` + `child.timing.start`). | Kéo ngang đổi thời gian; thả hàng khác = swap; thả khe giữa hàng = insert. |
 
-Double-click strip group → vào `group.children`. Nút Quay lại / Escape → ra Main. Chi tiết: [`/docs/editor`](http://localhost:3000/docs/editor) (khi `pnpm dev`).
+Double-click strip **group** (`type === "group"`) → vào `group.children`. Primitive (text/shape/video/image) không drill-in. Nút Quay lại / Escape → ra Main. Chi tiết: [`/docs/editor`](http://localhost:3000/docs/editor) (khi `pnpm dev`).
 
 Envelope `timelineClips` / `timelineLanes` trong localStorage chỉ nhớ packing để reload UI. Nguồn sự thật vẫn `MotionProjectV1`.
 

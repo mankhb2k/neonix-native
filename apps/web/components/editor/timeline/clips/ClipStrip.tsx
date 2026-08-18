@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import type { TimelineClip } from "@motionvideo/editor-core";
-import { useRef } from "react";
 import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
@@ -90,54 +89,19 @@ export function ClipStrip({
   const left = clip.startTime * pixelsPerSecond;
   const width = Math.max(8, clip.duration * pixelsPerSecond);
   const interactive = Boolean(onBeginMove || onSelectPointerDown || onDoubleClick);
-  const pendingRef = useRef<{
-    pointerId: number;
-    x: number;
-    y: number;
-  } | null>(null);
-  const dragStartedRef = useRef(false);
 
   const handleBodyPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     event.stopPropagation();
     if (event.detail >= 2 && onDoubleClick) {
-      pendingRef.current = null;
-      dragStartedRef.current = false;
       onDoubleClick(
         event as unknown as ReactMouseEvent<HTMLElement>,
         clip,
       );
       return;
     }
-    pendingRef.current = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-    };
-    dragStartedRef.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
     onSelectPointerDown?.(event, clip);
-  };
-
-  const handleBodyPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    const pending = pendingRef.current;
-    if (!pending || dragStartedRef.current || !onBeginMove) return;
-    const dx = event.clientX - pending.x;
-    const dy = event.clientY - pending.y;
-    if (dx * dx + dy * dy < 16) return;
-    pendingRef.current = null;
-    dragStartedRef.current = true;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    onBeginMove(event, clip);
-  };
-
-  const handleBodyPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
-    pendingRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    onBeginMove?.(event, clip);
   };
 
   const handleTrimPointerDown = (
@@ -164,9 +128,6 @@ export function ClipStrip({
       data-lane-id={clip.laneId}
       data-testid={`timeline-clip-${clip.id}`}
       onPointerDown={handleBodyPointerDown}
-      onPointerMove={handleBodyPointerMove}
-      onPointerUp={handleBodyPointerUp}
-      onPointerCancel={handleBodyPointerUp}
       onDoubleClick={(event) => {
         event.stopPropagation();
         onDoubleClick?.(event, clip);

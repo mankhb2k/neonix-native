@@ -5,6 +5,7 @@
 
 import {
   clipAcceptsTrack,
+  resolveExclusiveRowPlacement,
   resolveOccupancyAwarePlacement,
   type TimelineClip,
   type TimelineLane,
@@ -107,6 +108,8 @@ export type ClipMoveDragInput = {
     order: number;
     role: "base" | "overlay" | "audio";
   }>;
+  /** Group surface: one child per row — swap occupant, never pack. */
+  exclusiveRows?: boolean;
 };
 
 export type ClipMoveDragCommit = {
@@ -117,6 +120,7 @@ export type ClipMoveDragCommit = {
   moved: boolean;
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  swapClipId?: string | null;
 };
 
 export type ClipMoveDragResult = {
@@ -247,6 +251,7 @@ export function resolveClipMoveDrag(
   let valid = false;
   let insertNewLane = false;
   let insertOrder: number | null = null;
+  let swapClipId: string | null = null;
   let contentTop = input.drop?.contentTop;
 
   if (input.drop) {
@@ -291,25 +296,33 @@ export function resolveClipMoveDrag(
                 ? ("base" as const)
                 : ("overlay" as const),
         }));
-      const occupancy = resolveOccupancyAwarePlacement({
-        clipsOnLane: onLane,
-        desiredStart: startTime,
-        duration: input.duration,
-        excludeIds: input.excludeIds,
-        laneId,
-        laneOrder,
-        laneRole: role,
-        siblingLanes,
-        allClips: input.occupancyClips,
-        clipsByLane: input.clipsByLane,
-        overlayLaneRefs: input.overlayLaneRefs,
-        audioLaneRefs: input.audioLaneRefs,
-      });
+      const occupancy = input.exclusiveRows
+        ? resolveExclusiveRowPlacement({
+            clipsOnLane: onLane,
+            desiredStart: startTime,
+            excludeIds: input.excludeIds,
+          })
+        : resolveOccupancyAwarePlacement({
+            clipsOnLane: onLane,
+            desiredStart: startTime,
+            duration: input.duration,
+            excludeIds: input.excludeIds,
+            laneId,
+            laneOrder,
+            laneRole: role,
+            siblingLanes,
+            allClips: input.occupancyClips,
+            clipsByLane: input.clipsByLane,
+            overlayLaneRefs: input.overlayLaneRefs,
+            audioLaneRefs: input.audioLaneRefs,
+          });
       startTime = occupancy.startTime;
       if (occupancy.edgeGuideTime != null) {
         snapGuideTime = occupancy.edgeGuideTime;
       }
-      if (occupancy.retargetLaneId) {
+      if (occupancy.swapClipId) {
+        swapClipId = occupancy.swapClipId;
+      } else if (occupancy.retargetLaneId) {
         previewLaneId = occupancy.retargetLaneId;
         commitLaneId = occupancy.retargetLaneId;
         const rRole = occupancy.retargetLaneRole ?? "overlay";
@@ -355,6 +368,7 @@ export function resolveClipMoveDrag(
       moved: true,
       insertNewLane,
       insertOrder,
+      swapClipId,
     },
   };
 }

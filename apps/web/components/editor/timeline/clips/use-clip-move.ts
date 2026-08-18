@@ -27,6 +27,7 @@ import {
 import {
   BASE_LANE_HEIGHT_PX,
   SECONDARY_LANE_HEIGHT_PX,
+  TIMELINE_START_GUTTER_PX,
 } from "../timeline-scale";
 
 export type UseClipMoveArgs = {
@@ -37,6 +38,8 @@ export type UseClipMoveArgs = {
   pixelsPerSecond: number;
   selection: EditorSelection;
   disabled?: boolean;
+  /** Group surface: one child per row (swap / insert, never pack). */
+  exclusiveRows?: boolean;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
@@ -58,6 +61,7 @@ export function useClipMove({
   pixelsPerSecond,
   selection,
   disabled,
+  exclusiveRows = false,
   beginGesture,
   onSelect,
   onExecute,
@@ -66,6 +70,7 @@ export function useClipMove({
 }: UseClipMoveArgs) {
   const host: ClipMoveHost = useMemo(
     () => ({
+      exclusiveRows,
       autoScrollNearEdge: (clientX: number, clientY: number) => {
         const el = scrollRef.current;
         if (!el) return;
@@ -82,7 +87,7 @@ export function useClipMove({
             scrollTop: el.scrollTop,
             scrollWidth: el.scrollWidth,
             scrollHeight: el.scrollHeight,
-            tracksOriginX: 0,
+            tracksOriginX: TIMELINE_START_GUTTER_PX,
           },
         });
         if (delta.scrollLeftDelta !== 0) {
@@ -94,10 +99,13 @@ export function useClipMove({
       },
 
       pointerContentXAtPoint: (clientX: number): number | null => {
-        const el = scrollRef.current;
+        const dropHost = getTimelineLibraryDropHost();
+        const origin =
+          dropHost?.tracksOriginX ?? TIMELINE_START_GUTTER_PX;
+        const el = dropHost?.scrollEl ?? scrollRef.current;
         if (!el) return null;
         const rect = el.getBoundingClientRect();
-        return clientX - rect.left + el.scrollLeft;
+        return clientX - rect.left + el.scrollLeft - origin;
       },
 
       getDropContext: () => {
@@ -107,7 +115,7 @@ export function useClipMove({
         return {
           scrollEl: el,
           lanes: dropHost?.lanes ?? lanes,
-          clipsByLane: undefined,
+          clipsByLane: dropHost?.clipsByLane,
           laneHitLayout: dropHost?.laneHitLayout ?? undefined,
         };
       },
@@ -118,15 +126,16 @@ export function useClipMove({
         family,
         wasInsert,
         dropLanes,
-        _layout,
+        layout,
       ) => {
+        const dropHost = getTimelineLibraryDropHost();
         const hit = resolveClipMoveDropAtY(
           scrollEl,
           clientY,
           family,
           wasInsert,
           dropLanes,
-          null,
+          layout ?? dropHost?.laneHitLayout ?? null,
         );
         if (hit) return hit;
         if (family === "audio") return null;
@@ -147,7 +156,7 @@ export function useClipMove({
 
       laneRowHeightPx,
     }),
-    [scrollRef, lanes],
+    [scrollRef, lanes, exclusiveRows],
   );
 
   return useClipMoveShared({

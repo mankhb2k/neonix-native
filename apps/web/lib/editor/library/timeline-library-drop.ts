@@ -36,6 +36,10 @@ export type TimelineLibraryDropHost = {
   /** Row order matching laneHitLayout (overlays → base → audio). */
   lanes: TimelineLane[];
   clips?: TimelineClip[];
+  clipsByLane?: ReadonlyMap<
+    string,
+    ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>
+  >;
   tracksOriginX?: number;
   laneHitLayout?: LaneHitLayout | null;
 };

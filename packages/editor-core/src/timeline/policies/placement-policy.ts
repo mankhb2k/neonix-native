@@ -174,6 +174,8 @@ export type OccupancyAwarePlacement = {
   /** Prefer an existing free lane above instead of inserting between. */
   retargetLaneId?: string | null;
   retargetLaneRole?: "base" | "overlay" | "audio" | null;
+  /** Group surface: exchange rows with this clip instead of packing. */
+  swapClipId?: string | null;
 };
 
 type LaneRef = {
@@ -380,5 +382,37 @@ export function resolveLayerStackPlacement(input: {
     insertNewLane: true,
     insertOrder,
     edgeGuideTime: null,
+  };
+}
+
+/**
+ * Group surface occupancy: never two children on one row, even when times
+ * do not overlap. Occupied row → swap with that clip; empty row → place.
+ */
+export function resolveExclusiveRowPlacement(input: {
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >;
+  desiredStart: number;
+  excludeIds?: ReadonlySet<string>;
+}): OccupancyAwarePlacement {
+  const desired = Math.max(0, input.desiredStart);
+  const occupant = input.clipsOnLane.find(
+    (clip) => !input.excludeIds?.has(clip.id),
+  );
+  if (!occupant) {
+    return {
+      startTime: desired,
+      insertNewLane: false,
+      insertOrder: null,
+      edgeGuideTime: null,
+    };
+  }
+  return {
+    startTime: desired,
+    insertNewLane: false,
+    insertOrder: null,
+    edgeGuideTime: null,
+    swapClipId: occupant.id,
   };
 }

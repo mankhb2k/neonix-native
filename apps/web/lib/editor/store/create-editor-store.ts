@@ -27,7 +27,6 @@ import {
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
 import {
-  mergeEnvelopeLaneMembership,
   packRootLayersToTimeline,
   projectToTimelineDocument,
   syncProjectProtocolContract,
@@ -133,11 +132,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
 
       if (result.status === "applied") {
         const packedMain = inGroup
-          ? mergeEnvelopeLaneMembership(
-              packRootLayersToTimeline(result.document.project),
-              state.timelineClips,
-              state.timelineLanes,
-            )
+          ? packRootLayersToTimeline(result.document.project)
           : {
               lanes: result.document.lanes,
               clips: result.document.clips,

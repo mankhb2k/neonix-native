@@ -31,9 +31,9 @@
                  │
 ┌────────────────▼─────────────────────────┐
 │  ClipStrip.tsx                           │
-│  - Visual clip strip with select/move    │
+│  - pointerdown → beginMove (no capture)  │
 │  - Trim handles (left/right edges)       │
-│  - Delegates gestures to parent hooks    │
+│  - Double-click drills into real groups  │
 └──────────────────────────────────────────┘
 ```
 
@@ -52,11 +52,18 @@
 | `timeline-scale.ts`                    | Web-specific layout constants (lane heights, gaps, padding) + re-exports `computeRulerTickWindow`           |
 | `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                      |
 | `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads     |
-| `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from editor-react; supplies web `ClipMoveHost` (auto-scroll, same-lane-only) |
+| `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from editor-react. Host: gutter `tracksOriginX`, `clipsByLane` + `laneHitLayout`, CapCut Y targeting (Main / overlay / audio). `exclusiveRows` when inside a group. |
+| `clips/ClipStrip.tsx`                  | `pointerdown` calls `beginMove` immediately (desktop parity). Do not capture on the strip — `beginGesture` owns pointer capture. |
 | `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from editor-react; thin pass-through                                         |
 | `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from editor-react; wires Zustand store                                |
 | `viewport/TimelineViewport.tsx`        | Chrome: layout, scroll, marquee, seek, playhead; delegates algorithm to packages                            |
 | `viewport/TimelineTrackCanvas.tsx`     | Chrome: lane rendering + clip move/trim via per-lane `LaneRowClips` hooks                                   |
+
+## Protocol vs view
+
+- **Document:** `project.layers` with unique sibling `zIndex`. No `laneId` in JSON.
+- **Main:** pack non-overlapping roots onto shared lanes. Write-back is Canva order — Main then overlays, **right → left** then up (`2|1|0` then `4|3`).
+- **Group:** one child per row. Cross-row drop swaps; insert gap creates a row. Never pack two children on one lane.
 
 ## State Wiring
 

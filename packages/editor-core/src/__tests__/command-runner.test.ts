@@ -5,10 +5,14 @@ import {
 } from "../testing/fixtures/projects";
 import {
   executeTimelineCommand,
+  groupPathToTimelineClips,
   validateTimelineDocument,
   type TimelineDocument,
 } from "..";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProjectV1,
+  visualLayerAtoms,
+} from "@motionvideo/motion-protocol";
 
 describe("Pure Command Runner Engine", () => {
   it("executes update-scene-duration command atomically", () => {
@@ -341,5 +345,93 @@ describe("Pure Command Runner Engine", () => {
         540,
       );
     }
+  });
+
+  it("exclusiveRows swaps group children instead of packing one row", () => {
+    const atoms = visualLayerAtoms({ width: 1920, height: 1080 });
+    const textAtoms = visualLayerAtoms({ width: 200, height: 40 });
+    const textPayload = {
+      text: "T",
+      fontSize: 24,
+      color: "#111111",
+      alignment: "left" as const,
+    };
+    const project = parseMotionProjectV1({
+      format: "motion-project",
+      formatVersion: 1,
+      metadata: { id: "swap-test", name: "Swap", locale: "vi-VN" },
+      composition: { width: 1920, height: 1080, fps: 30 },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      tokens: {},
+      variables: [],
+      assets: [],
+      components: [],
+      timeline: { duration: 8 },
+      bindings: [],
+      layers: [
+        {
+          id: "hero",
+          type: "group",
+          parentLayerId: null,
+          name: "Hero",
+          zIndex: 0,
+          timing: { start: 0, duration: 8 },
+          ...atoms,
+          children: [
+            {
+              id: "title",
+              type: "text",
+              parentLayerId: "hero",
+              name: "Title",
+              zIndex: 0,
+              timing: { start: 0, duration: 2 },
+              ...textAtoms,
+              payload: { ...textPayload, text: "Title" },
+            },
+            {
+              id: "sub",
+              type: "text",
+              parentLayerId: "hero",
+              name: "Sub",
+              zIndex: 1,
+              timing: { start: 3, duration: 2 },
+              ...textAtoms,
+              payload: { ...textPayload, text: "Sub" },
+            },
+          ],
+        },
+      ],
+    });
+    const surface = groupPathToTimelineClips(project, ["hero"]);
+    const title = surface.clips.find((c) => c.id === "title");
+    const sub = surface.clips.find((c) => c.id === "sub");
+    expect(title?.laneId).toBe("lane.main");
+    expect(sub?.laneId).toBe("lane.overlay.0");
+
+    const result = executeTimelineCommand(
+      { project, clips: surface.clips, lanes: surface.lanes },
+      {
+        type: "move-clip",
+        clipId: "sub",
+        patch: {
+          startTime: sub!.startTime,
+          track: "main",
+          laneId: title!.laneId,
+          exclusiveRows: true,
+          swapClipId: "title",
+        },
+      },
+    );
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    expect(validateTimelineDocument(result.document).valid).toBe(true);
+    const hero = result.document.project.layers.find((l) => l.id === "hero");
+    expect(hero?.type).toBe("group");
+    if (hero?.type !== "group") return;
+    const z = Object.fromEntries(hero.children.map((c) => [c.id, c.zIndex]));
+    expect(z.sub).toBe(0);
+    expect(z.title).toBe(1);
+    expect(new Set(Object.values(z)).size).toBe(2);
   });
 });
