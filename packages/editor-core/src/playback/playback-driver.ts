@@ -1,6 +1,12 @@
 /**
  * Pure RAF playback driver — re-anchors on mode→playing or seekRevision while playing.
  * Hook wraps lifecycle only; tests inject fake now/RAF.
+ *
+ * playbackRate contract (web MVP): static `1`. Driver đọc `state.playbackRate` mỗi
+ * tick nên slope hiện hành đúng, nhưng KHÔNG re-anchor khi rate đổi giữa lúc đang
+ * play. Nếu sau này mở UI 0.5x/2x, phải: (1) bump `seekRevision` khi đổi rate, hoặc
+ * (2) thêm nhánh `state.playbackRate !== prev.playbackRate` vào subscribe để re-anchor
+ * từ mốc hiện tại — nếu không frame kế tiếp sẽ nhảy sai vì `startTimeline` cũ.
  */
 
 export type PlaybackDriverClock = {

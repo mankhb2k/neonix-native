@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  fixtureMainOnly,
-} from "../testing/fixtures/projects";
+import { fixtureMainOnly } from "../testing/fixtures/projects";
 import {
   createHistoryState,
   pushHistory,
@@ -9,6 +7,9 @@ import {
   redoHistory,
   canUndo,
   canRedo,
+  selectionClips,
+  selectionNode,
+  type HistoryEntry,
   type TimelineDocument,
 } from "..";
 
@@ -68,5 +69,65 @@ describe("Pure History Manager Engine", () => {
     expect(state.past.length).toBe(3);
     expect(state.past[0].id).toBe("h_7");
     expect(state.past[2].id).toBe("h_9");
+  });
+
+  it("carries beforeSelection/afterSelection through undo and redo", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const beforeSelection = selectionClips(["clip.main.a"]);
+    const afterSelection = selectionNode("scene.main.a.title");
+    const entry: HistoryEntry = {
+      id: "h_sel",
+      timestamp: Date.now(),
+      label: "select-node",
+      before: doc,
+      after: doc,
+      beforeSelection,
+      afterSelection,
+    };
+
+    let state = pushHistory(createHistoryState(50), entry);
+
+    const undoRes = undoHistory(state);
+    expect(undoRes.entry?.beforeSelection).toBe(beforeSelection);
+    expect(undoRes.entry?.afterSelection).toBe(afterSelection);
+    state = undoRes.state;
+
+    const redoRes = redoHistory(state);
+    expect(redoRes.entry?.beforeSelection).toBe(beforeSelection);
+    expect(redoRes.entry?.afterSelection).toBe(afterSelection);
+  });
+
+  it("restores selection to the redo target's beforeSelection on undo", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    // Two entries; undo of the second should surface its `beforeSelection`.
+    let state = pushHistory(createHistoryState(50), {
+      id: "h_first",
+      timestamp: 1,
+      label: "first",
+      before: doc,
+      after: doc,
+      beforeSelection: selectionClips(["clip.main.a"]),
+      afterSelection: selectionNode("scene.main.a.title"),
+    });
+    state = pushHistory(state, {
+      id: "h_second",
+      timestamp: 2,
+      label: "second",
+      before: doc,
+      after: doc,
+      beforeSelection: selectionNode("scene.main.b.title"),
+      afterSelection: selectionClips(["clip.main.b"]),
+    });
+
+    const undoRes = undoHistory(state);
+    // Undo target = most recent entry; its beforeSelection is the pre-state.
+    expect(undoRes.entry?.beforeSelection).toEqual(
+      selectionNode("scene.main.b.title"),
+    );
+    expect(undoRes.entry?.afterSelection).toEqual(
+      selectionClips(["clip.main.b"]),
+    );
   });
 });

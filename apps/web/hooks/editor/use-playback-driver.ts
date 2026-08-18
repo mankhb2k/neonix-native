@@ -8,6 +8,10 @@ import { createPlaybackDriver } from "@motionvideo/editor-core";
  * Absolute-time RAF driver for `mode === "playing"`.
  * Re-anchors khi mode → playing hoặc seekRevision tăng (user seek khi đang play).
  * Mount once under the editor timeline shell.
+ *
+ * Adapter chỉ quản lifecycle (mount/unmount RAF) — KHÔNG chứa business rule
+ * clamp/play/pause/scrub; mọi time math nằm trong playback-clock-store + core
+ * driver. UI không cần hiểu nội bộ re-anchor.
  */
 export function usePlaybackDriver(): void {
   useEffect(() => {

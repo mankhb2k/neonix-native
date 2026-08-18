@@ -47,6 +47,30 @@ describe("playback clock store", () => {
     expect(usePlaybackClock.getState().mode).toBe("idle");
   });
 
+  it("pause() while playing returns to idle without changing currentTime", () => {
+    usePlaybackClock.getState().setDuration(10);
+    usePlaybackClock.getState().seek(4);
+    usePlaybackClock.getState().play();
+    expect(usePlaybackClock.getState().mode).toBe("playing");
+    usePlaybackClock.getState().pause();
+    expect(usePlaybackClock.getState().mode).toBe("idle");
+    expect(usePlaybackClock.getState().currentTime).toBe(4);
+  });
+
+  it("setDuration clamps currentTime to the new (shorter) duration", () => {
+    usePlaybackClock.getState().setDuration(10);
+    usePlaybackClock.getState().seek(8);
+    usePlaybackClock.getState().setDuration(5);
+    expect(usePlaybackClock.getState().duration).toBe(5);
+    expect(usePlaybackClock.getState().currentTime).toBe(5);
+  });
+
+  it("play() is a no-op when duration is zero", () => {
+    usePlaybackClock.getState().reset({ duration: 0, currentTime: 0 });
+    usePlaybackClock.getState().play();
+    expect(usePlaybackClock.getState().mode).toBe("idle");
+  });
+
   it("frame index is stable for display consumers", () => {
     expect(playbackFrameIndex(1.0, 30)).toBe(30);
     expect(playbackFrameIndex(1.01, 30)).toBe(30);

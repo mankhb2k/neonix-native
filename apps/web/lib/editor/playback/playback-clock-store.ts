@@ -6,6 +6,7 @@ type PlaybackClockState = {
   currentTime: number;
   duration: number;
   mode: PlaybackMode;
+  /** Static = 1 cho web MVP — chưa có UI đổi tốc độ, KHÔNG expose setter. */
   playbackRate: number;
   /** Tăng khi user/API seek/reset — driver re-anchor khi đang playing. */
   seekRevision: number;
@@ -32,6 +33,11 @@ function clampTime(time: number, duration: number): number {
 /**
  * Canonical playback clock for the desktop editor.
  * Only this store owns `currentTime` — editor-store must not duplicate it.
+ *
+ * Ownership: `currentTime` / `mode` / `seekRevision` / `playbackRate` là SESSION
+ * state của editor (không ghi vào project JSON). `duration` mirror
+ * `project.timeline.duration` (protocol data) để clamp; timeline KHÔNG phải
+ * source-of-truth cho playback — stage đọc `project + currentTime`.
  */
 export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({
   currentTime: 0,
