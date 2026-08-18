@@ -5,13 +5,12 @@ import type {
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 
 /**
- * TimelineDocument — domain aggregate gom project, lanes, clips.
+ * TimelineDocument — aggregate miền gom project, lanes, clips.
  * Mọi committed mutation phải nhận/trả về TimelineDocument hợp lệ.
- *
- * ADR 001: project là canonical source of truth;
- * lanes/clips là derived projection có revision + fingerprint.
+ * project là nguồn dữ liệu chính (canonical); lanes/clips là phép chiếu
+ * dẫn xuất kèm revision + fingerprint.
  */
-/** Optional transition metadata (document-only; no UI yet). */
+/** Metadata transition tùy chọn (chỉ dùng trong document; chưa có UI). */
 export type TimelineTransition = {
   id: string;
   fromClipId: string;
@@ -23,18 +22,16 @@ export type TimelineDocument = {
   project: MotionProject;
   lanes: TimelineLane[];
   clips: TimelineClip[];
-  /** Document-only transition refs — optional until feature ships. */
+  /** Tham chiếu transition chỉ dùng trong document — tùy chọn cho đến khi tính năng ra mắt. */
   transitions?: TimelineTransition[];
   /**
-   * Monotonic revision — incremented on every project mutation.
-   * Renderers reject documents with revision <= 0 or mismatched fingerprint.
-   * @since Phase 1 (ADR 001)
+   * Revision tăng đơn điệu — tăng sau mỗi lần thay đổi project.
+   * Renderer từ chối document có revision <= 0 hoặc fingerprint không khớp.
    */
   revision?: number;
   /**
-   * SHA-256 fingerprint of the project snapshot (first 16 hex chars).
-   * Used to detect stale/divergent documents.
-   * @since Phase 1 (ADR 001)
+   * Fingerprint SHA-256 của snapshot project (16 ký tự hex đầu tiên).
+   * Dùng để phát hiện document cũ/sai lệch.
    */
   fingerprint?: string;
 };
@@ -65,7 +62,7 @@ export type TimelineValidationResult =
   | { valid: true }
   | { valid: false; violations: TimelineViolation[] };
 
-/** Build a TimelineDocument from store state shape. */
+/** Dựng TimelineDocument từ shape state của store. */
 export function documentFromStoreState(state: {
   project: MotionProject | null;
   timelineLanes: TimelineLane[];
@@ -83,7 +80,7 @@ export function documentFromStoreState(state: {
   };
 }
 
-/** Extract store state slice from a TimelineDocument. */
+/** Trích slice state của store từ TimelineDocument. */
 export function storeStateFromDocument(doc: TimelineDocument): {
   project: MotionProject;
   timelineLanes: TimelineLane[];
@@ -100,10 +97,11 @@ export function storeStateFromDocument(doc: TimelineDocument): {
   };
 }
 
-/** Visual layer ids anywhere in the tree (groups + nested children). */
-export function collectVisualLayerIds(
-  layers: readonly MotionLayer[],
-): Set<string> {
+/**
+ * Thu thập id của mọi layer không phải audio trong cây (group + con lồng nhau).
+ * Dùng để kiểm tra tham chiếu của timeline clip tới layer dẫn xuất.
+ */
+export function collectLayerIds(layers: readonly MotionLayer[]): Set<string> {
   const ids = new Set<string>();
   const walk = (list: readonly MotionLayer[]) => {
     for (const layer of list) {
@@ -126,8 +124,8 @@ function clipsOverlap(
 }
 
 /**
- * Validate TimelineDocument against all core invariants.
- * Returns structured list of violations if invalid.
+ * Kiểm tra TimelineDocument theo mọi bất biến cốt lõi.
+ * Trả về danh sách vi phạm có cấu trúc nếu không hợp lệ.
  */
 export function validateTimelineDocument(
   doc: TimelineDocument,
@@ -210,22 +208,22 @@ export function validateTimelineDocument(
     }
   });
 
-  // 5. Dangling clip laneId reference
+  // 5. Clip tham chiếu laneId không tồn tại
   for (const clip of doc.clips) {
     if (clip.laneId && !laneIds.has(clip.laneId)) {
       violations.push({
         reason: "dangling_clip_lane_id",
-        message: `Clip "${clip.name}" (id: ${clip.id}) tham chiếu laneId không tồn tại "${clip.laneId}".`,
+        message: `Timeline clip "${clip.name}" (id: ${clip.id}) tham chiếu laneId không tồn tại "${clip.laneId}".`,
         details: { clipId: clip.id, laneId: clip.laneId },
       });
     }
   }
 
-  // 6. Project schema reference integrity (validate when schema arrays contain entries)
+  // 6. Toàn vẹn tham chiếu schema của project
   const rootLayers = doc.project.layers.filter(
     (layer) => layer.parentLayerId === null,
   );
-  const projectSceneIds = collectVisualLayerIds(doc.project.layers);
+  const layerIds = collectLayerIds(doc.project.layers);
   const audioTrackIds = new Set(
     rootLayers
       .filter((layer) => layer.type === "audio")
@@ -234,10 +232,10 @@ export function validateTimelineDocument(
 
   for (const clip of doc.clips) {
     if (clip.kind === "scene") {
-      if (projectSceneIds.size > 0 && !projectSceneIds.has(clip.sceneId)) {
+      if (layerIds.size > 0 && !layerIds.has(clip.sceneId)) {
         violations.push({
           reason: "dangling_scene_reference",
-          message: `Scene clip "${clip.name}" (id: ${clip.id}) tham chiếu sceneId "${clip.sceneId}" không có trong project.layers.`,
+          message: `Timeline clip "${clip.name}" (id: ${clip.id}) tham chiếu sceneId "${clip.sceneId}" không có trong project.layers.`,
           details: { clipId: clip.id, sceneId: clip.sceneId },
         });
       }
@@ -249,14 +247,14 @@ export function validateTimelineDocument(
       ) {
         violations.push({
           reason: "dangling_audio_track_reference",
-          message: `Audio clip "${clip.name}" (id: ${clip.id}) tham chiếu audioTrackId "${clip.audioTrackId}" không có trong project.layers.`,
+          message: `Timeline clip "${clip.name}" (id: ${clip.id}) tham chiếu audioTrackId "${clip.audioTrackId}" không có trong project.layers.`,
           details: { clipId: clip.id, audioTrackId: clip.audioTrackId },
         });
       }
     }
   }
 
-  // 7. No overlapping clips on non-overlapping lanes
+  // 7. Không cho clip chồng lấn trên lane không cho phép overlap
   const clipsByLane = new Map<string, TimelineClip[]>();
   for (const clip of doc.clips) {
     if (!clip.laneId) continue;
@@ -287,7 +285,7 @@ export function validateTimelineDocument(
     }
   }
 
-  // 8. Transition refs (optional metadata)
+  // 8. Tham chiếu transition (metadata tùy chọn)
   if (doc.transitions?.length) {
     const clipIds = new Set(doc.clips.map((c) => c.id));
     const seenTransitionIds = new Set<string>();

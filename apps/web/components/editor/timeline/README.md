@@ -1,6 +1,6 @@
 # Web Timeline Architecture
 
-> **Pure logic lives in packages.** The web timeline is a thin consumer — it picks shared hooks, adapters, and pure functions from `@motionvideo/editor-core`, `@motionvideo/editor-interactions`, and `@motionvideo/editor-react`.
+> **Pure logic lives in packages.** The web timeline is a thin consumer — it picks shared hooks, adapters, and pure functions from `@motionvideo/editor-core`, `@motionvideo/editor-interactions`, and local hooks under `apps/web/hooks/editor`.
 
 ## Architecture
 
@@ -9,7 +9,7 @@
 │  TimelineShell.tsx                       │
 │  - useEditorStore (Zustand)              │
 │  - usePlaybackClock                      │
-│  - useTimelineHotkeys (from editor-react)│
+│  - useTimelineHotkeys (local hook)   │
 │  - Passes onExecute, onSelect, zoom      │
 └────────────────┬─────────────────────────┘
                  │
@@ -43,21 +43,21 @@
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `visualTracksToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
 | `@motionvideo/editor-interactions` | `computePlayheadFollowScroll`, `ensurePlayheadScrubScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants                                                 |
-| `@motionvideo/editor-react`        | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                          |
+| `apps/web/hooks/editor`            | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                          |
 
 ## Web-only Files (Thin Adapters)
 
-| File                                   | Purpose                                                                                                     |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `timeline-scale.ts`                    | Web-specific layout constants (lane heights, gaps, padding) + re-exports `computeRulerTickWindow`           |
-| `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                      |
-| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads     |
-| `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from editor-react. Host: gutter `tracksOriginX`, `clipsByLane` + `laneHitLayout`, CapCut Y targeting (Main / overlay / audio). `exclusiveRows` when inside a group. |
-| `clips/ClipStrip.tsx`                  | `pointerdown` calls `beginMove` immediately (desktop parity). Do not capture on the strip — `beginGesture` owns pointer capture. |
-| `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from editor-react; thin pass-through                                         |
-| `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from editor-react; wires Zustand store                                |
-| `viewport/TimelineViewport.tsx`        | Chrome: layout, scroll, marquee, seek, playhead; delegates algorithm to packages                            |
-| `viewport/TimelineTrackCanvas.tsx`     | Chrome: lane rendering + clip move/trim via per-lane `LaneRowClips` hooks                                   |
+| File                                   | Purpose                                                                                                                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeline-scale.ts`                    | Web-specific layout constants (lane heights, gaps, padding) + re-exports `computeRulerTickWindow`                                                                                                  |
+| `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                                                                                                             |
+| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads                                                                                            |
+| `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from hooks/editor. Host: gutter `tracksOriginX`, `clipsByLane` + `laneHitLayout`, CapCut Y targeting (Main / overlay / audio). `exclusiveRows` when inside a group. |
+| `clips/ClipStrip.tsx`                  | `pointerdown` calls `beginMove` immediately (desktop parity). Do not capture on the strip — `beginGesture` owns pointer capture.                                                                   |
+| `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from hooks/editor; thin pass-through                                                                                                                                |
+| `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from hooks/editor; wires Zustand store                                                                                                                       |
+| `viewport/TimelineViewport.tsx`        | Chrome: layout, scroll, marquee, seek, playhead; delegates algorithm to packages                                                                                                                   |
+| `viewport/TimelineTrackCanvas.tsx`     | Chrome: lane rendering + clip move/trim via per-lane `LaneRowClips` hooks                                                                                                                          |
 
 ## Protocol vs view
 

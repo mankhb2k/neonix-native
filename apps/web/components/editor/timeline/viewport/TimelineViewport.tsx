@@ -1,12 +1,10 @@
 "use client";
 
-import {
-  buildLaneHeightPrefix,
-  usePointerSessionHost,
-  useTimelineMarquee,
-  useTimelineSeek,
-  useTimelineViewportMetrics,
-} from "@motionvideo/editor-react";
+import { buildLaneHeightPrefix } from "@/hooks/editor/timeline/visible-lane-window";
+import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-session-host";
+import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
+import { useTimelineSeek } from "@/hooks/editor/timeline/use-timeline-seek";
+import { useTimelineViewportMetrics } from "@/hooks/editor/timeline/use-timeline-viewport-metrics";
 import {
   selectedClipIdsFrom,
   selectionClips,

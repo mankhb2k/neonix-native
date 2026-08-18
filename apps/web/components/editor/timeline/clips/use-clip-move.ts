@@ -4,11 +4,9 @@
  */
 
 import { useMemo, type RefObject } from "react";
-import {
-  useClipMove as useClipMoveShared,
-  type BeginGesture,
-  type ClipMoveHost,
-} from "@motionvideo/editor-react";
+import { useClipMove as useClipMoveShared } from "@/hooks/editor/timeline/use-clip-move";
+import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
+import type { ClipMoveHost } from "@/hooks/editor/timeline/gesture-host";
 import {
   resolveLaneTrackKind,
   type EditorSelection,
@@ -100,8 +98,7 @@ export function useClipMove({
 
       pointerContentXAtPoint: (clientX: number): number | null => {
         const dropHost = getTimelineLibraryDropHost();
-        const origin =
-          dropHost?.tracksOriginX ?? TIMELINE_START_GUTTER_PX;
+        const origin = dropHost?.tracksOriginX ?? TIMELINE_START_GUTTER_PX;
         const el = dropHost?.scrollEl ?? scrollRef.current;
         if (!el) return null;
         const rect = el.getBoundingClientRect();

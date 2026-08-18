@@ -1,11 +1,9 @@
 /**
- * Canonical projection: MotionProject → TimelineDocument.
+ * Phép chiếu chính tắc: MotionProject → TimelineDocument.
+ * Đây là nguồn DUY NHẤT để dẫn xuất lanes/clips từ project tác giả.
+ * Mọi command phải đi qua đường này.
  *
- * This is the SINGLE source of truth for deriving lanes/clips from the
- * authoring project. Every command must go through this path.
- *
- * Rule: project (canonical) → projectToTimelineDocument → TimelineDocument (derived).
- *       The inverse path (rebuildMainProject) is DEPRECATED and will be removed in Phase 3.
+ * Quy tắc: project (chính tắc) → projectToTimelineDocument → TimelineDocument (dẫn xuất).
  */
 
 import type { MotionProject } from "@motionvideo/motion-protocol";
@@ -14,30 +12,30 @@ import {
   groupPathToTimelineClips,
   visualTracksToTimelineClips,
 } from "../timeline/selectors/scene-order-clips";
-import { collectVisualLayerIds } from "./document";
+import { collectLayerIds } from "./document";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
 import type { TimelineDocument } from "./document";
 
 // ── Revision ──────────────────────────────────────────────────────────
 
 /**
- * Initial revision for a freshly projected document.
- * Increments monotonically on every project mutation.
+ * Revision khởi tạo cho một document vừa được chiếu.
+ * Tăng đơn điệu sau mỗi lần thay đổi project.
  */
 export const INITIAL_REVISION = 1;
 
 // ── Fingerprint ───────────────────────────────────────────────────────
 
 /**
- * Compute a stable fingerprint of a MotionProject for drift detection.
- * Phase 11: delegates to @motionvideo/motion-protocol canonical hash.
+ * Tính fingerprint ổn định của MotionProject để phát hiện sai lệch.
+ * Ủy quyền cho hash chính tắc của @motionvideo/motion-protocol.
  */
 export function computeProjectFingerprint(project: MotionProject): string {
   return computeProjectHashShort(project as Record<string, unknown>);
 }
 
 /**
- * Create a fingerprint from existing document's project for comparison.
+ * Tạo fingerprint từ project của document hiện có để so sánh.
  */
 export function documentFingerprint(doc: TimelineDocument): string {
   return computeProjectFingerprint(doc.project);
@@ -46,16 +44,15 @@ export function documentFingerprint(doc: TimelineDocument): string {
 // ── Canonical projection ──────────────────────────────────────────────
 
 /**
- * Derive a complete TimelineDocument from a MotionProject.
- *
- * This is the canonical one-way projection:
+ * Dẫn xuất TimelineDocument hoàn chỉnh từ MotionProject.
+ * Đây là phép chiếu một chiều chính tắc:
  *   project.timeline.visualTracks → lanes + clips
  *
- * Audio clips are derived from project.timeline.audioTracks.
+ * Audio clips được dẫn xuất từ project.timeline.audioTracks.
  *
- * @param project The authoring project (canonical source of truth)
- * @param previousRevision If provided, revision = previousRevision + 1; else INITIAL_REVISION
- * @param groupPath When non-empty, project a 1-child-1-row group surface
+ * @param project Project tác giả (nguồn dữ liệu chính tắc)
+ * @param previousRevision Nếu có, revision = previousRevision + 1; ngược lại dùng INITIAL_REVISION
+ * @param groupPath Khi không rỗng, chiếu bề mặt group kiểu 1-con-1-hàng
  */
 export function projectToTimelineDocument(
   project: MotionProject,
@@ -81,8 +78,8 @@ export function projectToTimelineDocument(
 }
 
 /**
- * Re-derive lanes/clips from the document's own project, bumping revision.
- * Use this when patching the project inline and you want a fresh document.
+ * Dẫn xuất lại lanes/clips từ chính project của document, tăng revision.
+ * Dùng khi sửa project inline và muốn có một document mới.
  */
 export function rederiveDocument(doc: TimelineDocument): TimelineDocument {
   return projectToTimelineDocument(doc.project, doc.revision);
@@ -91,13 +88,13 @@ export function rederiveDocument(doc: TimelineDocument): TimelineDocument {
 // ── Renderer guard ────────────────────────────────────────────────────
 
 /**
- * Check whether a TimelineDocument's lanes/clips are fresh with respect
- * to its embedded project. Renderers MUST call this before consuming.
+ * Kiểm tra lanes/clips của TimelineDocument có còn mới so với project bên trong hay không.
+ * Renderer PHẢI gọi hàm này trước khi tiêu thụ document.
  *
- * Returns false if:
- *  - fingerprint doesn't match project
- *  - revision is missing or zero
- *  - document has no fingerprint (legacy)
+ * Trả về false nếu:
+ *  - fingerprint không khớp project
+ *  - revision bị thiếu hoặc bằng 0
+ *  - document không có fingerprint (legacy)
  */
 export function isDocumentFresh(doc: TimelineDocument): boolean {
   if (doc.revision == null || doc.revision <= 0) return false;
@@ -106,8 +103,8 @@ export function isDocumentFresh(doc: TimelineDocument): boolean {
 }
 
 /**
- * Assert document freshness; throws if stale.
- * Call at renderer boundaries (Pixi, Remotion, export).
+ * Khẳng định document còn mới; ném lỗi nếu đã cũ.
+ * Gọi tại ranh giới renderer (Pixi, Remotion, export).
  */
 export function assertDocumentFresh(doc: TimelineDocument): void {
   if (!isDocumentFresh(doc)) {
@@ -123,27 +120,23 @@ export function assertDocumentFresh(doc: TimelineDocument): void {
 // ── Stable ID validation ──────────────────────────────────────────────
 
 export type StableIdViolation = {
-  kind:
-    | "dangling_scene"
-    | "dangling_audio_track"
-    | "dangling_node"
-    | "dangling_asset";
+  kind: "dangling_scene" | "dangling_audio_track" | "dangling_asset";
   message: string;
   refId: string;
   source: string;
 };
 
 /**
- * Validate that all clip/lane references resolve to entities in the project.
- * Unlike validateTimelineDocument (which checks structural invariants),
- * this focuses on referential integrity for stable IDs across saves.
+ * Kiểm tra mọi tham chiếu của TimelineClip và TimelineLane đều trỏ tới thực thể
+ * có trong project. Khác validateTimelineDocument (kiểm tra bất biến cấu trúc),
+ * hàm này tập trung vào tính toàn vẹn tham chiếu cho các ID ổn định qua các lần lưu.
  */
 export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
   const violations: StableIdViolation[] = [];
   const rootLayers = doc.project.layers.filter(
     (layer) => layer.parentLayerId === null,
   );
-  const sceneIds = collectVisualLayerIds(doc.project.layers);
+  const layerIds = collectLayerIds(doc.project.layers);
   const audioTrackIds = new Set(
     rootLayers
       .filter((layer) => layer.type === "audio")
@@ -152,10 +145,10 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
   const assetIds = new Set((doc.project.assets ?? []).map((a) => a.id));
 
   for (const clip of doc.clips) {
-    if (clip.kind === "scene" && !sceneIds.has(clip.sceneId)) {
+    if (clip.kind === "scene" && !layerIds.has(clip.sceneId)) {
       violations.push({
         kind: "dangling_scene",
-        message: `Clip "${clip.id}" references missing scene "${clip.sceneId}"`,
+        message: `Timeline clip "${clip.id}" tham chiếu sceneId không tồn tại "${clip.sceneId}"`,
         refId: clip.sceneId,
         source: clip.id,
       });
@@ -164,7 +157,7 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
       if (clip.audioTrackId && !audioTrackIds.has(clip.audioTrackId)) {
         violations.push({
           kind: "dangling_audio_track",
-          message: `Clip "${clip.id}" references missing audio track "${clip.audioTrackId}"`,
+          message: `Timeline clip "${clip.id}" tham chiếu audioTrackId không tồn tại "${clip.audioTrackId}"`,
           refId: clip.audioTrackId,
           source: clip.id,
         });
@@ -172,7 +165,7 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
       if (clip.assetId && !assetIds.has(clip.assetId)) {
         violations.push({
           kind: "dangling_asset",
-          message: `Clip "${clip.id}" references missing asset "${clip.assetId}"`,
+          message: `Timeline clip "${clip.id}" tham chiếu asset không tồn tại "${clip.assetId}"`,
           refId: clip.assetId,
           source: clip.id,
         });
@@ -180,20 +173,22 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
     }
   }
 
-  // Check scene node references (group layers carry children; media leafs reference assets)
-  for (const scene of rootLayers) {
-    const nodes = scene.type === "group" ? scene.children : [];
-    for (const node of nodes) {
+  // Kiểm tra tham chiếu asset của các layer con trong group (media leaf tham chiếu asset)
+  for (const rootLayer of rootLayers) {
+    const childLayers = rootLayer.type === "group" ? rootLayer.children : [];
+    for (const childLayer of childLayers) {
       const assetId =
-        node.type === "image" || node.type === "video" || node.type === "audio"
-          ? node.payload.assetId
+        childLayer.type === "image" ||
+        childLayer.type === "video" ||
+        childLayer.type === "audio"
+          ? childLayer.payload.assetId
           : undefined;
       if (assetId && !assetIds.has(assetId)) {
         violations.push({
           kind: "dangling_asset",
-          message: `Node "${node.id}" in scene "${scene.id}" references missing asset "${assetId}"`,
+          message: `Layer "${childLayer.id}" trong group "${rootLayer.id}" tham chiếu asset không tồn tại "${assetId}"`,
           refId: assetId,
-          source: node.id,
+          source: childLayer.id,
         });
       }
     }

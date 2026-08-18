@@ -23,7 +23,6 @@
     "@motionvideo/ai-planner": "workspace:*",
     "@motionvideo/editor-core": "workspace:*",
     "@motionvideo/editor-interactions": "workspace:*",
-    "@motionvideo/editor-react": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",

@@ -2,7 +2,7 @@
  * Web adapter — wires Zustand editor store into controlled hotkeys.
  */
 
-import { useTimelineHotkeys as useTimelineHotkeysShared } from "@motionvideo/editor-react";
+import { useTimelineHotkeys as useTimelineHotkeysShared } from "@/hooks/editor/timeline/use-timeline-hotkeys";
 import type { TimelineCommand } from "@motionvideo/editor-core";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";

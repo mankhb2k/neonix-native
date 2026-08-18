@@ -1,14 +1,14 @@
 /**
- * Group — wrap selected TOP-LEVEL layers into a new group layer, the inverse
- * of ungroup. Mirrors clipkit's coordinate-identity group design (lib/group.ts):
- * the group takes an identity transform so children render identically, with a
- * time offset = the earliest child's start and each child's timing made local.
+ * Group — gói các layer CẤP GỐC được chọn thành một group layer mới, ngược lại
+ * của ungroup. Phản ánh thiết kế group dạng coordinate-identity của clipkit:
+ * group nhận transform đơn vị để các con hiển thị giống hệt, với offset thời gian
+ * bằng start của con sớm nhất và timing mỗi con được chuyển về local.
  *
- * Protocol V1 group model:
- *   - Only `type: "group"` may carry `children` (nested, source of truth).
- *   - Child `timing` is LOCAL to the group (schema enforces child.end ≤ parent.duration).
- *   - Child `parentLayerId` must equal the group id.
- *   - Root layers have `parentLayerId: null`.
+ * Mô hình group V1:
+ *   - Chỉ `type: "group"` mới mang `children` (lồng nhau, nguồn dữ liệu chính).
+ *   - `timing` của con là LOCAL trong group (schema ép buộc child.end ≤ parent.duration).
+ *   - `parentLayerId` của con phải bằng id của group.
+ *   - Layer gốc có `parentLayerId: null`.
  */
 
 import {
@@ -18,7 +18,7 @@ import {
 
 export type { MotionLayer, MotionTransform };
 
-/** V1 group layer — the union member that carries nested `children`. */
+/** Group layer V1 — thành viên union mang `children` lồng nhau. */
 export type GroupLayer = Extract<MotionLayer, { type: "group" }>;
 
 export interface GroupResult {
@@ -45,9 +45,9 @@ const IDENTITY_TRANSFORM: MotionTransform = {
 };
 
 /**
- * True when ungrouping this group cannot move pixels: identity transform,
- * fully visible, no compositing. (Time offset is always baked losslessly, so
- * it is not gated here — unlike clipkit, whose children keep absolute times.)
+ * Trả về true khi việc ungroup group này không làm dịch chuyển pixel: transform
+ * đơn vị, hiển thị đầy đủ, không có compositing. (Offset thời gian luôn được nướng
+ * không mất mát, nên không bị chặn ở đây — khác clipkit, nơi con giữ thời gian tuyệt đối.)
  */
 export function isIdentityGroup(layer: MotionLayer): layer is GroupLayer {
   if (layer.type !== "group") return false;
@@ -67,24 +67,22 @@ export function isIdentityGroup(layer: MotionLayer): layer is GroupLayer {
 }
 
 /**
- * True when the layer is a group with children the editor can drill into.
- * Primitive roots (shape/text/video/image) are not groups.
+ * Trả về true khi layer là group có children mà editor có thể drill vào.
+ * Root nguyên thủy (shape/text/video/image) không phải group.
  */
 export function canDrillIntoGroup(layer: MotionLayer | undefined): boolean {
-  return Boolean(
-    layer && layer.type === "group" && layer.children.length > 0,
-  );
+  return Boolean(layer && layer.type === "group" && layer.children.length > 0);
 }
 
-/** Library used to wrap a primitive in a scene group whose child id is `node_*`. */
-function isGeneratedNodeId(id: string): boolean {
+/** Nhận diện id layer do library sinh ra (có tiền tố `node_`). */
+function isGeneratedLayerId(id: string): boolean {
   return /^node[_-]/.test(id);
 }
 
 /**
- * Promote library scene-wrappers (group → one `node_*` primitive) to a
- * flat layer. Keeps the group id so timeline clips still bind. Real groups
- * (Hero + Title, user Group) are left intact.
+ * Nâng cấp scene-wrapper của library (group → một primitive `node_*`) thành
+ * layer phẳng. Giữ id của group để timeline clips vẫn liên kết đúng. Group thật
+ * (Hero + Title, Group của người dùng) được giữ nguyên.
  */
 export function unwrapLibrarySceneWrappers(
   layers: readonly MotionLayer[],
@@ -100,7 +98,7 @@ function unwrapLibrarySceneWrapper(layer: MotionLayer): MotionLayer {
     children.length === 1 &&
     only &&
     only.type !== "group" &&
-    isGeneratedNodeId(only.id)
+    isGeneratedLayerId(only.id)
   ) {
     return {
       ...only,
@@ -115,14 +113,14 @@ function unwrapLibrarySceneWrapper(layer: MotionLayer): MotionLayer {
 }
 
 /**
- * Wrap the selected TOP-LEVEL layers into a new coordinate-identity group.
+ * Gói các layer CẤP GỐC được chọn thành một group coordinate-identity mới.
  *
- * - The group takes an identity transform (children keep absolute coords).
- * - `timing.start` = earliest child start; children made local to it.
- * - `timing.duration` spans the children.
- * - `zIndex` = front-most child's zIndex (paint position preserved).
+ * - Group nhận transform đơn vị (các con giữ tọa độ tuyệt đối).
+ * - `timing.start` = start của con sớm nhất; các con được chuyển về local theo nó.
+ * - `timing.duration` bao trùm các con.
+ * - `zIndex` = zIndex của con trên cùng (giữ vị trí sơn).
  *
- * Returns null if fewer than two of `ids` are root layers.
+ * Trả về null nếu có ít hơn hai trong `ids` là layer gốc.
  */
 export function groupLayers(
   layers: readonly MotionLayer[],
@@ -133,8 +131,8 @@ export function groupLayers(
   const selected = layers.filter((l) => idSet.has(l.id));
   if (selected.length < 2) return null;
 
-  // Siblings share a parent — the new group inherits it, so grouping also
-  // works inside a drilled-in group (scoped array), not just at the root.
+  // Các anh em chia sẻ chung parent — group mới kế thừa nó, nên việc gom nhóm
+  // cũng hoạt động bên trong một group đã drill vào (mảng theo phạm vi), không chỉ ở root.
   const groupParent = selected[0]!.parentLayerId;
   const groupStart = Math.min(...selected.map((l) => l.timing.start));
 
@@ -164,7 +162,7 @@ export function groupLayers(
     children,
   };
 
-  // Insert at the position of the first selected element (clipkit parity).
+  // Chèn vào vị trí của phần tử đầu tiên được chọn (đồng bộ với clipkit).
   const firstId = selected[0]!.id;
   const firstIdx = layers.findIndex((l) => l.id === firstId);
   const out: MotionLayer[] = [];
@@ -180,9 +178,9 @@ export function groupLayers(
 }
 
 /**
- * Lift a top-level group's children back to the root, in place. Bakes the
- * group's time offset onto each child and resets `parentLayerId` to null.
- * Returns null if `groupId` is not a top-level group.
+ * Nâng children của group cấp gốc trở lại root, tại chỗ. Nướng offset thời gian
+ * của group vào từng con và đặt lại `parentLayerId` về null.
+ * Trả về null nếu `groupId` không phải group cấp gốc.
  */
 export function ungroupLayers(
   layers: readonly MotionLayer[],

@@ -5,7 +5,7 @@ import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
-import { LANE_GAP_PX } from "../timeline-scale";
+import { LANE_GAP_PX, TIMELINE_START_GUTTER_PX } from "../timeline-scale";
 import type { ClipMovePreview } from "@motionvideo/editor-interactions";
 import type {
   EditorSelection,
@@ -13,10 +13,8 @@ import type {
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import {
-  useVisibleTimeline,
-  type BeginGesture,
-} from "@motionvideo/editor-react";
+import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
+import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useCallback, useState, type RefObject } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -73,6 +71,7 @@ type LaneRowClipsProps = {
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onMovePreview: (preview: ClipMovePreview | null) => void;
   scrollRef: RefObject<HTMLElement | null>;
   onClipSelectPointerDown?: (
     event: ReactPointerEvent<HTMLElement>,
@@ -80,6 +79,8 @@ type LaneRowClipsProps = {
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
   exclusiveRows?: boolean;
+  /** Clip currently being dragged — dim its source strip. */
+  movingClipId?: string | null;
 };
 
 function LaneRowClips({
@@ -94,15 +95,15 @@ function LaneRowClips({
   beginGesture,
   onSelect,
   onExecute,
+  onMovePreview,
   scrollRef,
   onClipSelectPointerDown,
   onClipDoubleClick,
   exclusiveRows = false,
+  movingClipId,
 }: LaneRowClipsProps) {
   const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
-  const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
-
   const onLocalPreview = useCallback((preview: ClipTrimPreview | null) => {
     setTrimPreview(preview);
   }, []);
@@ -117,7 +118,7 @@ function LaneRowClips({
     beginGesture,
     onSelect,
     onExecute,
-    onMovePreview: setMovePreview,
+    onMovePreview,
     scrollRef,
     exclusiveRows,
   });
@@ -142,9 +143,6 @@ function LaneRowClips({
         if (trimPreview?.clipId === clip.id) {
           start = trimPreview.startTime;
           duration = trimPreview.duration;
-        } else if (movePreview?.clipId === clip.id) {
-          start = movePreview.startTime;
-          duration = movePreview.duration;
         }
 
         return (
@@ -155,6 +153,7 @@ function LaneRowClips({
             pixelsPerSecond={pixelsPerSecond}
             selected={selected}
             showTrimHandles
+            isMovingSource={movingClipId === clip.id}
             onBeginMove={beginMove}
             onBeginTrim={beginTrim}
             onSelectPointerDown={onClipSelectPointerDown}
@@ -209,6 +208,21 @@ export function TimelineTrackCanvas({
     selectedClipIds ?? new Set();
   const effectivePreviewIds: ReadonlySet<string> | null =
     previewSelectedIds ?? null;
+  const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
+  const rowsHeight = rows.reduce(
+    (total, row, index) =>
+      total + row.height + (index < rows.length - 1 ? LANE_GAP_PX : 0),
+    0,
+  );
+  const contentHeight = topPadding + rowsHeight + bottomPadding;
+  const moveGhostLeft =
+    movePreview != null
+      ? TIMELINE_START_GUTTER_PX + movePreview.startTime * pixelsPerSecond
+      : null;
+  const moveGhostWidth =
+    movePreview != null
+      ? Math.max(24, movePreview.duration * pixelsPerSecond)
+      : null;
   return (
     <div
       className="relative min-h-0"
@@ -252,7 +266,9 @@ export function TimelineTrackCanvas({
         <EmptyTimelineDash
           width={contentWidth}
           laneId={
-            rows.find((r) => r.role === "base")?.id ?? rows[0]?.id ?? "lane.main"
+            rows.find((r) => r.role === "base")?.id ??
+            rows[0]?.id ??
+            "lane.main"
           }
         />
       ) : (
@@ -297,15 +313,93 @@ export function TimelineTrackCanvas({
                 beginGesture={beginGesture}
                 onSelect={onSelect}
                 onExecute={onExecute}
+                onMovePreview={setMovePreview}
                 scrollRef={scrollRef}
                 onClipSelectPointerDown={onClipSelectPointerDown}
                 onClipDoubleClick={onClipDoubleClick}
                 exclusiveRows={exclusiveRows}
+                movingClipId={movePreview?.clipId}
               />
             </div>
           );
         })
       )}
+
+      {movePreview &&
+      movePreview.valid &&
+      movePreview.isInsert &&
+      moveGhostLeft != null &&
+      moveGhostWidth != null ? (
+        <>
+          <div
+            className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
+            aria-hidden
+            data-testid="timeline-clip-move-ghost"
+            style={{
+              top: movePreview.contentTop,
+              left: moveGhostLeft,
+              width: moveGhostWidth,
+            }}
+          />
+          <div
+            data-testid="timeline-clip-insert-indicator"
+            className="pointer-events-none absolute z-[30] h-px bg-[#14B8A6]"
+            aria-hidden
+            style={{
+              top: movePreview.contentTop,
+              left: 0,
+              width: contentWidth,
+            }}
+          />
+        </>
+      ) : null}
+
+      {movePreview &&
+      !movePreview.isInsert &&
+      moveGhostLeft != null &&
+      moveGhostWidth != null ? (
+        <>
+          <div
+            className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
+            aria-hidden
+            data-testid="timeline-clip-move-ghost"
+            style={{
+              top: movePreview.contentTop,
+              left: moveGhostLeft,
+              width: moveGhostWidth,
+              height: Math.max(24, movePreview.laneHeightPx ?? 28),
+            }}
+          />
+          {movePreview.members?.map((member) => (
+            <div
+              key={`ghost-${member.clipId}`}
+              className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md"
+              aria-hidden
+              style={{
+                top: (movePreview.contentTop ?? 0) + member.offsetY,
+                left:
+                  TIMELINE_START_GUTTER_PX + member.startTime * pixelsPerSecond,
+                width: Math.max(24, member.duration * pixelsPerSecond),
+                height: Math.max(24, member.laneHeightPx ?? 28),
+              }}
+            />
+          ))}
+        </>
+      ) : null}
+
+      {movePreview?.snapGuideTime != null ? (
+        <div
+          data-testid="timeline-clip-snap-guide"
+          className="pointer-events-none absolute top-0 z-[32] w-px bg-[#14B8A6]"
+          aria-hidden
+          style={{
+            left:
+              TIMELINE_START_GUTTER_PX +
+              movePreview.snapGuideTime * pixelsPerSecond,
+            height: contentHeight,
+          }}
+        />
+      ) : null}
 
       {bottomPadding > 0 ? (
         <div style={{ height: bottomPadding }} aria-hidden />

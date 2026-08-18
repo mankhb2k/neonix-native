@@ -4,9 +4,9 @@
 
 import {
   useClipTrim as useClipTrimShared,
-  type BeginGesture,
   type ClipTrimPreview,
-} from "@motionvideo/editor-react";
+} from "@/hooks/editor/timeline/use-clip-trim";
+import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import type {
   EditorSelection,
   TimelineCommand,

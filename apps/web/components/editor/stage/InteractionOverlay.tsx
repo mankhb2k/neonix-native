@@ -6,11 +6,9 @@ import {
   selectionBoxFromWorldAndDelta,
   type ResizeHandle,
 } from "@motionvideo/editor-interactions";
-import {
-  useNodeTransform,
-  useStageHotkeys,
-  useStagePointerSession,
-} from "@motionvideo/editor-react";
+import { useNodeTransform } from "@/hooks/editor/stage/use-node-transform";
+import { useStageHotkeys } from "@/hooks/editor/stage/use-stage-hotkeys";
+import { useStagePointerSession } from "@/hooks/editor/stage/use-stage-pointer-session";
 import {
   selectionNone,
   selectionNode,

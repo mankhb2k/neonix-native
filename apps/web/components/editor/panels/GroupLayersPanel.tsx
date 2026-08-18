@@ -10,7 +10,8 @@
  * shared with the stage + inspector.
  */
 
-import { Breadcrumbs, LayersTree } from "@motionvideo/editor-react";
+import { Breadcrumbs } from "@/components/editor/frame/Breadcrumbs";
+import { LayersTree } from "@/components/editor/panels/LayersTree";
 import { isIdentityGroup, type GroupLayer } from "@motionvideo/editor-core";
 import { useGroupScope } from "@/lib/editor/store/selectors/group-scope";
 import { useEditorStore } from "@/lib/editor/editor-store";

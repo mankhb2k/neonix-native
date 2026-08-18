@@ -19,8 +19,8 @@ function dropEmptyTokenRecord(
 }
 
 /**
- * Protocol forbids present-but-empty optional strings (`name: ""`, `fill: ""`).
- * Editor writes omit or replace them so compile/preview never see invalid JSON.
+ * Protocol cấm chuỗi tùy chọn có mặt nhưng rỗng (`name: ""`, `fill: ""`).
+ * Editor bỏ qua hoặc thay thế chúng để compile/preview không bao giờ thấy JSON không hợp lệ.
  */
 function sanitizeLayer(layer: MotionLayer): MotionLayer {
   let next: MotionLayer = layer;
@@ -52,8 +52,8 @@ function sanitizeLayer(layer: MotionLayer): MotionLayer {
 }
 
 /**
- * Keep MotionProjectV1 valid after an editor write:
- * declare used capabilities, drop empty optional strings, keep metadata.name.
+ * Giữ MotionProjectV1 hợp lệ sau mỗi lần editor ghi:
+ * khai báo capability đã dùng, bỏ chuỗi tùy chọn rỗng, giữ metadata.name.
  */
 export function syncProjectProtocolContract(
   project: MotionProject,
