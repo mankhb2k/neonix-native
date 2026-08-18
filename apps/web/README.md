@@ -193,3 +193,4 @@ Sửa luật JSON → `packages/motion-protocol` + `docs/guide`. Sửa cách web
 - **zIndex ≠ lane.** zIndex là thứ tự sơn giữa sibling. Lane là chỗ vẽ strip.
 - **Docs `/docs` ≠ README này.** `/docs` là luật format cho người viết JSON (kể cả AI). README này là bản đồ app web.
 - **Web ≠ desktop.** Cùng protocol và editor-core; UI store và panel là hai host riêng.
+- **Float ≠ insert line.** Float là bản sao clip theo pointer; ghost là placeholder xám; line teal là insert/snap. Chi tiết: [`docs/web/editor-vocabulary.md`](../../docs/web/editor-vocabulary.md) §9.

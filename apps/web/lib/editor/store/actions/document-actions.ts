@@ -1,10 +1,8 @@
 import {
-  mapNode,
-  uid,
-  updateVariable,
-  stageSizeForAspect,
-  syncProjectProtocolContract,
-} from "@motionvideo/editor-core";
+  commitProjectMutation,
+  type HistoryPush,
+} from "@/lib/editor/store/commit-document-mutation";
+import { stageSizeForAspect, updateVariable } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -23,6 +21,7 @@ export type DocumentActions = Pick<
 export function createDocumentActions(
   set: EditorStoreSet,
   get: EditorStoreGet,
+  pushEntry: HistoryPush,
 ): DocumentActions {
   return {
     updateBrand: (patch) => {
@@ -43,56 +42,39 @@ export function createDocumentActions(
           patch.primaryColor,
         );
       }
-      set({
-        project: syncProjectProtocolContract({
+      commitProjectMutation(set, get, pushEntry, {
+        nextProject: {
           ...project,
           metadata: {
             ...project.metadata,
             name: patch.name ?? project.metadata.name,
           },
           variables,
-        }),
+        },
+        label: "update-brand",
       });
     },
 
-    updateNodeText: (sceneId, layerId, text) => {
-      const project = get().project;
-      if (!project) return;
-      set({
-        project: syncProjectProtocolContract(
-          mapNode(project, sceneId, layerId, (node) =>
-            node.type === "text"
-              ? { ...node, payload: { ...node.payload, text } }
-              : node,
-          ),
-        ),
+    updateNodeText: (rootLayerId, layerId, text) => {
+      get().dispatchPropertyCommand({
+        type: "set-node-text",
+        targets: [{ rootLayerId, layerId }],
+        patch: { text },
       });
     },
 
-    updateNodePosition: (sceneId, layerId, position) => {
-      const project = get().project;
-      if (!project) return;
-      set({
-        project: syncProjectProtocolContract(
-          mapNode(project, sceneId, layerId, (node) => {
-            if (!("transform" in node) || !node.transform) return node;
-            return {
-              ...node,
-              transform: {
-                ...node.transform,
-                translate: {
-                  ...node.transform.translate,
-                  x: position.x ?? node.transform.translate.x,
-                  y: position.y ?? node.transform.translate.y,
-                },
-              },
-            };
-          }),
-        ),
+    updateNodePosition: (rootLayerId, layerId, position) => {
+      get().dispatchPropertyCommand({
+        type: "set-node-transform",
+        targets: [{ rootLayerId, layerId }],
+        patch: {
+          ...(position.x !== undefined ? { x: position.x } : {}),
+          ...(position.y !== undefined ? { y: position.y } : {}),
+        },
       });
     },
 
-    updateNodeAnimation: (_sceneId, _layerId, _patch) => {
+    updateNodeAnimation: () => {
       // V1: preset animation clips (`scene.clips`) no longer exist — node
       // animations now live in `timeline.clips` keyframes. No-op until the
       // keyframe editor lands (legacy action kept for API stability).
@@ -100,19 +82,19 @@ export function createDocumentActions(
 
     setAspectRatio: (aspectRatio) => {
       const project = get().project;
-      if (project) {
-        const size = stageSizeForAspect(aspectRatio);
-        set({
-          project: syncProjectProtocolContract({
-            ...project,
-            composition: {
-              ...project.composition,
-              width: size.width,
-              height: size.height,
-            },
-          }),
-        });
-      }
+      if (!project) return;
+      const size = stageSizeForAspect(aspectRatio);
+      commitProjectMutation(set, get, pushEntry, {
+        nextProject: {
+          ...project,
+          composition: {
+            ...project.composition,
+            width: size.width,
+            height: size.height,
+          },
+        },
+        label: "set-aspect-ratio",
+      });
     },
   };
 }

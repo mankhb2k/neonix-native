@@ -1,7 +1,10 @@
-import { type ClipClipboardItem } from "@motionvideo/editor-core";
-import { selectedClipIdsFrom } from "@motionvideo/editor-core";
-import { selectionHasLockedLane } from "@motionvideo/editor-core";
-import { isAudioLane, isBaseLane } from "@motionvideo/editor-core";
+import {
+  isAudioLane,
+  isBaseLane,
+  selectedClipIdsFrom,
+  selectionHasLockedLane,
+  type ClipClipboardItem,
+} from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,

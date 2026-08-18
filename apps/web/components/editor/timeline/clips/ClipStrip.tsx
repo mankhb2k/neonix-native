@@ -9,9 +9,13 @@ import type {
 
 export type ClipStripVisualKind = "main" | "overlay" | "audio";
 
-function clipVisualClass(kind: ClipStripVisualKind, selected: boolean): string {
+/** Fill/label chrome for a clip strip — reuse on the drag **float**. */
+export function clipVisualClass(
+  kind: ClipStripVisualKind,
+  selected: boolean,
+): string {
   const selectedCls = selected
-    ? "z-10 ring-2 ring-[var(--fg-primary)]/25 shadow-sm"
+    ? "ring-2 ring-[var(--fg-primary)]/25 shadow-sm"
     : "ring-1 ring-black/5";
 
   if (kind === "audio") {
@@ -44,7 +48,7 @@ type Props = {
   pixelsPerSecond: number;
   selected?: boolean;
   showTrimHandles?: boolean;
-  /** Dimmed when this clip is being dragged (ghost at target position). */
+  /** Dimmed / hidden while this clip is being dragged (float + ghost take over). */
   isMovingSource?: boolean;
 
   // === Gesture callbacks (move / trim via editor-react hooks) ===
@@ -119,6 +123,7 @@ export function ClipStrip({
       className={cn(
         "absolute top-0 bottom-0 my-auto h-[88%] select-none",
         interactive ? "cursor-pointer" : null,
+        selected && "z-10",
         isMovingSource && "invisible pointer-events-none",
         clipVisualClass(visualKind, selected),
       )}

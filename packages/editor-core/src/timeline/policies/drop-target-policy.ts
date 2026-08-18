@@ -10,10 +10,33 @@
 
 /** px dưới border trên TimeRuler — ngưỡng chung cho card↔cyan (vào & ra) */
 export const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
-/** Chỉ vào chế độ insert-line khi cách cạnh lane trong khoảng px này */
+/** Trần band insert khi lane đủ cao. Compact overlay/audio (≈28px) clamp nhỏ hơn. */
 export const LANE_INSERT_ENTER_PX = 12;
-/** Chỉ thoát insert-line khi đã vào sâu trong thân lane ngần này px (hysteresis) */
+/** Trần hysteresis thoát insert. Phải < nửa chiều cao lane, nếu không body rỗng. */
 export const LANE_INSERT_EXIT_PX = 16;
+
+/**
+ * Insert bands scale with lane height so compact rows stay droppable.
+ * A 28px overlay with ENTER=12/EXIT=16 would leave a 4px body, and hysteresis
+ * `exit*2 >= h` can never land on the lane after crossing a gap.
+ */
+export function insertEdgeBands(heightPx: number): {
+  enter: number;
+  exit: number;
+} {
+  const h = Math.max(heightPx, 1);
+  const enter = Math.min(
+    LANE_INSERT_ENTER_PX,
+    Math.max(0, Math.floor(h * 0.15)),
+  );
+  let exit = Math.min(
+    LANE_INSERT_EXIT_PX,
+    Math.max(enter, Math.floor(h * 0.25)),
+  );
+  const maxExit = Math.max(0, Math.floor((h - 1) / 2) - 1);
+  exit = Math.min(exit, maxExit);
+  return { enter: Math.min(enter, exit), exit };
+}
 /** Bỏ qua setState indicator khi Y gần như không đổi (giảm re-render dragover) */
 export const INDICATOR_TOP_EPS_PX = 0.5;
 
@@ -177,10 +200,10 @@ function resolveInsideLane(
   const family = policy.family;
   const relY = clientY - lane.top;
   const h = Math.max(lane.bottom - lane.top, 1);
-  const inBodyClear =
-    relY > LANE_INSERT_EXIT_PX && relY < h - LANE_INSERT_EXIT_PX;
-  const nearTopEnter = relY <= LANE_INSERT_ENTER_PX;
-  const nearBottomEnter = relY >= h - LANE_INSERT_ENTER_PX;
+  const { enter, exit } = insertEdgeBands(h);
+  const inBodyClear = relY > exit && relY < h - exit;
+  const nearTopEnter = relY <= enter;
+  const nearBottomEnter = relY >= h - enter;
 
   const insertAtEdge = (edge: "top" | "bottom"): TimelineDropTarget => {
     const neighbor = edge === "top" ? prev : next;

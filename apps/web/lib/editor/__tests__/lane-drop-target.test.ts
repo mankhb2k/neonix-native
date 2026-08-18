@@ -289,7 +289,7 @@ describe("resolveLaneDropTarget", () => {
   });
 
   it("visual hysteresis keeps insert near top edge after insert mode", () => {
-    // Overlay 100–140; ENTER=2, EXIT=10. clientY=105 → relY=5 (still insert while wasInsert).
+    // Overlay 100–140 (h=40); bands scale with height. relY=5 stays insert while wasInsert.
     const nearTop = resolveLaneDropTarget(
       105,
       visualHits,
@@ -303,7 +303,7 @@ describe("resolveLaneDropTarget", () => {
   });
 
   it("visual hysteresis exits insert once deep in body", () => {
-    // relY=20 > LANE_INSERT_EXIT_PX=16 → body while wasInsert.
+    // Overlay h=40 → exit band < 20; relY=20 is body while wasInsert.
     const deepBody = resolveLaneDropTarget(
       120,
       visualHits,
@@ -319,6 +319,62 @@ describe("resolveLaneDropTarget", () => {
       insertOrder: null,
       indicatorTop: 0,
     });
+  });
+
+  it("compact 28px overlay stays droppable on the lane body", () => {
+    const compact: LaneHit[] = [
+      {
+        top: 100,
+        bottom: 128,
+        family: "visual",
+        role: "overlay",
+        laneId: "ov0",
+        order: 0,
+      },
+      {
+        top: 132,
+        bottom: 168,
+        family: "visual",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+    ];
+    const midOverlay = resolveLaneDropTarget(
+      114,
+      compact,
+      100,
+      false,
+      0,
+      visualDropPolicy,
+    );
+    expect(midOverlay).toMatchObject({
+      isInsert: false,
+      laneId: "ov0",
+    });
+
+    const afterCrossingGap = resolveLaneDropTarget(
+      114,
+      compact,
+      100,
+      true,
+      0,
+      visualDropPolicy,
+    );
+    expect(afterCrossingGap).toMatchObject({
+      isInsert: false,
+      laneId: "ov0",
+    });
+
+    const inGap = resolveLaneDropTarget(
+      130,
+      compact,
+      100,
+      false,
+      0,
+      visualDropPolicy,
+    );
+    expect(inGap?.isInsert).toBe(true);
   });
 
   it("visual base body sets overBaseBody", () => {

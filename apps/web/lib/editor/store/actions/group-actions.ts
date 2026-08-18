@@ -12,6 +12,7 @@
  */
 
 import {
+  canDrillIntoGroup,
   documentFromStoreState,
   groupLayers,
   packRootLayersToTimeline,
@@ -20,15 +21,14 @@ import {
   syncProjectProtocolContract,
   uid,
   ungroupLayers,
-  canDrillIntoGroup,
   type HistoryEntry,
 } from "@motionvideo/editor-core";
-import type { MotionLayer } from "@motionvideo/motion-protocol";
 import type {
   EditorStoreActions,
   EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 export type GroupActions = Pick<
   EditorStoreActions,
@@ -56,7 +56,7 @@ function mapLayerById(
       return {
         ...layer,
         children: mapLayerById(layer.children, id, fn),
-      } as MotionLayer;
+      };
     }
     return layer;
   });
@@ -75,7 +75,7 @@ function withScopedLayers(
     return {
       ...layer,
       children: withScopedLayers(layer.children, rest, fn),
-    } as MotionLayer;
+    };
   });
 }
 
@@ -168,35 +168,28 @@ export function createGroupActions(
     reorderLayers: (movingId, targetId) => {
       const project = get().project;
       if (!project || movingId === targetId) return;
-      let movingZ = 0;
-      let targetZ = 0;
-      let found = 0;
-      const scan = (layers: MotionLayer[]) => {
-        for (const layer of layers) {
-          if (layer.id === movingId) {
-            movingZ = layer.zIndex;
-            found += 1;
-          }
-          if (layer.id === targetId) {
-            targetZ = layer.zIndex;
-            found += 1;
-          }
-          if (layer.type === "group" && Array.isArray(layer.children)) {
-            scan(layer.children);
-          }
-        }
-      };
-      scan(project.layers);
-      if (found < 2) return;
-      const next = mapLayerById(project.layers, movingId, (layer) => ({
-        ...layer,
-        zIndex: targetZ,
-      }));
-      const finalLayers = mapLayerById(next, targetId, (layer) => ({
-        ...layer,
-        zIndex: movingZ,
-      }));
-      commit(project, finalLayers, "reorder-layers");
+      let swapped = false;
+      const next = withScopedLayers(
+        project.layers,
+        get().groupPath,
+        (scoped) => {
+          const moving = scoped.find((layer) => layer.id === movingId);
+          const target = scoped.find((layer) => layer.id === targetId);
+          if (!moving || !target) return scoped;
+          swapped = true;
+          return scoped.map((layer) => {
+            if (layer.id === movingId) {
+              return { ...layer, zIndex: target.zIndex };
+            }
+            if (layer.id === targetId) {
+              return { ...layer, zIndex: moving.zIndex };
+            }
+            return layer;
+          });
+        },
+      );
+      if (!swapped) return;
+      commit(project, next, "reorder-layers");
     },
 
     groupSelectedLayers: (ids) => {

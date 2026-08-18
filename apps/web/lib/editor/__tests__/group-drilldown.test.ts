@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { useEditorStore } from "@/lib/editor/editor-store";
+import { beforeEach, describe, expect, it } from "vitest";
+
 import { fixtureMultiSceneReferences } from "@/lib/editor/__fixtures__/projects";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { rootLayerIdOf, selectionNone } from "@motionvideo/editor-core";
 
 /**
@@ -67,5 +68,32 @@ describe("group drill-down + pure layerId selection", () => {
     expect(rootLayerIdOf(project, "scene.a")).toBe("scene.a");
     expect(rootLayerIdOf(project, "node.b.title")).toBe("scene.b");
     expect(rootLayerIdOf(project, "missing")).toBeNull();
+  });
+
+  it("reorderLayers swaps zIndex of scoped siblings", () => {
+    const project = useEditorStore.getState().project!;
+    expect(project.layers.find((l) => l.id === "scene.a")?.zIndex).toBe(0);
+    expect(project.layers.find((l) => l.id === "scene.b")?.zIndex).toBe(1);
+
+    useEditorStore.getState().reorderLayers("scene.a", "scene.b");
+
+    const next = useEditorStore.getState().project!;
+    expect(next.layers.find((l) => l.id === "scene.a")?.zIndex).toBe(1);
+    expect(next.layers.find((l) => l.id === "scene.b")?.zIndex).toBe(0);
+    expect(useEditorStore.getState().canUndo).toBe(true);
+  });
+
+  it("reorderLayers rejects ids that are not scoped siblings", () => {
+    useEditorStore.getState().enterGroup("scene.a");
+    const before = useEditorStore.getState().project!;
+    const dirty = useEditorStore.getState().dirtyRevision;
+
+    useEditorStore.getState().reorderLayers("node.a.root", "scene.b");
+
+    const after = useEditorStore.getState();
+    expect(after.project).toBe(before);
+    expect(after.dirtyRevision).toBe(dirty);
+    expect(before.layers.find((l) => l.id === "scene.a")?.zIndex).toBe(0);
+    expect(before.layers.find((l) => l.id === "scene.b")?.zIndex).toBe(1);
   });
 });

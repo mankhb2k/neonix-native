@@ -10,12 +10,13 @@
  * shared with the stage + inspector.
  */
 
+import { useMemo } from "react";
+
 import { Breadcrumbs } from "@/components/editor/frame/Breadcrumbs";
 import { LayersTree } from "@/components/editor/panels/LayersTree";
-import { isIdentityGroup, type GroupLayer } from "@motionvideo/editor-core";
-import { useGroupScope } from "@/lib/editor/store/selectors/group-scope";
+import { useGroupScope } from "@/hooks/editor/use-group-scope";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { useMemo } from "react";
+import { isIdentityGroup, type GroupLayer } from "@motionvideo/editor-core";
 
 export function GroupLayersPanel() {
   const scope = useGroupScope();

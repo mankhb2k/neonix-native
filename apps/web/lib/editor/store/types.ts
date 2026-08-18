@@ -83,14 +83,14 @@ export type EditorStoreActions = {
   setActiveSidebarTab: (tab: SidebarTabId) => void;
   updateBrand: (patch: { name?: string; primaryColor?: string }) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
-  updateNodeText: (sceneId: string, layerId: string, text: string) => void;
+  updateNodeText: (rootLayerId: string, layerId: string, text: string) => void;
   updateNodePosition: (
-    sceneId: string,
+    rootLayerId: string,
     layerId: string,
     position: { x?: number; y?: number },
   ) => void;
   updateNodeAnimation: (
-    sceneId: string,
+    rootLayerId: string,
     layerId: string,
     patch: { presetId?: string; duration?: number; at?: number },
   ) => void;
@@ -150,7 +150,7 @@ export type EditorStoreActions = {
   markDocumentSaved: () => void;
   /** Stage interaction commit — one history entry per gesture. */
   commitNodeTransform: (
-    sceneId: string,
+    rootLayerId: string,
     layerId: string,
     patch: {
       x?: number;
@@ -165,9 +165,13 @@ export type EditorStoreActions = {
     command: import("@motionvideo/editor-core").DocumentPropertyCommand,
     options?: { coalesceKey?: string },
   ) => void;
-  setElementLocked: (sceneId: string, layerId: string, locked: boolean) => void;
+  setElementLocked: (
+    rootLayerId: string,
+    layerId: string,
+    locked: boolean,
+  ) => void;
   setPropertyLocked: (
-    sceneId: string,
+    rootLayerId: string,
     layerId: string,
     propertyPath: string,
     locked: boolean,

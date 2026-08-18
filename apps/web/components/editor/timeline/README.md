@@ -2,6 +2,8 @@
 
 > **Pure logic lives in packages.** The web timeline is a thin consumer — it picks shared hooks, adapters, and pure functions from `@motionvideo/editor-core`, `@motionvideo/editor-interactions`, and local hooks under `apps/web/hooks/editor`.
 
+**Chrome words** (float, ghost, playhead, insert line, snap guide): [`docs/web/editor-vocabulary.md`](../../../../../docs/web/editor-vocabulary.md) §9.
+
 ## Architecture
 
 ```
@@ -53,11 +55,14 @@
 | `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                                                                                                             |
 | `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads                                                                                            |
 | `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from hooks/editor. Host: gutter `tracksOriginX`, `clipsByLane` + `laneHitLayout`, CapCut Y targeting (Main / overlay / audio). `exclusiveRows` when inside a group. |
-| `clips/ClipStrip.tsx`                  | `pointerdown` calls `beginMove` immediately (desktop parity). Do not capture on the strip — `beginGesture` owns pointer capture.                                                                   |
+| `clips/ClipStrip.tsx`                  | `pointerdown` calls `beginMove` immediately (desktop parity). `clipVisualClass` is shared with the drag **float**. Do not capture on the strip — `beginGesture` owns pointer capture. |
 | `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from hooks/editor; thin pass-through                                                                                                                                |
 | `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from hooks/editor; wires Zustand store                                                                                                                       |
 | `viewport/TimelineViewport.tsx`        | Chrome: layout, scroll, marquee, seek, playhead; delegates algorithm to packages                                                                                                                   |
 | `viewport/TimelineTrackCanvas.tsx`     | Chrome: lane rendering + clip move/trim via per-lane `LaneRowClips` hooks                                                                                                                          |
+| `viewport/TimelineClipFloat.tsx`       | Drag **float** — clip replica, `position: fixed`, same fill as `ClipStrip`                                                                                                                         |
+| `viewport/ClipMoveOverlays.tsx`        | Ghost + insert/snap + float while moving a timeline clip                                                                                                                                           |
+| `viewport/LibraryDropGhostOverlay.tsx` | Library → timeline: gray ghost at drop target + colored float on the pointer                                                                                                                       |
 
 ## Protocol vs view
 

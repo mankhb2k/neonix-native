@@ -71,23 +71,23 @@ function findKeyframeAtTime(
 }
 
 function LockToggle({
-  sceneId,
+  rootLayerId,
   layerId,
 }: {
-  sceneId: string;
+  rootLayerId: string;
   layerId: string;
 }) {
   const envelope = useEditorStore((s) => s.envelope);
   const setElementLocked = useEditorStore((s) => s.setElementLocked);
   const meta =
-    envelope?.authoring.elementMeta[nodeElementKey(sceneId, layerId)];
+    envelope?.authoring.elementMeta[nodeElementKey(rootLayerId, layerId)];
   const locked = Boolean(meta?.locked);
   return (
     <button
       type="button"
       data-testid="lock-element"
       className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-      onClick={() => setElementLocked(sceneId, layerId, !locked)}
+      onClick={() => setElementLocked(rootLayerId, layerId, !locked)}
       title={locked ? "Unlock element" : "Lock element"}
     >
       {locked ? <Lock size={12} /> : <Unlock size={12} />}
@@ -456,7 +456,7 @@ export function SchemaInspector() {
                         </span>
                       </p>
                       <LockToggle
-                        sceneId={selectedSceneId ?? selection.layerId}
+                        rootLayerId={selectedSceneId ?? selection.layerId}
                         layerId={selection.layerId}
                       />
                     </div>

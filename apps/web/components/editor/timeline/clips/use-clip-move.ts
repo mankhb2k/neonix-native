@@ -123,16 +123,15 @@ export function useClipMove({
         family,
         wasInsert,
         dropLanes,
-        layout,
+        _layout,
       ) => {
-        const dropHost = getTimelineLibraryDropHost();
         const hit = resolveClipMoveDropAtY(
           scrollEl,
           clientY,
           family,
           wasInsert,
           dropLanes,
-          layout ?? dropHost?.laneHitLayout ?? null,
+          null,
         );
         if (hit) return hit;
         if (family === "audio") return null;

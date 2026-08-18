@@ -5,7 +5,7 @@ import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
-import { LANE_GAP_PX, TIMELINE_START_GUTTER_PX } from "../timeline-scale";
+import { LANE_GAP_PX } from "../timeline-scale";
 import type { ClipMovePreview } from "@motionvideo/editor-interactions";
 import type {
   EditorSelection,
@@ -55,6 +55,8 @@ type Props = {
   exclusiveRows?: boolean;
   /** Replace lane rows with the dashed Main drop hint. */
   timelineEmpty?: boolean;
+  movePreview?: ClipMovePreview | null;
+  onMovePreview?: (preview: ClipMovePreview | null) => void;
 };
 
 // ── Per-lane sub-component (hooks must be at component level) ────────
@@ -81,6 +83,7 @@ type LaneRowClipsProps = {
   exclusiveRows?: boolean;
   /** Clip currently being dragged — dim its source strip. */
   movingClipId?: string | null;
+  movePreview?: ClipMovePreview | null;
 };
 
 function LaneRowClips({
@@ -101,6 +104,7 @@ function LaneRowClips({
   onClipDoubleClick,
   exclusiveRows = false,
   movingClipId,
+  movePreview,
 }: LaneRowClipsProps) {
   const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
@@ -165,6 +169,34 @@ function LaneRowClips({
           />
         );
       })}
+      {movePreview &&
+      !movePreview.isInsert &&
+      movePreview.laneId === row.id ? (
+        <div
+          className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[88%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
+          aria-hidden
+          data-testid="timeline-clip-move-ghost"
+          style={{
+            left: movePreview.startTime * pixelsPerSecond,
+            width: Math.max(24, movePreview.duration * pixelsPerSecond),
+          }}
+        />
+      ) : null}
+      {movePreview &&
+      !movePreview.isInsert &&
+      movePreview.members
+        ?.filter((member) => member.laneId === row.id)
+        .map((member) => (
+          <div
+            key={`ghost-${member.clipId}`}
+            className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[88%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md will-change-[left]"
+            aria-hidden
+            style={{
+              left: member.startTime * pixelsPerSecond,
+              width: Math.max(24, member.duration * pixelsPerSecond),
+            }}
+          />
+        ))}
     </>
   );
 }
@@ -196,6 +228,8 @@ export function TimelineTrackCanvas({
   onClipDoubleClick,
   exclusiveRows = false,
   timelineEmpty = false,
+  movePreview = null,
+  onMovePreview,
 }: Props) {
   const { clipsForLane } = useVisibleTimeline({
     scrollLeft,
@@ -208,21 +242,7 @@ export function TimelineTrackCanvas({
     selectedClipIds ?? new Set();
   const effectivePreviewIds: ReadonlySet<string> | null =
     previewSelectedIds ?? null;
-  const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
-  const rowsHeight = rows.reduce(
-    (total, row, index) =>
-      total + row.height + (index < rows.length - 1 ? LANE_GAP_PX : 0),
-    0,
-  );
-  const contentHeight = topPadding + rowsHeight + bottomPadding;
-  const moveGhostLeft =
-    movePreview != null
-      ? TIMELINE_START_GUTTER_PX + movePreview.startTime * pixelsPerSecond
-      : null;
-  const moveGhostWidth =
-    movePreview != null
-      ? Math.max(24, movePreview.duration * pixelsPerSecond)
-      : null;
+  const setMovePreview = onMovePreview ?? (() => undefined);
   return (
     <div
       className="relative min-h-0"
@@ -319,87 +339,12 @@ export function TimelineTrackCanvas({
                 onClipDoubleClick={onClipDoubleClick}
                 exclusiveRows={exclusiveRows}
                 movingClipId={movePreview?.clipId}
+                movePreview={movePreview}
               />
             </div>
           );
         })
       )}
-
-      {movePreview &&
-      movePreview.valid &&
-      movePreview.isInsert &&
-      moveGhostLeft != null &&
-      moveGhostWidth != null ? (
-        <>
-          <div
-            className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
-            aria-hidden
-            data-testid="timeline-clip-move-ghost"
-            style={{
-              top: movePreview.contentTop,
-              left: moveGhostLeft,
-              width: moveGhostWidth,
-            }}
-          />
-          <div
-            data-testid="timeline-clip-insert-indicator"
-            className="pointer-events-none absolute z-[30] h-px bg-[#14B8A6]"
-            aria-hidden
-            style={{
-              top: movePreview.contentTop,
-              left: 0,
-              width: contentWidth,
-            }}
-          />
-        </>
-      ) : null}
-
-      {movePreview &&
-      !movePreview.isInsert &&
-      moveGhostLeft != null &&
-      moveGhostWidth != null ? (
-        <>
-          <div
-            className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
-            aria-hidden
-            data-testid="timeline-clip-move-ghost"
-            style={{
-              top: movePreview.contentTop,
-              left: moveGhostLeft,
-              width: moveGhostWidth,
-              height: Math.max(24, movePreview.laneHeightPx ?? 28),
-            }}
-          />
-          {movePreview.members?.map((member) => (
-            <div
-              key={`ghost-${member.clipId}`}
-              className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md"
-              aria-hidden
-              style={{
-                top: (movePreview.contentTop ?? 0) + member.offsetY,
-                left:
-                  TIMELINE_START_GUTTER_PX + member.startTime * pixelsPerSecond,
-                width: Math.max(24, member.duration * pixelsPerSecond),
-                height: Math.max(24, member.laneHeightPx ?? 28),
-              }}
-            />
-          ))}
-        </>
-      ) : null}
-
-      {movePreview?.snapGuideTime != null ? (
-        <div
-          data-testid="timeline-clip-snap-guide"
-          className="pointer-events-none absolute top-0 z-[32] w-px bg-[#14B8A6]"
-          aria-hidden
-          style={{
-            left:
-              TIMELINE_START_GUTTER_PX +
-              movePreview.snapGuideTime * pixelsPerSecond,
-            height: contentHeight,
-          }}
-        />
-      ) : null}
 
       {bottomPadding > 0 ? (
         <div style={{ height: bottomPadding }} aria-hidden />

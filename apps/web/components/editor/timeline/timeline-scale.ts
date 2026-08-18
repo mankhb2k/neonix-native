@@ -38,3 +38,8 @@ export const LANE_GAP_PX = 4;
 /** CapCut: overlay drop zone above Main, audio drop zone below. Not lanes. */
 export const TIMELINE_TOP_PADDING_PX = 40;
 export const TIMELINE_BOTTOM_PADDING_PX = 40;
+
+/** Visible strip height inside a lane (matches ClipStrip `h-[88%]`). */
+export function clipStripHeightPx(laneHeightPx: number): number {
+  return Math.max(1, laneHeightPx * 0.88);
+}

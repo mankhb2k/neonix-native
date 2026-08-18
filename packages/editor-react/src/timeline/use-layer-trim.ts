@@ -56,7 +56,7 @@ export function useLayerTrim({
       event.preventDefault();
       onSelect(selectionNode(clip.id));
 
-      const { containerStart, containerDuration, sceneId } = layerSession;
+      const { containerStart, containerDuration, rootLayerId } = layerSession;
       const mediaMax =
         layerSession.mediaMaxDurationByNodeId?.get(clip.id) ?? null;
       const originX = event.clientX;
@@ -134,11 +134,11 @@ export function useLayerTrim({
             onCommandProperty({
               command: {
                 type: "set-node-timing",
-                targets: [{ rootLayerId: sceneId, layerId: clip.id }],
+                targets: [{ rootLayerId, layerId: clip.id }],
                 timing: clamped,
               },
               label: "Trim layer",
-              coalesceKey: `node-timing:${sceneId}:${clip.id}`,
+              coalesceKey: `node-timing:${rootLayerId}:${clip.id}`,
             });
           },
           onCancel: () => onTrimPreview(null),

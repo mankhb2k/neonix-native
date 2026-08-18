@@ -1,5 +1,6 @@
 "use client";
 
+import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
 import { buildLaneHeightPrefix } from "@/hooks/editor/timeline/visible-lane-window";
 import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
@@ -23,11 +24,13 @@ import {
   PLAYHEAD_SCRUB_EDGE_PX,
   PLAYHEAD_SCRUB_STEP_PX,
   PLAYHEAD_FOLLOW_MARGIN_PX,
+  type ClipMovePreview,
   type MarqueeRect,
 } from "@motionvideo/editor-interactions";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -47,10 +50,10 @@ import {
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import type { TimelineDesignMode } from "../Header/TransportBar";
 import { Playhead } from "./Playhead";
+import { ClipMoveOverlays } from "./ClipMoveOverlays";
 import { LibraryDropGhostOverlay } from "./LibraryDropGhostOverlay";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
-import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
 
 type Props = {
   mode: TimelineDesignMode;
@@ -88,7 +91,6 @@ export function TimelineViewport({
   onClipDoubleClick,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const tracksAreaRef = useRef<HTMLDivElement>(null);
   const draggingPlayheadRef = useRef(false);
   const lastScrubClientXRef = useRef(0);
   const playheadEdgeRafRef = useRef<number | null>(null);
@@ -99,6 +101,8 @@ export function TimelineViewport({
   const [marqueeSelectionIds, setMarqueeSelectionIds] = useState<
     string[] | null
   >(null);
+  const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
+  const [viewportClientLeft, setViewportClientLeft] = useState(0);
 
   const {
     viewWidth: rawViewWidth,
@@ -109,11 +113,14 @@ export function TimelineViewport({
   } = useTimelineViewportMetrics({
     boardRef: scrollRef,
     tracksScrollRef: scrollRef,
-    trackAreaRef: tracksAreaRef,
     resetKey: 0,
     contentMeasureKey: 0,
   });
   const viewWidth = rawViewWidth || 800;
+  const tracksViewportHeight = Math.max(
+    0,
+    trackViewHeight - TIMELINE_RULER_HEIGHT_PX,
+  );
   const timelineEmpty = clips.length === 0 && mode === "track";
 
   const { beginGesture } = usePointerSessionHost();
@@ -136,9 +143,11 @@ export function TimelineViewport({
   }, [clips, lanes, mode]);
 
   const verticalInsets = useMemo(
-    () => timelineVerticalInsets(rows, trackViewHeight),
-    [rows, trackViewHeight],
+    () => timelineVerticalInsets(rows, tracksViewportHeight),
+    [rows, tracksViewportHeight],
   );
+  const scrollContentHeight =
+    TIMELINE_RULER_HEIGHT_PX + verticalInsets.contentHeight;
 
   const { laneHeightPrefix, laneContentHeights, sortedLanes, clipsByLaneMap } =
     useMemo(() => {
@@ -181,6 +190,22 @@ export function TimelineViewport({
     () => (marqueeSelectionIds ? new Set(marqueeSelectionIds) : null),
     [marqueeSelectionIds],
   );
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const update = () => setViewportClientLeft(el.getBoundingClientRect().left);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, []);
 
   useEffect(() => {
     const scrollEl = scrollRef.current;
@@ -371,24 +396,26 @@ export function TimelineViewport({
     >
       <div
         ref={scrollRef}
-        className="relative min-h-0 flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative min-h-0 flex-1 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         data-timeline-drop-zone="true"
         onScroll={onScroll}
       >
         <div
-          className="relative flex h-full min-h-0 flex-col"
-          style={{ width: contentWidth }}
+          className="relative"
+          style={{ width: contentWidth, height: scrollContentHeight }}
         >
-          <TimeRuler
-            duration={surfaceDuration}
-            fps={fps}
-            pixelsPerSecond={pps}
-            scrollLeft={scrollLeft}
-            originOffsetPx={TIMELINE_START_GUTTER_PX}
-            viewWidth={viewWidth}
-            onSeekClick={onSeekClick}
-          />
-          <div ref={tracksAreaRef} className="relative min-h-0 flex-1">
+          <div className="sticky top-0 z-20 bg-[var(--bg-surface)]">
+            <TimeRuler
+              duration={surfaceDuration}
+              fps={fps}
+              pixelsPerSecond={pps}
+              scrollLeft={scrollLeft}
+              originOffsetPx={TIMELINE_START_GUTTER_PX}
+              viewWidth={viewWidth}
+              onSeekClick={onSeekClick}
+            />
+          </div>
+          <div className="relative" style={{ height: verticalInsets.contentHeight }}>
             <div style={{ marginLeft: TIMELINE_START_GUTTER_PX }}>
               <TimelineTrackCanvas
                 rows={rows}
@@ -415,6 +442,8 @@ export function TimelineViewport({
                 onClipDoubleClick={onClipDoubleClick}
                 exclusiveRows={mode === "layer"}
                 timelineEmpty={timelineEmpty}
+                movePreview={movePreview}
+                onMovePreview={setMovePreview}
               />
             </div>
           </div>
@@ -431,6 +460,15 @@ export function TimelineViewport({
               data-testid="timeline-marquee"
             />
           ) : null}
+
+          <ClipMoveOverlays
+            preview={movePreview}
+            pixelsPerSecond={pps}
+            contentWidth={contentWidth}
+            contentHeight={scrollContentHeight}
+            viewportClientLeft={viewportClientLeft}
+            scrollLeft={scrollLeft}
+          />
 
           <LibraryDropGhostOverlay contentWidth={contentWidth} />
 

@@ -8,6 +8,7 @@ import {
   type LibraryDragSessionState,
 } from "@/lib/editor/library/library-drag-session";
 import type { LibraryPayload } from "@/lib/editor/library/library-payload";
+import { isOverTimelineDropZone } from "@/lib/editor/library/timeline-library-drop";
 
 const CARD_ANCHOR_X = 34;
 const CARD_ANCHOR_Y = 34;
@@ -48,10 +49,21 @@ export function LibraryDragPreview() {
   const [session, setSession] = useState<LibraryDragSessionState>(() =>
     getLibraryDragSession(),
   );
+  const [overTimeline, setOverTimeline] = useState(false);
 
-  useEffect(() => subscribeLibraryDrag(setSession), []);
+  useEffect(
+    () =>
+      subscribeLibraryDrag((next) => {
+        setSession(next);
+        setOverTimeline(
+          next.phase === "dragging" &&
+            isOverTimelineDropZone(next.clientX, next.clientY),
+        );
+      }),
+    [],
+  );
 
-  if (session.phase !== "dragging" || !session.item) return null;
+  if (session.phase !== "dragging" || !session.item || overTimeline) return null;
 
   const left = session.clientX - CARD_ANCHOR_X;
   const top = session.clientY - CARD_ANCHOR_Y;

@@ -211,9 +211,60 @@ Nếu câu trả lời cho bất kỳ câu nào là không rõ, hãy đổi tên
 - Dùng `TimelineLane` cho hàng lane dẫn xuất.
 - Dùng `Selection` cho trạng thái chọn của editor.
 - Chỉ dùng `Document` khi nó chứa trạng thái editor dẫn xuất, không chỉ protocol JSON.
+- Dùng **float** / **ghost** / **playhead** / **insert line** / **snap guide** đúng như mục 9 — không gọi float là insert line.
 
 ---
 
-## 9. Quy tắc cuối
+## 9. Chrome timeline (float, ghost, playhead)
+
+Tên dùng chung cho chrome timeline (web + desktop). Dùng trong code, test, và review — **không** gọi float là “khối cyan”.
+
+Protocol document vẫn là `MotionProjectV1`. Mọi thứ dưới đây là **editor chrome**, không phải JSON.
+
+### Mảnh chrome
+
+| Thuật ngữ | Nghĩa | Trông như |
+| --- | --- | --- |
+| `TimelineClip` / **strip** | Layer chiếu lên một hàng timeline | Rect bo góc trên lane (overlay tím, Main teal/green, audio) |
+| `TimelineLane` / **row** | Một hàng ngang trên timeline | Band `--timeline-track-lane` |
+| **Playhead** | Thời điểm hiện tại của phiên. Không lưu trong V1 | Kim + handle trắng |
+| **Ruler** | Vạch thời gian phía trên track | `00:00`, `00:03`, … |
+| **Float** | Bản sao clip **đang kéo**. Bám pointer, **nằm trên** ghost | Cùng fill + label với strip (`timeline-clip-move-float`) |
+| **Ghost** | Placeholder tại **điểm thả** (time + lane hoặc khe insert) | Xám `#38383e` / fill nhạt (`timeline-clip-move-ghost`, `library-drop-ghost`) |
+| **Library card** | Bubble vuông khi kéo item library **ngoài** timeline | Card 68px (`library-drag-preview`) |
+| **Insert line** | Line ngang 1px khi tạo **lane mới** trong khe | Teal `#14B8A6` (`timeline-insert-indicator`) |
+| **Snap guide** | Line dọc 1px khi nam châm dính mép clip | Teal `#14B8A6` (`timeline-clip-snap-guide`) |
+| **Marquee** | Hình chữ nhật chọn khi kéo vùng trống | Viền accent |
+
+`Overlay` trong mục 4 là lớp UI phủ stage/timeline. Overlay **clip** trên timeline là `TimelineClip` kind overlay (fill `--timeline-clip-overlay`), không phải insert line.
+
+### Thứ tự chồng (trên → dưới) khi kéo
+
+```text
+float          ← đang cầm (chrome clip thật, position: fixed, z-[80])
+insert / snap
+ghost          ← chỗ sẽ rơi nếu thả (z-20 lane / z-30 insert / z-35 library)
+source strip   ← clip gốc, invisible / mờ khi đang kéo
+lane
+```
+
+Ví dụ: kéo overlay “Hình chữ nhật bo góc” → **float** là rect tím + label đó; **ghost** xám tại time đích; **insert line** chỉ khi pointer nằm trong khe giữa các lane.
+
+Library → timeline: **library card** theo pointer cho tới khi vào timeline; trên timeline card ẩn, **float** (chrome clip) thay thế.
+
+### Không phải float
+
+- Insert line và snap guide là **vạch dẫn**, không phải clip.
+- Desktop từng hardcode overlay strip `#0F766E` (teal). Web overlay là `--timeline-clip-overlay` (tím). Float dùng `clipVisualClass`, không dùng màu teal của insert line.
+
+### File liên quan
+
+- Web: `apps/web/components/editor/timeline/viewport/ClipMoveOverlays.tsx`, `LibraryDropGhostOverlay.tsx`, `TimelineClipFloat.tsx`
+- Desktop: `apps/desktop/gui/editor/timeline/viewport/TimelineOverlays.tsx`
+- Strip: `apps/web/components/editor/timeline/clips/ClipStrip.tsx` (`clipVisualClass`)
+
+---
+
+## 10. Quy tắc cuối
 
 Nếu một cái tên có thể mang hai nghĩa, nó chưa sẵn sàng cho code dùng chung.

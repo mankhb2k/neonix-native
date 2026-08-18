@@ -1,14 +1,15 @@
-import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
-import { selectionClips, selectionNone } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
+  resolveFitAnchorSeconds,
+  selectionClips,
+  selectionNone,
+  syncProjectProtocolContract,
 } from "@motionvideo/editor-core";
-import { parseProjectInput } from "@/lib/runtime/parse-project-input";
-import { syncProjectProtocolContract } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,

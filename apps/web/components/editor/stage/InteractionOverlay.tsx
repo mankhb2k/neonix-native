@@ -1,26 +1,6 @@
 "use client";
 
 import {
-  clientToComposition,
-  resolveStageHit,
-  selectionBoxFromWorldAndDelta,
-  type ResizeHandle,
-} from "@motionvideo/editor-interactions";
-import { useNodeTransform } from "@/hooks/editor/stage/use-node-transform";
-import { useStageHotkeys } from "@/hooks/editor/stage/use-stage-hotkeys";
-import { useStagePointerSession } from "@/hooks/editor/stage/use-stage-pointer-session";
-import {
-  selectionNone,
-  selectionNode,
-  visualTracksToTimelineClips,
-  findNode,
-  rootLayerIdOf,
-} from "@motionvideo/editor-core";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { useEditorStore } from "@/lib/editor/editor-store";
-import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
-import {
   useCallback,
   useEffect,
   useMemo,
@@ -28,6 +8,26 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useNodeTransform } from "@/hooks/editor/stage/use-node-transform";
+import { useStageHotkeys } from "@/hooks/editor/stage/use-stage-hotkeys";
+import { useStagePointerSession } from "@/hooks/editor/stage/use-stage-pointer-session";
+import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
+import {
+  selectionNone,
+  selectionNode,
+  visualTracksToTimelineClips,
+  findNode,
+  rootLayerIdOf,
+} from "@motionvideo/editor-core";
+import {
+  clientToComposition,
+  resolveStageHit,
+  selectionBoxFromWorldAndDelta,
+  type ResizeHandle,
+} from "@motionvideo/editor-interactions";
 import type { RenderSnapshot } from "@motionvideo/motion-runtime";
 
 type Props = {
@@ -275,7 +275,7 @@ export function InteractionOverlay({
       const nextIndex =
         event.altKey || event.detail > 1 ? (cycleIndex + 1) % hits.length : 0;
       setCycleIndex(nextIndex);
-      const hit = hits[nextIndex]!;
+      const hit = hits[nextIndex];
       useEditorStore.setState({
         selection: selectionNode(hit.layerId),
       });

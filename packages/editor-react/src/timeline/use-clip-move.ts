@@ -379,7 +379,7 @@ export function useClipMove({
               startTime: primaryStart,
               laneId: isGroup ? originLaneId : resolved.preview.laneId,
               valid: isGroup ? groupValid : resolved.commit.valid,
-              trackKind: originTrack,
+              trackKind: isGroup ? originTrack : resolved.preview.trackKind,
               label: clip.name || clip.id,
               clientX: pos.x,
               clientY: pos.y,

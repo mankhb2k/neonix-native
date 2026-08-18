@@ -21,7 +21,7 @@ const DRAG_THRESHOLD_PX = 4;
 const MIN_LAYER_DURATION_SEC = 0.05;
 
 export type LayerMoveSession = {
-  sceneId: string;
+  rootLayerId: string;
   containerStart: number;
   containerDuration: number;
   orderedLayerIds: string[];
@@ -87,7 +87,7 @@ export function useLayerMove({
         0,
         Math.min(originDuration, originContentX / pps - clip.startTime),
       );
-      const { containerStart, containerDuration, sceneId, orderedLayerIds } =
+      const { containerStart, containerDuration, rootLayerId, orderedLayerIds } =
         layerSession;
       const originIndex = orderedLayerIds.indexOf(clip.id);
       const homeInsertBefore = originIndex >= 0 ? originIndex : 0;
@@ -203,11 +203,11 @@ export function useLayerMove({
               onCommandProperty({
                 command: {
                   type: "set-node-timing",
-                  targets: [{ rootLayerId: sceneId, layerId: clip.id }],
+                  targets: [{ rootLayerId, layerId: clip.id }],
                   timing: clamped,
                 },
                 label: "Move layer",
-                coalesceKey: `node-timing:${sceneId}:${clip.id}`,
+                coalesceKey: `node-timing:${rootLayerId}:${clip.id}`,
               });
             }
 
@@ -221,11 +221,11 @@ export function useLayerMove({
                 onCommandProperty({
                   command: {
                     type: "reorder-scene-layers",
-                    rootLayerId: sceneId,
+                    rootLayerId,
                     layerIds: nextOrder,
                   },
                   label: "Reorder layers",
-                  coalesceKey: `node-reorder:${sceneId}`,
+                  coalesceKey: `node-reorder:${rootLayerId}`,
                 });
               }
             }

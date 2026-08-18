@@ -1,6 +1,4 @@
-import { selectionNone } from "@motionvideo/editor-core";
-import { ensureMainLane } from "@motionvideo/editor-core";
-import type { ClipClipboardItem } from "@motionvideo/editor-core";
+import { ensureMainLane, selectionNone } from "@motionvideo/editor-core";
 import type { EditorStoreState } from "@/lib/editor/store/types";
 
 export function createInitialEditorState(): EditorStoreState {
@@ -19,7 +17,7 @@ export function createInitialEditorState(): EditorStoreState {
     timelineZoomScale: 1.0,
     timelineFitAnchorSeconds: null,
     timelineFitRevision: 0,
-    timelineClipboard: null as ClipClipboardItem[] | null,
+    timelineClipboard: null,
     canUndo: false,
     canRedo: false,
     dirtyRevision: 0,
