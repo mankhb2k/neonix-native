@@ -1,5 +1,5 @@
 /**
- * Preview compose — xác định lớp visual tại global time (Phase 6).
+ * Preview compose — xác định root visual layer tại global time (Phase 6).
  * Index memo theo clips/lanes; frame chỉ binary search (PERF).
  */
 
@@ -11,9 +11,13 @@ import {
   type VisualTimelineLane,
 } from "../timeline/model/timeline-types";
 
-export type ComposedSceneLayer = {
+/**
+ * Một root visual layer được compose tại `time`.
+ * `layerId` = id của root layer trong protocol (nguồn của `TimelineClip.sceneId`).
+ */
+export type ComposedLayer = {
   clipId: string;
-  sceneId: string;
+  layerId: string;
   localTime: number;
   /** Lane order — overlay cao hơn vẽ sau. Base dùng -1. */
   zOrder: number;
@@ -35,7 +39,14 @@ export function clipContainsTime(clip: TimelineClip, time: number): boolean {
   return time >= clip.startTime && time < clip.startTime + clip.duration;
 }
 
-/** Binary search clip active tại time trên danh sách đã sort theo startTime. */
+/**
+ * Binary search clip active tại `time` trên danh sách đã sort theo startTime.
+ *
+ * Overlap policy (explicit): lane/clip giả định không overlap trong cùng lane
+ * (`VisualLanePolicy.allowOverlap === false`). Nếu dữ liệu hỏng vẫn có overlap
+ * bất hợp lệ, clip có `startTime` lớn nhất `<= time` thắng ("later start wins");
+ * tie-break theo `id` (localeCompare) ở `sortedSceneClipsOnLane`.
+ */
 export function findActiveClipAtTime(
   sortedClips: TimelineClip[],
   time: number,
@@ -108,14 +119,14 @@ function localTimeOf(clip: TimelineClip, time: number): number {
 export function composeAtTime(
   index: VisualLaneIndex,
   time: number,
-): ComposedSceneLayer[] {
-  const layers: ComposedSceneLayer[] = [];
+): ComposedLayer[] {
+  const layers: ComposedLayer[] = [];
   if (index.baseVisible && index.baseLaneId) {
     const clip = findActiveClipAtTime(index.baseClips, time);
     if (clip && isSceneClip(clip) && clip.sceneId) {
       layers.push({
         clipId: clip.id,
-        sceneId: clip.sceneId,
+        layerId: clip.sceneId,
         localTime: localTimeOf(clip, time),
         zOrder: -1,
         role: "base",
@@ -128,7 +139,7 @@ export function composeAtTime(
     if (!clip || !isSceneClip(clip) || !clip.sceneId) continue;
     layers.push({
       clipId: clip.id,
-      sceneId: clip.sceneId,
+      layerId: clip.sceneId,
       localTime: localTimeOf(clip, time),
       zOrder: lane.order,
       role: "overlay",
@@ -146,14 +157,15 @@ export function composeVisualLayersAtTime(
   clips: TimelineClip[],
   lanes: TimelineLane[],
   time: number,
-): ComposedSceneLayer[] {
+): ComposedLayer[] {
   return composeAtTime(buildVisualLaneIndex(clips, lanes), time);
 }
 
-export function resolveScene(
-  scenesById: Map<string, MotionLayer>,
-  scenes: MotionLayer[],
-  sceneId: string,
+/** Resolve root layer theo `layerId` (map trước, rồi fallback linear scan). */
+export function resolveLayer(
+  layersById: Map<string, MotionLayer>,
+  layers: MotionLayer[],
+  layerId: string,
 ): MotionLayer | undefined {
-  return scenesById.get(sceneId) ?? scenes.find((s) => s.id === sceneId);
+  return layersById.get(layerId) ?? layers.find((l) => l.id === layerId);
 }

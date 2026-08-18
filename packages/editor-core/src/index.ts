@@ -114,17 +114,14 @@ export type {
 export { createPlaybackDriver } from "./playback/playback-driver";
 export { playbackFrameIndex, playbackFrameTime } from "./playback/time-frame";
 
-export type {
-  ComposedSceneLayer,
-  VisualLaneIndex,
-} from "./preview/compose-layers";
+export type { ComposedLayer, VisualLaneIndex } from "./preview/compose-layers";
 export {
   buildVisualLaneIndex,
   clipContainsTime,
   composeAtTime,
   composeVisualLayersAtTime,
   findActiveClipAtTime,
-  resolveScene,
+  resolveLayer,
 } from "./preview/compose-layers";
 
 export { clipLocalTime, sliceScene } from "./export/slice-scene";

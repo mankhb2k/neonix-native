@@ -118,7 +118,7 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     expect(domHost.textContent?.length ?? 0).toBeGreaterThan(0);
     expect(canvasHost.querySelector("canvas")).toBeTruthy();
 
-    const graphIds = new Set(layers.map((l) => l.sceneId));
+    const graphIds = new Set(layers.map((l) => l.layerId));
     for (const id of graphIds) {
       expect(fixture.project.scenes.some((s) => s.id === id)).toBe(true);
     }

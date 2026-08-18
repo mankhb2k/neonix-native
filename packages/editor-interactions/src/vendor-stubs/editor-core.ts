@@ -41,7 +41,7 @@ export type TimelineLane = {
 };
 
 export type NodeTargetRef = {
-  sceneId: string;
+  rootLayerId: string;
   layerId: string;
 };
 
@@ -79,6 +79,30 @@ export function resolveOccupancyAwarePlacement(input: {
   retargetLaneRole?: "base" | "overlay" | "audio";
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  swapClipId?: string | null;
 } {
   return { startTime: input.desiredStart };
+}
+
+export function resolveExclusiveRowPlacement(input: {
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >;
+  desiredStart: number;
+  excludeIds?: ReadonlySet<string>;
+}): {
+  startTime: number;
+  edgeGuideTime: number | null;
+  retargetLaneId?: string | null;
+  retargetLaneRole?: "base" | "overlay" | "audio" | null;
+  insertNewLane: boolean;
+  insertOrder: number | null;
+  swapClipId?: string | null;
+} {
+  return {
+    startTime: Math.max(0, input.desiredStart),
+    edgeGuideTime: null,
+    insertNewLane: false,
+    insertOrder: null,
+  };
 }

@@ -11,7 +11,7 @@ import {
   buildVisualLaneIndex,
   composeAtTime,
   nodeText,
-  resolveScene,
+  resolveLayer,
   type TimelineClip,
   type TimelineLane,
   type VisualLaneIndex,
@@ -192,17 +192,21 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         layerEls.set(layer.clipId, layerEl);
       }
       layerEl.dataset.testid = `preview-layer-${layer.role}`;
-      layerEl.dataset.sceneId = layer.sceneId;
+      layerEl.dataset.layerId = layer.layerId;
       layerEl.style.zIndex = String(
         layer.role === "base" ? 0 : 10 + layer.zOrder,
       );
 
-      const scene = resolveScene(scenesById, project.layers, layer.sceneId);
-      if (!scene) continue;
-      const sceneLayers = sceneNodeMaps.get(scene.id) ?? null;
+      const rootLayer = resolveLayer(scenesById, project.layers, layer.layerId);
+      if (!rootLayer) continue;
+      const sceneLayers = sceneNodeMaps.get(rootLayer.id) ?? null;
 
       const frame = quantizeTimeToFrame(layer.localTime, fps);
-      const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
+      const snapshot = previewParitySnapshot(
+        compiled,
+        rootLayer.id,
+        frame.time,
+      );
 
       for (const node of snapshot.layers) {
         if (!isRenderableNode(node)) continue;

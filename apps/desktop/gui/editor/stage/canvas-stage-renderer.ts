@@ -94,7 +94,7 @@ export function createCanvasStageRenderer(
     const scenes = new Map(project.scenes.map((s) => [s.id, s]));
     let i = 0;
     for (const layer of layers) {
-      const scene = scenes.get(layer.sceneId);
+      const scene = scenes.get(layer.layerId);
       if (!scene) continue;
       for (const node of scene.layers) {
         const t = node.transform;

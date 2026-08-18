@@ -302,7 +302,7 @@ export function buildExportProject(
 
     let scene: MotionLayer;
     if (baseLayer) {
-      const source = scenesById.get(baseLayer.sceneId);
+      const source = scenesById.get(baseLayer.layerId);
       const baseClip = findClipById(timelineClips, baseLayer.clipId);
       const localStart = baseClip
         ? clipLocalTime(baseClip.startTime, baseClip.duration, t0)
@@ -312,7 +312,7 @@ export function buildExportProject(
         : emptyPadLayer(uid("pad"), duration, "Missing base", width, height);
       scene = { ...scene, id: uid("bake") };
       for (const overlay of overlayLayers) {
-        const ovScene = scenesById.get(overlay.sceneId);
+        const ovScene = scenesById.get(overlay.layerId);
         if (!ovScene) continue;
         const ovClip = findClipById(timelineClips, overlay.clipId);
         const ovLocal = ovClip
@@ -333,7 +333,7 @@ export function buildExportProject(
         height,
       );
       for (const overlay of overlayLayers) {
-        const ovScene = scenesById.get(overlay.sceneId);
+        const ovScene = scenesById.get(overlay.layerId);
         if (!ovScene) continue;
         const ovClip = findClipById(timelineClips, overlay.clipId);
         const ovLocal = ovClip
