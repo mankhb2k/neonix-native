@@ -100,7 +100,10 @@ export {
   audioLaneIdByOrder,
 } from "./timeline/internal/placement-adapter";
 export { resolveCollisionsAfterResize } from "./timeline/internal/resize-collision";
-export { rebuildMainProject } from "./timeline/internal/timeline-project-sync";
+export {
+  rebuildMainProject,
+  uniqueZIndexByLayerId,
+} from "./timeline/internal/timeline-project-sync";
 
 export type {
   PlaybackDriver,

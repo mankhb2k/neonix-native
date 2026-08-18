@@ -26,7 +26,11 @@ import {
 } from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
+import {
+  mergeEnvelopeLaneMembership,
+  packRootLayersToTimeline,
+  projectToTimelineDocument,
+} from "@motionvideo/editor-core";
 import { clipsContentEndSeconds } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
@@ -99,15 +103,23 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     },
     executeTimelineCommand: (command) => {
       const state = get();
-      const doc = documentFromStoreState(state);
-      if (!doc) {
+      const storeDoc = documentFromStoreState(state);
+      if (!storeDoc) {
         return {
           status: "rejected",
           reason: "no_project",
           message: "Project chưa được nạp vào store.",
         };
       }
-      const beforeDoc = doc;
+      const inGroup = state.groupPath.length > 0;
+      const doc = inGroup
+        ? projectToTimelineDocument(
+            storeDoc.project,
+            storeDoc.revision,
+            state.groupPath,
+          )
+        : storeDoc;
+      const beforeDoc = storeDoc;
       const beforeSelection = state.selection;
       const wasEmpty = state.timelineClips.length === 0;
 
@@ -119,7 +131,21 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       );
 
       if (result.status === "applied") {
-        const afterDoc = result.document;
+        const packedMain = inGroup
+          ? mergeEnvelopeLaneMembership(
+              packRootLayersToTimeline(result.document.project),
+              state.timelineClips,
+              state.timelineLanes,
+            )
+          : {
+              lanes: result.document.lanes,
+              clips: result.document.clips,
+            };
+        const afterDoc = {
+          ...result.document,
+          lanes: packedMain.lanes,
+          clips: packedMain.clips,
+        };
         const afterSelection = result.selection ?? state.selection;
         const entry: HistoryEntry = {
           id: `hist_${Math.random().toString(36).slice(2, 9)}`,
@@ -132,14 +158,14 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         };
         historyState = pushHistory(historyState, entry);
 
-        const isEmptyNow = result.document.clips.length === 0;
+        const isEmptyNow = packedMain.clips.length === 0;
         const addedFirstClip = wasEmpty && !isEmptyNow;
-        const firstClip = result.document.clips[0];
+        const firstClip = packedMain.clips[0];
 
         set({
           project: result.document.project,
-          timelineLanes: result.document.lanes,
-          timelineClips: result.document.clips,
+          timelineLanes: packedMain.lanes,
+          timelineClips: packedMain.clips,
           dirtyRevision: state.dirtyRevision + 1,
           canUndo: canUndo(historyState),
           canRedo: canRedo(historyState),
@@ -267,7 +293,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
 
       if (project.layers.length === 0) {
         project = createFacebookHistoryDemoProject();
-        const { lanes, clips } = visualTracksToTimelineClips(project);
+        const { lanes, clips } = packRootLayersToTimeline(project);
         set({
           project,
           timelineLanes: lanes,

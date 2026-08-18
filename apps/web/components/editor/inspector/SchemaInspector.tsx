@@ -419,8 +419,11 @@ export function SchemaInspector() {
   );
 
   return (
-    <aside className="min-h-0 border-l-2 border-[var(--border-subtle)] [grid-area:inspector]">
-      <Panel bodyClassName="!p-0" className="h-full rounded-none border-0">
+    <aside className="editor-panel overflow-hidden [grid-area:inspector]">
+      <Panel
+        bodyClassName="!p-0"
+        className="h-full rounded-none border-0 bg-transparent shadow-none"
+      >
         <Tabs
           defaultValue="ai"
           items={[

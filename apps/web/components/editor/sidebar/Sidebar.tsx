@@ -2,6 +2,7 @@
 
 import { Panel, Tabs } from "@/components/ui";
 import { GroupLayersPanel } from "@/components/editor/panels/GroupLayersPanel";
+import { ProtocolJsonPanel } from "@/components/editor/panels/ProtocolJsonPanel";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { FileAudio, ImagePlus, Upload } from "lucide-react";
 
@@ -62,8 +63,11 @@ function AssetsPanel() {
 
 export function Sidebar() {
   return (
-    <aside className="min-h-0 border-r-2 border-[var(--border-subtle)] [grid-area:sidebar]">
-      <Panel bodyClassName="!p-0" className="h-full rounded-none border-0">
+    <aside className="editor-panel overflow-hidden [grid-area:sidebar]">
+      <Panel
+        bodyClassName="!p-0"
+        className="h-full rounded-none border-0 bg-transparent shadow-none"
+      >
         <Tabs
           defaultValue="layers"
           items={[
@@ -76,6 +80,11 @@ export function Sidebar() {
               id: "assets",
               label: "Assets",
               content: <AssetsPanel />,
+            },
+            {
+              id: "json",
+              label: "JSON",
+              content: <ProtocolJsonPanel />,
             },
           ]}
         />

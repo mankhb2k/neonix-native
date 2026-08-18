@@ -14,6 +14,7 @@
 import {
   documentFromStoreState,
   groupLayers,
+  packRootLayersToTimeline,
   resolveGroupPath,
   selectionNone,
   uid,
@@ -90,7 +91,17 @@ export function createGroupActions(
     const before = documentFromStoreState(get());
     if (!before) return;
     const nextProject = { ...beforeProject, layers: nextLayers };
-    set({ project: nextProject, dirtyRevision: get().dirtyRevision + 1 });
+    const packed =
+      get().groupPath.length === 0
+        ? packRootLayersToTimeline(nextProject)
+        : null;
+    set({
+      project: nextProject,
+      dirtyRevision: get().dirtyRevision + 1,
+      ...(packed
+        ? { timelineClips: packed.clips, timelineLanes: packed.lanes }
+        : {}),
+    });
     const after = documentFromStoreState({
       ...get(),
       project: nextProject,

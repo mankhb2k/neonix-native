@@ -2,7 +2,7 @@ import type {
   TimelineClip,
   TimelineLane,
 } from "../timeline/model/timeline-types";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 
 /**
  * TimelineDocument — domain aggregate gom project, lanes, clips.
@@ -98,6 +98,21 @@ export function storeStateFromDocument(doc: TimelineDocument): {
     revision: doc.revision,
     fingerprint: doc.fingerprint,
   };
+}
+
+/** Visual layer ids anywhere in the tree (groups + nested children). */
+export function collectVisualLayerIds(
+  layers: readonly MotionLayer[],
+): Set<string> {
+  const ids = new Set<string>();
+  const walk = (list: readonly MotionLayer[]) => {
+    for (const layer of list) {
+      if (layer.type !== "audio") ids.add(layer.id);
+      if (layer.type === "group") walk(layer.children);
+    }
+  };
+  walk(layers);
+  return ids;
 }
 
 /** Helper so sánh overlap thời gian giữa 2 clip */
@@ -210,11 +225,7 @@ export function validateTimelineDocument(
   const rootLayers = doc.project.layers.filter(
     (layer) => layer.parentLayerId === null,
   );
-  const projectSceneIds = new Set(
-    rootLayers
-      .filter((layer) => layer.type !== "audio")
-      .map((layer) => layer.id),
-  );
+  const projectSceneIds = collectVisualLayerIds(doc.project.layers);
   const audioTrackIds = new Set(
     rootLayers
       .filter((layer) => layer.type === "audio")

@@ -107,7 +107,7 @@ export function TimelineHScrollBar({
   return (
     <div
       ref={trackRef}
-      className="relative w-full min-w-0 shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-editor)]"
+      className="relative w-full min-w-0 shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]"
       style={{ height: TRACK_HEIGHT_PX }}
       data-testid="timeline-hscroll"
       aria-label="Timeline horizontal scroll"

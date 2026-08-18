@@ -1,14 +1,12 @@
 "use client";
 
 import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
-import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
-import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import {
   resolveStageRendererBackend,
   type StageRendererBackend,
 } from "@/lib/editor/stage/stage-renderer-factory";
-import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
+import { stackRootLayersToTimeline } from "@motionvideo/editor-core";
 import { subscribeLibraryDrag } from "@/lib/editor/library/library-drag-session";
 import { isOverStageDropZone } from "@/lib/editor/library/timeline-library-drop";
 import { cn } from "@/lib/utils";
@@ -22,8 +20,6 @@ type Props = {
 };
 
 export function StageViewport({ project, width, height }: Props) {
-  const clips = useEditorStore((s) => s.timelineClips);
-  const lanes = useEditorStore((s) => s.timelineLanes);
   const [mode, setMode] = useState<StageRendererBackend>("pixi");
   const [dragOver, setDragOver] = useState(false);
 
@@ -33,10 +29,9 @@ export function StageViewport({ project, width, height }: Props) {
 
   const preview = useMemo(() => resolvePreviewProject(project), [project]);
   const { paintClips, paintLanes } = useMemo(() => {
-    if (clips.length > 0) return { paintClips: clips, paintLanes: lanes };
-    const derived = visualTracksToTimelineClips(preview.project);
-    return { paintClips: derived.clips, paintLanes: derived.lanes };
-  }, [clips, lanes, preview.project]);
+    const stacked = stackRootLayersToTimeline(preview.project);
+    return { paintClips: stacked.clips, paintLanes: stacked.lanes };
+  }, [preview.project]);
 
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
@@ -50,7 +45,7 @@ export function StageViewport({ project, width, height }: Props) {
 
   return (
     <main
-      className="flex min-h-0 min-w-0 flex-col [grid-area:stage]"
+      className="editor-panel flex flex-col overflow-hidden [grid-area:stage]"
       data-testid="editor-stage"
       data-stage-backend={mode}
     >
@@ -71,10 +66,6 @@ export function StageViewport({ project, width, height }: Props) {
             lanes={paintLanes}
           />
         </div>
-      </div>
-
-      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t-2 border-[var(--border-subtle)] bg-[var(--bg-editor)]">
-        <TimelineShell />
       </div>
     </main>
   );

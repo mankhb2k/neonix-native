@@ -20,6 +20,7 @@ export function GroupLayersPanel() {
   const scope = useGroupScope();
   const groupPath = useEditorStore((s) => s.groupPath);
   const selection = useEditorStore((s) => s.selection);
+  const rootLayers = useEditorStore((s) => s.project?.layers);
 
   // Paint order = zIndex descending (front-most first).
   const layers = useMemo(
@@ -37,7 +38,7 @@ export function GroupLayersPanel() {
   return (
     <div className="flex h-full flex-col">
       <Breadcrumbs
-        layers={scope.layers}
+        layers={rootLayers ?? []}
         groupPath={groupPath}
         onNavigate={(depth) => store.getState().navigateGroupDepth(depth)}
       />

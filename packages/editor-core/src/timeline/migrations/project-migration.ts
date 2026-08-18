@@ -7,6 +7,7 @@ import {
 } from "../model/timeline-types";
 import type { OverlaySceneItem } from "../../overlay-scenes";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
+import { packRootLayersToTimeline } from "../selectors/scene-order-clips";
 
 function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
@@ -61,6 +62,10 @@ export function migrateLanesAndClips(
   storedClips: TimelineClip[] = [],
   storedLanes: TimelineLane[] = [],
 ): { lanes: TimelineLane[]; clips: TimelineClip[] } {
+  if (storedClips.length === 0 && overlays.length === 0) {
+    return packRootLayersToTimeline(project);
+  }
+
   if (
     storedLanes.length > 0 &&
     storedClips.every((clip) => Boolean(clip.laneId))

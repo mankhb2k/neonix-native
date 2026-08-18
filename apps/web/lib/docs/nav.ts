@@ -36,6 +36,15 @@ export const DOCS_NAV: DocsNavGroup[] = [
     ],
   },
   {
+    id: "editor",
+    label: "Editor",
+    items: [
+      { href: "/docs/editor", label: "Editor vs protocol" },
+      { href: "/docs/editor/main", label: "Main view" },
+      { href: "/docs/editor/group", label: "Group view" },
+    ],
+  },
+  {
     id: "layers",
     label: "Layers",
     items: [

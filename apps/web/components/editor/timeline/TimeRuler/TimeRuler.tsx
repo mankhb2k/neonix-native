@@ -53,7 +53,7 @@ export const TimeRuler = memo(function TimeRuler({
 
   return (
     <div
-      className="relative w-full shrink-0 cursor-default select-none overflow-hidden bg-[var(--bg-editor)]"
+      className="relative w-full shrink-0 cursor-default select-none overflow-hidden bg-[var(--bg-surface)]"
       style={{ height: TIMELINE_RULER_HEIGHT_PX }}
       data-testid="timeline-ruler"
       onPointerDown={(event) => {

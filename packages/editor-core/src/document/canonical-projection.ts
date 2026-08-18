@@ -10,7 +10,11 @@
 
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import { computeProjectHashShort } from "@motionvideo/motion-protocol";
-import { visualTracksToTimelineClips } from "../timeline/selectors/scene-order-clips";
+import {
+  groupPathToTimelineClips,
+  visualTracksToTimelineClips,
+} from "../timeline/selectors/scene-order-clips";
+import { collectVisualLayerIds } from "./document";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
 import type { TimelineDocument } from "./document";
 
@@ -51,12 +55,17 @@ export function documentFingerprint(doc: TimelineDocument): string {
  *
  * @param project The authoring project (canonical source of truth)
  * @param previousRevision If provided, revision = previousRevision + 1; else INITIAL_REVISION
+ * @param groupPath When non-empty, project a 1-child-1-row group surface
  */
 export function projectToTimelineDocument(
   project: MotionProject,
   previousRevision?: number,
+  groupPath?: readonly string[],
 ): TimelineDocument {
-  const { lanes, clips } = visualTracksToTimelineClips(project);
+  const { lanes, clips } =
+    groupPath && groupPath.length > 0
+      ? groupPathToTimelineClips(project, groupPath)
+      : visualTracksToTimelineClips(project);
   const normalizedLanes = normalizeLaneOrders(lanes);
 
   const revision = (previousRevision ?? INITIAL_REVISION - 1) + 1;
@@ -134,11 +143,7 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
   const rootLayers = doc.project.layers.filter(
     (layer) => layer.parentLayerId === null,
   );
-  const sceneIds = new Set(
-    rootLayers
-      .filter((layer) => layer.type !== "audio")
-      .map((layer) => layer.id),
-  );
+  const sceneIds = collectVisualLayerIds(doc.project.layers);
   const audioTrackIds = new Set(
     rootLayers
       .filter((layer) => layer.type === "audio")

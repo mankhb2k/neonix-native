@@ -68,6 +68,7 @@ type Props = {
   onExecute: (command: TimelineCommand, label: string) => void;
   onBeginScrub?: () => void;
   onEndScrub?: () => void;
+  onClipDoubleClick?: (clip: TimelineClip) => void;
 };
 
 export function TimelineViewport({
@@ -85,6 +86,7 @@ export function TimelineViewport({
   onExecute,
   onBeginScrub,
   onEndScrub,
+  onClipDoubleClick,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const tracksAreaRef = useRef<HTMLDivElement>(null);
@@ -113,6 +115,7 @@ export function TimelineViewport({
     contentMeasureKey: 0,
   });
   const viewWidth = rawViewWidth || 800;
+  const timelineEmpty = clips.length === 0 && mode === "track";
 
   const { beginGesture } = usePointerSessionHost();
 
@@ -362,7 +365,7 @@ export function TimelineViewport({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col bg-[var(--bg-surface)]"
       data-testid="timeline-viewport"
     >
       <div
@@ -408,6 +411,8 @@ export function TimelineViewport({
                 scrollRef={scrollRef}
                 onMarqueePointerDown={beginMarquee}
                 onClipSelectPointerDown={onClipSelectPointerDown}
+                onClipDoubleClick={onClipDoubleClick}
+                timelineEmpty={timelineEmpty}
               />
             </div>
           </div>
@@ -429,7 +434,7 @@ export function TimelineViewport({
 
           <Playhead
             leftPx={playheadLeft}
-            muted={surfaceDuration <= 0}
+            muted={timelineEmpty || surfaceDuration <= 0}
             onScrubStart={onPlayheadScrubStart}
             onScrubMove={onPlayheadScrubMove}
             onScrubEnd={onPlayheadScrubEnd}

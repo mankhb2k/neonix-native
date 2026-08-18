@@ -2,7 +2,11 @@
 
 import { cn } from "@/lib/utils";
 import type { TimelineClip } from "@motionvideo/editor-core";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { useRef } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 
 export type ClipStripVisualKind = "main" | "overlay" | "audio";
 
@@ -65,6 +69,10 @@ type Props = {
     event: ReactPointerEvent<HTMLElement>,
     clip: TimelineClip,
   ) => void;
+  onDoubleClick?: (
+    event: ReactMouseEvent<HTMLElement>,
+    clip: TimelineClip,
+  ) => void;
 };
 
 export function ClipStrip({
@@ -77,20 +85,55 @@ export function ClipStrip({
   onBeginMove,
   onBeginTrim,
   onSelectPointerDown,
+  onDoubleClick,
 }: Props) {
   const left = clip.startTime * pixelsPerSecond;
   const width = Math.max(8, clip.duration * pixelsPerSecond);
-  const interactive = Boolean(onBeginMove || onSelectPointerDown);
+  const interactive = Boolean(onBeginMove || onSelectPointerDown || onDoubleClick);
+  const pendingRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const dragStartedRef = useRef(false);
 
   const handleBodyPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    if (onBeginMove) {
-      onBeginMove(event, clip);
+    if (event.detail >= 2) {
+      pendingRef.current = null;
+      dragStartedRef.current = false;
+      onDoubleClick?.(
+        event as unknown as ReactMouseEvent<HTMLElement>,
+        clip,
+      );
       return;
     }
-    if (onSelectPointerDown) {
-      onSelectPointerDown(event, clip);
+    pendingRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+    dragStartedRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onSelectPointerDown?.(event, clip);
+  };
+
+  const handleBodyPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const pending = pendingRef.current;
+    if (!pending || dragStartedRef.current || !onBeginMove) return;
+    const dx = event.clientX - pending.x;
+    const dy = event.clientY - pending.y;
+    if (dx * dx + dy * dy < 16) return;
+    pendingRef.current = null;
+    dragStartedRef.current = true;
+    onBeginMove(event, clip);
+  };
+
+  const handleBodyPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    pendingRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
@@ -115,8 +158,16 @@ export function ClipStrip({
       style={{ left, width }}
       title={clip.name}
       data-clip-id={clip.id}
+      data-lane-id={clip.laneId}
       data-testid={`timeline-clip-${clip.id}`}
       onPointerDown={handleBodyPointerDown}
+      onPointerMove={handleBodyPointerMove}
+      onPointerUp={handleBodyPointerUp}
+      onPointerCancel={handleBodyPointerUp}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onDoubleClick?.(event, clip);
+      }}
     >
       <span className="truncate">{clip.name}</span>
       {selected && showTrimHandles ? (

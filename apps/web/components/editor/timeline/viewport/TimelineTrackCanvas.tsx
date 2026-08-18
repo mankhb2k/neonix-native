@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipStrip, type ClipStripVisualKind } from "../clips/ClipStrip";
+import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
@@ -51,6 +52,9 @@ type Props = {
     event: ReactPointerEvent<HTMLElement>,
     clip: TimelineClip,
   ) => void;
+  onClipDoubleClick?: (clip: TimelineClip) => void;
+  /** Replace lane rows with the dashed Main drop hint. */
+  timelineEmpty?: boolean;
 };
 
 // ── Per-lane sub-component (hooks must be at component level) ────────
@@ -68,11 +72,11 @@ type LaneRowClipsProps = {
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
   scrollRef: RefObject<HTMLElement | null>;
-  /** Fallback select when move hooks aren't wired */
   onClipSelectPointerDown?: (
     event: ReactPointerEvent<HTMLElement>,
     clip: TimelineClip,
   ) => void;
+  onClipDoubleClick?: (clip: TimelineClip) => void;
 };
 
 function LaneRowClips({
@@ -89,6 +93,7 @@ function LaneRowClips({
   onExecute,
   scrollRef,
   onClipSelectPointerDown,
+  onClipDoubleClick,
 }: LaneRowClipsProps) {
   const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
@@ -148,6 +153,11 @@ function LaneRowClips({
             onBeginMove={beginMove}
             onBeginTrim={beginTrim}
             onSelectPointerDown={onClipSelectPointerDown}
+            onDoubleClick={
+              onClipDoubleClick
+                ? (_event, target) => onClipDoubleClick(target)
+                : undefined
+            }
           />
         );
       })}
@@ -179,6 +189,8 @@ export function TimelineTrackCanvas({
   scrollRef,
   onMarqueePointerDown,
   onClipSelectPointerDown,
+  onClipDoubleClick,
+  timelineEmpty = false,
 }: Props) {
   const { clipsForLane } = useVisibleTimeline({
     scrollLeft,
@@ -197,6 +209,7 @@ export function TimelineTrackCanvas({
       style={{ width: contentWidth }}
       data-testid="timeline-track-canvas"
       onPointerDown={(event) => {
+        if (timelineEmpty) return;
         if (!onMarqueePointerDown || event.button !== 0) return;
         const target = event.target as HTMLElement;
         if (target.closest("[data-clip-id]")) return;
@@ -229,53 +242,63 @@ export function TimelineTrackCanvas({
         </>
       ) : null}
 
-      {rows.map((row, index) => {
-        const laneClips = clipsForLane(row.id);
-        const isLast = index === rows.length - 1;
-        return (
-          <div
-            key={row.id}
-            className="relative bg-[var(--timeline-track-lane)]"
-            style={{
-              height: row.height,
-              marginBottom: isLast ? 0 : LANE_GAP_PX,
-            }}
-            data-track-lane="true"
-            data-lane-id={row.id}
-            data-lane-order={row.order}
-            data-track-role={
-              row.kind === "audio"
-                ? "audio"
-                : row.role === "base"
-                  ? "base"
-                  : "overlay"
-            }
-            data-track-type={
-              row.kind === "audio"
-                ? "audio"
-                : row.role === "base"
-                  ? "main"
-                  : "overlay"
-            }
-          >
-            <LaneRowClips
-              row={row}
-              laneClips={laneClips}
-              allClips={allClips}
-              lanes={lanes}
-              pixelsPerSecond={pixelsPerSecond}
-              selectedClipIds={effectiveSelectedIds}
-              previewSelectedIds={effectivePreviewIds}
-              selection={selection}
-              beginGesture={beginGesture}
-              onSelect={onSelect}
-              onExecute={onExecute}
-              scrollRef={scrollRef}
-              onClipSelectPointerDown={onClipSelectPointerDown}
-            />
-          </div>
-        );
-      })}
+      {timelineEmpty ? (
+        <EmptyTimelineDash
+          width={contentWidth}
+          laneId={
+            rows.find((r) => r.role === "base")?.id ?? rows[0]?.id ?? "lane.main"
+          }
+        />
+      ) : (
+        rows.map((row, index) => {
+          const laneClips = clipsForLane(row.id);
+          const isLast = index === rows.length - 1;
+          return (
+            <div
+              key={row.id}
+              className="relative bg-[var(--timeline-track-lane)]"
+              style={{
+                height: row.height,
+                marginBottom: isLast ? 0 : LANE_GAP_PX,
+              }}
+              data-track-lane="true"
+              data-lane-id={row.id}
+              data-lane-order={row.order}
+              data-track-role={
+                row.kind === "audio"
+                  ? "audio"
+                  : row.role === "base"
+                    ? "base"
+                    : "overlay"
+              }
+              data-track-type={
+                row.kind === "audio"
+                  ? "audio"
+                  : row.role === "base"
+                    ? "main"
+                    : "overlay"
+              }
+            >
+              <LaneRowClips
+                row={row}
+                laneClips={laneClips}
+                allClips={allClips}
+                lanes={lanes}
+                pixelsPerSecond={pixelsPerSecond}
+                selectedClipIds={effectiveSelectedIds}
+                previewSelectedIds={effectivePreviewIds}
+                selection={selection}
+                beginGesture={beginGesture}
+                onSelect={onSelect}
+                onExecute={onExecute}
+                scrollRef={scrollRef}
+                onClipSelectPointerDown={onClipSelectPointerDown}
+                onClipDoubleClick={onClipDoubleClick}
+              />
+            </div>
+          );
+        })
+      )}
 
       {bottomPadding > 0 ? (
         <div style={{ height: bottomPadding }} aria-hidden />

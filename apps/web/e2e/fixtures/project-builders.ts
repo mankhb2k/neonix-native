@@ -396,3 +396,152 @@ export function buildScrollableAudioProject(
 }
 
 export { scene, textNode };
+
+const VIDEO_ATOMS = visualLayerAtoms({
+  x: 0,
+  y: 0,
+  width: 1920,
+  height: 1080,
+  rotation: 0,
+  scaleX: 1,
+  scaleY: 1,
+  originX: 0,
+  originY: 0,
+  opacity: 100,
+  visible: true,
+});
+
+/**
+ * V1 protocol project: two sequential videos + a group, packed on Main.
+ * Clip ids equal layer ids so packing/drill-in e2e can target strips by id.
+ */
+export function buildPackedMainWithGroupProject(
+  projectId = "e2e.editor.pack-group",
+): StoredEditorProject {
+  const videoAsset = {
+    id: "asset.video",
+    uri: "./clip.mp4",
+    assetType: "video",
+    mimeType: "video/mp4",
+    width: 1920,
+    height: 1080,
+    duration: 12,
+    fps: 30,
+  };
+  const project = {
+    format: "motion-project",
+    formatVersion: 1,
+    metadata: { id: projectId, name: "E2E Pack Group", locale: "vi-VN" },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {},
+    variables: [],
+    assets: [videoAsset],
+    components: [],
+    timeline: { duration: 12 },
+    bindings: [],
+    layers: [
+      {
+        id: "video-a",
+        type: "video",
+        parentLayerId: null,
+        name: "Video A",
+        zIndex: 0,
+        timing: { start: 0, duration: 4 },
+        ...VIDEO_ATOMS,
+        payload: { assetId: "asset.video", trimStart: 0 },
+      },
+      {
+        id: "video-b",
+        type: "video",
+        parentLayerId: null,
+        name: "Video B",
+        zIndex: 1,
+        timing: { start: 4, duration: 4 },
+        ...VIDEO_ATOMS,
+        payload: { assetId: "asset.video", trimStart: 0 },
+      },
+      {
+        id: "hero",
+        type: "group",
+        parentLayerId: null,
+        name: "Hero",
+        zIndex: 2,
+        timing: { start: 8, duration: 4 },
+        ...VIDEO_ATOMS,
+        children: [
+          {
+            id: "hero.title",
+            type: "text",
+            parentLayerId: "hero",
+            name: "Title",
+            zIndex: 0,
+            timing: { start: 0, duration: 4 },
+            ...visualLayerAtoms({
+              x: 40,
+              y: 40,
+              width: 200,
+              height: 40,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              originX: 0,
+              originY: 0,
+              opacity: 100,
+              visible: true,
+            }),
+            payload: {
+              text: "Title",
+              fontSize: 24,
+              color: "#111111",
+              alignment: "left",
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  return {
+    storageVersion: STORAGE_VERSION,
+    savedAt: new Date().toISOString(),
+    project,
+    timelineClips: [
+      sceneClip({
+        id: "video-a",
+        sceneId: "video-a",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 4,
+        name: "Video A",
+      }),
+      sceneClip({
+        id: "video-b",
+        sceneId: "video-b",
+        laneId: "lane.main",
+        startTime: 4,
+        duration: 4,
+        name: "Video B",
+      }),
+      sceneClip({
+        id: "hero",
+        sceneId: "hero",
+        laneId: "lane.main",
+        startTime: 8,
+        duration: 4,
+        name: "Hero",
+      }),
+    ],
+    timelineLanes: [baseLane()],
+    overlayScenes: [],
+  };
+}
+

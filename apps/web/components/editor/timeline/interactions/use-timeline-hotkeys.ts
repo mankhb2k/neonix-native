@@ -11,12 +11,16 @@ type Args = {
   enabled: boolean;
   zoom: number;
   onZoomChange: (zoom: number) => void;
+  isLayerMode?: () => boolean;
+  onExitLayerMode?: () => void;
 };
 
 export function useTimelineHotkeys({
   enabled,
   zoom,
   onZoomChange,
+  isLayerMode,
+  onExitLayerMode,
 }: Args): void {
   const onUndo = useEditorStore((s) => s.undo);
   const onRedo = useEditorStore((s) => s.redo);
@@ -24,6 +28,8 @@ export function useTimelineHotkeys({
   useTimelineHotkeysShared({
     enabled,
     isTimelineOwned: () => true,
+    isLayerMode,
+    onExitLayerMode,
     getPlayheadTime: () => usePlaybackClock.getState().currentTime,
     onUndo,
     onRedo,

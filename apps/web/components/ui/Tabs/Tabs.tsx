@@ -17,6 +17,7 @@ export function Tabs({ items, defaultValue, className }: TabsProps) {
   if (!current) return null;
 
   const isAiPanel = current.id === "ai";
+  const isJsonPanel = current.id === "json";
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
@@ -51,7 +52,7 @@ export function Tabs({ items, defaultValue, className }: TabsProps) {
         aria-labelledby={`${baseId}-${current.id}`}
         className={cn(
           "min-h-0 flex-1",
-          isAiPanel ? "overflow-hidden" : "overflow-auto",
+          isAiPanel || isJsonPanel ? "overflow-hidden" : "overflow-auto",
         )}
       >
         {current.content}

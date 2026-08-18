@@ -35,7 +35,7 @@ type Props = {
 export function TransportBar({
   mode,
   onModeChange,
-  layerClipName = "2004 · Harvard",
+  layerClipName = "",
   currentTime,
   duration,
   fps,
@@ -52,7 +52,7 @@ export function TransportBar({
 }: Props) {
   return (
     <div
-      className="grid shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3"
+      className="grid shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3"
       style={{ height: TIMELINE_TRANSPORT_HEIGHT_PX }}
       data-testid="timeline-transport-bar"
     >
@@ -63,10 +63,11 @@ export function TransportBar({
               type="button"
               onClick={() => onModeChange("track")}
               className="flex cursor-pointer items-center gap-1.5 rounded-full border-0 bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-on)]"
-              title="Quay lại Track"
+              title="Quay lại"
+              data-testid="timeline-group-back"
             >
               <ArrowLeft size={13} strokeWidth={2.5} />
-              <span>Quay lại Track</span>
+              <span>Quay lại</span>
             </button>
             <span className="max-w-[180px] truncate text-[11px] font-medium text-[var(--fg-muted)]">
               / {layerClipName}
@@ -75,14 +76,6 @@ export function TransportBar({
         ) : (
           <div className="flex items-center gap-1">
             <TimelineModeToggles snapOn={snapOn} onToggleSnap={onToggleSnap} />
-            <button
-              type="button"
-              className="cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-[11px] font-medium text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
-              onClick={() => onModeChange("layer")}
-              title="Xem Layer Mode (design)"
-            >
-              Layer
-            </button>
           </div>
         )}
       </div>

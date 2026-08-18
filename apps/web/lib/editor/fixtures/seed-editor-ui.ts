@@ -3,7 +3,7 @@
  */
 import { createBlankProject } from "@/lib/editor/create-blank-project";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
-import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
+import { packRootLayersToTimeline } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
 import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 
@@ -39,7 +39,7 @@ export function seedWebEditorUi(fixture: WebUiFixtureId): WebEditorSeed {
       `proj_fb_seed_${Date.now().toString(36)}`,
       "Facebook History — Demo",
     );
-    const { lanes, clips } = visualTracksToTimelineClips(project);
+    const { lanes, clips } = packRootLayersToTimeline(project);
     return {
       kind: "editor",
       projectId: project.metadata.id,

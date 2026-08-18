@@ -50,11 +50,14 @@
   --fs-ui: 12px;
   --fs-body: 13px;
 
-  /* Layout editor */
+  /* Layout editor — 4 panel floating (VS Code gutters) */
   --editor-chrome-h: 56px;
   --editor-timeline-h: 240px;
   --editor-left-w: 380px;
   --editor-right-w: 480px;
+  --editor-shell-inset: 6px;
+  --editor-panel-gap: 6px;
+  --editor-panel-radius: 8px;
 
   /* Timeline */
   --timeline-track-lane: #0e121c;
@@ -152,6 +155,14 @@ body:has([data-surface="editor"]) {
   overflow: hidden;
 }
 
+.editor-panel {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--editor-panel-radius);
+  background: var(--bg-surface);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -168,6 +179,30 @@ body:has([data-surface="editor"]) {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(125, 211, 252, 0.32);
+}
+
+/* Sidebar + inspector: same thin gutter so JSON / Properties match. */
+[data-surface="editor"] aside.editor-panel,
+[data-surface="editor"] aside.editor-panel * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb:hover,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 252, 0.45);
 }
 
 /* GitHub-like markdown for AI AUTHORING pages */
