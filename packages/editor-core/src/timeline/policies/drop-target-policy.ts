@@ -1,29 +1,29 @@
 /**
- * Pure lane drag targeting for the timeline.
- * Shared hit-test + insert-line hysteresis for visual (above base) and audio (below base).
- * No DOM — geometry rects are supplied by callers / DomGeometryAdapter.
+ * Pure lane drag targeting cho timeline.
+ * Dùng chung hit-test + hysteresis insert-line cho visual (trên base) và audio (dưới base).
+ * Không DOM — geometry rect do caller / DomGeometryAdapter cung cấp.
  */
 
 /* ========================================================================== */
-/* 1. HYSTERESIS CONFIG & CONSTANTS                                          */
+/* 1. HYSTERESIS CONFIG & CONSTANT                                             */
 /* ========================================================================== */
 
-/** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
+/** px dưới border trên TimeRuler — ngưỡng chung cho card↔cyan (vào & ra) */
 export const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
-/** Enter insert-line mode only when within this many px of a lane edge */
+/** Chỉ vào chế độ insert-line khi cách cạnh lane trong khoảng px này */
 export const LANE_INSERT_ENTER_PX = 12;
-/** Exit insert-line only when this far into the lane body (hysteresis) */
+/** Chỉ thoát insert-line khi đã vào sâu trong thân lane ngần này px (hysteresis) */
 export const LANE_INSERT_EXIT_PX = 16;
-/** Skip indicator setState when Y barely moved (cuts dragover re-renders) */
+/** Bỏ qua setState indicator khi Y gần như không đổi (giảm re-render dragover) */
 export const INDICATOR_TOP_EPS_PX = 0.5;
 
-/** @deprecated Use LANE_INSERT_ENTER_PX instead. */
+/** @deprecated Dùng LANE_INSERT_ENTER_PX thay thế. */
 export const OVERLAY_EDGE_ENTER_PX = LANE_INSERT_ENTER_PX;
-/** @deprecated Use LANE_INSERT_EXIT_PX instead. */
+/** @deprecated Dùng LANE_INSERT_EXIT_PX thay thế. */
 export const OVERLAY_EDGE_EXIT_PX = LANE_INSERT_EXIT_PX;
 
 /* ========================================================================== */
-/* 2. HIT TYPES & POLICIES                                                   */
+/* 2. HIT TYPE & POLICY                                                       */
 /* ========================================================================== */
 
 export type LaneHit = {
@@ -46,7 +46,7 @@ export type TimelineDropTarget = {
 
 export type LaneDropPolicy = {
   family: "visual" | "audio";
-  /** Direction in which lane order increases away from Main. */
+  /** Hướng mà lane order tăng dần xa khỏi Main. */
   outwardDirection: "up" | "down";
   /** Visual may land on base body; audio never targets base as a clip body. */
   allowBaseTarget: boolean;
@@ -237,8 +237,7 @@ function resolveInsideLane(
     const outwardEdge = policy.outwardDirection === "up" ? "top" : "bottom";
     if (!policy.allowBaseTarget) return insertAtEdge(outwardEdge);
     const baseBandPx = 4;
-    const distanceFromOutwardEdge =
-      outwardEdge === "top" ? relY : h - relY;
+    const distanceFromOutwardEdge = outwardEdge === "top" ? relY : h - relY;
     if (distanceFromOutwardEdge <= baseBandPx) {
       return insertAtEdge(outwardEdge);
     }
@@ -308,9 +307,7 @@ function targetAtBase(
     ? policy.outwardDirection === "up"
       ? gapMid(closest, base, wsTop)
       : gapMid(base, closest, wsTop)
-    : (policy.outwardDirection === "up" ? base.top : base.bottom) -
-      wsTop -
-      1;
+    : (policy.outwardDirection === "up" ? base.top : base.bottom) - wsTop - 1;
   return {
     family: policy.family,
     isInsert: true,

@@ -1,6 +1,6 @@
 /**
- * Pure viewport layout metrics — shared by web & desktop.
- * Web callers convert `zoomSlider → zoomScale` via `sliderValueToZoomScale` before calling.
+ * Pure viewport layout metrics — dùng chung web & desktop.
+ * Web caller đổi `zoomSlider → zoomScale` qua `sliderValueToZoomScale` trước khi gọi.
  */
 
 import {
@@ -15,7 +15,7 @@ import type { TimelineClip } from "../model/timeline-types";
 export type ViewportLayoutInput = {
   clips: TimelineClip[];
   trackViewWidth: number;
-  /** Already resolved zoom scale (web: sliderValueToZoomScale(zoomSlider), desktop: direct). */
+  /** zoom scale đã resolve (web: sliderValueToZoomScale(zoomSlider), desktop: trực tiếp). */
   timelineZoomScale: number;
   timelineFitAnchorSeconds?: number | null;
 };

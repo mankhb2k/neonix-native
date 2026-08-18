@@ -18,12 +18,7 @@ export function applyVisualPlacement(
   intent: VisualPlacementIntent,
   movingClipId?: string,
 ): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
-  const resolved = resolveVisualPlacement(
-    lanes,
-    clips,
-    intent,
-    movingClipId,
-  );
+  const resolved = resolveVisualPlacement(lanes, clips, intent, movingClipId);
   if (resolved.status === "blocked") return null;
   if (resolved.status === "create-lane") {
     const created = createOverlayLaneAt(lanes, resolved.insertOrder);
@@ -54,7 +49,7 @@ export function applyAudioPlacement(
   );
   if (resolved.status === "blocked") return null;
   if (resolved.status === "create-lane") {
-    // Library/paste only — during move the source lane looks empty (clip excluded).
+    // Chỉ Library/paste — khi move, lane nguồn trông trống (clip bị loại).
     if (!movingClipId) {
       const reusable = lanes.find(
         (lane) =>
@@ -168,5 +163,6 @@ export function audioLaneIdByOrder(
   lanes: TimelineLane[],
   order: number,
 ): string | undefined {
-  return lanes.find((lane) => lane.kind === "audio" && lane.order === order)?.id;
+  return lanes.find((lane) => lane.kind === "audio" && lane.order === order)
+    ?.id;
 }

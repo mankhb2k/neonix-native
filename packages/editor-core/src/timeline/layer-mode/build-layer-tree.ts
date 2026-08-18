@@ -1,8 +1,8 @@
 /**
- * Scene node hierarchy for Figma-style Layers panel.
- * Document remains flat `scene.layers` + parentLayerId; this is view-model only.
+ * Cây phân cấp layer cho panel Layers kiểu Figma.
+ * Document vẫn phẳng `project.layers` + parentLayerId; đây chỉ là view-model.
  *
- * Moved from apps/desktop/gui/editor/timeline/layer-mode/build-layer-tree.ts
+ * Di chuyển từ apps/desktop/gui/editor/timeline/layer-mode/build-layer-tree.ts
  */
 
 import type { MotionLayer } from "@motionvideo/motion-protocol";
@@ -45,8 +45,8 @@ function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {
 }
 
 /**
- * Build a forest from a flat layer list (project.layers or group.children).
- * Orphans (unknown parent) and cycle breakers become roots.
+ * Dựng rừng từ danh sách layer phẳng (project.layers hoặc group.children).
+ * Orphan (parent không xác định) và nút cắt vòng lặp trở thành root.
  */
 export function buildLayerTree(
   layers: MotionLayer[] | null | undefined,

@@ -5,7 +5,9 @@ import type {
   TimelineTrackKind,
 } from "./model/timeline-types";
 
-/** Clip family ↔ track kind (main/overlay/audio). */
+/** Clip family ↔ lane kind (main/overlay/audio).
+ * @deprecated Dùng clipAcceptsLane (nhận TimelineLane) thay thế.
+ */
 export function clipAcceptsTrack(
   clip: Pick<TimelineClip, "kind">,
   track: TimelineTrackKind,
@@ -31,8 +33,8 @@ export type ClipCapability = {
 };
 
 /**
- * Exhaustive capability map for known clip kinds.
- * Adding a new TimelineClip kind without updating this switch fails compile.
+ * Bản đồ capability đầy đủ cho từng clip kind.
+ * Thêm TimelineClip kind mới mà không cập nhật switch này sẽ lỗi compile.
  */
 export function clipCapabilities(clip: TimelineClip): ClipCapability {
   switch (clip.kind) {

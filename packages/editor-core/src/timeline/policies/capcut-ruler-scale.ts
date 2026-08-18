@@ -1,6 +1,6 @@
 /**
- * CapCut-style ruler scale + timecode formatting (pure; no React/DOM).
- * Shared by web and desktop timeline hosts.
+ * Ruler scale + format timecode kiểu CapCut (thuần; không React/DOM).
+ * Dùng chung cho web và desktop timeline host.
  */
 
 export const TIMELINE_ZOOM_MIN = 0;
@@ -8,9 +8,9 @@ export const TIMELINE_ZOOM_MAX = 100;
 export const TIMELINE_ZOOM_DEFAULT = 50;
 
 export const TIMELINE_LABEL_WIDTH = 96;
-/** Empty lead-in before t=0 (playhead / start gutter). */
+/** Chỗ trống dẫn vào trước t=0 (playhead / start gutter). */
 export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
-/** Sticky time ruler row height. */
+/** Chiều cao dòng time ruler sticky. */
 export const TIMELINE_RULER_HEIGHT_PX = 28;
 
 export function formatTimecode(totalSeconds: number, fps = 30): string {

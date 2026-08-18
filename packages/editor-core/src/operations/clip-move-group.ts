@@ -8,8 +8,8 @@
 
 import { selectionClips } from "../selection/editor-selection";
 import type { TimelineDocument } from "../document/document";
-import { validateTimelineDocument } from "../document/document";
 import { rebuildMainProject } from "../timeline/internal/timeline-project-sync";
+import { finishSuccess } from "../timeline/commands/runner-state";
 import {
   isAudioLane,
   isBaseLane,
@@ -360,25 +360,16 @@ export function moveClipGroup(
   const nextLanes = pruneEmptyLanes(lanes, nextClips);
   const rebuilt = rebuildMainProject(project, nextClips, nextLanes);
 
-  const document: TimelineDocument = {
-    project: rebuilt,
-    lanes: nextLanes,
-    clips: nextClips,
-    ...(doc.transitions?.length ? { transitions: doc.transitions } : {}),
-  };
-  const validation = validateTimelineDocument(document);
-  if (!validation.valid) {
-    return {
-      status: "rejected",
-      reason: "invalid_document",
-      message: `Document vi phạm invariants: ${validation.violations.map((v) => v.message).join("; ")}`,
-    };
-  }
-
-  return {
-    status: "applied",
-    document,
-    selection: selectionClips([...groupIds]),
+  // Đi qua cùng một ranh giới protocol (MotionProjectV1Schema) + stamp
+  // revision/fingerprint như mọi command family khác, thay vì dựng document
+  // thủ công bỏ qua gate.
+  return finishSuccess(
+    rebuilt,
+    nextLanes,
+    nextClips,
+    selectionClips([...groupIds]),
     events,
-  };
+    doc.transitions,
+    doc.revision,
+  );
 }

@@ -5,7 +5,7 @@ import {
   type VisualLanePolicy,
 } from "../model/timeline-types";
 
-/** Strict: absent/undefined ok; present non-boolean → throw. */
+/** Strict: thiếu/undefined ok; có nhưng không phải boolean → throw. */
 function assertOptionalBoolean(value: unknown, path: string): void {
   if (value === undefined) return;
   if (typeof value !== "boolean") {
@@ -146,17 +146,16 @@ export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
     }
     const row = item as Record<string, unknown>;
     if (typeof row.id !== "string" || row.id.length === 0) {
-      throw new TimelineParseError(`timelineLanes[${i}].id must be a non-empty string.`);
+      throw new TimelineParseError(
+        `timelineLanes[${i}].id must be a non-empty string.`,
+      );
     }
     if (typeof row.name !== "string" || row.name.length === 0) {
       throw new TimelineParseError(
         `timelineLanes[${i}].name must be a non-empty string.`,
       );
     }
-    if (
-      !validNumber(row.order) ||
-      !Number.isInteger(row.order)
-    ) {
+    if (!validNumber(row.order) || !Number.isInteger(row.order)) {
       throw new TimelineParseError(
         `timelineLanes[${i}].order must be a finite integer.`,
       );
@@ -236,7 +235,9 @@ export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
     }
     const row = item as Record<string, unknown>;
     if (typeof row.id !== "string" || row.id.length === 0) {
-      throw new TimelineParseError(`timelineClips[${i}].id must be a non-empty string.`);
+      throw new TimelineParseError(
+        `timelineClips[${i}].id must be a non-empty string.`,
+      );
     }
     if (typeof row.name !== "string" || row.name.length === 0) {
       throw new TimelineParseError(
@@ -253,10 +254,7 @@ export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
         `timelineClips[${i}].startTime must be a finite number >= 0.`,
       );
     }
-    if (
-      !validNumber(row.duration) ||
-      row.duration < MIN_CLIP_DURATION_STRICT
-    ) {
+    if (!validNumber(row.duration) || row.duration < MIN_CLIP_DURATION_STRICT) {
       throw new TimelineParseError(
         `timelineClips[${i}].duration must be a finite number >= ${MIN_CLIP_DURATION_STRICT}.`,
       );
@@ -279,7 +277,10 @@ export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
       continue;
     }
     if (row.kind === "audio") {
-      if (typeof row.audioTrackId !== "string" || row.audioTrackId.length === 0) {
+      if (
+        typeof row.audioTrackId !== "string" ||
+        row.audioTrackId.length === 0
+      ) {
         throw new TimelineParseError(
           `timelineClips[${i}].audioTrackId must be a non-empty string.`,
         );

@@ -28,7 +28,7 @@ export function ensureBaseLane(lanes: TimelineLane[]): TimelineLane {
   };
 }
 
-/** Normalize raw stored clips that may still carry legacy fields into TimelineClip. */
+/** Chuẩn hóa raw stored clip có thể còn mang field legacy thành TimelineClip. */
 type LegacyClipInput = {
   id: string;
   sceneId?: string;
@@ -55,7 +55,7 @@ function toSceneClip(clip: LegacyClipInput, laneId: string): SceneTimelineClip {
   };
 }
 
-/** Build lanes + clips with laneId from legacy project / overlays / old clips. */
+/** Dựng lanes + clips với laneId từ legacy project / overlays / clip cũ. */
 export function migrateLanesAndClips(
   project: MotionProject,
   overlays: OverlaySceneItem[],

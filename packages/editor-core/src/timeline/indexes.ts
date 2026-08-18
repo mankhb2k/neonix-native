@@ -2,8 +2,8 @@ import type { TimelineClip, TimelineLane } from "./model/timeline-types";
 import type { TimelineDocument } from "../document/document";
 
 /**
- * Derived index builders per TimelineDocument reference.
- * Pure memoizable selectors for query performance.
+ * Bộ dựng index dẫn xuất theo từng TimelineDocument.
+ * Selector thuần túy có thể memo để tăng tốc truy vấn.
  */
 
 export function lanesById(doc: TimelineDocument): Map<string, TimelineLane> {
@@ -22,7 +22,9 @@ export function clipsById(doc: TimelineDocument): Map<string, TimelineClip> {
   return map;
 }
 
-export function clipsByLane(doc: TimelineDocument): Map<string, TimelineClip[]> {
+export function clipsByLane(
+  doc: TimelineDocument,
+): Map<string, TimelineClip[]> {
   const map = new Map<string, TimelineClip[]>();
   for (const lane of doc.lanes) {
     map.set(lane.id, []);
@@ -51,18 +53,21 @@ export function contentEndSeconds(doc: TimelineDocument): number {
   );
 }
 
-export type VisualLayerIndexItem = {
+export type LaneClipIndexItem = {
   lane: TimelineLane;
   clips: TimelineClip[];
 };
 
+/** @deprecated Dùng LaneClipIndexItem thay thế (item là lane + clips). */
+export type VisualLayerIndexItem = LaneClipIndexItem;
+
 /**
- * Build Visual composition sequence index for rendering/preview.
- * Base lane first (order -1), followed by Overlay lanes ordered by `order` ascending.
+ * Dựng index chuỗi composition visual cho render/preview.
+ * Base lane trước (order -1), rồi Overlay lane sắp theo `order` tăng dần.
  */
 export function visualCompositionIndex(
   doc: TimelineDocument,
-): VisualLayerIndexItem[] {
+): LaneClipIndexItem[] {
   const byLaneMap = clipsByLane(doc);
   const visualLanes = doc.lanes
     .filter((lane) => lane.kind === "visual")

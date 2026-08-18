@@ -15,7 +15,7 @@ export function uid(
   return createId(prefix);
 }
 
-/** Trích xuất văn bản từ Node dạng Text */
+/** Trích xuất văn bản từ layer dạng Text */
 export function nodeText(node: MotionLayer | undefined): string {
   return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
 }
@@ -35,7 +35,7 @@ export function updateVariable(
   });
 }
 
-/** Cập nhật một Node cụ thể trong cây layer */
+/** Cập nhật một layer cụ thể trong cây layer */
 export function mapNode(
   project: MotionProject,
   _sceneId: string,
@@ -61,7 +61,7 @@ export type CompositionSize = {
   height: number;
 };
 
-/** Stage size for project aspect ratio (matches desktop preview). */
+/** Stage size theo aspect ratio dự án (khớp preview desktop). */
 export function stageSizeForAspect(aspectRatio: string): CompositionSize {
   switch (aspectRatio) {
     case "16:9":
@@ -74,7 +74,7 @@ export function stageSizeForAspect(aspectRatio: string): CompositionSize {
   }
 }
 
-/** Composition size from a MotionProject (reads `composition` with metadata.aspectRatio fallback). */
+/** Composition size từ MotionProject (đọc `composition`; fallback mặc định 16:9). */
 export function stageSizeForProject(
   project: Pick<MotionProject, "metadata" | "composition">,
 ): CompositionSize {
@@ -88,14 +88,13 @@ export function stageSizeForProject(
       height: project.composition.height,
     };
   }
-  const aspect =
-    (project.metadata as { aspectRatio?: string }).aspectRatio ?? "16:9";
-  return stageSizeForAspect(aspect);
+  // Protocol V1 không chứa aspectRatio trong metadata — fallback mặc định 16:9.
+  return stageSizeForAspect("16:9");
 }
 
 const DEFAULT_COMPOSITION: CompositionSize = { width: 1920, height: 1080 };
 
-/** Visual leaf nodes produced from a library FrameDraft (never audio/camera). */
+/** Layer visual lá tạo từ FrameDraft thư viện (không bao giờ audio/camera). */
 type DraftVisualNode = Extract<
   MotionLayer,
   { type: "shape" | "image" | "video" | "text" }
@@ -203,7 +202,7 @@ function nodeFromDraft(
   };
 }
 
-/** Public: build a single MotionLayer from a library FrameDraft. */
+/** Public: dựng một MotionLayer từ FrameDraft thư viện. */
 export function createNodeFromFrameDraft(
   draft: FrameDraft,
   layerId: string,

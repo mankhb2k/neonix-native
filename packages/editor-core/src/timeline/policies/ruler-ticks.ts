@@ -8,20 +8,20 @@ export type RulerTick = {
 export const RULER_TICK_OVERSCAN_PX = 120;
 
 export type ComputeRulerTickWindowInput = {
-  /** Scroll offset after subtracting origin (gutter). */
+  /** Scroll offset sau khi trừ origin (gutter). */
   contentScroll: number;
   duration: number;
   fps: number;
-  /** Pixels per second — must be > 0. */
+  /** Pixels per second — phải > 0. */
   pps: number;
   viewWidth: number;
   overscanPx?: number;
 };
 
 /**
- * Pure tick-window math shared by web & desktop TimeRuler.
- * Only returns ticks — callers own CSS `left` positioning (viewport-relative
- * vs content-relative) and className/styling.
+ * Math tick-window thuần, dùng chung cho TimeRuler web & desktop.
+ * Chỉ trả về tick — caller tự lo CSS `left` (viewport-relative vs content-relative)
+ * và className/styling.
  */
 export function computeRulerTickWindow(input: ComputeRulerTickWindowInput): {
   ticks: RulerTick[];

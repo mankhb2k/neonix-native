@@ -1,6 +1,6 @@
 /**
- * Visible-range queries for timeline virtualization.
- * Overlap-safe via prefix-max end times + binary search.
+ * Query visible-range cho virtual hóa timeline.
+ * An toàn overlap nhờ prefix-max end time + binary search.
  */
 
 import type { TimelineClip } from "../model/timeline-types";
@@ -25,8 +25,8 @@ export function visibleTimeRange(input: VisibleTimeRangeInput): {
 }
 
 /**
- * Prefix maximum of clip end times for clips sorted by startTime.
- * maxEndPrefix[i] = max(start+duration) over clips[0..i].
+ * Prefix maximum của clip end time cho clip đã sắp theo startTime.
+ * maxEndPrefix[i] = max(start+duration) trên clips[0..i].
  */
 export function buildMaxEndPrefix(sortedClips: TimelineClip[]): number[] {
   const out: number[] = new Array(sortedClips.length);
@@ -55,8 +55,8 @@ function lowerBoundByMaxEnd(
 }
 
 /**
- * Clips intersecting [start, end) from a list sorted by startTime ascending.
- * Correct under overlap (unlike end-time binary search on the clip alone).
+ * Clip giao với [start, end) từ danh sách sắp theo startTime tăng dần.
+ * Đúng cả khi có overlap (khác binary search theo end time trên riêng clip).
  */
 export function clipsIntersectingRange(
   sortedClips: TimelineClip[],

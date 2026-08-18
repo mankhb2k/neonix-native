@@ -9,7 +9,7 @@ export function rangesOverlap(
   return aStart < bStart + bDur && bStart < aStart + aDur;
 }
 
-/** Generic free-lane — overlay và audio dùng chung thuật toán (CLEAN / Phase 7). */
+/** Generic free-lane — overlay và audio dùng chung thuật toán. */
 export function findFreeLaneAmong(
   candidates: TimelineLane[],
   clips: TimelineClip[],
@@ -145,25 +145,27 @@ export function resolveLaneStartTimeNearest(
   return t;
 }
 
-/** Place on base lane without time-overlap — nearest-snap trên base. */
-export function resolveMainStartTime(
+/** Place trên base lane không chồng lấn thời gian — nearest-snap trên base. */
+export function resolveBaseStartTime(
   clips: TimelineClip[],
   lanes: TimelineLane[],
   startTime: number,
   duration: number,
-  resolveLaneStart:
-    | ((
-        clipsOnLane: TimelineClip[],
-        desiredStart: number,
-        duration: number,
-      ) => number) = resolveLaneStartTimeNearest,
+  resolveLaneStart: (
+    clipsOnLane: TimelineClip[],
+    desiredStart: number,
+    duration: number,
+  ) => number = resolveLaneStartTimeNearest,
 ): number {
-  const mainId = lanes.find(
+  const baseId = lanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
   )?.id;
-  const main = clips.filter((clip) => clip.laneId === mainId);
-  return resolveLaneStart(main, startTime, duration);
+  const base = clips.filter((clip) => clip.laneId === baseId);
+  return resolveLaneStart(base, startTime, duration);
 }
+
+/** @deprecated Dùng resolveBaseStartTime thay thế. */
+export const resolveMainStartTime = resolveBaseStartTime;
 
 export type OccupancyAwarePlacement = {
   startTime: number;
@@ -223,7 +225,9 @@ export function findLaneAbove(
 }
 
 function laneIsFreeAt(
-  clipsOnLane: ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>,
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >,
   startTime: number,
   duration: number,
   excludeIds?: ReadonlySet<string>,

@@ -1,5 +1,5 @@
 /**
- * Injectable snapping policy — placement / geometry seam for Phase 8 spikes.
+ * Snapping policy có thể inject — seam placement / geometry.
  */
 
 import type { TimelineClip } from "../model/timeline-types";
@@ -8,13 +8,13 @@ import { resolveLaneStartTimeNearest } from "./placement-policy";
 export type SnapTimeResult = { time: number; snapped: boolean };
 
 export type SnappingPolicy = {
-  /** Collision nearest-gap placement on a fixed lane. */
+  /** Đặt gap gần nhất khi va chạm trên lane cố định. */
   resolveLaneStartTime(
     clipsOnLane: TimelineClip[],
     desiredStart: number,
     duration: number,
   ): number;
-  /** Pixel/time threshold snap to discrete points. */
+  /** Ngưỡng pixel/time snap vào điểm rời rạc. */
   findNearestSnapTime(
     targetTime: number,
     snapPoints: number[],
@@ -43,7 +43,7 @@ export const defaultSnappingPolicy: SnappingPolicy = {
 
 let activeSnappingPolicy: SnappingPolicy = defaultSnappingPolicy;
 
-/** Read the process-wide default used by placement when no override is passed. */
+/** Đọc default dùng toàn process khi placement không truyền override. */
 export function getSnappingPolicy(): SnappingPolicy {
   return activeSnappingPolicy;
 }

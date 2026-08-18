@@ -95,6 +95,7 @@ describe("Pure Command Runner Engine", () => {
     const scene = project.layers[0]!;
     if (scene.type !== "group") throw new Error("expected group scene");
     scene.timing.duration = 10;
+    project.timeline.duration = 13;
     scene.children = [
       {
         id: "group.char",
@@ -316,12 +317,8 @@ describe("Pure Command Runner Engine", () => {
 
   it("centers new draft using project aspect ratio", () => {
     const { project, clips, lanes } = fixtureMainOnly();
-    const wide = {
-      ...project,
-      metadata: { ...project.metadata, aspectRatio: "16:9" as const },
-    };
     const result = executeTimelineCommand(
-      { project: wide, clips, lanes },
+      { project, clips, lanes },
       {
         type: "add-clip-draft",
         draft: {

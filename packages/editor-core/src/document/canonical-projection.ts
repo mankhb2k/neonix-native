@@ -10,7 +10,7 @@ import type { MotionProject } from "@motionvideo/motion-protocol";
 import { computeProjectHashShort } from "@motionvideo/motion-protocol";
 import {
   groupPathToTimelineClips,
-  visualTracksToTimelineClips,
+  packRootLayersToTimeline,
 } from "../timeline/selectors/scene-order-clips";
 import { collectLayerIds } from "./document";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
@@ -62,7 +62,7 @@ export function projectToTimelineDocument(
   const { lanes, clips } =
     groupPath && groupPath.length > 0
       ? groupPathToTimelineClips(project, groupPath)
-      : visualTracksToTimelineClips(project);
+      : packRootLayersToTimeline(project);
   const normalizedLanes = normalizeLaneOrders(lanes);
 
   const revision = (previousRevision ?? INITIAL_REVISION - 1) + 1;

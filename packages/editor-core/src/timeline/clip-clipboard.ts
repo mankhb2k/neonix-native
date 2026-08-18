@@ -2,18 +2,18 @@ import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 export type ClipClipboardKind = "main" | "overlay" | "audio";
 
-/** Serializable clipboard payload for timeline clips (editor-internal). */
+/** Payload clipboard tuần tự cho timeline clip (nội bộ editor). */
 export type ClipClipboardItem = {
   kind: ClipClipboardKind;
   name: string;
   duration: number;
-  /** Offset from the leftmost copied clip's startTime. */
+  /** Offset so với startTime của clip sao chép ngoài cùng bên trái. */
   offsetStart: number;
-  /** Deep-cloned main layer (ids reassigned on paste). */
+  /** Layer main được clone sâu (id gán lại khi paste). */
   scene?: MotionLayer;
-  /** Audio asset id for audio clips. */
+  /** Asset id cho audio clip. */
   audioAssetId?: string;
-  /** Preserved audio track semantics when copying audio clips. */
+  /** Giữ ngữ nghĩa audio layer khi sao chép audio clip. */
   trimStart?: number;
   volume?: number;
   fadeIn?: number;

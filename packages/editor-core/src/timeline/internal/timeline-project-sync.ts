@@ -20,13 +20,20 @@ function indexLayerOffsets(
   for (const layer of layers) {
     into.set(layer.id, { parentId, offset });
     if (layer.type === "group") {
-      indexLayerOffsets(layer.children, layer.id, offset + layer.timing.start, into);
+      indexLayerOffsets(
+        layer.children,
+        layer.id,
+        offset + layer.timing.start,
+        into,
+      );
     }
   }
 }
 
 function visualWriteOrder(lanes: readonly TimelineLane[]): TimelineLane[] {
-  const base = lanes.filter((lane) => lane.kind === "visual" && lane.role === "base");
+  const base = lanes.filter(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  );
   const overlays = lanes
     .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
     .sort((a, b) => a.order - b.order);
@@ -44,9 +51,7 @@ function mergeSceneTiming(clips: readonly SceneClip[]): {
   duration: number;
 } {
   const start = Math.min(...clips.map((clip) => clip.startTime));
-  const end = Math.max(
-    ...clips.map((clip) => clip.startTime + clip.duration),
-  );
+  const end = Math.max(...clips.map((clip) => clip.startTime + clip.duration));
   return { start, duration: Math.max(0, end - start) };
 }
 
@@ -65,10 +70,10 @@ function clipsOnLane(
 }
 
 /**
- * Assign a unique zIndex per clip from lane membership.
- * Visual Canva order: Main then overlays; within a lane right → left
- * (later startTime first) so numbers increase toward the left, then up.
- * Never reset per lane — one continuous 0..n. Audio: left → right → -1, -2, …
+ * Gán zIndex duy nhất cho mỗi clip theo lane membership.
+ * Thứ tự Visual Canva: Main rồi overlay; trong lane phải → trái (startTime sau
+ * trước) để số tăng về bên trái rồi lên trên. Không reset theo lane — một dãy
+ * liên tục 0..n. Audio: trái → phải → -1, -2, …
  */
 export function uniqueZIndexByLayerId(
   clips: readonly TimelineClip[],
@@ -117,11 +122,37 @@ function uniquifySiblingZ(layers: MotionLayer[]): MotionLayer[] {
 }
 
 /**
- * Mirror editor lanes/clips back into `project.layers`.
- *
- * Each clip gets its own unique sibling `zIndex` — never one zIndex for a
- * whole packed lane. Nested `children` keep local timing
- * (`clip.startTime - ancestorOffset`).
+ * Kẹp child timing không vượt quá parent duration (protocol: end(child) <= end(parent)).
+ * Đệ quy vào group con; giữ nguyên khi child đã nằm trong khoảng parent.
+ */
+function clampChildToParent(
+  layer: MotionLayer,
+  parentDuration: number,
+): MotionLayer {
+  const start = Math.min(layer.timing.start, parentDuration);
+  const duration = Math.min(
+    layer.timing.duration,
+    Math.max(0, parentDuration - start),
+  );
+  const next =
+    start === layer.timing.start && duration === layer.timing.duration
+      ? layer
+      : { ...layer, timing: { start, duration } };
+  if (next.type === "group") {
+    return {
+      ...next,
+      children: next.children.map((child) =>
+        clampChildToParent(child, duration),
+      ),
+    };
+  }
+  return next;
+}
+
+/**
+ * Ghi ngược editor lanes/clips về `project.layers`.
+ * Mỗi clip nhận `zIndex` duy nhất giữa anh em — không bao giờ một zIndex cho cả
+ * lane đã pack. `children` lồng nhau giữ local timing (`clip.startTime - ancestorOffset`).
  */
 export function rebuildMainProject(
   project: MotionProject,
@@ -190,12 +221,15 @@ export function rebuildMainProject(
         next = { ...layer, zIndex: z };
       }
       if (next.type === "group") {
+        const children = patchTree(
+          next.children,
+          next.id,
+          ancestorOffset + next.timing.start,
+        );
         return {
           ...next,
-          children: patchTree(
-            next.children,
-            next.id,
-            ancestorOffset + next.timing.start,
+          children: children.map((child) =>
+            clampChildToParent(child, next.timing.duration),
           ),
         };
       }

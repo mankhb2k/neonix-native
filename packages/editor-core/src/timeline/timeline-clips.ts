@@ -24,7 +24,7 @@ export {
   isVisualLane,
 } from "./model/timeline-types";
 
-/** Compatibility alias — UI cũ dùng TimelineLaneKind. */
+/** Alias tương thích — UI cũ dùng TimelineLaneKind. */
 export type TimelineLaneKind = "visual" | "audio" | "main" | "overlay";
 
 function uid(prefix: string): string {
@@ -32,10 +32,16 @@ function uid(prefix: string): string {
 }
 
 /* ========================================================================== */
-/* 1. RE-EXPORTS FROM SUB-MODULES (MIGRATION, PARSER, PLACEMENT)              */
+/* 1. RE-EXPORT TỪ SUB-MODULE (MIGRATION, PARSER, PLACEMENT)                  */
 /* ========================================================================== */
 
-export { parseTimelineClips, parseTimelineLanes, parseTimelineClipsStrict, parseTimelineLanesStrict, TimelineParseError } from "./migrations/parse-timeline";
+export {
+  parseTimelineClips,
+  parseTimelineLanes,
+  parseTimelineClipsStrict,
+  parseTimelineLanesStrict,
+  TimelineParseError,
+} from "./migrations/parse-timeline";
 export {
   ensureAudioClipsFromTracks,
   ensureBaseLane,
@@ -52,16 +58,17 @@ export {
   resolveExclusiveRowPlacement,
   resolveLaneStartTimeNearest,
   resolveLayerStackPlacement,
+  resolveBaseStartTime,
   resolveMainStartTime,
   resolveOccupancyAwarePlacement,
   type OccupancyAwarePlacement,
 } from "./policies/placement-policy";
 
 /* ========================================================================== */
-/* 2. LANE PREDICATES & QUERIES                                               */
+/* 2. LANE PREDICATE & QUERY                                                   */
 /* ========================================================================== */
 
-/** @deprecated Prefer ensureBaseLane */
+/** @deprecated Ưu tiên dùng ensureBaseLane */
 export function ensureMainLane(lanes: TimelineLane[]): TimelineLane {
   const existing = lanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
@@ -82,7 +89,7 @@ export function isBaseLane(lanes: TimelineLane[], laneId: string): boolean {
   return Boolean(lane && lane.kind === "visual" && lane.role === "base");
 }
 
-/** @deprecated Prefer isBaseLane */
+/** @deprecated Ưu tiên dùng isBaseLane */
 export function isMainLane(lanes: TimelineLane[], laneId: string): boolean {
   return isBaseLane(lanes, laneId);
 }
@@ -108,7 +115,7 @@ export function isLaneLocked(lanes: TimelineLane[], laneId: string): boolean {
 }
 
 /* ========================================================================== */
-/* 3. LANE CREATION, REORDERING & PRUNING                                     */
+/* 3. TẠO, SẮP LẠI & DỌN LANE                                                 */
 /* ========================================================================== */
 
 export function createOverlayLane(order: number, name?: string): TimelineLane {
@@ -133,8 +140,8 @@ export function createAudioLane(order: number, name?: string): TimelineLane {
 }
 
 /**
- * Renumber overlay/audio orders; keep every lane including empty ones.
- * Base lane is always retained (created if missing).
+ * Đánh số lại order overlay/audio; giữ mọi lane kể cả lane trống.
+ * Base lane luôn được giữ (tạo nếu thiếu).
  */
 export function normalizeLaneOrders(lanes: TimelineLane[]): TimelineLane[] {
   const main =

@@ -1,6 +1,6 @@
 /**
- * Pure zoom & fit math policies for timeline.
- * Does not depend on DOM, React, Zustand, or UI components.
+ * Pure zoom & fit math policy cho timeline.
+ * Không phụ thuộc DOM, React, Zustand, hay UI component.
  */
 
 export const TIMELINE_INITIAL_CLIP_RATIO = 1 / 3;
@@ -35,20 +35,16 @@ export function timelineExtentSeconds(
   visibleDurationSeconds: number,
   isFirstClipOnly: boolean,
 ): number {
-  // CapCut: past the last frame, leave ~1/3 of the visible board empty.
-  // First-clip fit already embeds empty room via fitSpan (= 3× clip → clip at
-  // 1/3 of the viewport); skip extra trailing so fit canvas stays 1 viewport.
+  // CapCut: qua khung hình cuối, để ~1/3 vùng hiển thị trống.
+  // Fit clip đầu tiên đã nhúng chỗ trống qua fitSpan (= 3× clip → clip ở 1/3
+  // viewport); bỏ trailing thêm để canvas fit vẫn đúng 1 viewport.
   const trailingPaddingSeconds = isFirstClipOnly
     ? 0
     : Math.max(visibleDurationSeconds * TIMELINE_INITIAL_CLIP_RATIO, 1);
 
   const contentExtentSeconds = contentEndSeconds + trailingPaddingSeconds;
 
-  return Math.max(
-    fitSpanSeconds,
-    contentExtentSeconds,
-    visibleDurationSeconds,
-  );
+  return Math.max(fitSpanSeconds, contentExtentSeconds, visibleDurationSeconds);
 }
 
 export function sliderValueToZoomScale(value: number): number {

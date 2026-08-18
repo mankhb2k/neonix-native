@@ -14,9 +14,9 @@ export type TimelineGeometryConfig = {
   containerWidth: number;
   containerHeight: number;
   laneRects: LaneLayoutRect[];
-  /** Optional: client X of tracks content origin (for clientPointToTime). */
+  /** Tùy chọn: client X của gốc content tracks (cho clientPointToTime). */
   contentOriginClientX?: number;
-  /** Extra px beyond viewport for visibleTimeRange. */
+  /** Extra px ngoài viewport cho visibleTimeRange. */
   overscanPx?: number;
 };
 
@@ -40,15 +40,18 @@ export class TimelineGeometry {
   }
 
   public timeToPixel(time: number): number {
-    return Math.max(0, time) * this.config.pixelsPerSecond - this.config.scrollLeft;
+    return (
+      Math.max(0, time) * this.config.pixelsPerSecond - this.config.scrollLeft
+    );
   }
 
   public pixelToTime(pixelX: number): number {
-    const rawTime = (pixelX + this.config.scrollLeft) / this.config.pixelsPerSecond;
+    const rawTime =
+      (pixelX + this.config.scrollLeft) / this.config.pixelsPerSecond;
     return Math.max(0, rawTime);
   }
 
-  /** Map viewport client X → timeline seconds (needs contentOriginClientX). */
+  /** Ánh xạ viewport client X → giây timeline (cần contentOriginClientX). */
   public clientPointToTime(clientX: number): number {
     const origin = this.config.contentOriginClientX ?? 0;
     return this.pixelToTime(clientX - origin);

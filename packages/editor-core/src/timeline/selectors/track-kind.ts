@@ -1,10 +1,10 @@
 import type { TimelineLane, TimelineTrackKind } from "../model/timeline-types";
 
 /**
- * Map a single lane (or undefined) to its visual track kind.
- * Used by both web & desktop ClipStrip styling.
+ * Ánh xạ một lane (hoặc undefined) sang visual track kind.
+ * Dùng cho styling ClipStrip ở cả web & desktop.
  */
-export function resolveLaneTrackKind(
+export function resolveLaneKind(
   lane: TimelineLane | undefined,
 ): TimelineTrackKind {
   if (!lane) return "main";
@@ -12,3 +12,6 @@ export function resolveLaneTrackKind(
   if (lane.role === "base") return "main";
   return "overlay";
 }
+
+/** @deprecated Dùng resolveLaneKind thay thế. */
+export const resolveLaneTrackKind = resolveLaneKind;

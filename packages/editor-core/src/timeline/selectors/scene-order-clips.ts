@@ -20,9 +20,9 @@ function visualRoots(layers: readonly MotionLayer[]): MotionLayer[] {
   return layers.filter((layer) => layer.type !== "audio");
 }
 
-function audioRoots(layers: readonly MotionLayer[]): Array<
-  Extract<MotionLayer, { type: "audio" }>
-> {
+function audioRoots(
+  layers: readonly MotionLayer[],
+): Array<Extract<MotionLayer, { type: "audio" }>> {
   return layers.filter(
     (layer): layer is Extract<MotionLayer, { type: "audio" }> =>
       layer.type === "audio",
@@ -107,8 +107,8 @@ function audioClipFromLayer(
 }
 
 /**
- * Greedy interval pack: place each layer on the lowest lane that does not
- * overlap in time. Sharing a lane is display-only — it does not create a group.
+ * Greedy interval pack: đặt mỗi layer vào lane thấp nhất không chồng lấn theo
+ * thời gian. Chia lane chỉ là hiển thị — không tạo group.
  */
 export function packRootLayersToTimeline(
   project: MotionProject,
@@ -167,8 +167,8 @@ export function packRootLayersToTimeline(
 }
 
 /**
- * Protocol stack for preview: one unique root zIndex → one visual lane.
- * Overlapping audio still packs onto free audio lanes so the document validates.
+ * Stack protocol cho preview: một root zIndex duy nhất → một visual lane.
+ * Audio chồng lấn vẫn được xếp vào audio lane trống để document hợp lệ.
  */
 export function stackRootLayersToTimeline(
   project: MotionProject,
@@ -227,8 +227,8 @@ export function stackRootLayersToTimeline(
 }
 
 /**
- * Group surface: direct children only, one child per row, no packing, no audio.
- * Clip times are composition-global (`timeOffset + child.timing.start`).
+ * Bề mặt group: chỉ con trực tiếp, mỗi con một hàng, không pack, không audio.
+ * Thời gian clip là toàn cục theo composition (`timeOffset + child.timing.start`).
  */
 export function groupPathToTimelineClips(
   project: MotionProject,
@@ -243,10 +243,7 @@ export function groupPathToTimelineClips(
   const clips: TimelineClip[] = [];
 
   visual.forEach((layer, index) => {
-    const lane =
-      index === 0
-        ? lanes[0]!
-        : overlayLane(index - 1);
+    const lane = index === 0 ? lanes[0]! : overlayLane(index - 1);
     if (index > 0) lanes.push(lane);
     clips.push(
       sceneClipFromLayer(layer, lane.id, timeOffset + layer.timing.start),
@@ -257,10 +254,11 @@ export function groupPathToTimelineClips(
 }
 
 /**
- * Derive timeline lanes + clips from `project.layers` root layers.
+ * Dẫn xuất timeline lanes + clips từ root layer của `project.layers`.
+ * Main view pack các visual root không chồng lấn vào lane chung. Clip id =
+ * layer id. Audio dùng zIndex âm duy nhất và thêm lane khi chồng lấn.
  *
- * Main view packs non-overlapping visual roots onto shared lanes. Clip id =
- * layer id. Audio uses unique negative zIndex and extra lanes when they overlap.
+ * @deprecated Dùng packRootLayersToTimeline thay thế (tên cũ là misnomer).
  */
 export function visualTracksToTimelineClips(
   project: MotionProject,
@@ -269,8 +267,8 @@ export function visualTracksToTimelineClips(
 }
 
 /**
- * Re-apply a previous packing envelope (clip id / laneId) onto a fresh pack
- * when the same layers still exist and the remembered lane is free.
+ * Áp lại envelope pack trước đó (clip id / laneId) lên pack mới khi các layer
+ * tương tự vẫn tồn tại và lane được nhớ vẫn trống.
  */
 export function mergeEnvelopeLaneMembership(
   packed: TimelineProjection,
@@ -332,13 +330,22 @@ export function mergeEnvelopeLaneMembership(
       const family = packedClip.kind === "audio" ? "audio" : "visual";
       const candidate = lanes.find(
         (lane) =>
-          (family === "audio" ? lane.kind === "audio" : lane.kind === "visual") &&
-          laneIsFree(placed, lane.id, packedClip.startTime, packedClip.duration),
+          (family === "audio"
+            ? lane.kind === "audio"
+            : lane.kind === "visual") &&
+          laneIsFree(
+            placed,
+            lane.id,
+            packedClip.startTime,
+            packedClip.duration,
+          ),
       );
       if (candidate) {
         laneId = candidate.id;
       } else {
-        const packedLane = packed.lanes.find((lane) => lane.id === packedClip.laneId);
+        const packedLane = packed.lanes.find(
+          (lane) => lane.id === packedClip.laneId,
+        );
         if (packedLane && !lanes.some((lane) => lane.id === packedLane.id)) {
           lanes.push(packedLane);
         }

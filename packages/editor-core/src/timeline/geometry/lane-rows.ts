@@ -12,7 +12,7 @@ export type LaneRowConfig = {
   bottomPaddingPx: number;
 };
 
-// ── Generic row shape — apps extend with styling fields ─────────────
+// ── Generic row shape — app mở rộng thêm field styling ──────────────
 
 export type GenericLaneRow = {
   lane: TimelineLane;
@@ -25,8 +25,8 @@ export type GenericLaneRow = {
 // ── Sort helpers ────────────────────────────────────────────────────
 
 /**
- * CapCut order: overlays (desc) → base → audios (asc).
- * Returns the lanes in display order without assigning heights.
+ * Thứ tự CapCut: overlays (giảm dần) → base → audios (tăng dần).
+ * Trả về các lane theo thứ tự hiển thị, không gán chiều cao.
  */
 export function sortLanesOverlayBaseAudio(
   lanes: ReadonlyArray<TimelineLane>,
@@ -45,7 +45,7 @@ export function sortLanesOverlayBaseAudio(
 
 // ── Row builder ─────────────────────────────────────────────────────
 
-/** Assign heights (from config) to each sorted lane and return GenericLaneRow[]. */
+/** Gán chiều cao (từ config) cho từng lane đã sắp và trả GenericLaneRow[]. */
 export function buildLaneRows(
   lanes: ReadonlyArray<TimelineLane>,
   config: LaneRowConfig,

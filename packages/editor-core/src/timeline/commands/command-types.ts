@@ -18,22 +18,22 @@ export type PlacementTarget = {
   insertNewLane?: boolean;
   insertOrder?: number | null;
   /**
-   * Layer mode: commit as `add-scene-node` into this scene instead of a
-   * timeline clip. `startTime` is global; local timing is derived via
-   * `layerContainerStart` / `layerContainerDuration`.
+   * Layer mode: commit dạng `add-scene-node` vào scene này thay vì timeline clip.
+   * `startTime` là toàn cục; local timing được dẫn xuất qua `layerContainerStart`
+   * / `layerContainerDuration`.
    */
   layerSceneId?: string;
   layerContainerStart?: number;
   layerContainerDuration?: number;
   /**
-   * V1 group layers: target parent group node id for the new child node.
-   * `null` = root layer (default). When set, the new node is created as a
-   * child of the group and its timing is parent-relative.
+   * V1 group layers: id parent group cho child layer mới.
+   * `null` = root layer (mặc định). Khi set, layer mới tạo là con của group
+   * và timing theo parent-relative.
    */
   layerParentId?: string | null;
-  /** Layer mode: target parent's scene-local effective start. */
+  /** Layer mode: effective start của parent trong scene. */
   layerParentSceneStart?: number;
-  /** Layer mode: target parent's effective duration. */
+  /** Layer mode: effective duration của parent. */
   layerParentDuration?: number;
 };
 
@@ -43,9 +43,9 @@ export type ClipMovePatch = {
   laneId?: string | null;
   insertNewLane?: boolean;
   insertOrder?: number | null;
-  /** Group surface: never pack two children on one row. */
+  /** Bề mặt group: không bao giờ pack hai con trên một hàng. */
   exclusiveRows?: boolean;
-  /** Exchange lanes with this clip (group vertical reorder). */
+  /** Đổi lane với clip này (sắp xếp dọc group). */
   swapClipId?: string | null;
 };
 
@@ -66,18 +66,18 @@ export type TimelineCommand =
       type: "add-scene-node";
       sceneId: string;
       draft: FrameDraft;
-      /** Scene-local timing; defaults to full scene duration. */
+      /** Timing local theo scene; mặc định trọn scene duration. */
       timing?: { start: number; duration: number };
-      /** Higher = above. Defaults to max existing + 1. */
+      /** Cao hơn = trên. Mặc định max hiện tại + 1. */
       zIndex?: number;
-      /** V1 group layers: parent group node id (null = root, default). */
+      /** V1 group layers: id parent group (null = root, mặc định). */
       parentLayerId?: string | null;
     }
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }
   | {
       type: "move-clips";
-      /** Primary is clipIds[0]; shared time delta applied on home lanes. */
+      /** Primary là clipIds[0]; time delta chung áp trên home lane. */
       clipIds: string[];
       deltaTime: number;
     }
@@ -86,7 +86,7 @@ export type TimelineCommand =
       clipId: string;
       duration: number;
       startTime?: number;
-      /** Audio source offset — ignored for scene clips. */
+      /** Offset nguồn audio — bị bỏ qua với scene clip. */
       trimStart?: number;
     }
   | { type: "delete-selected-clips" }
@@ -140,6 +140,7 @@ export type CommandResult =
         | "empty_selection"
         | "empty_clipboard"
         | "invalid_document"
+        | "invalid_protocol"
         | "duplicate_clip"
         | "unknown_command";
       message: string;
