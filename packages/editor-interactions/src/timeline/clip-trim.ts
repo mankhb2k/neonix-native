@@ -1,3 +1,7 @@
+/**
+ * Giải thuật trim clip thuần — dùng chung cho ghost preview và commit.
+ */
+
 export type ClipTrimEdge = "left" | "right";
 
 export type ClipTrimPreview = {

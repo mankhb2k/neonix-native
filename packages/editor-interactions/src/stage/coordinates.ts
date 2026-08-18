@@ -1,5 +1,5 @@
 /**
- * Stage viewport ↔ composition coordinate mapping.
+ * Ánh xạ tọa độ stage viewport ↔ composition.
  */
 
 import type { Point } from "../common/point";
@@ -7,14 +7,14 @@ import type { Point } from "../common/point";
 export type StagePoint = { x: number; y: number };
 
 export type StageViewportMetrics = {
-  /** Overlay/player content rect in client px (letterboxed content box). */
+  /** Rect content overlay/player theo client px (content box đã letterbox). */
   contentLeft: number;
   contentTop: number;
   contentWidth: number;
   contentHeight: number;
   compositionWidth: number;
   compositionHeight: number;
-  /** Optional editor camera on the stage (identity = 1,0,0). */
+  /** Camera editor tùy chọn trên stage (identity = 1,0,0). */
   zoom?: number;
   panX?: number;
   panY?: number;
@@ -57,8 +57,7 @@ export function compositionToClient(
   const zoom = m.zoom ?? 1;
   const panX = m.panX ?? 0;
   const panY = m.panY ?? 0;
-  const scaleX =
-    m.contentWidth > 0 ? m.contentWidth / m.compositionWidth : 1;
+  const scaleX = m.contentWidth > 0 ? m.contentWidth / m.compositionWidth : 1;
   const scaleY =
     m.contentHeight > 0 ? m.contentHeight / m.compositionHeight : 1;
 

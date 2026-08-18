@@ -1,5 +1,5 @@
 /**
- * Map stage transform preview → property patches / DocumentPropertyCommand.
+ * Ánh xạ preview transform stage → property patches / DocumentPropertyCommand.
  */
 
 import type {
@@ -12,9 +12,9 @@ import type { StageTransformValues } from "./transform-box";
 export type StagePropertyPatch = {
   target: NodeTargetRef;
   values: StageTransformValues;
-  /** Subset for editor-core set-node-transform today. */
+  /** Tập con cho set-node-transform của editor-core hiện tại. */
   transformPatch: TransformPatch;
-  /** width/height until TransformPatch grows — host may write separately. */
+  /** width/height cho tới khi TransformPatch mở rộng — host có thể ghi riêng. */
   sizePatch?: { width: number; height: number };
 };
 
@@ -41,7 +41,7 @@ export function toStagePropertyPatches(
 
   return [
     {
-      target: { rootLayerId: preview.sceneId, layerId: preview.layerId },
+      target: { rootLayerId: preview.rootLayerId, layerId: preview.layerId },
       values: preview,
       transformPatch,
       sizePatch: sizeChanged
@@ -51,17 +51,22 @@ export function toStagePropertyPatches(
   ];
 }
 
-export function toSetNodeTransformCommand(
-  patches: StagePropertyPatch[],
+/**
+ * Tạo command `set-node-transform` cho MỘT patch duy nhất.
+ *
+ * `toStagePropertyPatches()` luôn trả về đúng một patch (stage tương tác là
+ * single-selection). Hàm này nhận đúng một patch để ranh giới rõ ràng:
+ * - Không có thay đổi transform (ví dụ chỉ resize size) → trả về `null`.
+ *   Size change vẫn nằm ở `patch.sizePatch` để host tự xử lý.
+ * - Có thay đổi transform → trả về `{ type: "set-node-transform", ... }`.
+ */
+export function toSingleSetNodeTransformCommand(
+  patch: StagePropertyPatch,
 ): DocumentPropertyCommand | null {
-  const withTransform = patches.filter(
-    (p) => Object.keys(p.transformPatch).length > 0,
-  );
-  if (withTransform.length === 0) return null;
-  const first = withTransform[0]!;
+  if (Object.keys(patch.transformPatch).length === 0) return null;
   return {
     type: "set-node-transform",
-    targets: withTransform.map((p) => p.target),
-    patch: first.transformPatch,
+    targets: [patch.target],
+    patch: patch.transformPatch,
   };
 }

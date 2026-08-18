@@ -74,8 +74,8 @@ Mot so helper dung lai tu app store/legacy layer duoc gom vao day de app co the 
 - `mapNode`
 - `nodeText`
 - `updateVariable`
-- `sceneFromFrameDraft`
-- `cloneSceneWithNewIds`
+- `layerFromFrameDraft` (alias `sceneFromFrameDraft`, deprecated)
+- `cloneLayerWithNewIds` (alias `cloneSceneWithNewIds`, deprecated)
 - `stageSizeForAspect`
 
 ## Public API chinh
@@ -95,25 +95,25 @@ import {
 
 ## Module map
 
-| Nhom | Chuc nang |
-|---|---|
-| `document/` | Document model, canonical projection |
-| `selection/` | Selection state va selectors |
-| `timeline/model/` | Kieu du lieu timeline chinh |
-| `timeline/commands/` | Command types va command runner |
-| `timeline/actions/` | Timeline context actions |
-| `timeline/geometry/` | Timeline geometry, viewport layout, lane rows |
-| `timeline/policies/` | Snapping, zoom-fit, ruler ticks, drop target |
-| `timeline/selectors/` | Visible range, track kind, scene-order clips |
-| `timeline/internal/` | Compatibility helpers va adapters noi bo |
-| `operations/` | Clip move, group move, lane flags |
-| `history/` | Undo/redo va coalesce |
-| `properties/` | Property commands, registry, mixed state |
-| `playback/` | Playback driver va frame-time helpers |
-| `preview/` | Compose visual layers |
-| `export/` | Slice scene va build export project |
-| `overlay-scenes/` | Overlay scene helpers |
-| `testing/` | Fixtures va helper cho test |
+| Nhom                  | Chuc nang                                     |
+| --------------------- | --------------------------------------------- |
+| `document/`           | Document model, canonical projection          |
+| `selection/`          | Selection state va selectors                  |
+| `timeline/model/`     | Kieu du lieu timeline chinh                   |
+| `timeline/commands/`  | Command types va command runner               |
+| `timeline/actions/`   | Timeline context actions                      |
+| `timeline/geometry/`  | Timeline geometry, viewport layout, lane rows |
+| `timeline/policies/`  | Snapping, zoom-fit, ruler ticks, drop target  |
+| `timeline/selectors/` | Visible range, track kind, scene-order clips  |
+| `timeline/internal/`  | Compatibility helpers va adapters noi bo      |
+| `operations/`         | Clip move, group move, lane flags             |
+| `history/`            | Undo/redo va coalesce                         |
+| `properties/`         | Property commands, registry, mixed state      |
+| `playback/`           | Playback driver va frame-time helpers         |
+| `preview/`            | Compose visual layers                         |
+| `export/`             | Slice scene va build export project           |
+| `overlay-scenes/`     | Overlay scene helpers                         |
+| `testing/`            | Fixtures va helper cho test                   |
 
 ## Khong co trong editor-core
 
@@ -139,4 +139,3 @@ Neu mot tinh nang can UI hoac gesture, no thuong nam o `@motionvideo/editor-inte
 - import duoc tu nhieu app
 - khong bi nut voi React/DOM
 - co the tach sang package khac neu can
-

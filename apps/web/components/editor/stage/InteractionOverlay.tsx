@@ -132,11 +132,11 @@ export function InteractionOverlay({
   const resolveNodeBase = useCallback(
     (layerId: string) => {
       if (!project) return null;
-      const sceneId = rootLayerIdOf(project, layerId) ?? layerId;
-      const node = findNode(project, sceneId, layerId);
+      const rootLayerId = rootLayerIdOf(project, layerId) ?? layerId;
+      const node = findNode(project, rootLayerId, layerId);
       if (!node || !("transform" in node) || !node.transform) return null;
       return {
-        sceneId,
+        rootLayerId,
         layerId,
         x: node.transform.translate.x,
         y: node.transform.translate.y,
@@ -163,7 +163,7 @@ export function InteractionOverlay({
       });
     }
 
-    commitNodeTransform(values.sceneId, values.layerId, {
+    commitNodeTransform(values.rootLayerId, values.layerId, {
       x: values.x,
       y: values.y,
       width: values.width,
@@ -219,7 +219,7 @@ export function InteractionOverlay({
           timelineClips: clips,
         });
       }
-      commitNodeTransform(nodeBase.sceneId, nodeBase.layerId, {
+      commitNodeTransform(nodeBase.rootLayerId, nodeBase.layerId, {
         x: nodeBase.x + dx,
         y: nodeBase.y + dy,
       });
@@ -283,7 +283,7 @@ export function InteractionOverlay({
       const nodeBase = resolveNodeBase(hit.layerId);
       if (
         nodeBase &&
-        !isElementLocked(envelope, nodeBase.sceneId, hit.layerId)
+        !isElementLocked(envelope, nodeBase.rootLayerId, hit.layerId)
       ) {
         startMove(nodeBase, hit.worldBounds, point);
       }

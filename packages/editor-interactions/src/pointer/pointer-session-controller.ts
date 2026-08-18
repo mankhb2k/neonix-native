@@ -22,7 +22,7 @@ export type PointerSessionControllerOptions = {
   scheduler?: Scheduler;
 };
 
-/** @deprecated Prefer coordinator.reset() — kept for app test migration. */
+/** @deprecated Dùng `coordinator.reset()` — giữ lại cho việc migrate test ở app. */
 export function resetActivePointerSessionToken(
   coordinator: InteractionCoordinator = defaultInteractionCoordinator,
 ): void {
@@ -103,7 +103,10 @@ export class PointerSessionController<TState, TResult = void> {
 
   public commit(): TResult | null {
     if (this.state !== "active") return null;
-    this.cancelScheduledFrame();
+    // Áp dụng nốt pending update trước khi commit, để host không bắt buộc phải
+    // gọi `flushPendingUpdate()` thủ công. Host vẫn có thể gọi trước — việc này
+    // trở nên vô hại vì `flushPendingUpdate()` không áp dụng gì khi đã hết pending.
+    this.flushPendingUpdate();
     this.state = "committed";
     this.releaseSessionToken();
     if (this.config.onCommit && this.currentState !== null) {

@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createInteractionCoordinator } from "../pointer/interaction-coordinator";
 import { shouldCommitPointerSession } from "../pointer/pointer-session";
-import {
-  PointerSessionController,
-} from "../pointer/pointer-session-controller";
-import { syncScheduler } from "../common/scheduler";
+import { PointerSessionController } from "../pointer/pointer-session-controller";
+import { syncScheduler, type Scheduler } from "../common/scheduler";
 import { resolveClipTrimUpdate } from "../timeline/clip-trim";
 
 describe("interaction coordinator", () => {
@@ -68,5 +66,47 @@ describe("resolveClipTrimUpdate", () => {
         minDuration: 0.05,
       }),
     ).toEqual({ startTime: 1.5, duration: 1.5 });
+  });
+});
+
+describe("PointerSessionController commit self-flush", () => {
+  it("applies a queued update before commit without an explicit flush", () => {
+    let committed: { x: number } | null = null;
+    let pending: (() => void) | null = null;
+    const scheduler: Scheduler = {
+      requestFrame: (callback) => {
+        pending = callback;
+        return 1;
+      },
+      cancelFrame: () => {
+        pending = null;
+      },
+    };
+    const controller = new PointerSessionController<
+      { x: number },
+      { x: number }
+    >(
+      {
+        name: "move",
+        onStart: (p) => ({ x: p.x }),
+        onUpdate: (p) => ({ x: p.x }),
+        onCommit: (state) => {
+          committed = state;
+          return state;
+        },
+      },
+      { coordinator: createInteractionCoordinator(), scheduler },
+    );
+
+    expect(controller.start({ x: 0, y: 0 })).toBe(true);
+    controller.update({ x: 42, y: 0 });
+    // RAF chưa chạy → pending vẫn còn.
+    expect(pending).not.toBeNull();
+
+    const result = controller.commit();
+    expect(committed).toEqual({ x: 42 });
+    expect(result).toEqual({ x: 42 });
+    // Pending đã được flush (RAF bị hủy).
+    expect(pending).toBeNull();
   });
 });

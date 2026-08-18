@@ -126,7 +126,7 @@ function nodeFromDraft(
 
   if (kind === "shape") {
     let shapePayload: Extract<MotionLayer, { type: "shape" }>["payload"];
-    if (draft.shape === "ellipse" || draft.shape === "circle") {
+    if (draft.shape === "ellipse") {
       shapePayload = { shape: "ellipse" };
     } else if (draft.shape === "polygon") {
       shapePayload = {
@@ -212,12 +212,12 @@ export function createNodeFromFrameDraft(
 }
 
 /** Chuyển FrameDraft thành layer gốc (shape/text/video/image) — không bọc group. */
-export function sceneFromFrameDraft(
+export function layerFromFrameDraft(
   draft: FrameDraft,
   createId: CommandContext["createId"] = defaultCreateId,
   composition: CompositionSize = DEFAULT_COMPOSITION,
 ): MotionLayer {
-  const layerId = createId("scene");
+  const layerId = createId("layer");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
   const node = nodeFromDraft(draft, layerId, composition);
   const name = draft.name.trim() || draft.kind || "Clip";
@@ -229,30 +229,50 @@ export function sceneFromFrameDraft(
   };
 }
 
-export function cloneSceneWithNewIds(
-  scene: MotionLayer,
+export function cloneLayerWithNewIds(
+  layer: MotionLayer,
   createId: CommandContext["createId"] = defaultCreateId,
 ): MotionLayer {
-  const cloned = JSON.parse(JSON.stringify(scene)) as MotionLayer;
-  const newSceneId = createId("scene");
+  const cloned = JSON.parse(JSON.stringify(layer)) as MotionLayer;
+  const newLayerId = createId("layer");
 
-  const remapChildren = (nodes: MotionLayer[]): MotionLayer[] =>
+  // Each node gets a fresh id AND its `parentLayerId` re-points to the fresh
+  // id of its actual parent (threaded down), so nested groups stay a valid
+  // tree — not just root children (the old code only remapped the root).
+  const remapChildren = (
+    nodes: MotionLayer[],
+    newParentId: string,
+  ): MotionLayer[] =>
     nodes.map((node) => {
       const nextId = createId("node");
       const children =
-        node.type === "group" ? remapChildren(node.children) : undefined;
+        node.type === "group"
+          ? remapChildren(node.children, nextId)
+          : undefined;
       return {
         ...node,
         id: nextId,
         ...(children ? { children } : {}),
-        parentLayerId:
-          node.parentLayerId === scene.id ? newSceneId : node.parentLayerId,
+        parentLayerId: newParentId,
       } as MotionLayer;
     });
 
-  cloned.id = newSceneId;
+  cloned.id = newLayerId;
   if (cloned.type === "group") {
-    cloned.children = remapChildren(cloned.children);
+    cloned.children = remapChildren(cloned.children, newLayerId);
   }
   return cloned;
 }
+
+/** @deprecated Use `layerFromFrameDraft` (layer vocabulary). */
+export const sceneFromFrameDraft: typeof layerFromFrameDraft = (
+  draft,
+  createId,
+  composition,
+) => layerFromFrameDraft(draft, createId, composition);
+
+/** @deprecated Use `cloneLayerWithNewIds` (layer vocabulary). */
+export const cloneSceneWithNewIds: typeof cloneLayerWithNewIds = (
+  layer,
+  createId,
+) => cloneLayerWithNewIds(layer, createId);

@@ -1,3 +1,7 @@
+/**
+ * Public API của stage transform: tọa độ, hit-test, handle, ràng buộc, phiên và commit.
+ */
+
 export {
   type StagePoint,
   type StageViewportMetrics,
@@ -45,5 +49,5 @@ export {
   type StagePropertyPatch,
   type StageCommitResult,
   toStagePropertyPatches,
-  toSetNodeTransformCommand,
+  toSingleSetNodeTransformCommand,
 } from "./commit";

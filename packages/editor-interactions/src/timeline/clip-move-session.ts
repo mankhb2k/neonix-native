@@ -1,3 +1,7 @@
+/**
+ * Trạng thái phiên kéo-thả move clip trên timeline (không giữ DOM).
+ */
+
 import type { ClipMovePatch } from "@motionvideo/editor-core";
 
 export type MoveSessionState = {

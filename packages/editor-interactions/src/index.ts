@@ -1,3 +1,9 @@
+/**
+ * @motionvideo/editor-interactions — tương tác chuột/pointer thuần cho editor:
+ * pointer sessions, timeline (seek/marquee/clip-move/trim/drop), và stage transform.
+ * Không chứa React/DOM — host tự cung cấp tọa độ và metrics.
+ */
+
 export type { Point, PointerPos } from "./common/point";
 export {
   type PointerModifiers,
@@ -77,6 +83,8 @@ export {
   clampNodeLocalTiming,
 } from "./timeline/layer-timing";
 export {
+  reorderLayerIds,
+  reorderLayerIdsByInsert,
   reorderLayerLayerIds,
   reorderLayerLayerIdsByInsert,
 } from "./timeline/layer-reorder";
@@ -149,5 +157,5 @@ export {
   type StagePropertyPatch,
   type StageCommitResult,
   toStagePropertyPatches,
-  toSetNodeTransformCommand,
+  toSingleSetNodeTransformCommand,
 } from "./stage";

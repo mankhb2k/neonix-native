@@ -36,7 +36,7 @@ describe("stage coordinates", () => {
 
 describe("stage transform math", () => {
   const base = {
-    sceneId: "s",
+    rootLayerId: "s",
     layerId: "n",
     x: 10,
     y: 20,
@@ -46,9 +46,9 @@ describe("stage transform math", () => {
   };
 
   it("moves by pointer delta", () => {
-    expect(
-      applyMoveDelta(base, { x: 0, y: 0 }, { x: 5, y: -3 }),
-    ).toMatchObject({ x: 15, y: 17 });
+    expect(applyMoveDelta(base, { x: 0, y: 0 }, { x: 5, y: -3 })).toMatchObject(
+      { x: 15, y: 17 },
+    );
   });
 
   it("resizes from east handle", () => {
@@ -73,7 +73,7 @@ describe("stage constraints", () => {
   it("snaps move to guides", () => {
     const { values, guides } = applyMoveConstraints(
       {
-        sceneId: "s",
+        rootLayerId: "s",
         layerId: "n",
         x: 52,
         y: 10,
@@ -102,7 +102,7 @@ describe("createStageSession", () => {
     const session = createStageSession();
     const previews: unknown[] = [];
     const base = {
-      sceneId: "scene",
+      rootLayerId: "scene",
       layerId: "node",
       x: 0,
       y: 0,
@@ -140,7 +140,7 @@ describe("createStageSession", () => {
       {
         interactionId: "i2",
         base: {
-          sceneId: "s",
+          rootLayerId: "s",
           layerId: "n",
           x: 0,
           y: 0,
@@ -161,7 +161,7 @@ describe("createStageSession", () => {
 describe("toStagePropertyPatches", () => {
   it("includes sizePatch when dimensions change", () => {
     const base = {
-      sceneId: "s",
+      rootLayerId: "s",
       layerId: "n",
       x: 0,
       y: 0,

@@ -1,9 +1,9 @@
 /**
- * Clamp scene-local node timing inside a container span.
+ * Clamp timing node trong phạm vi container (local theo scene).
  */
 
 export type LayerTimingLocal = {
-  /** Seconds relative to container start (scene-local). */
+  /** Giây tương đối so với start của container (scene-local). */
   start: number;
   duration: number;
 };

@@ -181,7 +181,7 @@ describe("Pure Command Runner Engine", () => {
         text: "Rectangle",
         duration: 3,
         kind: "shape",
-        shape: "rect",
+        shape: "rectangle",
       },
       target: { track: "main" },
     });

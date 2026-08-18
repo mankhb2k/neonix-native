@@ -1,3 +1,4 @@
+/** Trạng thái phím bổ trợ (Shift/Alt/Meta/Ctrl) trong một sự kiện con trỏ. */
 export type PointerModifiers = {
   shift: boolean;
   alt: boolean;

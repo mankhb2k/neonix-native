@@ -1,5 +1,5 @@
 /**
- * Pointer session end contract: only pointerup commits.
+ * Hợp đồng kết thúc phiên con trỏ: chỉ `pointerup` mới commit.
  */
 
 export type PointerSessionEndReason = "pointerup" | "pointercancel" | "escape";

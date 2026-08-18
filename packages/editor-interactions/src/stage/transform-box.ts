@@ -1,23 +1,15 @@
 /**
- * Selection box + resize/rotate handle hit testing in composition space.
+ * Selection box + hit test handle resize/rotate trong không gian composition.
  */
 
 import type { StagePoint } from "./coordinates";
 
-export type ResizeHandle =
-  | "nw"
-  | "n"
-  | "ne"
-  | "e"
-  | "se"
-  | "s"
-  | "sw"
-  | "w";
+export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
 export type StageHandle = ResizeHandle | "rotate";
 
 export type StageTransformValues = {
-  sceneId: string;
+  rootLayerId: string;
   layerId: string;
   x: number;
   y: number;
@@ -35,7 +27,7 @@ export type StageBounds = {
 
 export type SelectionBox = StageBounds & { rotation: number };
 
-/** World AABB for chrome; apply authoring delta onto world base. */
+/** World AABB cho chrome; áp delta authoring lên world base. */
 export function selectionBoxFromWorldAndDelta(
   worldBase: StageBounds,
   base: StageTransformValues,
@@ -76,8 +68,8 @@ function rotateHandlePoint(box: SelectionBox): StagePoint {
 }
 
 /**
- * Prefer corner/edge handles; then rotate knob above the box.
- * `handleHitSlop` is composition-space radius.
+ * Ưu tiên handle góc/cạnh; sau đó mới tới nút xoay phía trên box.
+ * `handleHitSlop` là bán kính trong không gian composition.
  */
 export function hitTestHandle(
   box: SelectionBox,
@@ -85,16 +77,7 @@ export function hitTestHandle(
   handleHitSlop = 8,
 ): StageHandle | null {
   const centers = handleCenters(box);
-  const order: ResizeHandle[] = [
-    "nw",
-    "ne",
-    "se",
-    "sw",
-    "n",
-    "e",
-    "s",
-    "w",
-  ];
+  const order: ResizeHandle[] = ["nw", "ne", "se", "sw", "n", "e", "s", "w"];
   const slop2 = handleHitSlop * handleHitSlop;
   for (const h of order) {
     const c = centers[h];

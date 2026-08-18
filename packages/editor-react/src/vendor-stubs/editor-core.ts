@@ -141,8 +141,35 @@ export function resolveOccupancyAwarePlacement(input: {
   retargetLaneRole?: "base" | "overlay" | "audio";
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  swapClipId?: string | null;
 } {
   return { startTime: input.desiredStart };
+}
+
+// TODO(vendor-stub): bỏ stub này khi editor-react chuyển sang resolve trực tiếp
+// `@motionvideo/editor-core` (giống editor-interactions đã làm). Giữ đúng chữ ký
+// để typecheck phản chiếu API thật.
+export function resolveExclusiveRowPlacement(input: {
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >;
+  desiredStart: number;
+  excludeIds?: ReadonlySet<string>;
+}): {
+  startTime: number;
+  insertNewLane: boolean;
+  insertOrder: number | null;
+  edgeGuideTime: number | null;
+  retargetLaneId?: string | null;
+  retargetLaneRole?: "base" | "overlay" | "audio" | null;
+  swapClipId?: string | null;
+} {
+  return {
+    startTime: Math.max(0, input.desiredStart),
+    insertNewLane: false,
+    insertOrder: null,
+    edgeGuideTime: null,
+  };
 }
 
 export function createClipGroupMovePlan(

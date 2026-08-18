@@ -1,5 +1,5 @@
 /**
- * Marquee selection geometry for timeline tracks (N6).
+ * Hình học chọn marquee cho các track trên timeline (N6).
  */
 
 export type MarqueeRect = {
@@ -46,7 +46,7 @@ export function clipIdsInMarquee(
   return clips.filter((c) => rectsIntersect(rect, c)).map((c) => c.id);
 }
 
-/** Replace hits, or union with prior selection when additive (Shift). */
+/** Thay thế tập hit, hoặc hợp với selection trước đó khi additive (Shift). */
 export function resolveMarqueeSelectionIds(
   hits: readonly string[],
   existingIds: readonly string[],
@@ -68,8 +68,8 @@ export function selectionIdsEqual(
 }
 
 /**
- * Live preview publish guard. `last == null` is the unset sentinel so the first
- * empty `[]` still publishes (fixes empty-marquee not clearing selection).
+ * Guard publish preview trực tiếp. `last == null` là sentinel "chưa set" để lần
+ * đầu tiên với `[]` rỗng vẫn publish (sửa lỗi marquee rỗng không xóa selection).
  */
 export function shouldPublishMarqueeIds(
   last: readonly string[] | null,
@@ -79,7 +79,7 @@ export function shouldPublishMarqueeIds(
   return !selectionIdsEqual(last, next);
 }
 
-/** Final commit: empty ids → clear selection. */
+/** Commit cuối: danh sách rỗng → xóa selection. */
 export function commitMarqueeSelectionIds(
   ids: readonly string[],
 ): { kind: "none" } | { kind: "clips"; ids: string[] } {
@@ -94,9 +94,9 @@ export type MarqueeIndexedClip = {
 };
 
 export type MarqueeHitContext = {
-  /** Content-space lane prefix (0 at first lane top, excludes topPadding). Includes gaps in spacing. */
+  /** Prefix lane trong content-space (0 ở đỉnh lane đầu, không gồm topPadding). Bao gồm các khoảng gap. */
   laneHeightPrefix: readonly number[];
-  /** Per-lane content height (no gap). Length === laneCount. */
+  /** Chiều cao content mỗi lane (không có gap). Length === laneCount. */
   laneContentHeights: readonly number[];
   topPadding: number;
   laneCount: number;
@@ -105,12 +105,12 @@ export type MarqueeHitContext = {
   tracksOriginX: number;
 };
 
-/** Web CapCut: allow a small pad past the last lane, not full bottom runway. */
+/** Web CapCut: cho phép một khoảng đệm nhỏ qua lane cuối, không phải toàn bộ runway đáy. */
 export const MARQUEE_TRACK_BOTTOM_PAD_PX = 16;
 
 /**
- * Vertical bounds for marquee (web `getTrackBounds` parity).
- * `maxWorkspaceY` clamps the selection rect; `maxScrollTop` clamps edge auto-scroll down.
+ * Giới hạn dọc cho marquee (khớp với `getTrackBounds` ở web).
+ * `maxWorkspaceY` clamp rect chọn; `maxScrollTop` clamp auto-scroll xuống dưới.
  */
 export function marqueeTrackScrollBounds(input: {
   topPadding: number;
@@ -135,7 +135,7 @@ export function marqueeTrackScrollBounds(input: {
   return { maxWorkspaceY, maxScrollTop };
 }
 
-/** First index i where clips[i].startTime >= t (clips sorted by startTime). */
+/** Index i đầu tiên thỏa clips[i].startTime >= t (clips đã sort theo startTime). */
 function lowerBoundClipStart(
   clips: ReadonlyArray<MarqueeIndexedClip>,
   t: number,
@@ -150,7 +150,7 @@ function lowerBoundClipStart(
   return lo;
 }
 
-/** Edge-inclusive Y overlap with rectsIntersect semantics (content Y space). */
+/** Overlap Y bao gồm cạnh, dùng ngữ nghĩa giống rectsIntersect (content Y space). */
 function laneYIntersectsMarquee(
   viewTop: number,
   viewBottom: number,
@@ -161,8 +161,8 @@ function laneYIntersectsMarquee(
 }
 
 /**
- * Last lane index whose top is at or above y (prefix[i] <= y).
- * Edge-inclusive counterpart to lastLaneTopBefore for marquee.
+ * Index lane cuối có đỉnh ở hoặc trên y (prefix[i] <= y).
+ * Đối ngẫu edge-inclusive của lastLaneTopBefore cho marquee.
  */
 function lastLaneTopAtOrBefore(prefix: readonly number[], y: number): number {
   const n = prefix.length - 1;
@@ -177,9 +177,9 @@ function lastLaneTopAtOrBefore(prefix: readonly number[], y: number): number {
 }
 
 /**
- * First lane whose content bottom is >= y (edge-inclusive).
- * Unlike firstLaneBottomAfter (prefix bottoms include gaps), this uses
- * content heights so a marquee on the final lane's bottom edge still hits.
+ * Lane đầu tiên có content bottom >= y (bao gồm cạnh).
+ * Khác firstLaneBottomAfter (prefix bottom bao gồm gap), hàm này dùng content
+ * heights để marquee ở cạnh đáy của lane cuối vẫn hit.
  */
 function firstLaneContentBottomAtOrAfter(
   prefix: readonly number[],

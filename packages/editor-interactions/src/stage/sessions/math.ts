@@ -1,5 +1,5 @@
 /**
- * Pure move / resize / rotate delta math for stage transform sessions.
+ * Toán delta thuần cho move / resize / rotate trong phiên transform stage.
  */
 
 import type { StagePoint } from "../coordinates";

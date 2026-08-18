@@ -50,7 +50,7 @@ export type DocSnapshot = {
   transitions?: unknown[];
 };
 
-/** Make `uid()` / cloneSceneWithNewIds deterministic for golden generation. */
+/** Make `uid()` / cloneLayerWithNewIds deterministic for golden generation. */
 export function withDeterministicIds<T>(fn: () => T): T {
   const original = Math.random;
   let seed = 0;
@@ -86,7 +86,19 @@ function textNode(id: string, text: string) {
     id,
     type: "text" as const,
     parentLayerId: null,
-    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+    ...visualLayerAtoms({
+      x: 40,
+      y: 40,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0,
+      originY: 0,
+      opacity: 100,
+      visible: true,
+    }),
     payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
     style: { fill: "#111111" },
   };

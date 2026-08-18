@@ -326,7 +326,7 @@ describe("export temporal parity (local-time bake)", () => {
       expect(bakedLocal).not.toBeNull();
 
       // Segment start from the baked layer this local time belongs to.
-      const bakedScene = baked.layers.find((s) => s.id === bakedLocal!.sceneId);
+      const bakedScene = baked.layers.find((s) => s.id === bakedLocal!.layerId);
       const segmentStart = bakedScene?.timing.start ?? 0;
       // Continuity: preview localTime ≡ bakedLocal + slice offset into source scene
       expect(bakedLocal!.localTime + segmentStart).toBeCloseTo(
@@ -377,7 +377,7 @@ describe("export temporal parity (local-time bake)", () => {
     expect(layers.some((l) => l.role === "overlay")).toBe(true);
     const bakedAt = resolveBakedLocalTime(baked, midGap);
     expect(bakedAt).not.toBeNull();
-    const scene = baked.layers.find((s) => s.id === bakedAt!.sceneId);
+    const scene = baked.layers.find((s) => s.id === bakedAt!.layerId);
     const overlaySource = project.layers.find((s) => s.id === "scene.overlay");
     const overlayNodes =
       overlaySource?.type === "group" ? overlaySource.children.length : 0;
@@ -466,5 +466,105 @@ describe("export temporal parity (local-time bake)", () => {
     expect(track?.payload.trimStart).toBeCloseTo(1.25, 5);
     expect(track?.payload.fadeIn).toBeCloseTo(0.1, 5);
     expect(track?.payload.fadeOut).toBeCloseTo(0.2, 5);
+    // Asset duration (8s) must NOT win over clip placement (4s).
+    expect(track?.timing.duration).toBeCloseTo(4, 5);
+  });
+
+  it("exports audio span from clip.duration, not asset.duration", () => {
+    const { project, lanes } = fixtureBasePlusOverlay();
+    const withAsset = parseMotionProject({
+      ...project,
+      assets: [
+        {
+          id: "asset.audio.long",
+          assetType: "audio",
+          uri: "assets/bed.mp3",
+          integrity: "sha256-fixture",
+          mimeType: "audio/mpeg",
+          duration: 8,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
+      ],
+      layers: [
+        ...project.layers,
+        {
+          id: "audio.trimmed",
+          type: "audio",
+          parentLayerId: null,
+          zIndex: -1,
+          timing: { start: 0, duration: 4 },
+          payload: {
+            assetId: "asset.audio.long",
+            trimStart: 0,
+            playbackRate: 1,
+            volume: 100,
+            loop: false,
+            fadeIn: 0,
+            fadeOut: 0,
+            muted: false,
+          },
+        },
+      ],
+    });
+    const clips: TimelineClip[] = [
+      {
+        id: "clip.base",
+        kind: "scene",
+        sceneId: "scene.base",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 4,
+        name: "Base",
+      },
+      {
+        id: "audio.trimmed",
+        kind: "audio",
+        audioTrackId: "audio.trimmed",
+        assetId: "asset.audio.long",
+        laneId: "lane.audio.0",
+        startTime: 0,
+        duration: 4,
+        name: "Bed",
+      },
+    ];
+    const audioLanes: TimelineLane[] = [
+      ...lanes,
+      {
+        id: "lane.audio.0",
+        kind: "audio",
+        role: "audio",
+        order: 0,
+        name: "Audio 1",
+      },
+    ];
+    const baked = buildExportProject({
+      project: withAsset,
+      timelineClips: clips,
+      timelineLanes: audioLanes,
+    });
+    const track = baked.layers.find((l) => l.type === "audio");
+    expect(track?.timing.duration).toBeCloseTo(4, 5);
+  });
+});
+
+describe("export determinism", () => {
+  it("produces identical layer ids across two exports of the same input", () => {
+    const { project, clips, lanes } = fixtureBasePlusOverlay();
+    const input = { project, timelineClips: clips, timelineLanes: lanes };
+    const first = buildExportProject(input);
+    const second = buildExportProject(input);
+
+    const idsOf = (p: MotionProject) => p.layers.map((l) => l.id);
+    expect(idsOf(first)).toEqual(idsOf(second));
+
+    // Nested baked segment children are deterministic too.
+    const nestedOf = (p: MotionProject) =>
+      p.layers
+        .filter((l) => l.type === "group")
+        .flatMap((l) => l.children.map((c) => c.id));
+    expect(nestedOf(first)).toEqual(nestedOf(second));
+    expect(nestedOf(first).length).toBeGreaterThan(0);
   });
 });

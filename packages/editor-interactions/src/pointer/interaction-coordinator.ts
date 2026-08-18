@@ -5,7 +5,7 @@ export type InteractionCoordinator = {
   readonly activeToken: string | null;
 };
 
-/** Per editor-instance coordinator — no process-wide singleton for ownership. */
+/** Coordinator theo từng instance editor — không dùng singleton toàn process cho quyền sở hữu. */
 export function createInteractionCoordinator(): InteractionCoordinator {
   let activeToken: string | null = null;
   return {
@@ -27,7 +27,7 @@ export function createInteractionCoordinator(): InteractionCoordinator {
 }
 
 /**
- * Migration default for apps that still construct controllers without an
- * explicit coordinator. Prefer `createInteractionCoordinator()` per editor.
+ * Default dùng cho migration: cho các app vẫn tạo controller mà không truyền
+ * coordinator tường minh. Nên dùng `createInteractionCoordinator()` cho từng editor.
  */
 export const defaultInteractionCoordinator = createInteractionCoordinator();

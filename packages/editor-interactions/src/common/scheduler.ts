@@ -3,7 +3,7 @@ export type Scheduler = {
   cancelFrame: (id: number) => void;
 };
 
-/** Runs the callback synchronously (unit tests). */
+/** Chạy callback đồng bộ ngay lập tức (dùng cho unit test). */
 export const syncScheduler: Scheduler = {
   requestFrame: (callback) => {
     callback();
@@ -12,7 +12,7 @@ export const syncScheduler: Scheduler = {
   cancelFrame: () => undefined,
 };
 
-/** Browser RAF with sync fallback when RAF is unavailable. */
+/** Dùng `requestAnimationFrame` của trình duyệt, fallback đồng bộ khi không có RAF. */
 export const browserScheduler: Scheduler = {
   requestFrame: (callback) => {
     if (typeof requestAnimationFrame !== "undefined") {

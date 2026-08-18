@@ -1,3 +1,7 @@
+/**
+ * Trạng thái phiên thả item từ thư viện vào timeline.
+ */
+
 import type { PlacementTarget } from "@motionvideo/editor-core";
 
 export type LibraryDropSessionState = {
@@ -50,7 +54,9 @@ export function updateLibraryDropSessionState(
   };
 }
 
-export function buildPlacementTarget(state: LibraryDropSessionState): PlacementTarget {
+export function buildPlacementTarget(
+  state: LibraryDropSessionState,
+): PlacementTarget {
   return {
     track: state.targetTrack,
     laneId: state.targetLaneId,

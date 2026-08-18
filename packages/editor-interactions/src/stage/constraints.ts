@@ -1,5 +1,5 @@
 /**
- * Stage transform constraints (min size, aspect, edge snaps).
+ * Ràng buộc transform trên stage (kích thước tối thiểu, tỷ lệ, snap mép).
  */
 
 import type { StageTransformValues } from "./transform-box";
@@ -73,7 +73,7 @@ export function applyResizeConstraints(
     } else {
       width = Math.max(minSize, height * aspect);
     }
-    // Keep opposite corner when west/north grew from base.
+    // Giữ góc đối diện khi cạnh west/north phát triển từ base.
     if (Math.abs(x - base.x) > 1e-6) {
       x = base.x + base.width - width;
     }
@@ -95,7 +95,7 @@ export function applyRotateConstraints(
 ): { values: StageTransformValues; guides: StageGuide[] } {
   const guides: StageGuide[] = [];
   let rotation = next.rotation;
-  // Snap to 15° increments when threshold provided via snapThreshold.
+  // Snap theo bước 15° khi threshold được cung cấp qua snapThreshold.
   const step = 15;
   const threshold = ctx.snapThreshold ?? 0;
   if (threshold > 0) {

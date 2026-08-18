@@ -1,7 +1,8 @@
+/** Điểm 2D trong hệ tọa độ client. */
 export type Point = {
   x: number;
   y: number;
 };
 
-/** @deprecated Prefer Point — kept as PointerPos for migration. */
+/** @deprecated Dùng `Point` — giữ `PointerPos` để migrate dần. */
 export type PointerPos = Point;

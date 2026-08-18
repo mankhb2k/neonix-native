@@ -14,7 +14,7 @@ const CARD_ANCHOR_Y = 34;
 
 function renderDragItemPreview(item: LibraryPayload) {
   if (item.kind === "shape") {
-    if (item.shape === "ellipse" || item.shape === "circle") {
+    if (item.shape === "ellipse") {
       return (
         <div className="h-9 w-9 rounded-full border-2 border-white bg-transparent" />
       );

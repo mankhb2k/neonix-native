@@ -3,7 +3,11 @@
 export const DEFAULT_FRAME_DURATION = 5;
 
 export type FrameDraftKind = "text" | "shape" | "image" | "video";
-export type FrameDraftShape = "rectangle" | "ellipse" | "polygon" | "rect" | "circle";
+/**
+ * Canonical shape vocabulary — mirrors the V1 `shape` payload values 1:1.
+ * `rect`/`circle` were legacy aliases and are no longer accepted.
+ */
+export type FrameDraftShape = "rectangle" | "ellipse" | "polygon";
 
 export type FrameDraft = {
   id: string;

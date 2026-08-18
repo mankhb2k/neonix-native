@@ -1,8 +1,8 @@
 /**
- * Pure drop geometry math — compute which lane and time a pointer hits.
- * Apps supply DOM-scraped coordinates and lane metadata.
+ * Toán drop geometry thuần — tính xem con trỏ rơi vào lane và thời gian nào.
+ * App cung cấp tọa độ đã lấy từ DOM và metadata lane.
  *
- * Moved from apps/desktop/gui/editor/timeline/drop/drop-geometry.ts
+ * Chuyển từ apps/desktop/gui/editor/timeline/drop/drop-geometry.ts
  */
 
 import type { TimelineLane, TimelineTrackKind } from "@motionvideo/editor-core";
@@ -16,26 +16,26 @@ export type DropGeometryResult = {
 };
 
 export type DropGeometryPureInput = {
-  /** Content-space X (seconds = x / pps), pre-computed by caller from clientX. */
+  /** Content-space X (giây = x / pps), caller tính trước từ clientX. */
   contentX: number;
-  /** Content-space Y relative to the top of the first lane. */
+  /** Content-space Y tương đối so với đỉnh của lane đầu tiên. */
   contentY: number;
-  /** Lanes in display order (overlay → base → audio). Do not re-sort. */
+  /** Lanes theo thứ tự hiển thị (overlay → base → audio). Không sort lại. */
   lanes: readonly TimelineLane[];
-  /** Height resolver per lane (uniform fallback when omitted). */
+  /** Resolver chiều cao từng lane (fallback đồng nhất khi bỏ trống). */
   laneHeightFor?: (lane: TimelineLane) => number;
-  /** Uniform fallback lane height. */
+  /** Chiều cao lane fallback đồng nhất. */
   laneHeight: number;
-  /** Gap between consecutive lanes in content Y. */
+  /** Khoảng gap giữa các lane liên tiếp trong content Y. */
   laneGapPx?: number;
   pixelsPerSecond: number;
-  /** Resolve track kind for a lane. */
+  /** Resolve loại track cho một lane. */
   trackForLane: (lane: TimelineLane) => TimelineTrackKind;
 };
 
 /**
- * Pure version of resolveTimelineDropGeometry — no DOM calls.
- * Caller pre-computes contentX/contentY from clientX/clientY + scroll rect.
+ * Phiên bản thuần của resolveTimelineDropGeometry — không gọi DOM.
+ * Caller tính trước contentX/contentY từ clientX/clientY + scroll rect.
  */
 export function resolveDropGeometry(
   input: DropGeometryPureInput,

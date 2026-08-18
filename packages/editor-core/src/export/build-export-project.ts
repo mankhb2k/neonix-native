@@ -2,7 +2,7 @@
  * Bake editor timeline → MotionProject V1 tuần tự hợp lệ cho export/compiler.
  * Overlay compose ngoài schema — flatten theo interval với local-time slice.
  *
- * Phase 8: Outputs V1 visualTracks directly.
+ * Outputs a flattened V1 `layers` graph (visual segments + audio root layers).
  */
 
 import {
@@ -35,8 +35,8 @@ export type EditorExportSnapshot = {
   timelineLanes: TimelineLane[];
 };
 
-function uid(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+function segmentId(index: number): string {
+  return `segment_${index}`;
 }
 
 function emptyPadLayer(
@@ -57,7 +57,7 @@ function emptyPadLayer(
     timing: { start: 0, duration: dur },
     children: [
       {
-        id: uid("pad-solid"),
+        id: "solid",
         type: "solid",
         name: "Pad",
         parentLayerId: id,
@@ -127,9 +127,10 @@ function rebaseBakedScene(scene: MotionLayer): MotionLayer {
   ): MotionLayer[] =>
     nodes.map((node, index) => {
       const nextId = `${rootId}.${node.id}`;
+      const start = Math.min(Math.max(0, node.timing.start), parentDuration);
       const duration = Math.max(
         0.001,
-        Math.min(node.timing.duration, parentDuration),
+        Math.min(node.timing.duration, parentDuration - start),
       );
       const children =
         node.type === "group"
@@ -140,7 +141,7 @@ function rebaseBakedScene(scene: MotionLayer): MotionLayer {
         id: nextId,
         parentLayerId: parentId,
         zIndex: index,
-        timing: { start: 0, duration },
+        timing: { start, duration },
         ...(children ? { children } : {}),
       } as MotionLayer;
     });
@@ -195,13 +196,14 @@ function buildAudioLayers(
   return clips.filter(isAudioClip).map((clip) => {
     const existing = byLayerId.get(clip.audioTrackId);
     const muted = mutedLanes.has(clip.laneId);
-    const asset = project.assets?.find((a) => a.id === clip.assetId);
     return buildAudioLayer({
       id: clip.audioTrackId,
       assetId: clip.assetId,
       name: existing?.name,
       start: clip.startTime,
-      duration: asset && "duration" in asset ? asset.duration : clip.duration,
+      // Clip placement is the source of truth for the export span; asset
+      // duration is only a source limit (trim validation), never the span.
+      duration: clip.duration,
       trimStart: existing?.payload.trimStart ?? 0,
       volume: muted ? 0 : (existing?.payload.volume ?? 100),
       loop: existing?.payload.loop ?? false,
@@ -245,10 +247,10 @@ export function buildExportProject(
     }
   }
 
-  const scenesById = new Map(
+  const layersById = new Map(
     project.layers
       .filter((layer) => layer.type !== "audio")
-      .map((scene) => [scene.id, scene]),
+      .map((layer) => [layer.id, layer]),
   );
   const boundaries = collectBoundaryTimes(timelineClips, timelineLanes);
   const contentEnd = timelineClips.reduce(
@@ -258,11 +260,12 @@ export function buildExportProject(
   const audioLayers = buildAudioLayers(project, timelineClips, timelineLanes);
 
   if (boundaries.length === 0 || contentEnd <= 0) {
-    const existingScene = project.layers.find(
+    const existingLayer = project.layers.find(
       (layer) => layer.type !== "audio",
     );
     const fallback =
-      existingScene ?? emptyPadLayer(uid("pad"), 0.5, "Empty", width, height);
+      existingLayer ??
+      emptyPadLayer("segment_empty", 0.5, "Empty", width, height);
     const fallbackLayer: MotionLayer = {
       ...fallback,
       timing: {
@@ -283,7 +286,7 @@ export function buildExportProject(
     boundaries.push(contentEnd);
   }
 
-  const bakedScenes: Array<{
+  const bakedSegments: Array<{
     layer: MotionLayer;
     start: number;
     duration: number;
@@ -300,75 +303,75 @@ export function buildExportProject(
     const baseLayer = layers.find((layer) => layer.role === "base");
     const overlayLayers = layers.filter((layer) => layer.role === "overlay");
 
-    let scene: MotionLayer;
+    let bakedLayer: MotionLayer;
     if (baseLayer) {
-      const source = scenesById.get(baseLayer.layerId);
+      const source = layersById.get(baseLayer.layerId);
       const baseClip = findClipById(timelineClips, baseLayer.clipId);
       const localStart = baseClip
         ? clipLocalTime(baseClip.startTime, baseClip.duration, t0)
         : 0;
-      scene = source
+      bakedLayer = source
         ? sliceScene(source, localStart, duration)
-        : emptyPadLayer(uid("pad"), duration, "Missing base", width, height);
-      scene = { ...scene, id: uid("bake") };
+        : emptyPadLayer(segmentId(i), duration, "Missing base", width, height);
+      bakedLayer = { ...bakedLayer, id: segmentId(i) };
       for (const overlay of overlayLayers) {
-        const ovScene = scenesById.get(overlay.layerId);
-        if (!ovScene) continue;
+        const ovLayer = layersById.get(overlay.layerId);
+        if (!ovLayer) continue;
         const ovClip = findClipById(timelineClips, overlay.clipId);
         const ovLocal = ovClip
           ? clipLocalTime(ovClip.startTime, ovClip.duration, t0)
           : 0;
-        scene = mergeOverlayNodes(
-          scene,
-          sliceScene(ovScene, ovLocal, duration),
+        bakedLayer = mergeOverlayNodes(
+          bakedLayer,
+          sliceScene(ovLayer, ovLocal, duration),
           overlay.clipId,
         );
       }
     } else if (overlayLayers.length > 0) {
-      scene = emptyPadLayer(
-        uid("bake"),
+      bakedLayer = emptyPadLayer(
+        segmentId(i),
         duration,
         "Overlay gap",
         width,
         height,
       );
       for (const overlay of overlayLayers) {
-        const ovScene = scenesById.get(overlay.layerId);
-        if (!ovScene) continue;
+        const ovLayer = layersById.get(overlay.layerId);
+        if (!ovLayer) continue;
         const ovClip = findClipById(timelineClips, overlay.clipId);
         const ovLocal = ovClip
           ? clipLocalTime(ovClip.startTime, ovClip.duration, t0)
           : 0;
-        scene = mergeOverlayNodes(
-          scene,
-          sliceScene(ovScene, ovLocal, duration),
+        bakedLayer = mergeOverlayNodes(
+          bakedLayer,
+          sliceScene(ovLayer, ovLocal, duration),
           overlay.clipId,
         );
       }
     } else {
-      scene = emptyPadLayer(uid("bake"), duration, "Gap", width, height);
+      bakedLayer = emptyPadLayer(segmentId(i), duration, "Gap", width, height);
     }
 
-    bakedScenes.push({
-      layer: rebaseBakedScene(scene),
+    bakedSegments.push({
+      layer: rebaseBakedScene(bakedLayer),
       start: clipCursor,
       duration,
     });
     clipCursor += duration;
   }
 
-  if (bakedScenes.length === 0) {
-    bakedScenes.push({
-      layer: emptyPadLayer(uid("pad"), 0.5, "Empty", width, height),
+  if (bakedSegments.length === 0) {
+    bakedSegments.push({
+      layer: emptyPadLayer("segment_empty", 0.5, "Empty", width, height),
       start: 0,
       duration: 0.5,
     });
   }
 
-  const visualLayers = bakedScenes.map((s, index) => ({
-    ...s.layer,
+  const visualLayers = bakedSegments.map((segment, index) => ({
+    ...segment.layer,
     zIndex: index,
-    timing: { start: s.start, duration: s.duration },
+    timing: { start: segment.start, duration: segment.duration },
   }));
   const layers = [...visualLayers, ...audioLayers];
 
@@ -399,13 +402,13 @@ export function findBaseClipAtTimeForExport(
 export function resolveBakedLocalTime(
   baked: MotionProject,
   globalTime: number,
-): { sceneId: string; localTime: number } | null {
+): { layerId: string; localTime: number } | null {
   for (const layer of baked.layers) {
     if (layer.type === "audio") continue;
     const start = layer.timing.start;
     const end = start + layer.timing.duration;
     if (globalTime >= start && globalTime < end) {
-      return { sceneId: layer.id, localTime: globalTime - start };
+      return { layerId: layer.id, localTime: globalTime - start };
     }
   }
   return null;

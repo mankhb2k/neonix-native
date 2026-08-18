@@ -1,6 +1,6 @@
 /**
- * Pure clip-move drag resolution — ghost preview and commit share one result.
- * Occupancy: never overlap same-lane clips; interior → insert lane above.
+ * Giải thuật kéo-thả move clip thuần — ghost preview và commit dùng chung một kết quả.
+ * Occupancy: không bao giờ chồng clip cùng lane; interior → chèn lane phía trên.
  */
 
 import {
@@ -18,7 +18,7 @@ export type ClipMovePreviewMember = {
   startTime: number;
   duration: number;
   trackKind: TimelineTrackKind;
-  /** Y offset relative to the primary clip's original position. */
+  /** Offset Y tương đối so với vị trí gốc của clip chính. */
   offsetY: number;
   laneHeightPx?: number;
 };
@@ -31,22 +31,22 @@ export type ClipMovePreview = {
   duration: number;
   valid: boolean;
   trackKind: TimelineTrackKind;
-  /** CapCut insert between lanes (new overlay/audio lane). */
+  /** CapCut insert giữa các lane (lane overlay/audio mới). */
   isInsert?: boolean;
   insertOrder?: number | null;
-  /** Content Y center for insert chrome (scroll canvas). */
+  /** Content Y center cho chrome insert (scroll canvas). */
   contentTop?: number;
   label?: string;
-  /** Pointer Y for floating clip rendering. */
+  /** Pointer Y để render clip nổi. */
   clientX?: number;
   clientY?: number;
-  /** Mouse grab offset from the top of the primary clip. */
+  /** Offset chuột kéo từ đỉnh của clip chính. */
   grabOffsetY?: number;
-  /** Lane body height (px) — float bubble matches strip chrome. */
+  /** Chiều cao body lane (px) — float bubble khớp với strip chrome. */
   laneHeightPx?: number;
-  /** CapCut vertical snap guide time (clip edge alignment). */
+  /** Guide snap dọc CapCut (căn mép clip). */
   snapGuideTime?: number | null;
-  /** Secondary selected clips (time-shift on home lanes). */
+  /** Các clip phụ được chọn (time-shift trên lane gốc của nó). */
   members?: ClipMovePreviewMember[];
 };
 
@@ -56,7 +56,7 @@ export type ClipMoveDropTarget = {
   insertNewLane?: boolean;
   insertOrder?: number | null;
   contentTop?: number;
-  /** Content Y for insert indicator when occupancy promotes insert. */
+  /** Content Y cho indicator insert khi occupancy chuyển thành insert. */
   laneTopContentY?: number;
   laneOrder?: number;
   laneRole?: "base" | "overlay" | "audio";
@@ -68,31 +68,29 @@ export type ClipMoveDragInput = {
   originStartTime: number;
   originLaneId: string;
   originTrack: TimelineTrackKind;
-  /** Seconds from clip start to grab point (content-space). */
+  /** Giây từ đầu clip tới điểm kéo (content-space). */
   grabOffsetSec: number;
   pointerContentX: number;
   pixelsPerSecond: number;
   duration: number;
-  /** null when pointer is outside the timeline drop zone. */
+  /** null khi con trỏ nằm ngoài vùng drop của timeline. */
   drop: ClipMoveDropTarget | null;
-  /** Optional live snap points (playhead, clip edges). */
+  /** Các điểm snap trực tiếp tùy chọn (playhead, mép clip). */
   snapPoints?: number[];
   snapThresholdSec?: number;
-  /** Clips for occupancy (same document); excludeIds skips movers. */
+  /** Các clip cho occupancy (cùng document); excludeIds bỏ qua các clip đang di chuyển. */
   occupancyClips?: ReadonlyArray<
     Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
   >;
-  /** Prefer over filtering occupancyClips each frame. */
+  /** Ưu tiên hơn việc filter occupancyClips mỗi frame. */
   clipsByLane?: ReadonlyMap<
     string,
     ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>
   >;
   excludeIds?: ReadonlySet<string>;
-  /** Lane list for preferring a free lane above on conflict. */
-  lanes?: ReadonlyArray<
-    Pick<TimelineLane, "id" | "kind" | "role" | "order">
-  >;
-  /** Prefer over remapping lanes each frame. */
+  /** Danh sách lane để ưu tiên tìm lane trống phía trên khi xung đột. */
+  lanes?: ReadonlyArray<Pick<TimelineLane, "id" | "kind" | "role" | "order">>;
+  /** Ưu tiên hơn việc remap lanes mỗi frame. */
   siblingLaneRefs?: ReadonlyArray<{
     id: string;
     order: number;
@@ -108,7 +106,7 @@ export type ClipMoveDragInput = {
     order: number;
     role: "base" | "overlay" | "audio";
   }>;
-  /** Group surface: one child per row — swap occupant, never pack. */
+  /** Group surface: một con mỗi hàng — swap occupant, không bao giờ pack. */
   exclusiveRows?: boolean;
 };
 
@@ -130,7 +128,7 @@ export type ClipMoveDragResult = {
 
 export { clipAcceptsTrack };
 
-/** First index i where sorted[i] >= x (or length). */
+/** Index i đầu tiên thỏa sorted[i] >= x (hoặc length). */
 export function lowerBound(sorted: readonly number[], x: number): number {
   let lo = 0;
   let hi = sorted.length;
@@ -142,7 +140,7 @@ export function lowerBound(sorted: readonly number[], x: number): number {
   return lo;
 }
 
-/** Start + end edges of other clips (+ t=0), sorted ascending unique. */
+/** Mép start + end của các clip khác (+ t=0), sắp xếp tăng dần và duy nhất. */
 export function collectClipEdgeSnapPoints(
   clips: readonly Pick<TimelineClip, "id" | "startTime" | "duration">[],
   excludeIds: ReadonlySet<string>,
@@ -163,9 +161,9 @@ export function collectClipEdgeSnapPoints(
 }
 
 /**
- * Snap moving clip start/end to nearest edge.
- * Expects sorted unique snapPoints. Scans only points inside the threshold window.
- * Returns guide time = absolute edge where the CapCut teal line should draw.
+ * Snap start/end của clip đang di chuyển tới mép gần nhất.
+ * Yêu cầu snapPoints đã sort và duy nhất. Chỉ quét các điểm trong cửa sổ threshold.
+ * Trả về guide time = mép tuyệt đối nơi vạch teal CapCut nên vẽ.
  */
 export function snapMoveStartToEdges(
   rawStart: number,
@@ -200,7 +198,7 @@ export function snapMoveStartToEdges(
     }
   };
 
-  // Start-align: points near rawStart
+  // Start-align: các điểm gần rawStart
   let i = lowerBound(snapPoints, rawStart - thresholdSec);
   while (i < snapPoints.length) {
     const snap = snapPoints[i]!;
@@ -209,7 +207,7 @@ export function snapMoveStartToEdges(
     i += 1;
   }
 
-  // End-align: points near rawEnd
+  // End-align: các điểm gần rawEnd
   i = lowerBound(snapPoints, rawEnd - thresholdSec);
   while (i < snapPoints.length) {
     const snap = snapPoints[i]!;
@@ -266,15 +264,15 @@ export function resolveClipMoveDrag(
       valid = false;
     }
 
-    // Body drop: never overlap — park at head/tail, retarget free lane above,
-    // or insert between when both lanes are occupied.
+    // Drop thân clip: không bao giờ chồng — đỗ ở đầu/cuối, chuyển lane trống phía
+    // trên, hoặc chèn giữa khi cả hai lane đều occupied.
     if (valid && !insertNewLane && input.drop.laneId) {
       const laneId = input.drop.laneId;
       const onLane =
         input.clipsByLane?.get(laneId) ??
         (input.occupancyClips ?? []).filter((c) => c.laneId === laneId);
-      // Prefer explicit drop meta; else resolve from lanes (integration must
-      // not silently treat base/audio as overlay order 0).
+      // Ưu tiên meta drop tường minh; ngược lại resolve từ lanes (integration không
+      // được ngầm coi base/audio là overlay order 0).
       const laneMeta = (input.lanes ?? []).find((l) => l.id === laneId);
       const role =
         input.drop.laneRole ??

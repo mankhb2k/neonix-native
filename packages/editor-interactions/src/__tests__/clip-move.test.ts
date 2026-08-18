@@ -18,7 +18,7 @@ const base = {
   duration: 3,
 };
 
-/** Reference linear scan (pre-optimization semantics). */
+/** Linear scan tham chiếu (ngữ nghĩa trước khi tối ưu). */
 function snapLinear(
   rawStart: number,
   duration: number,

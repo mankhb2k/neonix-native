@@ -1,4 +1,4 @@
-/** Placeholder — drop target resolution stays in apps/editor-core for PR-1. */
+/** Placeholder — việc resolve drop target vẫn nằm ở apps/editor-core cho PR-1. */
 export type TimelineDropTargetHint = {
   laneId: string;
   insertNewLane?: boolean;

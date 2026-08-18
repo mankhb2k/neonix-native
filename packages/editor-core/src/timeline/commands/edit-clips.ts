@@ -20,7 +20,7 @@ import {
   resolveAudioPlacement,
   resolveOverlayPlacement,
 } from "../internal/placement-adapter";
-import { cloneSceneWithNewIds } from "../internal/scene-utils";
+import { cloneLayerWithNewIds } from "../internal/scene-utils";
 import {
   buildAudioLayer,
   rebuildMainProject,
@@ -143,7 +143,7 @@ export function splitSelectedClips(
       );
       const leftScene = layers.find((l) => l.id === clip.sceneId);
       if (!leftScene) continue;
-      const rightScene = cloneSceneWithNewIds(
+      const rightScene = cloneLayerWithNewIds(
         {
           ...leftScene,
           timing: { ...leftScene.timing, duration: rightDur },
@@ -240,7 +240,7 @@ export function splitSelectedClips(
       );
       const leftScene = layers.find((l) => l.id === clip.sceneId);
       if (!leftScene) continue;
-      const rightScene = cloneSceneWithNewIds(
+      const rightScene = cloneLayerWithNewIds(
         {
           ...leftScene,
           timing: { ...leftScene.timing, duration: rightDur },
@@ -324,7 +324,7 @@ export function duplicateSelectedClips(
       if (isLaneLocked(state.lanes, clip.laneId)) continue;
       const scene = layers.find((sc) => sc.id === clip.sceneId);
       if (!scene) continue;
-      const cloned = cloneSceneWithNewIds(scene, ctx.createId);
+      const cloned = cloneLayerWithNewIds(scene, ctx.createId);
       layers.push(cloned);
       const resolvedStart = resolveMainStartTime(
         state.clips,
@@ -406,7 +406,7 @@ export function duplicateSelectedClips(
       state.lanes = placement.lanes;
       const scene = layers.find((sc) => sc.id === clip.sceneId);
       if (scene) {
-        const cloned = cloneSceneWithNewIds(scene, ctx.createId);
+        const cloned = cloneLayerWithNewIds(scene, ctx.createId);
         layers.push(cloned);
         const next: TimelineClip = {
           id: state.uid("clip"),
@@ -457,7 +457,7 @@ export function pasteClips(
     const startTime = pasteAt + item.offsetStart;
     if (item.kind === "main" && item.scene) {
       if (isLaneLocked(state.lanes, state.baseLane.id)) continue;
-      const scene = cloneSceneWithNewIds(
+      const scene = cloneLayerWithNewIds(
         {
           ...item.scene,
           timing: { ...item.scene.timing, duration: item.duration },
@@ -534,7 +534,7 @@ export function pasteClips(
       );
       if (!placement) continue;
       state.lanes = placement.lanes;
-      const scene = cloneSceneWithNewIds(
+      const scene = cloneLayerWithNewIds(
         {
           ...item.scene,
           timing: { ...item.scene.timing, duration: item.duration },

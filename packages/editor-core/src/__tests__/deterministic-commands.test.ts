@@ -70,7 +70,7 @@ describe("deterministic command + history fixtures", () => {
       .flatMap((e) => (e.type === "clip-split" ? e.newClipIds : []));
     expect(
       newIds.some(
-        (id) => id.startsWith("scene_det_") || id.startsWith("clip_det_"),
+        (id) => id.startsWith("layer_det_") || id.startsWith("clip_det_"),
       ),
     ).toBe(true);
 
@@ -113,11 +113,11 @@ describe("deterministic command + history fixtures", () => {
     if (added.status !== "applied") return;
 
     const after = added.document;
-    const sceneIds = after.project.layers
+    const layerIds = after.project.layers
       .map((s) => s.id)
       .filter((id) => id.includes("_det_"));
-    expect(sceneIds.length).toBeGreaterThan(0);
-    expect(sceneIds[0]).toBe("scene_det_1");
+    expect(layerIds.length).toBeGreaterThan(0);
+    expect(layerIds[0]).toBe("layer_det_1");
 
     let history = createHistoryState();
     history = pushHistory(history, {

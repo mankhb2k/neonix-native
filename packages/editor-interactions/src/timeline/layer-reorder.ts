@@ -1,12 +1,12 @@
 /**
- * Pure layer-row reorder helpers (zIndex via node order).
+ * Helper sắp xếp lại hàng layer thuần (zIndex thông qua thứ tự node).
  */
 
 /**
- * Move `movingId` to `targetIndex` within a top→bottom node id list.
- * Indices are in the current order (before removal).
+ * Di chuyển `movingId` tới `targetIndex` trong danh sách id node top→bottom.
+ * Index tính theo thứ tự hiện tại (trước khi remove).
  */
-export function reorderLayerLayerIds(
+export function reorderLayerIds(
   orderedLayerIds: readonly string[],
   movingId: string,
   targetIndex: number,
@@ -22,10 +22,10 @@ export function reorderLayerLayerIds(
 }
 
 /**
- * Insert `movingId` before `insertBeforeIndex` in the original top→bottom list.
- * `insertBeforeIndex === length` means append after the last row.
+ * Chèn `movingId` trước `insertBeforeIndex` trong danh sách top→bottom gốc.
+ * `insertBeforeIndex === length` nghĩa là append sau hàng cuối.
  */
-export function reorderLayerLayerIdsByInsert(
+export function reorderLayerIdsByInsert(
   orderedLayerIds: readonly string[],
   movingId: string,
   insertBeforeIndex: number,
@@ -42,3 +42,13 @@ export function reorderLayerLayerIdsByInsert(
   next.splice(insertAt, 0, movingId);
   return next;
 }
+
+/**
+ * @deprecated Dùng `reorderLayerIds` thay thế (bỏ hậu tố `Layer` trùng lặp).
+ */
+export const reorderLayerLayerIds = reorderLayerIds;
+
+/**
+ * @deprecated Dùng `reorderLayerIdsByInsert` thay thế (bỏ hậu tố `Layer` trùng lặp).
+ */
+export const reorderLayerLayerIdsByInsert = reorderLayerIdsByInsert;

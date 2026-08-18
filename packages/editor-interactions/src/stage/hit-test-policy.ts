@@ -1,5 +1,5 @@
 /**
- * Hit-test policy over motion-runtime RenderSnapshot (no DOM targets).
+ * Chính sách hit-test trên RenderSnapshot của motion-runtime (không dùng DOM target).
  */
 
 import {
@@ -10,14 +10,14 @@ import {
 } from "@motionvideo/motion-runtime";
 
 export type StageHitTestOptions = {
-  /** Skip locked / !selectable items (default true). */
+  /** Bỏ qua item locked / không selectable (mặc định true). */
   respectSelectable?: boolean;
-  /** Cycle offset for Alt / repeated click (host supplies). */
+  /** Offset xoay vòng cho Alt / click lặp (host cung cấp). */
   cycleOffset?: number;
 };
 
 export type StageHitResult = {
-  /** Top-most first after filtering. */
+  /** Trên cùng trước sau khi filter. */
   items: RenderSnapshotItem[];
   primary: RenderSnapshotItem | null;
 };

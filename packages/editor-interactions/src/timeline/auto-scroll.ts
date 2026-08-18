@@ -12,7 +12,7 @@ export type AutoScrollDelta = {
   nextScrollTop: number;
 };
 
-/** Pure edge auto-scroll intent from metrics — caller applies to DOM. */
+/** Ý định edge auto-scroll thuần từ metrics — caller tự áp vào DOM. */
 export function computeAutoScrollNearEdge(input: {
   clientX: number;
   clientY: number;
@@ -70,7 +70,7 @@ export function computeAutoScrollNearEdge(input: {
   };
 }
 
-/** @deprecated Prefer computeAutoScrollNearEdge. */
+/** @deprecated Dùng `computeAutoScrollNearEdge`. */
 export function autoScrollElementNearEdge(
   scroll: HTMLElement,
   clientX: number,

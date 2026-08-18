@@ -10,7 +10,7 @@ import {
 } from "@motionvideo/editor-core";
 import {
   clampNodeLocalTiming,
-  reorderLayerLayerIdsByInsert,
+  reorderLayerIdsByInsert,
   type ClipMovePreview,
 } from "@motionvideo/editor-interactions";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -150,7 +150,7 @@ export function useLayerMove({
               targetLaneId = gap.laneId;
             }
 
-            const nextOrder = reorderLayerLayerIdsByInsert(
+            const nextOrder = reorderLayerIdsByInsert(
               orderedLayerIds,
               clip.id,
               insertBeforeIndex,
@@ -212,7 +212,7 @@ export function useLayerMove({
             }
 
             if (state.orderChanged) {
-              const nextOrder = reorderLayerLayerIdsByInsert(
+              const nextOrder = reorderLayerIdsByInsert(
                 orderedLayerIds,
                 clip.id,
                 state.insertBeforeIndex,

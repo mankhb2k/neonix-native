@@ -1,5 +1,5 @@
 /**
- * Stage transform session — begin / update / cancel / commit with preview callback.
+ * Phiên transform trên stage — begin / update / cancel / commit với callback preview.
  */
 
 import type { PointerModifiers } from "../../common/modifiers";
@@ -22,13 +22,9 @@ import {
   type StageBounds,
   type StageTransformValues,
 } from "../transform-box";
+import { applyMoveDelta, applyResizeDelta, applyRotateDelta } from "./math";
 import {
-  applyMoveDelta,
-  applyResizeDelta,
-  applyRotateDelta,
-} from "./math";
-import {
-  toSetNodeTransformCommand,
+  toSingleSetNodeTransformCommand,
   toStagePropertyPatches,
   type StageCommitResult,
 } from "../commit";
@@ -162,7 +158,8 @@ export function createStageSession(): StageSession {
     },
     updatePointer(pointer, modifiers) {
       if (!active) return;
-      const lockAspect = Boolean(modifiers?.shift) || Boolean(active.constraints.lockAspect);
+      const lockAspect =
+        Boolean(modifiers?.shift) || Boolean(active.constraints.lockAspect);
       const constraints: StageConstraintInput = {
         ...active.constraints,
         lockAspect,
@@ -217,7 +214,9 @@ export function createStageSession(): StageSession {
       }
       const session = active;
       const patches = toStagePropertyPatches(session.base, session.preview);
-      const command = toSetNodeTransformCommand(patches);
+      const command = patches[0]
+        ? toSingleSetNodeTransformCommand(patches[0])
+        : null;
       const result: StageCommitResult = {
         interactionId: session.interactionId,
         mode: session.mode,

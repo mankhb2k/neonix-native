@@ -12,7 +12,7 @@ import {
   type MarqueeHitContext,
 } from "../timeline/marquee";
 
-/** Test helper — cumulative lane tops from per-lane heights (incl. gap). */
+/** Test helper — lane tops tích lũy từ chiều cao từng lane (gồm gap). */
 function buildLaneHeightPrefix(heights: readonly number[]): number[] {
   const prefix = new Array<number>(heights.length + 1);
   prefix[0] = 0;
@@ -33,13 +33,10 @@ describe("marquee-geometry", () => {
   });
 
   it("selects intersecting clips", () => {
-    const ids = clipIdsInMarquee(
-      { left: 0, top: 0, right: 50, bottom: 40 },
-      [
-        { id: "a", left: 10, top: 10, right: 30, bottom: 30 },
-        { id: "b", left: 80, top: 10, right: 100, bottom: 30 },
-      ],
-    );
+    const ids = clipIdsInMarquee({ left: 0, top: 0, right: 50, bottom: 40 }, [
+      { id: "a", left: 10, top: 10, right: 30, bottom: 30 },
+      { id: "b", left: 80, top: 10, right: 100, bottom: 30 },
+    ]);
     expect(ids).toEqual(["a"]);
   });
 
@@ -81,10 +78,7 @@ describe("shouldPublishMarqueeIds + commitMarqueeSelectionIds", () => {
 describe("clipIdsInMarqueeIndexed", () => {
   const LANE_GAP = 2;
   const contentHeights = [40, 40];
-  const heightsWithGap = [
-    contentHeights[0]! + LANE_GAP,
-    contentHeights[1]!,
-  ];
+  const heightsWithGap = [contentHeights[0]! + LANE_GAP, contentHeights[1]!];
   const prefix = buildLaneHeightPrefix(heightsWithGap);
   const lanes = [
     [{ id: "a", startTime: 1, duration: 2 }],
@@ -112,8 +106,7 @@ describe("clipIdsInMarqueeIndexed", () => {
       const laneTop = ctx.topPadding + prefix[i]!;
       const h = contentHeights[i]!;
       for (const clip of lanes[i]!) {
-        const left =
-          ctx.tracksOriginX + clip.startTime * ctx.pixelsPerSecond;
+        const left = ctx.tracksOriginX + clip.startTime * ctx.pixelsPerSecond;
         const right = left + clip.duration * ctx.pixelsPerSecond;
         boxes.push({
           id: clip.id,
@@ -260,10 +253,7 @@ describe("marqueeTrackScrollBounds", () => {
     });
     expect(bounds).toEqual({
       maxWorkspaceY: lastBottom + MARQUEE_TRACK_BOTTOM_PAD_PX,
-      maxScrollTop: Math.max(
-        0,
-        lastBottom + MARQUEE_TRACK_BOTTOM_PAD_PX - 100,
-      ),
+      maxScrollTop: Math.max(0, lastBottom + MARQUEE_TRACK_BOTTOM_PAD_PX - 100),
     });
   });
 
@@ -282,7 +272,9 @@ describe("marqueeTrackScrollBounds", () => {
       viewportHeight,
     });
     expect(bounds).not.toBeNull();
-    expect(bounds!.maxScrollTop).toBe(topPadding + stack + MARQUEE_TRACK_BOTTOM_PAD_PX - viewportHeight);
+    expect(bounds!.maxScrollTop).toBe(
+      topPadding + stack + MARQUEE_TRACK_BOTTOM_PAD_PX - viewportHeight,
+    );
     expect(bounds!.maxScrollTop).toBeLessThan(nativeMax);
   });
 

@@ -10,7 +10,7 @@ import {
   resolveAudioPlacement,
 } from "../internal/placement-adapter";
 import {
-  sceneFromFrameDraft,
+  layerFromFrameDraft,
   stageSizeForProject,
 } from "../internal/scene-utils";
 import {
@@ -43,7 +43,7 @@ export function addClipDraft(
       };
     }
     const composition = stageSizeForProject(project);
-    const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
+    const scene = layerFromFrameDraft(command.draft, ctx.createId, composition);
     const startTime = resolveMainStartTime(
       state.clips,
       state.lanes,
@@ -104,7 +104,7 @@ export function addClipDraft(
   }
   state.lanes = placement.lanes;
   const composition = stageSizeForProject(project);
-  const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
+  const scene = layerFromFrameDraft(command.draft, ctx.createId, composition);
   const clip: TimelineClip = {
     id: state.uid("clip"),
     kind: "scene",

@@ -1,3 +1,7 @@
+/**
+ * Các kiểu preview được chia sẻ giữa ghost drag và commit trên timeline.
+ */
+
 export type {
   ClipMovePreview,
   ClipMovePreviewMember,

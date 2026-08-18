@@ -88,7 +88,11 @@ export {
   nodeText,
   updateVariable,
   mapNode,
+  layerFromFrameDraft,
+  cloneLayerWithNewIds,
+  /** @deprecated Use `layerFromFrameDraft`. */
   sceneFromFrameDraft,
+  /** @deprecated Use `cloneLayerWithNewIds`. */
   cloneSceneWithNewIds,
   stageSizeForAspect,
   type CompositionSize,
