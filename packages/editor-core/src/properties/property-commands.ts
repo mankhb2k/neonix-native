@@ -1,3 +1,5 @@
+import type { TimelineDocument } from "../document/document";
+
 export type NodeTargetRef = {
   /** Id của layer gốc (top-level ancestor) — trước đây gọi là "sceneId". */
   rootLayerId: string;
@@ -204,4 +206,23 @@ export type PropertyDomainEvent =
       type: "property-keyframe-changed";
       targets: NodeTargetRef[];
       property: string;
+    };
+
+/** Kết quả của executePropertyCommand — cùng union như trước khi tách dispatcher. */
+export type PropertyCommandResult =
+  | {
+      status: "applied";
+      document: TimelineDocument;
+      events: PropertyDomainEvent[];
+    }
+  | {
+      status: "rejected";
+      reason:
+        | "no_project"
+        | "empty_targets"
+        | "missing_node"
+        | "invalid_value"
+        | "invalid_protocol"
+        | "invalid_document";
+      message: string;
     };
