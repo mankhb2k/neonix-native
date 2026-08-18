@@ -60,20 +60,20 @@ export function executePropertyCommand(
 
   switch (command.type) {
     case "reorder-scene-layers": {
-      if (!command.sceneId.trim())
-        return rejectedInvalid("Scene id is required.");
+      if (!command.rootLayerId.trim())
+        return rejectedInvalid("Root layer id is required.");
       if (!command.layerIds.length) {
         return rejectedEmptyTargets("No node ids for reorder.");
       }
       result = applyReorderSceneNodes(
         document.project,
-        command.sceneId,
+        command.rootLayerId,
         command.layerIds,
       );
       events = [
         {
           type: "scene-layers-reordered",
-          sceneId: command.sceneId,
+          rootLayerId: command.rootLayerId,
           layerIds: command.layerIds,
         },
       ];

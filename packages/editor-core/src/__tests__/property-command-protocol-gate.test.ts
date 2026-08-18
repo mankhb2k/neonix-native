@@ -25,12 +25,14 @@ import {
   type DocumentPropertyCommand,
   type NodeTargetRef,
   type PropertyContext,
+  type TimelineClip,
   type TimelineDocument,
 } from "..";
 import {
   fixtureMainOnly,
   fixtureMainPlusAudioOverlap,
 } from "../testing/fixtures/projects";
+import { finalizeDocumentMutation } from "../document/finalize-document-mutation";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -129,7 +131,7 @@ describe("property command → protocol contract", () => {
     const { doc } = injectChild(base, shape);
     assertAppliedValid(doc, {
       type: "reorder-scene-layers",
-      sceneId: "scene.main.a",
+      rootLayerId: "scene.main.a",
       layerIds: ["node.shape", "scene.main.a.title"],
     });
   });
@@ -245,6 +247,71 @@ describe("property command → protocol contract", () => {
         timing: { start: 0.5, duration: 1.5 },
       },
     );
+  });
+
+  it("set-node-timing reprojects the scene clip (no stale duration)", () => {
+    const project = primitiveTextProject();
+    const { clips, lanes } = packRootLayersToTimeline(project);
+    const base: TimelineDocument = { project, clips, lanes };
+    const clip = clips.find((c) => c.kind === "scene");
+    expect(clip?.duration).toBe(4);
+
+    const result = executePropertyCommand(base, {
+      type: "set-node-timing",
+      targets: [{ rootLayerId: "title", layerId: "title" }],
+      timing: { start: 1, duration: 2.5 },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const nextClip = result.document.clips.find(
+      (c) => c.kind === "scene" && c.sceneId === "title",
+    );
+    expect(nextClip?.duration).toBe(2.5);
+    expect(nextClip?.startTime).toBe(1);
+  });
+
+  it("rejects invalid_document when base clips dangle", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const ghost: TimelineClip = {
+      kind: "scene",
+      id: "clip.ghost",
+      sceneId: "scene.missing",
+      laneId: "lane.main",
+      startTime: 10,
+      duration: 1,
+      name: "Ghost",
+    };
+    const result = executePropertyCommand(
+      { project, clips: [...clips, ghost], lanes },
+      {
+        type: "set-node-transform",
+        targets: [
+          { rootLayerId: "scene.main.a", layerId: "scene.main.a.title" },
+        ],
+        patch: { x: 1 },
+      },
+    );
+    expect(result.status).toBe("rejected");
+    if (result.status === "rejected") {
+      expect(result.reason).toBe("invalid_document");
+    }
+  });
+
+  it("rejects invalid_protocol when project fails schema", () => {
+    const project = primitiveTextProject();
+    const { clips, lanes } = packRootLayersToTimeline(project);
+    const duplicate: MotionLayer = {
+      ...project.layers[0]!,
+      id: "title.dup",
+      name: "Dup",
+    };
+    const bad: MotionProject = {
+      ...project,
+      layers: [...project.layers, duplicate],
+    };
+    const result = finalizeDocumentMutation(bad, { project, clips, lanes });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("invalid_protocol");
   });
 
   it("keyframe set/move/delete/easing → protocol-valid", () => {

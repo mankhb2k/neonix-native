@@ -48,13 +48,7 @@ function clipIcon(clip: TimelineClip) {
   return <Film size={14} className="shrink-0 text-sky-300" />;
 }
 
-function ListHeader({
-  title,
-  action,
-}: {
-  title: string;
-  action?: ReactNode;
-}) {
+function ListHeader({ title, action }: { title: string; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2 px-0.5">
       <h2 className="flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-zinc-100">
@@ -170,7 +164,7 @@ export function LayersPanel({
     onExecuteProperty({
       command: {
         type: "set-node-metadata",
-        targets: [{ sceneId, layerId }],
+        targets: [{ rootLayerId: sceneId, layerId }],
         patch: { visible: !currentlyVisible },
       },
       label: currentlyVisible ? "Hide layer" : "Show layer",
@@ -192,7 +186,7 @@ export function LayersPanel({
     onExecuteProperty({
       command: {
         type: "reorder-scene-layers",
-        sceneId,
+        rootLayerId: sceneId,
         layerIds: nextIds,
       },
       label: "Reorder layers",

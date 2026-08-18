@@ -36,7 +36,9 @@ describe("move-clips atomic group", () => {
     const nb = result.document.clips.find((c) => c.id === "clip.main.b")!;
     expect(na.startTime).toBe(a.startTime + 1);
     expect(nb.startTime - na.startTime).toBeCloseTo(gap, 6);
-    expect(result.events.filter((e) => e.type === "clip-moved")).toHaveLength(2);
+    expect(result.events.filter((e) => e.type === "clip-moved")).toHaveLength(
+      2,
+    );
   });
 
   it("omit-track keep-lane leaves overlay on overlay", () => {
@@ -151,6 +153,22 @@ describe("move-clips atomic group", () => {
     expect(resolved.reason).toBe("collision");
   });
 
+  it("placements carry no redundant track metadata", () => {
+    const { project, clips, lanes } = fixtureBasePlusOverlay();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const resolved = resolveClipGroupMove(
+      doc,
+      ["clip.base", "clip.overlay"],
+      0.5,
+    );
+    expect(resolved.valid).toBe(true);
+    if (!resolved.valid) return;
+    expect(resolved.placements).toHaveLength(2);
+    for (const placement of resolved.placements) {
+      expect("track" in placement).toBe(false);
+    }
+  });
+
   it("rejects duplicate clip ids", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
@@ -195,8 +213,8 @@ describe("move-clips atomic group", () => {
       after: result.document,
     });
     const undone = undoHistory(history);
-    expect(undone.entry?.before.clips.find((c) => c.id === "clip.main.a")?.startTime).toBe(
-      0,
-    );
+    expect(
+      undone.entry?.before.clips.find((c) => c.id === "clip.main.a")?.startTime,
+    ).toBe(0);
   });
 });

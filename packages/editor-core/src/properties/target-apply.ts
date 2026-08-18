@@ -89,11 +89,11 @@ export function applyAudioTrack(
 
 export function applyReorderSceneNodes(
   project: MotionProject,
-  sceneId: string,
+  rootLayerId: string,
   layerIds: string[],
 ): PropertyApplyResult {
   const scene = project.layers.find(
-    (l) => l.id === sceneId && l.type !== "audio",
+    (l) => l.id === rootLayerId && l.type !== "audio",
   );
   if (!scene || scene.type !== "group") return { project, missing: true };
 
@@ -121,7 +121,7 @@ export function applyReorderSceneNodes(
     project: {
       ...project,
       layers: project.layers.map((l) =>
-        l.id === sceneId ? { ...scene, children: withZ } : l,
+        l.id === rootLayerId ? { ...scene, children: withZ } : l,
       ),
     },
     missing: false,

@@ -43,16 +43,15 @@ export function selectedClipIdsFrom(selection: EditorSelection): string[] {
 }
 
 /**
- * Scene đang edit: primary scene-clip (base + overlay).
- * Node selection no longer stores a scene — derive it with `rootLayerIdOf`.
- * Audio clip → null (Inspector không gắn scene).
+ * Root layer đang edit: primary scene-clip (base + overlay) → `clip.sceneId`
+ * chính là `rootLayerId` của scene-clip đó (protocol canonical: root layer,
+ * không phải "scene"). Node selection không lưu root — derive bằng
+ * `rootLayerIdOf`. Audio clip → null (Inspector không gắn root layer).
  */
-export function selectedSceneIdFrom(
+export function selectedRootLayerIdFrom(
   selection: EditorSelection,
   clips: TimelineClip[] = [],
-  lanes: TimelineLane[] = [],
 ): string | null {
-  void lanes;
   if (selection.kind === "node") return null;
   if (selection.kind !== "clips") return null;
   const clip = clips.find((c) => c.id === selection.primaryId);
@@ -82,21 +81,20 @@ export function selectedOverlayIdFrom(
 
 /**
  * Node focus cho Inspector: explicit node selection, hoặc first editable
- * trên scene của base clip đang chọn.
+ * trên root layer của base clip đang chọn.
  */
 export function focusedNodeIdFrom(
   selection: EditorSelection,
   clips: TimelineClip[],
-  lanes: TimelineLane[],
   project: MotionProject | null,
   firstEditable: (
-    scene: MotionProject["layers"][number] | undefined,
+    rootLayer: MotionProject["layers"][number] | undefined,
   ) => string | null,
 ): string | null {
   if (selection.kind === "node") return selection.layerId;
   if (selection.kind !== "clips" || !project) return null;
-  const sceneId = selectedSceneIdFrom(selection, clips, lanes);
-  if (!sceneId) return null;
-  const scene = project.layers.find((s) => s.id === sceneId);
-  return firstEditable(scene);
+  const rootLayerId = selectedRootLayerIdFrom(selection, clips);
+  if (!rootLayerId) return null;
+  const rootLayer = project.layers.find((s) => s.id === rootLayerId);
+  return firstEditable(rootLayer);
 }

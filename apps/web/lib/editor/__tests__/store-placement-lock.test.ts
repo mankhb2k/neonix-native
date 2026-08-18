@@ -3,7 +3,7 @@ import { useEditorStore } from "@/lib/editor/editor-store";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
 import {
   selectionClips,
-  selectedSceneIdFrom,
+  selectedRootLayerIdFrom,
 } from "@motionvideo/editor-core";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
@@ -31,9 +31,11 @@ describe("editor-store placement + lock", () => {
   });
 
   it("cut on locked lane is no-op (no clipboard)", () => {
-    const locked = useEditorStore.getState().timelineLanes.map((lane) =>
-      lane.id === "lane.main" ? { ...lane, locked: true } : lane,
-    );
+    const locked = useEditorStore
+      .getState()
+      .timelineLanes.map((lane) =>
+        lane.id === "lane.main" ? { ...lane, locked: true } : lane,
+      );
     useEditorStore.setState({ timelineLanes: locked, timelineClipboard: null });
     useEditorStore.getState().selectClip("clip.base");
     useEditorStore.getState().cutSelectedClips();
@@ -87,16 +89,15 @@ describe("editor-store placement + lock", () => {
     expect(b.startTime).toBeGreaterThanOrEqual(a.startTime + a.duration);
   });
 
-  it("selectedSceneIdFrom works for overlay via store selection", () => {
-    const { timelineClips, timelineLanes } = useEditorStore.getState();
+  it("selectedRootLayerIdFrom works for overlay via store selection", () => {
+    const { timelineClips } = useEditorStore.getState();
     useEditorStore.setState({
       selection: selectionClips(["clip.overlay"]),
     });
     expect(
-      selectedSceneIdFrom(
+      selectedRootLayerIdFrom(
         useEditorStore.getState().selection,
         timelineClips,
-        timelineLanes,
       ),
     ).toBe("scene.overlay");
   });
@@ -210,7 +211,9 @@ describe("editor-store placement + lock", () => {
       startTime: 1,
       laneId: "lane.audio.0",
     });
-    const moved = useEditorStore.getState().timelineClips.find((c) => c.id === "a2");
+    const moved = useEditorStore
+      .getState()
+      .timelineClips.find((c) => c.id === "a2");
     expect(moved?.laneId).toBe("lane.audio.0");
     expect(moved?.startTime).not.toBe(1);
     // Nearest snap away from [0,3)

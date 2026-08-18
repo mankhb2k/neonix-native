@@ -25,7 +25,12 @@ import type {
 } from "../timeline/commands/command-types";
 import { selectionHasLockedLane } from "./lane-flags";
 
-export function trackKindForLane(
+/**
+ * UI/compat term cho lane → `TimelineTrackKind` ("main" | "overlay" | "audio").
+ * Không phải protocol term: lane role canonical là `base | overlay | audio`.
+ * Chỉ dùng để gắn track cho `move-clip` patch (UI-facing); group move không cần.
+ */
+export function uiTrackKindForLane(
   lanes: TimelineLane[],
   laneId: string,
 ): TimelineTrackKind {
@@ -83,7 +88,6 @@ export type ClipGroupPlacement = {
   startTime: number;
   laneId: string;
   duration: number;
-  track: TimelineTrackKind;
 };
 
 export type ClipGroupMoveRejectReason =
@@ -215,7 +219,6 @@ function buildClipGroupMovePlan(
       startTime: existing.startTime,
       laneId: existing.laneId,
       duration: existing.duration,
-      track: trackKindForLane(lanes, existing.laneId),
     });
   }
 

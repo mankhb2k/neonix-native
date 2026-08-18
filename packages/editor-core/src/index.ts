@@ -68,7 +68,7 @@ export {
   createClipGroupMovePlan,
   moveClipGroup,
   resolveClipGroupMove,
-  trackKindForLane,
+  uiTrackKindForLane,
   type ClipGroupMovePlan,
   type ClipGroupMoveResolve,
   type ClipGroupPlacement,

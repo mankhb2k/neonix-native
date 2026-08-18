@@ -203,7 +203,7 @@ export function useLayerMove({
               onCommandProperty({
                 command: {
                   type: "set-node-timing",
-                  targets: [{ sceneId, layerId: clip.id }],
+                  targets: [{ rootLayerId: sceneId, layerId: clip.id }],
                   timing: clamped,
                 },
                 label: "Move layer",
@@ -221,7 +221,7 @@ export function useLayerMove({
                 onCommandProperty({
                   command: {
                     type: "reorder-scene-layers",
-                    sceneId,
+                    rootLayerId: sceneId,
                     layerIds: nextOrder,
                   },
                   label: "Reorder layers",

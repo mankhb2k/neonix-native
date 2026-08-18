@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRippleAfter,
+  resolveAudioPlacementIntent,
   resolveVisualPlacement,
 } from "../operations/clip-move";
 import {
@@ -106,9 +107,7 @@ describe("resolveLaneStartTimeNearest", () => {
 });
 
 describe("resolveOccupancyAwarePlacement", () => {
-  const blocker = [
-    { id: "b", startTime: 2, duration: 3 },
-  ];
+  const blocker = [{ id: "b", startTime: 2, duration: 3 }];
 
   it("inserts above when start lands inside occupied span", () => {
     expect(
@@ -421,5 +420,89 @@ describe("resolveExclusiveRowPlacement", () => {
         excludeIds: new Set(["title"]),
       }).swapClipId,
     ).toBeUndefined();
+  });
+});
+
+describe("resolveAudioPlacementIntent", () => {
+  const audioLanes: TimelineLane[] = [
+    {
+      id: "lane.audio.0",
+      kind: "audio",
+      role: "audio",
+      order: -1,
+      name: "BGM",
+    },
+    { id: "lane.audio.1", kind: "audio", role: "audio", order: -2, name: "VO" },
+  ];
+  const audioClips: TimelineClip[] = [
+    {
+      id: "a1",
+      kind: "audio",
+      audioTrackId: "audio.a",
+      assetId: "asset.a",
+      laneId: "lane.audio.0",
+      startTime: 0,
+      duration: 3,
+      name: "A1",
+    },
+  ];
+
+  it("create-lane for new-audio-lane intent", () => {
+    expect(
+      resolveAudioPlacementIntent(audioLanes, audioClips, {
+        type: "new-audio-lane",
+        insertOrder: 1,
+        startTime: 0.5,
+        duration: 2,
+      }),
+    ).toEqual({ status: "create-lane", insertOrder: 1, startTime: 0.5 });
+  });
+
+  it("missing-lane when laneId is not an audio lane", () => {
+    expect(
+      resolveAudioPlacementIntent(audioLanes, audioClips, {
+        type: "audio-lane",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 1,
+      }),
+    ).toEqual({ status: "blocked", reason: "missing-lane" });
+  });
+
+  it("locked audio lane is blocked", () => {
+    const locked = audioLanes.map((l) =>
+      l.id === "lane.audio.0" ? { ...l, locked: true } : l,
+    );
+    expect(
+      resolveAudioPlacementIntent(locked, audioClips, {
+        type: "audio-lane",
+        laneId: "lane.audio.0",
+        startTime: 1,
+        duration: 1,
+      }),
+    ).toEqual({ status: "blocked", reason: "locked" });
+  });
+
+  it("nearest-snap on an occupied audio lane", () => {
+    // a1 chiếm [0,3); desired 2.5 dur 2 → before=0 (dist 2.5), after=3 (dist 0.5) → 3
+    expect(
+      resolveAudioPlacementIntent(audioLanes, audioClips, {
+        type: "audio-lane",
+        laneId: "lane.audio.0",
+        startTime: 2.5,
+        duration: 2,
+      }),
+    ).toEqual({ status: "placed", laneId: "lane.audio.0", startTime: 3 });
+  });
+
+  it("free desired start keeps lane and time", () => {
+    expect(
+      resolveAudioPlacementIntent(audioLanes, audioClips, {
+        type: "audio-lane",
+        laneId: "lane.audio.1",
+        startTime: 1,
+        duration: 2,
+      }),
+    ).toEqual({ status: "placed", laneId: "lane.audio.1", startTime: 1 });
   });
 });

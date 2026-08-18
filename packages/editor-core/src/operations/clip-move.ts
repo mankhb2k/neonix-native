@@ -5,7 +5,7 @@
 import {
   createOverlayLane,
   isLaneLocked,
-  resolveMainStartTime,
+  resolveBaseStartTime,
   shiftOverlayLaneOrders,
 } from "../timeline/timeline-clips";
 import type { TimelineClip, TimelineLane } from "../timeline/timeline-clips";
@@ -93,7 +93,7 @@ export function resolveVisualPlacement(
     return {
       status: "placed",
       laneId: mainId,
-      startTime: resolveMainStartTime(
+      startTime: resolveBaseStartTime(
         others,
         lanes,
         startTime,

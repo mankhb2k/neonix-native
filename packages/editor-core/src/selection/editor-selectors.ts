@@ -6,14 +6,17 @@ import {
   selectedClipIdsFrom,
   selectedNodeIdFrom,
   selectedOverlayIdFrom,
-  selectedSceneIdFrom,
+  selectedRootLayerIdFrom,
   type EditorSelection,
 } from "./editor-selection";
 
-function firstEditableNodeId(scene: MotionLayer | undefined): string | null {
-  if (!scene) return null;
-  const children = scene.type === "group" ? scene.children : [];
-  const node = children.find(
+function firstEditableNodeId(
+  rootLayer: MotionLayer | undefined,
+): string | null {
+  if (!rootLayer) return null;
+  // Primitive root (text/shape/image/...) → chính nó là node edit được.
+  if (rootLayer.type !== "group") return rootLayer.id;
+  const node = rootLayer.children.find(
     (n) => n.type === "text" || n.type === "shape" || n.type === "path",
   );
   return node?.id ?? null;
@@ -29,29 +32,21 @@ export function selectSelectedClipIds(selection: EditorSelection): string[] {
   return selectedClipIdsFrom(selection);
 }
 
-export function selectSelectedSceneId(
+export function selectSelectedRootLayerId(
   selection: EditorSelection,
   clips: TimelineClip[],
-  lanes: TimelineLane[],
 ): string | null {
-  return selectedSceneIdFrom(selection, clips, lanes);
+  return selectedRootLayerIdFrom(selection, clips);
 }
 
 export function selectSelectedNodeId(
   selection: EditorSelection,
   clips: TimelineClip[],
-  lanes: TimelineLane[],
   project: MotionProject | null,
 ): string | null {
   const explicit = selectedNodeIdFrom(selection);
   if (explicit) return explicit;
-  return focusedNodeIdFrom(
-    selection,
-    clips,
-    lanes,
-    project,
-    firstEditableNodeId,
-  );
+  return focusedNodeIdFrom(selection, clips, project, firstEditableNodeId);
 }
 
 export function selectSelectedOverlayId(

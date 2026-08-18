@@ -9,7 +9,7 @@ import {
 } from "../../operations/clip-move";
 import {
   moveClipGroup,
-  trackKindForLane,
+  uiTrackKindForLane,
 } from "../../operations/clip-move-group";
 import { selectionHasLockedLane } from "../../operations/lane-flags";
 import {
@@ -53,7 +53,7 @@ export function moveClip(
   const existingOnBase = isBaseLane(state.lanes, existing.laneId);
   const existingOnAudio = isAudioLane(state.lanes, existing.laneId);
   const effectiveTrack =
-    command.patch.track ?? trackKindForLane(state.lanes, existing.laneId);
+    command.patch.track ?? uiTrackKindForLane(state.lanes, existing.laneId);
   let moved: TimelineClip;
 
   if (

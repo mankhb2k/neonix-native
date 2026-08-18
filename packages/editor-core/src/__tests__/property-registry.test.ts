@@ -156,7 +156,7 @@ describe("property commands", () => {
     };
     const result = executePropertyCommand(doc, {
       type: "reorder-scene-layers",
-      sceneId: scene.id,
+      rootLayerId: scene.id,
       layerIds: ["n-mid", "n-top", "n-bot"],
     });
     expect(result.status).toBe("applied");

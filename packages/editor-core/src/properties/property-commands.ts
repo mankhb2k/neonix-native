@@ -76,7 +76,7 @@ export type DocumentPropertyCommand =
   | {
       /** Layer mode row order — layerIds top→bottom (highest zIndex first). */
       type: "reorder-scene-layers";
-      sceneId: string;
+      rootLayerId: string;
       layerIds: string[];
     }
   | {
@@ -163,7 +163,7 @@ export type DocumentPropertyCommand =
 export type PropertyDomainEvent =
   | {
       type: "scene-layers-reordered";
-      sceneId: string;
+      rootLayerId: string;
       layerIds: string[];
     }
   | {

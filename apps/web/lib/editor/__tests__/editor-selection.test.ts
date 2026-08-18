@@ -6,7 +6,7 @@ import {
   selectedClipIdsFrom,
   selectedNodeIdFrom,
   selectedOverlayIdFrom,
-  selectedSceneIdFrom,
+  selectedRootLayerIdFrom,
 } from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,
@@ -61,23 +61,23 @@ describe("EditorSelection", () => {
     expect(selectionClips([])).toEqual(selectionNone());
   });
 
-  it("derives sceneId from base clip selection", () => {
+  it("derives rootLayerId from base clip selection", () => {
     const sel = selectionClips(["c1"]);
-    expect(selectedSceneIdFrom(sel, clips, lanes)).toBe("s1");
+    expect(selectedRootLayerIdFrom(sel, clips)).toBe("s1");
     expect(selectedOverlayIdFrom(sel, clips, lanes)).toBeNull();
   });
 
-  it("derives overlay id and sceneId from overlay clip selection", () => {
+  it("derives overlay id and rootLayerId from overlay clip selection", () => {
     const sel = selectionClips(["c2"]);
-    expect(selectedSceneIdFrom(sel, clips, lanes)).toBe("s2");
+    expect(selectedRootLayerIdFrom(sel, clips)).toBe("s2");
     expect(selectedOverlayIdFrom(sel, clips, lanes)).toBe("c2");
   });
 
-  it("node selection is a pure layerId (no sceneId)", () => {
+  it("node selection is a pure layerId (no root layer)", () => {
     const sel = selectionNode("n1");
     expect(sel).toEqual({ kind: "node", layerId: "n1" });
     expect(selectedNodeIdFrom(sel)).toBe("n1");
-    expect(selectedSceneIdFrom(sel, clips, lanes)).toBeNull();
+    expect(selectedRootLayerIdFrom(sel, clips)).toBeNull();
     expect(selectedClipIdsFrom(sel)).toEqual([]);
   });
 });

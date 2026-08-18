@@ -64,7 +64,7 @@ export type DocumentPropertyCommand = {
 };
 
 export type NodeTargetRef = {
-  sceneId: string;
+  rootLayerId: string;
   layerId: string;
 };
 

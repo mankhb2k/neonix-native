@@ -26,6 +26,7 @@ function sanitizeLayer(layer: MotionLayer): MotionLayer {
   let next: MotionLayer = layer;
   if (next.name === "") {
     const { name: _empty, ...rest } = next;
+    void _empty;
     next = rest as MotionLayer;
   }
   if ("style" in next && next.style) {

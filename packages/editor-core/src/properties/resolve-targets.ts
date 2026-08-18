@@ -1,6 +1,6 @@
 import {
   focusedNodeIdFrom,
-  selectedSceneIdFrom,
+  selectedRootLayerIdFrom,
   type EditorSelection,
 } from "../selection/editor-selection";
 import type {
@@ -33,6 +33,7 @@ export function resolvePropertyTargets(
   lanes: TimelineLane[],
 ): NodeTarget[] {
   if (!project) return [];
+  void lanes; // Giữ signature công khai; root-layer derivation không còn cần lanes.
 
   if (selection.kind === "node") {
     return [
@@ -57,13 +58,7 @@ export function resolvePropertyTargets(
     const scene = project.layers.find((s) => s.id === sceneId);
     const layerId =
       selection.primaryId === clipId
-        ? focusedNodeIdFrom(
-            selection,
-            clips,
-            lanes,
-            project,
-            firstEditableNodeId,
-          )
+        ? focusedNodeIdFrom(selection, clips, project, firstEditableNodeId)
         : firstEditableNodeId(scene);
     if (!layerId) continue;
     const key = `${sceneId}::${layerId}`;
@@ -72,38 +67,50 @@ export function resolvePropertyTargets(
     targets.push({ rootLayerId: sceneId, layerId });
   }
 
-  // Fallback: primary scene focused node when ids empty of scene clips
+  // Fallback: primary root layer focused node when ids empty of scene clips
   if (targets.length === 0) {
-    const sceneId = selectedSceneIdFrom(selection, clips, lanes);
+    const rootLayerId = selectedRootLayerIdFrom(selection, clips);
     const layerId = focusedNodeIdFrom(
       selection,
       clips,
-      lanes,
       project,
       firstEditableNodeId,
     );
-    if (sceneId && layerId) targets.push({ rootLayerId: sceneId, layerId });
+    if (rootLayerId && layerId) targets.push({ rootLayerId, layerId });
   }
 
   return targets;
 }
 
+/**
+ * Tìm layer theo id, scope trong cây con của `rootLayerId` (top-level ancestor).
+ * `rootLayerId` thực sự tham gia semantics: lookup không còn dựa vào giả định
+ * "layerId globally unique" một mình. Root primitive trả chính nó khi trùng id.
+ */
 export function findNode(
   project: MotionProject,
-  _rootLayerId: string,
+  rootLayerId: string,
   layerId: string,
 ): MotionLayer | null {
-  const walk = (nodes: MotionLayer[]): MotionLayer | null => {
-    for (const node of nodes) {
-      if (node.id === layerId) return node;
-      if (node.type === "group") {
-        const found = walk(node.children);
-        if (found) return found;
-      }
+  const root = project.layers.find((l) => l.id === rootLayerId);
+  if (!root) return null;
+  if (root.id === layerId) return root;
+  if (root.type !== "group") return null;
+  return findInSubtree(root.children, layerId);
+}
+
+function findInSubtree(
+  nodes: readonly MotionLayer[],
+  layerId: string,
+): MotionLayer | null {
+  for (const node of nodes) {
+    if (node.id === layerId) return node;
+    if (node.type === "group") {
+      const found = findInSubtree(node.children, layerId);
+      if (found) return found;
     }
-    return null;
-  };
-  return walk(project.layers);
+  }
+  return null;
 }
 
 /**

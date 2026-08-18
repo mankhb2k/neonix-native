@@ -412,7 +412,9 @@ export function SchemaInspector() {
 
   const selectedNode = useMemo(() => {
     if (!activeProject || selection.kind !== "node") return null;
-    return findNode(activeProject, selection.layerId, selection.layerId);
+    const rootLayerId =
+      rootLayerIdOf(activeProject, selection.layerId) ?? selection.layerId;
+    return findNode(activeProject, rootLayerId, selection.layerId);
   }, [activeProject, selection]);
 
   const selectedSceneId = useMemo(

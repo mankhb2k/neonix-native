@@ -134,7 +134,7 @@ export function useLayerTrim({
             onCommandProperty({
               command: {
                 type: "set-node-timing",
-                targets: [{ sceneId, layerId: clip.id }],
+                targets: [{ rootLayerId: sceneId, layerId: clip.id }],
                 timing: clamped,
               },
               label: "Trim layer",
