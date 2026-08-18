@@ -10,6 +10,7 @@ export {
   CAPABILITY_MANIFEST_VERSION_V1,
   preflightProjectCapabilities,
   inspectProjectCapabilities,
+  declareUsedCapabilities,
   type CapabilityPreflightResult,
 } from "./v1/capabilities";
 export * from "./ai-schema-capability";

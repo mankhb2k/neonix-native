@@ -19,13 +19,13 @@ describe("sceneFromFrameDraft composition center", () => {
         (p) => `${p}_1`,
         size,
       );
-      const node = scene.type === "group" ? scene.children[0] : undefined;
       expect(
-        node && "transform" in node ? node.transform.translate.x : null,
+        "transform" in scene ? scene.transform.translate.x : null,
       ).toBe(size.width / 2);
       expect(
-        node && "transform" in node ? node.transform.translate.y : null,
+        "transform" in scene ? scene.transform.translate.y : null,
       ).toBe(size.height / 2);
+      expect(scene.type).toBe("text");
     });
   }
 });

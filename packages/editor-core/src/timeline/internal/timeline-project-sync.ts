@@ -1,6 +1,7 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import { deriveTimelineDurationV1 } from "@motionvideo/motion-protocol";
+import { syncProjectProtocolContract } from "../../document/sync-project-protocol-contract";
 
 type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
 type AudioClip = Extract<TimelineClip, { kind: "audio" }>;
@@ -200,14 +201,14 @@ export function rebuildMainProject(
 
   const layers = uniquifySiblingZ(patchTree(project.layers, null, 0));
 
-  return {
+  return syncProjectProtocolContract({
     ...project,
     layers,
     timeline: {
       ...project.timeline,
       duration: deriveTimelineDurationV1(layers),
     },
-  };
+  });
 }
 
 /** Build a root audio layer from editor audio-clip placement data. */

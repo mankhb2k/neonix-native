@@ -9,10 +9,13 @@ import {
   TIMELINE_PLAYHEAD_GUTTER_PX,
 } from "@motionvideo/editor-interactions";
 import {
+  audioDropPolicy,
+  audioHitToLane,
   DEFAULT_FRAME_DURATION,
   resolveLaneDropTarget,
   videoHitToLane,
   visualDropPolicy,
+  type AudioLaneHit,
   type PlacementTarget,
   type TimelineClip,
   type TimelineDropTarget,
@@ -182,6 +185,101 @@ function collectHits(h: TimelineLibraryDropHost): VideoLaneHit[] {
     : collectSceneLanesFromDom(h.scrollEl);
 }
 
+function collectAudioZoneLanesFromLayout(
+  scrollEl: HTMLElement,
+  lanes: readonly TimelineLane[],
+  layout: LaneHitLayout,
+): AudioLaneHit[] {
+  const wsTop = scrollEl.getBoundingClientRect().top;
+  const scrollTop = scrollEl.scrollTop;
+  const out: AudioLaneHit[] = [];
+  for (let i = 0; i < lanes.length; i += 1) {
+    const lane = lanes[i]!;
+    const isAudio = lane.kind === "audio";
+    const isBase = lane.kind === "visual" && lane.role === "base";
+    if (!isAudio && !isBase) continue;
+    const contentTop = layout.topPadding + (layout.laneHeightPrefix[i] ?? 0);
+    const contentH = layout.laneContentHeights[i] ?? 0;
+    const top = wsTop + contentTop - scrollTop;
+    out.push({
+      top,
+      bottom: top + contentH,
+      type: isBase ? "main" : "audio",
+      laneId: lane.id,
+      order: lane.order,
+    });
+  }
+  return out;
+}
+
+function collectAudioZoneLanesFromDom(scope: HTMLElement): AudioLaneHit[] {
+  const layers = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const out: AudioLaneHit[] = [];
+  for (const el of layers) {
+    const rawRole = el.getAttribute("data-track-role");
+    const rawType = el.getAttribute("data-track-type");
+    const isAudio = rawRole === "audio" || rawType === "audio";
+    const isBase = rawRole === "base" || rawType === "main";
+    if (!isAudio && !isBase) continue;
+    const r = el.getBoundingClientRect();
+    const orderAttr = el.getAttribute("data-lane-order");
+    out.push({
+      top: r.top,
+      bottom: r.bottom,
+      type: isBase ? "main" : "audio",
+      laneId: el.getAttribute("data-lane-id"),
+      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
+    });
+  }
+  out.sort((a, b) => a.top - b.top);
+  return out;
+}
+
+/**
+ * Clip-move Y hit-test — visual stays on zIndex ≥ 0 (Main + overlays above).
+ * Audio family uses zIndex < 0 lanes below Main.
+ */
+export function resolveClipMoveDropAtY(
+  scrollEl: HTMLElement,
+  clientY: number,
+  family: "visual" | "audio",
+  wasInsert: boolean,
+  lanes: TimelineLane[],
+  layout?: LaneHitLayout | null,
+): TimelineDropTarget | null {
+  const wsTop = scrollEl.getBoundingClientRect().top;
+  if (family === "audio") {
+    const maxOrder = lanes
+      .filter((l) => l.kind === "audio")
+      .reduce((m, l) => Math.max(m, l.order), -1);
+    const hits = layout
+      ? collectAudioZoneLanesFromLayout(scrollEl, lanes, layout)
+      : collectAudioZoneLanesFromDom(scrollEl);
+    return resolveLaneDropTarget(
+      clientY,
+      hits.map(audioHitToLane),
+      wsTop,
+      wasInsert,
+      maxOrder,
+      audioDropPolicy,
+    );
+  }
+  const maxOrder = lanes
+    .filter((l) => l.kind === "visual" && l.role === "overlay")
+    .reduce((m, l) => Math.max(m, l.order), -1);
+  const hits = layout
+    ? collectSceneLanesFromLayout(scrollEl, lanes, layout)
+    : collectSceneLanesFromDom(scrollEl);
+  return resolveLaneDropTarget(
+    clientY,
+    hits.map(videoHitToLane),
+    wsTop,
+    wasInsert,
+    maxOrder,
+    visualDropPolicy,
+  );
+}
+
 function resolveVisualPolicyTarget(
   clientY: number,
   hits: VideoLaneHit[],
@@ -220,16 +318,10 @@ function startTimeAtPoint(clientX: number): number {
 function contentTopForTarget(
   target: TimelineDropTarget,
   hits: VideoLaneHit[],
-  forceBaseTopEdge: boolean,
 ): number {
   const h = host!;
   const scrollTop = h.scrollEl.scrollTop;
   const scrollRect = h.scrollEl.getBoundingClientRect();
-
-  if (forceBaseTopEdge) {
-    const base = hits.find((x) => x.type === "main");
-    if (base) return base.top - scrollRect.top + scrollTop;
-  }
 
   if (target.isInsert) {
     return target.indicatorTop + scrollTop;
@@ -288,24 +380,17 @@ function resolveDropPreview(
   const track: "main" | "overlay" =
     policyTarget.overBaseBody && !policyTarget.isInsert ? "main" : "overlay";
 
-  const forceInsertChrome =
-    (item.kind === "text" || item.kind === "shape") &&
-    track === "main" &&
-    !policyTarget.isInsert;
-
-  const showInsert = policyTarget.isInsert || forceInsertChrome;
-
   return {
     valid: true,
     startTime,
     widthPx,
     contentLeft: origin + startTime * h.pixelsPerSecond,
-    contentTop: contentTopForTarget(policyTarget, hits, forceInsertChrome),
-    ghostHeightPx: ghostHeightFor(showInsert, policyTarget, hits),
-    isInsert: showInsert,
-    track: showInsert ? "overlay" : track,
+    contentTop: contentTopForTarget(policyTarget, hits),
+    ghostHeightPx: ghostHeightFor(policyTarget.isInsert, policyTarget, hits),
+    isInsert: policyTarget.isInsert,
+    track: policyTarget.isInsert ? "overlay" : track,
     label: item.label,
-    laneId: showInsert ? null : policyTarget.laneId,
+    laneId: policyTarget.isInsert ? null : policyTarget.laneId,
     insertOrder: policyTarget.insertOrder,
     overBaseBody: policyTarget.overBaseBody,
   };
@@ -320,19 +405,28 @@ export function resolveLibraryDropGhost(
   return resolveDropPreview(clientX, clientY, item);
 }
 
-/** Commit placement (text/shape on main → new overlay lane). */
-export function resolveLibraryDropPlacement(
-  clientX: number,
-  clientY: number,
-  item: LibraryPayload,
+/**
+ * Visual of any type lands on Main (zIndex 0) when dropped on the base body.
+ * Overlay lanes are only created by an explicit insert-above (or an existing overlay).
+ */
+export function placementFromLibraryDropGhost(
+  preview: Pick<
+    LibraryDropGhost,
+    | "valid"
+    | "isInsert"
+    | "track"
+    | "overBaseBody"
+    | "laneId"
+    | "insertOrder"
+    | "startTime"
+  >,
 ): PlacementTarget | null {
-  const preview = resolveDropPreview(clientX, clientY, item);
-  if (!preview?.valid) return null;
-
-  const isTextOrShape = item.kind === "text" || item.kind === "shape";
+  if (!preview.valid) return null;
   const overMain = preview.track === "main" || Boolean(preview.overBaseBody);
-
-  if (preview.isInsert || (isTextOrShape && overMain) || preview.laneId == null) {
+  if (overMain && !preview.isInsert) {
+    return { track: "main", startTime: preview.startTime };
+  }
+  if (preview.isInsert || preview.laneId == null) {
     return {
       track: "overlay",
       insertNewLane: true,
@@ -340,14 +434,20 @@ export function resolveLibraryDropPlacement(
       startTime: preview.startTime,
     };
   }
-
-  if (overMain) {
-    return { track: "main", startTime: preview.startTime };
-  }
-
   return {
     track: "overlay",
     laneId: preview.laneId,
     startTime: preview.startTime,
   };
+}
+
+/** Commit library drop onto Main / overlay according to protocol zIndex. */
+export function resolveLibraryDropPlacement(
+  clientX: number,
+  clientY: number,
+  item: LibraryPayload,
+): PlacementTarget | null {
+  const preview = resolveDropPreview(clientX, clientY, item);
+  if (!preview) return null;
+  return placementFromLibraryDropGhost(preview);
 }

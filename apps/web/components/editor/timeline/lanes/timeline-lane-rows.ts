@@ -1,7 +1,6 @@
 import type { TimelineLane } from "@motionvideo/editor-core";
 import {
   buildLaneRows,
-  timelineVerticalInsets as timelineVerticalInsetsCore,
   timelineLanesStackHeightWithGap as timelineLanesStackHeightCore,
   type GenericLaneRow,
   type LaneRowConfig,
@@ -35,6 +34,22 @@ export type LaneRow = TimelineLane & {
 };
 
 // ── Thin adapters — delegate to editor-core ─────────────────────────
+
+/**
+ * Occupied visual rows only — empty Main is not a droppable lane below overlays.
+ * Keep the empty base row when nothing is on the timeline (dashed Main hint).
+ */
+export function visibleTrackLaneRows(
+  rows: readonly LaneRow[],
+  clips: readonly { laneId: string }[],
+): LaneRow[] {
+  const used = new Set(clips.map((clip) => clip.laneId));
+  const occupiedVisual = rows.some(
+    (row) => row.kind === "visual" && used.has(row.id),
+  );
+  if (!occupiedVisual) return [...rows];
+  return rows.filter((row) => row.kind === "audio" || used.has(row.id));
+}
 
 /** CapCut order: overlays (desc) → base → audios (asc). */
 export function buildTrackLaneRows(lanes: TimelineLane[]): LaneRow[] {
@@ -73,9 +88,21 @@ export function timelineLanesStackHeight(rows: readonly LaneRow[]): number {
   return timelineLanesStackHeightCore(genericRows, webLaneRowConfig);
 }
 
+function axisLaneIndex(rows: readonly LaneRow[]): number {
+  const base = rows.findIndex(
+    (row) => row.kind === "visual" && row.role === "base",
+  );
+  if (base >= 0) return base;
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    if (rows[i]!.kind === "visual") return i;
+  }
+  return 0;
+}
+
 /**
- * CapCut-style vertical insets: keep ≥min padding, and when the viewport is
- * taller than the stack, split leftover into top/bottom so the band sits middle.
+ * CapCut axis: keep Main (zIndex 0) on the vertical midpoint.
+ * Overlay insert space is the empty canvas above; audio is the empty canvas below.
+ * Padding is not a lane — only occupied rows use `--timeline-track-lane`.
  */
 export function timelineVerticalInsets(
   rows: readonly LaneRow[],
@@ -88,7 +115,28 @@ export function timelineVerticalInsets(
     order: r.order,
     height: r.height,
   }));
-  return timelineVerticalInsetsCore(genericRows, viewHeight, webLaneRowConfig);
+  const stack = timelineLanesStackHeightCore(genericRows, webLaneRowConfig);
+  const minTop = webLaneRowConfig.topPaddingPx;
+  const minBottom = webLaneRowConfig.bottomPaddingPx;
+  const contentHeight = Math.max(
+    stack + minTop + minBottom,
+    Math.max(0, viewHeight),
+    1,
+  );
+  if (rows.length === 0) {
+    return { top: minTop, bottom: contentHeight - minTop, contentHeight };
+  }
+  const axis = axisLaneIndex(rows);
+  let above = 0;
+  for (let i = 0; i < axis; i += 1) {
+    above += rows[i]!.height + webLaneRowConfig.gapPx;
+  }
+  const axisHeight = rows[axis]?.height ?? 0;
+  const maxTop = Math.max(minTop, contentHeight - stack - minBottom);
+  const centeredTop = Math.round(contentHeight / 2 - above - axisHeight / 2);
+  const top = Math.min(Math.max(minTop, centeredTop), maxTop);
+  const bottom = contentHeight - stack - top;
+  return { top, bottom, contentHeight };
 }
 
 // Re-export core helpers for convenience

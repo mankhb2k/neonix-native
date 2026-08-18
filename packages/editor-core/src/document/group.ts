@@ -67,6 +67,54 @@ export function isIdentityGroup(layer: MotionLayer): layer is GroupLayer {
 }
 
 /**
+ * True when the layer is a group with children the editor can drill into.
+ * Primitive roots (shape/text/video/image) are not groups.
+ */
+export function canDrillIntoGroup(layer: MotionLayer | undefined): boolean {
+  return Boolean(
+    layer && layer.type === "group" && layer.children.length > 0,
+  );
+}
+
+/** Library used to wrap a primitive in a scene group whose child id is `node_*`. */
+function isGeneratedNodeId(id: string): boolean {
+  return /^node[_-]/.test(id);
+}
+
+/**
+ * Promote library scene-wrappers (group → one `node_*` primitive) to a
+ * flat layer. Keeps the group id so timeline clips still bind. Real groups
+ * (Hero + Title, user Group) are left intact.
+ */
+export function unwrapLibrarySceneWrappers(
+  layers: readonly MotionLayer[],
+): MotionLayer[] {
+  return layers.map(unwrapLibrarySceneWrapper);
+}
+
+function unwrapLibrarySceneWrapper(layer: MotionLayer): MotionLayer {
+  if (layer.type !== "group") return layer;
+  const children = layer.children.map(unwrapLibrarySceneWrapper);
+  const only = children[0];
+  if (
+    children.length === 1 &&
+    only &&
+    only.type !== "group" &&
+    isGeneratedNodeId(only.id)
+  ) {
+    return {
+      ...only,
+      id: layer.id,
+      name: layer.name ?? only.name,
+      parentLayerId: layer.parentLayerId,
+      zIndex: layer.zIndex,
+      timing: { ...layer.timing },
+    } as MotionLayer;
+  }
+  return { ...layer, children };
+}
+
+/**
  * Wrap the selected TOP-LEVEL layers into a new coordinate-identity group.
  *
  * - The group takes an identity transform (children keep absolute coords).

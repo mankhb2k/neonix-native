@@ -11,6 +11,7 @@ import type {
 import {
   groupPathToTimelineClips,
   resolveGroupPath,
+  canDrillIntoGroup,
 } from "@motionvideo/editor-core";
 import { useCallback, useMemo, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
@@ -107,10 +108,13 @@ export function TimelineShell() {
 
   const onClipDoubleClick = useCallback(
     (clip: TimelineClip) => {
-      if (clip.kind !== "scene") return;
+      if (clip.kind !== "scene" || !project) return;
+      const scoped = resolveGroupPath(project.layers, groupPath).layers;
+      const layer = scoped.find((item) => item.id === clip.sceneId);
+      if (!canDrillIntoGroup(layer)) return;
       enterGroup(clip.sceneId);
     },
-    [enterGroup],
+    [enterGroup, groupPath, project],
   );
 
   return (

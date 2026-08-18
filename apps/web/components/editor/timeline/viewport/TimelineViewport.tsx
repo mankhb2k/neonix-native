@@ -39,6 +39,7 @@ import {
   buildLayerLaneRows,
   buildTrackLaneRows,
   timelineVerticalInsets,
+  visibleTrackLaneRows,
 } from "../lanes/timeline-lane-rows";
 import {
   LANE_GAP_PX,
@@ -130,11 +131,11 @@ export function TimelineViewport({
   );
 
   const pps = layout.pixelsPerSecond;
-  const rows = useMemo(
-    () =>
-      mode === "layer" ? buildLayerLaneRows(lanes) : buildTrackLaneRows(lanes),
-    [lanes, mode],
-  );
+  const rows = useMemo(() => {
+    const built =
+      mode === "layer" ? buildLayerLaneRows(lanes) : buildTrackLaneRows(lanes);
+    return mode === "layer" ? built : visibleTrackLaneRows(built, clips);
+  }, [clips, lanes, mode]);
 
   const verticalInsets = useMemo(
     () => timelineVerticalInsets(rows, trackViewHeight),

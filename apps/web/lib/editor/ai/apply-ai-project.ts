@@ -15,7 +15,7 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import { documentFromStoreState } from "@motionvideo/editor-core";
+import { documentFromStoreState, syncProjectProtocolContract } from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import type {
@@ -67,7 +67,7 @@ export function applyAiProjectToStore(
 ): void {
   const state = get();
   const beforeDoc = documentFromStoreState(state);
-  const project = parseMotionProject(projectInput);
+  const project = syncProjectProtocolContract(parseMotionProject(projectInput));
   const { lanes: migratedLanes, clips: migratedClips } = migrateLanesAndClips(
     project,
     [],

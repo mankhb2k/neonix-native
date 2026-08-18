@@ -100,10 +100,10 @@ export function ClipStrip({
   const handleBodyPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    if (event.detail >= 2) {
+    if (event.detail >= 2 && onDoubleClick) {
       pendingRef.current = null;
       dragStartedRef.current = false;
-      onDoubleClick?.(
+      onDoubleClick(
         event as unknown as ReactMouseEvent<HTMLElement>,
         clip,
       );
@@ -127,6 +127,9 @@ export function ClipStrip({
     if (dx * dx + dy * dy < 16) return;
     pendingRef.current = null;
     dragStartedRef.current = true;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
     onBeginMove(event, clip);
   };
 

@@ -184,7 +184,7 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       const scene = result.document.project.layers.at(-1);
-      const node = scene?.type === "group" ? scene.children[0] : undefined;
+      const node = scene?.type === "group" ? scene.children[0] : scene;
       expect(node?.type).toBe("shape");
       if (node?.type === "shape") {
         expect(node.payload.shape).toBe("rectangle");
@@ -212,7 +212,7 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       const scene = result.document.project.layers.at(-1);
-      const node = scene?.type === "group" ? scene.children[0] : undefined;
+      const node = scene?.type === "group" ? scene.children[0] : scene;
       expect(node?.type).toBe("image");
       if (node?.type === "image") {
         expect(node.payload.assetId).toBe("asset.photo");
@@ -333,7 +333,7 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       const scene = result.document.project.layers.at(-1);
-      const node = scene?.type === "group" ? scene.children[0] : undefined;
+      const node = scene?.type === "group" ? scene.children[0] : scene;
       expect(node && "transform" in node ? node.transform.translate.x : 0).toBe(
         960,
       );

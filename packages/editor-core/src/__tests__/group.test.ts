@@ -4,7 +4,7 @@ import {
   visualLayerAtoms,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
-import { groupLayers, ungroupLayers, isIdentityGroup } from "../document/group";
+import { groupLayers, ungroupLayers, isIdentityGroup, canDrillIntoGroup, unwrapLibrarySceneWrappers } from "../document/group";
 import { resolveGroupPath } from "../document/group-path";
 
 function solid(
@@ -118,5 +118,95 @@ describe("resolveGroupPath", () => {
     const resolved = resolveGroupPath([a], ["missing"]);
     expect(resolved.crumbs).toEqual([]);
     expect(resolved.layers.map((l) => l.id)).toEqual(["a"]);
+  });
+});
+
+describe("canDrillIntoGroup", () => {
+  it("rejects primitives", () => {
+    expect(canDrillIntoGroup(solid("a", { z: 0, start: 0, duration: 1 }))).toBe(
+      false,
+    );
+  });
+
+  it("accepts a group that has children", () => {
+    const grouped = groupLayers(
+      [
+        solid("a", { z: 0, start: 0, duration: 2 }),
+        solid("b", { z: 1, start: 0, duration: 2 }),
+      ],
+      ["a", "b"],
+      "g1",
+    );
+    const group = grouped?.layers.find((l) => l.id === "g1");
+    expect(canDrillIntoGroup(group)).toBe(true);
+  });
+});
+
+describe("unwrapLibrarySceneWrappers", () => {
+  it("flattens a library scene group whose only child is node_*", () => {
+    const wrapper: MotionLayer = {
+      id: "scene_triangle",
+      type: "group",
+      name: "Hình tam giác",
+      parentLayerId: null,
+      zIndex: 1,
+      timing: { start: 0, duration: 4 },
+      ...visualLayerAtoms({ width: 1080, height: 1920 }),
+      children: [
+        {
+          id: "node_6oet4gj",
+          type: "shape",
+          parentLayerId: "scene_triangle",
+          zIndex: 0,
+          timing: { start: 0, duration: 4 },
+          ...visualLayerAtoms({ width: 200, height: 200 }),
+          payload: { shape: "polygon", points: [] },
+          style: { fill: "#4A90D9" },
+        } as MotionLayer,
+      ],
+    };
+    const [next] = unwrapLibrarySceneWrappers([wrapper]);
+    expect(next?.type).toBe("shape");
+    expect(next?.id).toBe("scene_triangle");
+    expect(next?.name).toBe("Hình tam giác");
+    expect(next && "payload" in next ? next.payload : null).toEqual({
+      shape: "polygon",
+      points: [],
+    });
+    expect(canDrillIntoGroup(next)).toBe(false);
+  });
+
+  it("keeps a real group whose child is not a generated node id", () => {
+    const hero: MotionLayer = {
+      id: "hero",
+      type: "group",
+      name: "Hero",
+      parentLayerId: null,
+      zIndex: 2,
+      timing: { start: 8, duration: 4 },
+      ...visualLayerAtoms({ width: 1080, height: 1920 }),
+      children: [
+        {
+          id: "hero.title",
+          type: "text",
+          name: "Title",
+          parentLayerId: "hero",
+          zIndex: 0,
+          timing: { start: 0, duration: 4 },
+          ...visualLayerAtoms({ width: 200, height: 40 }),
+          payload: {
+            text: "Title",
+            fontSize: 24,
+            color: "#111111",
+            alignment: "left",
+          },
+        } as MotionLayer,
+      ],
+    };
+    const [next] = unwrapLibrarySceneWrappers([hero]);
+    expect(next?.type).toBe("group");
+    expect(next?.type === "group" ? next.children[0]?.id : null).toBe(
+      "hero.title",
+    );
   });
 });

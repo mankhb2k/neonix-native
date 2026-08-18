@@ -17,8 +17,10 @@ import {
   packRootLayersToTimeline,
   resolveGroupPath,
   selectionNone,
+  syncProjectProtocolContract,
   uid,
   ungroupLayers,
+  canDrillIntoGroup,
   type HistoryEntry,
 } from "@motionvideo/editor-core";
 import type { MotionLayer } from "@motionvideo/motion-protocol";
@@ -90,7 +92,10 @@ export function createGroupActions(
   ) => {
     const before = documentFromStoreState(get());
     if (!before) return;
-    const nextProject = { ...beforeProject, layers: nextLayers };
+    const nextProject = syncProjectProtocolContract({
+      ...beforeProject,
+      layers: nextLayers,
+    });
     const packed =
       get().groupPath.length === 0
         ? packRootLayersToTimeline(nextProject)
@@ -126,7 +131,7 @@ export function createGroupActions(
       const group = scoped.layers.find(
         (l) => l.id === groupId && l.type === "group",
       );
-      if (!group) return;
+      if (!canDrillIntoGroup(group)) return;
       set({
         groupPath: [...state.groupPath, groupId],
         selection: selectionNone(),

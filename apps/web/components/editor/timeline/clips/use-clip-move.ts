@@ -1,6 +1,6 @@
 /**
- * Web adapter — wraps useClipMove from editor-react, supplies a simple
- * ClipMoveHost that keeps clips in their original lane (no cross-lane move yet).
+ * Web adapter — wraps useClipMove from editor-react with CapCut lane targeting.
+ * Visual clips stay on Main / overlays (zIndex ≥ 0); audio uses zIndex < 0.
  */
 
 import { useMemo, type RefObject } from "react";
@@ -20,6 +20,14 @@ import {
   computeAutoScrollNearEdge,
   type ClipMovePreview,
 } from "@motionvideo/editor-interactions";
+import {
+  getTimelineLibraryDropHost,
+  resolveClipMoveDropAtY,
+} from "@/lib/editor/library/timeline-library-drop";
+import {
+  BASE_LANE_HEIGHT_PX,
+  SECONDARY_LANE_HEIGHT_PX,
+} from "../timeline-scale";
 
 export type UseClipMoveArgs = {
   clips: TimelineClip[];
@@ -35,6 +43,12 @@ export type UseClipMoveArgs = {
   onMovePreview: (preview: ClipMovePreview | null) => void;
   scrollRef: RefObject<HTMLElement | null>;
 };
+
+function laneRowHeightPx(lane: TimelineLane): number {
+  if (lane.kind === "audio") return SECONDARY_LANE_HEIGHT_PX;
+  if (lane.role === "base") return BASE_LANE_HEIGHT_PX;
+  return SECONDARY_LANE_HEIGHT_PX;
+}
 
 export function useClipMove({
   clips,
@@ -89,19 +103,49 @@ export function useClipMove({
       getDropContext: () => {
         const el = scrollRef.current;
         if (!el) return null;
+        const dropHost = getTimelineLibraryDropHost();
         return {
           scrollEl: el,
-          lanes,
+          lanes: dropHost?.lanes ?? lanes,
           clipsByLane: undefined,
+          laneHitLayout: dropHost?.laneHitLayout ?? undefined,
         };
       },
 
-      /** Same-lane only for now — cross-lane deferred. */
-      resolveDropAtY: () => null,
+      resolveDropAtY: (
+        scrollEl,
+        clientY,
+        family,
+        wasInsert,
+        dropLanes,
+        _layout,
+      ) => {
+        const hit = resolveClipMoveDropAtY(
+          scrollEl,
+          clientY,
+          family,
+          wasInsert,
+          dropLanes,
+          null,
+        );
+        if (hit) return hit;
+        if (family === "audio") return null;
+        const base = dropLanes.find(
+          (l) => l.kind === "visual" && l.role === "base",
+        );
+        return {
+          family: "visual",
+          isInsert: false,
+          laneId: base?.id ?? null,
+          insertOrder: null,
+          indicatorTop: 0,
+          overBaseBody: true,
+        };
+      },
 
       trackForLane: resolveLaneTrackKind,
 
-      laneRowHeightPx: () => 36,
+      laneRowHeightPx,
     }),
     [scrollRef, lanes],
   );

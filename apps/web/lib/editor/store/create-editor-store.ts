@@ -30,6 +30,7 @@ import {
   mergeEnvelopeLaneMembership,
   packRootLayersToTimeline,
   projectToTimelineDocument,
+  syncProjectProtocolContract,
 } from "@motionvideo/editor-core";
 import { clipsContentEndSeconds } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
@@ -209,7 +210,8 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       const beforeDoc = documentFromStoreState(state);
       if (!beforeDoc) return;
 
-      const nextProject = mapNode(state.project, sceneId, layerId, (node) => {
+      const nextProject = syncProjectProtocolContract(
+        mapNode(state.project, sceneId, layerId, (node) => {
         if (!("transform" in node) || !node.transform) return node;
         return {
           ...node,
@@ -234,7 +236,8 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
             },
           },
         };
-      });
+      }),
+      );
 
       const envelope = state.envelope
         ? markUserModified(state.envelope, sceneId, layerId, lockedPaths)
@@ -292,7 +295,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       if (!project) return;
 
       if (project.layers.length === 0) {
-        project = createFacebookHistoryDemoProject();
+        project = syncProjectProtocolContract(createFacebookHistoryDemoProject());
         const { lanes, clips } = packRootLayersToTimeline(project);
         set({
           project,
@@ -369,7 +372,10 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         }
       }
 
-      const afterDoc = result.document;
+      const afterDoc = {
+        ...result.document,
+        project: syncProjectProtocolContract(result.document.project),
+      };
       const entry: HistoryEntry = {
         id: `hist_${Math.random().toString(36).slice(2, 9)}`,
         timestamp: Date.now(),

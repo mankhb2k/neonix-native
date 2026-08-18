@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   preflightProjectCapabilities,
   inspectProjectCapabilities,
+  declareUsedCapabilities,
   CAPABILITY_MANIFEST_VERSION_V1,
 } from "../../src/v1/capabilities";
 
@@ -223,6 +224,31 @@ describe("preflightProjectCapabilities", () => {
       capabilities: { required: [] },
     });
     expect(result.used).toEqual(["primitive.image", "primitive.text"]);
+  });
+});
+
+describe("declareUsedCapabilities", () => {
+  it("declares primitives used by nested layers", () => {
+    const next = declareUsedCapabilities({
+      layers: [{ type: "group", children: [{ type: "text" }, { type: "shape" }] }],
+      capabilities: { required: [] },
+    });
+    expect(next.capabilities?.required).toEqual([
+      "primitive.group",
+      "primitive.shape",
+      "primitive.text",
+    ]);
+  });
+
+  it("keeps extras already declared", () => {
+    const next = declareUsedCapabilities({
+      layers: [{ type: "text" }],
+      capabilities: { required: ["primitive.text", "effect.blur"] },
+    });
+    expect(next.capabilities?.required).toEqual([
+      "effect.blur",
+      "primitive.text",
+    ]);
   });
 });
 

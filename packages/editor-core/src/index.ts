@@ -8,6 +8,7 @@ export * from "./selection/editor-selection";
 export * from "./selection/editor-selectors";
 export * from "./timeline/model/timeline-types";
 export * from "./document/document";
+export * from "./document/sync-project-protocol-contract";
 export * from "./document/canonical-projection";
 export * from "./document/group";
 export * from "./document/group-path";

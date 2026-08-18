@@ -102,7 +102,10 @@ export async function createStageRenderer(
           compiled = compileProjectV1(input.project);
         } catch (error) {
           compiled = null;
-          console.error("[stage] compileProjectV1 failed", error);
+          console.warn(
+            "[stage] compileProjectV1 failed",
+            error instanceof Error ? error.message : error,
+          );
         }
         pixi.setProject(compiled);
         pixi.setBackground(background);

@@ -141,6 +141,40 @@ export interface CapabilityPreflightResult {
   missing: string[];
 }
 
+/**
+ * Editor write helper: declare every capability the layer tree actually uses.
+ * Unions into `capabilities.required` (does not drop extras already declared).
+ */
+export function declareUsedCapabilities<
+  T extends {
+    capabilities?: ProjectCapabilityRequirements;
+    layers?: LayerLike[];
+    components?: Array<{ layers?: LayerLike[] }>;
+  },
+>(project: T): T {
+  const used = inspectProjectCapabilities(project);
+  if (used.size === 0 && (project.capabilities?.required?.length ?? 0) === 0) {
+    return project;
+  }
+  const required = [
+    ...new Set([...(project.capabilities?.required ?? []), ...used]),
+  ].sort();
+  const prev = project.capabilities?.required ?? [];
+  if (
+    required.length === prev.length &&
+    required.every((id, index) => id === prev[index])
+  ) {
+    return project;
+  }
+  return {
+    ...project,
+    capabilities: {
+      ...project.capabilities,
+      required,
+    },
+  };
+}
+
 export function preflightProjectCapabilities(
   project: {
     capabilities?: ProjectCapabilityRequirements;

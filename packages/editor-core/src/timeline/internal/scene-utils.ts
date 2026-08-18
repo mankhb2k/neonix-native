@@ -193,7 +193,7 @@ function nodeFromDraft(
     ...baseTransform(composition, textW, textH),
     timing: { start: 0, duration: 1 },
     payload: {
-      text: draft.text || draft.name,
+      text: draft.text.trim() || draft.name.trim() || "Text",
       fontSize: 64,
       color: "#111111",
       alignment: "center",
@@ -212,36 +212,21 @@ export function createNodeFromFrameDraft(
   return nodeFromDraft(draft, layerId, composition);
 }
 
-/** Chuyển đổi FrameDraft từ thư viện thành một group layer (scene) hoàn chỉnh. */
+/** Chuyển FrameDraft thành layer gốc (shape/text/video/image) — không bọc group. */
 export function sceneFromFrameDraft(
   draft: FrameDraft,
   createId: CommandContext["createId"] = defaultCreateId,
   composition: CompositionSize = DEFAULT_COMPOSITION,
 ): MotionLayer {
-  const sceneId = createId("scene");
-  const layerId = createId("node");
+  const layerId = createId("scene");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
   const node = nodeFromDraft(draft, layerId, composition);
+  const name = draft.name.trim() || draft.kind || "Clip";
   return {
-    id: sceneId,
-    type: "group",
-    name: draft.name,
+    ...node,
+    name,
     parentLayerId: null,
-    zIndex: 0,
-    ...visualLayerAtoms({
-      x: 0,
-      y: 0,
-      width: composition.width,
-      height: composition.height,
-    }),
     timing: { start: 0, duration },
-    children: [
-      {
-        ...node,
-        parentLayerId: sceneId,
-        timing: { start: 0, duration },
-      },
-    ],
   };
 }
 

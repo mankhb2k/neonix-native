@@ -1,6 +1,7 @@
 // @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
+  declareUsedCapabilities,
   visualLayerAtoms,
   type MotionProjectV1,
   type MotionLayer,
@@ -679,7 +680,8 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
 
   const duration = scenes.reduce((sum, s) => sum + s.duration, 0);
 
-  return parseMotionProjectV1({
+  return declareUsedCapabilities(
+    parseMotionProjectV1({
     format: "motion-project",
     formatVersion: 1,
     metadata: {
@@ -707,5 +709,6 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
     layers,
     timeline: { duration, clips },
     bindings: [],
-  });
+    }),
+  );
 }

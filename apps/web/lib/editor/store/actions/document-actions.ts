@@ -3,6 +3,7 @@ import {
   uid,
   updateVariable,
   stageSizeForAspect,
+  syncProjectProtocolContract,
 } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
@@ -43,14 +44,14 @@ export function createDocumentActions(
         );
       }
       set({
-        project: {
+        project: syncProjectProtocolContract({
           ...project,
           metadata: {
             ...project.metadata,
             name: patch.name ?? project.metadata.name,
           },
           variables,
-        },
+        }),
       });
     },
 
@@ -58,10 +59,12 @@ export function createDocumentActions(
       const project = get().project;
       if (!project) return;
       set({
-        project: mapNode(project, sceneId, layerId, (node) =>
-          node.type === "text"
-            ? { ...node, payload: { ...node.payload, text } }
-            : node,
+        project: syncProjectProtocolContract(
+          mapNode(project, sceneId, layerId, (node) =>
+            node.type === "text"
+              ? { ...node, payload: { ...node.payload, text } }
+              : node,
+          ),
         ),
       });
     },
@@ -70,20 +73,22 @@ export function createDocumentActions(
       const project = get().project;
       if (!project) return;
       set({
-        project: mapNode(project, sceneId, layerId, (node) => {
-          if (!("transform" in node) || !node.transform) return node;
-          return {
-            ...node,
-            transform: {
-              ...node.transform,
-              translate: {
-                ...node.transform.translate,
-                x: position.x ?? node.transform.translate.x,
-                y: position.y ?? node.transform.translate.y,
+        project: syncProjectProtocolContract(
+          mapNode(project, sceneId, layerId, (node) => {
+            if (!("transform" in node) || !node.transform) return node;
+            return {
+              ...node,
+              transform: {
+                ...node.transform,
+                translate: {
+                  ...node.transform.translate,
+                  x: position.x ?? node.transform.translate.x,
+                  y: position.y ?? node.transform.translate.y,
+                },
               },
-            },
-          };
-        }),
+            };
+          }),
+        ),
       });
     },
 
@@ -98,14 +103,14 @@ export function createDocumentActions(
       if (project) {
         const size = stageSizeForAspect(aspectRatio);
         set({
-          project: {
+          project: syncProjectProtocolContract({
             ...project,
             composition: {
               ...project.composition,
               width: size.width,
               height: size.height,
             },
-          },
+          }),
         });
       }
     },

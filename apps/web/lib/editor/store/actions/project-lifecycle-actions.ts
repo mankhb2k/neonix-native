@@ -8,6 +8,7 @@ import {
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
+import { syncProjectProtocolContract } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -27,7 +28,7 @@ export function createProjectLifecycleActions(
       storedClips = [],
       storedLanes = [],
     ) => {
-      const project = parseProjectInput(input);
+      const project = syncProjectProtocolContract(parseProjectInput(input));
       const { lanes: migratedLanes, clips: migratedClips } =
         migrateLanesAndClips(project, overlayScenes, storedClips, storedLanes);
       const { lanes: withAudioLanes, clips: withAudioClips } =
