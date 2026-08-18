@@ -2,28 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/app-config";
 import { appUrl } from "@/lib/hosts";
-import {
-  SITE_DOCS_SHELL_X,
-  SITE_HEADER_HEIGHT,
-  SITE_MARKETING_SHELL_X,
-} from "@/lib/site-shell";
+import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
 
 const headerOuterClass =
   "sticky top-0 z-20 border-b border-[var(--border-subtle,#e4e4e7)] bg-[color-mix(in_srgb,var(--bg-site)_90%,transparent)] backdrop-blur";
 
-export function SiteHeader({
-  active,
-}: {
-  active?: "docs" | "app" | "home";
-}) {
-  const shellX =
-    active === "home" ? SITE_MARKETING_SHELL_X : SITE_DOCS_SHELL_X;
-
+export function SiteHeader({ active }: { active?: "docs" | "app" | "home" }) {
   return (
     <header className={headerOuterClass}>
       <div
-        className={`flex ${SITE_HEADER_HEIGHT} items-center gap-3 ${shellX}`}
+        className={`flex ${SITE_HEADER_HEIGHT} items-center gap-3 ${SITE_HEADER_SHELL_X}`}
       >
         <div className="flex items-center gap-8">
           <Link
@@ -44,10 +33,17 @@ export function SiteHeader({
             </span>
           </Link>
           <nav className="flex items-center gap-6">
+            <SiteNavButton href="/" active={active === "home"}>
+              Home
+            </SiteNavButton>
             <SiteNavButton href="/docs" active={active === "docs"}>
               Docs
             </SiteNavButton>
-            <SiteNavButton href={appUrl("/")} active={active === "app"} external>
+            <SiteNavButton
+              href={appUrl("/")}
+              active={active === "app"}
+              external
+            >
               App
             </SiteNavButton>
           </nav>

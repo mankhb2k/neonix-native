@@ -6,7 +6,7 @@ import {
   type TimelineTrackKind,
 } from "../model/timeline-types";
 import type { OverlaySceneItem } from "../../overlay-scenes";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 
 function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
@@ -169,93 +169,72 @@ function migrateLegacyClipInputs(
   project: MotionProject,
   overlays: OverlaySceneItem[],
 ): LegacyClipInput[] {
-  const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
+  const visualRoots = project.layers.filter(
+    (layer) => layer.type !== "audio" && layer.parentLayerId === null,
+  );
+  const audioRoots = project.layers.filter(
+    (layer): layer is Extract<MotionLayer, { type: "audio" }> =>
+      layer.type === "audio",
+  );
 
-  // Phase 8: derive main/overlay/audio clips from visualTracks + audioTracks.
-  const timeline = project.timeline;
-  if ("visualTracks" in timeline && Array.isArray(timeline.visualTracks)) {
-    const sceneName = (sceneId: string): string =>
-      scenesById.get(sceneId)?.name ??
-      scenesById.get(sceneId)?.semantic?.role ??
-      sceneId;
+  const sceneName = (layer: MotionLayer): string => layer.name ?? layer.id;
 
-    const main: LegacyClipInput[] = timeline.visualTracks
-      .filter((track) => track.role === "main")
-      .flatMap((track) =>
-        track.clips.flatMap((clip) => {
-          if (clip.source.kind !== "scene") return [];
-          const scene = scenesById.get(clip.source.sceneId);
-          if (!scene) return [];
-          return [
-            {
-              id: clip.id,
-              kind: "scene" as const,
-              sceneId: clip.source.sceneId,
-              laneId: "",
-              startTime: clip.start,
-              duration: clip.duration,
-              name: sceneName(clip.source.sceneId),
-              track: "main" as const,
-            },
-          ];
-        }),
-      );
-
-    const overlayClips: LegacyClipInput[] = [
-      ...timeline.visualTracks
-        .filter((track) => track.role === "overlay")
-        .flatMap((track) =>
-          track.clips.flatMap((clip) => {
-            if (clip.source.kind !== "scene") return [];
-            return [
-              {
-                id: clip.id,
-                kind: "scene" as const,
-                sceneId: clip.source.sceneId,
-                laneId: "",
-                startTime: clip.start,
-                duration: clip.duration,
-                name: sceneName(clip.source.sceneId),
-                track: "overlay" as const,
-                layerIndex: track.order,
-              },
-            ];
-          }),
-        ),
-      // Legacy overlay sidecar: overlays from separate layerIndex data
-      ...overlays.map(
-        (item): LegacyClipInput => ({
-          id: item.id,
-          kind: "scene" as const,
-          sceneId: item.id,
-          laneId: "",
-          startTime: item.startTime,
-          duration: item.duration,
-          name: item.name,
-          track: "overlay" as const,
-          layerIndex: item.layerIndex ?? 0,
-        }),
-      ),
-    ];
-
-    const audio: LegacyClipInput[] = timeline.audioTracks.map((track) => ({
-      id: track.id,
-      kind: "audio" as const,
-      audioTrackId: track.id,
-      assetId: track.assetId,
+  const main: LegacyClipInput[] = visualRoots
+    .filter((layer) => (layer.zIndex ?? 0) <= 0)
+    .map((layer) => ({
+      id: layer.id,
+      kind: "scene" as const,
+      sceneId: layer.id,
       laneId: "",
-      startTime: track.start,
-      duration: track.duration,
-      name: track.id,
-      track: "audio" as const,
+      startTime: layer.timing.start,
+      duration: layer.timing.duration,
+      name: sceneName(layer),
+      track: "main" as const,
     }));
 
-    return [...main, ...overlayClips, ...audio];
-  }
+  const overlayClips: LegacyClipInput[] = [
+    ...visualRoots
+      .filter((layer) => (layer.zIndex ?? 0) > 0)
+      .map((layer) => ({
+        id: layer.id,
+        kind: "scene" as const,
+        sceneId: layer.id,
+        laneId: "",
+        startTime: layer.timing.start,
+        duration: layer.timing.duration,
+        name: sceneName(layer),
+        track: "overlay" as const,
+        layerIndex: layer.zIndex ?? 0,
+      })),
+    // Legacy overlay sidecar: overlays from separate layerIndex data
+    ...overlays.map(
+      (item): LegacyClipInput => ({
+        id: item.id,
+        kind: "scene" as const,
+        sceneId: item.id,
+        laneId: "",
+        startTime: item.startTime,
+        duration: item.duration,
+        name: item.name,
+        track: "overlay" as const,
+        layerIndex: item.layerIndex ?? 0,
+      }),
+    ),
+  ];
 
-  // Phase 8: no legacy sceneOrder fallback — projects without visualTracks
-  // return an empty array.
-  return [];
+  const audio: LegacyClipInput[] = audioRoots.map((layer) => ({
+    id: layer.id,
+    kind: "audio" as const,
+    audioTrackId: layer.id,
+    assetId: layer.payload.assetId,
+    laneId: "",
+    startTime: layer.timing.start,
+    duration: layer.timing.duration,
+    name: layer.name ?? layer.id,
+    track: "audio" as const,
+  }));
+
+  return [...main, ...overlayClips, ...audio];
 }
 
 /** Converts the original scene sequence and overlay sidecar into unified clips (pre-lane). */
@@ -299,7 +278,10 @@ export function ensureAudioClipsFromTracks(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): { lanes: TimelineLane[]; clips: TimelineClip[] } {
-  const tracks = project.timeline.audioTracks ?? [];
+  const tracks = project.layers.filter(
+    (layer): layer is Extract<MotionLayer, { type: "audio" }> =>
+      layer.type === "audio",
+  );
   const hasAudioClips = clips.some((clip) => clip.kind === "audio");
   if (tracks.length === 0 && !hasAudioClips) return { lanes, clips };
 
@@ -309,15 +291,15 @@ export function ensureAudioClipsFromTracks(
   const clipIds = new Set(nextClips.map((clip) => clip.id));
   const missing = tracks
     .filter((track) => !clipIds.has(track.id))
-    .sort((a, b) => a.start - b.start);
+    .sort((a, b) => a.timing.start - b.timing.start);
 
   for (const track of missing) {
-    const asset = assetsById.get(track.assetId);
+    const asset = assetsById.get(track.payload.assetId);
     const duration =
       asset && "duration" in asset && typeof asset.duration === "number"
         ? Math.max(0.5, asset.duration)
-        : 10;
-    const startTime = Math.max(0, track.start);
+        : Math.max(0.5, track.timing.duration);
+    const startTime = Math.max(0, track.timing.start);
 
     const placement = findFreeAudioLaneLocal(
       nextLanes,
@@ -341,11 +323,11 @@ export function ensureAudioClipsFromTracks(
       id: track.id,
       kind: "audio",
       audioTrackId: track.id,
-      assetId: track.assetId,
+      assetId: track.payload.assetId,
       laneId,
       startTime,
       duration,
-      name: track.assetId,
+      name: track.name ?? track.payload.assetId,
     });
   }
 

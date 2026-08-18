@@ -9,17 +9,23 @@
  */
 import { describe, expect, it } from "vitest";
 import { visualLayerAtoms } from "@motionvideo/motion-protocol";
-import { evaluateScene, type RuntimeNode, type RuntimeScene } from "../evaluator";
+import {
+  evaluateScene,
+  type RuntimeNode,
+  type RuntimeScene,
+} from "../evaluator";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-function makeGroupScene(opts: {
-  groupTransform?: Partial<RuntimeNode["transform"]>;
-  groupTiming?: RuntimeNode["timing"];
-  childTransform?: Partial<RuntimeNode["transform"]>;
-  childTiming?: RuntimeNode["timing"];
-  propertyAnimations?: RuntimeScene["propertyAnimations"];
-} = {}): RuntimeScene {
+function makeGroupScene(
+  opts: {
+    groupTransform?: unknown;
+    groupTiming?: RuntimeNode["timing"];
+    childTransform?: unknown;
+    childTiming?: RuntimeNode["timing"];
+    propertyAnimations?: RuntimeScene["propertyAnimations"];
+  } = {},
+): RuntimeScene {
   return {
     id: "scene.test",
     duration: 10,
@@ -30,7 +36,20 @@ function makeGroupScene(opts: {
         parentLayerId: null,
         zIndex: 1,
         timing: opts.groupTiming ?? { start: 0, duration: 10 },
-        ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
+        ...visualLayerAtoms({
+          x: 100,
+          y: 200,
+          width: 200,
+          height: 200,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0.5,
+          originY: 0.5,
+          opacity: 100,
+          visible: true,
+          depth: 0,
+        }),
       },
       {
         id: "head",
@@ -38,7 +57,20 @@ function makeGroupScene(opts: {
         parentLayerId: "group.char",
         zIndex: 0,
         timing: opts.childTiming ?? { start: 0, duration: 10 },
-        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
+        ...visualLayerAtoms({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0.5,
+          originY: 0.5,
+          opacity: 100,
+          visible: true,
+          depth: 0,
+        }),
         payload: { assetId: "asset.head" },
       },
     ],
@@ -263,7 +295,20 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: null,
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
+          ...visualLayerAtoms({
+            x: 100,
+            y: 200,
+            width: 200,
+            height: 200,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+            depth: 0,
+          }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
@@ -272,7 +317,20 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: "g.root",
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          ...visualLayerAtoms({ x: 50, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
+          ...visualLayerAtoms({
+            x: 50,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+            depth: 0,
+          }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
@@ -281,8 +339,21 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: "g.mid",
           zIndex: 0,
           timing: { start: 0, duration: 10 },
-          ...visualLayerAtoms({ x: 0, y: 0, width: 50, height: 50, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
-          payload: { assetId: "a" },
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+            depth: 0,
+          }),
+          payload: { assetId: "a", fit: "cover" as const },
         },
       ],
       propertyAnimations: [

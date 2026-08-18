@@ -1,8 +1,5 @@
 import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
-import {
-  selectionClips,
-  selectionNone,
-} from "@motionvideo/editor-core";
+import { selectionClips, selectionNone } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   clipsContentEndSeconds,
@@ -32,12 +29,7 @@ export function createProjectLifecycleActions(
     ) => {
       const project = parseProjectInput(input);
       const { lanes: migratedLanes, clips: migratedClips } =
-        migrateLanesAndClips(
-          project,
-          overlayScenes,
-          storedClips,
-          storedLanes,
-        );
+        migrateLanesAndClips(project, overlayScenes, storedClips, storedLanes);
       const { lanes: withAudioLanes, clips: withAudioClips } =
         ensureAudioClipsFromTracks(project, migratedLanes, migratedClips);
       const lanes = normalizeLaneOrders(withAudioLanes);
@@ -75,6 +67,7 @@ export function createProjectLifecycleActions(
         canRedo: false,
         dirtyRevision: 0,
         savedRevision: 0,
+        groupPath: [],
       }));
       get().clearHistory();
 

@@ -4,10 +4,15 @@ import {
   selectionNone,
   selectionNode,
   selectedClipIdsFrom,
+  selectedNodeIdFrom,
   selectedOverlayIdFrom,
   selectedSceneIdFrom,
 } from "@motionvideo/editor-core";
-import { DEFAULT_VISUAL_POLICY, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
+import {
+  DEFAULT_VISUAL_POLICY,
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 
 const lanes: TimelineLane[] = [
   {
@@ -68,9 +73,11 @@ describe("EditorSelection", () => {
     expect(selectedOverlayIdFrom(sel, clips, lanes)).toBe("c2");
   });
 
-  it("node selection exposes sceneId directly", () => {
-    const sel = selectionNode("s1", "n1");
-    expect(selectedSceneIdFrom(sel, clips, lanes)).toBe("s1");
+  it("node selection is a pure layerId (no sceneId)", () => {
+    const sel = selectionNode("n1");
+    expect(sel).toEqual({ kind: "node", layerId: "n1" });
+    expect(selectedNodeIdFrom(sel)).toBe("n1");
+    expect(selectedSceneIdFrom(sel, clips, lanes)).toBeNull();
     expect(selectedClipIdsFrom(sel)).toEqual([]);
   });
 });

@@ -21,13 +21,8 @@ import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
 } from "@motionvideo/motion-runtime";
-import type {
-  MotionProject,
-} from "@motionvideo/motion-protocol";
-import type {
-  MotionScene,
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionProject, MotionLayer } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import {
   matrixToCss,
   previewParitySnapshot,
@@ -63,7 +58,7 @@ function isRenderableNode(node: PreviewParityNode): boolean {
   );
 }
 
-type SceneNode = MotionScene["layers"][number];
+type SceneNode = MotionLayer;
 type SceneNodeMap = Map<string, SceneNode>;
 
 function nodeLabel(
@@ -133,7 +128,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   let lastFrame = -1;
 
   let compiled: MotionRuntimeProject | null = null;
-  let scenesById: Map<string, MotionScene> = new Map();
+  let scenesById: Map<string, MotionLayer> = new Map();
   let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
   let visualIndex: VisualLaneIndex | null = null;
 
@@ -202,7 +197,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         layer.role === "base" ? 0 : 10 + layer.zOrder,
       );
 
-      const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
+      const scene = resolveScene(scenesById, project.layers, layer.sceneId);
       if (!scene) continue;
       const sceneLayers = sceneNodeMaps.get(scene.id) ?? null;
 
@@ -248,11 +243,11 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       } catch {
         compiled = null;
       }
-      scenesById = new Map(project.scenes.map((s) => [s.id, s]));
+      scenesById = new Map(project.layers.map((s) => [s.id, s]));
       sceneNodeMaps = new Map(
-        project.scenes.map((s) => [
+        project.layers.map((s) => [
           s.id,
-          new Map(s.layers.map((n) => [n.id, n])),
+          new Map((s.type === "group" ? s.children : []).map((n) => [n.id, n])),
         ]),
       );
       visualIndex = buildVisualLaneIndex(clips, lanes);

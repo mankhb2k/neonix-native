@@ -37,7 +37,10 @@ import {
   sceneFromFrameDraft,
   stageSizeForProject,
 } from "../internal/scene-utils";
-import { rebuildMainProject } from "../internal/timeline-project-sync";
+import {
+  buildAudioLayer,
+  rebuildMainProject,
+} from "../internal/timeline-project-sync";
 import {
   validateTimelineDocument,
   type TimelineDocument,
@@ -59,7 +62,7 @@ import type {
   TimelineCommand,
   TimelineDomainEvent,
 } from "./command-types";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import {
   defaultCommandContext,
   type CommandContext,
@@ -119,45 +122,44 @@ export function executeTimelineCommand(
       for (const clipId of affectedIds) {
         clips = resolveCollisionsAfterResize(clips, lanes, clipId);
       }
-      nextProject = {
-        ...project,
-        scenes: project.scenes.map((s) =>
-          s.id === command.sceneId ? { ...s, duration: nextDuration } : s,
-        ),
-      };
+      nextProject = rebuildMainProject(project, clips, lanes);
       events.push({ type: "document-rebuilt" });
       break;
     }
 
     case "add-scene-node": {
-      const sceneIdx = project.scenes.findIndex(
-        (s) => s.id === command.sceneId,
+      const scene = project.layers.find(
+        (l) => l.id === command.sceneId && l.type !== "audio",
       );
-      if (sceneIdx < 0) {
+      if (!scene || scene.type !== "group") {
         return {
           status: "rejected",
-          reason: "missing",
+          reason: "missing_lane",
           message: "Scene không tồn tại.",
         };
       }
-      const scene = project.scenes[sceneIdx]!;
       const composition = stageSizeForProject(project);
       const layerId = ctx.createId("node");
-      const node = createNodeFromFrameDraft(command.draft, layerId, composition);
-      const parentLayerId = command.parentLayerId ?? null;
-      if (parentLayerId != null) {
-        const parent = scene.layers.find((n) => n.id === parentLayerId);
-        if (!parent || parent.type !== "group") {
+      const node = createNodeFromFrameDraft(
+        command.draft,
+        layerId,
+        composition,
+      );
+      const parentLayerId = command.parentLayerId ?? scene.id;
+      let parentGroup: Extract<MotionLayer, { type: "group" }> | undefined;
+      if (command.parentLayerId != null) {
+        const found = scene.children.find((n) => n.id === parentLayerId);
+        if (!found || found.type !== "group") {
           return {
             status: "rejected",
             reason: "invalid_document",
             message: "Parent layer must be an existing group node.",
           };
         }
+        parentGroup = found;
       }
-      const siblingLayers = scene.layers.filter(
-        (n) => (n.parentLayerId ?? null) === parentLayerId,
-      );
+      const siblingLayers =
+        parentGroup != null ? parentGroup.children : scene.children;
       const maxZ = siblingLayers.reduce(
         (m, n) => Math.max(m, n.zIndex ?? 0),
         -1,
@@ -166,11 +168,11 @@ export function executeTimelineCommand(
         command.zIndex != null && Number.isFinite(command.zIndex)
           ? Math.floor(command.zIndex)
           : maxZ + 1;
-      const sceneDuration = Math.max(0.001, scene.duration);
-      const layerById = new Map(scene.layers.map((n) => [n.id, n]));
+      const sceneDuration = Math.max(0.001, scene.timing.duration);
+      const layerById = new Map(scene.children.map((n) => [n.id, n]));
       const timingCache = new Map<string, { start: number; end: number }>();
       const effectiveTimingFor = (
-        existingLayer: (typeof scene.layers)[number],
+        existingLayer: (typeof scene.children)[number],
       ): { start: number; end: number } => {
         const cached = timingCache.get(existingLayer.id);
         if (cached) return cached;
@@ -180,17 +182,19 @@ export function executeTimelineCommand(
         const parentTiming = parent
           ? effectiveTimingFor(parent)
           : { start: 0, end: sceneDuration };
-        const start = parentTiming.start + Math.max(0, existingLayer.timing?.start ?? 0);
+        const start =
+          parentTiming.start + Math.max(0, existingLayer.timing?.start ?? 0);
         const duration =
-          existingLayer.timing?.duration ?? parentTiming.end - parentTiming.start;
+          existingLayer.timing?.duration ??
+          parentTiming.end - parentTiming.start;
         const end = Math.min(parentTiming.end, start + Math.max(0, duration));
         const result = { start, end };
         timingCache.set(existingLayer.id, result);
         return result;
       };
       const parentWindow =
-        parentLayerId != null
-          ? effectiveTimingFor(layerById.get(parentLayerId)!)
+        parentGroup != null
+          ? effectiveTimingFor(parentGroup)
           : { start: 0, end: sceneDuration };
       const parentDuration = Math.max(0, parentWindow.end - parentWindow.start);
       if (parentDuration < 0.001) {
@@ -208,7 +212,10 @@ export function executeTimelineCommand(
           ? {
               start: Math.max(
                 0,
-                Math.min(command.timing.start, Math.max(0, parentDuration - 0.001)),
+                Math.min(
+                  command.timing.start,
+                  Math.max(0, parentDuration - 0.001),
+                ),
               ),
               duration: Math.max(
                 0.001,
@@ -220,24 +227,27 @@ export function executeTimelineCommand(
             }
           : { start: 0, duration: parentDuration };
       const nextNode = { ...node, parentLayerId, zIndex, timing };
-      const scenes = project.scenes.slice();
-      scenes[sceneIdx] = {
+      const layers = project.layers.slice();
+      const idx = layers.findIndex((l) => l.id === scene.id);
+      const nextChildren =
+        parentGroup != null
+          ? scene.children.map((n) =>
+              n.id === parentGroup.id && n.type === "group"
+                ? { ...n, children: [...n.children, nextNode] }
+                : n,
+            )
+          : [...scene.children, nextNode];
+      layers[idx] = {
         ...scene,
-        layers: [...scene.layers, nextNode],
+        children: nextChildren,
       };
-      nextProject = { ...project, scenes };
+      nextProject = { ...project, layers };
       events.push({
         type: "scene-node-added",
         sceneId: command.sceneId,
         layerId,
       });
-      return finish(
-        nextProject,
-        lanes,
-        clips,
-        selectionNode(command.sceneId, layerId),
-        events,
-      );
+      return finish(nextProject, lanes, clips, selectionNode(layerId), events);
     }
 
     case "add-clip-draft": {
@@ -273,15 +283,15 @@ export function executeTimelineCommand(
           sceneId: scene.id,
           laneId: baseLane.id,
           startTime,
-          duration: scene.duration,
+          duration: scene.timing.duration,
           name: scene.name ?? scene.id,
         };
         clips.push(clip);
         nextProject = rebuildMainProject(
           {
             ...project,
-            scenes: [...project.scenes, scene] as MotionProject["scenes"],
-          } as MotionProject,
+            layers: [...project.layers, scene],
+          },
           clips,
           lanes,
         );
@@ -339,12 +349,12 @@ export function executeTimelineCommand(
         sceneId: scene.id,
         laneId: placement.laneId,
         startTime: placement.startTime,
-        duration: scene.duration,
+        duration: scene.timing.duration,
         name: command.draft.name,
       };
       clips.push(clip);
       nextProject = rebuildMainProject(
-        { ...project, scenes: [...project.scenes, scene] },
+        { ...project, layers: [...project.layers, scene] },
         clips,
         lanes,
       );
@@ -407,17 +417,18 @@ export function executeTimelineCommand(
           );
 
       const trackId = uid("audio");
-      const newTrack = {
+      const audioLayer = buildAudioLayer({
         id: trackId,
-        role: "bgm" as const,
         assetId,
+        name: command.item.title,
         start: placement.startTime,
+        duration,
         trimStart: 0,
         volume: 100,
         loop: false,
         fadeIn: 0,
         fadeOut: 0,
-      };
+      });
 
       const clip: TimelineClip = {
         id: trackId,
@@ -434,10 +445,7 @@ export function executeTimelineCommand(
       nextProject = {
         ...project,
         assets,
-        timeline: {
-          ...project.timeline,
-          audioTracks: [...project.timeline.audioTracks, newTrack],
-        },
+        layers: [...project.layers, audioLayer],
       };
       const targetLane =
         lanes.find((l) => l.id === placement.laneId) ?? baseLane;
@@ -525,14 +533,12 @@ export function executeTimelineCommand(
         lanes = pruneEmptyLanes(lanes, otherClips);
         nextProject = {
           ...project,
-          timeline: {
-            ...project.timeline,
-            audioTracks: project.timeline.audioTracks.map((t) =>
-              t.id === existing.audioTrackId || t.id === moved.id
-                ? { ...t, start: placement.startTime }
-                : t,
-            ),
-          },
+          layers: project.layers.map((l) =>
+            l.type === "audio" &&
+            (l.id === existing.audioTrackId || l.id === moved.id)
+              ? { ...l, timing: { ...l.timing, start: placement.startTime } }
+              : l,
+          ),
         };
         events.push({
           type: "clip-moved",
@@ -693,13 +699,9 @@ export function executeTimelineCommand(
 
       nextProject = {
         ...project,
-        scenes: project.scenes.filter((s) => !removedMainSceneIds.has(s.id)),
-        timeline: {
-          ...project.timeline,
-          audioTracks: project.timeline.audioTracks.filter(
-            (t) => !removedAudioIds.has(t.id),
-          ),
-        },
+        layers: project.layers.filter(
+          (l) => !removedMainSceneIds.has(l.id) && !removedAudioIds.has(l.id),
+        ),
       };
       lanes = pruneEmptyLanes(lanes, remaining);
       nextProject = rebuildMainProject(nextProject, remaining, lanes);
@@ -730,8 +732,7 @@ export function executeTimelineCommand(
         };
       }
 
-      let scenes = [...project.scenes];
-      let audioTracks = [...project.timeline.audioTracks];
+      let layers = [...project.layers];
       const newSelection: string[] = [];
 
       for (const clip of splittable) {
@@ -742,19 +743,21 @@ export function executeTimelineCommand(
         }
 
         if (isBaseLane(lanes, clip.laneId) && clip.kind === "scene") {
-          scenes = scenes.map((s) =>
-            s.id === clip.sceneId ? { ...s, duration: leftDur } : s,
+          layers = layers.map((l) =>
+            l.id === clip.sceneId
+              ? { ...l, timing: { ...l.timing, duration: leftDur } }
+              : l,
           );
-          const leftScene = scenes.find((s) => s.id === clip.sceneId);
+          const leftScene = layers.find((l) => l.id === clip.sceneId);
           if (!leftScene) continue;
           const rightScene = cloneSceneWithNewIds(
             {
               ...leftScene,
-              duration: rightDur,
+              timing: { ...leftScene.timing, duration: rightDur },
             },
             ctx.createId,
           );
-          scenes.push(rightScene);
+          layers.push(rightScene);
           clips = clips.map((c) =>
             c.id === clip.id ? { ...c, duration: leftDur } : c,
           );
@@ -777,8 +780,9 @@ export function executeTimelineCommand(
         } else if (isAudioLane(lanes, clip.laneId)) {
           const trackIdKey =
             clip.kind === "audio" ? (clip.audioTrackId ?? clip.id) : clip.id;
-          const track = audioTracks.find(
-            (tr) => tr.id === trackIdKey || tr.id === clip.id,
+          const track = layers.find(
+            (l) =>
+              l.type === "audio" && (l.id === trackIdKey || l.id === clip.id),
           );
           clips = clips.map((c) =>
             c.id === clip.id ? { ...c, duration: leftDur } : c,
@@ -786,34 +790,40 @@ export function executeTimelineCommand(
           const trackId = uid("audio");
           const assetId =
             (clip.kind === "audio" ? clip.assetId : undefined) ??
-            track?.assetId ??
+            (track?.type === "audio" ? track.payload.assetId : undefined) ??
             clip.name;
-          audioTracks = [
-            ...audioTracks.map((tr) =>
-              tr.id === track?.id
+          const prevTrimStart =
+            track?.type === "audio" ? track.payload.trimStart : 0;
+          const prevVolume =
+            track?.type === "audio" ? track.payload.volume : 100;
+          const prevLoop = track?.type === "audio" ? track.payload.loop : false;
+          const prevFadeIn = track?.type === "audio" ? track.payload.fadeIn : 0;
+          const prevFadeOut =
+            track?.type === "audio" ? track.payload.fadeOut : 0;
+          layers = [
+            ...layers.map((l) =>
+              l.type === "audio" && l.id === track?.id
                 ? {
-                    ...tr,
-                    start: clip.startTime,
-                    // Left segment keeps fadeIn; fadeOut only if it still fits.
-                    fadeOut:
-                      (tr.fadeOut ?? 0) > leftDur ? 0 : (tr.fadeOut ?? 0),
+                    ...l,
+                    timing: { ...l.timing, duration: leftDur },
+                    payload: {
+                      ...l.payload,
+                      fadeOut: prevFadeOut > leftDur ? 0 : prevFadeOut,
+                    },
                   }
-                : tr,
+                : l,
             ),
-            {
+            buildAudioLayer({
               id: trackId,
-              role: track?.role ?? ("bgm" as const),
               assetId,
               start: t,
-              trimStart: (track?.trimStart ?? 0) + leftDur,
-              volume: track?.volume ?? 1,
-              loop: track?.loop ?? false,
-              // Right segment keeps fadeOut; fadeIn only if it still fits.
-              fadeIn:
-                (track?.fadeIn ?? 0) > rightDur ? 0 : (track?.fadeIn ?? 0),
-              fadeOut:
-                (track?.fadeOut ?? 0) > rightDur ? 0 : (track?.fadeOut ?? 0),
-            },
+              duration: rightDur,
+              trimStart: prevTrimStart + leftDur,
+              volume: prevVolume,
+              loop: prevLoop,
+              fadeIn: prevFadeIn > rightDur ? 0 : prevFadeIn,
+              fadeOut: prevFadeOut > rightDur ? 0 : prevFadeOut,
+            }),
           ];
           const rightClip: TimelineClip = {
             id: trackId,
@@ -833,16 +843,21 @@ export function executeTimelineCommand(
             newClipIds: [clip.id, rightClip.id],
           });
         } else if (clip.kind === "scene") {
-          scenes = scenes.map((s) =>
-            s.id === clip.sceneId ? { ...s, duration: leftDur } : s,
+          layers = layers.map((l) =>
+            l.id === clip.sceneId
+              ? { ...l, timing: { ...l.timing, duration: leftDur } }
+              : l,
           );
-          const leftScene = scenes.find((s) => s.id === clip.sceneId);
+          const leftScene = layers.find((l) => l.id === clip.sceneId);
           if (!leftScene) continue;
           const rightScene = cloneSceneWithNewIds(
-            { ...leftScene, duration: rightDur },
+            {
+              ...leftScene,
+              timing: { ...leftScene.timing, duration: rightDur },
+            },
             ctx.createId,
           );
-          scenes.push(rightScene);
+          layers.push(rightScene);
           clips = clips.map((c) =>
             c.id === clip.id ? { ...c, duration: leftDur } : c,
           );
@@ -875,8 +890,7 @@ export function executeTimelineCommand(
 
       nextProject = {
         ...project,
-        scenes,
-        timeline: { ...project.timeline, audioTracks },
+        layers,
       };
       lanes = normalizeLaneOrders(lanes);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
@@ -910,17 +924,16 @@ export function executeTimelineCommand(
         };
       }
 
-      const scenes = [...project.scenes];
-      const audioTracks = [...project.timeline.audioTracks];
+      const layers = [...project.layers];
 
       for (const clip of toDup) {
         const startTime = clip.startTime + clip.duration;
         if (isBaseLane(lanes, clip.laneId) && clip.kind === "scene") {
           if (isLaneLocked(lanes, clip.laneId)) continue;
-          const scene = scenes.find((sc) => sc.id === clip.sceneId);
+          const scene = layers.find((sc) => sc.id === clip.sceneId);
           if (!scene) continue;
           const cloned = cloneSceneWithNewIds(scene, ctx.createId);
-          scenes.push(cloned);
+          layers.push(cloned);
           const resolvedStart = resolveMainStartTime(
             clips,
             lanes,
@@ -942,8 +955,9 @@ export function executeTimelineCommand(
           if (isLaneLocked(lanes, clip.laneId)) continue;
           const trackIdKey =
             clip.kind === "audio" ? (clip.audioTrackId ?? clip.id) : clip.id;
-          const track = audioTracks.find(
-            (t) => t.id === trackIdKey || t.id === clip.id,
+          const track = layers.find(
+            (l) =>
+              l.type === "audio" && (l.id === trackIdKey || l.id === clip.id),
           );
           const placement = resolveAudioPlacement(
             lanes,
@@ -957,28 +971,28 @@ export function executeTimelineCommand(
           if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
-          audioTracks.push({
-            id: trackId,
-            role: track?.role ?? ("bgm" as const),
-            assetId:
-              (clip.kind === "audio" ? clip.assetId : undefined) ??
-              track?.assetId ??
-              clip.name,
-            start: placement.startTime,
-            trimStart: track?.trimStart ?? 0,
-            volume: track?.volume ?? 1,
-            loop: track?.loop ?? false,
-            fadeIn: track?.fadeIn ?? 0,
-            fadeOut: track?.fadeOut ?? 0,
-          });
+          const assetId =
+            (clip.kind === "audio" ? clip.assetId : undefined) ??
+            (track?.type === "audio" ? track.payload.assetId : undefined) ??
+            clip.name;
+          layers.push(
+            buildAudioLayer({
+              id: trackId,
+              assetId,
+              start: placement.startTime,
+              duration: clip.duration,
+              trimStart: track?.type === "audio" ? track.payload.trimStart : 0,
+              volume: track?.type === "audio" ? track.payload.volume : 100,
+              loop: track?.type === "audio" ? track.payload.loop : false,
+              fadeIn: track?.type === "audio" ? track.payload.fadeIn : 0,
+              fadeOut: track?.type === "audio" ? track.payload.fadeOut : 0,
+            }),
+          );
           const next: TimelineClip = {
             id: trackId,
             kind: "audio",
             audioTrackId: trackId,
-            assetId:
-              (clip.kind === "audio" ? clip.assetId : undefined) ??
-              track?.assetId ??
-              clip.name,
+            assetId,
             laneId: placement.laneId,
             startTime: placement.startTime,
             duration: clip.duration,
@@ -999,10 +1013,10 @@ export function executeTimelineCommand(
           );
           if (!placement) continue;
           lanes = placement.lanes;
-          const scene = scenes.find((sc) => sc.id === clip.sceneId);
+          const scene = layers.find((sc) => sc.id === clip.sceneId);
           if (scene) {
             const cloned = cloneSceneWithNewIds(scene, ctx.createId);
-            scenes.push(cloned);
+            layers.push(cloned);
             const next: TimelineClip = {
               id: uid("clip"),
               kind: "scene",
@@ -1020,8 +1034,7 @@ export function executeTimelineCommand(
 
       nextProject = {
         ...project,
-        scenes,
-        timeline: { ...project.timeline, audioTracks },
+        layers,
       };
       lanes = normalizeLaneOrders(lanes);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
@@ -1038,18 +1051,21 @@ export function executeTimelineCommand(
       }
       const pasteAt = Math.max(0, command.atTime ?? 0);
       const newIds: string[] = [];
-      const scenes = [...project.scenes];
-      const audioTracks = [...project.timeline.audioTracks];
+      const layers = [...project.layers];
 
       for (const item of clipboard) {
         const startTime = pasteAt + item.offsetStart;
         if (item.kind === "main" && item.scene) {
           if (isLaneLocked(lanes, baseLane.id)) continue;
           const scene = cloneSceneWithNewIds(
-            { ...item.scene, duration: item.duration, name: item.name },
+            {
+              ...item.scene,
+              timing: { ...item.scene.timing, duration: item.duration },
+              name: item.name,
+            },
             ctx.createId,
           );
-          scenes.push(scene);
+          layers.push(scene);
           const resolvedStart = resolveMainStartTime(
             clips,
             lanes,
@@ -1080,22 +1096,25 @@ export function executeTimelineCommand(
           if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
-          audioTracks.push({
-            id: trackId,
-            role: item.audioRole ?? ("bgm" as const),
-            assetId: item.audioAssetId ?? item.name,
-            start: placement.startTime,
-            trimStart: item.trimStart ?? 0,
-            volume: item.volume ?? 1,
-            loop: item.loop ?? false,
-            fadeIn: item.fadeIn ?? 0,
-            fadeOut: item.fadeOut ?? 0,
-          });
+          const assetId = item.audioAssetId ?? item.name;
+          layers.push(
+            buildAudioLayer({
+              id: trackId,
+              assetId,
+              start: placement.startTime,
+              duration: item.duration,
+              trimStart: item.trimStart ?? 0,
+              volume: item.volume ?? 100,
+              loop: item.loop ?? false,
+              fadeIn: item.fadeIn ?? 0,
+              fadeOut: item.fadeOut ?? 0,
+            }),
+          );
           const clip: TimelineClip = {
             id: trackId,
             kind: "audio",
             audioTrackId: trackId,
-            assetId: item.audioAssetId ?? item.name,
+            assetId,
             laneId: placement.laneId,
             startTime: placement.startTime,
             duration: item.duration,
@@ -1116,10 +1135,14 @@ export function executeTimelineCommand(
           if (!placement) continue;
           lanes = placement.lanes;
           const scene = cloneSceneWithNewIds(
-            { ...item.scene, duration: item.duration, name: item.name },
+            {
+              ...item.scene,
+              timing: { ...item.scene.timing, duration: item.duration },
+              name: item.name,
+            },
             ctx.createId,
           );
-          scenes.push(scene);
+          layers.push(scene);
           const clip: TimelineClip = {
             id: uid("clip"),
             kind: "scene",
@@ -1136,8 +1159,7 @@ export function executeTimelineCommand(
 
       nextProject = {
         ...project,
-        scenes,
-        timeline: { ...project.timeline, audioTracks },
+        layers,
       };
       lanes = normalizeLaneOrders(lanes);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
@@ -1207,22 +1229,25 @@ export function executeTimelineCommand(
       if (existing.kind === "scene") {
         nextProject = {
           ...project,
-          scenes: project.scenes.map((s) =>
-            s.id === existing.sceneId ? { ...s, duration: nextDuration } : s,
+          layers: project.layers.map((l) =>
+            l.id === existing.sceneId
+              ? { ...l, timing: { ...l.timing, duration: nextDuration } }
+              : l,
           ),
         };
       } else {
         const trimStart = Math.max(0, command.trimStart ?? 0);
         nextProject = {
           ...project,
-          timeline: {
-            ...project.timeline,
-            audioTracks: project.timeline.audioTracks.map((tr) =>
-              tr.id === existing.audioTrackId
-                ? { ...tr, start: nextStart, trimStart }
-                : tr,
-            ),
-          },
+          layers: project.layers.map((l) =>
+            l.type === "audio" && l.id === existing.audioTrackId
+              ? {
+                  ...l,
+                  timing: { ...l.timing, start: nextStart },
+                  payload: { ...l.payload, trimStart },
+                }
+              : l,
+          ),
         };
       }
       nextProject = rebuildMainProject(nextProject, clips, lanes);

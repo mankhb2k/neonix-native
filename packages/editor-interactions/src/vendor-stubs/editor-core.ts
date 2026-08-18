@@ -6,6 +6,23 @@
 /** Mirrors editor-core capcut-ruler-scale (runtime uses real package). */
 export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
 
+export type PlacementTarget = {
+  track?: "main" | "overlay" | "audio";
+  laneId?: string | null;
+  startTime?: number;
+  insertNewLane?: boolean;
+  insertOrder?: number | null;
+  [key: string]: unknown;
+};
+
+export type ClipMovePatch = {
+  startTime: number;
+  track?: "main" | "overlay" | "audio";
+  laneId?: string | null;
+  insertNewLane?: boolean;
+  insertOrder?: number | null;
+};
+
 export type TimelineTrackKind = "main" | "overlay" | "audio";
 
 export type TimelineClip = {

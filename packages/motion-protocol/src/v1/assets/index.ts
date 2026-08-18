@@ -34,7 +34,7 @@ export const AssetStorageV1Schema = z.discriminatedUnion("managed", [
     .strict(),
 ]);
 
-/** Bytes always entered storage via upload. Other origins are client-side only. */
+/** Source metadata exists only for storage-ingested assets today. */
 export const AssetSourceKindV1Schema = z.literal("upload");
 
 export const AssetSourceV1Schema = z
@@ -46,7 +46,7 @@ export const AssetSourceV1Schema = z
 
 const AssetBaseV1Schema = z.object({
   id: IdSchema,
-  /** Local/fixture only. Forbidden when `storage.managed === true`. */
+  /** External URL, data URI, or local fixture path. Forbidden when managed. */
   uri: z.string().min(1).optional(),
   integrity: z.string().min(1).optional(),
   name: z.string().min(1).optional(),

@@ -7,15 +7,13 @@ import {
   visualLayerAtoms,
   applyMotionProjectV1Patch,
   normalizeTextPayloadInput,
-  parseMotionProject,
+  parseMotionProject as parseMotionProjectStrict,
   ProceduralDriverSchema,
   V1,
   type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import {
-  type MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import { type MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import {
   type CommandReceipt,
   diagnostic,
@@ -53,6 +51,19 @@ export type CommandBatchResult = {
 
 function cloneProject(project: MotionProject): MotionProject {
   return JSON.parse(JSON.stringify(project)) as MotionProject;
+}
+
+/**
+ * Lenient parse for intermediate authoring states. A scene group may briefly
+ * have no children between addScene/addNode/removeNode; keep the well-formed
+ * clone then. validateProject/compileProject still enforce strictness.
+ */
+function parseMotionProject(input: unknown): MotionProject {
+  try {
+    return parseMotionProjectStrict(input);
+  } catch {
+    return input as MotionProject;
+  }
 }
 
 function defaultTransform(patch?: TransformPatch) {
@@ -224,7 +235,10 @@ function applyOne(
         }
         const next = cloneProject(project);
         const groups = sceneGroups(next);
-        const insertAt = Math.min(command.insertAt ?? groups.length, groups.length);
+        const insertAt = Math.min(
+          command.insertAt ?? groups.length,
+          groups.length,
+        );
         const scene = {
           id: command.sceneId,
           type: "group" as const,
@@ -422,6 +436,8 @@ function applyOne(
           };
         }
         const atoms = defaultTransform(command.transform);
+        const zIndex = sceneLayers(scene).length;
+        const timing = { start: 0, duration: scene.timing.duration };
         const semantic =
           command.semanticRole || command.semanticKey
             ? {
@@ -436,6 +452,8 @@ function applyOne(
             id: command.layerId,
             type: "group",
             parentLayerId,
+            zIndex,
+            timing,
             ...atoms,
             children: [] as MotionLayer[],
             ...(semantic ? { semantic } : {}),
@@ -445,12 +463,16 @@ function applyOne(
             id: command.layerId,
             type: "text",
             parentLayerId,
+            zIndex,
+            timing,
             ...atoms,
             payload: {
-              text: command.text ?? "" ,
+              text: command.text ?? "",
               fontSize: command.fontSize ?? 48,
               color: command.fill ?? "#ffffff",
               alignment: "center" as const,
+              wrap: "word" as const,
+              overflow: "clip" as const,
             },
             ...(semantic ? { semantic } : {}),
           };
@@ -459,6 +481,8 @@ function applyOne(
             id: command.layerId,
             type: "shape",
             parentLayerId,
+            zIndex,
+            timing,
             ...atoms,
             payload: { shape: "rectangle" as const },
             style: { fill: command.fill ?? "#111111" },
@@ -647,7 +671,7 @@ function applyOne(
             },
           };
         }
-        parseMotionProject(project);
+        parseMotionProjectStrict(project);
         return {
           project,
           receipt: {
@@ -681,7 +705,9 @@ function applyOne(
             },
           };
         }
-        const compiled = compileMotionProject(parseMotionProject(project));
+        const compiled = compileMotionProject(
+          parseMotionProjectStrict(project),
+        );
         return {
           project,
           compiled,
@@ -786,7 +812,9 @@ function applyOne(
             },
           };
         }
-        const node = sceneLayers(scene).find((item) => item.id === command.layerId);
+        const node = sceneLayers(scene).find(
+          (item) => item.id === command.layerId,
+        );
         if (!node) {
           return {
             project,
@@ -867,7 +895,9 @@ function applyOne(
             },
           };
         }
-        const node = sceneLayers(scene).find((item) => item.id === command.layerId);
+        const node = sceneLayers(scene).find(
+          (item) => item.id === command.layerId,
+        );
         const source = sceneLayers(scene).find(
           (item) => item.id === command.sourceLayerId,
         );
@@ -892,7 +922,8 @@ function applyOne(
         }
         if (node.type !== "audio") {
           node.compositing = {
-            ...(node.compositing ?? {}),
+            "blend-mode": node.compositing?.["blend-mode"] ?? "normal",
+            isolation: node.compositing?.isolation ?? "auto",
             mask: {
               sourceLayerId: command.sourceLayerId,
               mode: command.mode,
@@ -941,7 +972,9 @@ function applyOne(
             },
           };
         }
-        const node = sceneLayers(scene).find((item) => item.id === command.layerId);
+        const node = sceneLayers(scene).find(
+          (item) => item.id === command.layerId,
+        );
         if (!node) {
           return {
             project,
@@ -953,6 +986,22 @@ function applyOne(
                   "unknown_node",
                   `layers.${command.layerId}`,
                   `Unknown layer: ${command.layerId}`,
+                ),
+              ],
+            },
+          };
+        }
+        if (node.type === "audio" || node.type === "camera") {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic(
+                  "unsupported_target",
+                  `layers.${command.layerId}`,
+                  "Audio and camera layers cannot have effects",
                 ),
               ],
             },
@@ -1077,7 +1126,8 @@ function applyOne(
             id: command.cameraId,
             type: "camera",
             parentLayerId: null,
-            zIndex: next.layers.filter((layer) => layer.parentLayerId === null).length,
+            zIndex: next.layers.filter((layer) => layer.parentLayerId === null)
+              .length,
             timing: scene.timing ?? { start: 0, duration: 1 },
             transform: atoms.transform,
             appearance: atoms.appearance,
@@ -1187,7 +1237,11 @@ function applyOne(
             },
           };
         }
-        if (!sceneLayers(scene).some((node) => node.id === parsed.data.targetLayerId)) {
+        if (
+          !sceneLayers(scene).some(
+            (node) => node.id === parsed.data.targetLayerId,
+          )
+        ) {
           return {
             project,
             receipt: {
@@ -1265,7 +1319,7 @@ function applyOne(
         }
         const baked = bakeMotionRecipe({
           recipeId: command.recipeId,
-          sceneId: command.sceneId,
+          graphId: command.sceneId,
           targetLayerId: command.targetLayerId,
           duration: command.duration,
           seed: command.seed,
@@ -1529,18 +1583,35 @@ function applyOne(
                 tags: [] as string[],
               }
             : undefined;
-        const node: MotionLayer = {
-          id: command.layerId,
-          type: expectedType,
-          parentLayerId,
-          ...defaultTransform(command.transform),
-          payload: {
-            assetId: command.assetId,
-            ...(command.fit ? { fit: command.fit } : {}),
-            ...(command.crop ? { crop: command.crop } : {}),
-          },
-          ...(semantic ? { semantic } : {}),
-        };
+        const node: MotionLayer =
+          command.type === "addImageNode"
+            ? {
+                id: command.layerId,
+                type: "image",
+                parentLayerId,
+                zIndex: sceneLayers(scene).length,
+                timing: { start: 0, duration: scene.timing.duration },
+                ...defaultTransform(command.transform),
+                payload: {
+                  assetId: command.assetId,
+                  fit: command.fit ?? "cover",
+                  ...(command.crop ? { crop: command.crop } : {}),
+                },
+                ...(semantic ? { semantic } : {}),
+              }
+            : {
+                id: command.layerId,
+                type: "svg",
+                parentLayerId,
+                zIndex: sceneLayers(scene).length,
+                timing: { start: 0, duration: scene.timing.duration },
+                ...defaultTransform(command.transform),
+                payload: {
+                  assetId: command.assetId,
+                  fit: command.fit ?? "contain",
+                },
+                ...(semantic ? { semantic } : {}),
+              };
         insertLayer(scene, node);
         changedIds.push(command.layerId);
         return {
@@ -1641,9 +1712,12 @@ function applyOne(
           id: command.layerId,
           type: "path",
           parentLayerId,
+          zIndex: sceneLayers(scene).length,
+          timing: { start: 0, duration: scene.timing.duration },
           ...defaultTransform(command.transform),
           payload: {
             contours: command.contours,
+            fillRule: command.fillRule ?? "nonzero",
           },
           ...(style ? { style } : {}),
           ...(semantic ? { semantic } : {}),
@@ -1820,13 +1894,18 @@ function applyOne(
         const height = next.composition.height;
         if (existing && existing.type === "solid") {
           existing.payload = { color: command.fill };
-          Object.assign(existing, visualLayerAtoms({ x: width / 2, y: height / 2, width, height }));
+          Object.assign(
+            existing,
+            visualLayerAtoms({ x: width / 2, y: height / 2, width, height }),
+          );
         } else {
           insertLayer(scene, {
             id: bgId,
             type: "solid",
             name: "Scene Background",
             parentLayerId: scene.id,
+            zIndex: sceneLayers(scene).length,
+            timing: { start: 0, duration: scene.timing.duration },
             ...visualLayerAtoms({ x: width / 2, y: height / 2, width, height }),
             payload: { color: command.fill },
           });
@@ -1837,54 +1916,7 @@ function applyOne(
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
-      case "upsertCaptionTrack": {
-        if (!project) {
-          return {
-            project,
-            receipt: {
-              revision,
-              changedIds: [],
-              diagnostics: [
-                diagnostic(
-                  "missing_project",
-                  "upsertCaptionTrack",
-                  "createProject must run first",
-                ),
-              ],
-            },
-          };
-        }
-        const next = cloneProject(project);
-        const track = command.track as {
-          id?: string;
-        };
-        if (!track?.id || typeof track.id !== "string") {
-          return {
-            project,
-            receipt: {
-              revision,
-              changedIds: [],
-              diagnostics: [
-                diagnostic(
-                  "invalid_caption_track",
-                  "upsertCaptionTrack",
-                  "track.id is required",
-                ),
-              ],
-            },
-          };
-        }
-        const tracks = [...(next.timeline.captionTracks ?? [])];
-        const idx = tracks.findIndex((t) => t.id === track.id);
-        if (idx >= 0) tracks[idx] = track as (typeof tracks)[number];
-        else tracks.push(track as (typeof tracks)[number]);
-        next.timeline = { ...next.timeline, captionTracks: tracks };
-        changedIds.push(track.id);
-        return {
-          project: parseMotionProject(next),
-          receipt: { revision: revision + 1, changedIds, diagnostics },
-        };
-      }
+      case "upsertCaptionTrack":
       case "addComponentInstance":
       case "addAudioCue":
         return {

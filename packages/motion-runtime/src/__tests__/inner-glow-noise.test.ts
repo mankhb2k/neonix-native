@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { evaluateCompositionFrame } from "../evaluate-composition";
-import { evaluateNodeEffects, type RuntimeScene } from "../evaluator";
+import {
+  evaluateNodeEffects,
+  type RuntimeEffect,
+  type RuntimeScene,
+} from "../evaluator";
 import { inflateBoundsForEffects } from "../render-plan";
 import { compileProjectV1 } from "../testing/compile";
 import { createNeonEffectsPreviewProject } from "../testing/effects-preview-project";
 
-function sceneWithEffects(
-  effects: NonNullable<RuntimeScene["layers"][number]["effects"]>,
-): RuntimeScene {
+function sceneWithEffects(effects: RuntimeEffect[]): RuntimeScene {
   return {
     id: "scene.fx",
     duration: 2,
@@ -18,6 +20,7 @@ function sceneWithEffects(
         type: "shape",
         parentLayerId: null,
         zIndex: 0,
+        timing: { start: 0, duration: 2 },
         ...visualLayerAtoms({
           x: 100,
           y: 100,
@@ -58,9 +61,7 @@ describe("inner-glow and noise evaluation", () => {
       opacity: 0.6,
     });
     expect(
-      inflateBoundsForEffects({ x: 0, y: 0, width: 100, height: 80 }, [
-        scene.layers[0]!.effects![0]!,
-      ]),
+      inflateBoundsForEffects({ x: 0, y: 0, width: 100, height: 80 }, [effect]),
     ).toEqual({ x: 0, y: 0, width: 100, height: 80 });
   });
 
@@ -81,9 +82,7 @@ describe("inner-glow and noise evaluation", () => {
     expect(a).toMatchObject({ amount: 12, scale: 1, opacity: 0.25 });
     expect(a?.seed).toEqual(b?.seed);
     expect(
-      inflateBoundsForEffects({ x: 0, y: 0, width: 10, height: 10 }, [
-        scene.layers[0]!.effects![0]!,
-      ]),
+      inflateBoundsForEffects({ x: 0, y: 0, width: 10, height: 10 }, [a]),
     ).toEqual({ x: 0, y: 0, width: 10, height: 10 });
   });
 });

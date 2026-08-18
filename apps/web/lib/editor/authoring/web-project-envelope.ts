@@ -57,7 +57,7 @@ export function isPropertyLocked(
   propertyPath: string,
 ): boolean {
   if (!envelope) return false;
-  const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
+  const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, layerId)];
   if (!meta) return false;
   if (meta.locked) return true;
   return meta.lockedProperties?.includes(propertyPath) ?? false;
@@ -69,7 +69,7 @@ export function markUserModified(
   layerId: string,
   propertyPaths: string[],
 ): WebProjectEnvelope {
-  const key = nodeElementKey(sceneId, nodeId);
+  const key = nodeElementKey(sceneId, layerId);
   const prev = envelope.authoring.elementMeta[key];
   const merged = new Set([
     ...(prev?.userModifiedProperties ?? []),
@@ -101,7 +101,7 @@ export function isElementLocked(
   layerId: string,
 ): boolean {
   if (!envelope) return false;
-  const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
+  const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, layerId)];
   return Boolean(meta?.locked);
 }
 
@@ -111,7 +111,7 @@ export function toggleElementLock(
   layerId: string,
   locked: boolean,
 ): WebProjectEnvelope {
-  const key = nodeElementKey(sceneId, nodeId);
+  const key = nodeElementKey(sceneId, layerId);
   const prev = envelope.authoring.elementMeta[key];
   return {
     ...envelope,
@@ -140,7 +140,7 @@ export function togglePropertyLock(
   propertyPath: string,
   locked: boolean,
 ): WebProjectEnvelope {
-  const key = nodeElementKey(sceneId, nodeId);
+  const key = nodeElementKey(sceneId, layerId);
   const prev = envelope.authoring.elementMeta[key];
   const set = new Set(prev?.lockedProperties ?? []);
   if (locked) set.add(propertyPath);

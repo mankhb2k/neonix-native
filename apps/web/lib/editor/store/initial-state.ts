@@ -24,5 +24,6 @@ export function createInitialEditorState(): EditorStoreState {
     canRedo: false,
     dirtyRevision: 0,
     savedRevision: 0,
+    groupPath: [],
   };
 }

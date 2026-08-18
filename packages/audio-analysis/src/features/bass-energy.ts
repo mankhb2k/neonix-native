@@ -17,6 +17,7 @@ export function lowPass(
   sampleRate: number,
   cutoffHz: number,
 ): Float32Array {
+  if (cutoffHz <= 0 || sampleRate <= 0) return samples.slice();
   const rc = 1 / (2 * Math.PI * cutoffHz);
   const dt = 1 / sampleRate;
   const alpha = dt / (rc + dt);

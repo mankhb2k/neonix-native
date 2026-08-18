@@ -35,7 +35,7 @@ When the tool returns a schema or reference error after emit.
 | Layer ends beyond `timeline.duration` | Overflow | Timing too long | Shorten layer or raise duration |
 | WorkArea/marker outside duration | Clock bounds | Marker `t` too large | Clamp to duration |
 | Managed asset has `uri` | Storage policy | Copied fixture uri | Drop `uri`; keep integrity + sizeBytes |
-| `source.kind` not upload | Invalid origin | `url` / googleDrive | `upload` only |
+| `source.kind` not upload | Invalid source metadata | Put URL into `source.kind` | Use `asset.uri` for external URL, or `source.kind: "upload"` for managed ingest |
 
 ## Canonical shape
 
@@ -72,12 +72,14 @@ Retrying the same JSON with a comment for the preview:
 | --- | --- | --- |
 | New random ids to “clear” duplicate | Breaks bindings | Rename one id only |
 | Adding `uri` on managed assets | Policy | integrity + sizeBytes |
+| Putting external URL into `source.kind` | Wrong field | `asset.uri` |
 
 ## AI writing guide
 
 - Prefer the smallest patch that clears the error.
 - Do not regenerate the whole tree unless the envelope is wrong.
-- If you need … a new media file, upload first, then write `assets[]`.
+- For external media, write the URL to `asset.uri` and include required metadata.
+- For managed storage, upload first, then write the managed `assets[]` entry.
 
 ## Related pages
 

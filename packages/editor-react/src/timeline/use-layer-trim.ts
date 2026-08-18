@@ -54,7 +54,7 @@ export function useLayerTrim({
       if (!onCommandProperty) return;
       event.stopPropagation();
       event.preventDefault();
-      onSelect(selectionNode(layerSession.sceneId, clip.id));
+      onSelect(selectionNode(clip.id));
 
       const { containerStart, containerDuration, sceneId } = layerSession;
       const mediaMax =
@@ -84,7 +84,10 @@ export function useLayerTrim({
               duration = Math.max(MIN_LAYER_DURATION_SEC, duration);
               duration = Math.min(
                 duration,
-                Math.max(MIN_LAYER_DURATION_SEC, containerDuration - localStart),
+                Math.max(
+                  MIN_LAYER_DURATION_SEC,
+                  containerDuration - localStart,
+                ),
               );
             } else {
               let nextStart = originLocalStart + dx;

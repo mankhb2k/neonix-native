@@ -2,9 +2,11 @@
 
 Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/assets/`
 
-`motion-storage` là **vòng khép kín** cho binary: nhận asset → lưu object store → emit `AssetV1` (authoring, `@motionvideo/motion-protocol`) → resolve URL ephemeral cho compiler/export. Runtime IR dùng `AssetSchema` trên `@motionvideo/motion-protocol/runtime`. MCP và web chỉ gọi API này; không upload R2 trực tiếp, không nhét URL vào layer.
+`motion-storage` là vòng storage chuẩn cho binary: nhận asset → lưu object store → emit `AssetV1` → resolve URL ephemeral cho compiler/export. Runtime IR dùng `AssetSchema` trên `@motionvideo/motion-protocol/runtime`. Layer vẫn chỉ cầm `assetId`; URL luôn sống ở `project.assets[]`, không sống trong layer.
 
-> **Contract:** All user-provided assets must be ingested through motion-storage before they can be referenced by `MotionProjectV1`. Compiler and clients never talk to object storage directly.
+> **Contract:** V1 canonical cho phép hai mode asset.
+> 1. `unmanaged` với `asset.uri` đã là URL/path sẵn, đủ metadata để layout/trim.
+> 2. `managed` qua `motion-storage`, không có `uri` trong project JSON và compiler resolve URL sau.
 
 ---
 
@@ -12,23 +14,24 @@ Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/a
 
 ```mermaid
 flowchart LR
-  Client[MCP_or_web] -->|upload_API| Storage[motion-storage]
+  Client[MCP_or_web] -->|external_URL_or_upload| Project[MotionProjectV1.assets]
+  Client -->|upload_API_optional| Storage[motion-storage]
   Storage --> R2[R2_or_memory]
-  Storage -->|AssetV1_assetId| Project[MotionProjectV1.assets]
+  Storage -->|managed_AssetV1| Project
   Project --> Layer[layer.payload.assetId]
   Project --> Compiler[motion-compiler]
-  Compiler -->|download-url| Storage
+  Compiler -->|download-url_for_managed| Storage
   Compiler --> Runtime[Runtime_IR_ephemeral_uri]
 ```
 
 | Thành phần | Việc được làm | Việc không được làm |
 | --- | --- | --- |
 | Layer payload | Chỉ `assetId` / `fontAssetId` | Không chứa URL |
-| `project.assets[]` | Khai báo metadata + storage | Không phải nguồn bytes runtime |
+| `project.assets[]` | Khai báo metadata + canonical source | Layer không cầm URL trực tiếp |
 | `motion-storage` | Mint id, giữ bytes, URL tạm, validate còn file | Không quản lý thư viện user / TTL product |
 | Compiler | Resolve URI rồi emit runtime IR | Không đọc R2/key trực tiếp |
 
-Drive / URL / máy local: MCP hoặc web **tải về rồi upload** vào storage. JSON không ghi `googleDrive` / `url` — source of truth luôn là file đã nằm trong kho (`source.kind: "upload"`).
+MVP có thể dùng external URL trực tiếp ở `asset.uri`. Khi ingest qua storage/R2 thì project đổi sang managed asset. `source.kind` hiện chỉ dùng cho asset đã upload vào storage, không dùng để biểu diễn external URL hay Google Drive.
 
 ---
 
@@ -57,9 +60,9 @@ Compile/export: parse (authoring) → `validateAssets` (storage) → compile. G�
 
 ## 2. Hai chế độ asset trong `AssetV1`
 
-### 2.1 Unmanaged (local / fixture)
+### 2.1 Unmanaged (external URL / local fixture)
 
-Dùng cho test, fixture offline, path tương đối trong repo.
+Dùng cho MVP URL-first, fixture offline, hoặc data URI/path tương đối trong repo.
 
 ```jsonc
 {
@@ -73,8 +76,13 @@ Dùng cho test, fixture offline, path tương đối trong repo.
 ```
 
 - `uri` **bắt buộc**
+- `uri` có thể là `https://...`, `data:...`, hoặc path tương đối fixture
+- Image/SVG phải có `width` + `height`
+- Video phải có `width` + `height` + `duration` + `fps`
+- Audio phải có `duration`
 - `storage` bỏ trống hoặc `{ "managed": false }`
 - Compiler pass-through `uri` vào runtime IR
+- `source` thường bỏ trống
 
 ### 2.2 Managed (production)
 
@@ -103,6 +111,7 @@ Sau khi ingest qua Asset API:
 - **Cấm** `uri` trên project JSON
 - **Bắt buộc** `integrity`, `sizeBytes`, `storage.managed: true`
 - Compiler **bắt buộc** `assetUrlResolver` (map `assetId` → download URL từ storage)
+- `source.kind: "upload"` chỉ là metadata ingest, không phải source URL mode
 
 ---
 

@@ -47,12 +47,18 @@ describe("editor persistence fixtures", () => {
   });
 
   it("builds all regression fixtures without schema errors", () => {
-    expect(fixtureMainOnly().project.scenes).toHaveLength(2);
+    expect(fixtureMainOnly().project.layers).toHaveLength(2);
     expect(fixtureBasePlusOverlay().clips).toHaveLength(2);
-    expect(fixtureMainPlusAudioOverlap().project.timeline.audioTracks).toHaveLength(3);
+    expect(
+      fixtureMainPlusAudioOverlap().project.layers.filter(
+        (l) => l.type === "audio",
+      ),
+    ).toHaveLength(3);
     expect(fixtureLegacyTrackLayerIndex().clips).toHaveLength(0);
-    expect(fixtureLegacyTrackLayerIndex().overlayScenes.length).toBeGreaterThan(0);
-    expect(fixtureMultiSceneReferences().project.scenes).toHaveLength(2);
+    expect(fixtureLegacyTrackLayerIndex().overlayScenes.length).toBeGreaterThan(
+      0,
+    );
+    expect(fixtureMultiSceneReferences().project.layers).toHaveLength(2);
   });
 
   it("DATA-01: load path does not mutate localStorage", () => {
@@ -76,7 +82,7 @@ describe("editor persistence fixtures", () => {
 
     const after = window.localStorage.getItem(STORAGE_KEY);
     expect(loaded).not.toBeNull();
-    expect(loaded!.scenes).toHaveLength(2);
+    expect(loaded!.layers).toHaveLength(2);
     expect(after).toBe(before);
   });
 
@@ -92,7 +98,10 @@ describe("editor persistence fixtures", () => {
 
     const loaded = loadProject(fixture.project.metadata.id);
     const clips = loadTimelineClips(fixture.project.metadata.id);
-    expect(loaded?.scenes.map((s) => s.id)).toEqual(["scene.base", "scene.overlay"]);
+    expect(loaded?.layers.map((s) => s.id)).toEqual([
+      "scene.base",
+      "scene.overlay",
+    ]);
     expect(clips).toHaveLength(2);
   });
 
@@ -102,8 +111,12 @@ describe("editor persistence fixtures", () => {
     const snap = loadEditorProjectSnapshot(fixture.project.metadata.id);
     expect(snap?.project.metadata.id).toBe(fixture.project.metadata.id);
     expect(snap?.timelineClips).toHaveLength(2);
-    expect(snap?.timelineLanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(true);
-    expect(snap?.overlayScenes.every((o) => o.id === "clip.overlay")).toBe(true);
+    expect(
+      snap?.timelineLanes.some((l) => l.kind === "visual" && l.role === "base"),
+    ).toBe(true);
+    expect(snap?.overlayScenes.every((o) => o.id === "clip.overlay")).toBe(
+      true,
+    );
   });
 
   it("migrateStoredProject is idempotent", () => {
@@ -189,7 +202,9 @@ describe("editor persistence fixtures", () => {
     );
 
     const listed = listProjects();
-    expect(listed.map((p) => p.project.metadata.id)).toEqual([good.project.metadata.id]);
+    expect(listed.map((p) => p.project.metadata.id)).toEqual([
+      good.project.metadata.id,
+    ]);
   });
 
   it("deleteProject removes only the target id", () => {
@@ -231,8 +246,12 @@ describe("timeline migration fixtures", () => {
       fixture.clips,
       fixture.lanes,
     );
-    expect(lanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(true);
-    expect(lanes.some((l) => l.kind === "visual" && l.role === "overlay")).toBe(true);
+    expect(lanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(
+      true,
+    );
+    expect(lanes.some((l) => l.kind === "visual" && l.role === "overlay")).toBe(
+      true,
+    );
     expect(clips.every((c) => Boolean(c.laneId))).toBe(true);
   });
 
@@ -244,7 +263,9 @@ describe("timeline migration fixtures", () => {
       fixture.clips,
     );
     const audioLanes = lanes.filter((l) => l.kind === "audio");
-    const audioClips = clips.filter((c) => audioLanes.some((l) => l.id === c.laneId));
+    const audioClips = clips.filter((c) =>
+      audioLanes.some((l) => l.id === c.laneId),
+    );
     expect(audioClips).toHaveLength(3);
     // ba track overlap → cần > 1 audio lane
     expect(audioLanes.length).toBeGreaterThan(1);

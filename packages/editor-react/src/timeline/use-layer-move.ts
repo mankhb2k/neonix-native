@@ -68,7 +68,7 @@ export function useLayerMove({
       if (!onCommandProperty) return;
       event.preventDefault();
       event.stopPropagation();
-      onSelect(selectionNode(layerSession.sceneId, clip.id));
+      onSelect(selectionNode(clip.id));
 
       const originDuration = clip.duration;
       const originX = event.clientX;
@@ -87,12 +87,8 @@ export function useLayerMove({
         0,
         Math.min(originDuration, originContentX / pps - clip.startTime),
       );
-      const {
-        containerStart,
-        containerDuration,
-        sceneId,
-        orderedLayerIds,
-      } = layerSession;
+      const { containerStart, containerDuration, sceneId, orderedLayerIds } =
+        layerSession;
       const originIndex = orderedLayerIds.indexOf(clip.id);
       const homeInsertBefore = originIndex >= 0 ? originIndex : 0;
 

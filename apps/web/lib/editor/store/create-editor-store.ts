@@ -7,6 +7,7 @@ import { createDocumentActions } from "@/lib/editor/store/actions/document-actio
 import { createLaneActions } from "@/lib/editor/store/actions/lane-actions";
 import { createProjectLifecycleActions } from "@/lib/editor/store/actions/project-lifecycle-actions";
 import { createSelectionActions } from "@/lib/editor/store/actions/selection-actions";
+import { createGroupActions } from "@/lib/editor/store/actions/group-actions";
 import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
 import { mapNode } from "@motionvideo/editor-core";
@@ -186,10 +187,14 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         if (!("transform" in node) || !node.transform) return node;
         return {
           ...node,
-          frame: {
-            width: patch.width ?? node.frame?.width ?? 0,
-            height: patch.height ?? node.frame?.height ?? 0,
-          },
+          ...("frame" in node
+            ? {
+                frame: {
+                  width: patch.width ?? node.frame.width,
+                  height: patch.height ?? node.frame.height,
+                },
+              }
+            : {}),
           transform: {
             ...node.transform,
             translate: {
@@ -260,7 +265,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       let project = state.project;
       if (!project) return;
 
-      if (project.scenes.length === 0) {
+      if (project.layers.length === 0) {
         project = createFacebookHistoryDemoProject();
         const { lanes, clips } = visualTracksToTimelineClips(project);
         set({
@@ -362,6 +367,13 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     },
     ...createUiActions(set, get),
     ...createSelectionActions(set, get),
+    ...createGroupActions(set, get, (entry) => {
+      historyState = pushHistory(historyState, entry);
+      set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
+    }),
     ...createLaneActions(set, get),
     ...createDocumentActions(set, get),
     ...createProjectLifecycleActions(set, get),

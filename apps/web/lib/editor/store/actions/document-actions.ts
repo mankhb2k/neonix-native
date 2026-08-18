@@ -1,4 +1,9 @@
-import { mapNode, uid, updateVariable } from "@motionvideo/editor-core";
+import {
+  mapNode,
+  uid,
+  updateVariable,
+  stageSizeForAspect,
+} from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -22,7 +27,6 @@ export function createDocumentActions(
     updateBrand: (patch) => {
       const project = get().project;
       if (!project) return;
-      const brand = { ...project.metadata.brand, ...patch };
       let variables = project.variables;
       if (patch.name !== undefined) {
         variables = updateVariable(
@@ -44,7 +48,6 @@ export function createDocumentActions(
           metadata: {
             ...project.metadata,
             name: patch.name ?? project.metadata.name,
-            brand,
           },
           variables,
         },
@@ -84,78 +87,24 @@ export function createDocumentActions(
       });
     },
 
-    updateNodeAnimation: (sceneId, layerId, patch) => {
-      const project = get().project;
-      if (!project) return;
-      set({
-        project: {
-          ...project,
-          scenes: project.scenes.map((scene) => {
-            if (scene.id !== sceneId) return scene;
-            const existing = scene.clips.find(
-              (clip) =>
-                clip.layerId === layerId && clip.source.kind === "preset",
-            );
-            if (!existing) {
-              return {
-                ...scene,
-                clips: [
-                  ...scene.clips,
-                  {
-                    id: uid("clip"),
-                    layerId: layerId,
-                    schedule: {
-                      kind: "absolute",
-                      at: Math.max(0, patch.at ?? 0),
-                    },
-                    duration: Math.max(0.1, patch.duration ?? 0.6),
-                    playback: { iterations: 1, direction: "normal", rate: 1 },
-                    source: {
-                      kind: "preset",
-                      presetId: patch.presetId ?? "fade-in",
-                    },
-                  },
-                ],
-              };
-            }
-            return {
-              ...scene,
-              clips: scene.clips.map((clip) =>
-                clip.id !== existing.id
-                  ? clip
-                  : {
-                      ...clip,
-                      schedule:
-                        patch.at !== undefined
-                          ? {
-                              kind: "absolute" as const,
-                              at: Math.max(0, patch.at),
-                            }
-                          : clip.schedule,
-                      duration:
-                        patch.duration !== undefined
-                          ? Math.max(0.1, patch.duration)
-                          : clip.duration,
-                      source:
-                        clip.source.kind === "preset" &&
-                        patch.presetId !== undefined
-                          ? { ...clip.source, presetId: patch.presetId }
-                          : clip.source,
-                    },
-              ),
-            };
-          }),
-        },
-      });
+    updateNodeAnimation: (_sceneId, _layerId, _patch) => {
+      // V1: preset animation clips (`scene.clips`) no longer exist — node
+      // animations now live in `timeline.clips` keyframes. No-op until the
+      // keyframe editor lands (legacy action kept for API stability).
     },
 
     setAspectRatio: (aspectRatio) => {
       const project = get().project;
       if (project) {
+        const size = stageSizeForAspect(aspectRatio);
         set({
           project: {
             ...project,
-            metadata: { ...project.metadata, aspectRatio },
+            composition: {
+              ...project.composition,
+              width: size.width,
+              height: size.height,
+            },
           },
         });
       }

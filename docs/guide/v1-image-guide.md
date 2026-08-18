@@ -10,6 +10,9 @@
 
 `image` là visual leaf **hiển thị một asset ảnh**.
 
+Asset ảnh có thể tới từ external URL, data URI, hoặc fixture path, miễn `assets[]`
+khai báo đủ `width` và `height`. `fit` và `crop` luôn dựa trên metadata đó.
+
 - Nguồn: `payload.assetId`
 - Hộp hiển thị: `frame`
 - Cách ảnh nằm trong hộp: `payload.fit`

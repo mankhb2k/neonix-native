@@ -19,9 +19,13 @@ describe("sceneFromFrameDraft composition center", () => {
         (p) => `${p}_1`,
         size,
       );
-      const node = scene.layers[0]!;
-      expect(node.transform.translate.x).toBe(size.width / 2);
-      expect(node.transform.translate.y).toBe(size.height / 2);
+      const node = scene.type === "group" ? scene.children[0] : undefined;
+      expect(
+        node && "transform" in node ? node.transform.translate.x : null,
+      ).toBe(size.width / 2);
+      expect(
+        node && "transform" in node ? node.transform.translate.y : null,
+      ).toBe(size.height / 2);
     });
   }
 });

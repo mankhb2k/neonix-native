@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { playbackFrameIndex, playbackFrameTime } from "@motionvideo/editor-core";
+import {
+  playbackFrameIndex,
+  playbackFrameTime,
+} from "@motionvideo/editor-core";
 import {
   clientXToStripTime,
   resolvePlayheadScrubMax,
@@ -77,12 +80,12 @@ describe("seedWebEditorUi", () => {
   it("seeds facebook-history with scene clips", () => {
     const seed = seedWebEditorUi("facebook-history");
     expect(seed.kind).toBe("editor");
-    expect(seed.snapshot.project.scenes.length).toBe(6);
+    expect(seed.snapshot.project.layers.length).toBe(6);
     expect(seed.snapshot.timelineClips.length).toBe(6);
   });
 
   it("seeds blank without scenes", () => {
     const seed = seedWebEditorUi("blank-16x9");
-    expect(seed.snapshot.project.scenes).toHaveLength(0);
+    expect(seed.snapshot.project.layers).toHaveLength(0);
   });
 });

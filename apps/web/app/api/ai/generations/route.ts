@@ -202,8 +202,10 @@ export async function POST(request: Request): Promise<Response> {
                   baseRevision: body.baseRevision ?? 0,
                   scope: "video",
                   summary: `Zero-template draft: ${result.brief.objective.slice(0, 80)}`,
-                  affectedElementKeys: result.project.scenes.flatMap((s) =>
-                    s.layers.map((n) => `${s.id}/${n.id}`),
+                  affectedElementKeys: result.project.layers.flatMap((s) =>
+                    s.type === "group"
+                      ? s.children.map((n) => `${s.id}/${n.id}`)
+                      : [],
                   ),
                   warnings: result.critic.findings
                     .filter((f) => f.severity === "warning")

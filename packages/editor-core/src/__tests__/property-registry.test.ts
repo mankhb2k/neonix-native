@@ -3,6 +3,9 @@ import {
   MOTION_PROTOCOL_LIMITS,
   getTextPayloadPlain,
   parseMotionProject,
+  visualLayerAtoms,
+  type MotionLayer,
+  type MotionProject,
 } from "@motionvideo/motion-protocol";
 import {
   createHistoryState,
@@ -21,6 +24,37 @@ import {
   fixtureMainOnly,
   fixtureMainPlusAudioOverlap,
 } from "../testing/fixtures/projects";
+
+function firstChild(project: MotionProject): MotionLayer | undefined {
+  const scene = project.layers[0];
+  return scene?.type === "group" ? scene.children[0] : undefined;
+}
+
+function firstChildStyle(
+  project: MotionProject,
+): Record<string, unknown> | undefined {
+  const node = firstChild(project);
+  if (!node || !("style" in node) || !node.style) return undefined;
+  return node.style as Record<string, unknown>;
+}
+
+function setFirstChildX(project: MotionProject, x: number): MotionProject {
+  const layers = project.layers.map((scene, i) => {
+    if (i !== 0 || scene.type !== "group") return scene;
+    const children = scene.children.map((n, j) => {
+      if (j !== 0 || !("transform" in n)) return n;
+      return {
+        ...n,
+        transform: {
+          ...n.transform,
+          translate: { ...n.transform.translate, x },
+        },
+      };
+    });
+    return { ...scene, children };
+  });
+  return { ...project, layers };
+}
 
 describe("property commands", () => {
   it("applies transform.x to focused scene node", () => {
@@ -42,12 +76,13 @@ describe("property commands", () => {
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const node = result.document.project.layers[0];
-    const title =
-      node && node.type === "group" ? node.children[0] : undefined;
-    expect(title && "transform" in title ? title.transform.translate.x : undefined).toBe(120);
+    const title = node && node.type === "group" ? node.children[0] : undefined;
+    expect(
+      title && "transform" in title ? title.transform.translate.x : undefined,
+    ).toBe(120);
   });
 
-  it("clamps opacity to 0..1", () => {
+  it("clamps opacity to 0..100", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
     const targets = resolvePropertyTargets(
@@ -59,15 +94,15 @@ describe("property commands", () => {
     const result = executePropertyCommand(doc, {
       type: "set-node-opacity",
       targets,
-      opacity: 2.5,
+      opacity: 250,
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const root = result.document.project.layers[0];
     const title = root && root.type === "group" ? root.children[0] : undefined;
-    expect(title && "appearance" in title ? title.appearance.opacity : undefined).toBe(
-      1,
-    );
+    expect(
+      title && "appearance" in title ? title.appearance.opacity : undefined,
+    ).toBe(100);
   });
 
   it("applies set-node-timing for layer mode in/out", () => {
@@ -86,36 +121,37 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    expect(result.document.project.scenes[0]!.layers[0]!.timing).toEqual({
-      start: 0.5,
-      duration: 1.25,
-    });
+    const child = firstChild(result.document.project);
+    expect(child?.timing).toEqual({ start: 0.5, duration: 1.25 });
   });
 
   it("reorders scene layers top-to-bottom via zIndex", () => {
     const { project, clips, lanes } = fixtureMainOnly();
-    const scene = project.scenes[0]!;
+    const scene = project.layers[0]!;
+    const base = scene.type === "group" ? scene.children[0]! : null;
     const layers = [
-      { ...scene.layers[0]!, id: "n-top", zIndex: 2 },
+      { ...base!, id: "n-top", zIndex: 2 },
       {
-        ...scene.layers[0]!,
+        ...base!,
         id: "n-mid",
         zIndex: 1,
         type: "shape" as const,
-        payload: { shape: "rect" as const, width: 10, height: 10 },
+        payload: { shape: "rectangle" as const },
       },
       {
-        ...scene.layers[0]!,
+        ...base!,
         id: "n-bot",
         zIndex: 0,
         type: "shape" as const,
-        payload: { shape: "rect" as const, width: 10, height: 10 },
+        payload: { shape: "rectangle" as const },
       },
-    ];
+    ] as MotionLayer[];
     const doc: TimelineDocument = {
       project: {
         ...project,
-        scenes: [{ ...scene, layers }],
+        layers: [
+          { ...scene, type: "group" as const, children: layers } as MotionLayer,
+        ],
       },
       clips,
       lanes,
@@ -127,7 +163,8 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const next = result.document.project.scenes[0]!.layers;
+    const nextScene = result.document.project.layers[0];
+    const next = nextScene?.type === "group" ? nextScene.children : [];
     expect(next.map((n) => n.id)).toEqual(["n-mid", "n-top", "n-bot"]);
     expect(next.map((n) => n.zIndex)).toEqual([2, 1, 0]);
   });
@@ -148,9 +185,11 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.layers[0]!;
-    expect(node.name).toBe("Hero");
-    expect(node.transform.visible).toBe(false);
+    const node = firstChild(result.document.project);
+    expect(node?.name).toBe("Hero");
+    expect(
+      node && "appearance" in node ? node.appearance.visible : undefined,
+    ).toBe(false);
   });
 });
 
@@ -196,9 +235,13 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.layers[0]!;
-    expect(node.transform.scaleX).toBe(2.5);
-    expect(node.transform.scaleY).toBe(2.5);
+    const node = firstChild(result.document.project);
+    expect(
+      node && "transform" in node ? node.transform.scale.x : undefined,
+    ).toBe(2.5);
+    expect(
+      node && "transform" in node ? node.transform.scale.y : undefined,
+    ).toBe(2.5);
   });
 
   it("sets fill/stroke style on text layers", () => {
@@ -217,12 +260,13 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.layers[0]!;
-    expect(node.type).toBe("text");
-    if (node.type !== "text") return;
-    expect(node.style?.fill).toBe("#ff0000");
-    expect(node.style?.stroke).toBe("#00ff00");
-    expect(node.style?.strokeWidth).toBe(2);
+    const node = firstChild(result.document.project);
+    expect(node?.type).toBe("text");
+    if (!node || node.type !== "text") return;
+    const style = firstChildStyle(result.document.project);
+    expect(style?.fill).toBe("#ff0000");
+    expect(style?.stroke).toBe("#00ff00");
+    expect(style?.strokeWidth).toBe(2);
   });
 
   it("updates typography payload", () => {
@@ -241,9 +285,9 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.layers[0]!;
-    expect(node.type).toBe("text");
-    if (node.type !== "text") return;
+    const node = firstChild(result.document.project);
+    expect(node?.type).toBe("text");
+    if (!node || node.type !== "text") return;
     expect(getTextPayloadPlain(node.payload)).toBe("Hello");
     expect(node.payload.fontSize).toBe(42);
     expect(node.payload.alignment).toBe("center");
@@ -259,12 +303,16 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const track = result.document.project.timeline.audioTracks.find(
-      (t) => t.id === "audio.a",
+    const track = result.document.project.layers.find(
+      (l) => l.type === "audio" && l.id === "audio.a",
     );
-    expect(track?.volume).toBe(0.4);
-    expect(track?.fadeIn).toBe(0.2);
-    expect(track?.fadeOut).toBe(0.5);
+    expect(track?.type === "audio" ? track.payload.volume : undefined).toBe(40);
+    expect(track?.type === "audio" ? track.payload.fadeIn : undefined).toBe(
+      0.2,
+    );
+    expect(track?.type === "audio" ? track.payload.fadeOut : undefined).toBe(
+      0.5,
+    );
   });
 
   it("upserts blur effect and property keyframe", () => {
@@ -283,8 +331,9 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(withEffect.status).toBe("applied");
     if (withEffect.status !== "applied") return;
+    const effected = firstChild(withEffect.document.project);
     expect(
-      withEffect.document.project.scenes[0]!.layers[0]!.effects?.[0],
+      effected && "effects" in effected ? effected.effects?.[0] : undefined,
     ).toEqual({ id: "fx.blur", type: "blur", radius: 8 });
 
     const withKey = executePropertyCommand(withEffect.document, {
@@ -299,7 +348,9 @@ describe("Logic-2 property domain depth", () => {
     if (withKey.status !== "applied") return;
     const sceneClips = withKey.document.project.timeline.clips ?? [];
     expect(sceneClips.length).toBeGreaterThan(0);
-    const trackClip = sceneClips.find((c) => c.property === "transform.translate.x");
+    const trackClip = sceneClips.find(
+      (c) => c.property === "transform.translate.x",
+    );
     expect(trackClip?.keys[0]).toMatchObject({
       t: 0.5,
       value: 200,
@@ -328,23 +379,38 @@ describe("Logic-2 property domain depth", () => {
 
   it("rejects style on incompatible node types atomically", () => {
     const { project, clips, lanes } = fixtureMainOnly();
-    const scene = project.scenes[0]!;
+    const scene = project.layers[0]!;
     const groupId = "node.group";
+    const groupNode = {
+      id: groupId,
+      type: "group" as const,
+      parentLayerId: scene.id,
+      zIndex: 0,
+      ...visualLayerAtoms({ width: 100, height: 100 }),
+      timing: { start: 0, duration: 1 },
+      children: [
+        {
+          id: `${groupId}.child`,
+          type: "solid" as const,
+          parentLayerId: groupId,
+          zIndex: 0,
+          ...visualLayerAtoms({ width: 50, height: 50 }),
+          timing: { start: 0, duration: 1 },
+          payload: { color: "#000000" },
+        },
+      ],
+    } as MotionLayer;
     const withGroup = {
       ...project,
-      scenes: [
+      layers: [
         {
           ...scene,
-          layers: [
-            ...scene.layers,
-            {
-              id: groupId,
-              type: "group" as const,
-              parentLayerId: null,
-              transform: { ...scene.layers[0]!.transform },
-            },
+          type: "group" as const,
+          children: [
+            ...(scene.type === "group" ? scene.children : []),
+            groupNode,
           ],
-        },
+        } as MotionLayer,
       ],
     };
     const result = executePropertyCommand(
@@ -360,24 +426,29 @@ describe("Logic-2 property domain depth", () => {
 
   it("clamps crop so x+width and y+height stay within 1", () => {
     const { project, clips, lanes } = fixtureMainPlusAudioOverlap();
-    const scene = project.scenes[0]!;
+    const scene = project.layers[0]!;
     const imageId = "node.img";
     const assetId = project.assets[0]!.id;
+    const imageNode = {
+      id: imageId,
+      type: "image" as const,
+      parentLayerId: scene.id,
+      zIndex: 0,
+      ...visualLayerAtoms({ width: 100, height: 100 }),
+      timing: { start: 0, duration: 1 },
+      payload: { assetId, fit: "cover" as const },
+    } as MotionLayer;
     const withImage = {
       ...project,
-      scenes: [
+      layers: [
         {
           ...scene,
-          layers: [
-            {
-              id: imageId,
-              type: "image" as const,
-              parentLayerId: null,
-              transform: { ...scene.layers[0]!.transform },
-              payload: { assetId },
-            },
+          type: "group" as const,
+          children: [
+            ...(scene.type === "group" ? scene.children : []),
+            imageNode,
           ],
-        },
+        } as MotionLayer,
       ],
     };
     const injected = executePropertyCommand(
@@ -390,9 +461,11 @@ describe("Logic-2 property domain depth", () => {
     );
     expect(injected.status).toBe("applied");
     if (injected.status !== "applied") return;
-    const node = injected.document.project.scenes[0]!.layers.find(
-      (n) => n.id === imageId,
-    );
+    const injectedScene = injected.document.project.layers[0];
+    const node =
+      injectedScene?.type === "group"
+        ? injectedScene.children.find((n) => n.id === imageId)
+        : undefined;
     expect(node?.type).toBe("image");
     if (!node || node.type !== "image" || !node.payload.crop) return;
     expect(node.payload.crop.x + node.payload.crop.width).toBeLessThanOrEqual(
@@ -428,9 +501,10 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(reordered.status).toBe("applied");
     if (reordered.status !== "applied") return;
-    const ids = (
-      reordered.document.project.scenes[0]!.layers[0]!.effects ?? []
-    ).map((e) => e.id);
+    const node = firstChild(reordered.document.project);
+    const ids = (node && "effects" in node ? (node.effects ?? []) : []).map(
+      (e) => e.id,
+    );
     expect(ids).toEqual(["c", "a", "b"]);
   });
 
@@ -463,7 +537,9 @@ describe("Logic-2 property domain depth", () => {
     ).toBe("rejected");
 
     const withAudio = fixtureMainPlusAudioOverlap();
-    const audioId = withAudio.project.timeline.audioTracks[0]!.id;
+    const audioId = withAudio.project.layers.find(
+      (l) => l.type === "audio",
+    )!.id;
     expect(
       executePropertyCommand(
         {
@@ -576,19 +652,7 @@ describe("history coalesce", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const before: TimelineDocument = { project, clips, lanes };
     let after: TimelineDocument = {
-      project: {
-        ...project,
-        scenes: project.scenes.map((s, i) =>
-          i === 0
-            ? {
-                ...s,
-                layers: s.layers.map((n, j) =>
-                  j === 0 ? { ...n, transform: { ...n.transform, x: 10 } } : n,
-                ),
-              }
-            : s,
-        ),
-      },
+      project: setFirstChildX(project, 10),
       clips,
       lanes,
     };
@@ -608,19 +672,7 @@ describe("history coalesce", () => {
 
     after = {
       ...after,
-      project: {
-        ...after.project,
-        scenes: after.project.scenes.map((s, i) =>
-          i === 0
-            ? {
-                ...s,
-                layers: s.layers.map((n, j) =>
-                  j === 0 ? { ...n, transform: { ...n.transform, x: 50 } } : n,
-                ),
-              }
-            : s,
-        ),
-      },
+      project: setFirstChildX(after.project, 50),
     };
     const entry2: HistoryEntry = {
       id: "h2",
@@ -636,8 +688,11 @@ describe("history coalesce", () => {
 
     expect(state.past).toHaveLength(1);
     expect(state.past[0]!.before).toBe(before);
-    expect(state.past[0]!.after.project.scenes[0]!.layers[0]!.transform.x).toBe(
-      50,
-    );
+    const finalNode = firstChild(state.past[0]!.after.project);
+    expect(
+      finalNode && "transform" in finalNode
+        ? finalNode.transform.translate.x
+        : undefined,
+    ).toBe(50);
   });
 });

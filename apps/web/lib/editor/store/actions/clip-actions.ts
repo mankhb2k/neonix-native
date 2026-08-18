@@ -40,7 +40,7 @@ export function createClipActions(
       get().executeTimelineCommand({
         type: "add-clip-draft",
         draft,
-        target,
+        target: target ?? { track: "main" },
       });
     },
 

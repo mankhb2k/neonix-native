@@ -6,6 +6,7 @@ import type {
 } from "@motionvideo/motion-protocol/runtime";
 import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
+import type { RenderSnapshot } from "./render-snapshot";
 import {
   compositionTotalDuration,
   evaluateCompositionLayers,
@@ -92,7 +93,12 @@ function resolveCompositionEvaluateTarget(
   const primary = layerPlan.layers[layerPlan.layers.length - 1];
   if (primary) {
     const localFrame = Math.max(0, Math.round(primary.localTime * safeFps));
-    return { scene: graph, time: primary.localTime, frame: localFrame, layerPlan };
+    return {
+      scene: graph,
+      time: primary.localTime,
+      frame: localFrame,
+      layerPlan,
+    };
   }
 
   return null;
@@ -352,10 +358,8 @@ export function evaluateCompositionFrameV1(
     fps: safeFps,
     viewport: { width, height },
     layers,
-    interaction:
-      combinedInteraction ??
-      layers[0]?.interaction ??
-      ({
+    interaction: combinedInteraction ??
+      layers[0]?.interaction ?? {
         graphId: ROOT_LAYER_GRAPH_ID,
         frame,
         time: globalTime,
@@ -365,7 +369,7 @@ export function evaluateCompositionFrameV1(
         projection: { kind: "orthographic" },
         cameraMatrix: IDENTITY_MATRIX,
         items: [],
-      }),
+      },
     paint: combinedPaint,
     audio,
     media,
@@ -405,7 +409,9 @@ function resolvePerspectiveProjection(
   if (!scene) return null;
   if ((scene.space ?? "flat-2d") !== "perspective-3d") return null;
   if (!scene.activeCameraLayerId) return null;
-  const cameraNode = scene.layers.find((n) => n.id === scene.activeCameraLayerId);
+  const cameraNode = scene.layers.find(
+    (n) => n.id === scene.activeCameraLayerId,
+  );
   if (!cameraNode || cameraNode.type !== "camera") return null;
 
   const aspect = width / height;
@@ -488,7 +494,9 @@ function buildProjection(
       (n) => n.layerId === scene.activeCameraLayerId,
     );
     if (cameraNode && cameraNode.worldMatrix4) {
-      const sceneNode = scene.layers.find((n) => n.id === scene.activeCameraLayerId);
+      const sceneNode = scene.layers.find(
+        (n) => n.id === scene.activeCameraLayerId,
+      );
       if (sceneNode?.type === "camera") {
         const aspect = width / height;
         const fov = sceneNode.payload.fov ?? 60;

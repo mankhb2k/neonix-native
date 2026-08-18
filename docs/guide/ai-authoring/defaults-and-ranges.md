@@ -19,7 +19,7 @@ Numeric and enum bounds the parser enforces. Not every error code — the number
 - Polygon `payload.points` are **0..1** inside the frame (min 3 points).
 - Clip `t` is local **0 .. layer.timing.duration**.
 - Visual root `zIndex >= 0`. Audio root `zIndex < 0`.
-- `source.kind` is only `"upload"`.
+- If `asset.source` exists, `source.kind` is only `"upload"`. External URLs live in `asset.uri`, not `source.kind`.
 
 ## Defaults table
 

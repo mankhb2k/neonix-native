@@ -9,6 +9,8 @@ export * from "./selection/editor-selectors";
 export * from "./timeline/model/timeline-types";
 export * from "./document/document";
 export * from "./document/canonical-projection";
+export * from "./document/group";
+export * from "./document/group-path";
 export * from "./timeline/timeline-clips";
 export * from "./timeline/assert-never";
 export * from "./timeline/clip-capabilities";

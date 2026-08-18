@@ -52,8 +52,12 @@ function roundSeconds(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
 
-function downsample(keys: TimelineKeyframeV1[], max: number): TimelineKeyframeV1[] {
+function downsample(
+  keys: TimelineKeyframeV1[],
+  max: number,
+): TimelineKeyframeV1[] {
   if (keys.length <= max) return keys;
+  if (max <= 1) return keys.slice(0, Math.max(0, max));
   const out: TimelineKeyframeV1[] = [keys[0]];
   const step = (keys.length - 1) / (max - 1);
   for (let i = 1; i < max - 1; i++) {
@@ -64,7 +68,10 @@ function downsample(keys: TimelineKeyframeV1[], max: number): TimelineKeyframeV1
 }
 
 /** Sort by time, clamp negatives, dedupe equal times (last wins), cap size. */
-function finalizeKeys(keys: TimelineKeyframeV1[], maxKeys: number): TimelineKeyframeV1[] {
+function finalizeKeys(
+  keys: TimelineKeyframeV1[],
+  maxKeys: number,
+): TimelineKeyframeV1[] {
   const cleaned = keys.map((k) => ({
     t: Math.max(0, roundSeconds(k.t)),
     value: k.value,
@@ -109,9 +116,15 @@ export function audioAnalysisToTimelineClips(
         (preset.beatGlow.peak - preset.beatGlow.base) *
           intensity *
           beatWeight(beat.strength);
-      keys.push({ t: beat.t - preset.beatGlow.attackSeconds, value: preset.beatGlow.base });
+      keys.push({
+        t: beat.t - preset.beatGlow.attackSeconds,
+        value: preset.beatGlow.base,
+      });
       keys.push({ t: beat.t, value: peak });
-      keys.push({ t: beat.t + preset.beatGlow.releaseSeconds, value: preset.beatGlow.base });
+      keys.push({
+        t: beat.t + preset.beatGlow.releaseSeconds,
+        value: preset.beatGlow.base,
+      });
     }
     const finalized = finalizeKeys(keys, maxKeysPerClip);
     if (finalized.length > 0) {
@@ -124,31 +137,9 @@ export function audioAnalysisToTimelineClips(
     }
   }
 
-  // 2. beats -> scale pulses
-  {
-    const keys: TimelineKeyframeV1[] = [];
-    for (const beat of analysis.beats) {
-      const peak =
-        preset.beatScale.base +
-        (preset.beatScale.peak - preset.beatScale.base) *
-          intensity *
-          beatWeight(beat.strength);
-      keys.push({ t: beat.t - preset.beatScale.attackSeconds, value: preset.beatScale.base });
-      keys.push({ t: beat.t, value: peak });
-      keys.push({ t: beat.t + preset.beatScale.releaseSeconds, value: preset.beatScale.base });
-    }
-    const finalized = finalizeKeys(keys, maxKeysPerClip);
-    if (finalized.length > 0) {
-      clips.push({
-        id: "clip-beat-scale",
-        layerId: targets.ringLayerId,
-        property: "transform.scale",
-        keys: finalized,
-      });
-    }
-  }
-
-  // 3. bassEnergy -> continuous scale
+  // 2 + 3. bassEnergy -> continuous scale, with beat pulses overlaid.
+  // Both target `transform.scale`, so they are merged into a single clip:
+  // beat pulse keyframes are appended last so they win on exact-time dedupe.
   {
     const keys: TimelineKeyframeV1[] = analysis.bassEnergy.map((frame) => ({
       t: frame.t,
@@ -156,10 +147,26 @@ export function audioAnalysisToTimelineClips(
         preset.bassScale.min +
         (preset.bassScale.max - preset.bassScale.min) * frame.value * intensity,
     }));
+    for (const beat of analysis.beats) {
+      const peak =
+        preset.beatScale.base +
+        (preset.beatScale.peak - preset.beatScale.base) *
+          intensity *
+          beatWeight(beat.strength);
+      keys.push({
+        t: beat.t - preset.beatScale.attackSeconds,
+        value: preset.beatScale.base,
+      });
+      keys.push({ t: beat.t, value: peak });
+      keys.push({
+        t: beat.t + preset.beatScale.releaseSeconds,
+        value: preset.beatScale.base,
+      });
+    }
     const finalized = finalizeKeys(keys, maxKeysPerClip);
     if (finalized.length > 0) {
       clips.push({
-        id: "clip-bass-scale",
+        id: "clip-ring-scale",
         layerId: targets.ringLayerId,
         property: "transform.scale",
         keys: finalized,
@@ -171,7 +178,9 @@ export function audioAnalysisToTimelineClips(
   {
     const brightnessProperty =
       targets.brightnessProperty ??
-      (targets.glowEffectId ? `effects.${targets.glowEffectId}.brightness` : undefined);
+      (targets.glowEffectId
+        ? `effects.${targets.glowEffectId}.brightness`
+        : undefined);
     if (brightnessProperty) {
       const keys: TimelineKeyframeV1[] = analysis.loudness.map((frame) => ({
         t: frame.t,

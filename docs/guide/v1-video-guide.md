@@ -17,6 +17,9 @@
 
 `timing` vẫn là timing của **layer** trên timeline. Trim cắt **nguồn media**, không thay `timing`.
 
+Asset video có thể tới từ external URL, data URI, hoặc fixture path, miễn
+`assets[]` khai báo đủ `width`, `height`, `duration`, và `fps`.
+
 ---
 
 ## Cấu trúc
@@ -96,7 +99,7 @@ Mặc định: **`cover`**, **`loop: false`**, **`muted: false`**.
 
 ## Không thuộc V1 canonical
 
-**Không `payload.crop`.** Video V1 không crop. Muốn cắt hình: dùng `fit` / `frame` / mask, không crop nguồn.
+**Không `payload.crop`.** Video V1 cố ý không crop. Muốn cắt hình: dùng `fit` / `frame` / mask, không crop nguồn.
 
 Không `style` trên video.
 

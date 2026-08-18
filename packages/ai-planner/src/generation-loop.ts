@@ -1,10 +1,17 @@
 import type { CreativeBriefV1 } from "./contracts";
 import { executeCommandBatch, type CommandBatchResult } from "./commands";
 import { planFromScratch } from "./from-scratch";
-import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
+import {
+  applyCriticRepair,
+  critiqueProject,
+  type CriticReport,
+} from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
-import { V1 } from "@motionvideo/motion-protocol";
-import { runZeroTemplateGeneration, type ZeroTemplateGenerationResult } from "./orchestrator";
+import { V1, type MotionProject } from "@motionvideo/motion-protocol";
+import {
+  runZeroTemplateGeneration,
+  type ZeroTemplateGenerationResult,
+} from "./orchestrator";
 
 export type GenerationLoopResult = {
   project: MotionProject;
@@ -47,32 +54,32 @@ export function runGenerationLoop(input: {
   const recipeCommands = project.layers
     .filter((layer) => layer.type === "group")
     .flatMap((scene) => {
-    const textIds = V1.flattenLayerTree(scene.children)
-      .filter((node) => node.type === "text")
-      .map((node) => node.id);
-    if (textIds.length === 0) return [];
-    const commands = [];
-    if (textIds.length >= 2) {
-      commands.push({
-        type: "applyRecipe" as const,
-        sceneId: scene.id,
-        recipeId: "stagger" as const,
-        targetLayerId: textIds[0]!,
-        staggerLayerIds: textIds,
-        duration: Math.min(1.2, scene.timing?.duration ?? 1),
-      });
-    } else {
-      commands.push({
-        type: "applyRecipe" as const,
-        sceneId: scene.id,
-        recipeId: "float" as const,
-        targetLayerId: textIds[0]!,
-        duration: scene.timing?.duration ?? 1,
-        intensity: 0.6,
-      });
-    }
-    return commands;
-  });
+      const textIds = V1.flattenLayerTree(scene.children)
+        .filter((node) => node.type === "text")
+        .map((node) => node.id);
+      if (textIds.length === 0) return [];
+      const commands = [];
+      if (textIds.length >= 2) {
+        commands.push({
+          type: "applyRecipe" as const,
+          sceneId: scene.id,
+          recipeId: "stagger" as const,
+          targetLayerId: textIds[0]!,
+          staggerLayerIds: textIds,
+          duration: Math.min(1.2, scene.timing?.duration ?? 1),
+        });
+      } else {
+        commands.push({
+          type: "applyRecipe" as const,
+          sceneId: scene.id,
+          recipeId: "float" as const,
+          targetLayerId: textIds[0]!,
+          duration: scene.timing?.duration ?? 1,
+          intensity: 0.6,
+        });
+      }
+      return commands;
+    });
 
   if (recipeCommands.length > 0) {
     const batch = executeCommandBatch(

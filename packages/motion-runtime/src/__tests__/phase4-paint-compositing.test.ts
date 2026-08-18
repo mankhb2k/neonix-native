@@ -191,6 +191,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
             brightness: 0.2,
             contrast: 0,
             saturation: 0,
+            "hue-rotate": 0,
           },
         ],
         compositing: {

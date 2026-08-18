@@ -1,8 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui";
-import { useAiJobsStore, type RegenerationScope } from "@/lib/editor/ai/ai-jobs-store";
+import {
+  useAiJobsStore,
+  type RegenerationScope,
+} from "@/lib/editor/ai/ai-jobs-store";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { rootLayerIdOf } from "@motionvideo/editor-core";
 import { SendHorizontal, Square } from "lucide-react";
 
 const SCOPES: Array<{ id: RegenerationScope; label: string }> = [
@@ -34,7 +38,7 @@ export function AskAIBar() {
 
   const selectionLabel =
     selection.kind === "node"
-      ? `${selection.sceneId}/${selection.layerId}`
+      ? `${rootLayerIdOf(project, selection.layerId) ?? selection.layerId}/${selection.layerId}`
       : undefined;
 
   const protectedHint =
@@ -57,10 +61,7 @@ export function AskAIBar() {
   };
 
   return (
-    <div
-      className="flex h-full min-h-0 flex-col"
-      data-testid="editor-ask-ai"
-    >
+    <div className="flex h-full min-h-0 flex-col" data-testid="editor-ask-ai">
       <div className="min-h-0 flex-1 space-y-3 overflow-auto px-3 py-3">
         <div className="flex flex-wrap gap-1">
           {SCOPES.map((item) => (
@@ -81,7 +82,10 @@ export function AskAIBar() {
         </div>
 
         {phase === "failed" && error ? (
-          <p className="text-[11px] text-[var(--danger)]" data-testid="ai-job-error">
+          <p
+            className="text-[11px] text-[var(--danger)]"
+            data-testid="ai-job-error"
+          >
             {error}
           </p>
         ) : null}
@@ -92,7 +96,8 @@ export function AskAIBar() {
               <span className="uppercase tracking-[0.08em]">{phase}</span>
               {protectedHint?.lockedProperties?.length ? (
                 <span>
-                  Protected: {protectedHint.lockedProperties.slice(0, 3).join(", ")}
+                  Protected:{" "}
+                  {protectedHint.lockedProperties.slice(0, 3).join(", ")}
                 </span>
               ) : null}
             </div>
@@ -152,7 +157,11 @@ export function AskAIBar() {
               >
                 Apply
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => dismissProposal()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => dismissProposal()}
+              >
                 Discard
               </Button>
             </div>
@@ -174,7 +183,12 @@ export function AskAIBar() {
             className="w-full resize-none border-0 bg-transparent px-3 pt-2.5 pb-1 text-[13px] text-[var(--fg-primary)] outline-none placeholder:text-[var(--fg-disabled)]"
             disabled={busy}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && prompt.trim() && !busy) {
+              if (
+                event.key === "Enter" &&
+                !event.shiftKey &&
+                prompt.trim() &&
+                !busy
+              ) {
                 event.preventDefault();
                 runGenerate();
               }

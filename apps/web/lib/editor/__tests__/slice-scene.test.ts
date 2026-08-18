@@ -1,35 +1,31 @@
 import { describe, expect, it } from "vitest";
 import { sliceScene, clipLocalTime } from "@motionvideo/editor-core";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 describe("sliceScene", () => {
-  it("shifts absolute schedule and keyframe times by localStart", () => {
+  it("resets timing to a local [0, duration) window", () => {
     const scene = {
       id: "s1",
+      type: "group",
       name: "S",
-      duration: 5,
-      layers: [],
-      clips: [
-        {
-          id: "c1",
-          layerId: "n1",
-          property: "appearance.opacity",
-          kind: "keyframes" as const,
-          keys: [
-            { t: 0, value: 0 },
-            { t: 2, value: 0.5 },
-            { t: 5, value: 1 },
-          ],
-        },
-      ],
-    } as unknown as MotionScene;
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: {
+        translate: { x: 0, y: 0 },
+        scale: { x: 1, y: 1 },
+        rotate: { z: 0 },
+        skew: { x: 0, y: 0 },
+        origin: { x: 0.5, y: 0.5 },
+        depth: 0,
+      },
+      appearance: { visible: true, opacity: 100 },
+      timing: { start: 0, duration: 5 },
+      children: [],
+    } as unknown as MotionLayer;
 
     const sliced = sliceScene(scene, 2, 2);
-    expect(sliced.duration).toBe(2);
-    const clip = sliced.clips![0];
-    expect(clip.keys.map((k: { t: number }) => k.t)).toEqual([0, 0, 3]);
+    expect(sliced.timing).toEqual({ start: 0, duration: 2 });
   });
 
   it("clipLocalTime matches preview semantics", () => {

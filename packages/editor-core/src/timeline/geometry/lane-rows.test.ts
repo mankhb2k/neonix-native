@@ -19,9 +19,9 @@ function lane(id: string, overrides?: Partial<TimelineLane>): TimelineLane {
     role: "base",
     order: 0,
     name: id,
-    policy: { resizable: true, movable: true, overlap: "stack", maxClips: 99 },
+    policy: { allowOverlap: false, rippleMode: false },
     ...overrides,
-  };
+  } as TimelineLane;
 }
 
 const defaultConfig: LaneRowConfig = {

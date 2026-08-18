@@ -6,10 +6,7 @@
 import "server-only";
 
 import type { PersistentRenderJob } from "@/lib/server/render/job-store";
-import {
-  saveRenderJob,
-  updateRenderJob,
-} from "@/lib/server/render/job-store";
+import { saveRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import { buildExportCanaryRecord } from "@/lib/server/render/export-canary";
 import {
   CAPABILITY_MANIFEST_VERSION,
@@ -25,8 +22,8 @@ export type LambdaRenderStartResult = {
 function lambdaConfigured(): boolean {
   return Boolean(
     process.env.REMOTION_FUNCTION_NAME &&
-      process.env.REMOTION_SERVE_URL &&
-      process.env.AWS_REGION,
+    process.env.REMOTION_SERVE_URL &&
+    process.env.AWS_REGION,
   );
 }
 
@@ -106,7 +103,9 @@ export async function startRenderOnLambda(input: {
   };
 }
 
-export async function cancelLambdaRender(job: PersistentRenderJob): Promise<void> {
+export async function cancelLambdaRender(
+  job: PersistentRenderJob,
+): Promise<void> {
   if (!job.lambdaRenderId || !lambdaConfigured()) {
     await updateRenderJob(job.jobId, {
       status: "cancelled",
@@ -115,10 +114,9 @@ export async function cancelLambdaRender(job: PersistentRenderJob): Promise<void
     });
     return;
   }
-  const { cancelRender } = await import("@remotion/lambda-client");
-  await cancelRender({
+  const { deleteRender } = await import("@remotion/lambda-client");
+  await deleteRender({
     region: process.env.AWS_REGION as "us-east-1",
-    functionName: process.env.REMOTION_FUNCTION_NAME!,
     bucketName: job.bucketName!,
     renderId: job.lambdaRenderId,
   });

@@ -2,10 +2,9 @@
  * Web track-kind adapter — re-exports from editor-core.
  */
 
-export {
-  resolveLaneTrackKind,
-  type TimelineTrackKind,
-} from "@motionvideo/editor-core";
+export { resolveLaneTrackKind } from "@motionvideo/editor-core";
+export type { TimelineTrackKind } from "@motionvideo/editor-core";
+import type { TimelineTrackKind } from "@motionvideo/editor-core";
 
 /** @deprecated Use resolveLaneTrackKind instead. */
 export type DesignLaneRole = "base" | "overlay" | "audio";

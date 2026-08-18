@@ -8,6 +8,7 @@ import {
   validateTimelineDocument,
   type TimelineDocument,
 } from "..";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 
 describe("Pure Command Runner Engine", () => {
   it("executes update-scene-duration command atomically", () => {
@@ -23,9 +24,13 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       expect(validateTimelineDocument(result.document).valid).toBe(true);
-      const updatedScene = result.document.project.scenes.find((s) => s.id === "scene.main.a");
-      expect(updatedScene?.duration).toBe(10);
-      expect(result.events.some((e) => e.type === "document-rebuilt")).toBe(true);
+      const updatedScene = result.document.project.layers.find(
+        (s) => s.id === "scene.main.a",
+      );
+      expect(updatedScene?.timing.duration).toBe(10);
+      expect(result.events.some((e) => e.type === "document-rebuilt")).toBe(
+        true,
+      );
     }
   });
 
@@ -50,8 +55,10 @@ describe("Pure Command Runner Engine", () => {
   it("executes add-scene-node into an existing scene (layer mode)", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
-    const sceneId = project.scenes[0]!.id;
-    const beforeCount = project.scenes[0]!.layers.length;
+    const sourceScene = project.layers[0]!;
+    const sceneId = sourceScene.id;
+    const beforeCount =
+      sourceScene.type === "group" ? sourceScene.children.length : 0;
 
     const result = executeTimelineCommand(doc, {
       type: "add-scene-node",
@@ -69,9 +76,10 @@ describe("Pure Command Runner Engine", () => {
 
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const scene = result.document.project.scenes.find((s) => s.id === sceneId)!;
-    expect(scene.layers.length).toBe(beforeCount + 1);
-    const added = scene.layers[scene.layers.length - 1]!;
+    const scene = result.document.project.layers.find((s) => s.id === sceneId)!;
+    const children = scene.type === "group" ? scene.children : [];
+    expect(children.length).toBe(beforeCount + 1);
+    const added = children[children.length - 1]!;
     expect(added.zIndex).toBe(3);
     expect(added.timing).toEqual({ start: 0.5, duration: 1.5 });
     expect(result.selection?.kind).toBe("node");
@@ -80,35 +88,53 @@ describe("Pure Command Runner Engine", () => {
 
   it("executes add-scene-node into a group with parent-relative timing and sibling zIndex", () => {
     const { project, clips, lanes } = fixtureMainOnly();
-    const scene = project.scenes[0]!;
-    scene.duration = 10;
-    scene.layers = [
+    const scene = project.layers[0]!;
+    if (scene.type !== "group") throw new Error("expected group scene");
+    scene.timing.duration = 10;
+    scene.children = [
       {
         id: "group.char",
         type: "group",
-        parentLayerId: null,
+        parentLayerId: scene.id,
         zIndex: 0,
         timing: { start: 5, duration: 2 },
-        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
-        payload: {},
+        ...visualLayerAtoms({ width: 1920, height: 1080 }),
+        children: [
+          {
+            id: "child.existing",
+            type: "text",
+            parentLayerId: "group.char",
+            zIndex: 1,
+            timing: { start: 0, duration: 2 },
+            ...visualLayerAtoms({ width: 200, height: 40 }),
+            payload: {
+              text: "Child",
+              fontSize: 12,
+              color: "#111111",
+              alignment: "left",
+              wrap: "word",
+              overflow: "visible",
+            },
+          },
+        ],
       },
       {
         id: "root.title",
         type: "text",
-        parentLayerId: null,
+        parentLayerId: scene.id,
         zIndex: 99,
-        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
-        payload: { text: "Root", fontSize: 12 },
+        timing: { start: 0, duration: 10 },
+        ...visualLayerAtoms({ width: 200, height: 40 }),
+        payload: {
+          text: "Root",
+          fontSize: 12,
+          color: "#111111",
+          alignment: "left",
+          wrap: "word",
+          overflow: "visible",
+        },
       },
-      {
-        id: "child.existing",
-        type: "text",
-        parentLayerId: "group.char",
-        zIndex: 1,
-        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
-        payload: { text: "Child", fontSize: 12 },
-      },
-    ] as typeof scene.layers;
+    ];
     const doc: TimelineDocument = { project, clips, lanes };
 
     const result = executeTimelineCommand(doc, {
@@ -127,10 +153,15 @@ describe("Pure Command Runner Engine", () => {
 
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const added = result.document.project.scenes[0]!.layers.at(-1)!;
-    expect(added.parentLayerId).toBe("group.char");
-    expect(added.zIndex).toBe(2);
-    expect(added.timing).toEqual({ start: 1.5, duration: 0.5 });
+    const resultScene = result.document.project.layers[0]!;
+    const group =
+      resultScene.type === "group"
+        ? resultScene.children.find((n) => n.id === "group.char")
+        : undefined;
+    const added = group?.type === "group" ? group.children.at(-1)! : null;
+    expect(added?.parentLayerId).toBe("group.char");
+    expect(added?.zIndex).toBe(2);
+    expect(added?.timing).toEqual({ start: 1.5, duration: 0.5 });
   });
 
   it("add-clip-draft with shape kind emits a shape node", () => {
@@ -152,8 +183,8 @@ describe("Pure Command Runner Engine", () => {
 
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
-      const scene = result.document.project.scenes.at(-1);
-      const node = scene?.layers[0];
+      const scene = result.document.project.layers.at(-1);
+      const node = scene?.type === "group" ? scene.children[0] : undefined;
       expect(node?.type).toBe("shape");
       if (node?.type === "shape") {
         expect(node.payload.shape).toBe("rectangle");
@@ -180,8 +211,8 @@ describe("Pure Command Runner Engine", () => {
 
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
-      const scene = result.document.project.scenes.at(-1);
-      const node = scene?.layers[0];
+      const scene = result.document.project.layers.at(-1);
+      const node = scene?.type === "group" ? scene.children[0] : undefined;
       expect(node?.type).toBe("image");
       if (node?.type === "image") {
         expect(node.payload.assetId).toBe("asset.photo");
@@ -211,14 +242,24 @@ describe("Pure Command Runner Engine", () => {
   it("executes delete-selected-clips command", () => {
     const { project, clips, lanes } = fixtureBasePlusOverlay();
     const doc: TimelineDocument = { project, clips, lanes };
-    const selection = { kind: "clips" as const, ids: ["clip.overlay"], primaryId: "clip.overlay" };
+    const selection = {
+      kind: "clips" as const,
+      ids: ["clip.overlay"],
+      primaryId: "clip.overlay",
+    };
 
-    const result = executeTimelineCommand(doc, { type: "delete-selected-clips" }, selection);
+    const result = executeTimelineCommand(
+      doc,
+      { type: "delete-selected-clips" },
+      selection,
+    );
 
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       expect(validateTimelineDocument(result.document).valid).toBe(true);
-      expect(result.document.clips.some((c) => c.id === "clip.overlay")).toBe(false);
+      expect(result.document.clips.some((c) => c.id === "clip.overlay")).toBe(
+        false,
+      );
       expect(result.events.some((e) => e.type === "clip-deleted")).toBe(true);
     }
   });
@@ -291,9 +332,14 @@ describe("Pure Command Runner Engine", () => {
     );
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
-      const node = result.document.project.scenes.at(-1)?.layers[0];
-      expect(node?.transform.x).toBe(960);
-      expect(node?.transform.y).toBe(540);
+      const scene = result.document.project.layers.at(-1);
+      const node = scene?.type === "group" ? scene.children[0] : undefined;
+      expect(node && "transform" in node ? node.transform.translate.x : 0).toBe(
+        960,
+      );
+      expect(node && "transform" in node ? node.transform.translate.y : 0).toBe(
+        540,
+      );
     }
   });
 });

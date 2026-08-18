@@ -25,9 +25,13 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       expect(validateTimelineDocument(result.document).valid).toBe(true);
-      const updatedScene = result.document.project.scenes.find((s) => s.id === "scene.main.a");
-      expect(updatedScene?.duration).toBe(10);
-      expect(result.events.some((e) => e.type === "document-rebuilt")).toBe(true);
+      const updatedScene = result.document.project.layers.find(
+        (s) => s.id === "scene.main.a",
+      );
+      expect(updatedScene?.timing.duration).toBe(10);
+      expect(result.events.some((e) => e.type === "document-rebuilt")).toBe(
+        true,
+      );
     }
   });
 
@@ -71,14 +75,24 @@ describe("Pure Command Runner Engine", () => {
   it("executes delete-selected-clips command", () => {
     const { project, clips, lanes } = fixtureBasePlusOverlay();
     const doc: TimelineDocument = { project, clips, lanes };
-    const selection = { kind: "clips" as const, ids: ["clip.overlay"], primaryId: "clip.overlay" };
+    const selection = {
+      kind: "clips" as const,
+      ids: ["clip.overlay"],
+      primaryId: "clip.overlay",
+    };
 
-    const result = executeTimelineCommand(doc, { type: "delete-selected-clips" }, selection);
+    const result = executeTimelineCommand(
+      doc,
+      { type: "delete-selected-clips" },
+      selection,
+    );
 
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       expect(validateTimelineDocument(result.document).valid).toBe(true);
-      expect(result.document.clips.some((c) => c.id === "clip.overlay")).toBe(false);
+      expect(result.document.clips.some((c) => c.id === "clip.overlay")).toBe(
+        false,
+      );
       expect(result.events.some((e) => e.type === "clip-deleted")).toBe(true);
     }
   });
@@ -144,7 +158,7 @@ describe("Store Integration & Factory Isolation", () => {
 
     expect(res.status).toBe("applied");
     const updatedProject = store.getState().project;
-    const sceneA = updatedProject?.scenes.find((s) => s.id === "scene.main.a");
-    expect(sceneA?.duration).toBe(8);
+    const sceneA = updatedProject?.layers.find((s) => s.id === "scene.main.a");
+    expect(sceneA?.timing.duration).toBe(8);
   });
 });

@@ -52,21 +52,13 @@ export type AccessCheckResult =
 // ── Public surface helpers ─────────────────────────────────────────────
 
 /** Properties on the public surface that a consumer is allowed to read. */
-export const CONSUMER_READABLE_PROPERTIES = [
-  "publicParams",
-  "variants",
-  "actions",
-  "publicTargets",
-] as const;
+export const CONSUMER_READABLE_PROPERTIES = ["props", "variants"] as const;
 
 export type ConsumerReadableProperty =
   (typeof CONSUMER_READABLE_PROPERTIES)[number];
 
 /** Properties on the public surface that a consumer is allowed to write. */
-export const CONSUMER_WRITABLE_PROPERTIES = [
-  "publicParams",
-  "variants",
-] as const;
+export const CONSUMER_WRITABLE_PROPERTIES = ["props", "variants"] as const;
 
 export type ConsumerWritableProperty =
   (typeof CONSUMER_WRITABLE_PROPERTIES)[number];
@@ -100,13 +92,19 @@ export function canConsumerWrite(property: string): AccessCheckResult {
   return {
     allowed: false,
     reason: `"${property}" is read-only for consumers`,
-    suggestion:
-      property === "actions"
-        ? "Actions can be triggered but not modified by consumers"
-        : property === "publicTargets"
-          ? "publicTargets are defined by the component owner"
-          : `Use one of: ${CONSUMER_WRITABLE_PROPERTIES.join(", ")}`,
+    suggestion: `Use one of: ${CONSUMER_WRITABLE_PROPERTIES.join(", ")}`,
   };
+}
+
+/** Layer ids exposed to consumers via the component's public prop bindings. */
+function exposedLayerIds(component: V1.ComponentDefinitionV1): Set<string> {
+  const ids = new Set<string>();
+  for (const binding of component.propBindings) {
+    if (binding.target.kind === "layerProperty") {
+      ids.add(binding.target.layerId);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -119,17 +117,14 @@ export function canConsumerWrite(property: string): AccessCheckResult {
 export function canAccessNode(
   context: ComponentEditContext,
   layerId: string,
-  component?: V1.EmbeddedComponentV1,
+  component?: V1.ComponentDefinitionV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
 
   // Consumer mode — only allow access if the node is referenced by a publicTarget
   if (component) {
-    const isExposed = component.publicTargets.some(
-      (pt) => pt.layerId === layerId,
-    );
-    if (isExposed) {
+    if (exposedLayerIds(component).has(layerId)) {
       return { allowed: true };
     }
   }
@@ -148,17 +143,14 @@ export function canAccessNode(
 export function canAccessBinding(
   context: ComponentEditContext,
   targetLayerId: string,
-  component?: V1.EmbeddedComponentV1,
+  component?: V1.ComponentDefinitionV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
 
   // Consumer mode — binding must go through a publicTarget
   if (component) {
-    const isExposed = component.publicTargets.some(
-      (pt) => pt.layerId === targetLayerId,
-    );
-    if (isExposed) {
+    if (exposedLayerIds(component).has(targetLayerId)) {
       return { allowed: true };
     }
   }
@@ -176,7 +168,7 @@ export function canAccessBinding(
  * Only variants declared by the owner are allowed.
  */
 export function canSelectVariant(
-  component: V1.EmbeddedComponentV1,
+  component: V1.ComponentDefinitionV1,
   variantId: string,
 ): AccessCheckResult {
   const variant = component.variants.find((v) => v.id === variantId);

@@ -131,9 +131,18 @@ export type StableIdViolation = {
  */
 export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
   const violations: StableIdViolation[] = [];
-  const sceneIds = new Set(doc.project.scenes.map((s) => s.id));
+  const rootLayers = doc.project.layers.filter(
+    (layer) => layer.parentLayerId === null,
+  );
+  const sceneIds = new Set(
+    rootLayers
+      .filter((layer) => layer.type !== "audio")
+      .map((layer) => layer.id),
+  );
   const audioTrackIds = new Set(
-    (doc.project.timeline.audioTracks ?? []).map((t) => t.id),
+    rootLayers
+      .filter((layer) => layer.type === "audio")
+      .map((layer) => layer.id),
   );
   const assetIds = new Set((doc.project.assets ?? []).map((a) => a.id));
 
@@ -166,14 +175,19 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
     }
   }
 
-  // Check scene node references
-  for (const scene of doc.project.scenes) {
-    for (const node of scene.layers) {
-      if (node.assetId && !assetIds.has(node.assetId)) {
+  // Check scene node references (group layers carry children; media leafs reference assets)
+  for (const scene of rootLayers) {
+    const nodes = scene.type === "group" ? scene.children : [];
+    for (const node of nodes) {
+      const assetId =
+        node.type === "image" || node.type === "video" || node.type === "audio"
+          ? node.payload.assetId
+          : undefined;
+      if (assetId && !assetIds.has(assetId)) {
         violations.push({
           kind: "dangling_asset",
-          message: `Node "${node.id}" in scene "${scene.id}" references missing asset "${node.assetId}"`,
-          refId: node.assetId,
+          message: `Node "${node.id}" in scene "${scene.id}" references missing asset "${assetId}"`,
+          refId: assetId,
           source: node.id,
         });
       }

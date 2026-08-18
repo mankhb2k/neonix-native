@@ -23,27 +23,28 @@ Các file này đã có và là nguồn sự thật đang chạy:
 
 Các file này tách từng miền để AI không nhồi mọi thứ vào một tài liệu.
 
-| File | Phạm vi | Trạng thái |
-| --- | --- | --- |
-| [v1-layer-guide.md](./v1-layer-guide.md) | Mô hình visual layer + cây + timing + zIndex | v1 |
-| [v1-frame-guide.md](./v1-frame-guide.md) | `frame` là size box | Nháp |
-| [v1-transform-guide.md](./v1-transform-guide.md) | Transform không gian | v1 |
-| [v1-appearance-guide.md](./v1-appearance-guide.md) | `visible` + `opacity` (visual only) | v1 |
-| [v1-compositing-guide.md](./v1-compositing-guide.md) | Blend, isolation, mask | v1 |
-| [v1-effects-guide.md](./v1-effects-guide.md) | Hiệu ứng điểm ảnh | v1 |
-| [v1-cyber-recipe.md](./v1-cyber-recipe.md) | Glow + inner-glow + noise trên HUD tối | v1 |
-| [v1-shape-guide.md](./v1-shape-guide.md) | Rectangle / ellipse / polygon; paint trên style | v1 |
-| [v1-path-guide.md](./v1-path-guide.md) | Vector tự do: contours, fillRule, paint trên style | v1 |
-| [v1-text-guide.md](./v1-text-guide.md) | Một hộp, một đoạn, một style | v1 |
-| [v1-image-guide.md](./v1-image-guide.md) | Ảnh: assetId, fit, crop 0..1; không style | v1 |
-| [v1-svg-guide.md](./v1-svg-guide.md) | SVG asset: fit + style.fill recolor; không internals | v1 |
-| [v1-video-guide.md](./v1-video-guide.md) | Video: fit + trim/loop/muted; không crop | v1 |
-| [v1-audio-guide.md](./v1-audio-guide.md) | Audio root-only, không visual | v1 |
-| [v1-layout-guide.md](./v1-layout-guide.md) | Layout của container và con | Nháp |
-| [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md) | Biến và binding | v1 |
-| [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md) | timeline.clips + prop keyframes; interpolation theo type | v1 |
-| [v1-compiler-runtime-guide.md](./v1-compiler-runtime-guide.md) | Compiler emit + runtime IR; không mở rộng protocol | v1 |
-| [v1-production-surface-guide.md](./v1-production-surface-guide.md) | Bề mặt AI mặc định / nâng cao | Nháp |
+| File                                                                 | Phạm vi                                                   | Trạng thái |
+| -------------------------------------------------------------------- | --------------------------------------------------------- | ---------- |
+| [v1-layer-guide.md](./v1-layer-guide.md)                             | Mô hình visual layer + cây + timing + zIndex              | v1         |
+| [v1-frame-guide.md](./v1-frame-guide.md)                             | `frame` là size box                                       | Nháp       |
+| [v1-transform-guide.md](./v1-transform-guide.md)                     | Transform không gian                                      | v1         |
+| [v1-appearance-guide.md](./v1-appearance-guide.md)                   | `visible` + `opacity` (visual only)                       | v1         |
+| [v1-compositing-guide.md](./v1-compositing-guide.md)                 | Blend, isolation, mask                                    | v1         |
+| [v1-effects-guide.md](./v1-effects-guide.md)                         | Hiệu ứng điểm ảnh                                         | v1         |
+| [v1-cyber-recipe.md](./v1-cyber-recipe.md)                           | Glow + inner-glow + noise trên HUD tối                    | v1         |
+| [v1-shape-guide.md](./v1-shape-guide.md)                             | Rectangle / ellipse / polygon; paint trên style           | v1         |
+| [v1-path-guide.md](./v1-path-guide.md)                               | Vector tự do: contours, fillRule, paint trên style        | v1         |
+| [v1-text-guide.md](./v1-text-guide.md)                               | Một hộp, một đoạn, một style                              | v1         |
+| [v1-assets-guide.md](./v1-assets-guide.md)                           | Asset: external URL vs managed R2; metadata bắt buộc      | v1         |
+| [v1-image-guide.md](./v1-image-guide.md)                             | Ảnh: assetId, fit, crop 0..1; không style                 | v1         |
+| [v1-svg-guide.md](./v1-svg-guide.md)                                 | SVG asset: fit + style.fill recolor; không internals      | v1         |
+| [v1-video-guide.md](./v1-video-guide.md)                             | Video: fit + trim/loop/muted; không crop                  | v1         |
+| [v1-audio-guide.md](./v1-audio-guide.md)                             | Audio root-only, không visual; audio analysis → keyframes | v1         |
+| [v1-layout-guide.md](./v1-layout-guide.md)                           | Layout của container và con                               | Nháp       |
+| [v1-variables-bindings-guide.md](./v1-variables-bindings-guide.md)   | Biến và binding                                           | v1         |
+| [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md) | timeline.clips + prop keyframes; interpolation theo type  | v1         |
+| [v1-compiler-runtime-guide.md](./v1-compiler-runtime-guide.md)       | Compiler emit + runtime IR; không mở rộng protocol        | v1         |
+| [v1-production-surface-guide.md](./v1-production-surface-guide.md)   | Bề mặt AI mặc định / nâng cao                             | Nháp       |
 
 ---
 

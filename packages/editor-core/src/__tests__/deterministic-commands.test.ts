@@ -7,10 +7,7 @@ import {
   undoHistory,
 } from "../history/history-manager";
 import type { CommandContext } from "../ports/command-context";
-import {
-  executeTimelineCommand,
-  type TimelineDocument,
-} from "..";
+import { executeTimelineCommand, type TimelineDocument } from "..";
 
 function createDeterministicId(): CommandContext["createId"] {
   const counters = new Map<string, number>();
@@ -71,9 +68,11 @@ describe("deterministic command + history fixtures", () => {
     const newIds = split.events
       .filter((e) => e.type === "clip-split")
       .flatMap((e) => (e.type === "clip-split" ? e.newClipIds : []));
-    expect(newIds.some((id) => id.startsWith("scene_det_") || id.startsWith("clip_det_"))).toBe(
-      true,
-    );
+    expect(
+      newIds.some(
+        (id) => id.startsWith("scene_det_") || id.startsWith("clip_det_"),
+      ),
+    ).toBe(true);
 
     const deleted = executeTimelineCommand(
       doc,
@@ -114,7 +113,9 @@ describe("deterministic command + history fixtures", () => {
     if (added.status !== "applied") return;
 
     const after = added.document;
-    const sceneIds = after.project.scenes.map((s) => s.id).filter((id) => id.includes("_det_"));
+    const sceneIds = after.project.layers
+      .map((s) => s.id)
+      .filter((id) => id.includes("_det_"));
     expect(sceneIds.length).toBeGreaterThan(0);
     expect(sceneIds[0]).toBe("scene_det_1");
 

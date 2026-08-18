@@ -52,7 +52,9 @@ export type RuntimeScene = RuntimeLayerGraph;
 export type RuntimeNode = RuntimeScene["layers"][number];
 export type RuntimePropertyAnimation =
   MotionRuntimeProject["propertyAnimations"][number];
-export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number] & {
+export type RuntimeEffect = NonNullable<
+  Exclude<RuntimeNode, { type: "camera" }>["effects"]
+>[number] & {
   /** Evaluated-only noise seed. Not an authoring field. */
   seed?: number;
 };
@@ -290,7 +292,10 @@ export function samplePropertyAnimationCurve(
   const samples: Array<{ time: number; value: unknown }> = [];
   for (let index = 0; index < count; index += 1) {
     const time = t0 + index * step;
-    samples.push({ time, value: evaluatePropertyAnimation(animation, time, undefined) });
+    samples.push({
+      time,
+      value: evaluatePropertyAnimation(animation, time, undefined),
+    });
   }
   return samples;
 }
@@ -447,7 +452,14 @@ export function evaluateEffect(
         : 0;
       return {
         ...effect,
-        amount: effectNumber(scene, node, effect, "amount", time, effect.amount),
+        amount: effectNumber(
+          scene,
+          node,
+          effect,
+          "amount",
+          time,
+          effect.amount,
+        ),
         scale: effectNumber(scene, node, effect, "scale", time, effect.scale),
         opacity: ratioFromPercent(
           effectNumber(scene, node, effect, "opacity", time, effect.opacity),
@@ -499,13 +511,19 @@ export function evaluateEffect(
   }
 }
 
+/** Frame is omitted on camera layers — fall back to an empty frame. */
+function nodeFrame(node: RuntimeNode): { width: number; height: number } {
+  return "frame" in node ? node.frame : { width: 0, height: 0 };
+}
+
 /** Resolve effects in authoring order; consumers must preserve this order. */
 export function evaluateNodeEffects(
   scene: RuntimeScene,
   node: RuntimeNode,
   time: number,
 ): RuntimeEffect[] {
-  return (node.effects ?? []).map((effect) =>
+  if (!("effects" in node) || !node.effects) return [];
+  return node.effects.map((effect) =>
     evaluateEffect(scene, node, effect, time),
   );
 }
@@ -562,7 +580,7 @@ export function evaluateTransform(
 ): Transform2D {
   const t = node.transform;
   const appearance = node.appearance ?? { visible: true, opacity: 100 };
-  const frame = node.frame ?? { width: 0, height: 0 };
+  const frame = nodeFrame(node);
   return {
     x: numberProperty(
       scene,
@@ -847,7 +865,10 @@ export function evaluateScene(
       property.startsWith("appearance.") ||
       property.startsWith("frame.")
     ) {
-      fallback = readNestedNumber(node as unknown as Record<string, unknown>, property);
+      fallback = readNestedNumber(
+        node as unknown as Record<string, unknown>,
+        property,
+      );
     }
     const value = evaluatePropertyAnimation(
       propertyAnimationIndex.get(`${layerId}::${property}`),
@@ -891,8 +912,8 @@ export function evaluateScene(
           x: 0,
           y: 0,
           depth: 0,
-          width: node.frame?.width ?? 0,
-          height: node.frame?.height ?? 0,
+          width: nodeFrame(node).width,
+          height: nodeFrame(node).height,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
@@ -929,8 +950,8 @@ export function evaluateScene(
           x: 0,
           y: 0,
           depth: 0,
-          width: node.frame?.width ?? 0,
-          height: node.frame?.height ?? 0,
+          width: nodeFrame(node).width,
+          height: nodeFrame(node).height,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,

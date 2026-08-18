@@ -1,7 +1,15 @@
 import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
-import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
+import type {
+  EvaluatedNode,
+  RuntimeScene,
+  RuntimeNode,
+  RuntimeEffect,
+} from "./evaluator";
 import type { Bounds2D } from "./spatial";
-import { calculateMotionBlurTimestamps, type MotionBlurSettings } from "./motion-blur";
+import {
+  calculateMotionBlurTimestamps,
+  type MotionBlurSettings,
+} from "./motion-blur";
 import {
   hierarchyRenderOrder,
   type OrderableNode,
@@ -24,7 +32,7 @@ export type RenderPass = {
     mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
     sourceVisibility: "mask-only" | "content-and-mask";
   };
-  effects: NonNullable<RuntimeNode["effects"]>;
+  effects: RuntimeEffect[];
   isAdjustment: boolean;
   groupCompositing?: IsolationMode;
 };
@@ -43,11 +51,16 @@ export type RenderPlan = {
   motionBlur?: MotionBlurSettings & { sampleTimes: number[] };
 };
 
-export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<RuntimeNode["effects"]>): Bounds2D {
+export function inflateBoundsForEffects(
+  bounds: Bounds2D,
+  effects: RuntimeEffect[],
+): Bounds2D {
   let inflation = 0;
   for (const effect of effects) {
     if (effect.type === "blur") inflation += effect.radius;
-    if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offset.x) + Math.abs(effect.offset.y);
+    if (effect.type === "shadow")
+      inflation +=
+        effect.blur + Math.abs(effect.offset.x) + Math.abs(effect.offset.y);
     if (effect.type === "glow")
       inflation += effect.radius * (effect.opacity / 100);
     if (effect.type === "inner-glow" || effect.type === "noise") continue;
@@ -69,7 +82,9 @@ export function buildRenderPlan(
   const diagnostics: RenderPlanDiagnostic[] = [];
   let totalAllocatedPixels = 0;
 
-  const sorted = hierarchyRenderOrder(evaluatedNodes as OrderableNode[]) as EvaluatedNode[];
+  const sorted = hierarchyRenderOrder(
+    evaluatedNodes as OrderableNode[],
+  ) as EvaluatedNode[];
 
   const passes: RenderPass[] = [];
 
@@ -77,8 +92,12 @@ export function buildRenderPlan(
     const node = evaluated.layer;
     if (!evaluated.visible) continue;
 
-    const effects = node.effects ?? [];
-    const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
+    const effects: RuntimeEffect[] =
+      "effects" in node ? (node.effects ?? []) : [];
+    const inflatedBounds = inflateBoundsForEffects(
+      evaluated.worldBounds,
+      effects,
+    );
     const isAdjustment = node.type === "adjustment";
     const compositingIsolation =
       node.compositing?.isolation === "isolate" ? "isolate" : "pass-through";
@@ -87,13 +106,13 @@ export function buildRenderPlan(
       effects.length > 0 ||
       isAdjustment ||
       compositingIsolation === "isolate";
-    const isolation: IsolationMode =
-      needsOffscreen || compositingIsolation === "isolate"
-        ? "isolate"
-        : "pass-through";
+    const isolation: IsolationMode = needsOffscreen
+      ? "isolate"
+      : "pass-through";
 
     if (needsOffscreen) {
-      const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
+      const area =
+        Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
       totalAllocatedPixels += area;
       if (totalAllocatedPixels > MOTION_PROTOCOL_LIMITS.offscreenPixels) {
         diagnostics.push({
@@ -136,11 +155,15 @@ export function buildRenderPlan(
           enabled: motionBlurConfig.enabled,
           shutterAngle: motionBlurConfig.shutterAngle ?? 180,
           sampleCount: motionBlurConfig.sampleCount ?? 4,
-          sampleTimes: calculateMotionBlurTimestamps(options.time, options.fps, {
-            enabled: motionBlurConfig.enabled,
-            shutterAngle: motionBlurConfig.shutterAngle ?? 180,
-            sampleCount: motionBlurConfig.sampleCount ?? 4,
-          }),
+          sampleTimes: calculateMotionBlurTimestamps(
+            options.time,
+            options.fps,
+            {
+              enabled: motionBlurConfig.enabled,
+              shutterAngle: motionBlurConfig.shutterAngle ?? 180,
+              sampleCount: motionBlurConfig.sampleCount ?? 4,
+            },
+          ),
         }
       : undefined;
 

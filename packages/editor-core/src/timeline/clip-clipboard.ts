@@ -1,6 +1,4 @@
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 export type ClipClipboardKind = "main" | "overlay" | "audio";
 
@@ -11,8 +9,8 @@ export type ClipClipboardItem = {
   duration: number;
   /** Offset from the leftmost copied clip's startTime. */
   offsetStart: number;
-  /** Deep-cloned main scene (ids reassigned on paste). */
-  scene?: MotionScene;
+  /** Deep-cloned main layer (ids reassigned on paste). */
+  scene?: MotionLayer;
   /** Audio asset id for audio clips. */
   audioAssetId?: string;
   /** Preserved audio track semantics when copying audio clips. */
@@ -33,7 +31,6 @@ export function playheadSplitsClip(
   const start = clip.startTime;
   const end = start + clip.duration;
   return (
-    playhead > start + MIN_CLIP_SLICE_SEC &&
-    playhead < end - MIN_CLIP_SLICE_SEC
+    playhead > start + MIN_CLIP_SLICE_SEC && playhead < end - MIN_CLIP_SLICE_SEC
   );
 }

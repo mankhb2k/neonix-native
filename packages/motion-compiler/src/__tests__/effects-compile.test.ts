@@ -8,11 +8,11 @@ describe("compile inner-glow + noise", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const card = result.project.layers.find((layer) => layer.id === "hud-card");
-    expect(card?.effects?.map((effect) => effect.type)).toEqual([
-      "glow",
-      "inner-glow",
-      "noise",
-    ]);
+    const effectTypes =
+      card && "effects" in card
+        ? card.effects?.map((effect) => effect.type)
+        : undefined;
+    expect(effectTypes).toEqual(["glow", "inner-glow", "noise"]);
     expect(
       result.diagnostics.some((d) => d.code === "CAP_UNDECLARED_CAPABILITY"),
     ).toBe(false);

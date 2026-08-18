@@ -21,12 +21,12 @@ function assertTimelineProjectInvariants() {
   expect(project).not.toBeNull();
   if (!project) return;
 
-  const sceneIds = new Set(project.scenes.map((s) => s.id));
+  const sceneIds = new Set(project.layers.map((s) => s.id));
   const laneIds = new Set(timelineLanes.map((l) => l.id));
 
-  expect(timelineLanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(
-    true,
-  );
+  expect(
+    timelineLanes.some((l) => l.kind === "visual" && l.role === "base"),
+  ).toBe(true);
 
   for (const clip of timelineClips) {
     expect(laneIds.has(clip.laneId)).toBe(true);

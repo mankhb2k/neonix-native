@@ -3,9 +3,7 @@
  * Index memo theo clips/lanes; frame chỉ binary search (PERF).
  */
 
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 import {
   isSceneClip,
   type TimelineClip,
@@ -92,10 +90,9 @@ export function buildVisualLaneIndex(
 
   return {
     baseLaneId: baseLane?.id ?? null,
-    baseVisible: baseLane?.kind === "visual" ? baseLane.visible !== false : false,
-    baseClips: baseLane
-      ? sortedSceneClipsOnLane(clips, baseLane.id)
-      : [],
+    baseVisible:
+      baseLane?.kind === "visual" ? baseLane.visible !== false : false,
+    baseClips: baseLane ? sortedSceneClipsOnLane(clips, baseLane.id) : [],
     overlayLanes,
   };
 }
@@ -154,9 +151,9 @@ export function composeVisualLayersAtTime(
 }
 
 export function resolveScene(
-  scenesById: Map<string, MotionScene>,
-  scenes: MotionScene[],
+  scenesById: Map<string, MotionLayer>,
+  scenes: MotionLayer[],
   sceneId: string,
-): MotionScene | undefined {
+): MotionLayer | undefined {
   return scenesById.get(sceneId) ?? scenes.find((s) => s.id === sceneId);
 }

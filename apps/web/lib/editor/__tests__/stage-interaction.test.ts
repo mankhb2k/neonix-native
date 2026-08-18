@@ -7,7 +7,7 @@ import {
 describe("stage interaction session", () => {
   it("previews move deltas and commits once", () => {
     const session = createStageSession();
-    let preview: StageTransformValues | null = null;
+    const previews: Array<StageTransformValues | null> = [];
     const base = {
       sceneId: "scene.demo",
       layerId: "node.dot",
@@ -31,13 +31,13 @@ describe("stage interaction session", () => {
       },
       {
         onPreview: (payload) => {
-          preview = payload.patches[0] ?? null;
+          previews[0] = payload.patches[0] ?? null;
         },
       },
     );
     session.updatePointer({ x: 40, y: 25 });
-    expect(preview?.x).toBe(130);
-    expect(preview?.y).toBe(215);
+    expect(previews[0]?.x).toBe(130);
+    expect(previews[0]?.y).toBe(215);
 
     const committed = session.commit("pointerup");
     expect(committed?.patches[0]?.values.x).toBe(130);
@@ -46,7 +46,7 @@ describe("stage interaction session", () => {
 
   it("Escape path cancels without commit payload", () => {
     const session = createStageSession();
-    let preview: StageTransformValues | null = null;
+    const previews: Array<StageTransformValues | null> = [];
     session.beginResize(
       {
         interactionId: "resize-1",
@@ -65,13 +65,13 @@ describe("stage interaction session", () => {
       },
       {
         onPreview: (payload) => {
-          preview = payload.patches[0] ?? null;
+          previews[0] = payload.patches[0] ?? null;
         },
       },
     );
     session.updatePointer({ x: 140, y: 80 });
     session.cancel();
-    expect(preview).toBeNull();
+    expect(previews[0]).toBeNull();
     expect(session.commit()).toBeNull();
   });
 });

@@ -1,9 +1,5 @@
 import { V1 } from "@motionvideo/motion-protocol";
-import {
-  clone,
-  pixelFormatHasAlpha,
-  type JsonRecord,
-} from "./helpers";
+import { clone, pixelFormatHasAlpha, type JsonRecord } from "./helpers";
 
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   if (node.type === "audio") {
@@ -34,7 +30,7 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   base.zIndex = node.zIndex;
   base.timing = clone(node.timing);
   if (node.semantic) base.semantic = node.semantic;
-  if (node.effects && node.effects.length > 0)
+  if ("effects" in node && node.effects && node.effects.length > 0)
     base.effects = clone(node.effects);
   if (node.compositing) base.compositing = clone(node.compositing);
   if (flags.position !== undefined) base.inheritPosition = flags.position;

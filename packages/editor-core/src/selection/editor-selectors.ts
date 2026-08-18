@@ -1,9 +1,4 @@
-import type {
-  MotionProject,
-} from "@motionvideo/motion-protocol";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import type { TimelineClip, TimelineLane } from "../timeline/timeline-clips";
 import {
   focusedNodeIdFrom,
@@ -15,15 +10,18 @@ import {
   type EditorSelection,
 } from "./editor-selection";
 
-function firstEditableNodeId(scene: MotionScene | undefined): string | null {
+function firstEditableNodeId(scene: MotionLayer | undefined): string | null {
   if (!scene) return null;
-  const node = scene.layers.find(
+  const children = scene.type === "group" ? scene.children : [];
+  const node = children.find(
     (n) => n.type === "text" || n.type === "shape" || n.type === "path",
   );
   return node?.id ?? null;
 }
 
-export function selectSelectedClipId(selection: EditorSelection): string | null {
+export function selectSelectedClipId(
+  selection: EditorSelection,
+): string | null {
   return selectedClipIdFrom(selection);
 }
 

@@ -44,7 +44,8 @@ function normalizeGolden(json: string): string {
 function readGolden(name: string): string | undefined {
   const file = path.join(goldenDir, `${name}.runtime.json`);
   if (!existsSync(file)) return undefined;
-  return readFileSync(file, "utf8");
+  // Normalize CRLF → LF so goldens stay portable regardless of `core.autocrlf`.
+  return readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 }
 
 function writeGolden(name: string, json: string): void {

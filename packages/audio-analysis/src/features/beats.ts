@@ -49,10 +49,13 @@ export function detectBeats(
     for (let j = start; j < end; j++) sum += bassEnergy[j].value;
     const average = sum / (end - start);
 
-    if (frame.value > average * threshold && frame.t - lastBeatT >= minBeatGap) {
-      const strength = clamp01(
-        (frame.value - average) / (average * (threshold - 1) + 1e-6),
-      );
+    if (
+      frame.value > average * threshold &&
+      frame.t - lastBeatT >= minBeatGap
+    ) {
+      // Relative prominence above the local average: ~0.35 right at the
+      // threshold (1.35x average), approaching 1 for strong peaks (~2x).
+      const strength = clamp01((frame.value - average) / (average + 1e-6));
       beats.push({ t: frame.t, strength });
       lastBeatT = frame.t;
     }

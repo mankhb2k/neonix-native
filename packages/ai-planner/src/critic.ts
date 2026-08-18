@@ -52,7 +52,8 @@ export function critiqueProject(project: MotionProject): CriticReport {
         severity: "error",
         path: `layers.${node.id}`,
         message: `Node references unknown asset "${node.payload.assetId}"`,
-        repairHint: "registerAsset before referencing it, or use a valid asset id",
+        repairHint:
+          "registerAsset before referencing it, or use a valid asset id",
       });
       score -= 15;
     }
@@ -65,7 +66,8 @@ export function critiqueProject(project: MotionProject): CriticReport {
       severity: "warning",
       path: "capabilities.experimental",
       message: `Project requires experimental capabilities: ${experimental.join(", ")}`,
-      repairHint: "Remove experimental capability requirements for production use",
+      repairHint:
+        "Remove experimental capability requirements for production use",
     });
     score -= 5;
   }
@@ -82,12 +84,14 @@ export function critiqueProject(project: MotionProject): CriticReport {
     score -= 40;
   }
 
-  const hasCta = layers.some(
-    (node) =>
-      node.semantic?.role === "cta" ||
-      node.semantic?.key?.includes("cta") ||
-      node.id.includes("cta"),
-  );
+  const hasCta = layers.some((node) => {
+    const semantic = "semantic" in node ? node.semantic : undefined;
+    return (
+      semantic?.role === "cta" ||
+      semantic?.key?.includes("cta") ||
+      node.id.includes("cta")
+    );
+  });
   if (!hasCta) {
     findings.push({
       code: "missing_cta",
@@ -111,7 +115,9 @@ export function critiqueProject(project: MotionProject): CriticReport {
       score -= 25;
     }
 
-    const texts = V1.flattenLayerTree(scene.children).filter((node) => node.type === "text");
+    const texts = V1.flattenLayerTree(scene.children).filter(
+      (node) => node.type === "text",
+    );
     for (const node of texts) {
       const fontSize = node.payload.fontSize;
       const width = node.frame?.width ?? 1;
@@ -168,7 +174,9 @@ export function applyCriticRepair(
   if (finding.code === "text_overflow") {
     const match = /^scenes\.([^.]+)\.layers\.(.+)$/.exec(finding.path);
     if (match) {
-      const node = V1.flattenLayerTree(next.layers).find((item) => item.id === match[2]);
+      const node = V1.flattenLayerTree(next.layers).find(
+        (item) => item.id === match[2],
+      );
       if (node?.type === "text") {
         const box = Math.max(1, node.frame?.width ?? 1);
         const needed =
@@ -202,10 +210,11 @@ export function applyCriticRepair(
         id: `node.repair.${scene.id}`,
         type: "text",
         parentLayerId: scene.id,
+        zIndex: scene.children.length,
+        timing: { start: 0, duration: scene.timing.duration },
         ...visualLayerAtoms({
           x: 540,
           y: 960,
-          z: 0,
           width: 900,
           height: 120,
           rotation: 0,
@@ -217,9 +226,12 @@ export function applyCriticRepair(
           visible: true,
         }),
         payload: {
-          text: "Continue" ,
+          text: "Continue",
           fontSize: 48,
+          color: "#ffffff",
           alignment: "center",
+          wrap: "word" as const,
+          overflow: "clip" as const,
         },
         semantic: { role: "hook", key: "hook.copy", tags: [] },
       });

@@ -6,9 +6,7 @@ import {
   type EvaluatedFrame,
   type EvaluatedFramePainter,
 } from "@motionvideo/motion-runtime";
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import { Application, Container } from "pixi.js";
 import {
   createPixiFramePainter,
@@ -71,7 +69,8 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         preference: "webgl",
       });
       host.appendChild(app.canvas as HTMLCanvasElement);
-      (app.canvas as HTMLCanvasElement).dataset.testid = "runtime-preview-canvas";
+      (app.canvas as HTMLCanvasElement).dataset.testid =
+        "runtime-preview-canvas";
       app.stage.addChild(world);
       world.position.set(viewport.offsetX, viewport.offsetY);
       world.scale.set(viewport.scale);
@@ -82,7 +81,9 @@ export function createPixiStageRenderer(): PixiStageRenderer {
           if (color) background = color;
           if (app) app.renderer.background.color = hexToNumber(background);
         },
-        renderer: app.renderer as PixiFramePainterOptions["renderer"],
+        renderer: app.renderer as unknown as NonNullable<
+          PixiFramePainterOptions["renderer"]
+        >,
       });
     },
 

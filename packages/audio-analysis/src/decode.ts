@@ -44,12 +44,23 @@ export async function decodeAudioFromUrl(
   url: string,
   audioContext?: AudioContext,
 ): Promise<MonoPcm> {
+  const ownsContext = audioContext == null;
   const ctx = audioContext ?? new AudioContext();
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch audio from "${url}": HTTP ${response.status}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch audio from "${url}": HTTP ${response.status}`,
+      );
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = await ctx.decodeAudioData(arrayBuffer);
+    // mixChannelsToMono copies into a fresh Float32Array, so it is safe to
+    // close the context right after extracting the mono data.
+    return audioBufferToMonoPcm(buffer);
+  } finally {
+    if (ownsContext) {
+      await ctx.close().catch(() => undefined);
+    }
   }
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = await ctx.decodeAudioData(arrayBuffer);
-  return audioBufferToMonoPcm(buffer);
 }

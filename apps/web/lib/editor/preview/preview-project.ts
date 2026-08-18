@@ -1,6 +1,7 @@
 import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
 import {
   evaluateFrame,
+  layerGraphFromRuntime,
   resolveTimelineAtTime,
   type RenderSnapshot,
 } from "@motionvideo/motion-runtime";
@@ -13,17 +14,9 @@ import type { MotionProject } from "@motionvideo/motion-protocol";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import { compositionAspectRatio } from "@/lib/runtime/project-composition";
 
-/** First scene from the v1 main visual track, else first scene. */
+/** First root layer id. */
 export function firstSceneId(project: MotionProject): string | null {
-  const timeline = project.timeline;
-  if ("visualTracks" in timeline && Array.isArray(timeline.visualTracks)) {
-    for (const track of timeline.visualTracks) {
-      if (track.role !== "main") continue;
-      const first = track.clips[0];
-      if (first && first.source.kind === "scene") return first.source.sceneId;
-    }
-  }
-  return project.scenes?.[0]?.id ?? null;
+  return project.layers?.[0]?.id ?? null;
 }
 
 /** Project used for stage preview + hit-test. */
@@ -58,18 +51,18 @@ export function buildPreviewSnapshot(
 ): RenderSnapshot | null {
   const preview = resolvePreviewProject(project);
   const runtime = compileProjectV1(preview.project);
+  const scene = layerGraphFromRuntime(runtime);
+  if (scene.layers.length === 0 && !(scene.duration > 0)) return null;
   const resolved = resolveTimelineAtTime(runtime, time);
-  const scene =
-    (resolved ? runtime.scenes.find((s) => s.id === resolved.sceneId) : null) ??
-    runtime.scenes.find((s) => s.id === preview.sceneId) ??
-    runtime.scenes[0];
-  if (!scene) return null;
   const { width, height } = stageSizeForAspect(
     compositionAspectRatio(preview.project),
   );
   const localTime = resolved?.localTime ?? time;
   const localFrame = resolved
-    ? Math.max(0, Math.round(resolved.localTime * (runtime.metadata.fps || 30)))
+    ? Math.max(
+        0,
+        Math.round(resolved.localTime * (runtime.composition?.fps ?? 30)),
+      )
     : frame;
   const evaluated = evaluateFrame({
     scene,

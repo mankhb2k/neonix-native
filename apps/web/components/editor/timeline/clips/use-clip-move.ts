@@ -16,8 +16,10 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { computeAutoScrollNearEdge } from "@motionvideo/editor-interactions";
-import { LANE_GAP_PX } from "../../timeline-scale";
+import {
+  computeAutoScrollNearEdge,
+  type ClipMovePreview,
+} from "@motionvideo/editor-interactions";
 
 export type UseClipMoveArgs = {
   clips: TimelineClip[];
@@ -30,6 +32,7 @@ export type UseClipMoveArgs = {
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onMovePreview: (preview: ClipMovePreview | null) => void;
   scrollRef: RefObject<HTMLElement | null>;
 };
 
@@ -44,6 +47,7 @@ export function useClipMove({
   beginGesture,
   onSelect,
   onExecute,
+  onMovePreview,
   scrollRef,
 }: UseClipMoveArgs) {
   const host: ClipMoveHost = useMemo(
@@ -113,6 +117,7 @@ export function useClipMove({
     beginGesture,
     onSelect,
     onCommand: onExecute,
+    onMovePreview,
     host,
   });
 }

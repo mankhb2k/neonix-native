@@ -79,7 +79,11 @@ function rect(
   name: string,
   t: Xform,
   fill: string,
-  opts?: { parentLayerId?: string | null; zIndex?: number; cornerRadius?: number },
+  opts?: {
+    parentLayerId?: string | null;
+    zIndex?: number;
+    cornerRadius?: number;
+  },
 ): MotionLayer {
   return {
     id,
@@ -157,13 +161,14 @@ function fadeInPropertyAnimations(
 
 function scene(
   id: string,
-  _name: string,
+  name: string,
   duration: number,
   layers: MotionLayer[],
   propertyAnimations: MotionRuntimePropertyAnimation[],
-): RuntimeLayerGraph {
+): RuntimeLayerGraph & { name: string } {
   return {
     id,
+    name,
     duration,
     layers: layers as RuntimeLayerGraph["layers"],
     propertyAnimations,
@@ -225,10 +230,10 @@ function buildHook(): RuntimeLayerGraph {
       },
       {
         layerId: accentId,
-        property: "frame.width",
+        property: "transform.scale.x",
         keys: [
-          { t: 0.9, v: 40 },
-          { t: 1.5, v: 120, easing: "easeOut" },
+          { t: 0.9, v: 1 / 3 },
+          { t: 1.5, v: 1, easing: "easeOut" },
         ],
       },
     ],
@@ -475,10 +480,10 @@ function buildIpo(): RuntimeLayerGraph {
       },
       {
         layerId: barId,
-        property: "frame.width",
+        property: "transform.scale.x",
         keys: [
-          { t: 0.6, v: 40 },
-          { t: 1.1, v: 200, easing: "easeOut" },
+          { t: 0.6, v: 0.5 },
+          { t: 1.1, v: 2.5, easing: "easeOut" },
         ],
       },
       ...fadeInPropertyAnimations(stat1, 1.0, 0.55),
@@ -632,6 +637,48 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
     scenes.slice(0, index).reduce((sum, s) => sum + s.duration, 0),
   );
 
+  // Each scene becomes a root group layer; its nodes are re-parented into it
+  // with deterministic, unique zIndex among siblings.
+  const layers: MotionLayer[] = scenes.map((scene, index) => ({
+    id: scene.id,
+    type: "group",
+    name: scene.name,
+    parentLayerId: null,
+    zIndex: index,
+    ...xform({
+      x: 960,
+      y: 540,
+      width: 1920,
+      height: 1080,
+      anchorX: 0.5,
+      anchorY: 0.5,
+    }),
+    timing: { start: starts[index] ?? 0, duration: scene.duration },
+    children: scene.layers.map((layer, childIndex) => ({
+      ...layer,
+      parentLayerId: scene.id,
+      zIndex: childIndex,
+      timing: { start: 0, duration: scene.duration },
+    })),
+  }));
+
+  // Runtime propertyAnimations → authoring timeline.clips (compiler lowers back).
+  const clips = scenes.flatMap((scene, sceneIndex) =>
+    scene.propertyAnimations.map((anim, animIndex) => ({
+      id: `clip.${scene.id}.${animIndex}`,
+      layerId: anim.layerId,
+      property: anim.property,
+      kind: "keyframes",
+      keys: anim.keys.map((key) => ({
+        t: key.t,
+        value: key.v,
+        ...(key.easing ? { easing: key.easing } : {}),
+      })),
+    })),
+  );
+
+  const duration = scenes.reduce((sum, s) => sum + s.duration, 0);
+
   return parseMotionProjectV1({
     format: "motion-project",
     formatVersion: 1,
@@ -657,25 +704,8 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
     variables: [],
     assets: [],
     components: [],
-    scenes,
-    timeline: {
-      visualTracks: [
-        {
-          id: "track.main",
-          order: 0,
-          clips: scenes.map((scene, index) => ({
-            id: `clip.${scene.id}`,
-            source: { kind: "scene", graphId: scene.id },
-            start: starts[index]!,
-            duration: scene.duration,
-            opacity: 1,
-            loop: false,
-          })),
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
+    layers,
+    timeline: { duration, clips },
     bindings: [],
   });
 }

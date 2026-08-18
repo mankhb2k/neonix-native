@@ -18,6 +18,7 @@ import {
   type TimelineCommand,
   type TimelineDocument,
 } from "@motionvideo/editor-core";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 import {
   loadEditorProjectSnapshot,
   saveProject,
@@ -47,9 +48,11 @@ describe("Phase 8 Spike A — multi-store history isolation", () => {
 
     store1.getState().undo();
     expect(
-      store1.getState().project?.scenes.find((s) => s.id === "scene.main.a")
-        ?.duration,
-    ).toBe(project.scenes.find((s) => s.id === "scene.main.a")?.duration);
+      store1.getState().project?.layers.find((s) => s.id === "scene.main.a")
+        ?.timing.duration,
+    ).toBe(
+      project.layers.find((s) => s.id === "scene.main.a")?.timing.duration,
+    );
     expect(store2.getState().canUndo).toBe(false);
   });
 });
@@ -79,14 +82,18 @@ describe("Phase 8 Spike B — clip/trim + unknown command", () => {
 
     const audioClip = store
       .getState()
-      .timelineClips.find((c) => c.kind === "audio" && c.audioTrackId === "audio.a");
+      .timelineClips.find(
+        (c) => c.kind === "audio" && c.audioTrackId === "audio.a",
+      );
     expect(audioClip).toBeTruthy();
     const beforeDur = audioClip!.duration;
     const beforeTrim =
       store
         .getState()
-        .project?.timeline.audioTracks.find((t) => t.id === "audio.a")
-        ?.trimStart ?? 0;
+        .project?.layers.find(
+          (l): l is Extract<MotionLayer, { type: "audio" }> =>
+            l.type === "audio" && l.id === "audio.a",
+        )?.payload.trimStart ?? 0;
 
     const applied = store.getState().executeTimelineCommand({
       type: "clip/trim",
@@ -101,8 +108,10 @@ describe("Phase 8 Spike B — clip/trim + unknown command", () => {
       mid.timelineClips.find((c) => c.id === audioClip!.id)?.duration,
     ).toBeCloseTo(Math.max(0.5, beforeDur - 1), 5);
     expect(
-      mid.project?.timeline.audioTracks.find((t) => t.id === "audio.a")
-        ?.trimStart,
+      mid.project?.layers.find(
+        (l): l is Extract<MotionLayer, { type: "audio" }> =>
+          l.type === "audio" && l.id === "audio.a",
+      )?.payload.trimStart,
     ).toBeCloseTo(beforeTrim + 0.5, 5);
 
     store.getState().undo();
@@ -113,8 +122,10 @@ describe("Phase 8 Spike B — clip/trim + unknown command", () => {
     expect(
       store
         .getState()
-        .project?.timeline.audioTracks.find((t) => t.id === "audio.a")
-        ?.trimStart ?? 0,
+        .project?.layers.find(
+          (l): l is Extract<MotionLayer, { type: "audio" }> =>
+            l.type === "audio" && l.id === "audio.a",
+        )?.payload.trimStart ?? 0,
     ).toBeCloseTo(beforeTrim, 5);
 
     store.getState().redo();
@@ -184,7 +195,9 @@ describe("Phase 8 Spike D — exhaustive clip capability", () => {
       duration: 1,
       name: "cap",
     } as unknown as TimelineClip;
-    expect(() => clipCapabilities(experimental)).toThrow(/unsupported clip kind/);
+    expect(() => clipCapabilities(experimental)).toThrow(
+      /unsupported clip kind/,
+    );
     expect(() => assertNever(experimental as never)).toThrow();
   });
 });
@@ -261,9 +274,7 @@ describe("P7 dirty revision + close-save smoke", () => {
     });
     expect(result.ok).toBe(true);
     store.getState().markDocumentSaved();
-    expect(store.getState().dirtyRevision).toBe(
-      store.getState().savedRevision,
-    );
+    expect(store.getState().dirtyRevision).toBe(store.getState().savedRevision);
   });
 
   it("flush-on-close path keeps last committed command after reload", () => {
@@ -288,9 +299,10 @@ describe("P7 dirty revision + close-save smoke", () => {
     state.markDocumentSaved();
 
     const reloaded = loadEditorProjectSnapshot(project.metadata.id);
-    expect(reloaded?.project.scenes.find((s) => s.id === "scene.main.a")?.duration).toBe(
-      12.5,
-    );
+    expect(
+      reloaded?.project.layers.find((s) => s.id === "scene.main.a")?.timing
+        .duration,
+    ).toBe(12.5);
   });
 
   it("saves to per-project key without rewriting whole collection blob", () => {
@@ -299,7 +311,9 @@ describe("P7 dirty revision + close-save smoke", () => {
       timelineClips: a.clips,
       timelineLanes: a.lanes,
     });
-    expect(window.localStorage.getItem(projectStorageKey(a.project.metadata.id))).toBeTruthy();
+    expect(
+      window.localStorage.getItem(projectStorageKey(a.project.metadata.id)),
+    ).toBeTruthy();
     expect(window.localStorage.getItem(PROJECT_INDEX_KEY)).toContain(
       a.project.metadata.id,
     );

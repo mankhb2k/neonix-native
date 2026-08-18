@@ -19,7 +19,7 @@ describe("paint-preflight", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -38,7 +38,7 @@ describe("paint-preflight", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -84,8 +84,8 @@ describe("paint-preflight", () => {
       ],
     });
     expect(result.ok).toBe(false);
-    expect(result.issues.some((i) => i.code === "asset_integrity_missing")).toBe(
-      true,
-    );
+    expect(
+      result.issues.some((i) => i.code === "asset_integrity_missing"),
+    ).toBe(true);
   });
 });

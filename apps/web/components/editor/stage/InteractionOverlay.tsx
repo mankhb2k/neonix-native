@@ -15,6 +15,8 @@ import {
   selectionNone,
   selectionNode,
   visualTracksToTimelineClips,
+  findNode,
+  rootLayerIdOf,
 } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { useEditorStore } from "@/lib/editor/editor-store";
@@ -88,11 +90,7 @@ export function InteractionOverlay({
   const selectedItem = useMemo(() => {
     if (!snapshot || selection.kind !== "node") return null;
     return (
-      snapshot.items.find(
-        (item) =>
-          item.sceneId === selection.sceneId &&
-          item.layerId === selection.layerId,
-      ) ?? null
+      snapshot.items.find((item) => item.layerId === selection.layerId) ?? null
     );
   }, [snapshot, selection]);
 
@@ -103,12 +101,7 @@ export function InteractionOverlay({
 
   const previewBox = useMemo(() => {
     if (!selectedItem) return null;
-    if (
-      !preview ||
-      !base ||
-      preview.layerId !== selectedItem.layerId ||
-      preview.sceneId !== selectedItem.sceneId
-    ) {
+    if (!preview || !base || preview.layerId !== selectedItem.layerId) {
       return selectedItem.worldBounds;
     }
     return selectionBoxFromWorldAndDelta(
@@ -139,19 +132,18 @@ export function InteractionOverlay({
   );
 
   const resolveNodeBase = useCallback(
-    (sceneId: string, layerId: string) => {
+    (layerId: string) => {
       if (!project) return null;
-      const previewProject = resolvePreviewProject(project).project;
-      const scene = previewProject.scenes.find((s) => s.id === sceneId);
-      const node = scene?.layers.find((n) => n.id === nodeId);
-      if (!node) return null;
+      const sceneId = rootLayerIdOf(project, layerId) ?? layerId;
+      const node = findNode(project, sceneId, layerId);
+      if (!node || !("transform" in node) || !node.transform) return null;
       return {
         sceneId,
         layerId,
         x: node.transform.translate.x,
         y: node.transform.translate.y,
-        width: node.frame?.width ?? 0,
-        height: node.frame?.height ?? 0,
+        width: "frame" in node ? node.frame.width : 0,
+        height: "frame" in node ? node.frame.height : 0,
         rotation: node.transform.rotate.z,
       };
     },
@@ -218,7 +210,7 @@ export function InteractionOverlay({
   const nudge = useCallback(
     (dx: number, dy: number) => {
       if (selection.kind !== "node" || !project) return;
-      const nodeBase = resolveNodeBase(selection.sceneId, selection.layerId);
+      const nodeBase = resolveNodeBase(selection.layerId);
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
@@ -257,10 +249,7 @@ export function InteractionOverlay({
       if (handle && selectedItem) {
         event.preventDefault();
         event.stopPropagation();
-        const nodeBase = resolveNodeBase(
-          selectedItem.sceneId,
-          selectedItem.layerId,
-        );
+        const nodeBase = resolveNodeBase(selectedItem.layerId);
         if (!nodeBase) return;
         if (handle === "rotate") {
           startRotate(nodeBase, selectedItem.worldBounds, point);
@@ -290,11 +279,14 @@ export function InteractionOverlay({
       setCycleIndex(nextIndex);
       const hit = hits[nextIndex]!;
       useEditorStore.setState({
-        selection: selectionNode(hit.sceneId, hit.layerId),
+        selection: selectionNode(hit.layerId),
       });
 
-      const nodeBase = resolveNodeBase(hit.sceneId, hit.layerId);
-      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.layerId)) {
+      const nodeBase = resolveNodeBase(hit.layerId);
+      if (
+        nodeBase &&
+        !isElementLocked(envelope, nodeBase.sceneId, hit.layerId)
+      ) {
         startMove(nodeBase, hit.worldBounds, point);
       }
     },

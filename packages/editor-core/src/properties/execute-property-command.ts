@@ -50,9 +50,7 @@ function clampNumber(
 }
 
 /** Reject NaN / ±Infinity before Math.min/max (which preserve NaN). */
-function collectNonFinite(
-  values: Array<number | undefined | null>,
-): boolean {
+function collectNonFinite(values: Array<number | undefined | null>): boolean {
   for (const v of values) {
     if (v === undefined || v === null) continue;
     if (typeof v !== "number" || !Number.isFinite(v)) return true;
@@ -133,11 +131,11 @@ function applyOpacity(node: MotionLayer, opacity: number): MotionLayer {
 
 function applyMetadata(node: MotionLayer, patch: MetadataPatch): MotionLayer {
   let next: MotionLayer = node;
-  if (patch.visible !== undefined) {
-      next = {
-        ...next,
-        appearance: { ...next.appearance, visible: Boolean(patch.visible) },
-      };
+  if (patch.visible !== undefined && "appearance" in next) {
+    next = {
+      ...next,
+      appearance: { ...next.appearance, visible: Boolean(patch.visible) },
+    };
   }
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -180,7 +178,10 @@ function applyStyle(node: MotionLayer, patch: StylePatch): MotionLayer | null {
   return { ...node, style: nextStyle } as MotionLayer;
 }
 
-function applyText(node: MotionLayer, patch: TextPayloadPatch): MotionLayer | null {
+function applyText(
+  node: MotionLayer,
+  patch: TextPayloadPatch,
+): MotionLayer | null {
   if (node.type !== "text") return null;
   let payload = { ...node.payload };
   if (patch.text !== undefined) {
@@ -218,7 +219,10 @@ function normalizeCrop(crop: {
   return { x, y, width, height };
 }
 
-function applyMedia(node: MotionLayer, patch: MediaPayloadPatch): MotionLayer | null {
+function applyMedia(
+  node: MotionLayer,
+  patch: MediaPayloadPatch,
+): MotionLayer | null {
   if (node.type !== "image" && node.type !== "svg" && node.type !== "video") {
     return null;
   }
@@ -247,6 +251,7 @@ function applyMedia(node: MotionLayer, patch: MediaPayloadPatch): MotionLayer | 
 }
 
 function applyEffects(node: MotionLayer, patch: EffectStackPatch): MotionLayer {
+  if (node.type === "audio" || node.type === "camera") return node;
   const effects = [...(node.effects ?? [])];
   if (patch.op === "remove") {
     return {
@@ -287,10 +292,12 @@ function applyReorderSceneNodes(
   sceneId: string,
   layerIds: string[],
 ): { project: MotionProject; missing: boolean } {
-  const scene = project.scenes.find((s) => s.id === sceneId);
-  if (!scene) return { project, missing: true };
+  const scene = project.layers.find(
+    (l) => l.id === sceneId && l.type !== "audio",
+  );
+  if (!scene || scene.type !== "group") return { project, missing: true };
 
-  const byId = new Map(scene.layers.map((n) => [n.id, n]));
+  const byId = new Map(scene.children.map((n) => [n.id, n]));
   const seen = new Set<string>();
   const ordered: MotionLayer[] = [];
   for (const id of layerIds) {
@@ -300,7 +307,7 @@ function applyReorderSceneNodes(
     seen.add(id);
     ordered.push(node);
   }
-  for (const node of scene.layers) {
+  for (const node of scene.children) {
     if (!seen.has(node.id)) ordered.push(node);
   }
 
@@ -313,8 +320,8 @@ function applyReorderSceneNodes(
   return {
     project: {
       ...project,
-      scenes: project.scenes.map((s) =>
-        s.id === sceneId ? { ...s, layers: withZ } : s,
+      layers: project.layers.map((l) =>
+        l.id === sceneId ? { ...scene, children: withZ } : l,
       ),
     },
     missing: false,
@@ -374,38 +381,43 @@ function applyAudioTrack(
   audioTrackId: string,
   patch: DocumentPropertyCommand & { type: "set-audio-track" },
 ): { project: MotionProject; missing: boolean } {
-  const tracks = project.timeline.audioTracks;
-  const idx = tracks.findIndex((t) => t.id === audioTrackId);
+  const idx = project.layers.findIndex(
+    (l) => l.type === "audio" && l.id === audioTrackId,
+  );
   if (idx < 0) return { project, missing: true };
-  const track = tracks[idx]!;
-  const nextTrack = {
+  const track = project.layers[idx]!;
+  if (track.type !== "audio") return { project, missing: true };
+  const nextTrack: MotionLayer = {
     ...track,
-    volume:
-      patch.patch.volume !== undefined
-        ? Math.min(1, Math.max(0, patch.patch.volume))
-        : track.volume,
-    fadeIn:
-      patch.patch.fadeIn !== undefined
-        ? Math.max(0, patch.patch.fadeIn)
-        : track.fadeIn,
-    fadeOut:
-      patch.patch.fadeOut !== undefined
-        ? Math.max(0, patch.patch.fadeOut)
-        : track.fadeOut,
-  };
-  const audioTracks = tracks.slice();
-  audioTracks[idx] = nextTrack;
-  return {
-    project: {
-      ...project,
-      timeline: { ...project.timeline, audioTracks },
+    payload: {
+      ...track.payload,
+      volume:
+        patch.patch.volume !== undefined
+          ? Math.min(100, Math.max(0, Math.round(patch.patch.volume * 100)))
+          : track.payload.volume,
+      fadeIn:
+        patch.patch.fadeIn !== undefined
+          ? Math.max(0, patch.patch.fadeIn)
+          : track.payload.fadeIn,
+      fadeOut:
+        patch.patch.fadeOut !== undefined
+          ? Math.max(0, patch.patch.fadeOut)
+          : track.payload.fadeOut,
     },
+  };
+  const layers = project.layers.slice();
+  layers[idx] = nextTrack;
+  return {
+    project: { ...project, layers },
     missing: false,
   };
 }
 
 function clampKeyframeTime(keyTime: number): number {
-  return Math.min(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds, Math.max(0, keyTime));
+  return Math.min(
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    Math.max(0, keyTime),
+  );
 }
 
 function authoringClips(project: MotionProject): V1.TimelinePropertyClipV1[] {
@@ -508,7 +520,8 @@ function applyKeyframe(
   for (const target of command.targets) {
     const step = upsertKeyframeOnScene(next, target, command);
     if (step.missing) return { project: next, missing: true };
-    if (step.invalid) return { project: next, missing: false, invalid: step.invalid };
+    if (step.invalid)
+      return { project: next, missing: false, invalid: step.invalid };
     next = step.project;
   }
   return { project: next, missing: false };
@@ -557,7 +570,10 @@ function moveKeyframeOnScene(
 function deleteKeyframeOnScene(
   project: MotionProject,
   target: NodeTargetRef,
-  command: Extract<DocumentPropertyCommand, { type: "delete-property-keyframe" }>,
+  command: Extract<
+    DocumentPropertyCommand,
+    { type: "delete-property-keyframe" }
+  >,
 ): { project: MotionProject; missing: boolean } {
   const clips = authoringClips(project);
   const clipIdx = clips.findIndex(
@@ -664,9 +680,7 @@ export function executePropertyCommand(
       result = applyToTargets(document.project, command.targets, (node) =>
         applyTransformPatch(node, command.patch),
       );
-      events = [
-        { type: "node-transform-changed", targets: command.targets },
-      ];
+      events = [{ type: "node-transform-changed", targets: command.targets }];
       break;
     }
     case "set-node-opacity": {
@@ -707,9 +721,7 @@ export function executePropertyCommand(
       result = applyToTargets(document.project, command.targets, (node) =>
         applyMetadata(node, command.patch),
       );
-      events = [
-        { type: "node-metadata-changed", targets: command.targets },
-      ];
+      events = [{ type: "node-metadata-changed", targets: command.targets }];
       break;
     }
     case "set-node-style": {
@@ -830,7 +842,10 @@ export function executePropertyCommand(
       ) {
         return rejectedInvalid("Empty audio patch.");
       }
-      if ("speed" in command.patch && (command.patch as { speed?: unknown }).speed !== undefined) {
+      if (
+        "speed" in command.patch &&
+        (command.patch as { speed?: unknown }).speed !== undefined
+      ) {
         return rejectedInvalid("AudioTrack has no speed field; rejected.");
       }
       if (
@@ -842,11 +857,7 @@ export function executePropertyCommand(
       ) {
         return rejectedInvalid("Audio values must be finite numbers.");
       }
-      result = applyAudioTrack(
-        document.project,
-        command.audioTrackId,
-        command,
-      );
+      result = applyAudioTrack(document.project, command.audioTrackId, command);
       events = [
         { type: "audio-track-changed", audioTrackId: command.audioTrackId },
       ];
@@ -911,7 +922,10 @@ export function executePropertyCommand(
       if (!Number.isFinite(command.t)) {
         return rejectedInvalid("Keyframe time must be a finite number.");
       }
-      if (command.t < 0 || command.t > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds) {
+      if (
+        command.t < 0 ||
+        command.t > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds
+      ) {
         return rejectedInvalid(
           `Keyframe time must be within 0..${MOTION_PROTOCOL_LIMITS.mediaDurationSeconds}.`,
         );
@@ -936,44 +950,98 @@ export function executePropertyCommand(
       break;
     }
     case "move-property-keyframe": {
-      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
-      if (!Number.isFinite(command.newT)) return rejectedInvalid("New time must be finite.");
-      if (command.newT < 0 || command.newT > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds) return rejectedInvalid("New time out of bounds.");
-      if (typeof command.newV === "number" && !Number.isFinite(command.newV)) return rejectedInvalid("Numeric value must be finite.");
+      if (!command.targets.length)
+        return {
+          status: "rejected",
+          reason: "empty_targets",
+          message: "No targets specified.",
+        };
+      if (!Number.isFinite(command.newT))
+        return rejectedInvalid("New time must be finite.");
+      if (
+        command.newT < 0 ||
+        command.newT > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds
+      )
+        return rejectedInvalid("New time out of bounds.");
+      if (typeof command.newV === "number" && !Number.isFinite(command.newV))
+        return rejectedInvalid("Numeric value must be finite.");
 
       let updated = document.project;
       for (const target of command.targets) {
         const res = moveKeyframeOnScene(updated, target, command);
-        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        if (res.missing)
+          return {
+            status: "rejected",
+            reason: "missing_node",
+            message: "Target node missing.",
+          };
         if (res.invalid) return rejectedInvalid(res.invalid);
         updated = res.project;
       }
       result = { project: updated, missing: false };
-      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
+      events = [
+        {
+          type: "property-keyframe-changed",
+          targets: command.targets,
+          property: command.property,
+        },
+      ];
       break;
     }
     case "delete-property-keyframe": {
-      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      if (!command.targets.length)
+        return {
+          status: "rejected",
+          reason: "empty_targets",
+          message: "No targets specified.",
+        };
       let updated = document.project;
       for (const target of command.targets) {
         const res = deleteKeyframeOnScene(updated, target, command);
-        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        if (res.missing)
+          return {
+            status: "rejected",
+            reason: "missing_node",
+            message: "Target node missing.",
+          };
         updated = res.project;
       }
       result = { project: updated, missing: false };
-      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
+      events = [
+        {
+          type: "property-keyframe-changed",
+          targets: command.targets,
+          property: command.property,
+        },
+      ];
       break;
     }
     case "set-keyframe-easing": {
-      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      if (!command.targets.length)
+        return {
+          status: "rejected",
+          reason: "empty_targets",
+          message: "No targets specified.",
+        };
       let updated = document.project;
       for (const target of command.targets) {
         const res = setKeyframeEasingOnScene(updated, target, command);
-        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        if (res.missing)
+          return {
+            status: "rejected",
+            reason: "missing_node",
+            message: "Target node missing.",
+          };
         updated = res.project;
       }
       result = { project: updated, missing: false };
-      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
+      events = [
+        {
+          type: "property-keyframe-changed",
+          targets: command.targets,
+          property: command.property,
+        },
+      ];
       break;
     }
     default: {

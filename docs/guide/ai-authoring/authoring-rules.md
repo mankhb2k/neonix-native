@@ -44,7 +44,7 @@ Global contract for writing NeonVideo JSON. Schema is the law. Preview is not a 
 | --- | --- |
 | `transform.translate.x` | `transform.x`, `transform.z` |
 | `appearance.opacity` 0..100 | root `opacity`, 0..1 |
-| `payload.assetId` after upload | `source.kind: "url"`, googleDrive |
+| `payload.assetId` referencing an `assets[]` entry | `source.kind: "url"`, googleDrive |
 | 1080×1920 on composition | `metadata.aspectRatio` |
 | Negative `scale` to flip | `flipX` / `flipY` |
 

@@ -5,6 +5,7 @@ import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
 import { LANE_GAP_PX } from "../timeline-scale";
+import type { ClipMovePreview } from "@motionvideo/editor-interactions";
 import type {
   EditorSelection,
   TimelineClip,
@@ -91,6 +92,7 @@ function LaneRowClips({
 }: LaneRowClipsProps) {
   const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
+  const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
 
   const onLocalPreview = useCallback((preview: ClipTrimPreview | null) => {
     setTrimPreview(preview);
@@ -106,6 +108,7 @@ function LaneRowClips({
     beginGesture,
     onSelect,
     onExecute,
+    onMovePreview: setMovePreview,
     scrollRef,
   });
 
@@ -129,6 +132,9 @@ function LaneRowClips({
         if (trimPreview?.clipId === clip.id) {
           start = trimPreview.startTime;
           duration = trimPreview.duration;
+        } else if (movePreview?.clipId === clip.id) {
+          start = movePreview.startTime;
+          duration = movePreview.duration;
         }
 
         return (

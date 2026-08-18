@@ -4,6 +4,8 @@ import {
   isMixedValue,
   propertiesByGroup,
   resolvePropertyTargets,
+  findNode,
+  rootLayerIdOf,
   type PropertyContext,
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
@@ -77,7 +79,8 @@ function LockToggle({
 }) {
   const envelope = useEditorStore((s) => s.envelope);
   const setElementLocked = useEditorStore((s) => s.setElementLocked);
-  const meta = envelope?.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
+  const meta =
+    envelope?.authoring.elementMeta[nodeElementKey(sceneId, layerId)];
   const locked = Boolean(meta?.locked);
   return (
     <button
@@ -107,7 +110,9 @@ function KeyframeToggle({
       type="button"
       data-testid="keyframe-toggle"
       disabled={disabled}
-      title={active ? "Xóa keyframe tại playhead" : "Thêm keyframe tại playhead"}
+      title={
+        active ? "Xóa keyframe tại playhead" : "Thêm keyframe tại playhead"
+      }
       className={cn(
         "inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-30",
         active
@@ -149,9 +154,7 @@ function PropertyControl({
     : false;
 
   const nodeType = target
-    ? context.project.scenes
-        .find((s) => s.id === target.sceneId)
-        ?.layers.find((n) => n.id === target.layerId)?.type
+    ? findNode(context.project, target.sceneId, target.layerId)?.type
     : undefined;
 
   const trackProperty = trackPropertyForProp(prop.id);
@@ -178,7 +181,7 @@ function PropertyControl({
     }
     const command = prop.createCommand(validated.value as never, context);
     dispatch(command, {
-      coalesceKey: coalesce ? scrubKey.current ?? undefined : undefined,
+      coalesceKey: coalesce ? (scrubKey.current ?? undefined) : undefined,
     });
   };
 
@@ -404,9 +407,16 @@ export function SchemaInspector() {
 
   const selectedNode = useMemo(() => {
     if (!activeProject || selection.kind !== "node") return null;
-    const scene = activeProject.scenes.find((s) => s.id === selection.sceneId);
-    return scene?.layers.find((n) => n.id === selection.layerId) ?? null;
+    return findNode(activeProject, selection.layerId, selection.layerId);
   }, [activeProject, selection]);
+
+  const selectedSceneId = useMemo(
+    () =>
+      selection.kind === "node"
+        ? (rootLayerIdOf(activeProject, selection.layerId) ?? selection.layerId)
+        : null,
+    [activeProject, selection],
+  );
 
   return (
     <aside className="min-h-0 border-l-2 border-[var(--border-subtle)] [grid-area:inspector]">
@@ -436,8 +446,8 @@ export function SchemaInspector() {
                         </span>
                       </p>
                       <LockToggle
-                        sceneId={selection.sceneId}
-                        nodeId={selection.layerId}
+                        sceneId={selectedSceneId ?? selection.layerId}
+                        layerId={selection.layerId}
                       />
                     </div>
                   ) : null}

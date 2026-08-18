@@ -7,13 +7,19 @@ import {
   listTimelineSegments,
   timelineTotalDuration,
 } from "@motionvideo/motion-runtime";
+import { compileProjectV1 } from "@motionvideo/motion-runtime/testing";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import {
   clientXToStripTime,
   resolvePlayheadScrubMax,
 } from "@motionvideo/editor-interactions";
 import { Pause, Play } from "lucide-react";
-import { useCallback, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { cn } from "@/lib/utils";
 
 function formatTime(seconds: number): string {
@@ -40,9 +46,10 @@ export function MinimalTimeline() {
   const { segments, totalDuration } = useMemo(() => {
     if (!project) return { segments: [], totalDuration: 0 };
     const preview = resolvePreviewProject(project);
+    const runtime = compileProjectV1(preview.project);
     return {
-      segments: listTimelineSegments(preview.project),
-      totalDuration: timelineTotalDuration(preview.project),
+      segments: listTimelineSegments(runtime),
+      totalDuration: timelineTotalDuration(runtime),
     };
   }, [project]);
 
@@ -134,13 +141,13 @@ export function MinimalTimeline() {
                     : 0;
                 return (
                   <div
-                    key={segment.sceneId}
+                    key={segment.graphId}
                     className="relative flex h-full items-center overflow-hidden border-r border-[var(--border-subtle)] px-2 last:border-r-0"
                     style={{ width: `${widthPct}%` }}
-                    title={segment.name ?? segment.sceneId}
+                    title={segment.name ?? segment.graphId}
                   >
                     <span className="truncate text-[10px] font-medium text-[var(--fg-primary)]">
-                      {segment.name ?? segment.sceneId}
+                      {segment.name ?? segment.graphId}
                     </span>
                   </div>
                 );

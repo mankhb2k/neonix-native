@@ -26,10 +26,7 @@ export {
   lastLaneTopBefore,
   type VisibleLaneWindow,
 } from "./timeline/visible-lane-window";
-export {
-  useClipMove,
-  type UseClipMoveArgs,
-} from "./timeline/use-clip-move";
+export { useClipMove, type UseClipMoveArgs } from "./timeline/use-clip-move";
 export {
   useClipTrim,
   type UseClipTrimArgs,
@@ -40,10 +37,7 @@ export {
   type UseLayerMoveArgs,
   type LayerMoveSession,
 } from "./timeline/use-layer-move";
-export {
-  useLayerTrim,
-  type UseLayerTrimArgs,
-} from "./timeline/use-layer-trim";
+export { useLayerTrim, type UseLayerTrimArgs } from "./timeline/use-layer-trim";
 export {
   useTimelineSeek,
   type UseTimelineSeekArgs,
@@ -77,3 +71,5 @@ export {
   useStageHotkeys,
   type UseStageHotkeysArgs,
 } from "./stage/use-stage-hotkeys";
+export { LayersTree, type LayersTreeProps } from "./panels/LayersTree";
+export { Breadcrumbs, type BreadcrumbsProps } from "./frame/Breadcrumbs";

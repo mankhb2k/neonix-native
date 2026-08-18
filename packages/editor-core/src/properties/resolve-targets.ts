@@ -3,14 +3,18 @@ import {
   selectedSceneIdFrom,
   type EditorSelection,
 } from "../selection/editor-selection";
-import type { TimelineClip, TimelineLane } from "../timeline/model/timeline-types";
+import type {
+  TimelineClip,
+  TimelineLane,
+} from "../timeline/model/timeline-types";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import type { NodeTarget } from "./types";
 
-function firstEditableNodeId(
-  scene: { children?: MotionLayer[] } | undefined,
-): string | null {
-  return scene?.children?.[0]?.id ?? null;
+function firstEditableNodeId(scene: MotionLayer | undefined): string | null {
+  if (scene?.type === "group") {
+    return scene.children[0]?.id ?? null;
+  }
+  return null;
 }
 
 /**
@@ -27,7 +31,12 @@ export function resolvePropertyTargets(
   if (!project) return [];
 
   if (selection.kind === "node") {
-    return [{ sceneId: selection.sceneId, layerId: selection.layerId }];
+    return [
+      {
+        sceneId: rootLayerIdOf(project, selection.layerId) ?? selection.layerId,
+        layerId: selection.layerId,
+      },
+    ];
   }
 
   if (selection.kind !== "clips") return [];
@@ -90,4 +99,27 @@ export function findNode(
     return null;
   };
   return walk(project.layers);
+}
+
+/**
+ * Root ("scene") layer id for a layerId — walks to the top-level ancestor.
+ * Root layers return their own id; nested nodes return the root group id.
+ * Layer ids are globally unique, so layerId alone fully identifies a node.
+ */
+export function rootLayerIdOf(
+  project: MotionProject | null,
+  layerId: string,
+): string | null {
+  if (!project) return null;
+  const walk = (nodes: MotionLayer[], rootId: string | null): string | null => {
+    for (const node of nodes) {
+      if (node.id === layerId) return rootId ?? node.id;
+      if (node.type === "group") {
+        const found = walk(node.children, rootId ?? node.id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return walk(project.layers, null);
 }

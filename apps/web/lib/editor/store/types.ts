@@ -58,6 +58,9 @@ export type EditorStoreState = {
   /** Document dirty tracking — dirty when dirtyRevision !== savedRevision. */
   dirtyRevision: number;
   savedRevision: number;
+
+  /** Group drill-down path (outermost first) — scopes LayersTree + Breadcrumbs. */
+  groupPath: string[];
 };
 
 export type EditorStoreActions = {
@@ -78,7 +81,7 @@ export type EditorStoreActions = {
   clearTimelineSelection: () => void;
   selectNode: (layerId: string | null) => void;
   setActiveSidebarTab: (tab: SidebarTabId) => void;
-  updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
+  updateBrand: (patch: { name?: string; primaryColor?: string }) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
   updateNodeText: (sceneId: string, layerId: string, text: string) => void;
   updateNodePosition: (
@@ -179,6 +182,14 @@ export type EditorStoreActions = {
       label?: string;
     },
   ) => void;
+  /** Group drill-down navigation (double-click a group → in; breadcrumb → out). */
+  enterGroup: (groupId: string) => void;
+  navigateGroupDepth: (depth: number) => void;
+  renameLayer: (layerId: string, name: string) => void;
+  toggleLayerVisible: (layerId: string, visible: boolean) => void;
+  reorderLayers: (movingId: string, targetId: string) => void;
+  groupSelectedLayers: (ids: string[]) => void;
+  ungroupLayer: (groupId: string) => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;

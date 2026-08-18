@@ -55,6 +55,17 @@ describe("audioAnalysisToTimelineClips", () => {
     expect(glow!.keys.length).toBeGreaterThan(0);
   });
 
+  it("emits a single merged transform.scale clip", () => {
+    const clips = audioAnalysisToTimelineClips({
+      analysis: pulseAnalysis(),
+      preset: "neon-circle-pulse",
+      targets: { ringLayerId: "visualizer.ring", glowEffectId: "fx-glow-1" },
+    });
+    const scaleClips = clips.filter((c) => c.property === "transform.scale");
+    expect(scaleClips).toHaveLength(1);
+    expect(scaleClips[0].id).toBe("clip-ring-scale");
+  });
+
   it("skips opacity/brightness clips without a glow target", () => {
     const clips = audioAnalysisToTimelineClips({
       analysis: pulseAnalysis(),

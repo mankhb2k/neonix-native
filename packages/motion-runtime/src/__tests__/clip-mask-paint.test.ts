@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
-import {
-  buildPaintCommandBuffer,
-  decodePaintCommandBuffer,
-  type RenderSnapshotItem,
-} from "../paint";
+import { buildPaintCommandBuffer, decodePaintCommandBuffer } from "../paint";
 import { evaluateCompositionFrameV1 } from "../evaluate-composition";
-import type { RenderSnapshot } from "../render-snapshot";
+import type { RenderSnapshot, RenderSnapshotItem } from "../render-snapshot";
 import {
   CLIP_MASK_TARGET_KINDS,
   clipMaskTargetProject,
@@ -21,13 +17,7 @@ function compilePaint(raw: unknown) {
   if (!compiled.ok) {
     throw new Error(compiled.diagnostics.map((d) => d.message).join("; "));
   }
-  const frame = evaluateCompositionFrameV1(
-    compiled.project,
-    0,
-    30,
-    400,
-    400,
-  );
+  const frame = evaluateCompositionFrameV1(compiled.project, 0, 30, 400, 400);
   if (!frame) throw new Error("no frame");
   return frame.paint;
 }
@@ -42,9 +32,9 @@ describe("clip mask paint nesting", () => {
       expect(begin?.op === "beginLayer" && begin.mask?.sourceKey).toBe(
         "root:clip-src",
       );
-      expect(
-        begin?.op === "beginLayer" && begin.mask?.sourceVisibility,
-      ).toBe("mask-only");
+      expect(begin?.op === "beginLayer" && begin.mask?.sourceVisibility).toBe(
+        "mask-only",
+      );
     });
   }
 
@@ -57,7 +47,9 @@ describe("clip mask paint nesting", () => {
       if (cmd.op === "drawShape") return `drawShape:${cmd.layerId}`;
       return cmd.op;
     });
-    const begin = ops.findIndex((op) => op.startsWith("beginLayer:root:artwork"));
+    const begin = ops.findIndex((op) =>
+      op.startsWith("beginLayer:root:artwork"),
+    );
     const end = ops.findIndex((op) => op.startsWith("endLayer:root:artwork"));
     const child = ops.findIndex((op) => op === "drawSolid:artwork-child");
     expect(begin).toBeGreaterThan(-1);
@@ -76,7 +68,9 @@ describe("clip mask paint nesting", () => {
       if (cmd.op === "drawSolid") return `drawSolid:${cmd.layerId}`;
       return cmd.op;
     });
-    const begin = ops.findIndex((op) => op.startsWith("beginLayer:root:artwork"));
+    const begin = ops.findIndex((op) =>
+      op.startsWith("beginLayer:root:artwork"),
+    );
     const end = ops.findIndex((op) => op.startsWith("endLayer:root:artwork"));
     const sibling = ops.findIndex((op) => op === "drawSolid:sibling");
     expect(sibling < begin || sibling > end).toBe(true);
@@ -152,9 +146,9 @@ describe("clip mask paint nesting", () => {
       const draws = list.roots[0].children.flatMap((n) =>
         n.kind === "drawable" ? [n] : n.kind === "group" ? n.children : [],
       );
-      expect(draws.some((n) => n.kind === "drawable" && n.key === "test:child")).toBe(
-        true,
-      );
+      expect(
+        draws.some((n) => n.kind === "drawable" && n.key === "test:child"),
+      ).toBe(true);
     }
   });
 });

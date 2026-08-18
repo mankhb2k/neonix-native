@@ -2,9 +2,7 @@ import {
   selectionClips,
   selectionNone,
   selectionNode,
-  selectedSceneIdFrom,
 } from "@motionvideo/editor-core";
-import { isBaseLane } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -13,10 +11,7 @@ import type {
 
 export type SelectionActions = Pick<
   EditorStoreActions,
-  | "selectClip"
-  | "setSelectedClipIds"
-  | "clearTimelineSelection"
-  | "selectNode"
+  "selectClip" | "setSelectedClipIds" | "clearTimelineSelection" | "selectNode"
 >;
 
 export function createSelectionActions(
@@ -38,29 +33,11 @@ export function createSelectionActions(
     },
 
     selectNode: (layerId) => {
-      set((state) => {
-        if (!nodeId) {
-          const current = state.selection;
-          if (current.kind !== "node") return state;
-          const clip = state.timelineClips.find(
-            (c) =>
-              c.kind === "scene" &&
-              c.sceneId === current.sceneId &&
-              isBaseLane(state.timelineLanes, c.laneId),
-          );
-          return {
-            selection: clip ? selectionClips([clip.id]) : selectionNone(),
-          };
-        }
-        const sceneId =
-          selectedSceneIdFrom(
-            state.selection,
-            state.timelineClips,
-            state.timelineLanes,
-          ) ?? state.project?.scenes[0]?.id;
-        if (!sceneId) return state;
-        return { selection: selectionNode(sceneId, nodeId) };
-      });
+      if (!layerId) {
+        set({ selection: selectionNone() });
+        return;
+      }
+      set({ selection: selectionNode(layerId) });
     },
   };
 }

@@ -16,10 +16,12 @@ describe("editor-store clipboard", () => {
     store.pasteClips(3);
     const overlays = useEditorStore
       .getState()
-      .timelineClips.filter((c) => c.kind === "scene" && c.laneId !== "lane.main");
+      .timelineClips.filter(
+        (c) => c.kind === "scene" && c.laneId !== "lane.main",
+      );
     expect(overlays.length).toBeGreaterThanOrEqual(2);
     const sceneIds = new Set(
-      useEditorStore.getState().project!.scenes.map((s) => s.id),
+      useEditorStore.getState().project!.layers.map((s) => s.id),
     );
     for (const clip of overlays) {
       if (clip.kind === "scene") expect(sceneIds.has(clip.sceneId)).toBe(true);
@@ -48,7 +50,10 @@ describe("editor-store clipboard", () => {
     useEditorStore.getState().setSelectedClipIds(
       useEditorStore
         .getState()
-        .timelineClips.filter((c) => c.id.startsWith("clip.overlay") || c.laneId === "lane.overlay.0")
+        .timelineClips.filter(
+          (c) =>
+            c.id.startsWith("clip.overlay") || c.laneId === "lane.overlay.0",
+        )
         .map((c) => c.id)
         .slice(0, 1),
     );
@@ -69,11 +74,13 @@ describe("editor-store clipboard", () => {
   });
 
   it("duplicate on locked lane is no-op", () => {
-    const locked = useEditorStore.getState().timelineLanes.map((lane) =>
-      lane.id === "lane.main"
-        ? { ...lane, locked: true, policy: { ...DEFAULT_VISUAL_POLICY } }
-        : lane,
-    );
+    const locked = useEditorStore
+      .getState()
+      .timelineLanes.map((lane) =>
+        lane.id === "lane.main"
+          ? { ...lane, locked: true, policy: { ...DEFAULT_VISUAL_POLICY } }
+          : lane,
+      );
     useEditorStore.setState({ timelineLanes: locked });
     const before = useEditorStore.getState().timelineClips.length;
     useEditorStore.getState().selectClip("clip.base");
@@ -82,9 +89,11 @@ describe("editor-store clipboard", () => {
   });
 
   it("split on locked lane is no-op", () => {
-    const locked = useEditorStore.getState().timelineLanes.map((lane) =>
-      lane.id === "lane.main" ? { ...lane, locked: true } : lane,
-    );
+    const locked = useEditorStore
+      .getState()
+      .timelineLanes.map((lane) =>
+        lane.id === "lane.main" ? { ...lane, locked: true } : lane,
+      );
     useEditorStore.setState({ timelineLanes: locked });
     useEditorStore.getState().selectClip("clip.base");
     useEditorStore.getState().splitSelectedClipsAt(2);

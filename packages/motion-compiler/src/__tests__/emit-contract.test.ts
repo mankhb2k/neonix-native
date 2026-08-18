@@ -17,7 +17,9 @@ const atoms = visualLayerAtoms({
   y: 0,
 });
 
-function baseProject(overrides: Record<string, unknown> = {}): V1.MotionProjectV1 {
+function baseProject(
+  overrides: Record<string, unknown> = {},
+): V1.MotionProjectV1 {
   return V1.MotionProjectV1Schema.parse({
     format: "motion-project",
     formatVersion: 1,
@@ -99,7 +101,9 @@ describe("compiler V1 emit contract", () => {
     if (!result.ok) return;
     const layer = result.project.layers.find((item) => item.id === "title");
     expect(layer?.type).toBe("text");
-    expect(layer && "payload" in layer ? layer.payload : undefined).toMatchObject({
+    expect(
+      layer && "payload" in layer ? layer.payload : undefined,
+    ).toMatchObject({
       text: "Hello",
       color: "#112233",
     });
@@ -269,10 +273,14 @@ describe("compiler V1 emit contract", () => {
     ).toEqual(["title:appearance.opacity", "title:effects.fx.radius"]);
     expect(result.project).not.toHaveProperty("tracks");
     for (const animation of result.project.propertyAnimations) {
-      const layer = result.project.layers.find((item) => item.id === animation.layerId);
+      const layer = result.project.layers.find(
+        (item) => item.id === animation.layerId,
+      );
       expect(layer).toBeDefined();
       if (!layer) continue;
-      expect(isLayerPropertyAnimatable(layer.type, animation.property)).toBe(true);
+      expect(isLayerPropertyAnimatable(layer.type, animation.property)).toBe(
+        true,
+      );
     }
   });
 
@@ -344,12 +352,14 @@ describe("compiler V1 emit contract", () => {
     const result = compileMotionProjectV1(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.project.layers.every((layer) => layer.type !== "component")).toBe(
-      true,
-    );
-    expect(result.project.layers.some((layer) => layer.id.includes("badge"))).toBe(
-      true,
-    );
+    expect(
+      result.project.layers.every(
+        (layer) => (layer.type as string) !== "component",
+      ),
+    ).toBe(true);
+    expect(
+      result.project.layers.some((layer) => layer.id.includes("badge")),
+    ).toBe(true);
   });
 
   it("does not substitute inline { ref: variable } in the V1 compile graph", () => {

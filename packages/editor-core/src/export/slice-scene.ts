@@ -1,44 +1,24 @@
 /**
- * Slice a MotionScene to a local-time window for export bake.
- * Shifts absolute schedules and authoring clip keyframe times by -localStart.
+ * Slice a layer (group = "scene") to a local-time window for export bake.
+ * Timing is reset to a local `start: 0` window of the requested duration.
  */
 
-import { V1 } from "@motionvideo/motion-protocol";
-import type { MotionScene } from "@motionvideo/motion-protocol/runtime";
-
-function shiftClip(
-  clip: V1.TimelinePropertyClipV1,
-  localStart: number,
-): V1.TimelinePropertyClipV1 {
-  return {
-    ...clip,
-    keys: clip.keys.map((key) => ({
-      ...key,
-      t: Math.max(0, key.t - localStart),
-    })),
-  };
-}
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 /**
  * Deep-clone `scene` trimmed to [localStart, localStart + duration).
- * Animation timelines are shifted so t=0 in the result equals `localStart`
- * in the source scene.
+ * Result timing starts at 0 and lasts `duration` seconds.
  */
 export function sliceScene(
-  scene: MotionScene,
+  scene: MotionLayer,
   localStart: number,
   duration: number,
-): MotionScene {
-  const start = Math.max(0, localStart);
+): MotionLayer {
   const dur = Math.max(0.001, duration);
-  const cloned = JSON.parse(JSON.stringify(scene)) as MotionScene;
-  const clips = ((cloned.clips ?? []) as V1.TimelinePropertyClipV1[]).map(
-    (clip) => shiftClip(clip, start),
-  );
+  const cloned = JSON.parse(JSON.stringify(scene)) as MotionLayer;
   return {
     ...cloned,
-    duration: dur,
-    clips,
+    timing: { start: 0, duration: dur },
   };
 }
 

@@ -1,22 +1,13 @@
 import { type ClipClipboardItem } from "@motionvideo/editor-core";
-import {
-  selectedClipIdsFrom,
-} from "@motionvideo/editor-core";
-import {
-  selectionHasLockedLane,
-} from "@motionvideo/editor-core";
-import {
-  isAudioLane,
-  isBaseLane,
-} from "@motionvideo/editor-core";
+import { selectedClipIdsFrom } from "@motionvideo/editor-core";
+import { selectionHasLockedLane } from "@motionvideo/editor-core";
+import { isAudioLane, isBaseLane } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 export type ClipboardActions = Pick<
   EditorStoreActions,
@@ -53,19 +44,20 @@ export function createClipboardActions(
             : "overlay";
         if (kind === "main") {
           if (clip.kind !== "scene") continue;
-          const scene = state.project.scenes.find((s) => s.id === clip.sceneId);
+          const scene = state.project.layers.find((s) => s.id === clip.sceneId);
           if (!scene) continue;
           items.push({
             kind,
             name: clip.name,
             duration: clip.duration,
             offsetStart: clip.startTime - origin,
-            scene: JSON.parse(JSON.stringify(scene)) as MotionScene,
+            scene: JSON.parse(JSON.stringify(scene)) as MotionLayer,
           });
         } else if (kind === "audio") {
           const trackId = clip.kind === "audio" ? clip.audioTrackId : clip.id;
-          const track = state.project.timeline.audioTracks.find(
-            (t) => t.id === trackId || t.id === clip.id,
+          const audioLayer = state.project.layers.find(
+            (l): l is Extract<MotionLayer, { type: "audio" }> =>
+              l.type === "audio" && (l.id === trackId || l.id === clip.id),
           );
           items.push({
             kind,
@@ -74,26 +66,27 @@ export function createClipboardActions(
             offsetStart: clip.startTime - origin,
             audioAssetId:
               (clip.kind === "audio" ? clip.assetId : undefined) ??
-              track?.assetId ??
+              audioLayer?.payload.assetId ??
               clip.name,
-            trimStart: track?.trimStart ?? 0,
-            volume: track?.volume ?? 1,
-            fadeIn: track?.fadeIn ?? 0,
-            fadeOut: track?.fadeOut ?? 0,
-            loop: track?.loop ?? false,
-            audioRole: track?.role,
+            trimStart: audioLayer?.payload.trimStart ?? 0,
+            volume: audioLayer?.payload.volume ?? 100,
+            fadeIn: audioLayer?.payload.fadeIn ?? 0,
+            fadeOut: audioLayer?.payload.fadeOut ?? 0,
+            loop: audioLayer?.payload.loop ?? false,
           });
         } else {
           // Overlay: copy scene content nếu có (self-contained clipboard).
           if (clip.kind === "scene") {
-            const scene = state.project.scenes.find((s) => s.id === clip.sceneId);
+            const scene = state.project.layers.find(
+              (s) => s.id === clip.sceneId,
+            );
             items.push({
               kind,
               name: clip.name,
               duration: clip.duration,
               offsetStart: clip.startTime - origin,
               ...(scene
-                ? { scene: JSON.parse(JSON.stringify(scene)) as MotionScene }
+                ? { scene: JSON.parse(JSON.stringify(scene)) as MotionLayer }
                 : {}),
             });
           } else {
@@ -112,7 +105,9 @@ export function createClipboardActions(
     cutSelectedClips: () => {
       const state = get();
       const ids = selectedClipIdsFrom(state.selection);
-      if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)) {
+      if (
+        selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)
+      ) {
         return;
       }
       get().copySelectedClips();

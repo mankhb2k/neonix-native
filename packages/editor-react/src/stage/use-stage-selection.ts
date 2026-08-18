@@ -7,7 +7,10 @@ import {
   resolveStageHit,
   type StagePoint,
 } from "@motionvideo/editor-interactions";
-import type { RenderSnapshot, RenderSnapshotItem } from "@motionvideo/motion-runtime";
+import type {
+  RenderSnapshot,
+  RenderSnapshotItem,
+} from "@motionvideo/motion-runtime";
 import {
   selectionNone,
   selectionNode,
@@ -40,7 +43,7 @@ export function useStageSelection({ onSelect }: UseStageSelectionArgs) {
       } else {
         setCycleIndex(0);
       }
-      onSelect(selectionNode(hit.primary.sceneId, hit.primary.layerId));
+      onSelect(selectionNode(hit.primary.layerId));
       return hit.primary;
     },
     [cycleIndex, onSelect],

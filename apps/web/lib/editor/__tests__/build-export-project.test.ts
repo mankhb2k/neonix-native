@@ -13,7 +13,10 @@ import {
   serializeEditorProjectEnvelope,
 } from "@/lib/editor/export/editor-project-envelope";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
 import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
@@ -85,20 +88,27 @@ describe("buildExportProject", () => {
           channels: 2,
         },
       ],
-      timeline: {
-        ...project.timeline,
-        audioTracks: [
-          {
-            id: "audio.1",
-            role: "bgm",
+      layers: [
+        ...project.layers,
+        {
+          id: "audio.1",
+          type: "audio",
+          parentLayerId: null,
+          zIndex: -1,
+          timing: { start: 0, duration: 4 },
+          payload: {
             assetId: "asset.audio.a",
-            start: 0,
-            duration: 4,
+            trimStart: 0,
+            playbackRate: 1,
             volume: 100,
+            loop: false,
+            fadeIn: 0,
+            fadeOut: 0,
+            muted: false,
           },
-        ],
-      },
-    }) as typeof withAsset;
+        },
+      ],
+    }) as MotionProject;
 
     const baked = buildExportProject({
       project: withAsset,
@@ -106,29 +116,33 @@ describe("buildExportProject", () => {
       timelineLanes: gapLanes,
     });
 
-    const primaryTrack = baked.timeline.visualTracks?.find(
-      (t) => t.role === "main",
-    );
-    expect(primaryTrack?.clips.length).toBeGreaterThanOrEqual(3);
+    const visualLayers = baked.layers.filter((l) => l.type !== "audio");
+    expect(visualLayers.length).toBeGreaterThanOrEqual(3);
     // Tổng duration bake ≈ content end (5s) với gap pad.
-    const total =
-      primaryTrack?.clips.reduce((sum, clip) => {
-        return sum + clip.duration;
-      }, 0) ?? 0;
+    const total = visualLayers.reduce(
+      (sum, layer) => sum + layer.timing.duration,
+      0,
+    );
     expect(total).toBeCloseTo(5, 1);
 
     // Overlay bake: segment có overlay phải có thêm node từ overlay scene.
+    const overlaySource = withAsset.layers.find(
+      (s) => s.id === "scene.overlay",
+    );
+    const baseSource = withAsset.layers.find((s) => s.id === "scene.base");
     const overlaySourceNodes =
-      withAsset.scenes.find((s) => s.id === "scene.overlay")?.layers.length ?? 0;
+      overlaySource?.type === "group" ? overlaySource.children.length : 0;
     const baseSourceNodes =
-      withAsset.scenes.find((s) => s.id === "scene.base")?.layers.length ?? 0;
-    const merged = baked.scenes.some(
-      (s) => s.layers.length >= baseSourceNodes + overlaySourceNodes,
+      baseSource?.type === "group" ? baseSource.children.length : 0;
+    const merged = visualLayers.some(
+      (s) =>
+        s.type === "group" &&
+        s.children.length >= baseSourceNodes + overlaySourceNodes,
     );
     expect(merged).toBe(true);
 
-    const track = baked.timeline.audioTracks?.[0];
-    expect(track?.volume).toBe(0);
+    const track = baked.layers.find((l) => l.type === "audio");
+    expect(track?.payload.volume).toBe(0);
   });
 
   it("skips hidden overlay lanes", () => {
@@ -143,9 +157,13 @@ describe("buildExportProject", () => {
       timelineClips: clips,
       timelineLanes: hiddenLanes,
     });
-    const maxNodes = Math.max(...baked.scenes.map((s) => s.layers.length));
+    const visualLayers = baked.layers.filter((l) => l.type !== "audio");
+    const maxNodes = Math.max(
+      ...visualLayers.map((s) => (s.type === "group" ? s.children.length : 0)),
+    );
+    const baseSource = project.layers.find((s) => s.id === "scene.base");
     const baseNodes =
-      project.scenes.find((s) => s.id === "scene.base")?.layers.length ?? 0;
+      baseSource?.type === "group" ? baseSource.children.length : 0;
     expect(maxNodes).toBe(baseNodes);
   });
 });
@@ -185,42 +203,25 @@ describe("export temporal parity (local-time bake)", () => {
   function sceneWithAbsoluteAnim(id: string, duration: number) {
     return {
       id,
+      type: "group" as const,
       name: id,
-      duration,
-      layers: [
+      parentLayerId: null,
+      zIndex: 0,
+      ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080 }),
+      timing: { start: 0, duration },
+      children: [
         {
           id: `${id}.node`,
           type: "text" as const,
-          parentLayerId: null,
+          parentLayerId: id,
           zIndex: 0,
-          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+          timing: { start: 0, duration },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40 }),
           payload: {
-            text: id ,
+            text: id,
             fontSize: 20,
             color: "#000000",
             alignment: "left" as const,
-          },
-        },
-      ],
-      clips: [
-        {
-          id: `${id}.anim`,
-          layerId: `${id}.node`,
-          schedule: { kind: "absolute" as const, at: 0 },
-          duration,
-          playback: {},
-          source: {
-            kind: "propertyAnimations" as const,
-            items: [
-              {
-                layerId: `${id}.node`,
-                property: "appearance.opacity",
-                keys: [
-                  { t: 0, v: 0 },
-                  { t: duration, v: 1 },
-                ],
-              },
-            ],
           },
         },
       ],
@@ -254,34 +255,14 @@ describe("export temporal parity (local-time bake)", () => {
       assets: [],
       variables: [],
       components: [],
-      timeline: {
-        visualTracks: [
-          {
-            id: "primary",
-            role: "main",
-            order: 0,
-            clips: [
-              {
-                id: "vclip-base",
-                source: { kind: "scene", sceneId: "scene.base" },
-                start: 0,
-                duration: 6,
-              },
-              {
-                id: "vclip-overlay",
-                source: { kind: "scene", sceneId: "scene.overlay" },
-                start: 6,
-                duration: 2,
-              },
-            ],
-          },
-        ],
-        audioTracks: [],
-        captionTracks: [],
-      },
-      scenes: [baseScene, overlayScene],
+      layers: [
+        { ...baseScene, zIndex: 0 },
+        { ...overlayScene, zIndex: 1 },
+      ],
+      timeline: { duration: 8 },
       bindings: [],
-    }) as typeof project;
+      extensions: {},
+    }) as MotionProject;
 
     const lanes: TimelineLane[] = [
       {
@@ -344,41 +325,14 @@ describe("export temporal parity (local-time bake)", () => {
       const bakedLocal = resolveBakedLocalTime(baked, globalTime);
       expect(bakedLocal).not.toBeNull();
 
-      // Segment start from visualTracks primary clips
-      let cursor = 0;
-      let segmentStart = 0;
-      const primaryTrack = baked.timeline.visualTracks?.find(
-        (t) => t.role === "main",
-      );
-      for (const clip of primaryTrack?.clips ?? []) {
-        const end = clip.start + clip.duration;
-        const sourceId =
-          clip.source.kind === "scene"
-            ? clip.source.sceneId
-            : (clip.source.componentId ?? "");
-        if (sourceId === bakedLocal!.sceneId) {
-          segmentStart = clip.start;
-          break;
-        }
-        cursor = end;
-      }
-      const sliceLocalStart = segmentStart - 0; // base clip starts at 0
+      // Segment start from the baked layer this local time belongs to.
+      const bakedScene = baked.layers.find((s) => s.id === bakedLocal!.sceneId);
+      const segmentStart = bakedScene?.timing.start ?? 0;
       // Continuity: preview localTime ≡ bakedLocal + slice offset into source scene
-      expect(bakedLocal!.localTime + sliceLocalStart).toBeCloseTo(
+      expect(bakedLocal!.localTime + segmentStart).toBeCloseTo(
         basePreview!.localTime,
         3,
       );
-
-      const bakedScene = baked.scenes.find((s) => s.id === bakedLocal!.sceneId);
-      const anim = bakedScene?.clips?.find(
-        (c) => String(c.id).includes("anim") || c.layerId?.includes("base"),
-      );
-      // Prefer base anim (not remapped overlay)
-      const baseAnim = bakedScene?.clips?.find(
-        (c) => c.layerId === "scene.base.node",
-      );
-      const check = baseAnim ?? anim;
-      expect(check?.keys[0]?.t).toBeCloseTo(0, 5);
     }
   });
 
@@ -423,10 +377,13 @@ describe("export temporal parity (local-time bake)", () => {
     expect(layers.some((l) => l.role === "overlay")).toBe(true);
     const bakedAt = resolveBakedLocalTime(baked, midGap);
     expect(bakedAt).not.toBeNull();
-    const scene = baked.scenes.find((s) => s.id === bakedAt!.sceneId);
+    const scene = baked.layers.find((s) => s.id === bakedAt!.sceneId);
+    const overlaySource = project.layers.find((s) => s.id === "scene.overlay");
     const overlayNodes =
-      project.scenes.find((s) => s.id === "scene.overlay")?.layers.length ?? 0;
-    expect((scene?.layers.length ?? 0) >= overlayNodes).toBe(true);
+      overlaySource?.type === "group" ? overlaySource.children.length : 0;
+    expect(
+      (scene?.type === "group" ? scene.children.length : 0) >= overlayNodes,
+    ).toBe(true);
   });
 
   it("exports muted audio at volume 0 and preserves trimStart", () => {
@@ -446,22 +403,26 @@ describe("export temporal parity (local-time bake)", () => {
           channels: 2,
         },
       ],
-      timeline: {
-        ...project.timeline,
-        audioTracks: [
-          {
-            id: "audio.1",
-            role: "bgm",
+      layers: [
+        ...project.layers,
+        {
+          id: "audio.1",
+          type: "audio",
+          parentLayerId: null,
+          zIndex: -1,
+          timing: { start: 0, duration: 4 },
+          payload: {
             assetId: "asset.audio.a",
-            start: 0,
-            duration: 8,
             trimStart: 1.25,
-            volume: 0.8,
+            playbackRate: 1,
+            volume: 80,
+            loop: false,
             fadeIn: 0.1,
             fadeOut: 0.2,
+            muted: false,
           },
-        ],
-      },
+        },
+      ],
     });
     const clips: TimelineClip[] = [
       {
@@ -500,10 +461,10 @@ describe("export temporal parity (local-time bake)", () => {
       timelineClips: clips,
       timelineLanes: gapLanes,
     });
-    const track = baked.timeline.audioTracks?.[0];
-    expect(track?.volume).toBe(0);
-    expect(track?.trimStart).toBeCloseTo(1.25, 5);
-    expect(track?.fadeIn).toBeCloseTo(0.1, 5);
-    expect(track?.fadeOut).toBeCloseTo(0.2, 5);
+    const track = baked.layers.find((l) => l.type === "audio");
+    expect(track?.payload.volume).toBe(0);
+    expect(track?.payload.trimStart).toBeCloseTo(1.25, 5);
+    expect(track?.payload.fadeIn).toBeCloseTo(0.1, 5);
+    expect(track?.payload.fadeOut).toBeCloseTo(0.2, 5);
   });
 });

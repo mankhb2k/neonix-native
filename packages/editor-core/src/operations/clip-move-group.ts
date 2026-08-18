@@ -359,23 +359,9 @@ export function moveClipGroup(
   const nextClips = clips.map((c) => movedById.get(c.id) ?? c);
   const nextLanes = pruneEmptyLanes(lanes, nextClips);
   const rebuilt = rebuildMainProject(project, nextClips, nextLanes);
-  const audioTracks = (rebuilt.timeline as { audioTracks?: unknown[] })
-    .audioTracks as Array<Record<string, unknown>>;
-  const nextTimeline = {
-    ...rebuilt.timeline,
-    audioTracks: audioTracks.map((t) => {
-      const moved = movedById.get(String(t.id));
-      return moved && moved.kind === "audio"
-        ? { ...t, start: moved.startTime }
-        : t;
-    }),
-  };
 
   const document: TimelineDocument = {
-    project: {
-      ...rebuilt,
-      timeline: nextTimeline,
-    } as TimelineDocument["project"],
+    project: rebuilt,
     lanes: nextLanes,
     clips: nextClips,
     ...(doc.transitions?.length ? { transitions: doc.transitions } : {}),

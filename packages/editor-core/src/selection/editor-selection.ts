@@ -8,7 +8,7 @@ import { isAudioLane, isBaseLane } from "../timeline/timeline-clips";
 export type EditorSelection =
   | { kind: "none" }
   | { kind: "clips"; ids: string[]; primaryId: string }
-  | { kind: "node"; sceneId: string; layerId: string };
+  | { kind: "node"; layerId: string };
 
 export function selectionNone(): EditorSelection {
   return { kind: "none" };
@@ -27,11 +27,8 @@ export function selectionClips(
   return { kind: "clips", ids: unique, primaryId: primary };
 }
 
-export function selectionNode(
-  sceneId: string,
-  layerId: string,
-): EditorSelection {
-  return { kind: "node", sceneId, layerId };
+export function selectionNode(layerId: string): EditorSelection {
+  return { kind: "node", layerId };
 }
 
 export function selectedClipIdFrom(selection: EditorSelection): string | null {
@@ -46,7 +43,8 @@ export function selectedClipIdsFrom(selection: EditorSelection): string[] {
 }
 
 /**
- * Scene đang edit: node selection, hoặc primary scene-clip (base + overlay).
+ * Scene đang edit: primary scene-clip (base + overlay).
+ * Node selection no longer stores a scene — derive it with `rootLayerIdOf`.
  * Audio clip → null (Inspector không gắn scene).
  */
 export function selectedSceneIdFrom(
@@ -55,7 +53,7 @@ export function selectedSceneIdFrom(
   lanes: TimelineLane[] = [],
 ): string | null {
   void lanes;
-  if (selection.kind === "node") return selection.sceneId;
+  if (selection.kind === "node") return null;
   if (selection.kind !== "clips") return null;
   const clip = clips.find((c) => c.id === selection.primaryId);
   if (!clip || clip.kind !== "scene") return null;
@@ -91,7 +89,9 @@ export function focusedNodeIdFrom(
   clips: TimelineClip[],
   lanes: TimelineLane[],
   project: MotionProject | null,
-  firstEditable: (scene: MotionProject["layers"][number] | undefined) => string | null,
+  firstEditable: (
+    scene: MotionProject["layers"][number] | undefined,
+  ) => string | null,
 ): string | null {
   if (selection.kind === "node") return selection.layerId;
   if (selection.kind !== "clips" || !project) return null;

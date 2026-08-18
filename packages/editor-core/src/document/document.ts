@@ -207,9 +207,18 @@ export function validateTimelineDocument(
   }
 
   // 6. Project schema reference integrity (validate when schema arrays contain entries)
-  const projectSceneIds = new Set(doc.project.scenes.map((s) => s.id));
+  const rootLayers = doc.project.layers.filter(
+    (layer) => layer.parentLayerId === null,
+  );
+  const projectSceneIds = new Set(
+    rootLayers
+      .filter((layer) => layer.type !== "audio")
+      .map((layer) => layer.id),
+  );
   const audioTrackIds = new Set(
-    (doc.project.timeline.audioTracks ?? []).map((t) => t.id),
+    rootLayers
+      .filter((layer) => layer.type === "audio")
+      .map((layer) => layer.id),
   );
 
   for (const clip of doc.clips) {
@@ -217,7 +226,7 @@ export function validateTimelineDocument(
       if (projectSceneIds.size > 0 && !projectSceneIds.has(clip.sceneId)) {
         violations.push({
           reason: "dangling_scene_reference",
-          message: `Scene clip "${clip.name}" (id: ${clip.id}) tham chiếu sceneId "${clip.sceneId}" không có trong project.scenes.`,
+          message: `Scene clip "${clip.name}" (id: ${clip.id}) tham chiếu sceneId "${clip.sceneId}" không có trong project.layers.`,
           details: { clipId: clip.id, sceneId: clip.sceneId },
         });
       }
@@ -229,7 +238,7 @@ export function validateTimelineDocument(
       ) {
         violations.push({
           reason: "dangling_audio_track_reference",
-          message: `Audio clip "${clip.name}" (id: ${clip.id}) tham chiếu audioTrackId "${clip.audioTrackId}" không có trong project.timeline.audioTracks.`,
+          message: `Audio clip "${clip.name}" (id: ${clip.id}) tham chiếu audioTrackId "${clip.audioTrackId}" không có trong project.layers.`,
           details: { clipId: clip.id, audioTrackId: clip.audioTrackId },
         });
       }

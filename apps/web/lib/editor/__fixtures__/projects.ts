@@ -43,27 +43,48 @@ function sceneClip(input: {
   return { kind: "scene", ...input };
 }
 
-/** Scene tối giản dùng trong fixture editor (V1 layers). */
+/** Scene tối giản dùng trong fixture editor (V1 group + text child). */
 function scene(id: string, name: string, duration = 3) {
   return {
     id,
-    duration,
-    layers: [
+    type: "group" as const,
+    parentLayerId: null,
+    name,
+    timing: { start: 0, duration },
+    ...visualLayerAtoms({
+      x: 0,
+      y: 0,
+      width: 1920,
+      height: 1080,
+    }),
+    children: [
       {
         id: `${id}.title`,
         type: "text" as const,
-        parentLayerId: null,
+        parentLayerId: id,
         zIndex: 0,
-        ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+        timing: { start: 0, duration },
+        ...visualLayerAtoms({
+          x: 40,
+          y: 40,
+          width: 200,
+          height: 40,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
         payload: {
-          text: name ,
+          text: name,
           fontSize: 24,
           color: "#111111",
           alignment: "left" as const,
         },
       },
     ],
-    clips: [],
   };
 }
 
@@ -72,6 +93,10 @@ function baseProject(
   name: string,
   scenes: ReturnType<typeof scene>[],
 ): MotionProject {
+  const duration = scenes.reduce(
+    (sum, item) => sum + (item.timing?.duration ?? 0),
+    0,
+  );
   return parseMotionProject({
     format: "motion-project",
     formatVersion: 1,
@@ -96,28 +121,10 @@ function baseProject(
     assets: [],
     variables: [],
     components: [],
-    timeline: {
-      visualTracks: [
-        {
-          id: "primary",
-          role: "main",
-          order: 0,
-          clips: scenes.map((s, i) => ({
-            id: `vclip-${i}-${s.id}`,
-            source: { kind: "scene" as const, sceneId: s.id },
-            start:
-              i > 0
-                ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0)
-                : 0,
-            duration: s.duration,
-          })),
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-    scenes,
+    layers: scenes.map((item, index) => ({ ...item, zIndex: index })),
+    timeline: { duration },
     bindings: [],
+    extensions: {},
   }) as MotionProject;
 }
 
@@ -233,50 +240,61 @@ export function fixtureMainPlusAudioOverlap() {
         channels: 1,
       },
     ],
-    timeline: {
-      visualTracks: [
-        {
-          id: "primary",
-          role: "main",
-          order: 0,
-          clips: [
-            {
-              id: "vclip-main",
-              source: { kind: "scene" as const, sceneId: "scene.main" },
-              start: 0,
-              duration: 6,
-            },
-          ],
-        },
-      ],
-      audioTracks: [
-        {
-          id: "audio.a",
-          role: "bgm",
+    timeline: { duration: 6 },
+    layers: [
+      ...base.layers,
+      {
+        id: "audio.a",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -1,
+        timing: { start: 0, duration: 4 },
+        payload: {
           assetId: "asset.audio.a",
-          start: 0,
-          duration: 4,
+          trimStart: 0,
+          playbackRate: 1,
           volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
         },
-        {
-          id: "audio.b",
-          role: "sfx",
+      },
+      {
+        id: "audio.b",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -2,
+        timing: { start: 1, duration: 3 },
+        payload: {
           assetId: "asset.audio.b",
-          start: 2,
-          duration: 3,
-          volume: 0.8,
-        },
-        {
-          id: "audio.c",
-          role: "voiceover",
-          assetId: "asset.audio.c",
-          start: 2.5,
-          duration: 2,
+          trimStart: 0,
+          playbackRate: 1,
           volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
         },
-      ],
-      captionTracks: [],
-    },
+      },
+      {
+        id: "audio.c",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -3,
+        timing: { start: 2, duration: 2 },
+        payload: {
+          assetId: "asset.audio.c",
+          trimStart: 0,
+          playbackRate: 1,
+          volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
+        },
+      },
+    ],
   }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
@@ -347,88 +365,67 @@ export function fixtureMultiSceneReferences() {
     assets: [],
     variables: [],
     components: [],
-    timeline: {
-      visualTracks: [
-        {
-          id: "primary",
-          role: "main",
-          order: 0,
-          clips: [
-            {
-              id: "vclip-a",
-              source: { kind: "scene" as const, sceneId: "scene.a" },
-              start: 0,
-              duration: 2,
-            },
-            {
-              id: "vclip-b",
-              source: { kind: "scene" as const, sceneId: "scene.b" },
-              start: 2,
-              duration: 2,
-            },
-          ],
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-    scenes: [
+    layers: [
       {
         id: "scene.a",
-        duration: 2,
-        layers: [
+        type: "group",
+        parentLayerId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 2 },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080 }),
+        children: [
           {
             id: "node.a.root",
             type: "group",
-            parentLayerId: null,
-            ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
-          },
-          {
-            id: "node.a.child",
-            type: "text",
-            parentLayerId: "node.a.root",
-            ...visualLayerAtoms({ x: 10, y: 10, width: 80, height: 30, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
-            payload: {
-              text: "A" ,
-              fontSize: 18,
-              color: "#000000",
-              alignment: "left" as const,
-            },
-          },
-        ],
-        clips: [
-          {
-            id: "anim.a",
-            layerId: "node.a.child",
-            property: "appearance.opacity",
-            kind: "keyframes",
-            keys: [
-              { t: 0, value: 0 },
-              { t: 1, value: 1, easing: "linear" },
+            parentLayerId: "scene.a",
+            zIndex: 0,
+            timing: { start: 0, duration: 2 },
+            ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100 }),
+            children: [
+              {
+                id: "node.a.child",
+                type: "text",
+                parentLayerId: "node.a.root",
+                zIndex: 0,
+                timing: { start: 0, duration: 2 },
+                ...visualLayerAtoms({ x: 10, y: 10, width: 80, height: 30 }),
+                payload: {
+                  text: "A",
+                  fontSize: 18,
+                  color: "#000000",
+                  alignment: "left" as const,
+                },
+              },
             ],
           },
         ],
       },
       {
         id: "scene.b",
-        duration: 2,
-        layers: [
+        type: "group",
+        parentLayerId: null,
+        zIndex: 1,
+        timing: { start: 0, duration: 2 },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080 }),
+        children: [
           {
             id: "node.b.title",
             type: "text",
-            parentLayerId: null,
-            ...visualLayerAtoms({ x: 20, y: 20, width: 120, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+            parentLayerId: "scene.b",
+            zIndex: 0,
+            timing: { start: 0, duration: 2 },
+            ...visualLayerAtoms({ x: 20, y: 20, width: 120, height: 40 }),
             payload: {
-              text: "B" ,
+              text: "B",
               fontSize: 20,
               color: "#222222",
               alignment: "left" as const,
             },
           },
         ],
-        clips: [],
       },
     ],
+    timeline: { duration: 4 },
     bindings: [],
   }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];

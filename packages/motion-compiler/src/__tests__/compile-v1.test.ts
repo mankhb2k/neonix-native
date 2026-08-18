@@ -132,6 +132,26 @@ describe("compileMotionProjectV1", () => {
     expect(ok.project.assets[0]?.uri).toBe("https://signed.example/logo.png");
   });
 
+  it("passes unmanaged external URLs through without a resolver", () => {
+    const project = structuredClone(minimal);
+    project.assets = [
+      {
+        id: "poster",
+        uri: "https://cdn.example.com/poster.webp",
+        assetType: "image",
+        mimeType: "image/webp",
+        width: 1920,
+        height: 1080,
+      },
+    ];
+    const result = compileMotionProjectV1(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.assets[0]?.uri).toBe(
+      "https://cdn.example.com/poster.webp",
+    );
+  });
+
   it("compiles timeline.clips into runtime propertyAnimations", () => {
     const project = structuredClone(representative);
     const layer = project.layers.find((item) => item.type === "text");

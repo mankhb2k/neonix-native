@@ -1,6 +1,4 @@
-import type { TimelineLane } from "../model/timeline-types";
-
-export type TimelineTrackKind = "main" | "overlay" | "audio";
+import type { TimelineLane, TimelineTrackKind } from "../model/timeline-types";
 
 /**
  * Map a single lane (or undefined) to its visual track kind.

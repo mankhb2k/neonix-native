@@ -26,9 +26,153 @@ Audio là làn âm thanh trên timeline. Visual guide không áp dụng.
 
 ---
 
+## Audio analysis → keyframes
+
+> Trạng thái: v1 (package `@motionvideo/audio-analysis`).
+>
+> Mục tiêu: sinh keyframes theo nhạc khi user muốn video nhảy theo beat — **không** đưa dữ liệu phân tích vào `MotionProjectV1`.
+
+---
+
+### Ranh giới
+
+Audio analysis là **tính năng tùy chọn của app**, không phải primitive bắt buộc của protocol.
+
+Chỉ chạy analysis khi user cần:
+
+- visualizer theo beat
+- neon glow pulse theo nhạc
+- logo/avatar scale theo bass
+- equalizer/waveform motion
+- remix/music video keyframes
+
+Không chạy khi chỉ đặt nhạc nền, render nhạc không cần hình nhảy theo nhạc, keyframes thủ công, hay template không audio-reactive.
+
+```txt
+Audio analysis = app feature / tool artifact.
+MotionProjectV1 = output cuối cùng, chỉ chứa timeline.clips đã bake.
+Compiler/runtime = không phụ thuộc audio analysis.
+```
+
+---
+
+### Artifact `AudioAnalysisV1`
+
+Kết quả phân tích là file sidecar JSON, **không nằm trong** `MotionProjectV1`:
+
+```ts
+type AudioAnalysisV1 = {
+  format: "moticlip-audio-analysis";
+  formatVersion: 1;
+
+  projectId: string;
+  audioAssetId: string;
+  audioHash?: string; // invalidate cache khi asset đổi
+
+  duration: number;
+  sampleRate: number;
+  channels: number;
+  hopSeconds: number; // mặc định 0.05
+
+  beats: Array<{ t: number; strength: number }>; // 0..1
+  bassEnergy: Array<{ t: number; value: number }>; // 0..1
+  loudness: Array<{ t: number; value: number }>; // 0..1
+  sections: Array<{
+    type: "intro" | "build" | "drop" | "main" | "break" | "outro";
+    start: number;
+    end: number;
+    confidence?: number; // 0..1
+  }>;
+
+  createdAt: string;
+  analyzerVersion: string;
+};
+```
+
+R2 object key (deterministic theo project namespace):
+
+```txt
+workspaces/{workspaceId}/projects/{projectId}/analysis/audio/{audioAssetId}.audio-analysis.v1.json
+```
+
+---
+
+### Luồng hoạt động
+
+```txt
+audio assetId
+  -> motion-storage getDownloadUrl
+  -> packages/audio-analysis analyze
+  -> save AudioAnalysisV1 artifact to R2
+  -> generate timeline.clips
+  -> patch MotionProjectV1.timeline.clips
+```
+
+---
+
+### Map signal → clip
+
+| Audio signal   | Motion target                                                |
+| -------------- | ------------------------------------------------------------ |
+| `beats[]`      | `transform.scale`, `effects.<glow>.opacity` (spike)          |
+| `bassEnergy[]` | ring scale, bar height, glow radius/opacity (continuous)     |
+| `loudness[]`   | brightness, noise opacity, background intensity (continuous) |
+| `sections[]`   | palette, scene intensity, template variant                   |
+
+Output cuối cùng là `timeline.clips` (đã bake), ví dụ:
+
+```json
+{
+  "id": "clip-beat-glow",
+  "layerId": "visualizer.ring",
+  "property": "effects.fx-glow-1.opacity",
+  "keys": [
+    { "t": 12.4, "value": 25 },
+    { "t": 12.43, "value": 100 },
+    { "t": 12.58, "value": 25 }
+  ]
+}
+```
+
+---
+
+### Preset `neon-circle-pulse`
+
+```ts
+const analysis = await analyzeAudio({
+  audioUrl,
+  projectId: "proj_123",
+  audioAssetId: "asset.audio.main",
+  hopSeconds: 0.05,
+});
+
+const clips = audioAnalysisToTimelineClips({
+  analysis,
+  preset: "neon-circle-pulse",
+  targets: {
+    ringLayerId: "visualizer.ring",
+    glowEffectId: "fx-glow-1",
+  },
+});
+
+project.timeline.clips = [...(project.timeline.clips ?? []), ...clips];
+```
+
+Quy ước giá trị keyframe sinh ra:
+
+- `opacity`: `0..100`
+- `scale`: multiplier (`1.0` = base)
+- `brightness`: `20..80` (theo preset)
+
+Cùng target `transform.scale`, beat pulse và bass scale được gộp vào **một clip** (`clip-ring-scale`) để không clip sau đè clip trước.
+
+---
+
 ## Xem thêm
 
+- [audio-analysis-feature-plan.md](./audio-analysis-feature-plan.md)
 - [v1-timeline-guide.md](./v1-timeline-guide.md)
+- [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md)
 - [v1-layer-guide.md](./v1-layer-guide.md)
 - [v1-video-guide.md](./v1-video-guide.md)
 - [v1-appearance-guide.md](./v1-appearance-guide.md)

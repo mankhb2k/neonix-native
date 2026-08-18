@@ -1,89 +1,90 @@
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
 } from "../model/timeline-types";
 
-let _laneSeq = 0;
-
-function _uid(prefix: string): string {
-  _laneSeq += 1;
-  return `${prefix}_${_laneSeq}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
 /**
- * Derive timeline lanes + clips from project.timeline.visualTracks
- * and project.timeline.audioTracks (Phase 8: V1 only).
+ * Derive timeline lanes + clips from `project.layers` root layers.
  *
- * Every V1 visual track maps to a visual lane (main → base, overlay → overlay);
- * audio tracks map to audio clips with a shared audio lane.
+ * Mapping (clip = 1 root layer; lane = root layer grouped by zIndex sign):
+ * - root visual layer (`type !== "audio"`, `parentLayerId === null`) → visual clip.
+ *   `zIndex === 0` → base lane; `zIndex > 0` → overlay lane (order = zIndex - 1).
+ * - root audio layer (`type === "audio"`, `zIndex < 0`) → audio clip on a shared audio lane.
  */
 export function visualTracksToTimelineClips(project: MotionProject): {
   lanes: TimelineLane[];
   clips: TimelineClip[];
 } {
-  const scenesById = new Map(
-    (project.scenes ?? []).map((s) => [s.id, s] as const),
+  const rootLayers = project.layers.filter(
+    (layer) => layer.parentLayerId === null,
   );
   const lanes: TimelineLane[] = [];
   const clips: TimelineClip[] = [];
 
-  // ── Visual tracks → lanes + scene clips ──
-  const visualTracks = project.timeline.visualTracks ?? [];
+  const visualLayers = rootLayers.filter(
+    (layer): layer is MotionLayer => layer.type !== "audio",
+  );
+  const audioLayers = rootLayers.filter((layer) => layer.type === "audio");
 
-  for (const track of visualTracks) {
-    const role: "base" | "overlay" =
-      track.role === "overlay" ? "overlay" : "base";
-    const lane: TimelineLane = {
-      id: track.id,
-      kind: "visual",
-      role,
-      order: track.order ?? 0,
-      name: role === "base" ? "Main" : track.id,
-      policy: { ...DEFAULT_VISUAL_POLICY },
-    };
-    lanes.push(lane);
-
-    for (const vc of track.clips) {
-      const sourceId =
-        vc.source.kind === "scene" ? vc.source.sceneId : vc.source.componentId;
-      const scene = sourceId ? scenesById.get(sourceId) : undefined;
-      clips.push({
-        id: vc.id,
-        kind: "scene",
-        sceneId: sourceId ?? "",
-        laneId: track.id,
-        startTime: vc.start,
-        duration: vc.duration,
-        name: scene?.name ?? sourceId ?? vc.id,
-      });
-    }
+  // ── Visual root layers → lanes + clips ──
+  const overlayZ = new Set<number>();
+  for (const layer of visualLayers) {
+    if (layer.zIndex > 0) overlayZ.add(layer.zIndex);
+    clips.push({
+      id: layer.id,
+      kind: "scene",
+      sceneId: layer.id,
+      laneId: layer.zIndex === 0 ? "lane.main" : `lane.overlay.${layer.zIndex}`,
+      startTime: layer.timing.start,
+      duration: layer.timing.duration,
+      name: layer.name ?? layer.id,
+    });
   }
 
-  // ── Audio tracks → audio clips (shared lane) ──
-  const audioTracks = project.timeline.audioTracks ?? [];
-  if (audioTracks.length > 0) {
-    const audioLaneId = _uid("lane_audio");
-    const audioLane: TimelineLane = {
+  lanes.push({
+    id: "lane.main",
+    kind: "visual",
+    role: "base",
+    order: -1,
+    name: "Main",
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  });
+
+  const sortedZ = [...overlayZ].sort((a, b) => a - b);
+  sortedZ.forEach((z, idx) => {
+    lanes.push({
+      id: `lane.overlay.${z}`,
+      kind: "visual",
+      role: "overlay",
+      order: idx,
+      name: `Overlay ${idx + 1}`,
+      policy: { ...DEFAULT_VISUAL_POLICY },
+    });
+  });
+
+  // ── Audio root layers → audio clips (shared lane) ──
+  if (audioLayers.length > 0) {
+    const audioLaneId = "lane.audio";
+    lanes.push({
       id: audioLaneId,
       kind: "audio",
       role: "audio",
       order: lanes.length,
       name: "Audio",
-    };
-    lanes.push(audioLane);
+    });
 
-    for (const track of audioTracks) {
+    for (const layer of audioLayers) {
       clips.push({
-        id: track.id,
+        id: layer.id,
         kind: "audio",
-        audioTrackId: track.id,
-        assetId: track.assetId,
+        audioTrackId: layer.id,
+        assetId: layer.payload.assetId,
         laneId: audioLaneId,
-        startTime: track.start,
-        duration: track.duration,
-        name: track.id,
+        startTime: layer.timing.start,
+        duration: layer.timing.duration,
+        name: layer.name ?? layer.id,
       });
     }
   }

@@ -74,6 +74,18 @@
   --timeline-ruler-h: 28px;
   --timeline-label-w: 96px;
 
+  /* Landing marketing — neon cyberpunk (add-only, không đụng chrome editor) */
+  --landing-bg-deep: #05060b;
+  --landing-bg-purple: #0d0a1a;
+  --electric-blue: #3b82f6;
+  --neon-magenta-loud: #e879f9;
+  --neon-cyan-loud: #67e8f9;
+  --glass-surface: rgba(22, 27, 40, 0.55);
+  --glass-border: rgba(125, 211, 252, 0.18);
+  --scanline: rgba(125, 211, 252, 0.03);
+  --landing-glow-cyan: rgba(34, 211, 238, 0.35);
+  --landing-glow-magenta: rgba(192, 132, 252, 0.3);
+
   color-scheme: dark;
 }
 

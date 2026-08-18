@@ -93,7 +93,10 @@ function baseProject(
   name: string,
   scenes: ReturnType<typeof scene>[],
 ): MotionProject {
-  const duration = scenes.reduce((sum, item) => sum + (item.timing?.duration ?? 0), 0);
+  const duration = scenes.reduce(
+    (sum, item) => sum + (item.timing?.duration ?? 0),
+    0,
+  );
   return parseMotionProject({
     format: "motion-project",
     formatVersion: 1,
@@ -238,6 +241,60 @@ export function fixtureMainPlusAudioOverlap() {
       },
     ],
     timeline: { duration: 6 },
+    layers: [
+      ...base.layers,
+      {
+        id: "audio.a",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -1,
+        timing: { start: 0, duration: 4 },
+        payload: {
+          assetId: "asset.audio.a",
+          trimStart: 0,
+          playbackRate: 1,
+          volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
+        },
+      },
+      {
+        id: "audio.b",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -2,
+        timing: { start: 1, duration: 3 },
+        payload: {
+          assetId: "asset.audio.b",
+          trimStart: 0,
+          playbackRate: 1,
+          volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
+        },
+      },
+      {
+        id: "audio.c",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -3,
+        timing: { start: 2, duration: 2 },
+        payload: {
+          assetId: "asset.audio.c",
+          trimStart: 0,
+          playbackRate: 1,
+          volume: 100,
+          loop: false,
+          fadeIn: 0,
+          fadeOut: 0,
+          muted: false,
+        },
+      },
+    ],
   }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [

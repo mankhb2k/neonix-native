@@ -23,6 +23,7 @@ import {
   type EvaluatedFramePainter,
   type PaintCommand,
   type PaintCommandBuffer,
+  type PaintDrawCommand,
   type RuntimeEffect,
   type PaintPatch,
   isPatchStale,
@@ -541,7 +542,7 @@ export function createPixiFramePainter(
   };
 
   /** Whether the paint command is a draw op that can be diffed. */
-  const isDrawOp = (cmd: PaintCommand): cmd is PaintCommand & { key: string } =>
+  const isDrawOp = (cmd: PaintCommand): cmd is PaintDrawCommand =>
     "key" in cmd &&
     [
       "drawText",
@@ -792,7 +793,9 @@ export function createPixiFramePainter(
           text.style.fontSize = cmd.fontSize;
           text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
           if (cmd.fontWeight != null) {
-            text.style.fontWeight = String(cmd.fontWeight);
+            text.style.fontWeight = String(
+              cmd.fontWeight,
+            ) as typeof text.style.fontWeight;
           }
           if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
           if (cmd.letterSpacing != null)
@@ -999,18 +1002,18 @@ export function createPixiFramePainter(
     },
     getDiffStats: () => ({ ...diffStats }),
     async captureImage(): Promise<ImageBitmap | null> {
-      if (!opts.renderer) return null;
+      if (!options.renderer) return null;
       try {
-        const canvas = opts.renderer.extract.canvas(root);
+        const canvas = options.renderer.extract.canvas(root);
         return await createImageBitmap(canvas);
       } catch {
         return null;
       }
     },
     captureDataURL(type = "image/png", quality?: number): string | null {
-      if (!opts.renderer) return null;
+      if (!options.renderer) return null;
       try {
-        const canvas = opts.renderer.extract.canvas(root);
+        const canvas = options.renderer.extract.canvas(root);
         return canvas.toDataURL(type, quality);
       } catch {
         return null;
@@ -1049,6 +1052,7 @@ export function createPixiFramePainter(
             // Re-execute the relevant paint command for this key
             for (const cmd of lastPaint.commands) {
               if (
+                "key" in cmd &&
                 cmd.key === patch.layerId &&
                 (cmd.op === "drawShape" || cmd.op === "drawSolid")
               ) {
@@ -1078,7 +1082,7 @@ export function createPixiFramePainter(
                 }
                 const fillStyle = paintFillStyle(
                   patch.value as string,
-                  cmd.fillPaint,
+                  cmd.op === "drawShape" ? cmd.fillPaint : undefined,
                   w,
                   h,
                 );

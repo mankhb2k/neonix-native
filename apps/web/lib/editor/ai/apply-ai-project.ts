@@ -39,7 +39,7 @@ function mergeElementMeta(
   const next = { ...previous };
   for (const key of affectedKeys ?? []) {
     const [sceneId, nodeId] = key.split("/");
-    const envelopeKey = `scene:${sceneId ?? "scene"}:${layerId ?? key}`;
+    const envelopeKey = `scene:${sceneId ?? "scene"}:${nodeId ?? key}`;
     const prev = next[envelopeKey];
     next[envelopeKey] = {
       origin: "ai",

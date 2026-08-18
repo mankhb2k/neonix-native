@@ -15,6 +15,41 @@ describe("AssetV1 storage policy", () => {
     expect(asset.storage).toBeUndefined();
   });
 
+  it("accepts unmanaged external URL with required metadata", () => {
+    const asset = AssetV1Schema.parse({
+      id: "poster",
+      uri: "https://cdn.example.com/poster.webp",
+      assetType: "image",
+      mimeType: "image/webp",
+      width: 1920,
+      height: 1080,
+    });
+    expect(asset.uri).toBe("https://cdn.example.com/poster.webp");
+    expect(asset.storage).toBeUndefined();
+  });
+
+  it("rejects unmanaged external URL without image dimensions", () => {
+    const result = AssetV1Schema.safeParse({
+      id: "poster",
+      uri: "https://cdn.example.com/poster.webp",
+      assetType: "image",
+      mimeType: "image/webp",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unmanaged external URL without video metadata", () => {
+    const result = AssetV1Schema.safeParse({
+      id: "intro",
+      uri: "https://cdn.example.com/intro.mp4",
+      assetType: "video",
+      mimeType: "video/mp4",
+      width: 1920,
+      height: 1080,
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("accepts managed asset without uri", () => {
     const asset = AssetV1Schema.parse({
       id: "logo",

@@ -57,7 +57,7 @@ export function ProjectList({ onNewProject }: Props) {
             {project.metadata.name}
           </h3>
           <p className="m-0 text-[0.8rem] leading-[1.45] text-[var(--fg-muted)]">
-            {compositionAspectRatio(project)} · {project.scenes.length} scene
+            {compositionAspectRatio(project)} · {project.layers.length} layer
           </p>
           <p className="mt-2 text-[0.8rem] text-[var(--fg-muted)]">
             {new Date(savedAt).toLocaleString("vi-VN")}

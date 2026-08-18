@@ -38,13 +38,23 @@ export function createBlankProject(input: {
       fonts: { display: "Be Vietnam Pro" },
     },
     variables: [
-      { id: "project.brandName", type: "string", name: "Brand Name", value: input.name },
-      { id: "project.primaryColor", type: "color", name: "Primary Color", value: "#1A5D3A" },
+      {
+        id: "project.brandName",
+        type: "string",
+        name: "Brand Name",
+        value: input.name,
+      },
+      {
+        id: "project.primaryColor",
+        type: "color",
+        name: "Primary Color",
+        value: "#1A5D3A",
+      },
     ],
     assets: [],
     components: [],
-    scenes: [],
-    timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
+    layers: [],
+    timeline: { duration: 0 },
     bindings: [],
   });
 }

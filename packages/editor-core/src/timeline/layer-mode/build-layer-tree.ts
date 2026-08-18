@@ -5,12 +5,7 @@
  * Moved from apps/desktop/gui/editor/timeline/layer-mode/build-layer-tree.ts
  */
 
-import type {
-  MotionLayer,
-} from "@motionvideo/motion-protocol";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 export type LayerTreeNode = {
   id: string;
@@ -41,7 +36,7 @@ function nodeDisplayName(node: MotionLayer): string {
 }
 
 function nodeVisible(node: MotionLayer): boolean {
-  return node.transform?.visible !== false;
+  return !("appearance" in node) || node.appearance?.visible !== false;
 }
 
 function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {
@@ -50,14 +45,13 @@ function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {
 }
 
 /**
- * Build a forest from scene.layers.
+ * Build a forest from a flat layer list (project.layers or group.children).
  * Orphans (unknown parent) and cycle breakers become roots.
  */
 export function buildLayerTree(
-  scene: MotionScene | null | undefined,
+  layers: MotionLayer[] | null | undefined,
 ): LayerTreeNode[] {
-  if (!scene) return [];
-  const layers = scene.layers ?? [];
+  if (!layers) return [];
   if (layers.length === 0) return [];
 
   const idSet = new Set(layers.map((n) => n.id));
@@ -203,14 +197,14 @@ function getSiblingList(
   roots: LayerTreeNode[],
   layerId: string,
 ): { siblings: LayerTreeNode[]; index: number } | null {
-  const node = findNode(roots, nodeId);
+  const node = findNode(roots, layerId);
   if (!node) return null;
   const siblings =
     node.parentLayerId == null
       ? roots
       : (findNode(roots, node.parentLayerId)?.children ?? null);
   if (!siblings) return null;
-  const index = siblings.findIndex((s) => s.id === nodeId);
+  const index = siblings.findIndex((s) => s.id === layerId);
   if (index < 0) return null;
   return { siblings, index };
 }
