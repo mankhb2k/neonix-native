@@ -37,12 +37,7 @@ export type DesktopProjectEnvelope = {
     variables: unknown[];
     assets: unknown[];
     components: unknown[];
-    scenes: unknown[];
-    timeline: {
-      visualTracks: unknown[];
-      audioTracks: unknown[];
-      captionTracks: unknown[];
-    };
+    layers: unknown[];
     bindings: unknown[];
   };
   timelineClips: unknown[];
@@ -254,8 +249,7 @@ export function buildBlankDesktopProject(input?: {
       ],
       assets: [],
       components: [],
-      scenes: [],
-      timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
+      layers: [],
       bindings: [],
     },
     timelineClips: [],

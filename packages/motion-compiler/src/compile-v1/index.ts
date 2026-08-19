@@ -11,7 +11,7 @@
  *   root audio layers      → runtime audio layers on the same `layers` list
  *   variables / bindings   → component props via project.bindings (no inline `{ ref }`)
  *   component layers       → sealed wrapper-group expansion in the layer graph
- *   timeline.clips         → runtime `propertyAnimations`
+ *   layer.animations       → runtime `propertyAnimations`
  *   component prop keyframes → runtime `propertyAnimations`
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
@@ -29,7 +29,7 @@ import {
   computeProjectHash,
   buildCapabilityFingerprint,
   preflightProjectCapabilities,
-  canonicalizeTimelineDurationV1,
+  canonicalizeProjectTimingV1,
   CAPABILITY_MANIFEST_VERSION_V1,
   V1,
 } from "@motionvideo/motion-protocol";
@@ -50,11 +50,11 @@ import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
-import { timelineClipsToPropertyAnimations } from "./to-property-animations";
+import { layerAnimationsToPropertyAnimations } from "./to-property-animations";
 
 export { detectScheduleCycles } from "./semantics";
 export {
-  timelineClipsToPropertyAnimations,
+  layerAnimationsToPropertyAnimations,
   componentPropKeyframesToPropertyAnimations,
 } from "./to-property-animations";
 
@@ -130,13 +130,13 @@ export function compileMotionProjectV1(
   }
   let normalized = parsed.data;
 
-  // ── Timeline duration derivation ─────────────────────────────────
-  // Authoring input may omit `timeline.duration`. Derive it from the last
-  // timeline content end before semantic validation and runtime emit so the
-  // emitted runtime IR always carries an explicit duration.
-  const durationCanonical = canonicalizeTimelineDurationV1(normalized);
+  // ── Project duration derivation ───────────────────────────────────
+  // Authoring JSON has no duration. Snap layer timing to the frame grid
+  // then derive MP4 length from max root layer end before semantic
+  // validation and runtime emit so the IR always carries an explicit duration.
+  const durationCanonical = canonicalizeProjectTimingV1(normalized);
   for (const issue of durationCanonical.issues) {
-    collector.warn("CMP_TIMELINE_DURATION_DERIVED", issue.message, {
+    collector.warn("CMP_PROJECT_DURATION_DERIVED", issue.message, {
       path: [issue.path],
     });
   }
@@ -242,9 +242,16 @@ export function compileMotionProjectV1(
       return compileFailure([...collector.diagnostics]);
     }
 
-    // Project variables for binding injection
+    // Project variables for binding injection (core projects omit variables/bindings)
+    const authoringExtras = normalized as V1.MotionProjectV1 & {
+      variables?: Array<{ id: string; value: unknown }>;
+      bindings?: V1.MotionProjectV1 extends { bindings: infer B } ? B : never[];
+      extensions?: Record<string, unknown>;
+    };
     const projectVariables = new Map<string, unknown>(
-      normalized.variables.map((v) => [v.id, clone(v.value)] as const),
+      (authoringExtras.variables ?? []).map(
+        (v) => [v.id, clone(v.value)] as const,
+      ),
     );
 
     // Component instances tracked during buildLayerPlan: componentLayerId →
@@ -255,7 +262,7 @@ export function compileMotionProjectV1(
       normalized.components.map((c) => [c.id, c] as const),
     );
 
-    for (const binding of normalized.bindings) {
+    for (const binding of authoringExtras.bindings ?? []) {
       const target = binding.target;
       if (target.type !== "prop") continue;
       const instance = componentInstances.get(target.layerId);
@@ -299,8 +306,8 @@ export function compileMotionProjectV1(
       return compileFailure([...collector.diagnostics]);
     }
 
-    const duration = normalized.timeline.duration ?? 0;
-    const aiExt = normalized.extensions["com.moticlip.ai"];
+    const duration = durationCanonical.duration;
+    const aiExt = (authoringExtras.extensions ?? {})["com.moticlip.ai"];
     const aiRecord =
       aiExt && typeof aiExt === "object" && !Array.isArray(aiExt)
         ? (aiExt as {
@@ -320,7 +327,7 @@ export function compileMotionProjectV1(
               ...((Array.isArray(graph.propertyAnimations)
                 ? graph.propertyAnimations
                 : []) as MotionRuntimeProject["propertyAnimations"]),
-              ...timelineClipsToPropertyAnimations(normalized.timeline.clips),
+              ...layerAnimationsToPropertyAnimations(normalized.layers),
             ],
             variables: projectVariables,
             ...(aiRecord?.space ? { space: aiRecord.space } : {}),
@@ -429,18 +436,33 @@ export function buildCompileCacheKeyV1(
     normalized as unknown as Record<string, unknown>,
   ).slice(0, 16);
 
+  const projectExtras = normalized as V1.MotionProjectV1 & {
+    capabilities?: {
+      required?: string[];
+      optional?: string[];
+      experimental?: string[];
+    };
+    dependencies?: {
+      components: Array<{
+        componentId: string;
+        version: string;
+        integrity?: string;
+      }>;
+    };
+  };
+
   const capabilitiesHash = createHash("sha256")
     .update(
       canonicalJson({
-        required: normalized.capabilities.required ?? [],
-        optional: normalized.capabilities.optional ?? [],
-        experimental: normalized.capabilities.experimental ?? [],
+        required: projectExtras.capabilities?.required ?? [],
+        optional: projectExtras.capabilities?.optional ?? [],
+        experimental: projectExtras.capabilities?.experimental ?? [],
       }),
     )
     .digest("hex")
     .slice(0, 8);
 
-  const componentDeps = normalized.dependencies.components
+  const componentDeps = (projectExtras.dependencies?.components ?? [])
     .map((dep) => `${dep.componentId}@${dep.version}:${dep.integrity ?? ""}`)
     .sort()
     .join(",");

@@ -4,8 +4,10 @@ import { create } from "zustand";
 
 import { applyAiProjectToStore } from "@/lib/editor/ai/apply-ai-project";
 import {
+  createEmptyEnvelope,
   isPropertyLocked,
   markUserModified,
+  setLayerDisplayName,
   toggleElementLock,
   togglePropertyLock,
 } from "@/lib/editor/authoring/web-project-envelope";
@@ -24,7 +26,6 @@ import {
   canRedo,
   canUndo,
   clearHistory,
-  clipsContentEndSeconds,
   createHistoryState,
   documentFromStoreState,
   executePropertyCommand,
@@ -40,6 +41,7 @@ import {
   type DocumentPropertyCommand,
   type HistoryEntry,
 } from "@motionvideo/editor-core";
+import { deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
 import type { EditorStore } from "@/lib/editor/store/types";
 
@@ -327,7 +329,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
             },
           });
           usePlaybackClock.getState().reset({
-            duration: clipsContentEndSeconds(clips),
+            duration: deriveProjectDurationV1(project.layers),
             currentTime: 0,
           });
         }
@@ -355,7 +357,58 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         const doc = documentFromStoreState(get());
         if (!doc?.project) return;
         const beforeDoc = doc;
-        const result = executePropertyCommand(doc, command);
+
+        let commandForCore = command;
+        if (
+          command.type === "set-node-metadata" &&
+          command.patch.name !== undefined
+        ) {
+          let envelope =
+            get().envelope ?? createEmptyEnvelope(doc.project.metadata.id);
+          for (const target of command.targets) {
+            envelope = setLayerDisplayName(
+              envelope,
+              target.rootLayerId,
+              target.layerId,
+              command.patch.name,
+            );
+            envelope = markUserModified(
+              envelope,
+              target.rootLayerId,
+              target.layerId,
+              ["metadata"],
+            );
+          }
+          if (command.patch.visible === undefined) {
+            const entry: HistoryEntry = {
+              id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+              timestamp: Date.now(),
+              label: command.type,
+              before: beforeDoc,
+              after: beforeDoc,
+              beforeSelection: state.selection,
+              afterSelection: state.selection,
+              coalesceKey: options?.coalesceKey,
+            };
+            historyState = replaceOrPushHistory(historyState, entry, {
+              coalesceKey: options?.coalesceKey,
+            });
+            set({
+              envelope,
+              dirtyRevision: state.dirtyRevision + 1,
+              canUndo: canUndo(historyState),
+              canRedo: canRedo(historyState),
+            });
+            return;
+          }
+          commandForCore = {
+            ...command,
+            patch: { visible: command.patch.visible },
+          };
+          set({ envelope });
+        }
+
+        const result = executePropertyCommand(doc, commandForCore);
         if (result.status !== "applied") return;
 
         let envelope = get().envelope;

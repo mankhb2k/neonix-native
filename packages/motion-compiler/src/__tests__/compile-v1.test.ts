@@ -77,7 +77,7 @@ describe("compileMotionProjectV1", () => {
       parentLayerId: null,
       zIndex: maxZ + 1,
       timing: { start: 0, duration: 4 },
-      ...visualLayerAtoms({ x: 100, y: 200, width: 256, height: 256, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+      ...visualLayerAtoms({ x: 100, y: 200, width: 256, height: 256, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100 }),
       payload: {
         componentId: "logo-reveal",
         props: {},
@@ -152,17 +152,14 @@ describe("compileMotionProjectV1", () => {
     );
   });
 
-  it("compiles timeline.clips into runtime propertyAnimations", () => {
+  it("compiles layer.animations into runtime propertyAnimations", () => {
     const project = structuredClone(representative);
     const layer = project.layers.find((item) => item.type === "text");
     expect(layer).toBeDefined();
-    if (!layer) return;
-    project.timeline.clips = [
+    if (!layer || layer.type === "audio") return;
+    layer.animations = [
       {
-        id: "fade",
-        layerId: layer.id,
-        property: "appearance.opacity",
-        kind: "keyframes",
+        property: "opacity",
         keys: [
           { t: 0, value: 0 },
           { t: 1, value: 100 },
@@ -176,7 +173,7 @@ describe("compileMotionProjectV1", () => {
       result.project.propertyAnimations.some(
         (animation) =>
           animation.layerId === layer.id &&
-          animation.property === "appearance.opacity",
+          animation.property === "opacity",
       ),
     ).toBe(true);
   });

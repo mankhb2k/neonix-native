@@ -50,7 +50,7 @@ Không chạy khi chỉ đặt nhạc nền, render nhạc không cần hình nh
 
 ```txt
 Audio analysis = app feature / tool artifact.
-MotionProjectV1 = output cuối cùng, chỉ chứa timeline.clips đã bake.
+MotionProjectV1 = output cuối cùng, chỉ chứa layer.animations đã bake.
 Compiler/runtime = không phụ thuộc audio analysis.
 ```
 
@@ -104,8 +104,8 @@ audio assetId
   -> motion-storage getDownloadUrl
   -> packages/audio-analysis analyze
   -> save AudioAnalysisV1 artifact to R2
-  -> generate timeline.clips
-  -> patch MotionProjectV1.timeline.clips
+  -> generate layer.animations
+  -> patch owning visual layer.animations
 ```
 
 ---
@@ -119,7 +119,7 @@ audio assetId
 | `loudness[]`   | brightness, noise opacity, background intensity (continuous) |
 | `sections[]`   | palette, scene intensity, template variant                   |
 
-Output cuối cùng là `timeline.clips` (đã bake), ví dụ:
+Output cuối cùng là `layer.animations` (đã bake), ví dụ:
 
 ```json
 {
@@ -146,7 +146,7 @@ const analysis = await analyzeAudio({
   hopSeconds: 0.05,
 });
 
-const clips = audioAnalysisToTimelineClips({
+const drafts = audioAnalysisToTimelineClips({
   analysis,
   preset: "neon-circle-pulse",
   targets: {
@@ -155,7 +155,7 @@ const clips = audioAnalysisToTimelineClips({
   },
 });
 
-project.timeline.clips = [...(project.timeline.clips ?? []), ...clips];
+// Strip layerId and push onto the owning visual layer.animations
 ```
 
 Quy ước giá trị keyframe sinh ra:

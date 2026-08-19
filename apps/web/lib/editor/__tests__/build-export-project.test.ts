@@ -204,7 +204,6 @@ describe("export temporal parity (local-time bake)", () => {
     return {
       id,
       type: "group" as const,
-      name: id,
       parentLayerId: null,
       zIndex: 0,
       ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080 }),
@@ -246,22 +245,12 @@ describe("export temporal parity (local-time bake)", () => {
         background: "#111111",
         colorSpace: "srgb",
       },
-      capabilities: {},
-      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-      tokens: {
-        colors: { brand: "#111111" },
-        fonts: { display: "Be Vietnam Pro" },
-      },
       assets: [],
-      variables: [],
       components: [],
       layers: [
         { ...baseScene, zIndex: 0 },
         { ...overlayScene, zIndex: 1 },
       ],
-      timeline: { duration: 8 },
-      bindings: [],
-      extensions: {},
     }) as MotionProject;
 
     const lanes: TimelineLane[] = [

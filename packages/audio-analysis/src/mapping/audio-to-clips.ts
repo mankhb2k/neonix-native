@@ -2,19 +2,18 @@ import type { AudioAnalysisV1 } from "../schema";
 import { presetFor } from "./presets";
 
 /**
- * Audio-analysis → timeline.clips mapping.
+ * Audio-analysis → `layer.animations[]` mapping.
  *
- * `TimelinePropertyClipV1` is kept self-contained here. When the protocol's
- * `V1.TimelinePropertyClipV1` type is available, this shape should be
- * aligned with it (id / layerId / property / keys[{t, value}]).
+ * Output is a draft with `layerId` as the attach target. Callers strip
+ * `layerId` and push the rest onto the owning visual layer.
  */
-
 export type TimelineKeyframeV1 = {
   t: number;
   value: number;
 };
 
-export type TimelinePropertyClipV1 = {
+/** Draft animation plus attach target. Not authoring JSON — no protocol `layerId`. */
+export type LayerPropertyAnimationDraftV1 = {
   id: string;
   layerId: string;
   property: string;
@@ -90,7 +89,7 @@ function finalizeKeys(
 }
 
 /**
- * Map an `AudioAnalysisV1` to `timeline.clips` using a named preset.
+ * Map an `AudioAnalysisV1` to layer animation drafts using a named preset.
  *
  * - beats      → glow opacity spike + scale pulse
  * - bassEnergy → continuous scale
@@ -98,13 +97,13 @@ function finalizeKeys(
  */
 export function audioAnalysisToTimelineClips(
   input: AudioToClipsInput,
-): TimelinePropertyClipV1[] {
+): LayerPropertyAnimationDraftV1[] {
   const { analysis, targets } = input;
   const intensity = clamp01(input.options?.intensity ?? 1);
   const maxKeysPerClip = input.options?.maxKeysPerClip ?? 500;
   const preset = presetFor(input.preset);
 
-  const clips: TimelinePropertyClipV1[] = [];
+  const clips: LayerPropertyAnimationDraftV1[] = [];
   const beatWeight = (strength: number) => 0.4 + 0.6 * strength;
 
   // 1. beats -> glow opacity spikes

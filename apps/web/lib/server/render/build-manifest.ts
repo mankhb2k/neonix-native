@@ -21,7 +21,7 @@ export function buildStubRenderManifest(input: {
     process.env.REMOTION_SERVE_URL ?? "https://example.invalid/remotion-site";
   return parseRenderManifest({
     format: "moticlip-render-manifest",
-    manifestVersion: 1,
+    manifestVersion: 2,
     projectId: input.projectId,
     projectRevision: input.projectRevision,
     versions: {
@@ -30,6 +30,15 @@ export function buildStubRenderManifest(input: {
       runtime: "0.0.1",
       remotion: REMOTION_PIN,
       capabilityManifest: CAPABILITY_MANIFEST_VERSION,
+    },
+    contentHash: "0".repeat(64),
+    determinism: {
+      version: 1,
+      frameEpsilon: 1.776e-15,
+      geometryEpsilon: 1e-12,
+      lengthEpsilon: 1e-9,
+      hashAlgorithm: "sha256",
+      canonicalJson: true,
     },
     composition: {
       width: spec.width,

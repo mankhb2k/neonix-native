@@ -26,7 +26,7 @@ Tầng này chỉ tạo **intent** (preview + commit payload), không tự ghi d
 | Interaction math        | Tính preview khi kéo/trim/resize/rotate                     | `ClipMovePreview`, `StageTransformValues`, `AutoScrollDelta` |
 | Commit boundary         | Đóng session → payload cuối                                 | `ClipMovePatch`, `StagePropertyPatch`, `PlacementTarget`     |
 | Command adapter         | Host (web/desktop) map payload → `@motionvideo/editor-core` | `DocumentPropertyCommand`                                    |
-| Protocol JSON           | `motion-protocol` là nguồn chân lý cuối cùng                | `project.layers[]`, `timeline.clips[]`                       |
+| Protocol JSON           | `motion-protocol` là nguồn chân lý cuối cùng                | `project.layers[]`, `layer.animations[]`                       |
 
 **Từ vựng quan trọng:** `clip`/`lane`/`track` thuộc tầng timeline dẫn xuất của editor; `rootLayerId`/`layerId` là id protocol của layer; `node` chỉ dùng khi duyệt cây nội bộ. Xem `docs/web/editor-vocabulary.md` để biết đầy đủ.
 
@@ -68,7 +68,7 @@ import {
 
 - **Không React / JSX / hooks** — hooks thuộc `@motionvideo/editor-react`.
 - **Không Zustand / store toàn cục** — không giữ selection hay document; chỉ trả kết quả để host apply.
-- **Không document mutation** — không ghi `project.layers[]` / `timeline.clips[]`; chỉ sinh intent.
+- **Không document mutation** — không ghi `project.layers[]` / `layer.animations[]`; chỉ sinh intent.
 - **Không protocol migration** — không đọc/ghi/chuẩn hóa JSON protocol; protocol là nguồn chân lý của `motion-protocol`.
 - **Không renderer-specific types** — không pixi/remotion/canvas DOM; chỉ dùng types trung lập từ `motion-runtime` cho stage hit-test.
 - **Không UI chrome** — không component timeline/stage; apps tự vẽ playhead, clip strip, overlay.

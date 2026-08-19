@@ -4,7 +4,6 @@
   "metadata": {
     "id": "nested-groups",
     "name": "Nested Groups",
-    "description": "Three-level nested group hierarchy validated for V1 Group Layer Semantics",
     "locale": "vi-VN"
   },
   "composition": {
@@ -15,17 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": []
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [
     {
       "id": "asset.head",
@@ -40,8 +28,6 @@
     }
   ],
   "components": [],
-  "timeline": {},
-  "bindings": [],
   "layers": [
     {
       "id": "group.character",
@@ -173,49 +159,28 @@
                     "width": 160,
                     "height": 160
                   },
-                  "appearance": {
-                    "visible": true,
-                    "opacity": 100
-                  }
+                  "opacity": 100
                 }
               ],
               "frame": {
                 "width": 180,
                 "height": 180
               },
-              "appearance": {
-                "visible": true,
-                "opacity": 100
-              },
-              "compositing": {
-                "isolation": "isolate"
-              }
+              "opacity": 100
             }
           ],
           "frame": {
             "width": 360,
             "height": 380
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          },
-          "compositing": {
-            "isolation": "auto"
-          }
+          "opacity": 100
         }
       ],
       "frame": {
         "width": 500,
         "height": 700
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      },
-      "compositing": {
-        "isolation": "auto"
-      }
+      "opacity": 100
     }
   ]
 }

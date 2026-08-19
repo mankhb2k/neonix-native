@@ -32,16 +32,9 @@ function minimalProject(): MotionProjectV1 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: { required: [] },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [],
     components: [],
     layers: [],
-    timeline: { duration: 8 },
-    bindings: [],
-    extensions: {},
   };
 }
 

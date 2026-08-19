@@ -12,13 +12,13 @@ Gói repo: [README gốc](../../README.md) · Protocol: [`docs/guide`](../../doc
 
 `apps/web` là **bề mặt sản phẩm**, không phải engine animation.
 
-| Việc web làm | Việc web không làm |
-| --- | --- |
-| Host UI (marketing, docs, hub, editor) | Định nghĩa schema V1 |
-| Giữ session: selection, playhead, zoom, undo | Tự tính easing / transform / layout |
+| Việc web làm                                   | Việc web không làm                              |
+| ---------------------------------------------- | ----------------------------------------------- |
+| Host UI (marketing, docs, hub, editor)         | Định nghĩa schema V1                            |
+| Giữ session: selection, playhead, zoom, undo   | Tự tính easing / transform / layout             |
 | Chiếu `project.layers` ra timeline / inspector | Lưu `laneId`, `visualTracks`, playhead vào JSON |
-| Gọi compiler + Pixi để preview | Paint frame theo cách riêng so với export |
-| BFF: AI generation, Remotion Lambda | Thay thế `motion-runtime` |
+| Gọi compiler + Pixi để preview                 | Paint frame theo cách riêng so với export       |
+| BFF: AI generation, Remotion Lambda            | Thay thế `motion-runtime`                       |
 
 Pipeline dùng chung với desktop:
 
@@ -42,14 +42,14 @@ Editor là **IDE trên JSON**, không phải timeline-as-document.
 - Timeline **chiếu** layers ra hàng. Packing vài root không chồng thời gian lên một lane là view-only — không ghi `laneId` vào V1.
 - `zIndex` unique, một chiều kiểu Canva: Main rồi overlay; **trong một hàng tăng sang trái** (clip phải = số nhỏ hơn), rồi lên hàng trên. Không reset mỗi lane — ví dụ `2|1|0` trên Main rồi `4|3` overlay.
 - Preview **không** đọc lane đã pack. Stage compile JSON, evaluate tại playhead, Pixi paint. Playhead chỉ là session.
-- Tab **JSON** trong sidebar là `serializeMotionProjectV1(project)` — không phải envelope clips.
+- Tab **JSON** trong sidebar là `serializeMotionProjectV1Authoring(project)` — authoring shape (thứ tự semantic + prune empty), không phải envelope clips. Xem [`docs/web/authoring-json-shape.md`](../docs/web/authoring-json-shape.md).
 
 Hai bề mặt timeline:
 
-| Scope | `groupPath` | Hàng trên timeline | DnD |
-| --- | --- | --- | --- |
-| Main | `[]` | Pack root visual không chồng thời gian (nhiều clip / lane). Audio chỉ ở đây. | Kéo ngang đổi `timing.start`; thả lane khác rồi write-back `zIndex`. Visual không xuống audio. |
-| Trong group | ids tổ tiên | 1 child = 1 hàng. Không pack, không audio. Thời gian clip = global (`timeOffset` + `child.timing.start`). | Kéo ngang đổi thời gian; thả hàng khác = swap; thả khe giữa hàng = insert. |
+| Scope       | `groupPath` | Hàng trên timeline                                                                                        | DnD                                                                                            |
+| ----------- | ----------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Main        | `[]`        | Pack root visual không chồng thời gian (nhiều clip / lane). Audio chỉ ở đây.                              | Kéo ngang đổi `timing.start`; thả lane khác rồi write-back `zIndex`. Visual không xuống audio. |
+| Trong group | ids tổ tiên | 1 child = 1 hàng. Không pack, không audio. Thời gian clip = global (`timeOffset` + `child.timing.start`). | Kéo ngang đổi thời gian; thả hàng khác = swap; thả khe giữa hàng = insert.                     |
 
 Double-click strip **group** (`type === "group"`) → vào `group.children`. Primitive (text/shape/video/image) không drill-in. Nút Quay lại / Escape → ra Main. Chi tiết: [`/docs/editor`](http://localhost:3000/docs/editor) (khi `pnpm dev`).
 
@@ -82,14 +82,14 @@ Chrome editor (`EditorShell`): 5 panel nổi trên `--bg-site`.
 └──────────┴────────────────────────────┴─────────────────┘
 ```
 
-| Panel | Hiện | Ghi vào JSON | Chỉ session |
-| --- | --- | --- | --- |
-| Header | Tên, undo/redo, export | metadata khi đổi tên | dirty, job export |
-| Sidebar · Layers | Cây `project.layers` | chọn / drill group | `groupPath` |
-| Sidebar · JSON | Serialize V1 | không (read-only) | — |
-| Stage | Frame tại playhead | drop layer mới | hit-test, drag overlay |
-| Timeline | Projection lanes | timing, thứ tự, zIndex | zoom, marquee, playhead |
-| Inspector | Property của node đang chọn | prop / keyframe | tab AI vs Properties |
+| Panel            | Hiện                        | Ghi vào JSON           | Chỉ session             |
+| ---------------- | --------------------------- | ---------------------- | ----------------------- |
+| Header           | Tên, undo/redo, export      | metadata khi đổi tên   | dirty, job export       |
+| Sidebar · Layers | Cây `project.layers`        | chọn / drill group     | `groupPath`             |
+| Sidebar · JSON   | Serialize V1                | không (read-only)      | —                       |
+| Stage            | Frame tại playhead          | drop layer mới         | hit-test, drag overlay  |
+| Timeline         | Projection lanes            | timing, thứ tự, zIndex | zoom, marquee, playhead |
+| Inspector        | Property của node đang chọn | prop / keyframe        | tab AI vs Properties    |
 
 ---
 
@@ -120,16 +120,16 @@ flowchart LR
 
 Logic thuần không ở `apps/web`. Web chỉ chrome, store, persistence, BFF.
 
-| Package | Web dùng để |
-| --- | --- |
-| `motion-protocol` | Parse / serialize / validate V1 |
-| `motion-compiler` + `motion-runtime` | Preview + export cùng IR |
-| `pixi-renderer` | Paint `PaintCommandBuffer` trên stage |
-| `editor-core` | Command, pack/write-back zIndex, selection |
-| `editor-interactions` | Toán gesture / playhead / snap |
-| `editor-react` | Hook đo DOM, marquee, trim/move |
-| `ai-planner` | `POST /api/ai/generations` |
-| `render-contracts` | Manifest job Lambda |
+| Package                              | Web dùng để                                |
+| ------------------------------------ | ------------------------------------------ |
+| `motion-protocol`                    | Parse / serialize / validate V1            |
+| `motion-compiler` + `motion-runtime` | Preview + export cùng IR                   |
+| `pixi-renderer`                      | Paint `PaintCommandBuffer` trên stage      |
+| `editor-core`                        | Command, pack/write-back zIndex, selection |
+| `editor-interactions`                | Toán gesture / playhead / snap             |
+| `editor-react`                       | Hook đo DOM, marquee, trim/move            |
+| `ai-planner`                         | `POST /api/ai/generations`                 |
+| `render-contracts`                   | Manifest job Lambda                        |
 
 Desktop (`apps/desktop`) dùng cùng core; **không** import `apps/web`. Theme, Zustand, layout panel là việc của từng app.
 
@@ -146,11 +146,11 @@ pnpm install
 pnpm --filter @motionvideo/web dev
 ```
 
-| URL | Việc |
-| --- | --- |
-| http://localhost:3000 | Landing |
-| http://localhost:3000/docs | Protocol docs |
-| http://localhost:3000/app | Hub — tạo project, mở editor |
+| URL                        | Việc                         |
+| -------------------------- | ---------------------------- |
+| http://localhost:3000      | Landing                      |
+| http://localhost:3000/docs | Protocol docs                |
+| http://localhost:3000/app  | Hub — tạo project, mở editor |
 
 ```bash
 pnpm --filter @motionvideo/web test        # vitest

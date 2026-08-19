@@ -8,7 +8,7 @@ import { z } from "zod";
  *
  *   workspaces/{workspaceId}/projects/{projectId}/analysis/audio/{audioAssetId}.audio-analysis.v1.json
  *
- * The protocol itself only ever consumes baked `timeline.clips`, so these
+ * The protocol itself only ever consumes baked `layer.animations`, so these
  * fields (beats, bassEnergy, loudness, sections) never enter MotionProjectV1.
  */
 

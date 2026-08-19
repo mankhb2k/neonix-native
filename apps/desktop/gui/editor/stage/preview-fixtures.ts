@@ -77,6 +77,7 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
       type: "text" as const,
       parentLayerId: null,
       zIndex: i,
+      timing: { start: 0, duration: 4 },
       ...visualLayerAtoms({ x: 40 + col * 24, y: 40 + row * 16, width: 20, height: 12, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
       payload: {
         text: `N${i}`,
@@ -109,34 +110,7 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
     assets: [],
     variables: [],
     components: [],
-    timeline: {
-      visualTracks: [
-        {
-          id: "main-track",
-          role: "main",
-          order: 0,
-          clips: [
-            {
-              id: "clip_bench",
-              source: { kind: "scene", sceneId: "scene_bench" },
-              start: 0,
-              duration: 4,
-            },
-          ],
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-    scenes: [
-      {
-        id: "scene_bench",
-        name: "Bench",
-        duration: 4,
-        layers,
-        clips: [],
-      },
-    ],
+    layers,
     bindings: [],
   });
 
@@ -154,7 +128,7 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
     {
       id: "clip_bench",
       kind: "scene",
-      sceneId: "scene_bench",
+      sceneId: "node_0",
       laneId: "lane_base",
       startTime: 0,
       duration: 4,

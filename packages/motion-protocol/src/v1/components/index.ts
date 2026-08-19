@@ -13,7 +13,6 @@ import {
   PropertyPathSchema,
   SemverSchema,
   FiniteNumberSchema,
-  SemanticSchema,
 } from "../common";
 import { LayerV1Schema } from "../layers";
 import { ComponentPropValueSchema } from "./prop-values";
@@ -58,14 +57,13 @@ export function defaultInterpolationForPropKind(
 export const ComponentPropV1Schema = z
   .object({
     id: IdSchema,
-    name: z.string().min(1).optional(),
+    name: z.string().min(1),
     kind: ComponentPropKindSchema,
     default: LiteralValueSchema,
     /** When omitted, inferred: choice/asset → false; others → true. */
     animatable: z.boolean().optional(),
     /** Required when kind === "asset". */
     assetKind: ComponentPropAssetKindSchema.optional(),
-    semantic: SemanticSchema.optional(),
     min: FiniteNumberSchema.optional(),
     max: FiniteNumberSchema.optional(),
     step: FiniteNumberSchema.positive().optional(),

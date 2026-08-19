@@ -1,6 +1,6 @@
-import { V1 } from "@motionvideo/motion-protocol";
+import { V1, deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
 import type { DiagnosticCollector } from "../compile-result";
-import { clone, type JsonRecord } from "./helpers";
+import type { JsonRecord } from "./helpers";
 import {
   prepareRuntimeLayerGraph,
   type ComponentInstanceRef,
@@ -44,15 +44,12 @@ export function buildLayerPlan(
   const components = new Map(
     project.components.map((component) => [component.id, component] as const),
   );
-  const projectVariables = new Map<string, unknown>(
-    project.variables.map((v) => [v.id, clone(v.value)] as const),
-  );
   const componentInstances = new Map<string, ComponentInstanceRef>();
   const visualLayers = flattenVisualLayers(project.layers);
   const audioLayers = project.layers.filter(
     (layer): layer is V1.AudioLayerV1 => layer.type === "audio",
   );
-  const duration = project.timeline.duration ?? 0;
+  const duration = deriveProjectDurationV1(project.layers);
 
   const graph = prepareRuntimeLayerGraph(
     {
@@ -64,8 +61,8 @@ export function buildLayerPlan(
     componentInstances,
     "root",
     {
-      bindings: project.bindings,
-      variables: projectVariables,
+      bindings: [],
+      variables: new Map<string, unknown>(),
     },
   );
 

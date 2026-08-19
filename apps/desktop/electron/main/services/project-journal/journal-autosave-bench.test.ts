@@ -37,61 +37,29 @@ const artifactPath = path.join(
 
 function inflateToTargetBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
-    project: {
-      scenes: Array<Record<string, unknown>>;
-      timeline: {
-        visualTracks: unknown[];
-        audioTracks: unknown[];
-        captionTracks: unknown[];
-      };
-    };
+    project: { layers: unknown[] };
   };
-  const id = "scene_bench_pad";
-  const skeleton = {
-    id,
-    name: "Bench",
-    duration: 3,
-    layers: [
-      {
-        id: "node_bench_pad",
-        type: "text",
-        parentLayerId: null,
-        zIndex: 0,
-        ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
-        payload: {
-          text: "" ,
-          fontSize: 64,
-          color: "#000000",
-          alignment: "center",
-        },
-      },
-    ],
-    clips: [],
-  };
-  envelope.project.scenes = [skeleton];
-  envelope.project.timeline.visualTracks = [
-    {
-      id: "main-track",
-      role: "main",
-      order: 0,
-      clips: [
-        {
-          id: "clip_bench_pad",
-          source: { kind: "scene", sceneId: id },
-          start: 0,
-          duration: 3,
-        },
-      ],
+  const node = {
+    id: "node_bench_pad",
+    type: "text",
+    parentLayerId: null,
+    zIndex: 0,
+    timing: { start: 0, duration: 3 },
+    ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+    payload: {
+      text: "",
+      fontSize: 64,
+      color: "#000000",
+      alignment: "center",
+      wrap: "word",
+      overflow: "clip",
     },
-  ];
+  };
+  envelope.project.layers = [node];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
-    (
-      skeleton.layers[0] as {
-        payload: { text: string };
-      }
-    ).payload.text = "x".repeat(deficit);
+    node.payload.text = "x".repeat(deficit);
     json = JSON.stringify(envelope);
   }
   return json;

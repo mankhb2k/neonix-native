@@ -179,30 +179,9 @@
               "type": "string",
               "minLength": 1
             },
-            "description": {
-              "type": "string"
-            },
             "locale": {
               "type": "string",
               "minLength": 1
-            },
-            "industry": {
-              "type": "string"
-            },
-            "tags": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-              },
-              "maxItems": 64
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "updatedAt": {
-              "type": "string",
-              "format": "date-time"
             }
           },
           "required": [
@@ -280,412 +259,6 @@
             "fps"
           ],
           "additionalProperties": false
-        },
-        "capabilities": {
-          "type": "object",
-          "properties": {
-            "required": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": [
-                      "projection.orthographic-2d",
-                      "projection.layered-2.5d",
-                      "projection.perspective-3d",
-                      "effect.blur",
-                      "effect.shadow",
-                      "effect.glow",
-                      "effect.inner-glow",
-                      "effect.noise",
-                      "effect.color-adjust",
-                      "primitive.group",
-                      "primitive.text",
-                      "primitive.shape",
-                      "primitive.image",
-                      "primitive.svg",
-                      "primitive.video",
-                      "primitive.path",
-                      "primitive.audio",
-                      "video.trim",
-                      "video.loop",
-                      "anim.transform",
-                      "anim.opacity",
-                      "anim.drivers",
-                      "style.gradient",
-                      "style.blend",
-                      "camera.orthographic",
-                      "camera.parallax",
-                      "audio.render-plan",
-                      "audio.export",
-                      "component.embedding",
-                      "ai.patching",
-                      "asset.external"
-                    ]
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)+$"
-                  }
-                ]
-              },
-              "maxItems": 256,
-              "default": []
-            },
-            "optional": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/MotionProjectV1/properties/capabilities/properties/required/items"
-              },
-              "maxItems": 256
-            },
-            "experimental": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/MotionProjectV1/properties/capabilities/properties/required/items"
-              },
-              "maxItems": 256
-            }
-          },
-          "additionalProperties": false,
-          "default": {}
-        },
-        "dependencies": {
-          "type": "object",
-          "properties": {
-            "compiler": {
-              "type": "object",
-              "properties": {
-                "range": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "required": [
-                "range"
-              ],
-              "additionalProperties": false
-            },
-            "components": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "componentId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "version": {
-                    "type": "string",
-                    "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
-                  },
-                  "source": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "integrity": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "componentId",
-                  "version",
-                  "integrity"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 512,
-              "default": []
-            },
-            "plugins": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "pluginId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "version": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/dependencies/properties/components/items/properties/version"
-                  },
-                  "integrity": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "pluginId",
-                  "version",
-                  "integrity"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 512
-            }
-          },
-          "required": [
-            "compiler"
-          ],
-          "additionalProperties": false
-        },
-        "tokens": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64
-              }
-            },
-            "fonts": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
-              }
-            },
-            "spacing": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/JsonValue/anyOf/1"
-              }
-            },
-            "radii": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/motionBlur/properties/shutterPhase"
-              }
-            },
-            "motion": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/JsonValue/anyOf/1"
-              }
-            }
-          },
-          "additionalProperties": false,
-          "default": {}
-        },
-        "variables": {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "semantic": {
-                    "type": "object",
-                    "properties": {
-                      "role": {
-                        "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                      },
-                      "key": {
-                        "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                      },
-                      "tags": {
-                        "type": "array",
-                        "items": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                        },
-                        "maxItems": 64,
-                        "default": []
-                      }
-                    },
-                    "required": [
-                      "role"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "string"
-                  },
-                  "value": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "value"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/name"
-                  },
-                  "semantic": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "color"
-                  },
-                  "value": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "value"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/name"
-                  },
-                  "semantic": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "number"
-                  },
-                  "value": {
-                    "$ref": "#/definitions/JsonValue/anyOf/1"
-                  },
-                  "min": {
-                    "$ref": "#/definitions/JsonValue/anyOf/1"
-                  },
-                  "max": {
-                    "$ref": "#/definitions/JsonValue/anyOf/1"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "value"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/name"
-                  },
-                  "semantic": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "boolean"
-                  },
-                  "value": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "value"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/name"
-                  },
-                  "semantic": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "asset"
-                  },
-                  "assetKind": {
-                    "type": "string",
-                    "enum": [
-                      "image",
-                      "video",
-                      "audio",
-                      "svg",
-                      "font"
-                    ]
-                  },
-                  "value": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "assetKind",
-                  "value"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "name": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/name"
-                  },
-                  "semantic": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "choice"
-                  },
-                  "value": {
-                    "type": "string"
-                  },
-                  "options": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1,
-                    "maxItems": 256
-                  }
-                },
-                "required": [
-                  "id",
-                  "type",
-                  "value",
-                  "options"
-                ],
-                "additionalProperties": false
-              }
-            ]
-          },
-          "maxItems": 1024,
-          "default": []
         },
         "assets": {
           "type": "array",
@@ -1119,7 +692,8 @@
                 "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
               },
               "version": {
-                "$ref": "#/definitions/MotionProjectV1/properties/dependencies/properties/components/items/properties/version"
+                "type": "string",
+                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
               },
               "integrity": {
                 "type": "string",
@@ -1165,9 +739,6 @@
                         "media"
                       ]
                     },
-                    "semantic": {
-                      "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-                    },
                     "min": {
                       "$ref": "#/definitions/JsonValue/anyOf/1"
                     },
@@ -1190,6 +761,7 @@
                   },
                   "required": [
                     "id",
+                    "name",
                     "kind",
                     "default"
                   ],
@@ -1305,10 +877,6 @@
                         "type": {
                           "type": "string",
                           "const": "group"
-                        },
-                        "name": {
-                          "type": "string",
-                          "minLength": 1
                         },
                         "parentLayerId": {
                           "anyOf": [
@@ -1455,25 +1023,11 @@
                           },
                           "additionalProperties": false
                         },
-                        "appearance": {
-                          "type": "object",
-                          "properties": {
-                            "visible": {
-                              "type": "boolean",
-                              "default": true
-                            },
-                            "opacity": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "maximum": 100,
-                              "default": 100
-                            }
-                          },
-                          "additionalProperties": false,
-                          "default": {
-                            "visible": true,
-                            "opacity": 100
-                          }
+                        "opacity": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 100
                         },
                         "compositing": {
                           "type": "object",
@@ -1490,14 +1044,6 @@
                                 "overlay"
                               ],
                               "default": "normal"
-                            },
-                            "isolation": {
-                              "type": "string",
-                              "enum": [
-                                "auto",
-                                "isolate"
-                              ],
-                              "default": "auto"
                             },
                             "mask": {
                               "type": "object",
@@ -1554,55 +1100,30 @@
                           ],
                           "additionalProperties": false
                         },
-                        "layoutItem": {
-                          "type": "object",
-                          "properties": {
-                            "width": {
-                              "type": "string",
-                              "enum": [
-                                "fixed",
-                                "hug",
-                                "fill"
-                              ]
+                        "animations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "property": {
+                                "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
+                              },
+                              "keys": {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/PropKeyframesValue/properties/keys/items"
+                                },
+                                "minItems": 1,
+                                "maxItems": 10000
+                              }
                             },
-                            "height": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem/properties/width"
-                            },
-                            "alignSelf": {
-                              "type": "string",
-                              "enum": [
-                                "auto",
-                                "start",
-                                "center",
-                                "end",
-                                "stretch"
-                              ]
-                            },
-                            "minWidth": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 32768
-                            },
-                            "maxWidth": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 32768
-                            },
-                            "minHeight": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 32768
-                            },
-                            "maxHeight": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 32768
-                            }
+                            "required": [
+                              "property",
+                              "keys"
+                            ],
+                            "additionalProperties": false
                           },
-                          "additionalProperties": false
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
+                          "maxItems": 256
                         },
                         "effects": {
                           "type": "array",
@@ -1645,7 +1166,7 @@
                                     "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
                                   },
                                   "opacity": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                                     "default": 25
                                   },
                                   "blur": {
@@ -1702,7 +1223,7 @@
                                     "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
                                   },
                                   "opacity": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                                     "default": 100
                                   }
                                 },
@@ -1733,7 +1254,7 @@
                                     "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background"
                                   },
                                   "opacity": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                                     "default": 100
                                   }
                                 },
@@ -1756,7 +1277,7 @@
                                     "const": "noise"
                                   },
                                   "amount": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                                     "default": 12
                                   },
                                   "scale": {
@@ -1766,7 +1287,7 @@
                                     "default": 1
                                   },
                                   "opacity": {
-                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                                     "default": 25
                                   },
                                   "animated": {
@@ -1821,179 +1342,6 @@
                           },
                           "maxItems": 16
                         },
-                        "inheritFlags": {
-                          "type": "object",
-                          "properties": {
-                            "position": {
-                              "type": "boolean",
-                              "default": true
-                            },
-                            "rotation": {
-                              "type": "boolean",
-                              "default": true
-                            },
-                            "scale": {
-                              "type": "boolean",
-                              "default": true
-                            },
-                            "opacity": {
-                              "type": "boolean",
-                              "default": true
-                            }
-                          },
-                          "additionalProperties": false
-                        },
-                        "layout": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "mode": {
-                                  "type": "string",
-                                  "const": "row"
-                                },
-                                "gap": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "default": 0
-                                },
-                                "padding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number",
-                                      "minimum": 0,
-                                      "maximum": 32768
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "top": {
-                                          "type": "number",
-                                          "minimum": 0,
-                                          "maximum": 32768
-                                        },
-                                        "right": {
-                                          "type": "number",
-                                          "minimum": 0,
-                                          "maximum": 32768
-                                        },
-                                        "bottom": {
-                                          "type": "number",
-                                          "minimum": 0,
-                                          "maximum": 32768
-                                        },
-                                        "left": {
-                                          "type": "number",
-                                          "minimum": 0,
-                                          "maximum": 32768
-                                        }
-                                      },
-                                      "required": [
-                                        "top",
-                                        "right",
-                                        "bottom",
-                                        "left"
-                                      ],
-                                      "additionalProperties": false
-                                    }
-                                  ],
-                                  "default": 0
-                                },
-                                "align": {
-                                  "type": "string",
-                                  "enum": [
-                                    "start",
-                                    "center",
-                                    "end",
-                                    "stretch"
-                                  ],
-                                  "default": "start"
-                                },
-                                "justify": {
-                                  "type": "string",
-                                  "enum": [
-                                    "start",
-                                    "center",
-                                    "end",
-                                    "space-between"
-                                  ],
-                                  "default": "start"
-                                }
-                              },
-                              "required": [
-                                "mode"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "mode": {
-                                  "type": "string",
-                                  "const": "column"
-                                },
-                                "gap": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "default": 0
-                                },
-                                "padding": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
-                                  "default": 0
-                                },
-                                "align": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
-                                  "default": "start"
-                                },
-                                "justify": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
-                                  "default": "start"
-                                }
-                              },
-                              "required": [
-                                "mode"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "mode": {
-                                  "type": "string",
-                                  "const": "grid"
-                                },
-                                "columns": {
-                                  "type": "integer",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 32
-                                },
-                                "gap": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "default": 0
-                                },
-                                "padding": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
-                                  "default": 0
-                                },
-                                "align": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
-                                  "default": "start"
-                                },
-                                "justify": {
-                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
-                                  "default": "start"
-                                }
-                              },
-                              "required": [
-                                "mode",
-                                "columns"
-                              ],
-                              "additionalProperties": false
-                            }
-                          ]
-                        },
                         "payload": {
                           "type": "object",
                           "properties": {},
@@ -2029,9 +1377,6 @@
                           "type": "string",
                           "const": "bone"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2044,8 +1389,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2053,17 +1398,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -2122,9 +1461,6 @@
                           "type": "string",
                           "const": "text"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2137,8 +1473,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2146,17 +1482,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -2248,9 +1578,6 @@
                           "type": "string",
                           "const": "shape"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2263,8 +1590,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2272,17 +1599,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "anyOf": [
@@ -2541,9 +1862,6 @@
                           "type": "string",
                           "const": "path"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2556,8 +1874,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2565,17 +1883,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -2739,9 +2051,6 @@
                           "type": "string",
                           "const": "image"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2754,8 +2063,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2763,17 +2072,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -2854,9 +2157,6 @@
                           "type": "string",
                           "const": "svg"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2869,8 +2169,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2878,17 +2178,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -2942,9 +2236,6 @@
                           "type": "string",
                           "const": "video"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -2957,8 +2248,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -2966,17 +2257,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -3044,9 +2329,6 @@
                           "type": "string",
                           "const": "camera"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -3056,8 +2338,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -3065,11 +2347,8 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "payload": {
                           "type": "object",
@@ -3138,9 +2417,6 @@
                           "type": "string",
                           "const": "solid"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -3153,8 +2429,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -3162,17 +2438,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -3207,9 +2477,6 @@
                           "type": "string",
                           "const": "adjustment"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -3222,8 +2489,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -3231,17 +2498,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -3283,9 +2544,6 @@
                           "type": "string",
                           "const": "component"
                         },
-                        "name": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/name"
-                        },
                         "parentLayerId": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/parentLayerId"
                         },
@@ -3298,8 +2556,8 @@
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
                         },
-                        "appearance": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        "opacity": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity"
                         },
                         "compositing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
@@ -3307,17 +2565,11 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "layoutItem": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
-                        },
-                        "semantic": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/semantic"
+                        "animations": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
-                        },
-                        "inheritFlags": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
                         },
                         "payload": {
                           "type": "object",
@@ -3364,10 +2616,6 @@
                           "type": "string",
                           "const": "audio"
                         },
-                        "name": {
-                          "type": "string",
-                          "minLength": 1
-                        },
                         "parentLayerId": {
                           "type": "null"
                         },
@@ -3405,7 +2653,7 @@
                               "default": 1
                             },
                             "volume": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/opacity",
                               "default": 100
                             },
                             "loop": {
@@ -3469,220 +2717,13 @@
           },
           "maxItems": 2000,
           "default": []
-        },
-        "timeline": {
-          "type": "object",
-          "properties": {
-            "duration": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 86400
-            },
-            "workArea": {
-              "type": "object",
-              "properties": {
-                "start": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 86400
-                },
-                "end": {
-                  "type": "number",
-                  "exclusiveMinimum": true,
-                  "minimum": 0,
-                  "maximum": 86400
-                }
-              },
-              "required": [
-                "start",
-                "end"
-              ],
-              "additionalProperties": false
-            },
-            "clips": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "layerId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "property": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "keyframes",
-                    "default": "keyframes"
-                  },
-                  "keys": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/definitions/PropKeyframesValue/properties/keys/items"
-                    },
-                    "minItems": 1,
-                    "maxItems": 10000
-                  }
-                },
-                "required": [
-                  "id",
-                  "layerId",
-                  "property",
-                  "keys"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 2000
-            }
-          },
-          "additionalProperties": false
-        },
-        "bindings": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-              },
-              "source": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "variable"
-                  },
-                  "variableId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "variableId"
-                ],
-                "additionalProperties": false
-              },
-              "target": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "prop"
-                  },
-                  "layerId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  },
-                  "propId": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-                  }
-                },
-                "required": [
-                  "type",
-                  "layerId",
-                  "propId"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "id",
-              "source",
-              "target"
-            ],
-            "additionalProperties": false
-          },
-          "maxItems": 4096,
-          "default": []
-        },
-        "provenance": {
-          "type": "object",
-          "properties": {
-            "workspaceId": {
-              "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/id"
-            },
-            "sourceHash": {
-              "type": "string",
-              "minLength": 1
-            },
-            "bundleProfile": {
-              "type": "string",
-              "enum": [
-                "embedded-components",
-                "flattened-components"
-              ]
-            },
-            "sourceMap": {
-              "type": "object",
-              "properties": {
-                "layers": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "propertyNames": {
-                    "minLength": 1,
-                    "maxLength": 128
-                  }
-                },
-                "components": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "propertyNames": {
-                    "minLength": 1,
-                    "maxLength": 128
-                  }
-                },
-                "variables": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "propertyNames": {
-                    "minLength": 1,
-                    "maxLength": 128
-                  }
-                },
-                "assets": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "propertyNames": {
-                    "minLength": 1,
-                    "maxLength": 128
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "extensions": {
-          "type": "object",
-          "additionalProperties": {},
-          "propertyNames": {
-            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
-          },
-          "default": {}
         }
       },
       "required": [
         "format",
         "formatVersion",
         "metadata",
-        "composition",
-        "dependencies",
-        "timeline"
+        "composition"
       ],
       "additionalProperties": false
     }

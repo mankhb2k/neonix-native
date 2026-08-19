@@ -1,6 +1,11 @@
 import { V1 } from "@motionvideo/motion-protocol";
 import { clone, pixelFormatHasAlpha, type JsonRecord } from "./helpers";
 
+function runtimeAppearance(node: V1.LayerV1): { visible: boolean; opacity: number } {
+  const opacity = "opacity" in node ? (node.opacity ?? 100) : 100;
+  return { visible: opacity > 0, opacity };
+}
+
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   if (node.type === "audio") {
     return {
@@ -12,31 +17,19 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
       payload: clone(node.payload),
     };
   }
-  const flags: {
-    position?: boolean;
-    rotation?: boolean;
-    scale?: boolean;
-    opacity?: boolean;
-  } = node.inheritFlags ?? {};
   const base: JsonRecord = {
     id: node.id,
     type: node.type,
     parentLayerId: node.parentLayerId,
     transform: clone(node.transform),
-    appearance: clone(node.appearance),
+    appearance: runtimeAppearance(node),
   };
   if ("frame" in node && node.frame) base.frame = clone(node.frame);
-  if (node.name) base.name = node.name;
   base.zIndex = node.zIndex;
   base.timing = clone(node.timing);
-  if (node.semantic) base.semantic = node.semantic;
   if ("effects" in node && node.effects && node.effects.length > 0)
     base.effects = clone(node.effects);
   if (node.compositing) base.compositing = clone(node.compositing);
-  if (flags.position !== undefined) base.inheritPosition = flags.position;
-  if (flags.rotation !== undefined) base.inheritRotation = flags.rotation;
-  if (flags.scale !== undefined) base.inheritScale = flags.scale;
-  if (flags.opacity !== undefined) base.inheritOpacity = flags.opacity;
 
   const payload = (node.payload ?? {}) as JsonRecord;
   switch (node.type) {
@@ -176,8 +169,6 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
         ...(node.style ? { style: clone(node.style) } : {}),
       };
     case "component":
-      // Component layers are expanded before runtime preparation; this
-      // fallback keeps a missing-component layer from producing undefined.
       return {
         ...base,
         payload: clone(node.payload),
@@ -189,7 +180,6 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
   return {
     id: layer.id,
     type: "audio",
-    ...(layer.name ? { name: layer.name } : {}),
     parentLayerId: null,
     zIndex: layer.zIndex,
     timing: clone(layer.timing),

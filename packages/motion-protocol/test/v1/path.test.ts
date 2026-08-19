@@ -11,10 +11,7 @@ function projectWithLayer(layer: Record<string, unknown>) {
     formatVersion: 1,
     metadata: { id: "path", name: "Path", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     assets: [],
-    variables: [],
-    timeline: { duration: 2 },
     layers: [
       {
         id: "p1",

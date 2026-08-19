@@ -28,14 +28,8 @@ function projectWith(layers: MotionLayer[]) {
     formatVersion: 1,
     metadata: { id: "group-test", name: "Group test", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [],
     components: [],
-    timeline: { duration: 10 },
-    bindings: [],
     layers,
   });
 }
@@ -147,7 +141,6 @@ describe("unwrapLibrarySceneWrappers", () => {
     const wrapper: MotionLayer = {
       id: "scene_triangle",
       type: "group",
-      name: "Hình tam giác",
       parentLayerId: null,
       zIndex: 1,
       timing: { start: 0, duration: 4 },
@@ -168,7 +161,6 @@ describe("unwrapLibrarySceneWrappers", () => {
     const [next] = unwrapLibrarySceneWrappers([wrapper]);
     expect(next?.type).toBe("shape");
     expect(next?.id).toBe("scene_triangle");
-    expect(next?.name).toBe("Hình tam giác");
     expect(next && "payload" in next ? next.payload : null).toEqual({
       shape: "polygon",
       points: [],

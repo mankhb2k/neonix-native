@@ -4,7 +4,6 @@
   "metadata": {
     "id": "multi-asset",
     "name": "Multi Asset",
-    "description": "Root text, image, svg, video, and audio layers",
     "locale": "vi-VN"
   },
   "composition": {
@@ -15,17 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": []
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [
     {
       "id": "logo-png",
@@ -78,9 +66,6 @@
     }
   ],
   "components": [],
-  "timeline": {},
-  "bindings": [],
-  "extensions": {},
   "layers": [
     {
       "id": "main-camera",
@@ -107,13 +92,6 @@
           "y": 0
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "projection": "orthographic",
         "zoom": 1,
@@ -124,10 +102,7 @@
         "start": 0,
         "duration": 5
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "title",
@@ -155,13 +130,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "fontSize": 48,
         "color": "#000000",
@@ -178,10 +146,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "logo-img",
@@ -209,13 +174,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "assetId": "logo-png",
         "fit": "contain"
@@ -228,10 +186,7 @@
         "width": 300,
         "height": 300
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "logo-svg-node",
@@ -259,13 +214,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "assetId": "logo-svg",
         "fit": "contain"
@@ -278,10 +226,7 @@
         "width": 300,
         "height": 300
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "video-bg",
@@ -309,13 +254,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "assetId": "clip-video",
         "fit": "cover",
@@ -329,10 +267,7 @@
         "width": 480,
         "height": 270
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "track-bgm-clip",

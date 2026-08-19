@@ -20,10 +20,7 @@ function projectWithLayer(layer: Record<string, unknown>) {
     formatVersion: 1,
     metadata: { id: "image", name: "Image", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     assets: [IMAGE_ASSET],
-    variables: [],
-    timeline: { duration: 2 },
     layers: [
       {
         id: "image_1",

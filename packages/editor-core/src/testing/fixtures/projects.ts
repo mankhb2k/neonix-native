@@ -49,7 +49,6 @@ function scene(id: string, name: string, duration = 3) {
     id,
     type: "group" as const,
     parentLayerId: null,
-    name,
     timing: { start: 0, duration },
     ...visualLayerAtoms({
       x: 0,
@@ -75,7 +74,6 @@ function scene(id: string, name: string, duration = 3) {
           originX: 0,
           originY: 0,
           opacity: 100,
-          visible: true,
         }),
         payload: {
           text: name,
@@ -112,19 +110,9 @@ function baseProject(
       background: "#FFFFFF",
       colorSpace: "srgb",
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {
-      colors: { brand: "#1A5D3A" },
-      fonts: { display: "Be Vietnam Pro" },
-    },
     assets: [],
-    variables: [],
     components: [],
     layers: scenes.map((item, index) => ({ ...item, zIndex: index })),
-    timeline: { duration },
-    bindings: [],
-    extensions: {},
   }) as MotionProject;
 }
 
@@ -240,7 +228,7 @@ export function fixtureMainPlusAudioOverlap() {
         channels: 1,
       },
     ],
-    timeline: { duration: 6 },
+
     layers: [
       ...base.layers,
       {
@@ -356,14 +344,7 @@ export function fixtureMultiSceneReferences() {
       background: "#FFFFFF",
       colorSpace: "srgb",
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {
-      colors: { brand: "#1A5D3A" },
-      fonts: { display: "Be Vietnam Pro" },
-    },
     assets: [],
-    variables: [],
     components: [],
     layers: [
       {
@@ -425,8 +406,6 @@ export function fixtureMultiSceneReferences() {
         ],
       },
     ],
-    timeline: { duration: 4 },
-    bindings: [],
   }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [

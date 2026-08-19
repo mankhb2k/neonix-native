@@ -32,6 +32,7 @@ import {
   findSceneGroup,
   getAiExt,
   insertLayer,
+  appendLayerAnimation,
   refreshTimelineDuration,
   removeLayers,
   sceneGroups,
@@ -118,7 +119,6 @@ export function createBlankMotionProject(input: {
     variables: [],
     components: [],
     layers: [],
-    timeline: { duration: 0 },
     bindings: [],
     extensions: {},
   }) as unknown as MotionProject;
@@ -337,7 +337,7 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "invalid_scene_order",
-                  "timeline.visualTracks",
+                  "layers",
                   "sceneIds must list each project scene exactly once",
                   {
                     repairHint:
@@ -556,12 +556,6 @@ function applyOne(
         };
         visit(command.layerId);
         removeLayers(scene, removeIds);
-        next.timeline = {
-          ...next.timeline,
-          clips: (next.timeline.clips ?? []).filter(
-            (clip) => !clip.layerId || !removeIds.has(clip.layerId),
-          ),
-        };
         changedIds.push(...removeIds);
         return {
           project: parseMotionProject(next),
@@ -619,8 +613,12 @@ function applyOne(
             },
           };
         }
-        const clips = [...(next.timeline.clips ?? [])];
-        if (clips.some((clip) => clip.id === command.clipId)) {
+        const existingIds = new Set(
+          V1.flattenLayerTree(next.layers).flatMap((layer) =>
+            V1.getLayerAnimations(layer).map((animation) => animation.id),
+          ),
+        );
+        if (existingIds.has(command.clipId)) {
           return {
             project,
             receipt: {
@@ -629,16 +627,15 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `timeline.clips.${command.clipId}`,
-                  `Clip already exists: ${command.clipId}`,
+                  `layers.${command.layerId}.animations`,
+                  `Animation already exists: ${command.clipId}`,
                 ),
               ],
             },
           };
         }
-        clips.push({
+        const appended = appendLayerAnimation(next.layers, command.layerId, {
           id: command.clipId,
-          layerId: command.layerId,
           property: command.property,
           kind: "keyframes",
           keys: command.keys.map((key) => ({
@@ -647,7 +644,22 @@ function applyOne(
             ...(key.easing !== undefined ? { easing: key.easing } : {}),
           })),
         });
-        next.timeline = { ...next.timeline, clips };
+        if (!appended) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `layers.${command.layerId}`,
+                  `Unknown track target: ${command.layerId}`,
+                ),
+              ],
+            },
+          };
+        }
         changedIds.push(command.clipId);
         return {
           project: parseMotionProject(next),
@@ -1332,11 +1344,9 @@ function applyOne(
           const clipId =
             command.clipId ??
             `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
-          const clips = [...(next.timeline.clips ?? [])];
           for (const animation of baked.propertyAnimations) {
-            clips.push({
+            appendLayerAnimation(next.layers, animation.layerId, {
               id: `${clipId}.${animation.layerId}.${animation.property}`,
-              layerId: animation.layerId,
               property: animation.property,
               kind: "keyframes",
               keys: animation.keys.map((key) => ({
@@ -1348,7 +1358,6 @@ function applyOne(
               })),
             });
           }
-          next.timeline = { ...next.timeline, clips };
           changedIds.push(clipId);
         }
         return {
@@ -1822,31 +1831,7 @@ function applyOne(
             },
           };
         }
-        // Apply transition directly on the visual clip.
-        const tl = next.timeline as Record<string, unknown>;
-        const visualTracks =
-          (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
-        const mainTrack = visualTracks.find((t) => t.role === "main") as
-          | Record<string, unknown>
-          | undefined;
-        if (mainTrack) {
-          const clips =
-            (mainTrack.clips as Array<Record<string, unknown>>) ?? [];
-          const clip = clips.find(
-            (c) =>
-              (c.source as Record<string, unknown>)?.sceneId ===
-              command.sceneId,
-          );
-          if (clip) {
-            clip.transitionOut =
-              command.transition.type === "slide"
-                ? {
-                    ...command.transition,
-                    mode: command.transition.mode ?? "push",
-                  }
-                : command.transition;
-          }
-        }
+        // Transitions are editor/session, not authoring protocol.
         changedIds.push(command.sceneId);
         return {
           project: parseMotionProject(next),

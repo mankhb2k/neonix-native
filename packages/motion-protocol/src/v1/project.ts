@@ -1,29 +1,18 @@
 /**
- * Schema gốc project V1 — module lá (không vòng barrel).
- *
- * mcp / patch / parse import MotionProjectV1Schema từ đây, không từ ./index.
+ * Schema gốc project V1 — core render atoms only.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { MOTION_PROJECT_V1_FORMAT_VERSION } from "./common";
 import { ProjectMetadataV1Schema } from "./metadata";
 import { CompositionSettingsSchema } from "./composition";
-import { ProjectCapabilityRequirementsSchema } from "./capabilities";
-import { ProjectDependenciesV1Schema } from "./components";
-import { DesignTokensSchema } from "./design-tokens";
-import {
-  ProjectBindingV1Schema,
-  ProjectVariableV1Schema,
-} from "./variables";
 import { AssetV1Schema } from "./assets";
 import { ComponentDefinitionV1Schema } from "./components";
 import { flattenLayerTree, LayerV1Schema, type LayerV1 } from "./layers";
 import { collectAudioLayerTimingIssues } from "./layers/audio";
-import { ProjectTimelineV1Schema } from "./timeline/schema";
-import { collectFrameGridIssues } from "./timeline/frame-grid";
+import { getLayerAnimations } from "./layers/animations";
+import { collectFrameGridIssues } from "./layers/frame-grid";
 import type { MotionProjectV1 } from "./types";
-import { NamespacedExtensionsSchema } from "./extensions";
-import { ProjectProvenanceSchema } from "./provenance";
 
 function addDuplicateIdIssues(
   ids: string[],
@@ -46,7 +35,6 @@ function addDuplicateIdIssues(
 
 function collectLayerSchemaIssues(
   layers: LayerV1[],
-  duration: number | undefined,
   ctx: z.RefinementCtx,
 ): void {
   const walk = (
@@ -86,16 +74,6 @@ function collectLayerSchemaIssues(
       }
 
       if (parentId === null) {
-        if (
-          duration !== undefined &&
-          layer.timing.start + layer.timing.duration > duration + 1e-9
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Root layer "${layer.id}" ends at ${layer.timing.start + layer.timing.duration} beyond timeline.duration (${duration})`,
-            path: [...layerPath, "timing"],
-          });
-        }
         if (layer.type === "audio") {
           if (layer.zIndex >= 0) {
             ctx.addIssue({
@@ -167,13 +145,6 @@ function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
       formatVersion: z.literal(MOTION_PROJECT_V1_FORMAT_VERSION),
       metadata: ProjectMetadataV1Schema,
       composition: CompositionSettingsSchema,
-      capabilities: ProjectCapabilityRequirementsSchema.default({}),
-      dependencies: ProjectDependenciesV1Schema,
-      tokens: DesignTokensSchema.default({}),
-      variables: z
-        .array(ProjectVariableV1Schema)
-        .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
-        .default([]),
       assets: z
         .array(AssetV1Schema)
         .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
@@ -186,13 +157,6 @@ function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
         .array(LayerV1Schema)
         .max(MOTION_PROTOCOL_LIMITS.layersPerProject)
         .default([]),
-      timeline: ProjectTimelineV1Schema,
-      bindings: z
-        .array(ProjectBindingV1Schema)
-        .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
-        .default([]),
-      provenance: ProjectProvenanceSchema.optional(),
-      extensions: NamespacedExtensionsSchema,
     })
     .strict() as z.ZodType<MotionProjectV1>;
 }
@@ -208,21 +172,9 @@ export const MotionProjectV1Schema =
       ctx,
     );
     addDuplicateIdIssues(
-      project.variables.map((item) => item.id),
-      ["variables"],
-      "variable",
-      ctx,
-    );
-    addDuplicateIdIssues(
       project.assets.map((item) => item.id),
       ["assets"],
       "asset",
-      ctx,
-    );
-    addDuplicateIdIssues(
-      project.bindings.map((item) => item.id),
-      ["bindings"],
-      "binding",
       ctx,
     );
     addDuplicateIdIssues(
@@ -231,53 +183,33 @@ export const MotionProjectV1Schema =
       "component",
       ctx,
     );
-    addDuplicateIdIssues(
-      (project.timeline.clips ?? []).map((clip) => clip.id),
-      ["timeline", "clips"],
-      "clip",
-      ctx,
+    const flattened = flattenLayerTree(project.layers);
+    const animationCount = flattened.reduce(
+      (sum, layer) => sum + getLayerAnimations(layer).length,
+      0,
     );
-
-    collectLayerSchemaIssues(
-      project.layers,
-      project.timeline.duration,
-      ctx,
-    );
-  });
-
-/**
- * Canonical motion project schema — `timeline.duration` is required.
- *
- * Authoring input may omit `duration`; export/save boundaries must use this
- * schema so the final MP4 length is always explicit.
- */
-export const CanonicalMotionProjectV1Schema = MotionProjectV1Schema.superRefine(
-  (project, ctx) => {
-    if (project.timeline.duration === undefined) {
+    if (animationCount > MOTION_PROTOCOL_LIMITS.animationsPerProject) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["timeline", "duration"],
-        message:
-          "Canonical motion project requires an explicit timeline.duration",
+        message: `Project has ${animationCount} layer animations; max is ${MOTION_PROTOCOL_LIMITS.animationsPerProject}`,
+        path: ["layers"],
       });
     }
 
+    collectLayerSchemaIssues(project.layers, ctx);
+  });
+
+export const CanonicalMotionProjectV1Schema = MotionProjectV1Schema.superRefine(
+  (project, ctx) => {
     const fps = Math.max(1, project.composition.fps);
-    for (const issue of collectFrameGridIssues(
-      project.timeline,
-      fps,
-      project.layers,
-    )) {
-      const path = issue.path[0] === "layers" ? issue.path : ["timeline", ...issue.path];
+    for (const issue of collectFrameGridIssues(fps, project.layers)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path,
+        path: issue.path,
         message: issue.message,
       });
     }
   },
 );
 
-export type CanonicalMotionProjectV1 = MotionProjectV1 & {
-  timeline: MotionProjectV1["timeline"] & { duration: number };
-};
+export type CanonicalMotionProjectV1 = MotionProjectV1;

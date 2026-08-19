@@ -17,7 +17,7 @@ import {
   isDocumentFresh,
   validateStableIds,
 } from "../document/canonical-projection";
-import { syncProjectProtocolContract } from "../document/sync-project-protocol-contract";
+import { sanitizeEditorProject } from "../document/sanitize-editor-project";
 
 const ATOMS = visualLayerAtoms({ width: 1920, height: 1080 });
 
@@ -56,7 +56,6 @@ function videoLayer(
     id,
     type: "video",
     parentLayerId: null,
-    name: id,
     zIndex: z,
     timing: { start, duration },
     ...ATOMS,
@@ -94,7 +93,6 @@ function textLayer(
     id,
     type: "text",
     parentLayerId: parentId,
-    name: text,
     zIndex: z,
     timing: { start, duration },
     ...visualLayerAtoms({ width: 200, height: 40 }),
@@ -138,28 +136,14 @@ function richProjectInput() {
     formatVersion: 1,
     metadata: { id: "rich", name: "Rich", locale: "vi-VN" },
     composition: { width: 1920, height: 1080, fps: 30 },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {
-      colors: { brand: "#1A5D3A" },
-      fonts: { display: "Be Vietnam Pro" },
-      spacing: { s1: 4 },
-    },
-    variables: [
-      { id: "var.title", type: "string", value: "Hello" },
-      { id: "var.brand", type: "color", value: "#1A5D3A" },
-    ],
     assets: [VIDEO_ASSET, AUDIO_A, AUDIO_B],
     components: [],
-    timeline: { duration: 8 },
-    bindings: [],
     layers: [
       videoLayer("video.main", 0, 0, 8),
       {
         id: "group.hero",
         type: "group",
         parentLayerId: null,
-        name: "Hero",
         zIndex: 1,
         timing: { start: 2, duration: 4 },
         ...ATOMS,
@@ -168,7 +152,6 @@ function richProjectInput() {
             id: "group.inner",
             type: "group",
             parentLayerId: "group.hero",
-            name: "Inner",
             zIndex: 0,
             timing: { start: 1, duration: 3 },
             ...ATOMS,
@@ -353,52 +336,34 @@ describe("field preservation through document pipeline", () => {
   });
 });
 
-describe("syncProjectProtocolContract preserves non-layer fields", () => {
+describe("sanitizeEditorProject preserves core fields", () => {
   function fullSurfaceProject() {
     return MotionProjectV1Schema.parse({
       format: "motion-project",
       formatVersion: 1,
       metadata: { id: "full-surface", name: "Full", locale: "vi-VN" },
       composition: { width: 1920, height: 1080, fps: 30 },
-      capabilities: {},
-      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-      tokens: { colors: { brand: "#111111" } },
-      variables: [{ id: "var.title", type: "string", value: "Hi" }],
       assets: [VIDEO_ASSET],
       components: [
         {
           id: "comp.badge",
           version: "1.0.0",
           integrity: "sha256-comp-badge",
-          props: [{ id: "label", kind: "string", default: "Hi" }],
+          props: [{ id: "label", name: "Label", kind: "string", default: "Hi" }],
           variants: [],
           propBindings: [],
           layers: [solidLayer("comp.layer", null, 0, 0, 1)],
         },
       ],
-      timeline: { duration: 1 },
-      bindings: [
-        {
-          id: "bind.title",
-          source: { kind: "variable", variableId: "var.title" },
-          target: { type: "prop", layerId: "video.main", propId: "opacity" },
-        },
-      ],
       layers: [videoLayer("video.main", 0, 0, 1)],
-      extensions: {},
     });
   }
 
-  it("keeps variables/assets/components/bindings/timeline/composition by reference", () => {
+  it("keeps assets/components/composition by reference", () => {
     const project = fullSurfaceProject();
-    const next = syncProjectProtocolContract(project);
-    expect(next.variables).toBe(project.variables);
+    const next = sanitizeEditorProject(project);
     expect(next.assets).toBe(project.assets);
     expect(next.components).toBe(project.components);
-    expect(next.bindings).toBe(project.bindings);
-    expect(next.timeline).toBe(project.timeline);
     expect(next.composition).toBe(project.composition);
-    expect(next.dependencies).toBe(project.dependencies);
-    expect(next.tokens?.colors).toEqual(project.tokens?.colors);
   });
 });

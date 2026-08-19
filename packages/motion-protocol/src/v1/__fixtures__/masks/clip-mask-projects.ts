@@ -84,14 +84,8 @@ function projectShell(
       background: CLIP_BACKGROUND,
       colorSpace: "srgb" as const,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: extras.assets ?? [],
     components,
-    timeline: { duration: 1 },
-    bindings: [],
     layers: (layers as Array<Record<string, unknown>>).map(withLayerTiming),
   };
 }

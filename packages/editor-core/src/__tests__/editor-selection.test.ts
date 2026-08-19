@@ -101,17 +101,12 @@ function primitiveRootProject(): MotionProject {
       background: "#111111",
       colorSpace: "srgb",
     },
-    capabilities: { required: [] },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: { colors: { brand: "#111111" }, fonts: { display: "Inter" } },
-    variables: [],
     assets: [],
     components: [],
     layers: [
       {
         id: "title",
         type: "text",
-        name: "Title",
         parentLayerId: null,
         zIndex: 0,
         ...visualLayerAtoms({ width: 200, height: 80 }),
@@ -124,8 +119,6 @@ function primitiveRootProject(): MotionProject {
         },
       },
     ],
-    timeline: { duration: 4 },
-    bindings: [],
   });
 }
 

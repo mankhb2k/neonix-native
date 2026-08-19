@@ -1,6 +1,6 @@
 /**
  * Leftover schemas — caption tokens only.
- * Animation authoring is `timeline.clips`; runtime is `propertyAnimations`.
+ * Animation authoring is `layer.animations[]`; runtime is `propertyAnimations`.
  *
  * Import `@motionvideo/motion-protocol/internal`.
  */

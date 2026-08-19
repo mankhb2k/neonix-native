@@ -13,7 +13,7 @@ import {
 } from "../../capabilities";
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
-import { flattenLayerTree } from "../layers";
+import { flattenLayerTree, getLayerAnimations } from "../layers";
 import type { ProjectVariableV1 } from "../variables";
 import {
   isOwnerPropSink,
@@ -38,66 +38,71 @@ function isPropAnimatable(prop: ComponentPropV1): boolean {
   return prop.animatable ?? defaultAnimatableForPropKind(prop.kind);
 }
 
-function validateTimelineClips(
-  clips: NonNullable<MotionProjectV1["timeline"]["clips"]>,
-  layerById: Map<string, LayerV1>,
+function validateLayerAnimations(
+  layers: LayerV1[],
+  pathPrefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  for (const [index, clip] of clips.entries()) {
-    const path = `timeline.clips.${index}`;
-    const layer = layerById.get(clip.layerId);
-    if (!layer) {
-      issues.push({
-        path: `${path}.layerId`,
-        message: `Unknown layer: ${clip.layerId}`,
-      });
-      continue;
-    }
-    if (clip.property.startsWith("payload.props.")) {
-      issues.push({
-        path: `${path}.property`,
-        message:
-          "Component prop keyframes belong on payload.props.<propId>, not timeline.clips",
-      });
-      continue;
-    }
-    if (!isLayerPropertyAnimatable(layer.type, clip.property)) {
-      issues.push({
-        path: `${path}.property`,
-        message: `Property "${clip.property}" is not animatable on ${layer.type} layer "${layer.id}"`,
-      });
-      continue;
-    }
-    const capability = motionPropertyCapability(layer.type, clip.property);
-    const valueKind = capability?.valueKind ?? "json";
-    let prevT: number | undefined;
-    for (let i = 0; i < clip.keys.length; i++) {
-      const key = clip.keys[i]!;
-      if (prevT !== undefined) {
-        if (key.t === prevT) {
+  const flattened = flattenLayerTree(layers);
+  for (const layer of flattened) {
+    const animations = getLayerAnimations(layer);
+    const seenProperties = new Set<string>();
+    for (const [index, animation] of animations.entries()) {
+      const path = `${pathPrefix}.${layer.id}.animations.${index}`;
+      if (seenProperties.has(animation.property)) {
+        issues.push({
+          path: `${path}.property`,
+          message: `Layer "${layer.id}" already animates property "${animation.property}"`,
+        });
+      } else {
+        seenProperties.add(animation.property);
+      }
+      if (animation.property.startsWith("payload.props.")) {
+        issues.push({
+          path: `${path}.property`,
+          message:
+            "Component prop keyframes belong on payload.props.<propId>, not layer.animations",
+        });
+        continue;
+      }
+      if (!isLayerPropertyAnimatable(layer.type, animation.property)) {
+        issues.push({
+          path: `${path}.property`,
+          message: `Property "${animation.property}" is not animatable on ${layer.type} layer "${layer.id}"`,
+        });
+        continue;
+      }
+      const capability = motionPropertyCapability(layer.type, animation.property);
+      const valueKind = capability?.valueKind ?? "json";
+      let prevT: number | undefined;
+      for (let i = 0; i < animation.keys.length; i++) {
+        const key = animation.keys[i]!;
+        if (prevT !== undefined) {
+          if (key.t === prevT) {
+            issues.push({
+              path: `${path}.keys.${i}.t`,
+              message: `animation "${animation.property}" must not duplicate t=${key.t}`,
+            });
+          } else if (key.t < prevT) {
+            issues.push({
+              path: `${path}.keys.${i}.t`,
+              message: `animation "${animation.property}" keys must be sorted by increasing t`,
+            });
+          }
+        }
+        prevT = key.t;
+        if (key.t > layer.timing.duration) {
           issues.push({
             path: `${path}.keys.${i}.t`,
-            message: `clip "${clip.id}" must not duplicate t=${key.t}`,
-          });
-        } else if (key.t < prevT) {
-          issues.push({
-            path: `${path}.keys.${i}.t`,
-            message: `clip "${clip.id}" keys must be sorted by increasing t`,
+            message: `animation "${animation.property}" keyframe t=${key.t} exceeds layer duration ${layer.timing.duration}`,
           });
         }
-      }
-      prevT = key.t;
-      if (key.t > layer.timing.duration) {
-        issues.push({
-          path: `${path}.keys.${i}.t`,
-          message: `clip "${clip.id}" keyframe t=${key.t} exceeds layer duration ${layer.timing.duration}`,
-        });
-      }
-      if (!motionLiteralMatchesValueKind(valueKind, key.value)) {
-        issues.push({
-          path: `${path}.keys.${i}.value`,
-          message: `clip "${clip.id}" key value is incompatible with ${clip.property} (${valueKind})`,
-        });
+        if (!motionLiteralMatchesValueKind(valueKind, key.value)) {
+          issues.push({
+            path: `${path}.keys.${i}.value`,
+            message: `animation "${animation.property}" key value is incompatible with ${animation.property} (${valueKind})`,
+          });
+        }
       }
     }
   }
@@ -412,30 +417,16 @@ export function validateMotionProjectV1References(
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const projectLayers = flattenLayerTree(project.layers);
-  const layerById = new Map(projectLayers.map((layer) => [layer.id, layer]));
   const componentById = new Map(
     project.components.map((component) => [component.id, component]),
   );
-  const variableIds = new Set(project.variables.map((variable) => variable.id));
-  // Lookup consumer: instance trên project.layers chỉ được ref map này.
-  const projectVariableById = new Map(
-    project.variables.map((variable) => [variable.id, variable] as const),
-  );
   const assetById = new Map(project.assets.map((asset) => [asset.id, asset]));
 
-  for (const id of new Set(
-    duplicates(projectLayers.map((layer) => layer.id)),
-  )) {
+  for (const id of new Set(duplicates(projectLayers.map((layer) => layer.id)))) {
     issues.push({ path: "layers", message: `Duplicate layer id: ${id}` });
-  }
-  for (const id of new Set(duplicates(project.variables.map((v) => v.id)))) {
-    issues.push({ path: "variables", message: `Duplicate variable id: ${id}` });
   }
   for (const id of new Set(duplicates(project.assets.map((a) => a.id)))) {
     issues.push({ path: "assets", message: `Duplicate asset id: ${id}` });
-  }
-  for (const id of new Set(duplicates(project.bindings.map((b) => b.id)))) {
-    issues.push({ path: "bindings", message: `Duplicate binding id: ${id}` });
   }
   for (const id of new Set(duplicates(project.components.map((c) => c.id)))) {
     issues.push({
@@ -443,69 +434,8 @@ export function validateMotionProjectV1References(
       message: `Duplicate component id: ${id}`,
     });
   }
-  for (const id of new Set(
-    duplicates((project.timeline.clips ?? []).map((clip) => clip.id)),
-  )) {
-    issues.push({
-      path: "timeline.clips",
-      message: `Duplicate clip id: ${id}`,
-    });
-  }
 
-  issues.push(
-    ...validateTimelineClips(project.timeline.clips ?? [], layerById),
-  );
-
-  for (const binding of project.bindings) {
-    const path = `bindings.${binding.id}`;
-    const bindingTarget = binding.target;
-    if (!variableIds.has(binding.source.variableId)) {
-      issues.push({
-        path: `${path}.source.variableId`,
-        message: `Unknown variable: ${binding.source.variableId}`,
-      });
-    }
-    const layer = layerById.get(bindingTarget.layerId);
-    if (!layer) {
-      issues.push({
-        path: `${path}.target.layerId`,
-        message: `Unknown layer: ${bindingTarget.layerId}`,
-      });
-    } else if (layer.type !== "component") {
-      issues.push({
-        path: `${path}.target.layerId`,
-        message: `Layer "${bindingTarget.layerId}" is not a component layer (type "${layer.type}")`,
-      });
-    } else {
-      const component = componentById.get(layer.payload.componentId);
-      if (!component) {
-        issues.push({
-          path: `${path}.target.layerId`,
-          message: `Component layer "${bindingTarget.layerId}" references unknown component "${layer.payload.componentId}"`,
-        });
-      } else {
-        const prop = component.props.find((p) => p.id === bindingTarget.propId);
-        if (!prop) {
-          issues.push({
-            path: `${path}.target.propId`,
-            message: `Component "${layer.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
-          });
-        } else {
-          const variable = projectVariableById.get(binding.source.variableId);
-          if (variable) {
-            issues.push(
-              ...validateVariableAgainstProp(
-                variable,
-                prop,
-                assetById,
-                `${path}.target.propId`,
-              ),
-            );
-          }
-        }
-      }
-    }
-  }
+  issues.push(...validateLayerAnimations(project.layers, "layers"));
 
   issues.push(...detectComponentCycles(componentById));
 
@@ -534,6 +464,12 @@ export function validateMotionProjectV1References(
       ...validateLayerAssetsV1(
         componentLayers,
         project.assets,
+        `components.${component.id}.layers`,
+      ),
+    );
+    issues.push(
+      ...validateLayerAnimations(
+        component.layers,
         `components.${component.id}.layers`,
       ),
     );

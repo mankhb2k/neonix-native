@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Multi Asset"
-    },
-    "description": "Root text, image, svg, video, and audio layers"
+    }
   },
   "assets": [
     {
@@ -73,7 +72,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "350176dd91d3f6eb1bfab0c134d141f9",
+  "runtimeHash": "d08db81ed157e28351f83f6420dc1f16",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -122,10 +121,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "zoom": 1,
         "projection": "orthographic",
@@ -171,10 +166,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Multi Asset Scene",
         "fontSize": 48,
@@ -226,10 +217,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "assetId": "logo-png",
         "fit": "contain"
@@ -274,10 +261,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "assetId": "logo-svg",
         "fit": "contain"
@@ -322,10 +305,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "assetId": "clip-video",
         "fit": "cover",

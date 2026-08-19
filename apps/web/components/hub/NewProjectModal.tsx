@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { appHref } from "@/components/AppLink";
-import { createBlankProject } from "@/lib/editor/create-blank-project";
+import { createBlankProjectWithEnvelope } from "@/lib/editor/create-blank-project";
 import { saveProject } from "@/lib/editor/project-storage";
 import { cn } from "@/lib/utils";
 
@@ -70,11 +70,11 @@ export function NewProjectModal({ open, onClose }: Props) {
 
     setBusy(true);
     try {
-      const project = createBlankProject({
+      const { project, envelope } = createBlankProjectWithEnvelope({
         name: trimmed,
         aspectRatio: ratio,
       });
-      saveProject(project);
+      saveProject(project, { envelope });
       onClose();
       router.push(appHref(`/editor/${project.metadata.id}`));
     } catch {

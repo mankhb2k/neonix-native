@@ -12,19 +12,25 @@ const SPECIMEN = `{
     "height": 1920,
     "fps": 30
   },
-  "timeline": {
-    "clips": [
-      {
-        "id": "clip-beat-glow",
-        "property": "effects.glow.opacity",
-        "keys": [
-          { "t": 12.40, "value": 25 },
-          { "t": 12.43, "value": 100 },
-          { "t": 12.58, "value": 25 }
-        ]
-      }
-    ]
-  }
+  "layers": [
+    {
+      "id": "ring",
+      "type": "shape",
+      "timing": { "start": 0, "duration": 16 },
+      "animations": [
+        {
+          "id": "clip-beat-glow",
+          "property": "effects.glow.opacity",
+          "kind": "keyframes",
+          "keys": [
+            { "t": 12.40, "value": 25 },
+            { "t": 12.43, "value": 100 },
+            { "t": 12.58, "value": 25 }
+          ]
+        }
+      ]
+    }
+  ]
 }`;
 
 function PromptPane() {

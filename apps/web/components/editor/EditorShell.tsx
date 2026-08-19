@@ -31,6 +31,7 @@ export function EditorShell({ initialSnapshot }: Props) {
       initialSnapshot.overlayScenes,
       initialSnapshot.timelineClips,
       initialSnapshot.timelineLanes,
+      initialSnapshot.envelope,
     );
   }, [initialSnapshot, loadProject]);
 

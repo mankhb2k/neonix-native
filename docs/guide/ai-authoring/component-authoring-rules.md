@@ -60,7 +60,7 @@ Animate a public prop on the instance:
 }
 ```
 
-Put this on `payload.props.label`, not in `timeline.clips` targeting an inner text layer.
+Put this on `payload.props.label`, not in `layer.animations` targeting an inner text layer.
 
 ## Invalid example
 
@@ -88,7 +88,7 @@ Put this on `payload.props.label`, not in `timeline.clips` targeting an inner te
 | Mistake | Why it is wrong | What to use instead |
 | --- | --- | --- |
 | Edit definition layers as consumer | Sealed | Public `propId` |
-| `timeline.clips` on inner id | Inner ids are not project lanes | `payload.props` keyframes |
+| `layer.animations` on inner id | Inner ids are not project lanes | `payload.props` keyframes |
 | Nested bind skip-level | Only `childProp` | Owner `propBindings` |
 
 ## AI writing guide

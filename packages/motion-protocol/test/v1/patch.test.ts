@@ -58,16 +58,9 @@ function minimalProject(): MotionProjectV1 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: { required: [] },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [],
     components: [],
     layers: [],
-    timeline: { duration: 8 },
-    bindings: [],
-    extensions: {},
   };
 }
 
@@ -135,7 +128,7 @@ describe("V1 patch contract", () => {
     expect(result.project!.composition.width).toBe(1080);
   });
 
-  it("applies setTokens", () => {
+  it("rejects setTokens on core project", () => {
     const result = applyMotionProjectV1Patch(minimalProject(), {
       format: "motion-project-patch",
       formatVersion: 1,
@@ -144,8 +137,10 @@ describe("V1 patch contract", () => {
         { op: "setTokens", changes: { colors: { brand: "#ff0000" } } },
       ],
     });
-    expect(result.diagnostics).toHaveLength(0);
-    expect(result.project!.tokens.colors).toEqual({ brand: "#ff0000" });
+    expect(result.diagnostics.some((d) => d.message.includes("setTokens"))).toBe(
+      true,
+    );
+    expect(result.project).toEqual(minimalProject());
   });
 
   it("adds a root layer", () => {
@@ -189,12 +184,12 @@ describe("V1 patch contract", () => {
         {
           op: "updateLayer",
           layerId: "title",
-          layer: { ...textLayer("title"), name: "Headline" },
+          layer: { ...textLayer("title"), opacity: 50 },
         },
       ],
     });
     expect(updated.diagnostics).toHaveLength(0);
-    expect(updated.project!.layers[0]!.name).toBe("Headline");
+    expect(updated.project!.layers[0]!.opacity).toBe(50);
   });
 
   it("removes a layer", () => {
@@ -287,7 +282,7 @@ describe("V1 patch contract", () => {
     expect(result.project!.layers[0]!.zIndex).toBe(-1);
   });
 
-  it("adds a variable and a prop binding", () => {
+  it("rejects addVariable on core project", () => {
     const project: MotionProjectV1 = {
       ...minimalProject(),
       components: [
@@ -295,7 +290,7 @@ describe("V1 patch contract", () => {
           id: "btn",
           version: "1.0.0",
           integrity: "sha256:btn",
-          props: [{ id: "label", kind: "string", default: "Hi" }],
+          props: [{ id: "label", name: "Label", kind: "string", default: "Hi" }],
           variants: [],
           propBindings: [
             {
@@ -336,27 +331,12 @@ describe("V1 patch contract", () => {
             value: "Hello",
           },
         },
-        {
-          op: "addBinding",
-          binding: {
-            id: "bind-1",
-            source: { kind: "variable", variableId: "headline-text" },
-            target: {
-              type: "prop",
-              layerId: "cta",
-              propId: "label",
-            },
-          },
-        },
       ],
     });
-    expect(add.diagnostics).toHaveLength(0);
-    expect(add.project!.variables).toHaveLength(1);
-    expect(add.project!.bindings[0]!.target).toEqual({
-      type: "prop",
-      layerId: "cta",
-      propId: "label",
-    });
+    expect(add.diagnostics.some((d) => d.message.includes("Variables"))).toBe(
+      true,
+    );
+    expect(add.project).toEqual(project);
   });
 
   it("re-validates output and fails on invalid composition", () => {

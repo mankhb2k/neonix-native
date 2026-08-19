@@ -23,15 +23,9 @@ function baseProject(overrides: Record<string, unknown> = {}): Record<string, un
     formatVersion: 1,
     metadata: { id: "test", name: "Test", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [],
     components: [],
     layers: [],
-    timeline: { duration: 8 },
-    bindings: [],
     ...overrides,
   };
 }
@@ -55,7 +49,7 @@ describe("v1 schema — positive fixtures", () => {
     const project = MotionProjectV1Schema.parse(loadFixture("minimal-empty.project.json"));
     expect(project.formatVersion).toBe(MOTION_PROJECT_V1_FORMAT_VERSION);
     expect(project.layers).toEqual([]);
-    expect(project.timeline.duration).toBeUndefined();
+    expect(project).not.toHaveProperty("timeline");
   });
 
   it("parses representative project as nested layers", () => {
@@ -95,23 +89,30 @@ describe("v1 schema — reject old contract", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects timeline.visualTracks", () => {
+  it("rejects leftover timeline", () => {
     const result = MotionProjectV1Schema.safeParse(
-      baseProject({ timeline: { duration: 8, visualTracks: [] } }),
+      baseProject({ timeline: { duration: 8 } }),
     );
     expect(result.success).toBe(false);
   });
 
-  it("rejects timeline.audioTracks", () => {
+  it("rejects visualTracks", () => {
     const result = MotionProjectV1Schema.safeParse(
-      baseProject({ timeline: { duration: 8, audioTracks: [] } }),
+      baseProject({ visualTracks: [] }),
     );
     expect(result.success).toBe(false);
   });
 
-  it("rejects timeline.captionTracks", () => {
+  it("rejects audioTracks", () => {
     const result = MotionProjectV1Schema.safeParse(
-      baseProject({ timeline: { duration: 8, captionTracks: [] } }),
+      baseProject({ audioTracks: [] }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects captionTracks", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({ captionTracks: [] }),
     );
     expect(result.success).toBe(false);
   });
@@ -516,7 +517,7 @@ describe("v1 schema — reject old contract", () => {
               zIndex: 0,
               timing: { start: 0, duration: 1 },
               transform: ATOMS.transform,
-              appearance: ATOMS.appearance,
+              opacity: ATOMS.opacity,
               children: [solidChild("main")],
             },
           ],
@@ -578,7 +579,7 @@ describe("v1 schema — reject old contract", () => {
               zIndex: 0,
               timing: { start: 0, duration: 1 },
               transform: ATOMS.transform,
-              appearance: ATOMS.appearance,
+              opacity: ATOMS.opacity,
               payload: {
                 text: "Hi" ,
                 fontSize: 24,
@@ -675,10 +676,9 @@ describe("v1 schema — reject old contract", () => {
             zIndex: 2,
             timing: { start: 0, duration: 1 },
             ...ATOMS,
-            appearance: { visible: true, opacity: 80 },
+            opacity: 80,
             compositing: { "blend-mode": "multiply" },
             effects: [{ id: "fx", type: "blur", radius: 4 }],
-            semantic: { role: "cta" },
             payload: { componentId: "btn", props: {} },
           },
         ],
@@ -739,8 +739,8 @@ describe("v1 schema — reject old contract", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts native group.layout and child.layoutItem hug", () => {
-    const project = MotionProjectV1Schema.parse(
+  it("rejects native group.layout and child.layoutItem", () => {
+    const result = MotionProjectV1Schema.safeParse(
       baseProject({
         layers: [
           {
@@ -761,7 +761,7 @@ describe("v1 schema — reject old contract", () => {
         ],
       }),
     );
-    expect(project.layers[0]?.type).toBe("group");
+    expect(result.success).toBe(false);
   });
 
   it("rejects layout on a non-group layer", () => {
@@ -785,49 +785,47 @@ describe("v1 schema — reject old contract", () => {
   });
 
   it("rejects layoutItem on a root layer", () => {
-    expect(() =>
-      parseMotionProjectV1(
-        baseProject({
-          layers: [
-            {
-              id: "box",
-              type: "solid",
-              parentLayerId: null,
-              zIndex: 0,
-              timing: { start: 0, duration: 1 },
-              ...ATOMS,
-              layoutItem: { width: "fill" },
-              payload: { color: "#111111" },
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/layoutItem/);
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "box",
+            type: "solid",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            layoutItem: { width: "fill" },
+            payload: { color: "#111111" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
   });
 
-  it("rejects layoutItem when the parent group has no layout", () => {
-    expect(() =>
-      parseMotionProjectV1(
-        baseProject({
-          layers: [
-            {
-              id: "stack",
-              type: "group",
-              parentLayerId: null,
-              zIndex: 0,
-              timing: { start: 0, duration: 1 },
-              ...ATOMS,
-              children: [
-                {
-                  ...solidChild("stack"),
-                  layoutItem: { width: "fill" },
-                },
-              ],
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/layoutItem/);
+  it("rejects layoutItem on a nested child", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        layers: [
+          {
+            id: "stack",
+            type: "group",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            ...ATOMS,
+            children: [
+              {
+                ...solidChild("stack"),
+                layoutItem: { width: "fill" },
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
   });
 
   it("rejects modifiers on authoring layers", () => {

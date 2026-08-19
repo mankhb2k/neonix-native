@@ -72,7 +72,6 @@ function squareProject(id: string, name: string) {
       background: STAGE_BG,
       colorSpace: "srgb" as const,
     },
-    timeline: { duration: 4 },
   };
 }
 
@@ -86,7 +85,6 @@ function wideProject(id: string, name: string) {
       background: STAGE_BG,
       colorSpace: "srgb" as const,
     },
-    timeline: { duration: 4 },
   };
 }
 
@@ -94,6 +92,12 @@ function treeLayer(opts: {
   origin?: { x: number; y: number };
   rotateZ?: number;
   translate?: { x: number; y: number };
+  animations?: Array<{
+    id: string;
+    property: string;
+    kind: "keyframes";
+    keys: Array<{ t: number; value: number }>;
+  }>;
 }) {
   return {
     id: "tree",
@@ -107,9 +111,10 @@ function treeLayer(opts: {
       rotate: { z: opts.rotateZ ?? 0 },
     },
     frame: { width: 360, height: 360 },
-    appearance: { visible: true, opacity: 100 },
+    opacity: 100,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_TREE.id, fit: "contain" as const },
+    ...(opts.animations ? { animations: opts.animations } : {}),
   };
 }
 
@@ -129,7 +134,7 @@ function photoSquareLayer(opts: {
       scale: opts.scale ?? { x: 1, y: 1 },
     },
     frame: opts.frame ?? { width: 400, height: 400 },
-    appearance: { visible: true, opacity: 100 },
+    opacity: 100,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_PHOTO_SQUARE.id, fit: "cover" as const },
   };
@@ -146,29 +151,30 @@ function photoWideLayer(frame: { width: number; height: number }) {
       translate: { x: 960, y: 540 },
     },
     frame,
-    appearance: { visible: true, opacity: 100 },
+    opacity: 100,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_PHOTO_WIDE.id, fit: "cover" as const },
   };
 }
 
-const SPIN_CLIP = {
-  id: "spin",
-  layerId: "tree",
-  property: "transform.rotate.z",
-  kind: "keyframes" as const,
-  keys: [
-    { t: 0, value: 0 },
-    { t: 4, value: 360 },
-  ],
-};
-
 function originProject(id: string, origin: { x: number; y: number }) {
   return {
     ...squareProject(id, `Origin ${origin.x},${origin.y}`),
     assets: [DOCS_ASSET_TREE],
-    timeline: { duration: 4, clips: [SPIN_CLIP] },
-    layers: [treeLayer({ origin })],
+    layers: [
+      treeLayer({
+        origin,
+        animations: [
+          {
+            property: "transform.rotate.z",
+            keys: [
+              { t: 0, value: 0 },
+              { t: 4, value: 360 },
+            ],
+          },
+        ],
+      }),
+    ],
   };
 }
 

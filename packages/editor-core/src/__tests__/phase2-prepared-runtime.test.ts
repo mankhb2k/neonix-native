@@ -112,7 +112,7 @@ describe("RuntimePatch protocol", () => {
         sequence: 1,
         graphId: "scene-a",
         layerId: "n1",
-        property: "appearance.opacity",
+        property: "opacity",
         value: 0.5,
       };
       expect(affectedGraphIds(patch)).toEqual(["scene-a"]);

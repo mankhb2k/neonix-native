@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Component Instance"
-    },
-    "description": "Embedded component instantiated as a root component layer"
+    }
   },
   "assets": [],
   "composition": {
@@ -22,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "131fba970367af3ae8d8999077dd90db",
+  "runtimeHash": "7ecf3fa9dd61602619422e6096e0ceca",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -112,10 +111,6 @@
         "start": 0,
         "duration": 4
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "color": "#1877f2"
       }

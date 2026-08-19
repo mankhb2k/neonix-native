@@ -7,7 +7,10 @@ import {
   serializeDesktopProjectEnvelope,
 } from "../../../shared/project-file/envelope";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import {
+  normalizeAuthoringProjectV1,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
 
 export function serializeProjectIntoDocumentJson(
   baseDocumentJson: string,
@@ -16,7 +19,9 @@ export function serializeProjectIntoDocumentJson(
   lanes?: TimelineLane[],
 ): string {
   const envelope = parseDesktopProjectFile(baseDocumentJson);
-  envelope.project = project as unknown as typeof envelope.project;
+  envelope.project = normalizeAuthoringProjectV1(
+    project,
+  ) as unknown as typeof envelope.project;
   if (clips) envelope.timelineClips = clips;
   if (lanes) envelope.timelineLanes = lanes;
   return serializeDesktopProjectEnvelope(envelope);

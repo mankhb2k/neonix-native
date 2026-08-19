@@ -47,7 +47,6 @@ function makeGroupScene(
           originX: 0.5,
           originY: 0.5,
           opacity: 100,
-          visible: true,
           depth: 0,
         }),
       },
@@ -68,7 +67,6 @@ function makeGroupScene(
           originX: 0.5,
           originY: 0.5,
           opacity: 100,
-          visible: true,
           depth: 0,
         }),
         payload: { assetId: "asset.head" },
@@ -164,7 +162,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       propertyAnimations: [
         {
           layerId: "group.char",
-          property: "appearance.opacity",
+          property: "opacity",
           keys: [
             { t: 0, v: 100 },
             { t: 2, v: 50 },
@@ -184,16 +182,15 @@ describe("V1 group animation inheritance (Phase 5)", () => {
     expect(headAt2.worldOpacity).toBeCloseTo(0.5, 5);
   });
 
-  it("animating group.transform.visible hides descendants", () => {
+  it("animating group opacity to zero hides descendants", () => {
     const scene = makeGroupScene({
-      groupTransform: { visible: true },
       propertyAnimations: [
         {
           layerId: "group.char",
-          property: "appearance.visible",
+          property: "opacity",
           keys: [
-            { t: 0, v: true },
-            { t: 0.5, v: false },
+            { t: 0, v: 100 },
+            { t: 0.5, v: 0 },
           ],
         } as RuntimeScene["propertyAnimations"][number],
       ],

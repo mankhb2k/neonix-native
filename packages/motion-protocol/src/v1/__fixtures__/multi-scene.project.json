@@ -4,14 +4,7 @@
   "metadata": {
     "id": "v1-multi-layer",
     "name": "V1 Multi-Layer Example",
-    "description": "Demonstrates multiple root layers on the layer stack with staggered timing and zIndex order",
-    "locale": "vi-VN",
-    "tags": [
-      "example",
-      "v1",
-      "root-layers",
-      "layer-stack"
-    ]
+    "locale": "vi-VN"
   },
   "composition": {
     "width": 1080,
@@ -21,32 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": [
-      "primitive.text",
-      "primitive.image"
-    ]
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {
-    "colors": {
-      "primary": "#1877f2",
-      "text": "#111111"
-    }
-  },
-  "variables": [
-    {
-      "id": "headline-text",
-      "name": "Headline",
-      "type": "string",
-      "value": "Welcome to V1"
-    }
-  ],
   "assets": [
     {
       "id": "logo",
@@ -61,21 +28,6 @@
     }
   ],
   "components": [],
-  "timeline": {},
-  "bindings": [
-    {
-      "id": "bind-headline",
-      "source": {
-        "kind": "variable",
-        "variableId": "headline-text"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "headline",
-        "property": "payload.text"
-      }
-    }
-  ],
   "layers": [
     {
       "id": "headline",
@@ -117,10 +69,7 @@
         "width": 800,
         "height": 100
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "body-text",
@@ -162,10 +111,7 @@
         "width": 700,
         "height": 200
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "thanks",
@@ -207,10 +153,7 @@
         "width": 600,
         "height": 80
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

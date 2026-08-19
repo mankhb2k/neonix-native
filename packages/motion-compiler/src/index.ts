@@ -54,7 +54,7 @@ export {
   type CompileV1Profile,
 } from "./compile-v1";
 export {
-  timelineClipsToPropertyAnimations,
+  layerAnimationsToPropertyAnimations,
   componentPropKeyframesToPropertyAnimations,
 } from "./compile-v1/to-property-animations";
 export {

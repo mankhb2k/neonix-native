@@ -13,7 +13,7 @@ export function howAVideoIsDescribedPage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="How a video is described"
-          human="Envelope first (composition + timeline + assets), then layers."
+          Envelope first (composition + layers + assets). Project length is derived from root timing.
         />
         <H2 id="mental-model">Mental model</H2>
         <P>
@@ -21,13 +21,14 @@ export function howAVideoIsDescribedPage(): DocsPageView {
           <a className="underline" href="/docs/project">
             Project
           </a>{" "}
-          owns the envelope: composition (canvas), timeline (clock), assets
+          owns the envelope: composition (canvas), assets
           (media catalog). Content is <code>layers[]</code> — not a{" "}
           <code>tracks[]</code> array on the authoring file.
         </P>
         <H2 id="clock">Clock vs lanes</H2>
         <P>
-          <code>timeline.duration</code> is the MP4 length. Each root layer is a
+          Project length is <code>max(root.timing.start + root.timing.duration)</code>.
+          Each root layer is a
           lane with <code>timing.start</code> and <code>timing.duration</code>.
           Child timing is local to its parent group. Audio is a root-only leaf.
         </P>

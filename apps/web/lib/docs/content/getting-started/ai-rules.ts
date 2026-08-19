@@ -5,7 +5,7 @@ export const AI_GLOBAL = [
   "Child timing.start is local to the parent. Keep the child inside the parent duration.",
   "frame is the local size box before transform. Required on every visual layer including group. Never on audio or camera. Do not derive group.frame from children.",
   "group is a visual container and must have children and frame. group.frame does not clip. Use a mask to cut.",
-  "Use appearance.visible and appearance.opacity on visual layers only (opacity integer 0..100). Do not emit hit-test fields. Audio has no appearance; use payload.volume and payload.muted.",
+  "Use layer.opacity on visual layers (integer 0..100). Do not emit hit-test fields. Audio has no opacity; use payload.volume and payload.muted.",
   "Compositing is blend-mode, isolation, and mask — not effects or opacity. Prefer mask mode clip or alpha with source-visibility mask-only. Do not emit isolation unless you need isolate. Group frame does not clip.",
   "Layout lives on group.layout (mode row|column|grid). Children use layoutItem (fixed|hug|fill). Not a modifier. Do not emit wrap, grow, shrink, or grid span.",
   "Every visual layer has the same transform: translate, scale, rotate.z, skew, origin, depth. Flip with negative scale. Prefer origin 0, 0.5, or 1. Never invent transform.z, flipX, or flipY.",
@@ -19,6 +19,6 @@ export const AI_GLOBAL = [
   "An image layer shows one image asset. frame is the display box, payload.assetId is the source, payload.fit is contain|cover|fill|none (default cover), optional payload.crop is 0..1 on the source. No style, fill, stroke, object-position, or payload radius. Fit uses the full asset rectangle, including transparent PNG pixels. Do not auto-trim empty alpha.",
   "An svg layer places a vector asset. frame is the box, payload.assetId is the SVG, payload.fit is contain|cover|fill|none (default contain). Optional style.fill is a simple recolor only. Not shape or path. No crop, payload.color, stroke, internals, or node selectors.",
   "A video layer is placement plus playback. frame is the box, payload.assetId is the source, payload.fit is contain|cover|fill|none (default cover). trimStart/trimEnd cut the media source; layer timing stays on timing. loop default false, muted default false. framePolicy is advanced — omit unless needed. Never payload.crop.",
-  "Layer property animation lives only in timeline.clips. Component prop animation lives in payload.props.<propId> keyframes. t is local to the target layer (0..timing.duration). Interpolate number with linear, color with color, string/boolean/choice/asset with step. Do not animate frame, timing, zIndex, fit, trim, assetId, or origin. Scale with transform.scale, not frame.width.",
+  "Layer property animation lives only in layer.animations. Component prop animation lives in payload.props.<propId> keyframes. t is local to the target layer (0..timing.duration). Interpolate number with linear, color with color, string/boolean/choice/asset with step. Do not animate frame, timing, zIndex, fit, trim, assetId, or origin. Scale with transform.scale, not frame.width.",
   "Write the project file. Do not write JSON for a preview surface.",
 ];

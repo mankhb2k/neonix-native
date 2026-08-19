@@ -4,7 +4,6 @@
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
-    "description": "Embedded component instantiated as a root component layer",
     "locale": "vi-VN"
   },
   "composition": {
@@ -15,24 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": []
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": [
-      {
-        "componentId": "logo-reveal",
-        "version": "1.0.0",
-        "source": "logo-reveal",
-        "integrity": "sha256:logo-reveal-1.0.0"
-      }
-    ]
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [],
   "components": [
     {
@@ -67,13 +48,6 @@
               "y": 0.5
             }
           },
-          "inheritFlags": {
-            "position": true,
-            "rotation": true,
-            "scale": true,
-            "opacity": true
-          },
-          "locked": false,
           "payload": {
             "color": "#1877f2"
           },
@@ -81,21 +55,15 @@
             "width": 256,
             "height": 256
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          },
           "timing": {
             "start": 0,
             "duration": 4
-          }
+          },
+          "opacity": 100
         }
       ]
     }
   ],
-  "timeline": {},
-  "bindings": [],
-  "extensions": {},
   "layers": [
     {
       "id": "logo-instance",
@@ -134,10 +102,7 @@
         "width": 256,
         "height": 256
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

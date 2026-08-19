@@ -1,6 +1,6 @@
 /**
  * Keyframe authoring subsystem — mini-domain riêng. allocate id, upsert/move/
- * delete/ease keyframe clips. Không phụ thuộc node patches hay traversal UI.
+ * delete/ease keyframes trên `layer.animations[]`.
  */
 import {
   MOTION_PROTOCOL_LIMITS,
@@ -13,6 +13,24 @@ import type {
   NodeTargetRef,
 } from "./property-commands";
 import type { PropertyApplyResult } from "./property-runner-state";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
+
+function normalizeAnimationProperty(property: string): string {
+  if (property === "appearance.opacity") return "opacity";
+  return property;
+}
+
+function findAnimationClipIndex(
+  animations: readonly V1.LayerPropertyAnimationV1[],
+  property: string,
+): number {
+  const normalized = normalizeAnimationProperty(property);
+  return animations.findIndex(
+    (clip) =>
+      clip.property === normalized ||
+      (normalized === "opacity" && clip.property === "appearance.opacity"),
+  );
+}
 
 export function clampKeyframeTime(keyTime: number): number {
   return Math.min(
@@ -21,47 +39,38 @@ export function clampKeyframeTime(keyTime: number): number {
   );
 }
 
-export function authoringClips(
-  project: MotionProject,
-): V1.TimelinePropertyClipV1[] {
-  return [...(project.timeline.clips ?? [])];
+function patchLayerInTree(
+  layers: MotionLayer[],
+  layerId: string,
+  update: (layer: MotionLayer) => MotionLayer,
+): MotionLayer[] {
+  return layers.map((layer) => {
+    if (layer.id === layerId) return update(layer);
+    if (layer.type === "group") {
+      return { ...layer, children: patchLayerInTree(layer.children, layerId, update) };
+    }
+    return layer;
+  });
 }
 
-export function withAuthoringClips(
+function withLayerAnimations(
   project: MotionProject,
-  clips: V1.TimelinePropertyClipV1[],
+  layerId: string,
+  animations: V1.LayerPropertyAnimationV1[],
 ): MotionProject {
   return {
     ...project,
-    timeline: { ...project.timeline, clips },
+    layers: patchLayerInTree(project.layers, layerId, (layer) => {
+      if (layer.type === "audio") return layer;
+      if (animations.length === 0) {
+        const { animations: _omitted, ...rest } = layer as MotionLayer & {
+          animations?: V1.LayerPropertyAnimationV1[];
+        };
+        return rest as MotionLayer;
+      }
+      return { ...layer, animations } as MotionLayer;
+    }),
   };
-}
-
-export function allocateUniqueClipId(
-  existingIds: Set<string>,
-  layerId: string,
-  property: string,
-): string {
-  const maxLen = MOTION_PROTOCOL_LIMITS.idLength;
-  const sanitized = property.replace(/\W+/g, "_");
-  // Include a short property fingerprint so a.b vs a-b do not collide after sanitize.
-  let hash = 0;
-  for (let i = 0; i < property.length; i += 1) {
-    hash = (hash * 31 + property.charCodeAt(i)) >>> 0;
-  }
-  const fingerprint = hash.toString(36).slice(0, 6);
-  const prefix = `kf_${layerId}_`.slice(0, Math.max(8, maxLen - 24));
-  const base = `${prefix}${sanitized}_${fingerprint}`.slice(0, maxLen);
-  if (!existingIds.has(base)) return base;
-
-  // Deterministic de-dup: append a stable numeric suffix (no Date.now()).
-  // The suffix grows in length as needed, so termination is guaranteed for any
-  // finite existingIds set within the protocol id space.
-  for (let n = 2; ; n += 1) {
-    const suffix = `_${n}`;
-    const candidate = `${base.slice(0, Math.max(1, maxLen - suffix.length))}${suffix}`;
-    if (!existingIds.has(candidate)) return candidate;
-  }
 }
 
 function upsertKeyframeOnScene(
@@ -70,34 +79,29 @@ function upsertKeyframeOnScene(
   command: Extract<DocumentPropertyCommand, { type: "set-property-keyframe" }>,
 ): PropertyApplyResult {
   const node = findNode(project, target.rootLayerId, target.layerId);
-  if (!node) return { project, missing: true };
+  if (!node || node.type === "audio") return { project, missing: true };
 
   const t = clampKeyframeTime(command.t);
+  const property = normalizeAnimationProperty(command.property);
   const layerDuration = node.timing?.duration;
   const keyT =
     typeof layerDuration === "number"
       ? Math.min(t, Math.max(0, layerDuration - 1e-6))
       : t;
-  const clips = authoringClips(project);
-  const clipIdx = clips.findIndex(
-    (c) => c.layerId === target.layerId && c.property === command.property,
-  );
+  const animations = [...V1.getLayerAnimations(node)];
+  const clipIdx = findAnimationClipIndex(animations, property);
   const key = {
     t: keyT,
     value: command.v,
     easing: command.easing,
   };
   if (clipIdx < 0) {
-    const existingIds = new Set(clips.map((c) => c.id));
-    clips.push({
-      id: allocateUniqueClipId(existingIds, target.layerId, command.property),
-      layerId: target.layerId,
-      property: command.property,
-      kind: "keyframes",
+    animations.push({
+      property,
       keys: [key],
     });
   } else {
-    const clip = clips[clipIdx]!;
+    const clip = animations[clipIdx]!;
     const keys = [...clip.keys];
     const keyIdx = keys.findIndex((k) => Math.abs(k.t - keyT) < 1e-6);
     if (keyIdx >= 0) keys[keyIdx] = key;
@@ -112,10 +116,13 @@ function upsertKeyframeOnScene(
       keys.push(key);
       keys.sort((a, b) => a.t - b.t);
     }
-    clips[clipIdx] = { ...clip, keys };
+    animations[clipIdx] = { ...clip, keys };
   }
 
-  return { project: withAuthoringClips(project, clips), missing: false };
+  return {
+    project: withLayerAnimations(project, target.layerId, animations),
+    missing: false,
+  };
 }
 
 function moveKeyframeOnScene(
@@ -123,12 +130,13 @@ function moveKeyframeOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "move-property-keyframe" }>,
 ): PropertyApplyResult {
-  const clips = authoringClips(project);
-  const clipIdx = clips.findIndex(
-    (c) => c.layerId === target.layerId && c.property === command.property,
-  );
+  const node = findNode(project, target.rootLayerId, target.layerId);
+  if (!node || node.type === "audio") return { project, missing: false };
+  const property = normalizeAnimationProperty(command.property);
+  const animations = [...V1.getLayerAnimations(node)];
+  const clipIdx = findAnimationClipIndex(animations, property);
   if (clipIdx < 0) return { project, missing: false };
-  const clip = clips[clipIdx]!;
+  const clip = animations[clipIdx]!;
   const newT = clampKeyframeTime(command.newT);
   const collides = clip.keys.some(
     (k) => Math.abs(k.t - newT) < 1e-6 && Math.abs(k.t - command.t) >= 1e-6,
@@ -154,8 +162,11 @@ function moveKeyframeOnScene(
     })
     .sort((a, b) => a.t - b.t);
 
-  clips[clipIdx] = { ...clip, keys };
-  return { project: withAuthoringClips(project, clips), missing: false };
+  animations[clipIdx] = { ...clip, keys };
+  return {
+    project: withLayerAnimations(project, target.layerId, animations),
+    missing: false,
+  };
 }
 
 function deleteKeyframeOnScene(
@@ -166,16 +177,20 @@ function deleteKeyframeOnScene(
     { type: "delete-property-keyframe" }
   >,
 ): PropertyApplyResult {
-  const clips = authoringClips(project);
-  const clipIdx = clips.findIndex(
-    (c) => c.layerId === target.layerId && c.property === command.property,
-  );
+  const node = findNode(project, target.rootLayerId, target.layerId);
+  if (!node || node.type === "audio") return { project, missing: false };
+  const property = normalizeAnimationProperty(command.property);
+  const animations = [...V1.getLayerAnimations(node)];
+  const clipIdx = findAnimationClipIndex(animations, property);
   if (clipIdx < 0) return { project, missing: false };
-  const clip = clips[clipIdx]!;
+  const clip = animations[clipIdx]!;
   const keys = clip.keys.filter((k) => Math.abs(k.t - command.t) >= 1e-6);
-  if (keys.length === 0) clips.splice(clipIdx, 1);
-  else clips[clipIdx] = { ...clip, keys };
-  return { project: withAuthoringClips(project, clips), missing: false };
+  if (keys.length === 0) animations.splice(clipIdx, 1);
+  else animations[clipIdx] = { ...clip, keys };
+  return {
+    project: withLayerAnimations(project, target.layerId, animations),
+    missing: false,
+  };
 }
 
 function setKeyframeEasingOnScene(
@@ -183,20 +198,24 @@ function setKeyframeEasingOnScene(
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "set-keyframe-easing" }>,
 ): PropertyApplyResult {
-  const clips = authoringClips(project);
-  const clipIdx = clips.findIndex(
-    (c) => c.layerId === target.layerId && c.property === command.property,
-  );
+  const node = findNode(project, target.rootLayerId, target.layerId);
+  if (!node || node.type === "audio") return { project, missing: false };
+  const property = normalizeAnimationProperty(command.property);
+  const animations = [...V1.getLayerAnimations(node)];
+  const clipIdx = findAnimationClipIndex(animations, property);
   if (clipIdx < 0) return { project, missing: false };
-  const clip = clips[clipIdx]!;
+  const clip = animations[clipIdx]!;
   const keys = clip.keys.map((k) => {
     if (Math.abs(k.t - command.t) < 1e-6) {
       return { ...k, easing: command.easing };
     }
     return k;
   });
-  clips[clipIdx] = { ...clip, keys };
-  return { project: withAuthoringClips(project, clips), missing: false };
+  animations[clipIdx] = { ...clip, keys };
+  return {
+    project: withLayerAnimations(project, target.layerId, animations),
+    missing: false,
+  };
 }
 
 /** Apply một hàm đơn-target lên mọi target, dừng ở lỗi đầu tiên. */

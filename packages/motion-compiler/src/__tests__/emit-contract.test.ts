@@ -25,14 +25,8 @@ function baseProject(
     formatVersion: 1,
     metadata: { id: "emit-contract", name: "Emit contract", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [],
     components: [],
-    timeline: { duration: 4 },
-    bindings: [],
     layers: [],
     ...overrides,
   });
@@ -213,13 +207,8 @@ describe("compiler V1 emit contract", () => {
     expect(video).not.toHaveProperty("style");
   });
 
-  it("compiles timeline.clips to propertyAnimations and ignores extra AI extension fields", () => {
+  it("compiles layer.animations to propertyAnimations and ignores extra AI extension fields", () => {
     const project = baseProject({
-      extensions: {
-        "com.moticlip.ai": {
-          ignoredJunk: true,
-        },
-      },
       layers: [
         {
           id: "title",
@@ -230,33 +219,24 @@ describe("compiler V1 emit contract", () => {
           ...atoms,
           payload: { text: "Hi", fontSize: 24, color: "#000000" },
           effects: [{ id: "fx", type: "blur", radius: 4 }],
+          animations: [
+            {
+              property: "opacity",
+              keys: [
+                { t: 0, value: 0 },
+                { t: 1, value: 100 },
+              ],
+            },
+            {
+              property: "effects.fx.radius",
+              keys: [
+                { t: 0, value: 0 },
+                { t: 1, value: 8 },
+              ],
+            },
+          ],
         },
       ],
-      timeline: {
-        duration: 4,
-        clips: [
-          {
-            id: "op",
-            layerId: "title",
-            property: "appearance.opacity",
-            kind: "keyframes",
-            keys: [
-              { t: 0, value: 0 },
-              { t: 1, value: 100 },
-            ],
-          },
-          {
-            id: "blur",
-            layerId: "title",
-            property: "effects.fx.radius",
-            kind: "keyframes",
-            keys: [
-              { t: 0, value: 0 },
-              { t: 1, value: 8 },
-            ],
-          },
-        ],
-      },
     });
     const result = compileMotionProjectV1(project);
     expect(result.ok).toBe(true);
@@ -270,7 +250,7 @@ describe("compiler V1 emit contract", () => {
       result.project.propertyAnimations.map(
         (animation) => `${animation.layerId}:${animation.property}`,
       ),
-    ).toEqual(["title:appearance.opacity", "title:effects.fx.radius"]);
+    ).toEqual(["title:opacity", "title:effects.fx.radius"]);
     expect(result.project).not.toHaveProperty("tracks");
     for (const animation of result.project.propertyAnimations) {
       const layer = result.project.layers.find(
@@ -286,16 +266,6 @@ describe("compiler V1 emit contract", () => {
 
   it("expands component instances without emitting a component runtime type", () => {
     const project = baseProject({
-      dependencies: {
-        compiler: { range: ">=1.0.0" },
-        components: [
-          {
-            componentId: "logo-reveal",
-            version: "1.0.0",
-            integrity: "sha256:logo-reveal-1.0.0",
-          },
-        ],
-      },
       components: [
         {
           id: "logo-reveal",
@@ -381,7 +351,7 @@ describe("compiler V1 emit contract", () => {
       propertyAnimations: [
         {
           layerId: "title",
-          property: "appearance.opacity",
+          property: "opacity",
           keys: [
             {
               t: 0,

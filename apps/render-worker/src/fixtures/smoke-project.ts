@@ -49,7 +49,7 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV1 {
     variables: [],
     assets: [],
     components: [],
-    timeline: {},
+
     bindings: [],
     layers: [
       textLayer("hook-text", "Smoke hook", 0, 0, 2),

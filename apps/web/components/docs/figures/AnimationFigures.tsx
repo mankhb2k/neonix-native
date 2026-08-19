@@ -18,8 +18,8 @@ export function KeyframesFigure() {
   const px = (t: number) => x0 + (t / 2) * (x1 - x0);
   return (
     <Figure
-      label="timeline.clips — layer property keyframes"
-      caption="Keyframes live on timeline.clips and use the target layer's local time: t=0 is layer.timing.start, t must stay within timing.duration."
+      label="layer.animations — layer property keyframes"
+      caption="Keyframes live on layer.animations and use that layer's local time: t=0 is layer.timing.start, t must stay within timing.duration."
     >
       <svg
         viewBox="0 0 640 220"

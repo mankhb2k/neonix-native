@@ -17,12 +17,14 @@ import {
   groupLayers,
   packRootLayersToTimeline,
   resolveGroupPath,
+  sanitizeEditorProject,
   selectionNone,
-  syncProjectProtocolContract,
   uid,
   ungroupLayers,
   type HistoryEntry,
 } from "@motionvideo/editor-core";
+import { commitProjectMutation } from "@/lib/editor/store/commit-document-mutation";
+import { createEmptyEnvelope } from "@/lib/editor/authoring/web-project-envelope";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -92,7 +94,7 @@ export function createGroupActions(
   ) => {
     const before = documentFromStoreState(get());
     if (!before) return;
-    const nextProject = syncProjectProtocolContract({
+    const nextProject = sanitizeEditorProject({
       ...beforeProject,
       layers: nextLayers,
     });
@@ -144,24 +146,35 @@ export function createGroupActions(
     },
 
     renameLayer: (layerId, name) => {
-      const project = get().project;
+      const state = get();
+      const project = state.project;
       if (!project) return;
-      const next = mapLayerById(project.layers, layerId, (layer) => ({
-        ...layer,
-        name,
-      }));
-      commit(project, next, "rename-layer");
+      const envelope =
+        state.envelope ?? createEmptyEnvelope(project.metadata.id);
+      commitProjectMutation(set, get, pushEntry, {
+        nextProject: project,
+        envelope: {
+          ...envelope,
+          revision: envelope.revision + 1,
+          authoring: {
+            ...envelope.authoring,
+            layerDisplayNames: {
+              ...envelope.authoring.layerDisplayNames,
+              [layerId]: name,
+            },
+          },
+        },
+        label: "rename-layer",
+      });
     },
 
     toggleLayerVisible: (layerId, visible) => {
       const project = get().project;
       if (!project) return;
-      const next = mapLayerById(project.layers, layerId, (layer) => ({
-        ...layer,
-        ...("appearance" in layer
-          ? { appearance: { ...layer.appearance, visible } }
-          : {}),
-      }));
+      const next = mapLayerById(project.layers, layerId, (layer) => {
+        if (!("opacity" in layer)) return layer;
+        return { ...layer, opacity: visible ? 100 : 0 };
+      });
       commit(project, next, "toggle-layer-visible");
     },
 

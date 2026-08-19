@@ -13,6 +13,7 @@ export function useEditorAutosave() {
   const lanes = useEditorStore((s) => s.timelineLanes);
   const dirtyRevision = useEditorStore((s) => s.dirtyRevision);
   const savedRevision = useEditorStore((s) => s.savedRevision);
+  const envelope = useEditorStore((s) => s.envelope);
   const markDocumentSaved = useEditorStore((s) => s.markDocumentSaved);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -21,6 +22,7 @@ export function useEditorAutosave() {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const result = trySaveProject(project, {
+        envelope,
         timelineClips: clips,
         timelineLanes: lanes,
       });
@@ -35,6 +37,7 @@ export function useEditorAutosave() {
     project,
     clips,
     lanes,
+    envelope,
     dirtyRevision,
     savedRevision,
     markDocumentSaved,

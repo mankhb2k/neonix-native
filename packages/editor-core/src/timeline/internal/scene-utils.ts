@@ -220,13 +220,21 @@ export function layerFromFrameDraft(
   const layerId = createId("layer");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
   const node = nodeFromDraft(draft, layerId, composition);
-  const name = draft.name.trim() || draft.kind || "Clip";
   return {
     ...node,
-    name,
     parentLayerId: null,
     timing: { start: 0, duration },
   };
+}
+
+function remapAnimationIds(layer: MotionLayer): MotionLayer {
+  if (layer.type === "group") {
+    return {
+      ...layer,
+      children: layer.children.map((child) => remapAnimationIds(child)),
+    };
+  }
+  return layer;
 }
 
 export function cloneLayerWithNewIds(
@@ -261,7 +269,7 @@ export function cloneLayerWithNewIds(
   if (cloned.type === "group") {
     cloned.children = remapChildren(cloned.children, newLayerId);
   }
-  return cloned;
+  return remapAnimationIds(cloned);
 }
 
 /** @deprecated Use `layerFromFrameDraft` (layer vocabulary). */

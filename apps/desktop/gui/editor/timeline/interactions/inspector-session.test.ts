@@ -27,51 +27,37 @@ describe("timeline session property bus", () => {
     });
     let state = createInitialTimelineSession();
     const withScene = JSON.parse(blank.documentJson) as {
-      project: {
-        scenes: unknown[];
-        timeline: {
-          visualTracks: unknown[];
-          audioTracks: unknown[];
-          captionTracks: unknown[];
-        };
-      };
+      project: { layers: unknown[] };
       timelineClips: unknown[];
       timelineLanes: unknown[];
     };
-    withScene.project.scenes = [
+    withScene.project.layers = [
       {
         id: "scene_1",
-        duration: 3,
-        layers: [
-          {
-            id: "node_1",
-            type: "text",
-            parentLayerId: null,
-            ...visualLayerAtoms({ x: 10, y: 20, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
-            payload: {
-              text: "Hi" ,
-              fontSize: 24,
-              color: "#111111",
-              alignment: "left",
-            },
-          },
-        ],
-        clips: [],
-      },
-    ];
-    withScene.project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
-        order: 0,
-        clips: [
-          {
-            id: "clip_1",
-            source: { kind: "scene", sceneId: "scene_1" },
-            start: 0,
-            duration: 3,
-          },
-        ],
+        type: "text",
+        parentLayerId: null,
+        zIndex: 0,
+        name: "Scene 1",
+        timing: { start: 0, duration: 3 },
+        ...visualLayerAtoms({
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 40,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
+        payload: {
+          text: "Hi",
+          fontSize: 24,
+          color: "#111111",
+          alignment: "left",
+        },
       },
     ];
     withScene.timelineLanes = [
@@ -124,7 +110,11 @@ describe("timeline session property bus", () => {
       entryId: "e1",
       selection,
     });
-    expect(state.project!.scenes[0]!.layers[0]!.transform.x).toBe(77);
+    const child = state.project!.layers[0];
+    expect(child?.type).toBe("text");
+    expect(
+      child && "transform" in child ? child.transform.translate.x : undefined,
+    ).toBe(77);
     expect(canUndo(state.history)).toBe(true);
     expect(state.sessionDocumentJson).toContain('"x": 77');
 
@@ -143,6 +133,9 @@ describe("timeline session property bus", () => {
     expect(state.history.past).toHaveLength(1);
 
     state = reduce(state, { type: "UNDO" });
-    expect(state.project!.scenes[0]!.layers[0]!.transform.x).toBe(10);
+    const undone = state.project!.layers[0];
+    expect(
+      undone && "transform" in undone ? undone.transform.translate.x : undefined,
+    ).toBe(10);
   });
 });

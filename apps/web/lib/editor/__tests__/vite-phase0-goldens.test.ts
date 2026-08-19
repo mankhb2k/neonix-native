@@ -21,14 +21,14 @@ function readJson(filePath: string): unknown {
 }
 
 describe("Vite Phase 0 fixtures", () => {
-  it("builds small / medium / large envelopes with storageVersion 2", () => {
+  it("builds small / medium / large envelopes with storageVersion 3", () => {
     const small = buildPhase0SmallFixture();
     const medium = buildPhase0MediumFixture();
     const large = buildPhase0LargeFixture();
 
-    expect(small.storageVersion).toBe(2);
-    expect(medium.storageVersion).toBe(2);
-    expect(large.storageVersion).toBe(2);
+    expect(small.storageVersion).toBe(3);
+    expect(medium.storageVersion).toBe(3);
+    expect(large.storageVersion).toBe(3);
     expect(small.project.metadata.id).toBe("vite-phase0.small");
     expect(medium.timelineClips.some((c) => c.kind === "audio")).toBe(true);
     expect(medium.timelineClips.some((c) => c.kind === "scene")).toBe(true);

@@ -65,12 +65,10 @@ describe("document mutations go through history/dirty/envelope", () => {
     });
 
     const after = useEditorStore.getState();
-    expect(layerById(after.project!.layers, "scene.base.title")?.name).toBe(
-      "Headline",
-    );
-    expect(after.dirtyRevision).toBe(dirty + 1);
     const meta =
       after.envelope?.authoring.elementMeta["scene:scene.base:scene.base.title"];
+    expect(meta?.semanticKey).toBe("Headline");
+    expect(after.dirtyRevision).toBe(dirty + 1);
     expect(meta?.userModifiedProperties).toContain("metadata");
     expect(meta?.origin).toBe("user");
   });

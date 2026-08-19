@@ -3,7 +3,7 @@
  * Dùng cho mọi command boundary cần trả TimelineDocument (timeline + properties).
  *
  * Pipeline:
- *   syncProjectProtocolContract(project)   — sanitize chuỗi rỗng, unwrap wrapper,
+ *   sanitizeEditorProject(project)   — sanitize chuỗi rỗng, unwrap wrapper,
  *                                            khai báo capabilities đã dùng.
  *   MotionProjectV1Schema.safeParse        — gate protocol (schema-only, reference
  *                                            asset trì hoãn ở store boundary).
@@ -19,7 +19,7 @@ import {
   computeProjectFingerprint,
   INITIAL_REVISION,
 } from "./canonical-projection";
-import { syncProjectProtocolContract } from "./sync-project-protocol-contract";
+import { sanitizeEditorProject } from "./sanitize-editor-project";
 import { validateTimelineDocument, type TimelineDocument } from "./document";
 import type { TimelineClip } from "../timeline/model/timeline-types";
 
@@ -78,7 +78,7 @@ export function finalizeDocumentMutation(
   project: MotionProject,
   base: TimelineDocument,
 ): FinalizeMutationResult {
-  const synced = syncProjectProtocolContract(project);
+  const synced = sanitizeEditorProject(project);
 
   const parsed = MotionProjectV1Schema.safeParse(synced);
   if (!parsed.success) {

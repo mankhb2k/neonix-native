@@ -4,7 +4,6 @@
   "metadata": {
     "id": "transition",
     "name": "Transition",
-    "description": "Root layers with staggered timing on the layer stack (no scene transitions)",
     "locale": "vi-VN"
   },
   "composition": {
@@ -15,22 +14,8 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": []
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [],
   "components": [],
-  "timeline": {},
-  "bindings": [],
-  "extensions": {},
   "layers": [
     {
       "id": "intro-title",
@@ -58,13 +43,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "fontSize": 64,
         "color": "#000000",
@@ -81,10 +59,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "outro-title",
@@ -112,13 +87,6 @@
           "y": 0.5
         }
       },
-      "inheritFlags": {
-        "position": true,
-        "rotation": true,
-        "scale": true,
-        "opacity": true
-      },
-      "locked": false,
       "payload": {
         "fontSize": 64,
         "color": "#000000",
@@ -135,10 +103,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

@@ -62,7 +62,7 @@ export type RuntimePropertyAnimationBake = {
 
 /**
  * Snapshot pose khi bake preset (không phải key JSON authoring).
- * Điền bằng layerPoseFromAtoms: translate / appearance.opacity / scale.
+ * Điền bằng layerPoseFromAtoms: translate / opacity / scale.
  */
 export type PresetExpandInput<TParams> = {
   layerId: string;
@@ -104,7 +104,7 @@ function opacityTrack(
 ): RuntimePropertyAnimationBake {
   return {
     layerId: layerId,
-    property: "appearance.opacity",
+    property: "opacity",
     keys: [
       { t: start, v: from },
       { t: end, v: to, easing },
@@ -431,7 +431,7 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
       return [
         {
           layerId: layerId,
-          property: "appearance.opacity",
+          property: "opacity",
           keys: [
             { t: start, v: transform.opacity },
             {

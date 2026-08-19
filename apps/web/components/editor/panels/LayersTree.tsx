@@ -39,6 +39,8 @@ export interface LayersTreeProps {
   onUngroup: (groupId: string) => void;
   onEnterGroup?: (groupId: string) => void;
   canUngroup?: (layer: GroupLayer) => boolean;
+  /** Display label from envelope — falls back to layer id. */
+  resolveDisplayName?: (layer: MotionLayer) => string;
 }
 
 const TYPE_ICON: Record<string, string> = {
@@ -210,8 +212,10 @@ export function LayersTree(props: LayersTreeProps) {
     const isSelected = selected.has(layer.id);
     const locked = isLocked(layer.id);
     const isVisible =
-      !("appearance" in layer) || layer.appearance?.visible !== false;
-    const name = layer.name ?? layer.id;
+      layer.type === "audio" ||
+      !("opacity" in layer) ||
+      (layer.opacity ?? 100) > 0;
+    const name = props.resolveDisplayName?.(layer) ?? layer.id;
     const isRenaming = renamingId === layer.id;
     const isDragging = draggingId === layer.id;
 

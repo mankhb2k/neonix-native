@@ -41,88 +41,14 @@ export function detectScheduleCycles(
   return [...new Set(cycles)];
 }
 
-function expectedVariableTypesForPropKind(kind: string): string[] {
-  switch (kind) {
-    case "string":
-      return ["string"];
-    case "choice":
-      return ["choice"];
-    case "color":
-      return ["color"];
-    case "number":
-      return ["number"];
-    case "boolean":
-      return ["boolean"];
-    case "asset":
-      return ["asset"];
-    default:
-      return [];
-  }
-}
-
 export function validateV1Semantics(
   project: V1.MotionProjectV1,
   collector: DiagnosticCollector,
 ): void {
   const assetIds = new Set(project.assets.map((asset) => asset.id));
-  const variableIds = new Set(project.variables.map((variable) => variable.id));
   const componentById = new Map(
     project.components.map((component) => [component.id, component] as const),
   );
-
-  // ── Bindings ──
-  for (const binding of project.bindings) {
-    if (!variableIds.has(binding.source.variableId)) {
-      collector.error(
-        "CMP_UNRESOLVED_VARIABLE",
-        `Binding "${binding.id}" references unknown variable "${binding.source.variableId}"`,
-        {
-          path: ["bindings", binding.id],
-          details: {
-            bindingId: binding.id,
-            variableId: binding.source.variableId,
-          },
-        },
-      );
-      continue;
-    }
-    const variable = project.variables.find(
-      (candidate) => candidate.id === binding.source.variableId,
-    )!;
-    // Resolve the property path a binding targets, then type-check the
-    // bound variable against it.
-    const target = binding.target;
-    if (target.type === "prop") {
-      const node = V1.flattenLayerTree(project.layers).find(
-        (candidate) => candidate.id === target.layerId,
-      );
-      const component =
-        node?.type === "component"
-          ? project.components.find(
-              (candidate) => candidate.id === node.payload.componentId,
-            )
-          : undefined;
-      const prop = component?.props.find((p) => p.id === target.propId);
-      if (!prop) continue;
-      const expected = expectedVariableTypesForPropKind(prop.kind);
-      if (expected.length > 0 && !expected.includes(variable.type)) {
-        collector.error(
-          "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${target.layerId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              variableType: variable.type,
-              componentId: component?.id,
-              propId: target.propId,
-              expected,
-            },
-          },
-        );
-      }
-    }
-  }
 
   const layers = V1.flattenLayerTree(project.layers);
   const assetRefs: Array<{ layerId: string; assetId: string }> = [];
@@ -194,39 +120,4 @@ export function validateV1Semantics(
     }
   }
 
-  // ── Component dependency integrity ──
-  const embeddedByKey = new Map(
-    project.components.map(
-      (component) =>
-        [`${component.id}@${component.version}`, component] as const,
-    ),
-  );
-  for (const dep of project.dependencies.components) {
-    const embedded = embeddedByKey.get(`${dep.componentId}@${dep.version}`);
-    if (!embedded) {
-      // Dependency without an embedded definition — only a problem when a
-      // visual clip actually instantiates it (checked above). If the dep is
-      // unused, the compiler can still proceed.
-      continue;
-    }
-    if (
-      dep.integrity &&
-      embedded.integrity &&
-      dep.integrity !== embedded.integrity
-    ) {
-      collector.error(
-        "CMP_COMPONENT_INTEGRITY_MISMATCH",
-        `Component "${dep.componentId}@${dep.version}" integrity mismatch: dependency declares "${dep.integrity}", embedded definition has "${embedded.integrity}"`,
-        {
-          path: ["dependencies", "components", dep.componentId],
-          details: {
-            componentId: dep.componentId,
-            version: dep.version,
-            declaredIntegrity: dep.integrity,
-            embeddedIntegrity: embedded.integrity,
-          },
-        },
-      );
-    }
-  }
 }

@@ -1,5 +1,12 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
+import {
+  expandAuthoringToCore,
+  envelopeToAuthoringSugar,
+  mergeAuthoringSugar,
+} from "@motionvideo/editor-core";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
+import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
+import { createEmptyEnvelope } from "@/lib/editor/authoring/web-project-envelope";
 import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   ensureAudioClipsFromTracks,
@@ -33,6 +40,7 @@ export {
 
 export type EditorProjectSnapshot = {
   project: MotionProject;
+  envelope: WebProjectEnvelope | null;
   timelineClips: TimelineClip[];
   timelineLanes: TimelineLane[];
   /** Sidecar legacy — derive từ clips/lanes, không phải nguồn sự thật. */
@@ -40,6 +48,7 @@ export type EditorProjectSnapshot = {
 };
 
 type SaveProjectOptions = {
+  envelope?: WebProjectEnvelope | null;
   overlayScenes?: OverlaySceneItem[];
   timelineClips?: TimelineClip[];
   timelineLanes?: TimelineLane[];
@@ -57,11 +66,19 @@ export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
 ): void {
-  // Version-aware: legacy v2 projects are migrated to v1 before persisting.
-  const parsed = parseProjectInput(project);
-  const adapter = getProjectStorageAdapter();
-  const previous = loadStored(parsed.metadata.id);
   const opts = Array.isArray(options) ? { overlayScenes: options } : options;
+  const adapter = getProjectStorageAdapter();
+  const input = parseProjectInput(project);
+  const previous = loadStored(input.metadata.id);
+  const envelope =
+    opts.envelope ??
+    previous?.envelope ??
+    createEmptyEnvelope(input.metadata.id);
+  const sugar = envelopeToAuthoringSugar(envelope);
+  const parsed = expandAuthoringToCore(
+    mergeAuthoringSugar(input, sugar),
+    sugar,
+  );
   const timelineClips =
     opts.timelineClips !== undefined
       ? opts.timelineClips
@@ -81,6 +98,7 @@ export function saveProject(
     storageVersion: CURRENT_STORAGE_VERSION,
     savedAt: new Date().toISOString(),
     project: parsed,
+    envelope,
     ...(timelineClips !== undefined ? { timelineClips } : {}),
     ...(timelineLanes !== undefined ? { timelineLanes } : {}),
     overlayScenes,
@@ -132,6 +150,7 @@ export function loadEditorProjectSnapshot(id: string): EditorProjectSnapshot | n
 
   return {
     project: stored.project,
+    envelope: stored.envelope ?? createEmptyEnvelope(stored.project.metadata.id),
     timelineClips: clips,
     timelineLanes: lanes,
     overlayScenes: overlaysFromClips(clips, lanes),

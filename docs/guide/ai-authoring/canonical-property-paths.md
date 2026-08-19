@@ -1,7 +1,7 @@
 # Canonical property paths
 
 > Status: source-of-truth
-> Goal: emit dotted paths exactly as they exist on the layer. Use them in `timeline.clips[].property`.
+> Goal: emit dotted paths exactly as they exist on the layer. Use them in `layer.animations[].property`.
 
 ## What this is
 
@@ -77,7 +77,7 @@ Animate `effects.<effectId>.<field>`. Glow and inner-glow have no `intensity` al
 | `transform.x` / `transform.y` | `transform.translate.x` / `.y` |
 | `opacity` | `appearance.opacity` |
 | `flipX` / `flipY` | negative `transform.scale` |
-| `project.tracks` / `propertyAnimations` | `timeline.clips` |
+| `project.tracks` / `propertyAnimations` | `layer.animations` |
 
 ## Canonical shape
 
@@ -119,7 +119,7 @@ See canonical shape. Component props: `payload.props.<propId>` keyframes with `k
 
 - Prefer the tables on this page over other products’ names.
 - Do not emit `project.propertyAnimations`.
-- If you need a prop animation, put it on `payload.props`, not `timeline.clips` into internals.
+- If you need a prop animation, put it on `payload.props`, not `layer.animations` into internals.
 
 ## Related pages
 

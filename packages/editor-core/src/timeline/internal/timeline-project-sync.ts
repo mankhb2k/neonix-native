@@ -1,7 +1,6 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
-import { deriveTimelineDurationV1 } from "@motionvideo/motion-protocol";
-import { syncProjectProtocolContract } from "../../document/sync-project-protocol-contract";
+import { sanitizeEditorProject } from "../../document/sanitize-editor-project";
 
 type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
 type AudioClip = Extract<TimelineClip, { kind: "audio" }>;
@@ -239,13 +238,9 @@ export function rebuildMainProject(
 
   const layers = uniquifySiblingZ(patchTree(project.layers, null, 0));
 
-  return syncProjectProtocolContract({
+  return sanitizeEditorProject({
     ...project,
     layers,
-    timeline: {
-      ...project.timeline,
-      duration: deriveTimelineDurationV1(layers),
-    },
   });
 }
 
@@ -268,7 +263,6 @@ export function buildAudioLayer(input: {
   return {
     id: input.id,
     type: "audio",
-    ...(input.name ? { name: input.name } : {}),
     parentLayerId: null,
     zIndex: -1,
     timing: { start: input.start, duration: input.duration },

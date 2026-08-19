@@ -167,7 +167,7 @@ describe("property command → protocol contract", () => {
       {
         type: "set-node-metadata",
         targets: [textTarget(project)],
-        patch: { name: "Hero", visible: false },
+        patch: { visible: false },
       },
     );
   });
@@ -363,19 +363,15 @@ function primitiveTextProject(): MotionProject {
       background: "#111111",
       colorSpace: "srgb",
     },
-    capabilities: { required: [] },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: { colors: { brand: "#111111" }, fonts: { display: "Inter" } },
-    variables: [],
     assets: [],
     components: [],
     layers: [
       {
         id: "title",
         type: "text",
-        name: "Title",
         parentLayerId: null,
         zIndex: 0,
+        opacity: 100,
         frame: { width: 200, height: 80 },
         transform: {
           translate: { x: 0, y: 0 },
@@ -393,8 +389,6 @@ function primitiveTextProject(): MotionProject {
         },
       },
     ],
-    timeline: { duration: 4 },
-    bindings: [],
   });
 }
 

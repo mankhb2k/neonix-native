@@ -18,7 +18,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | Public authoring API (`.`). Runtime không export ở đây. |
-| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — leftover caption tokens. Authoring clips: `v1/timeline/clips.ts`. |
+| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — leftover caption tokens. Layer property animations: `v1/layers/animations.ts`. |
 | `capabilities.ts` | `MOTION_PROTOCOL_LIMITS` + bảng `motionPropertyCapability` / `motionEffectPropertyCapability`. |
 | `ai-schema-capability.ts` | Ma trận E2E AI schema (`ai-schema.1`). |
 | `scene-registry.ts` | Legacy template registry — không còn trên public barrel. |
@@ -139,8 +139,12 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | File | Nhiệm vụ |
 | --- | --- |
 | `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
-| `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem. No `locked`. |
+| `base.ts` | `LayerBaseV1Schema` — required zIndex, timing, frame, transform; appearance, compositing, effects, inheritFlags, layoutItem; optional `animations[]`. No `locked`. Audio không inherit field này. |
+| `animations.ts` | `LayerPropertyAnimationV1Schema` — `{ id, property, kind: "keyframes", keys }`. Không `layerId`. |
 | `timing.ts` | `LayerTimingSchema` — in/out. |
+| `project-duration.ts` | `deriveProjectDurationV1` / `getRootLayerEndV1` — max root end. |
+| `frame-grid.ts` | Snap layer timing lên `n / fps`. |
+| `canonicalize.ts` | Snap layers; return `{ project, duration }` — không ghi duration vào JSON. |
 | `component.ts` | Sealed instance leaf. Wrapper atoms + `payload.componentId` / `variantId?` / `props`. Compiler expand. |
 | `audio.ts` | `AudioLayerV1Schema` — root-only, zIndex âm; payload trim/fade/volume/loop/muted. Không frame/transform/appearance. |
 | `media.ts` | `image`: `{ assetId, fit` default `cover`, `crop?` `}`. `svg`: `{ assetId, fit` default `contain` `}` + `style.fill?`. `video`: `{ assetId, fit` default `cover`, `trim?`, `loop`/`muted` default false `}`; không crop. `camera` riêng. |
@@ -160,23 +164,11 @@ Discriminator luôn `type`. Chỉ `group` có `children` (ít nhất một). `au
 | `index.ts` | Barrel easing / drivers. |
 | `easing.ts` | Named / cubic / spring. |
 | `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
-| `clips.ts` | *Removed.* Animation authoring is `timeline/clips.ts`. Runtime output is `propertyAnimations`. |
+| `clips.ts` | *Removed.* Layer property animation lives on `layer.animations`. Runtime output is `propertyAnimations`. |
 
-### 2.10 `src/v1/timeline/`
+Authoring **không có** `src/v1/timeline/`. Project length derive từ root layer timing. Runtime IR vẫn stamp `timeline.duration`.
 
-Metadata only + authoring `clips`. Visual/audio sống trên `project.layers`.
-
-| File | Nhiệm vụ |
-| --- | --- |
-| `index.ts` | Barrel. |
-| `schema.ts` | `duration` / `workArea` / `clips`. |
-| `clips.ts` | Authoring `timeline.clips` — layer/property keyframes. |
-| `duration.ts` | Derive duration từ root layer timing. |
-| `canonicalize.ts` | Điền duration thiếu + snap frame-grid. |
-| `frame-grid.ts` | Snap/validate thời gian về `n / fps`. |
-| `validation.ts` | Integrity timeline. |
-
-### 2.11 `src/v1/references/`
+### 2.10 `src/v1/references/`
 
 | File | Nhiệm vụ |
 | --- | --- |
@@ -230,7 +222,7 @@ src/index.ts
      │     ├── project.ts / parse.ts / patch.ts / mcp.ts
      │     ├── common.ts / values.ts / frame.ts / variables.ts
      │     ├── transform/ appearance/ compositing/ effects/
-     │     ├── assets/ components/ layers/ animation/ timeline/ references/
+     │     ├── assets/ components/ layers/ animation/ references/
      │
      └── runtime/
            ├── project.ts / prepared.ts / assets.ts

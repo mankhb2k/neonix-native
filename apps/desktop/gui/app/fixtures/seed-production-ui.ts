@@ -41,49 +41,53 @@ function withSceneClip(
     stableId("lane");
   const sceneId = stableId("scene");
   const clipId = stableId("clip");
+  const nodeId = stableId("node");
   return {
     ...envelope,
     project: {
       ...envelope.project,
-      timeline: {
-        ...envelope.project.timeline,
-        visualTracks: [
-          {
-            id: "main-track",
-            role: "main",
-            order: 0,
-            clips: [
-              {
-                id: clipId,
-                source: { kind: "scene", sceneId },
-                start: 0,
-                duration: 4,
-              },
-            ],
-          },
-        ],
-      },
-      scenes: [
+      layers: [
         {
           id: sceneId,
+          type: "group",
           name: "Fixture Scene",
-          duration: 4,
-          layers: [
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 4 },
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 1920,
+            height: 1080,
+          }),
+          children: [
             {
-              id: stableId("node"),
+              id: nodeId,
               type: "text",
-              parentLayerId: null,
+              parentLayerId: sceneId,
               zIndex: 0,
-              ...visualLayerAtoms({ x: 80, y: 60, width: 240, height: 48, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+              timing: { start: 0, duration: 4 },
+              ...visualLayerAtoms({
+                x: 80,
+                y: 60,
+                width: 240,
+                height: 48,
+                rotation: 0,
+                scaleX: 1,
+                scaleY: 1,
+                originX: 0,
+                originY: 0,
+                opacity: 100,
+                visible: true,
+              }),
               payload: {
-                text: name ,
+                text: name,
                 fontSize: 28,
                 color: "#000000",
                 alignment: "left",
               },
             },
           ],
-          clips: [],
         },
       ],
     },

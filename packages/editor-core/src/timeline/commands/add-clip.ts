@@ -59,7 +59,7 @@ export function addClipDraft(
       laneId: state.baseLane.id,
       startTime,
       duration: scene.timing.duration,
-      name: scene.name ?? scene.id,
+      name: command.draft.name.trim() || scene.id,
     };
     state.clips.push(clip);
     state.nextProject = rebuildMainProject(

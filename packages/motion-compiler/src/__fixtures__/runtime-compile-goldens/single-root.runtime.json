@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Single Root"
-    },
-    "description": "One root text layer"
+    }
   },
   "assets": [],
   "composition": {
@@ -22,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "2bb8d52d6b382c63d3f9070ae8c38194",
+  "runtimeHash": "cd20b5baa8f3ab3dc1b87d84f8aa14d9",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -70,10 +69,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Hello MotiClip",
         "fontSize": 64,

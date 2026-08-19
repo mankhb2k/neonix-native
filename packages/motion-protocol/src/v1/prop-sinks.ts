@@ -21,29 +21,17 @@ const NUMBER_LEAVES = new Set([
   "transform.depth",
   "transform.origin.x",
   "transform.origin.y",
-  "appearance.opacity",
-  "layout.gap",
-  "layoutItem.minWidth",
-  "layoutItem.maxWidth",
-  "layoutItem.minHeight",
-  "layoutItem.maxHeight",
+  "opacity",
   "payload.cornerRadius",
 ]);
 
-const BOOLEAN_LEAVES = new Set(["appearance.visible"]);
+const BOOLEAN_LEAVES = new Set<string>();
 
 const STRING_LEAVES = new Set(["payload.text"]);
 
 const ASSET_LEAVES = new Set(["payload.assetId", "payload.fontAssetId"]);
 
-const CHOICE_LEAVES = new Set([
-  "layout.mode",
-  "layout.justify",
-  "layout.align",
-  "layoutItem.width",
-  "layoutItem.height",
-  "layoutItem.alignSelf",
-]);
+const CHOICE_LEAVES = new Set<string>();
 
 const EFFECT_NUMBER =
   /^effects\.[^.]+\.(radius|blur|offset\.x|offset\.y|opacity|brightness|contrast|saturation|hue-rotate|amount|scale)$/;

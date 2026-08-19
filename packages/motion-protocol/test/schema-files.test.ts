@@ -137,39 +137,21 @@ describe("committed JSON schemas", () => {
     expect(fields.sort()).toEqual(
       [
         "assets",
-        "bindings",
-        "capabilities",
         "components",
         "composition",
-        "dependencies",
-        "extensions",
         "format",
         "formatVersion",
         "metadata",
-        "provenance",
         "layers",
-        "timeline",
-        "tokens",
-        "variables",
       ].sort(),
     );
   });
 
-  it("v1 schema encodes timeline metadata only (no tracks)", () => {
+  it("v1 schema has no authoring timeline and visual layers may have animations", () => {
     const schema = loadSchema("v1.json");
-    const timeline = schema.definitions.MotionProjectV1.properties!
-      .timeline as unknown as {
-      properties?: Record<string, unknown>;
-    };
-    const timelineProps = Object.keys(timeline.properties ?? {});
-    expect(timelineProps).toEqual(
-      expect.arrayContaining(["duration", "workArea", "clips"]),
-    );
-    expect(timelineProps).not.toContain("markers");
-    expect(timelineProps).not.toContain("sceneOrder");
-    expect(timelineProps).not.toContain("visualTracks");
-    expect(timelineProps).not.toContain("audioTracks");
-    expect(timelineProps).not.toContain("captionTracks");
+    const props = schema.definitions.MotionProjectV1.properties!;
+    expect(props.timeline).toBeUndefined();
+    expect(props.layers).toBeDefined();
   });
 
   it("v1 schema root is layers, not scenes", () => {

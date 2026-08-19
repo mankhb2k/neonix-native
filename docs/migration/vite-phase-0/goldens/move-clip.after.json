@@ -1,0 +1,225 @@
+{
+  "project": {
+    "format": "motion-project",
+    "formatVersion": 1,
+    "metadata": {
+      "id": "fixture.main-only",
+      "name": "Main Only",
+      "locale": "vi-VN"
+    },
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#FFFFFF",
+      "colorSpace": "srgb",
+      "audioSampleRate": 48000
+    },
+    "assets": [],
+    "components": [],
+    "layers": [
+      {
+        "id": "scene.main.a",
+        "type": "group",
+        "parentLayerId": null,
+        "zIndex": 1,
+        "frame": {
+          "width": 1920,
+          "height": 1080
+        },
+        "transform": {
+          "translate": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotate": {
+            "z": 0
+          },
+          "skew": {
+            "x": 0,
+            "y": 0
+          },
+          "origin": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "depth": 0
+        },
+        "opacity": 100,
+        "timing": {
+          "start": 0,
+          "duration": 2
+        },
+        "children": [
+          {
+            "id": "scene.main.a.title",
+            "type": "text",
+            "parentLayerId": "scene.main.a",
+            "zIndex": 0,
+            "frame": {
+              "width": 200,
+              "height": 40
+            },
+            "transform": {
+              "translate": {
+                "x": 40,
+                "y": 40
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotate": {
+                "z": 0
+              },
+              "skew": {
+                "x": 0,
+                "y": 0
+              },
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "depth": 0
+            },
+            "opacity": 100,
+            "timing": {
+              "start": 0,
+              "duration": 2
+            },
+            "payload": {
+              "text": "Intro",
+              "fontSize": 24,
+              "color": "#111111",
+              "alignment": "left",
+              "wrap": "word",
+              "overflow": "clip"
+            }
+          }
+        ]
+      },
+      {
+        "id": "scene.main.b",
+        "type": "group",
+        "parentLayerId": null,
+        "zIndex": 0,
+        "frame": {
+          "width": 1920,
+          "height": 1080
+        },
+        "transform": {
+          "translate": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotate": {
+            "z": 0
+          },
+          "skew": {
+            "x": 0,
+            "y": 0
+          },
+          "origin": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "depth": 0
+        },
+        "opacity": 100,
+        "timing": {
+          "start": 3,
+          "duration": 3
+        },
+        "children": [
+          {
+            "id": "scene.main.b.title",
+            "type": "text",
+            "parentLayerId": "scene.main.b",
+            "zIndex": 0,
+            "frame": {
+              "width": 200,
+              "height": 40
+            },
+            "transform": {
+              "translate": {
+                "x": 40,
+                "y": 40
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotate": {
+                "z": 0
+              },
+              "skew": {
+                "x": 0,
+                "y": 0
+              },
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "depth": 0
+            },
+            "opacity": 100,
+            "timing": {
+              "start": 0,
+              "duration": 3
+            },
+            "payload": {
+              "text": "Body",
+              "fontSize": 24,
+              "color": "#111111",
+              "alignment": "left",
+              "wrap": "word",
+              "overflow": "clip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "clips": [
+    {
+      "kind": "scene",
+      "id": "clip.main.a",
+      "sceneId": "scene.main.a",
+      "laneId": "lane.main",
+      "startTime": 0,
+      "duration": 2,
+      "name": "Intro"
+    },
+    {
+      "kind": "scene",
+      "id": "clip.main.b",
+      "sceneId": "scene.main.b",
+      "laneId": "lane.main",
+      "startTime": 3,
+      "duration": 3,
+      "name": "Body"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "lane.main",
+      "kind": "visual",
+      "role": "base",
+      "name": "Main",
+      "order": -1,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    }
+  ],
+  "transitions": []
+}

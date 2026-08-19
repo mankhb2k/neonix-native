@@ -11,27 +11,6 @@
     "height": 1080,
     "fps": 30
   },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "timeline": {},
-  "variables": [
-    {
-      "id": "v1",
-      "name": "Dup var 1",
-      "type": "string",
-      "value": "a"
-    },
-    {
-      "id": "v1",
-      "name": "Dup var 2",
-      "type": "string",
-      "value": "b"
-    }
-  ],
   "assets": [
     {
       "id": "a1",
@@ -48,20 +27,6 @@
       "mimeType": "image/png",
       "width": 200,
       "height": 200
-    }
-  ],
-  "bindings": [
-    {
-      "id": "b1",
-      "source": {
-        "kind": "variable",
-        "variableId": "v1"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "n1",
-        "property": "appearance.opacity"
-      }
     }
   ],
   "layers": [
@@ -103,10 +68,7 @@
         "width": 100,
         "height": 50
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "n1",
@@ -146,10 +108,7 @@
         "width": 100,
         "height": 50
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

@@ -11,8 +11,7 @@
     "brand": {
       "name": "Variables And Bindings",
       "primaryColor": "#1877f2"
-    },
-    "description": "Project variable bound to a public component prop"
+    }
   },
   "assets": [],
   "composition": {
@@ -23,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "f758e9ec66317508dd4421c9bd7c7219",
+  "runtimeHash": "7429685f6b3f574f9481837b133cb353",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -114,7 +113,7 @@
         "duration": 5
       },
       "payload": {
-        "text": "Mark Zuckerberg",
+        "text": "Founder",
         "fontSize": 48,
         "color": "#000000",
         "alignment": "center",

@@ -61,7 +61,6 @@ function readTransformNumber(
     const node = findNode(context.project, t.rootLayerId, t.layerId);
     if (!node || !("transform" in node)) return 0;
     const tr = node.transform;
-    const appearance = "appearance" in node ? node.appearance : undefined;
     switch (key) {
       case "x":
         return tr.translate.x;
@@ -74,7 +73,7 @@ function readTransformNumber(
       case "scaleY":
         return tr.scale.y;
       case "opacity":
-        return appearance?.opacity ?? 1;
+        return "opacity" in node ? (node.opacity ?? 100) : 100;
     }
   });
   return readUniform(values);
@@ -190,7 +189,7 @@ const transformScaleUniform: PropertyDefinition<number> = {
 };
 
 const transformOpacity: PropertyDefinition<number> = {
-  id: "appearance.opacity",
+  id: "opacity",
   label: "Opacity",
   group: "Transform",
   editor: "number",
@@ -201,7 +200,7 @@ const transformOpacity: PropertyDefinition<number> = {
     targets: ctx.targets,
     opacity: value,
   }),
-  validate: (value, ctx) => validateNumber(value, "appearance.opacity", ctx),
+  validate: (value, ctx) => validateNumber(value, "opacity", ctx),
 };
 
 const metadataName: PropertyDefinition<string> = {
@@ -242,9 +241,9 @@ const metadataVisible: PropertyDefinition<boolean> = {
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
       const node = findNode(ctx.project, t.rootLayerId, t.layerId);
-      return node && "appearance" in node
-        ? node.appearance?.visible !== false
-        : true;
+      if (!node || node.type === "audio") return true;
+      const opacity = "opacity" in node ? node.opacity : 100;
+      return typeof opacity === "number" ? opacity > 0 : true;
     });
     return readUniform(values);
   },

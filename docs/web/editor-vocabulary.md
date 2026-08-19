@@ -20,7 +20,7 @@ Dùng các mặc định sau trong code mới:
 - `Variable` cho biến của project
 - `Component` cho định nghĩa component
 - `ComponentInstance` cho layer có `type: "component"`
-- `AnimationClip` cho `timeline.clips[]`
+- `AnimationClip` cho `layer.animations[]`
 - `TimelineClip` cho layer được chiếu lên timeline (view dẫn xuất)
 - `TimelineDocument` cho trạng thái editor dẫn xuất bao bọc project
 - `TimelineLane` cho hàng lane dẫn xuất của editor
@@ -43,7 +43,7 @@ Tránh dùng cùng một từ cho nhiều khái niệm khác nhau.
 | `Asset`             | Tham chiếu media hoặc font                                   | `project.assets[]`                                  | Đừng bao giờ gọi đây là clip.                            |
 | `Variable`          | Biến có tên của project                                      | `project.variables[]`                               | Nguồn dữ liệu cho các giá trị dùng chung.                |
 | `Binding`           | Liên kết từ variable tới public prop                         | `project.bindings[]`                                | Chỉ dùng khi nói về nối variable.                        |
-| `AnimationClip`     | Tín hiệu animation trên timeline                             | `timeline.clips[]`                                  | Protocol — không phải thanh tím trên UI.                 |
+| `AnimationClip`     | Keyframe animation trên một visual layer                     | `layer.animations[]`                                | Protocol — không phải thanh tím trên UI.                 |
 | `TimelineClip`      | Layer (hoặc audio) **chiếu** lên timeline: `startTime`, `duration`, `laneId` | editor-core / store dẫn xuất                          | **Gọi “clip timeline” trong hội thoại là được**; trong code dùng đủ `TimelineClip`. |
 | `Clip strip`        | Hình chữ nhật bo góc trên lane — chrome UI của một `TimelineClip` | `ClipStrip.tsx`, `data-testid="timeline-clip-*"`    | Chỉ UI. Nói “strip” khi muốn tách khỏi data model.       |
 | `TimelineDocument`  | Aggregate của editor: project + trạng thái timeline dẫn xuất | document của editor-core                            | Không thuộc protocol JSON.                               |
@@ -58,7 +58,7 @@ Tránh dùng cùng một từ cho nhiều khái niệm khác nhau.
 
 ### `clip`
 
-**Trên timeline UI:** gọi ngắn là **clip** (hoặc **clip timeline**) là ổn — ý là `TimelineClip` / thanh trên lane, **không** phải `Layer` trong JSON và **không** phải `AnimationClip` trong `timeline.clips[]`.
+**Trên timeline UI:** gọi ngắn là **clip** (hoặc **clip timeline**) là ổn — ý là `TimelineClip` / thanh trên lane, **không** phải `Layer` trong JSON và **không** phải `AnimationClip` trong `layer.animations[]`.
 
 Trong **code / review**, không dùng `clip` trần khi có thể nhầm tầng:
 
@@ -67,7 +67,7 @@ Trong **code / review**, không dùng `clip` trần khi có thể nhầm tầng:
 | Thanh tím/xanh trên timeline (data + hành vi move/trim) | `TimelineClip` |
 | Chỉ phần vẽ (fill, label, border, trim handle) | **Clip strip** |
 | Một `Layer` trong `project.layers[]` | `Layer` |
-| Một mục trong `timeline.clips[]` (animation) | `AnimationClip` |
+| Một mục trong `layer.animations[]` (animation) | `AnimationClip` |
 | File media trong library | `Asset` |
 
 Vì sao phân tách:
@@ -145,7 +145,7 @@ Tránh dùng `track` cho:
 | `project.assets[]`           | `Asset`                  | `media clip`                                         |
 | `project.variables[]`        | `Variable`               | `data binding`                                       |
 | `project.bindings[]`         | `Binding`                | `link`, `wire`                                       |
-| `timeline.clips[]`           | `AnimationClip`          | `clip`, `TimelineClip`                               |
+| `layer.animations[]`         | `AnimationClip`          | `clip`, `TimelineClip`                               |
 | layer trên timeline (derived) | `TimelineClip`           | `clip` trần trong API, `Layer` khi ý là JSON          |
 | chrome strip trên lane       | **Clip strip**           | `TimelineClip` khi chỉ nói UI                         |
 | lane dẫn xuất của editor     | `TimelineLane`           | `track` nếu code không thực sự nói về timeline track |
@@ -217,7 +217,7 @@ Nếu câu trả lời cho bất kỳ câu nào là không rõ, hãy đổi tên
 - Dùng `Layer` cho tên đối tượng protocol.
 - Chỉ dùng `LayerNode` hoặc `SceneNode` trong code duyệt cây.
 - Dùng `TimelineClip` cho timeline clip dẫn xuất của editor.
-- Dùng `AnimationClip` cho timeline clip của protocol.
+- Dùng `AnimationClip` cho `layer.animations[]` của protocol.
 - Dùng `TimelineLane` cho hàng lane dẫn xuất.
 - Dùng `Selection` cho trạng thái chọn của editor.
 - Chỉ dùng `Document` khi nó chứa trạng thái editor dẫn xuất, không chỉ protocol JSON.
@@ -276,6 +276,33 @@ Library → timeline: **library card** theo pointer cho tới khi vào timeline;
 
 ---
 
-## 10. Quy tắc cuối
+## 10. Core vs envelope (atomic render core)
+
+| Thuật ngữ | Nghĩa | Lưu disk? |
+| --------- | ----- | --------- |
+| **Core project** | `MotionProjectV1` nguyên tử — composition, layers, assets, components, metadata (id/name/locale) | Có (JSON core) |
+| **Authoring envelope** | Sugar editor: tokens, variables, bindings, layout draft, metadata extras, audit, display names | Sidecar web |
+| **expandAuthoringToCore** | Biến session → core trước save/compile | — |
+| **sanitizeEditorProject** | Cleanup sau mutation (chuỗi rỗng, unwrap) — **không** strip sugar | — |
+
+Field **audit/debug** (`capabilities`, `dependencies`, `provenance`, `extensions`) chỉ envelope — không core.
+
+`layer.name` / display label → `envelope.layerDisplayNames[layerId]`.
+
+Opacity animate path core: `opacity` (không `appearance.opacity`).
+
+---
+
+## 11. Độ dài project và animation
+
+- **Project length** không phải field JSON. Derive: `max(root.timing.start + root.timing.duration)`. Không root → `0`.
+- **Layer property animation** sống trên `layer.animations[]` (local time của layer).
+- **Component prop animation** sống trên `payload.props.<propId>` keyframes.
+- **UI timeline** (lanes, `TimelineClip`, playhead) là session/projection — không phải `project.timeline`. Authoring JSON không có `timeline`.
+- Runtime IR vẫn stamp `timeline.duration` lúc compile; đó không phải authoring.
+
+---
+
+## 12. Quy tắc cuối
 
 Nếu một cái tên có thể mang hai nghĩa, nó chưa sẵn sàng cho code dùng chung.

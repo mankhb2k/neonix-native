@@ -22,8 +22,32 @@ import {
 import { AudioLayerV1Schema } from "./audio";
 import type { AudioLayerV1 } from "./audio";
 
-export { LayerBaseV1Schema, InheritFlagsSchema } from "./base";
+export { LayerBaseV1Schema } from "./base";
 export { LayerTimingSchema, type LayerTiming } from "./timing";
+export {
+  LayerPropertyAnimationV1Schema,
+  getLayerAnimations,
+  type LayerPropertyAnimationV1,
+} from "./animations";
+export {
+  deriveProjectDurationV1,
+  getRootLayerEndV1,
+  hasRootLayersV1,
+  roundProjectDurationValue,
+} from "./project-duration";
+export {
+  secondsToFrameIndex,
+  snapSecondsToFrameGrid,
+  isOnFrameGrid,
+  snapLayerTreeToFrameGrid,
+  collectFrameGridIssues,
+  type FrameGridIssue,
+} from "./frame-grid";
+export {
+  canonicalizeProjectTimingV1,
+  type CanonicalizeProjectTimingIssue,
+  type CanonicalizeProjectTimingResult,
+} from "./canonicalize";
 export { PaintStyleSchema, SvgStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {

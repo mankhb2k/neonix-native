@@ -36,23 +36,9 @@ function minimalProject(overrides?: Partial<MotionProject>): MotionProject {
       audioSampleRate: 48000,
       ...overrides?.composition,
     },
-    capabilities: {
-      required: [],
-      ...overrides?.capabilities,
-    },
-    dependencies: {
-      compiler: { range: ">=1.0.0" },
-      components: [],
-      ...overrides?.dependencies,
-    },
-    tokens: overrides?.tokens ?? {},
-    variables: overrides?.variables ?? [],
     assets: overrides?.assets ?? [],
     components: overrides?.components ?? [],
     layers: overrides?.layers ?? [],
-    timeline: overrides?.timeline ?? {},
-    bindings: overrides?.bindings ?? [],
-    extensions: overrides?.extensions ?? {},
   };
 }
 
@@ -128,16 +114,9 @@ describe("projectToTimelineDocument", () => {
         width: 1920,
         height: 1080,
       },
-      dependencies: { components: [], compiler: { range: ">=1.0.0" } },
-      capabilities: { required: [] },
-      tokens: {},
-      variables: [],
       assets: [],
       components: [],
       layers: [],
-      timeline: {},
-      bindings: [],
-      extensions: {},
     };
 
     expect(computeProjectFingerprint(proj1)).toBe(

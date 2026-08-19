@@ -4,13 +4,7 @@
   "metadata": {
     "id": "v1-audio",
     "name": "V1 Audio Example",
-    "description": "Root audio layers (BGM + voiceover) with negative zIndex",
-    "locale": "vi-VN",
-    "tags": [
-      "example",
-      "v1",
-      "audio"
-    ]
+    "locale": "vi-VN"
   },
   "composition": {
     "width": 1080,
@@ -20,21 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": [
-      "primitive.text",
-      "primitive.image",
-      "audio.playback"
-    ]
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [
     {
       "id": "bgm-track",
@@ -71,8 +50,6 @@
     }
   ],
   "components": [],
-  "timeline": {},
-  "bindings": [],
   "layers": [
     {
       "id": "opening-text",
@@ -114,10 +91,7 @@
         "width": 800,
         "height": 100
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "content-text",
@@ -159,10 +133,7 @@
         "width": 700,
         "height": 200
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "bgm-clip",

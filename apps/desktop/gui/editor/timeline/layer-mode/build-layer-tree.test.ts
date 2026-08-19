@@ -1,10 +1,6 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
-import type {
-  MotionLayer,
-} from "@motionvideo/motion-protocol";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 import {
   buildLayerTree,
   collectExpandableIds,
@@ -18,33 +14,27 @@ function node(
 ): MotionLayer {
   return {
     zIndex: 0,
-    transform: {
+    timing: { start: 0, duration: 10 },
+    ...visualLayerAtoms({
       x: 0,
       y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0,
-      opacity: 1,
+      width: 100,
+      height: 100,
+      opacity: 100,
       visible: true,
-    },
+    }),
     ...partial,
   } as MotionLayer;
 }
 
-function scene(layers: MotionLayer[]): MotionScene {
-  return {
-    id: "sc1",
-    name: "Scene",
-    duration: 10,
-    layers,
-    clips: [],
-  } as MotionScene;
+function layers(rows: MotionLayer[]): MotionLayer[] {
+  return rows;
 }
 
 describe("buildLayerTree", () => {
   it("nests children under group and sorts siblings by zIndex desc", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "g1", type: "group", parentLayerId: null, zIndex: 1, name: "Group" }),
         node({ id: "a", type: "text", parentLayerId: "g1", zIndex: 1, name: "A" }),
         node({ id: "b", type: "shape", parentLayerId: "g1", zIndex: 5, name: "B" }),
@@ -58,7 +48,7 @@ describe("buildLayerTree", () => {
 
   it("treats unknown parent as root orphan", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "x", type: "text", parentLayerId: "missing", zIndex: 0, name: "X" }),
       ]),
     );
@@ -69,20 +59,12 @@ describe("buildLayerTree", () => {
 
   it("reads visible from transform", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({
           id: "h",
           type: "text",
           parentLayerId: null,
-          transform: {
-            x: 0,
-            y: 0,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0,
-            opacity: 1,
-            visible: false,
-          },
+          appearance: { visible: false, opacity: 100 },
         }),
       ]),
     );
@@ -93,7 +75,7 @@ describe("buildLayerTree", () => {
 describe("flattenVisibleTree", () => {
   it("hides descendants when parent is collapsed", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "g", type: "group", parentLayerId: null, name: "G" }),
         node({ id: "c", type: "text", parentLayerId: "g", name: "C" }),
       ]),
@@ -108,7 +90,7 @@ describe("flattenVisibleTree", () => {
 
   it("collectExpandableIds lists parents with children", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "g", type: "group", parentLayerId: null }),
         node({ id: "c", type: "text", parentLayerId: "g" }),
         node({ id: "leaf", type: "shape", parentLayerId: null }),
@@ -121,7 +103,7 @@ describe("flattenVisibleTree", () => {
 describe("reorderSiblingAndCollectDfs", () => {
   it("reorders root siblings and returns DFS ids for timeline sync", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "a", type: "text", parentLayerId: null, zIndex: 2 }),
         node({ id: "b", type: "text", parentLayerId: null, zIndex: 1 }),
         node({ id: "c", type: "text", parentLayerId: null, zIndex: 0 }),
@@ -143,7 +125,7 @@ describe("reorderSiblingAndCollectDfs", () => {
 
   it("reorders only within the same parent", () => {
     const roots = buildLayerTree(
-      scene([
+      layers([
         node({ id: "g", type: "group", parentLayerId: null, zIndex: 1 }),
         node({ id: "x", type: "text", parentLayerId: "g", zIndex: 2 }),
         node({ id: "y", type: "text", parentLayerId: "g", zIndex: 1 }),

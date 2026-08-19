@@ -4,12 +4,7 @@
   "metadata": {
     "id": "v1-representative",
     "name": "V1 Representative",
-    "description": "Root layers (text, audio), variables, bindings, and tokens",
-    "locale": "vi-VN",
-    "tags": [
-      "demo",
-      "v1"
-    ]
+    "locale": "vi-VN"
   },
   "composition": {
     "width": 1080,
@@ -24,68 +19,6 @@
       "shutterPhase": 0
     }
   },
-  "capabilities": {
-    "required": [
-      "primitive.group",
-      "primitive.text",
-      "primitive.image"
-    ],
-    "optional": [
-      "effect.blur"
-    ]
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": [
-      {
-        "componentId": "logo-reveal",
-        "version": "1.0.0",
-        "integrity": "sha256:logo-reveal-1.0.0"
-      }
-    ]
-  },
-  "tokens": {
-    "colors": {
-      "brand": "#1877f2",
-      "accent": "#ff5722"
-    },
-    "fonts": {
-      "display": "font-inter"
-    },
-    "spacing": {
-      "unit": 8
-    }
-  },
-  "variables": [
-    {
-      "id": "founder-name",
-      "name": "Founder name",
-      "type": "string",
-      "value": "Mark Zuckerberg"
-    },
-    {
-      "id": "brand-color",
-      "name": "Brand color",
-      "type": "color",
-      "value": "#1877f2"
-    },
-    {
-      "id": "title-opacity",
-      "name": "Title opacity",
-      "type": "number",
-      "value": 90,
-      "min": 0,
-      "max": 100
-    },
-    {
-      "id": "show-subtitle",
-      "name": "Show subtitle",
-      "type": "boolean",
-      "value": true
-    }
-  ],
   "assets": [
     {
       "id": "logo-png",
@@ -117,12 +50,6 @@
       "integrity": "sha256:logo-reveal-1.0.0",
       "props": [
         {
-          "id": "logo-visible",
-          "name": "Logo Visible",
-          "kind": "boolean",
-          "default": true
-        },
-        {
           "id": "logo-color",
           "name": "Logo Color",
           "kind": "color",
@@ -130,14 +57,6 @@
         }
       ],
       "propBindings": [
-        {
-          "propId": "logo-visible",
-          "target": {
-            "kind": "layerProperty",
-            "layerId": "logo",
-            "property": "appearance.visible"
-          }
-        },
         {
           "propId": "logo-color",
           "target": {
@@ -180,27 +99,16 @@
             "width": 256,
             "height": 256
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          },
           "timing": {
             "start": 0,
             "duration": 5
           },
-          "zIndex": 0
+          "zIndex": 0,
+          "opacity": 100
         }
       ]
     }
   ],
-  "timeline": {
-    "duration": 8,
-    "workArea": {
-      "start": 0,
-      "end": 8
-    }
-  },
-  "bindings": [],
   "layers": [
     {
       "id": "title",
@@ -242,10 +150,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "subtitle",
@@ -287,10 +192,7 @@
         "width": 700,
         "height": 80
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "logo-img",
@@ -330,10 +232,7 @@
         "width": 200,
         "height": 200
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 90
-      }
+      "opacity": 90
     },
     {
       "id": "cam",
@@ -369,10 +268,7 @@
         "start": 0,
         "duration": 5
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "thanks",
@@ -414,10 +310,7 @@
         "width": 700,
         "height": 100
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "track-bgm-clip",
@@ -510,10 +403,7 @@
             "width": 100,
             "height": 100
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          }
+          "opacity": 100
         },
         {
           "id": "tok-2",
@@ -555,20 +445,14 @@
             "width": 100,
             "height": 100
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          }
+          "opacity": 100
         }
       ],
       "frame": {
         "width": 100,
         "height": 100
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

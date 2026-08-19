@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { CompositingSchema } from "../../../src/v1/compositing/index";
 
 describe("CompositingSchema", () => {
-  it("defaults blend and isolation", () => {
+  it("defaults blend-mode only", () => {
     expect(CompositingSchema.parse({})).toEqual({
       "blend-mode": "normal",
-      isolation: "auto",
     });
+  });
+
+  it("rejects isolation on compositing", () => {
+    expect(
+      CompositingSchema.safeParse({ isolation: "auto" }).success,
+    ).toBe(false);
   });
 
   it("rejects opacity on compositing", () => {

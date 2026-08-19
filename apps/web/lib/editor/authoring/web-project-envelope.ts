@@ -1,7 +1,8 @@
 /**
- * Web project envelope — authoring metadata lives beside MotionProject,
- * never inside the render snapshot path (web-architecture §6).
+ * Web project envelope — authoring sugar lives beside MotionProject core.
  */
+
+import type { AuthoringSugarV1 } from "@motionvideo/motion-protocol";
 
 export type ElementKey = `${string}:${string}:${string}`;
 
@@ -14,20 +15,22 @@ export type ElementAuthoringMeta = {
   lastEditedRevision: number;
 };
 
+export type WebProjectEnvelopeAuthoring = AuthoringSugarV1 & {
+  elementMeta: Record<string, ElementAuthoringMeta>;
+  generation?: {
+    planId: string;
+    seed: string;
+    model: string;
+    capabilityManifestVersion: string;
+    criticScore?: number;
+    warnings?: string[];
+  };
+};
+
 export type WebProjectEnvelope = {
   id: string;
   revision: number;
-  authoring: {
-    elementMeta: Record<string, ElementAuthoringMeta>;
-    generation?: {
-      planId: string;
-      seed: string;
-      model: string;
-      capabilityManifestVersion: string;
-      criticScore?: number;
-      warnings?: string[];
-    };
-  };
+  authoring: WebProjectEnvelopeAuthoring;
 };
 
 export function elementKey(
@@ -50,6 +53,34 @@ export function createEmptyEnvelope(projectId: string): WebProjectEnvelope {
   };
 }
 
+export function createDefaultAuthoringSugar(input: {
+  name: string;
+}): AuthoringSugarV1 {
+  return {
+    tokens: {
+      colors: { brand: "#1A5D3A" },
+      fonts: { display: "Be Vietnam Pro" },
+    },
+    variables: [
+      {
+        id: "project.brandName",
+        type: "string",
+        name: "Brand Name",
+        value: input.name,
+      },
+      {
+        id: "project.primaryColor",
+        type: "color",
+        name: "Primary Color",
+        value: "#1A5D3A",
+      },
+    ],
+    bindings: [],
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+  };
+}
+
 export function isPropertyLocked(
   envelope: WebProjectEnvelope | null | undefined,
   sceneId: string,
@@ -61,6 +92,35 @@ export function isPropertyLocked(
   if (!meta) return false;
   if (meta.locked) return true;
   return meta.lockedProperties?.includes(propertyPath) ?? false;
+}
+
+export function setLayerDisplayName(
+  envelope: WebProjectEnvelope,
+  sceneId: string,
+  layerId: string,
+  name: string,
+): WebProjectEnvelope {
+  const key = nodeElementKey(sceneId, layerId);
+  const prev = envelope.authoring.elementMeta[key];
+  const trimmed = name.trim();
+  return {
+    ...envelope,
+    revision: envelope.revision + 1,
+    authoring: {
+      ...envelope.authoring,
+      elementMeta: {
+        ...envelope.authoring.elementMeta,
+        [key]: {
+          origin: prev?.origin ?? "user",
+          locked: prev?.locked,
+          lockedProperties: prev?.lockedProperties,
+          semanticKey: trimmed || prev?.semanticKey,
+          userModifiedProperties: prev?.userModifiedProperties,
+          lastEditedRevision: envelope.revision + 1,
+        },
+      },
+    },
+  };
 }
 
 export function markUserModified(

@@ -11,18 +11,7 @@
     "height": 1080,
     "fps": 30
   },
-  "capabilities": {},
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {},
-  "variables": [],
   "assets": [],
   "components": [],
-  "timeline": {},
-  "bindings": [],
   "layers": []
 }

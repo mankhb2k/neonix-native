@@ -12,13 +12,27 @@ import {
 import { visualLayerAtoms } from "../../src/v1/layer-atoms";
 
 function runtimeLayer(id = "title"): Record<string, unknown> {
+  const atoms = visualLayerAtoms({
+    x: 960,
+    y: 540,
+    width: 800,
+    height: 120,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    originX: 0.5,
+    originY: 0.5,
+    opacity: 100,
+  });
   return {
     id,
     type: "text",
     parentLayerId: null,
     zIndex: 1,
     timing: { start: 0, duration: 5 },
-    ...visualLayerAtoms({ x: 960, y: 540, width: 800, height: 120, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+    frame: atoms.frame,
+    transform: atoms.transform,
+    appearance: { visible: true, opacity: atoms.opacity },
     payload: {
       text: "Hello MotiClip" ,
       fontSize: 64,
@@ -82,6 +96,18 @@ describe("runtime IR layer graph", () => {
   });
 
   it("accepts optional layoutItem on a nested visual runtime layer", () => {
+    const stackAtoms = visualLayerAtoms({
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 400,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0,
+      originY: 0,
+      opacity: 100,
+    });
     const ir = baseIR();
     ir.layers = [
       {
@@ -90,19 +116,9 @@ describe("runtime IR layer graph", () => {
         parentLayerId: null,
         zIndex: 0,
         timing: { start: 0, duration: 5 },
-        ...visualLayerAtoms({
-          x: 0,
-          y: 0,
-          width: 800,
-          height: 400,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          originX: 0,
-          originY: 0,
-          opacity: 100,
-          visible: true,
-        }),
+        frame: stackAtoms.frame,
+        transform: stackAtoms.transform,
+        appearance: { visible: true, opacity: stackAtoms.opacity },
         layout: { mode: "column", gap: 8 },
       },
       {
@@ -372,12 +388,12 @@ describe("runtime IR V1 contract", () => {
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("accepts propertyAnimations compiled from timeline.clips allowlist", () => {
+  it("accepts propertyAnimations compiled from layer.animations allowlist", () => {
     const ir = baseIR();
     ir.propertyAnimations = [
       {
         layerId: "title",
-        property: "appearance.opacity",
+        property: "opacity",
         keys: [
           { t: 0, v: 0 },
           { t: 1, v: 100 },

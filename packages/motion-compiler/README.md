@@ -1,6 +1,6 @@
 # `@motionvideo/motion-compiler`
 
-Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand component instance, repeater, text animator, bindings, và `timeline.clips` thành `layers` + `propertyAnimations` — không còn tham chiếu authoring.
+Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand component instance, repeater, text animator, bindings, và `layer.animations` thành `layers` + `propertyAnimations` — không còn tham chiếu authoring.
 
 ## Vai trò
 

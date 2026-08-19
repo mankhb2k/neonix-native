@@ -3,6 +3,11 @@ import {
   type AspectRatio,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import {
+  createDefaultAuthoringSugar,
+  createEmptyEnvelope,
+  type WebProjectEnvelope,
+} from "./authoring/web-project-envelope";
 
 const ASPECT_SIZES: Record<AspectRatio, { width: number; height: number }> = {
   "16:9": { width: 1920, height: 1080 },
@@ -31,30 +36,21 @@ export function createBlankProject(input: {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {
-      colors: { brand: "#1A5D3A" },
-      fonts: { display: "Be Vietnam Pro" },
-    },
-    variables: [
-      {
-        id: "project.brandName",
-        type: "string",
-        name: "Brand Name",
-        value: input.name,
-      },
-      {
-        id: "project.primaryColor",
-        type: "color",
-        name: "Primary Color",
-        value: "#1A5D3A",
-      },
-    ],
     assets: [],
     components: [],
     layers: [],
-    timeline: { duration: 0 },
-    bindings: [],
   });
+}
+
+export function createBlankProjectWithEnvelope(input: {
+  name: string;
+  aspectRatio: AspectRatio;
+}): { project: MotionProject; envelope: WebProjectEnvelope } {
+  const project = createBlankProject(input);
+  const envelope = createEmptyEnvelope(project.metadata.id);
+  envelope.authoring = {
+    ...envelope.authoring,
+    ...createDefaultAuthoringSugar({ name: input.name }),
+  };
+  return { project, envelope };
 }

@@ -40,7 +40,6 @@ export const AudioLayerV1Schema = z
   .object({
     id: IdSchema,
     type: z.literal("audio"),
-    name: z.string().min(1).optional(),
     parentLayerId: z.null(),
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,

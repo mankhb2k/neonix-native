@@ -34,7 +34,7 @@ export type {
   AudioToClipsInput,
   AudioToClipsOptions,
   TimelineKeyframeV1,
-  TimelinePropertyClipV1,
+  LayerPropertyAnimationDraftV1,
 } from "./mapping/audio-to-clips";
 
 export {

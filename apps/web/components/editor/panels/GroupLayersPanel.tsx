@@ -51,6 +51,9 @@ export function GroupLayersPanel() {
         <LayersTree
           layers={layers}
           selection={selectedIds}
+          resolveDisplayName={(layer) =>
+            envelope?.authoring.layerDisplayNames?.[layer.id] ?? layer.id
+          }
           onSelect={(id) => store.getState().selectNode(id)}
           onRename={(id, name) => store.getState().renameLayer(id, name)}
           onToggleVisible={(id, visible) =>

@@ -95,7 +95,6 @@ describe("Pure Command Runner Engine", () => {
     const scene = project.layers[0]!;
     if (scene.type !== "group") throw new Error("expected group scene");
     scene.timing.duration = 10;
-    project.timeline.duration = 13;
     scene.children = [
       {
         id: "group.char",
@@ -358,20 +357,13 @@ describe("Pure Command Runner Engine", () => {
       formatVersion: 1,
       metadata: { id: "swap-test", name: "Swap", locale: "vi-VN" },
       composition: { width: 1920, height: 1080, fps: 30 },
-      capabilities: {},
-      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-      tokens: {},
-      variables: [],
       assets: [],
       components: [],
-      timeline: { duration: 8 },
-      bindings: [],
       layers: [
         {
           id: "hero",
           type: "group",
           parentLayerId: null,
-          name: "Hero",
           zIndex: 0,
           timing: { start: 0, duration: 8 },
           ...atoms,
@@ -380,7 +372,6 @@ describe("Pure Command Runner Engine", () => {
               id: "title",
               type: "text",
               parentLayerId: "hero",
-              name: "Title",
               zIndex: 0,
               timing: { start: 0, duration: 2 },
               ...textAtoms,
@@ -390,7 +381,6 @@ describe("Pure Command Runner Engine", () => {
               id: "sub",
               type: "text",
               parentLayerId: "hero",
-              name: "Sub",
               zIndex: 1,
               timing: { start: 3, duration: 2 },
               ...textAtoms,

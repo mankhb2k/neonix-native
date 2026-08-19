@@ -26,53 +26,29 @@ const workerDist = path.join(
 
 function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
-    project: {
-      scenes: Array<Record<string, unknown>>;
-      timeline: {
-        visualTracks: unknown[];
-        audioTracks: unknown[];
-        captionTracks: unknown[];
-      };
-    };
+    project: { layers: unknown[] };
   };
-  const id = "scene_artifact";
   const node = {
     id: "node_artifact",
     type: "text",
     parentLayerId: null,
     zIndex: 0,
+    timing: { start: 0, duration: 1 },
     ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {
-      text: "" ,
+      text: "",
       fontSize: 12,
       color: "#000000",
       alignment: "left",
+      wrap: "word",
+      overflow: "clip",
     },
   };
-  envelope.project.scenes = [
-    { id, name: "Artifact", duration: 1, layers: [node], clips: [] },
-  ];
-  envelope.project.timeline.visualTracks = [
-    {
-      id: "main-track",
-      role: "main",
-      order: 0,
-      clips: [
-        {
-          id: "clip_artifact",
-          source: { kind: "scene", sceneId: id },
-          start: 0,
-          duration: 1,
-        },
-      ],
-    },
-  ];
+  envelope.project.layers = [node];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
-    (node.payload as { content: { text: string } }).content.text = "x".repeat(
-      deficit,
-    );
+    node.payload.text = "x".repeat(deficit);
     json = JSON.stringify(envelope);
   }
   return json;

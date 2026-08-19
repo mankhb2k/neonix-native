@@ -2,22 +2,32 @@
 
 import { attemptParse } from "@/lib/docs/parse-result";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { serializeMotionProjectV1 } from "@motionvideo/motion-protocol";
+import {
+  envelopeToAuthoringSugar,
+  expandAuthoringToCore,
+  mergeAuthoringSugar,
+} from "@motionvideo/editor-core";
+import { serializeMotionProjectV1Authoring } from "@motionvideo/motion-protocol";
 import { Check, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
 
 /**
- * Read-only protocol JSON debug panel — serializes MotionProjectV1, never
- * the timelineClips envelope.
+ * Read-only expanded core JSON — what would be saved to disk after expand.
  */
 export function ProtocolJsonPanel() {
   const project = useEditorStore((s) => s.project);
+  const envelope = useEditorStore((s) => s.envelope);
   const [copied, setCopied] = useState(false);
 
-  const json = useMemo(
-    () => (project ? serializeMotionProjectV1(project) : ""),
-    [project],
-  );
+  const json = useMemo(() => {
+    if (!project) return "";
+    const sugar = envelope ? envelopeToAuthoringSugar(envelope) : {};
+    const core = expandAuthoringToCore(
+      mergeAuthoringSugar(project, sugar),
+      sugar,
+    );
+    return serializeMotionProjectV1Authoring(core);
+  }, [project, envelope]);
   const parse = useMemo(() => {
     if (!project) return { ok: false, message: "No project loaded." };
     return attemptParse(JSON.parse(json));
@@ -57,7 +67,7 @@ export function ProtocolJsonPanel() {
           data-parse-ok={parse.ok ? "true" : "false"}
           title={parse.message}
         >
-          {parse.ok ? "parse OK" : "parse error"}
+          {parse.ok ? "core OK" : "parse error"}
         </span>
         <button
           type="button"

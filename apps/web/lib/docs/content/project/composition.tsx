@@ -25,8 +25,8 @@ export function compositionPage(): DocsPageView {
         />
         <H2 id="canvas">Render face</H2>
         <P>
-          Composition is the output frame. Together with{" "}
-          <code>timeline.duration</code> it decides the MP4. It is not the size
+          Composition is the output frame. Together with derived project length
+          it decides the MP4. It is not the size
           of a text or image layer.
         </P>
         <CompositionFigure />

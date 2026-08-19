@@ -35,7 +35,7 @@ export function keyframesPage(): DocsPageView {
           Compiled property animations look like{" "}
           <code>{`{ layerId, property, valueKind, keys: [{ t, v }] }`}</code>.
           That shape is compiler output. It is not authoring{" "}
-          <code>timeline.clips</code>. Runtime stores them on{" "}
+          <code>layer.animations</code>. Runtime stores them on{" "}
           <code>project.propertyAnimations</code>.
         </P>
         <JsonBlock

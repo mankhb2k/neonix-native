@@ -1,15 +1,17 @@
+import { deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import {
-  clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
   resolveFitAnchorSeconds,
+  sanitizeEditorProject,
   selectionClips,
   selectionNone,
-  syncProjectProtocolContract,
 } from "@motionvideo/editor-core";
+import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
+import { createEmptyEnvelope } from "@/lib/editor/authoring/web-project-envelope";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -28,8 +30,11 @@ export function createProjectLifecycleActions(
       overlayScenes = [],
       storedClips = [],
       storedLanes = [],
+      storedEnvelope: WebProjectEnvelope | null = null,
     ) => {
-      const project = syncProjectProtocolContract(parseProjectInput(input));
+      const project = sanitizeEditorProject(parseProjectInput(input));
+      const envelope =
+        storedEnvelope ?? createEmptyEnvelope(project.metadata.id);
       const { lanes: migratedLanes, clips: migratedClips } =
         migrateLanesAndClips(project, overlayScenes, storedClips, storedLanes);
       const { lanes: withAudioLanes, clips: withAudioClips } =
@@ -47,11 +52,7 @@ export function createProjectLifecycleActions(
       // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
       set((state) => ({
         project,
-        envelope: {
-          id: project.metadata.id,
-          revision: 1,
-          authoring: { elementMeta: {} },
-        },
+        envelope,
         timelineLanes: lanes,
         timelineClips: clips,
         timelineZoom: 50,
@@ -75,10 +76,7 @@ export function createProjectLifecycleActions(
 
       // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
       usePlaybackClock.getState().reset({
-        duration: Math.max(
-          clipsContentEndSeconds(clips),
-          project.timeline.duration ?? 0,
-        ),
+        duration: deriveProjectDurationV1(project.layers),
         currentTime: 0,
       });
     },

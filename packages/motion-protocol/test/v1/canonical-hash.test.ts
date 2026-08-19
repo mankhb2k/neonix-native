@@ -102,6 +102,7 @@ describe("computeProjectHash", () => {
     metadata: {
       id: "test-1",
       name: "Test Project",
+      locale: "vi-VN",
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-06-01T00:00:00Z",
       generator: "moticlip-editor",
@@ -112,20 +113,9 @@ describe("computeProjectHash", () => {
       fps: 30,
       background: "#000000",
     },
-    dependencies: {
-      compiler: { range: ">=1.0.0" },
-      components: [],
-    },
-    capabilities: { required: ["primitive.text"] },
-    timeline: {
-      duration: 8,
-    },
     components: [],
     layers: [],
-    variables: [],
     assets: [],
-    bindings: [],
-    tokens: {},
   };
 
   it("returns 64-char hex string", () => {
@@ -209,11 +199,20 @@ describe("computeProjectHash", () => {
     expect(computeProjectHash(p1)).not.toBe(computeProjectHash(p2));
   });
 
-  it("capabilities change affects hash", () => {
+  it("assets change affects hash", () => {
     const p1 = baseProject;
     const p2 = {
       ...baseProject,
-      capabilities: { required: ["primitive.video"] },
+      assets: [
+        {
+          id: "img",
+          uri: "./x.png",
+          assetType: "image",
+          mimeType: "image/png",
+          width: 1,
+          height: 1,
+        },
+      ],
     };
     expect(computeProjectHash(p1)).not.toBe(computeProjectHash(p2));
   });
@@ -238,17 +237,11 @@ describe("computeProjectHashShort", () => {
     const hash = computeProjectHashShort({
       format: "motion-project",
       formatVersion: 1,
-      metadata: { id: "test", name: "Test", createdAt: "", updatedAt: "" },
+      metadata: { id: "test", name: "Test", locale: "vi-VN", createdAt: "", updatedAt: "" },
       composition: { width: 1920, height: 1080, fps: 30, background: "#000" },
-      dependencies: { compiler: { range: ">=1" }, components: [] },
-      capabilities: { required: [] },
-      timeline: { duration: 8 },
       components: [],
       layers: [],
-      variables: [],
       assets: [],
-      bindings: [],
-      tokens: {},
     });
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
   });
@@ -270,9 +263,7 @@ describe("computeRuntimeHash", () => {
     assets: [],
     layers: [],
     propertyAnimations: [],
-    timeline: {
-      duration: 0,
-    },
+    timeline: { duration: 5 },
     composition: {
       width: 1920,
       height: 1080,

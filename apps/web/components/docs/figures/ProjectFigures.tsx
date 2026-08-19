@@ -171,7 +171,7 @@ export function CompositionFigure() {
   return (
     <Figure
       label="composition"
-      caption="composition is the output frame — with timeline.duration it decides the MP4. A layer's own box is frame; the two sizes are independent."
+      caption="composition is the output frame — with derived project length it decides the MP4. A layer's own box is frame; the two sizes are independent."
     >
       <svg
         viewBox="0 0 640 280"

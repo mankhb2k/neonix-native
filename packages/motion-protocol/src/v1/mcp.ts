@@ -410,9 +410,16 @@ export function preflightCapabilities(
   availableCapabilityIds: string[],
 ): MCPCapabilityCheck {
   const available = new Set(availableCapabilityIds);
-  const required = new Set(project.capabilities.required);
-  const optional = new Set(project.capabilities.optional ?? []);
-  const experimental = new Set(project.capabilities.experimental ?? []);
+  const sugar = project as MotionProjectV1 & {
+    capabilities?: {
+      required?: string[];
+      optional?: string[];
+      experimental?: string[];
+    };
+  };
+  const required = new Set(sugar.capabilities?.required ?? []);
+  const optional = new Set(sugar.capabilities?.optional ?? []);
+  const experimental = new Set(sugar.capabilities?.experimental ?? []);
 
   const missing = [...required].filter((id) => !available.has(id));
   const recommended = [...optional].filter((id) => !available.has(id));
@@ -441,7 +448,10 @@ export function canExecuteTool(
 
   const available = new Set(availableCapabilityIds);
   const toolReqs = new Set(descriptor.requiredCapabilities);
-  const projectReqs = new Set(project.capabilities.required);
+  const sugar = project as MotionProjectV1 & {
+    capabilities?: { required?: string[] };
+  };
+  const projectReqs = new Set(sugar.capabilities?.required ?? []);
 
   const missing = [...toolReqs, ...projectReqs].filter(
     (id) => !available.has(id),

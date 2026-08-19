@@ -32,7 +32,6 @@ Before returning JSON, or when a parse error looks like “unknown key”.
     "background": "#ffffff",
     "colorSpace": "srgb"
   },
-  "timeline": { "duration": 6 },
   "layers": [],
   "assets": [],
   "capabilities": {},

@@ -32,19 +32,21 @@ Three package entries:
 | [`src/index.ts`](./src/index.ts) | Authoring barrel (`.`) |
 | [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`) |
 | [`src/internal.ts`](./src/internal.ts) | Caption leftover schemas (`./internal`) |
-| [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, timeline, variables, animation, references) |
+| [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, variables, animation, references) |
 | [`src/runtime/`](./src/runtime) | Runtime IR schemas |
 | [`src/capabilities.ts`](./src/capabilities.ts) | Limits + property capability registry |
-| [`review-guide.md`](./review-guide.md) | How to review the V1 component/timeline contract |
+| [`review-guide.md`](./review-guide.md) | How to review the V1 component/timing contract |
 
 ---
 
-## Timeline model
+## Timing model
 
-- `timeline` = `duration?`, `workArea?`, `clips?`
+- Project length is derived: `max(root.timing.start + root.timing.duration)`. Empty → `0`.
+- Authoring JSON has no `timeline` field (`duration`, `workArea`, `clips` are gone).
 - `project.layers[]` = root lanes; every layer requires `zIndex` (root visual `>= 0`, audio `< 0`, nested `>= 0`, unique among siblings)
 - Nesting via `group.children[]` (at least one child); child timing is local to parent and must fit inside the parent duration
-- Audio is a root-only leaf (`type: "audio"`)
+- Audio is a root-only leaf (`type: "audio"`) and has no `animations`
+- Layer property motion lives on `layer.animations[]`
 - `frame` = local size box before transform. Required on every visual layer including group (does not clip, not derived from children). Forbidden on audio/camera
 - `transform` = shared visual geometry (`translate`, `scale`, `rotate.z`, `skew`, `origin`, `depth`). Audio has none. Negative scale flips. `depth` is not `zIndex`.
 
@@ -57,7 +59,7 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and
 - Sealed definition: public `props` / `variants`; owner-only `propBindings` + internal `layers`
 - Instance = `type: "component"` layer on the **project layer tree**
 - Prop keyframe `t` is local to the instance: `0..layer.timing.duration`
-- Timeline motion uses `timeline.clips` / prop keyframes
+- Layer property motion uses `layer.animations` / prop keyframes
 
 ### Bindings (`ProjectBindingV1Schema`)
 

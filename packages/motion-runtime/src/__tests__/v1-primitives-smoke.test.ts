@@ -116,7 +116,7 @@ describe("V1 runtime primitives smoke", () => {
     // Hide prop — hit-test must skip it
     const hiddenScene = makeHierarchyScene();
     const hiddenProp = hiddenScene.layers.find((n: any) => n.id === "prop")!;
-    hiddenProp.appearance = { ...hiddenProp.appearance, visible: false };
+    hiddenProp.opacity = 0;
     const hiddenHits = hitTestScene(hiddenScene, 0, { x: 420, y: 460 });
     expect(hiddenHits.some((h) => h.layer.id === "prop")).toBe(false);
   });

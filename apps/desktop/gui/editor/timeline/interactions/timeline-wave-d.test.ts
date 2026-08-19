@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
 import {
   canUndo,
@@ -27,36 +28,43 @@ function reduce(
 function documentWithClip(): string {
   const blank = buildBlankDesktopProject({ createId: (p) => `${p}_waved` });
   const withScene = JSON.parse(blank.documentJson) as {
-    project: {
-      scenes: unknown[];
-      timeline: {
-        visualTracks: unknown[];
-        audioTracks: unknown[];
-        captionTracks: unknown[];
-      };
-    };
+    project: { layers: unknown[] };
     timelineClips: unknown[];
     timelineLanes: unknown[];
   };
-  withScene.project.scenes = [
+  withScene.project.layers = [
     {
       id: "scene_1",
-      duration: 4,
-      layers: [],
-      clips: [],
-    },
-  ];
-  withScene.project.timeline.visualTracks = [
-    {
-      id: "main-track",
-      role: "main",
-      order: 0,
-      clips: [
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      name: "Scene 1",
+      timing: { start: 0, duration: 4 },
+      ...visualLayerAtoms({
+        x: 0,
+        y: 0,
+        width: 1920,
+        height: 1080,
+      }),
+      children: [
         {
-          id: "clip_1",
-          source: { kind: "scene", sceneId: "scene_1" },
-          start: 0,
-          duration: 4,
+          id: "node_1",
+          type: "text",
+          parentLayerId: "scene_1",
+          zIndex: 0,
+          timing: { start: 0, duration: 4 },
+          ...visualLayerAtoms({
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 40,
+          }),
+          payload: {
+            text: "Hi",
+            fontSize: 24,
+            color: "#111111",
+            alignment: "left",
+          },
         },
       ],
     },

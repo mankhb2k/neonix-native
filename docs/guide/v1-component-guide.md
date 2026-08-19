@@ -313,7 +313,7 @@ Không có `component.variables`.
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
 - Asset / choice: mỗi key phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- Không animate `payload.props.<propId>` qua `timeline.clips`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`. Layer property (`transform`, `appearance.opacity`, …) của instance vỏ đi qua `timeline.clips`. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
+- Không animate `payload.props.<propId>` qua `layer.animations`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`. Layer property (`transform`, `appearance.opacity`, …) của instance vỏ đi qua `layer.animations`. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
 
 Prop keyframes animate **public signal**, không animate wrapper. Animation trên field wrapper của instance (`transform`, `appearance.opacity`, …) là vỏ. Prop keyframes fan-out vào layer nội bộ qua `propBindings`.
 
@@ -471,10 +471,10 @@ Component instance = `type: "component"` leaf trên **project layer tree**. Comp
 | Bind thẳng internals từ project | Cấm. Chỉ `type: "prop"`; default AI: `payload.props` |
 | Global bulk binding mọi instance cùng `componentId` | Từng instance `prop`; nested qua `childProp` |
 | `target.type: "layer"` / `"componentLayer"` / `"component"` | `target.type: "prop"` |
-| Animate internals từ `timeline.clips` của project | Prop keyframes hoặc wrapper atoms trên instance |
+| Animate internals từ `layer.animations` của project | Prop keyframes hoặc wrapper atoms trên instance |
 | Variant đổi tree / bindings | Variant chỉ `props` |
 | Skip-level vào nested child | `childProp` từng tầng |
-| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc `timeline.clips` |
+| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc `layer.animations` |
 | `PublicParamSchema` / `ComponentBindingSchema` | `ComponentPropV1Schema` + `propBindings` |
 
 ---

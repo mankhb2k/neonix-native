@@ -56,7 +56,7 @@ describe("sliceScene", () => {
         origin: { x: 0.5, y: 0.5 },
         depth: 0,
       },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 5 },
       children: [],
     } as unknown as MotionLayer;

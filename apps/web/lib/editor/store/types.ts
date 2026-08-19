@@ -75,6 +75,7 @@ export type EditorStoreActions = {
     overlayScenes?: OverlaySceneItem[],
     timelineClips?: TimelineClip[],
     timelineLanes?: TimelineLane[],
+    storedEnvelope?: WebProjectEnvelope | null,
   ) => void;
   selectClip: (clipId: string) => void;
   setSelectedClipIds: (clipIds: string[]) => void;

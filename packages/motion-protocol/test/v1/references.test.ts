@@ -35,17 +35,6 @@ function baseProject(overrides: Record<string, unknown> = {}) {
     formatVersion: 1,
     metadata: { id: "refs-test", name: "Refs Test", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [
-      {
-        id: "cta-label",
-        name: "CTA Label",
-        type: "string",
-        value: "Shop now",
-      },
-    ],
     assets: [],
     components: [
       {
@@ -130,39 +119,39 @@ function baseProject(overrides: Record<string, unknown> = {}) {
         },
       },
     ],
-    timeline: { duration: 8 },
-    bindings: [],
+
     ...overrides,
   };
 }
 
 describe("V1 component / binding / keyframe references", () => {
-  it("accepts nested childProp wiring and project prop binding", () => {
-    const project = parseMotionProjectV1(
-      baseProject({
-        bindings: [
-          {
-            id: "bind-title",
-            source: { kind: "variable", variableId: "cta-label" },
-            target: {
-              type: "prop",
-              layerId: "card-instance",
-              propId: "title",
-            },
-          },
-        ],
-      }),
-    );
-    expect(project.bindings[0]?.target).toEqual({
-      type: "prop",
-      layerId: "card-instance",
-      propId: "title",
-    });
+  it("accepts nested childProp wiring on component definitions", () => {
+    const project = parseMotionProjectV1(baseProject());
     expect(project.components[1]?.propBindings[0]?.target).toEqual({
       kind: "childProp",
       childLayerId: "nested-btn",
       propId: "label",
     });
+  });
+
+  it("rejects project bindings on core MotionProjectV1", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          bindings: [
+            {
+              id: "bind-title",
+              source: { kind: "variable", variableId: "cta-label" },
+              target: {
+                type: "prop",
+                layerId: "card-instance",
+                propId: "title",
+              },
+            },
+          ],
+        }),
+      ),
+    ).toThrow();
   });
 
   it("rejects project binding that is not type prop", () => {
@@ -474,7 +463,7 @@ describe("V1 component / binding / keyframe references", () => {
           ],
         }),
       ),
-    ).toThrow(/not a component layer/);
+    ).toThrow();
   });
 
   it("rejects type layer binding into component payload.props", () => {
@@ -503,7 +492,7 @@ describe("V1 component / binding / keyframe references", () => {
     ).toThrow();
     expect(() =>
       parseMotionProjectV1(
-        baseProject({ timeline: { duration: 8, visualTracks: [] } }),
+        baseProject({ visualTracks: [] }),
       ),
     ).toThrow();
   });

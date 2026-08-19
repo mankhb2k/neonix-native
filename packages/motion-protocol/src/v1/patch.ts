@@ -250,10 +250,12 @@ export function applyMotionProjectV1Patch(
       }
 
       case "setTokens": {
-        next = {
-          ...next,
-          tokens: { ...next.tokens, ...op.changes },
-        };
+        diagnostics.push(
+          diagnostic(
+            opPrefix,
+            "setTokens is not supported on core MotionProjectV1",
+          ),
+        );
         break;
       }
 
@@ -325,13 +327,6 @@ export function applyMotionProjectV1Patch(
         next = {
           ...next,
           layers: removeLayer(next.layers, op.layerId),
-          bindings: next.bindings.filter((binding) => {
-            const target = binding.target;
-            if (target.type === "prop") {
-              return target.layerId !== op.layerId;
-            }
-            return true;
-          }),
         };
         break;
       }
@@ -383,69 +378,23 @@ export function applyMotionProjectV1Patch(
 
       case "addVariable":
       case "updateVariable": {
-        const varIdx = next.variables.findIndex((v) => v.id === op.variable.id);
-        if (varIdx >= 0) {
-          if (op.op === "addVariable") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.variable.id`,
-                `Variable already exists: ${op.variable.id}`,
-              ),
-            );
-            break;
-          }
-          const updVars = [...next.variables];
-          updVars[varIdx] = op.variable;
-          next = { ...next, variables: updVars };
-        } else {
-          if (op.op === "updateVariable") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.variable.id`,
-                `Variable not found: ${op.variable.id}`,
-              ),
-            );
-            break;
-          }
-          next = {
-            ...next,
-            variables: [...next.variables, op.variable],
-          };
-        }
+        diagnostics.push(
+          diagnostic(
+            opPrefix,
+            "Variables are not supported on core MotionProjectV1",
+          ),
+        );
         break;
       }
 
       case "addBinding":
       case "updateBinding": {
-        const bindIdx = next.bindings.findIndex((b) => b.id === op.binding.id);
-        if (bindIdx >= 0) {
-          if (op.op === "addBinding") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.binding.id`,
-                `Binding already exists: ${op.binding.id}`,
-              ),
-            );
-            break;
-          }
-          const updBindings = [...next.bindings];
-          updBindings[bindIdx] = op.binding;
-          next = { ...next, bindings: updBindings };
-        } else {
-          if (op.op === "updateBinding") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.binding.id`,
-                `Binding not found: ${op.binding.id}`,
-              ),
-            );
-            break;
-          }
-          next = {
-            ...next,
-            bindings: [...next.bindings, op.binding],
-          };
-        }
+        diagnostics.push(
+          diagnostic(
+            opPrefix,
+            "Bindings are not supported on core MotionProjectV1",
+          ),
+        );
         break;
       }
 

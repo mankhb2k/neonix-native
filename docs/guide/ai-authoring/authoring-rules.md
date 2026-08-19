@@ -62,7 +62,6 @@ Global contract for writing NeonVideo JSON. Schema is the law. Preview is not a 
     "background": "#ffffff",
     "colorSpace": "srgb"
   },
-  "timeline": { "duration": 6 },
   "layers": [],
   "assets": []
 }
@@ -87,7 +86,7 @@ Empty `layers` is valid. Other required root keys may use schema defaults (`capa
 | Mistake | Why it is wrong | What to use instead |
 | --- | --- | --- |
 | Partial clip / scene graph | Not a project | Full `MotionProjectV1` |
-| `visualTracks` | Removed from V1 | `project.layers` + `timeline.clips` |
+| `visualTracks` | Removed from V1 | `project.layers` + `layer.animations` |
 | `transform.z` | Not a field | `transform.depth` or `zIndex` |
 
 ## AI writing guide

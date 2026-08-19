@@ -46,7 +46,7 @@ A pre-return gate. If any item fails, fix JSON. Do not return “almost”.
 - [ ] Every `payload.assetId` exists in `assets[]`
 - [ ] Every binding `variableId` exists in `variables[]`
 - [ ] Root layers have `zIndex` + `timing`
-- [ ] Roots do not overflow `timeline.duration` when duration is set
+- [ ] Child layers stay inside `parent.timing.duration`
 
 ## Valid example
 

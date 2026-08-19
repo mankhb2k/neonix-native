@@ -1,47 +1,38 @@
 /**
- * Nền node V1 — danh tính + nhóm atom.
+ * Nền node V1 — danh tính + nhóm atom (core).
  *
- * Size ở frame. Hình học ở transform (mọi visual layer cùng contract).
- * Appearance chỉ visible + opacity. Blend/mask/isolation ở compositing.
+ * Size ở frame. Hình học ở transform. Opacity ở layer root.
+ * Blend/mask ở compositing.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { EffectSchema } from "../effects";
-import { LayoutItemPolicySchema } from "../layout";
 import { LayerTimingSchema } from "./timing";
+import { LayerPropertyAnimationV1Schema } from "./animations";
 import { TransformSchema } from "../transform";
 import { FrameSchema } from "../frame";
-import { AppearanceSchema } from "../appearance";
+import { OpacitySchema } from "../appearance/opacity";
 import { CompositingSchema } from "../compositing";
-import { IdSchema, SemanticSchema } from "../common";
-
-export const InheritFlagsSchema = z
-  .object({
-    position: z.boolean().default(true),
-    rotation: z.boolean().default(true),
-    scale: z.boolean().default(true),
-    opacity: z.boolean().default(true),
-  })
-  .strict();
+import { IdSchema } from "../common";
 
 export const LayerBaseV1Schema = z
   .object({
     id: IdSchema,
     type: IdSchema,
-    name: z.string().min(1).optional(),
     parentLayerId: IdSchema.nullable(),
     zIndex: z.number().int().nonnegative(),
     frame: FrameSchema,
     transform: TransformSchema,
-    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
+    opacity: OpacitySchema.default(100),
     compositing: CompositingSchema.optional(),
     timing: LayerTimingSchema,
-    layoutItem: LayoutItemPolicySchema.optional(),
-    semantic: SemanticSchema.optional(),
+    animations: z
+      .array(LayerPropertyAnimationV1Schema)
+      .max(MOTION_PROTOCOL_LIMITS.animationsPerLayer)
+      .optional(),
     effects: z
       .array(EffectSchema)
       .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)
       .optional(),
-    inheritFlags: InheritFlagsSchema.optional(),
   })
   .strict();

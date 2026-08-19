@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MOTION_PROTOCOL_LIMITS,
+  V1,
   getTextPayloadPlain,
   parseMotionProject,
   visualLayerAtoms,
@@ -93,7 +94,7 @@ describe("property commands", () => {
     const root = result.document.project.layers[0];
     const title = root && root.type === "group" ? root.children[0] : undefined;
     expect(
-      title && "appearance" in title ? title.appearance.opacity : undefined,
+      title && "opacity" in title ? title.opacity : undefined,
     ).toBe(100);
   });
 
@@ -179,15 +180,14 @@ describe("property commands", () => {
     const result = executePropertyCommand(doc, {
       type: "set-node-metadata",
       targets,
-      patch: { name: "Hero", visible: false },
+      patch: { visible: false },
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const node = firstChild(result.document.project);
-    expect(node?.name).toBe("Hero");
     expect(
-      node && "appearance" in node ? node.appearance.visible : undefined,
-    ).toBe(false);
+      node && "opacity" in node ? node.opacity : undefined,
+    ).toBe(0);
   });
 });
 
@@ -381,7 +381,9 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(withKey.status).toBe("applied");
     if (withKey.status !== "applied") return;
-    const sceneClips = withKey.document.project.timeline.clips ?? [];
+    const sceneClips = V1.flattenLayerTree(withKey.document.project.layers).flatMap(
+      (layer) => (layer.type === "audio" ? [] : layer.animations ?? []),
+    );
     expect(sceneClips.length).toBeGreaterThan(0);
     const trackClip = sceneClips.find(
       (c) => c.property === "transform.translate.x",
@@ -619,7 +621,7 @@ describe("Logic-2 property domain depth", () => {
     ).toBe("rejected");
   });
 
-  it("allocates distinct keyframe clip ids for properties that sanitize alike", () => {
+  it("keeps distinct keyframe tracks for properties that sanitize alike", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
     const targets = resolvePropertyTargets(
@@ -646,10 +648,12 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(b.status).toBe("applied");
     if (b.status !== "applied") return;
-    const sceneClips = b.document.project.timeline.clips ?? [];
-    const kfClips = sceneClips.filter((c) => c.id.startsWith("kf_"));
-    expect(kfClips.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(kfClips.map((c) => c.id)).size).toBe(kfClips.length);
+    const sceneClips = V1.flattenLayerTree(b.document.project.layers).flatMap(
+      (layer) => (layer.type === "audio" ? [] : layer.animations ?? []),
+    );
+    expect(sceneClips.length).toBe(2);
+    expect(new Set(sceneClips.map((c) => c.property)).size).toBe(2);
+    expect(sceneClips.map((c) => c.property).sort()).toEqual(["a-b", "a.b"]);
   });
 
   it("clamps keyframe clip duration at mediaDurationSeconds boundary", () => {
@@ -671,9 +675,9 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const kf = result.document.project.timeline.clips?.find(
-      (c) => c.property === "transform.translate.x",
-    );
+    const kf = V1.flattenLayerTree(result.document.project.layers)
+      .flatMap((layer) => (layer.type === "audio" ? [] : layer.animations ?? []))
+      .find((c) => c.property === "transform.translate.x");
     expect(kf).toBeTruthy();
     expect(kf!.keys[0]!.t).toBeLessThanOrEqual(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,

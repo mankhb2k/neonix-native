@@ -22,8 +22,10 @@ describe("seedDemoSidebarAssets", () => {
     expect(validated.clips).toHaveLength(0);
     expect(validated.lanes).toHaveLength(1);
     expect(validated.lanes[0]?.kind).toBe("visual");
-    expect(validated.project.timeline.audioTracks).toHaveLength(0);
-    expect(validated.project.scenes).toHaveLength(0);
+    expect(validated.project.layers.filter((l) => l.type === "audio")).toHaveLength(
+      0,
+    );
+    expect(validated.project.layers).toHaveLength(0);
   });
 
   it("buildDemoSidebarDocumentJson validates", () => {

@@ -180,7 +180,7 @@ const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("continue") }).strict(),
 ]);
 
-/** Evaluated property animations compiled from timeline.clips — not authoring. */
+/** Evaluated property animations compiled from layer.animations and component prop keyframes — not authoring. */
 const RuntimePropertyAnimationSchema = z
   .object({
     layerId: IdSchema,

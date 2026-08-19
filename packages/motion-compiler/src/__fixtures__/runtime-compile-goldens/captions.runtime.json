@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Captions"
-    },
-    "description": "Text layers used as on-screen captions"
+    }
   },
   "assets": [],
   "composition": {
@@ -22,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a031c1896f85600d2bc6116f68cc803e",
+  "runtimeHash": "1992324633bed1b23e7a09cfc3a370c0",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -73,10 +72,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Captioned Video",
         "fontSize": 64,

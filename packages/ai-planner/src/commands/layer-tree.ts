@@ -1,4 +1,8 @@
-import { type MotionLayer, type MotionProject } from "@motionvideo/motion-protocol";
+import {
+  type MotionLayer,
+  type MotionProject,
+  V1,
+} from "@motionvideo/motion-protocol";
 
 export const AI_EXT_KEY = "com.moticlip.ai";
 
@@ -85,10 +89,30 @@ export function removeLayers(scene: GroupLayer, ids: Set<string>): void {
   scene.children = filter(scene.children);
 }
 
-export function refreshTimelineDuration(project: MotionProject): void {
-  const duration = sceneGroups(project).reduce(
-    (sum, scene) => sum + (scene.timing?.duration ?? 0),
-    0,
-  );
-  project.timeline = { ...project.timeline, duration };
+export function refreshTimelineDuration(_project: MotionProject): void {
+  // Project length is derived from root layer ends; nothing to stamp.
+  void _project;
+}
+
+export function appendLayerAnimation(
+  layers: MotionLayer[],
+  layerId: string,
+  animation: V1.LayerPropertyAnimationV1,
+): boolean {
+  let found = false;
+  const walk = (nodes: MotionLayer[]): MotionLayer[] =>
+    nodes.map((node) => {
+      if (node.id === layerId && node.type !== "audio") {
+        found = true;
+        const current = V1.getLayerAnimations(node);
+        return { ...node, animations: [...current, animation] } as MotionLayer;
+      }
+      if (node.type === "group") {
+        return { ...node, children: walk(node.children) };
+      }
+      return node;
+    });
+  const next = walk(layers);
+  layers.splice(0, layers.length, ...next);
+  return found;
 }

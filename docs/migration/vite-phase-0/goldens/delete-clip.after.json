@@ -1,0 +1,132 @@
+{
+  "project": {
+    "format": "motion-project",
+    "formatVersion": 1,
+    "metadata": {
+      "id": "fixture.base-overlay",
+      "name": "Base + Overlay",
+      "locale": "vi-VN"
+    },
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#FFFFFF",
+      "colorSpace": "srgb",
+      "audioSampleRate": 48000
+    },
+    "assets": [],
+    "components": [],
+    "layers": [
+      {
+        "id": "scene.base",
+        "type": "group",
+        "parentLayerId": null,
+        "zIndex": 0,
+        "frame": {
+          "width": 1920,
+          "height": 1080
+        },
+        "transform": {
+          "translate": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotate": {
+            "z": 0
+          },
+          "skew": {
+            "x": 0,
+            "y": 0
+          },
+          "origin": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "depth": 0
+        },
+        "opacity": 100,
+        "timing": {
+          "start": 0,
+          "duration": 4
+        },
+        "children": [
+          {
+            "id": "scene.base.title",
+            "type": "text",
+            "parentLayerId": "scene.base",
+            "zIndex": 0,
+            "frame": {
+              "width": 200,
+              "height": 40
+            },
+            "transform": {
+              "translate": {
+                "x": 40,
+                "y": 40
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotate": {
+                "z": 0
+              },
+              "skew": {
+                "x": 0,
+                "y": 0
+              },
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "depth": 0
+            },
+            "opacity": 100,
+            "timing": {
+              "start": 0,
+              "duration": 4
+            },
+            "payload": {
+              "text": "Base Scene",
+              "fontSize": 24,
+              "color": "#111111",
+              "alignment": "left",
+              "wrap": "word",
+              "overflow": "clip"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "clips": [
+    {
+      "kind": "scene",
+      "id": "clip.base",
+      "sceneId": "scene.base",
+      "laneId": "lane.main",
+      "startTime": 0,
+      "duration": 4,
+      "name": "Base Scene"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "lane.main",
+      "kind": "visual",
+      "role": "base",
+      "name": "Main",
+      "order": -1,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    }
+  ],
+  "transitions": []
+}

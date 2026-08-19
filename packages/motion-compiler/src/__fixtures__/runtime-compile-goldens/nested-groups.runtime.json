@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Nested Groups"
-    },
-    "description": "Three-level nested group hierarchy validated for V1 Group Layer Semantics"
+    }
   },
   "assets": [
     {
@@ -34,7 +33,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "2f1baec75a6edda8bb269c5474f48daa",
+  "runtimeHash": "a74a69faeec3ce217f8c12949df61e19",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -81,10 +80,6 @@
         "visible": true,
         "opacity": 100
       },
-      "compositing": {
-        "blend-mode": "normal",
-        "isolation": "auto"
-      },
       "timing": {
         "start": 5,
         "duration": 4
@@ -126,10 +121,6 @@
         "visible": true,
         "opacity": 100
       },
-      "compositing": {
-        "blend-mode": "normal",
-        "isolation": "auto"
-      },
       "timing": {
         "start": 1,
         "duration": 2
@@ -170,10 +161,6 @@
       "appearance": {
         "visible": true,
         "opacity": 100
-      },
-      "compositing": {
-        "blend-mode": "normal",
-        "isolation": "isolate"
       },
       "timing": {
         "start": 0.5,

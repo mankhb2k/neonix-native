@@ -13,15 +13,10 @@ describe("compile inner-glow + noise", () => {
         ? card.effects?.map((effect) => effect.type)
         : undefined;
     expect(effectTypes).toEqual(["glow", "inner-glow", "noise"]);
-    expect(
-      result.diagnostics.some((d) => d.code === "CAP_UNDECLARED_CAPABILITY"),
-    ).toBe(false);
   });
 
-  it("warns CAP_UNDECLARED_CAPABILITY but still compiles when required is empty", () => {
-    const project = createNeonEffectsPreviewProject();
-    project.capabilities = { required: [] };
-    const result = compileMotionProjectV1(project);
+  it("warns CAP_UNDECLARED_CAPABILITY on core projects without capability declarations", () => {
+    const result = compileMotionProjectV1(createNeonEffectsPreviewProject());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const undeclared = result.diagnostics.filter(

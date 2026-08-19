@@ -6,7 +6,6 @@
  */
 
 import {
-  deriveTimelineDurationV1,
   parseMotionProject,
   visualLayerAtoms,
   type MotionLayer,
@@ -42,7 +41,6 @@ function segmentId(index: number): string {
 function emptyPadLayer(
   id: string,
   duration: number,
-  name: string,
   width: number,
   height: number,
 ): MotionLayer {
@@ -50,7 +48,6 @@ function emptyPadLayer(
   return {
     id,
     type: "group",
-    name,
     parentLayerId: null,
     zIndex: 0,
     ...visualLayerAtoms({ width, height }),
@@ -59,10 +56,9 @@ function emptyPadLayer(
       {
         id: "solid",
         type: "solid",
-        name: "Pad",
         parentLayerId: id,
         zIndex: 0,
-        ...visualLayerAtoms({ width, height, opacity: 0, visible: false }),
+        ...visualLayerAtoms({ width, height, opacity: 0 }),
         timing: { start: 0, duration: dur },
         payload: { color: "#000000" },
       },
@@ -199,7 +195,6 @@ function buildAudioLayers(
     return buildAudioLayer({
       id: clip.audioTrackId,
       assetId: clip.assetId,
-      name: existing?.name,
       start: clip.startTime,
       // Clip placement is the source of truth for the export span; asset
       // duration is only a source limit (trim validation), never the span.
@@ -265,7 +260,7 @@ export function buildExportProject(
     );
     const fallback =
       existingLayer ??
-      emptyPadLayer("segment_empty", 0.5, "Empty", width, height);
+      emptyPadLayer("segment_empty", 0.5, width, height);
     const fallbackLayer: MotionLayer = {
       ...fallback,
       timing: {
@@ -277,7 +272,6 @@ export function buildExportProject(
     return parseMotionProject({
       ...project,
       layers,
-      timeline: { duration: deriveTimelineDurationV1(layers) },
     });
   }
 
@@ -312,7 +306,7 @@ export function buildExportProject(
         : 0;
       bakedLayer = source
         ? sliceScene(source, localStart, duration)
-        : emptyPadLayer(segmentId(i), duration, "Missing base", width, height);
+        : emptyPadLayer(segmentId(i), duration, width, height);
       bakedLayer = { ...bakedLayer, id: segmentId(i) };
       for (const overlay of overlayLayers) {
         const ovLayer = layersById.get(overlay.layerId);
@@ -331,7 +325,6 @@ export function buildExportProject(
       bakedLayer = emptyPadLayer(
         segmentId(i),
         duration,
-        "Overlay gap",
         width,
         height,
       );
@@ -349,7 +342,7 @@ export function buildExportProject(
         );
       }
     } else {
-      bakedLayer = emptyPadLayer(segmentId(i), duration, "Gap", width, height);
+      bakedLayer = emptyPadLayer(segmentId(i), duration, width, height);
     }
 
     bakedSegments.push({
@@ -362,7 +355,7 @@ export function buildExportProject(
 
   if (bakedSegments.length === 0) {
     bakedSegments.push({
-      layer: emptyPadLayer("segment_empty", 0.5, "Empty", width, height),
+      layer: emptyPadLayer("segment_empty", 0.5, width, height),
       start: 0,
       duration: 0.5,
     });
@@ -378,7 +371,6 @@ export function buildExportProject(
   return parseMotionProject({
     ...project,
     layers,
-    timeline: { duration: deriveTimelineDurationV1(layers) },
   });
 }
 

@@ -17,7 +17,7 @@ describe("preview fixtures", () => {
 
   it("builds a parseable stage paint fixture", () => {
     const fixture = buildStagePaintFixture(100);
-    expect(fixture.project.scenes[0]?.layers).toHaveLength(100);
+    expect(fixture.project.layers).toHaveLength(100);
     expect(fixture.clips).toHaveLength(1);
     expect(fixture.lanes).toHaveLength(1);
   });

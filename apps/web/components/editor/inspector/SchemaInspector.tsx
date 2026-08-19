@@ -9,7 +9,7 @@ import {
   type PropertyContext,
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
-import { motionPropertyCapability } from "@motionvideo/motion-protocol";
+import { motionPropertyCapability, V1 } from "@motionvideo/motion-protocol";
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import { AskAIBar } from "@/components/editor/inspector/ai/AskAIBar";
 import { Panel, Tabs } from "@/components/ui";
@@ -31,8 +31,8 @@ const TRACK_PROPERTY_BY_PROP_ID: Record<string, string> = {
   "transform.rotate.z": "transform.rotate.z",
   "transform.scale.x": "transform.scale.x",
   "transform.scale.y": "transform.scale.y",
-  "appearance.opacity": "appearance.opacity",
-  "metadata.visible": "appearance.visible",
+  "opacity": "opacity",
+  "metadata.visible": "opacity",
   "style.fill": "style.fill",
   "style.stroke": "style.stroke",
   "style.strokeWidth": "style.strokeWidth",
@@ -63,9 +63,13 @@ function findKeyframeAtTime(
   property: string,
   t: number,
 ): boolean {
-  for (const clip of project.timeline.clips ?? []) {
-    if (clip.layerId !== layerId || clip.property !== property) continue;
-    if (clip.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
+  const layer = V1.flattenLayerTree(project.layers).find(
+    (item) => item.id === layerId,
+  );
+  if (!layer) return false;
+  for (const animation of V1.getLayerAnimations(layer)) {
+    if (animation.property !== property) continue;
+    if (animation.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
   }
   return false;
 }

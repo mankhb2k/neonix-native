@@ -40,7 +40,7 @@ Recommended: append or edit a clip, do not rewrite the text payload.
 }
 ```
 
-Add to `timeline.clips`.
+Add to the owning layer's `animations` array.
 
 ## Valid example
 

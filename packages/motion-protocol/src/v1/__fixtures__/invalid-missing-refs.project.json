@@ -11,28 +11,6 @@
     "height": 1080,
     "fps": 30
   },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "timeline": {},
-  "bindings": [
-    {
-      "id": "binding-missing-var",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-nonexistent"
-      },
-      "target": {
-        "type": "layer",
-        "layerId": "node-text",
-        "property": "payload.text"
-      }
-    }
-  ],
-  "variables": [],
   "assets": [],
   "layers": [
     {
@@ -72,10 +50,7 @@
         "width": 200,
         "height": 200
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "node-text",
@@ -116,10 +91,7 @@
         "width": 400,
         "height": 60
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "audio-1-clip",

@@ -4,7 +4,6 @@
   "metadata": {
     "id": "variables-bindings",
     "name": "Variables And Bindings",
-    "description": "Project variable bound to a public component prop",
     "locale": "vi-VN"
   },
   "composition": {
@@ -15,28 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": []
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": []
-  },
-  "tokens": {
-    "colors": {
-      "primary": "#1877f2"
-    }
-  },
-  "variables": [
-    {
-      "id": "founder-name",
-      "name": "Founder name",
-      "type": "string",
-      "value": "Mark Zuckerberg"
-    }
-  ],
   "assets": [],
   "components": [
     {
@@ -47,7 +24,8 @@
         {
           "id": "subtitle",
           "kind": "string",
-          "default": "Founder"
+          "default": "Founder",
+          "name": "subtitle"
         }
       ],
       "variants": [],
@@ -104,32 +82,11 @@
             "width": 800,
             "height": 100
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          }
+          "opacity": 100
         }
       ]
     }
   ],
-  "timeline": {
-    "duration": 5
-  },
-  "bindings": [
-    {
-      "id": "binding-founder-name",
-      "source": {
-        "kind": "variable",
-        "variableId": "founder-name"
-      },
-      "target": {
-        "type": "prop",
-        "layerId": "card",
-        "propId": "subtitle"
-      }
-    }
-  ],
-  "extensions": {},
   "layers": [
     {
       "id": "card",
@@ -168,10 +125,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

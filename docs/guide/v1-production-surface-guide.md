@@ -36,7 +36,7 @@
 - Shape: rectangle / ellipse / polygon. `frame` + `payload` geometry + `style` paint. Không `payload.color`. AI mặc định `style.fill` / `stroke` / `strokeWidth`. Polygon `points` 0..1 theo frame.
 - Text: một hộp, một `payload.text`, một style. Không runs / rich text. String sink: `payload.text`.
 - Binding: variable → public prop. Prop kinds V1: string, number, boolean, color, asset, choice. Không bind layer field / internals.
-- Animation: layer property chỉ `timeline.clips`. Prop component: keyframes trên `payload.props`. `t` local theo layer. number→linear, color→color, còn lại step. Không animate `frame`, trim, fit, assetId, timing, zIndex.
+- Animation: layer property chỉ `layer.animations`. Prop component: keyframes trên `payload.props`. `t` local theo layer. number→linear, color→color, còn lại step. Không animate `frame`, trim, fit, assetId, timing, zIndex.
 - Effects: mảng có thứ tự, id unique. `blur` / outer `shadow` / outer `glow` / `inner-glow` / `noise` / `color-adjust`. Animate numeric leaf theo `effects.<id>.*`. Không animate color. Glow không `intensity`. Noise không `seed`; grain chỉ trên alpha của layer, không full-screen trừ khi layer phủ hết frame. Không effects trên audio/camera.
 
 ---

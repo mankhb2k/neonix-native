@@ -300,12 +300,10 @@ function expandOneComponentInstance(
     type: "group" as const,
     parentLayerId,
     transform: clone(instanceNode.transform),
-    appearance: clone(instanceNode.appearance),
+    opacity: "opacity" in instanceNode ? (instanceNode.opacity ?? 100) : 100,
     ...(instanceNode.frame ? { frame: clone(instanceNode.frame) } : {}),
-    ...(instanceNode.name ? { name: instanceNode.name } : {}),
     ...(instanceNode.zIndex !== undefined ? { zIndex: instanceNode.zIndex } : {}),
     ...(instanceNode.timing ? { timing: clone(instanceNode.timing) } : {}),
-    ...(instanceNode.semantic ? { semantic: clone(instanceNode.semantic) } : {}),
     ...(instanceNode.effects ? { effects: clone(instanceNode.effects) } : {}),
     ...(instanceNode.compositing
       ? {
@@ -323,9 +321,6 @@ function expandOneComponentInstance(
             return compositing;
           })(),
         }
-      : {}),
-    ...(instanceNode.inheritFlags
-      ? { inheritFlags: clone(instanceNode.inheritFlags) }
       : {}),
   } as V1.LayerV1;
 

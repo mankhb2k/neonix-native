@@ -1,72 +1,55 @@
-# NeonVideo V1 Timeline
+# NeonVideo V1 Timing
 
-Module protocol tại `packages/motion-protocol/src/v1/timeline/`.
-
-Timeline là **đồng hồ (clock)** cho độ dài MP4. Nội dung phát nằm trên `project.layers` — root layer = lane. Compiler / runtime / render-worker đọc `timeline.duration` và timing của **root layer**.
+Authoring JSON **không có** `project.timeline`. Độ dài project và animation sống trên layer.
 
 ---
 
-## 1. Timeline là gì?
+## 1. Project length
 
-| Khái niệm | Vai trò |
-| --- | --- |
-| `timeline.duration` | Độ dài MP4 (giây). Optional lúc authoring; bắt buộc ở canonical/export. Derive từ `root.timing.start + duration` |
-| `workArea` | Optional; phải nằm trong `duration` |
-| `clips` | Layer/property keyframes; `t` local theo layer |
-| `project.layers[]` | Root layers = timeline lanes. Every layer requires `zIndex`: `>= 0` visual, `< 0` audio at root; nested always `>= 0`; unique among siblings |
-| `group.children[]` | ≥1 child. Timing con **bắt buộc**, local so với parent, không vượt `parent.timing.duration`. Group không clip mặc định. |
+Project length **không ghi ra JSON**. Derive:
 
-Authoring **không** có `scenes`. Extra keys bị strict reject. V1 không có tracks trong authoring/runtime animation.
+`max(root.timing.start + root.timing.duration)` trên layer `parentLayerId === null` (visual + audio). Không có root → `0`. Child timing không kéo duration global. Không padding, không tail đen.
+
+Compiler stamp `runtime.timeline.duration` với giá trị đó. Frame `t >= duration` không thuộc composition.
 
 ```jsonc
 {
   "layers": [
     { "id": "main", "type": "group", "parentLayerId": null, "zIndex": 0, "timing": { "start": 0, "duration": 8 }, "children": [{ "id": "title", "type": "text", "parentLayerId": "main", "zIndex": 0, "timing": { "start": 0, "duration": 8 }, "frame": { "width": 800, "height": 120 } }] },
     { "id": "music", "type": "audio", "parentLayerId": null, "zIndex": -1, "timing": { "start": 0, "duration": 8 } }
-  ],
-  "timeline": { "duration": 8 }
+  ]
 }
 ```
 
-Runtime IR cùng contract layers-only: compiler emit `layers[]` (visual + audio) plus `propertyAnimations`. Evaluate có thể dùng graph id in-memory `"root"`.
+Runtime IR vẫn có `timeline: { duration }` — đó là output compiler, không phải authoring.
+
+UI timeline (lanes, clips, playhead) là session/projection. Không phải protocol timeline.
 
 ---
 
-## 2. Cấu trúc một Timeline
+## 2. Layer timing
 
-Mỗi project có đúng một `timeline`:
+| Khái niệm | Vai trò |
+| --- | --- |
+| `layer.timing.start` / `duration` | Nguồn thời gian duy nhất |
+| Root `start` | Global |
+| Child `start` | Local theo parent; child phải nằm trong `parent.timing.duration` |
+| `project.layers[]` | Root layers. `zIndex`: `>= 0` visual, `< 0` audio at root; nested always `>= 0`; unique among siblings |
+| `layer.animations[]` | Layer property keyframes; `t` local `0 .. layer.timing.duration` |
 
-```jsonc
-{
-  "timeline": {
-    "duration": 10, // optional lúc authoring; bắt buộc ở canonical/export
-    "workArea": { "start": 0, "end": 8 },
-    "clips": []
-  }
-}
-```
+Authoring **không** có `scenes`, `workArea`, `timeline.clips`. Extra keys bị strict reject.
 
-Caption không phải type: một caption line = `type: "group"`; words = `type: "text"` children với timing local.
-
-Layer/property animation nằm ở `timeline.clips` (local time theo layer). Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md). Runtime `propertyAnimations` là output compiler, không phải JSON authoring.
+Helper: `deriveProjectDurationV1(layers)`. Canonicalize snap layer timing lên `composition.fps`, rồi derive duration ra ngoài JSON.
 
 ---
 
-## 3. Derive duration
-
-`deriveTimelineDurationV1(layers)` = max của `timing.start + duration` trên **root layers** (visual + audio). Child timing không kéo duration global.
-
-Canonicalize snap frame-grid theo `composition.fps`, rồi điền `timeline.duration` nếu thiếu.
-
----
-
-## 4. Thuật ngữ
+## 3. Thuật ngữ
 
 | Term | Nghĩa |
 | --- | --- |
-| Root layer | Lane trên timeline (`parentLayerId: null`) |
-| `zIndex` | Bắt buộc. Root = lane order. Nested = sibling paint order (`>= 0`). Unique per parent |
-| Group | Visual container; `children` ≥1; không clip mặc định; xem [v1-group-guide.md](v1-group-guide.md) |
-| Audio | `type: "audio"`, root-only leaf, `zIndex < 0` |
-| Caption | Group + text children — UI lane, không phải protocol type |
-| Component | Instance leaf `type: "component"` trên cây project |
+| Root layer | Layer `parentLayerId: null` — quyết định project length |
+| `zIndex` | Bắt buộc. Root = stack/lane order. Nested = sibling paint order |
+| Group | Visual container; `children` ≥1; xem [v1-group-guide.md](v1-group-guide.md) |
+| Audio | `type: "audio"`, root-only leaf, `zIndex < 0`, không có `animations` |
+| UI TimelineClip | Projection editor — không ghi vào protocol JSON |
+| AnimationClip | `layer.animations[]` |

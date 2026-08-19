@@ -1,19 +1,29 @@
 import { V1 } from "@motionvideo/motion-protocol";
 import type { MotionRuntimePropertyAnimation } from "@motionvideo/motion-protocol/runtime";
 
-/** Compile authoring `timeline.clips` into runtime `propertyAnimations`. */
-export function timelineClipsToPropertyAnimations(
-  clips: V1.TimelinePropertyClipV1[] | undefined,
+/** Compile authoring `layer.animations[]` into runtime `propertyAnimations`. */
+export function layerAnimationsToPropertyAnimations(
+  layers: readonly V1.LayerV1[] | undefined,
 ): MotionRuntimePropertyAnimation[] {
-  return (clips ?? []).map((clip) => ({
-    layerId: clip.layerId,
-    property: clip.property,
-    keys: clip.keys.map((key) => ({
-      t: key.t,
-      v: key.value as MotionRuntimePropertyAnimation["keys"][number]["v"],
-      ...(key.easing !== undefined ? { easing: key.easing } : {}),
-    })),
-  }));
+  const out: MotionRuntimePropertyAnimation[] = [];
+  const walk = (nodes: readonly V1.LayerV1[]): void => {
+    for (const layer of nodes) {
+      for (const animation of V1.getLayerAnimations(layer)) {
+        out.push({
+          layerId: layer.id,
+          property: animation.property,
+          keys: animation.keys.map((key) => ({
+            t: key.t,
+            v: key.value as MotionRuntimePropertyAnimation["keys"][number]["v"],
+            ...(key.easing !== undefined ? { easing: key.easing } : {}),
+          })),
+        });
+      }
+      if (layer.type === "group") walk(layer.children);
+    }
+  };
+  walk(layers ?? []);
+  return out;
 }
 
 /** Compile component instance prop keyframes into one runtime propertyAnimation. */

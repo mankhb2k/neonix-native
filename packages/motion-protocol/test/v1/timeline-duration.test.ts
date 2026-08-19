@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  deriveTimelineDurationV1,
-  hasTimelineContentV1,
-  getRootLayerTimelineEndV1,
-  canonicalizeTimelineDurationV1,
-} from "../../src/v1/timeline";
+  deriveProjectDurationV1,
+  hasRootLayersV1,
+  getRootLayerEndV1,
+  canonicalizeProjectTimingV1,
+} from "../../src/v1/layers";
 import { visualLayerAtoms } from "../../src/v1/layer-atoms";
 import type { MotionProjectV1 } from "../../src/v1/project";
 
@@ -29,10 +29,10 @@ function root(
   };
 }
 
-describe("deriveTimelineDurationV1", () => {
+describe("deriveProjectDurationV1", () => {
   it("is 0 for empty layers", () => {
-    expect(deriveTimelineDurationV1([])).toBe(0);
-    expect(hasTimelineContentV1([])).toBe(false);
+    expect(deriveProjectDurationV1([])).toBe(0);
+    expect(hasRootLayersV1([])).toBe(false);
   });
 
   it("uses root layer timing only", () => {
@@ -43,8 +43,8 @@ describe("deriveTimelineDurationV1", () => {
         parentLayerId: "main",
       },
     ];
-    expect(getRootLayerTimelineEndV1(layers)).toBe(10);
-    expect(deriveTimelineDurationV1(layers)).toBe(10);
+    expect(getRootLayerEndV1(layers)).toBe(10);
+    expect(deriveProjectDurationV1(layers)).toBe(10);
   });
 
   it("takes max across visual and audio roots", () => {
@@ -58,21 +58,24 @@ describe("deriveTimelineDurationV1", () => {
         timing: { start: 2, duration: 8 },
       },
     ];
-    expect(deriveTimelineDurationV1(layers)).toBe(10);
+    expect(deriveProjectDurationV1(layers)).toBe(10);
   });
 });
 
-describe("canonicalizeTimelineDurationV1", () => {
-  it("derives duration from root layers", () => {
+describe("canonicalizeProjectTimingV1", () => {
+  it("derives duration from root layers without writing it onto the project", () => {
     const project = {
       format: "motion-project",
       formatVersion: 1,
       metadata: { id: "p", name: "P", locale: "vi-VN" },
-      composition: { width: 1080, height: 1920, fps: 30, background: "#000000", colorSpace: "srgb", audioSampleRate: 48000 },
-      capabilities: { required: [] },
-      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-      tokens: {},
-      variables: [],
+      composition: {
+        width: 1080,
+        height: 1920,
+        fps: 30,
+        background: "#000000",
+        colorSpace: "srgb",
+        audioSampleRate: 48000,
+      },
       assets: [],
       components: [],
       layers: [
@@ -82,14 +85,23 @@ describe("canonicalizeTimelineDurationV1", () => {
           parentLayerId: null,
           zIndex: 0,
           timing: { start: 0, duration: 4 },
-          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+          }),
         },
       ],
-      timeline: {},
-      bindings: [],
-      extensions: {},
     } as unknown as MotionProjectV1;
-    const result = canonicalizeTimelineDurationV1(project);
-    expect(result.project.timeline.duration).toBe(4);
+    const result = canonicalizeProjectTimingV1(project);
+    expect(result.duration).toBe(4);
+    expect(result.project).not.toHaveProperty("timeline");
   });
 });

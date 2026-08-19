@@ -81,26 +81,51 @@ function toStoredEnvelope(input: {
   };
 }
 
-function textNode(id: string, text: string) {
+function groupScene(
+  id: string,
+  name: string,
+  duration: number,
+  zIndex: number,
+) {
   return {
     id,
-    type: "text" as const,
+    type: "group" as const,
     parentLayerId: null,
+    zIndex,
+    timing: { start: 0, duration },
     ...visualLayerAtoms({
-      x: 40,
-      y: 40,
-      width: 200,
-      height: 40,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      originX: 0,
-      originY: 0,
-      opacity: 100,
-      visible: true,
+      x: 0,
+      y: 0,
+      width: 1920,
+      height: 1080,
     }),
-    payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
-    style: { fill: "#111111" },
+    children: [
+      {
+        id: `${id}.title`,
+        type: "text" as const,
+        parentLayerId: id,
+        zIndex: 0,
+        timing: { start: 0, duration },
+        ...visualLayerAtoms({
+          x: 40,
+          y: 40,
+          width: 200,
+          height: 40,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+        }),
+        payload: {
+          text: name,
+          fontSize: 24,
+          color: "#111111",
+          alignment: "left" as const,
+        },
+      },
+    ],
   };
 }
 
@@ -190,24 +215,31 @@ export function buildPhase0MediumFixture(): StoredEnvelope {
         channels: 2,
       },
     ],
-    timeline: {
-      audioTracks: [
-        {
-          id: "audio.a",
-          role: "bgm",
+    layers: [
+      ...base.project.layers,
+      {
+        id: "audio.a",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -1,
+        timing: { start: 0, duration: 3 },
+        payload: {
           assetId: "asset.audio.a",
-          start: 0,
           volume: 100,
         },
-        {
-          id: "audio.b",
-          role: "sfx",
+      },
+      {
+        id: "audio.b",
+        type: "audio",
+        parentLayerId: null,
+        zIndex: -2,
+        timing: { start: 1.5, duration: 2 },
+        payload: {
           assetId: "asset.audio.b",
-          start: 1.5,
-          volume: 0.8,
+          volume: 80,
         },
-      ],
-    },
+      },
+    ],
   });
   return toStoredEnvelope({ project, clips, lanes });
 }
@@ -249,23 +281,13 @@ export function buildPhase0LargeFixture(
   const audioCount = Math.max(0, clipCount - mainCount - overlayCount);
 
   const clips: TimelineClip[] = [];
-  const scenes: Array<{
-    id: string;
-    duration: number;
-    layers: ReturnType<typeof textNode>[];
-    clips: unknown[];
-  }> = [];
+  const layers: ReturnType<typeof groupScene>[] = [];
   const assets: Array<Record<string, unknown>> = [];
-  const audioTracks: Array<Record<string, unknown>> = [];
+  const audioLayers: Array<Record<string, unknown>> = [];
 
   for (let i = 0; i < mainCount; i++) {
     const sceneId = `scene.main.${i}`;
-    scenes.push({
-      id: sceneId,
-      duration: 1,
-      layers: [textNode(`${sceneId}.title`, `Main ${i}`)],
-      clips: [],
-    });
+    layers.push(groupScene(sceneId, `Main ${i}`, 1, i));
     clips.push({
       kind: "scene",
       id: `clip.main.${i}`,
@@ -279,12 +301,7 @@ export function buildPhase0LargeFixture(
 
   for (let i = 0; i < overlayCount; i++) {
     const sceneId = `scene.ov.${i}`;
-    scenes.push({
-      id: sceneId,
-      duration: 1.5,
-      layers: [textNode(`${sceneId}.title`, `Overlay ${i}`)],
-      clips: [],
-    });
+    layers.push(groupScene(sceneId, `Overlay ${i}`, 1.5, mainCount + i));
     clips.push({
       kind: "scene",
       id: `clip.ov.${i}`,
@@ -310,12 +327,16 @@ export function buildPhase0LargeFixture(
       sampleRate: 44100,
       channels: 2,
     });
-    audioTracks.push({
+    audioLayers.push({
       id: trackId,
-      role: "sfx",
-      assetId,
-      start: i * 1.5,
-      volume: 100,
+      type: "audio",
+      parentLayerId: null,
+      zIndex: -1 - i,
+      timing: { start: i * 1.5, duration: 2 },
+      payload: {
+        assetId,
+        volume: 100,
+      },
     });
     clips.push({
       kind: "audio",
@@ -335,20 +356,19 @@ export function buildPhase0LargeFixture(
     metadata: {
       id: "vite-phase0.large",
       name: `Phase0 Large ${clipCount}`,
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: { name: "Phase0", primaryColor: "#1A5D3A" },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
     assets,
-    variables: [],
-    timeline: {
-      audioTracks,
-    },
-    scenes,
-    bindings: [],
-    extensions: { constraints: [], events: [] },
+    components: [],
+    layers: [...layers, ...audioLayers],
   });
 
   return toStoredEnvelope({ project, clips, lanes });

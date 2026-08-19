@@ -32,7 +32,7 @@ When the tool returns a schema or reference error after emit.
 | Audio must be project root | Nested audio | Put under group | `parentLayerId: null`, `zIndex < 0` |
 | Audio `zIndex < 0` | Visual z on audio | Used 0 | Negative zIndex |
 | `transform.z` unrecognized | Invalid field | Confused with depth | `transform.depth` or `zIndex` |
-| Layer ends beyond `timeline.duration` | Overflow | Timing too long | Shorten layer or raise duration |
+| Child overflows parent duration | Overflow | Timing too long | Shorten child or raise parent duration |
 | WorkArea/marker outside duration | Clock bounds | Marker `t` too large | Clamp to duration |
 | Managed asset has `uri` | Storage policy | Copied fixture uri | Drop `uri`; keep integrity + sizeBytes |
 | `source.kind` not upload | Invalid source metadata | Put URL into `source.kind` | Use `asset.uri` for external URL, or `source.kind: "upload"` for managed ingest |

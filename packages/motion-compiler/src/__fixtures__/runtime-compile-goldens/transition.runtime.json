@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Transition"
-    },
-    "description": "Root layers with staggered timing on the layer stack (no scene transitions)"
+    }
   },
   "assets": [],
   "composition": {
@@ -22,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "b6be98565a9bd3fb8fdbed57b28e0a0e",
+  "runtimeHash": "9d26ec9674026b3d19531d017ff73e53",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -71,10 +70,6 @@
         "start": 0,
         "duration": 3
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "First Scene",
         "fontSize": 64,
@@ -126,10 +121,6 @@
         "start": 0,
         "duration": 2
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Second Scene",
         "fontSize": 64,

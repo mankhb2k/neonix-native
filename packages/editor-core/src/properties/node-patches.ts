@@ -6,6 +6,7 @@ import {
   MOTION_PROTOCOL_LIMITS,
   motionPropertyCapability,
   setTextPayloadPlain,
+  V1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
 import type {
@@ -93,10 +94,7 @@ export function applyOpacity(node: MotionLayer, opacity: number): MotionLayer {
   if (node.type === "audio") return node;
   return {
     ...node,
-    appearance: {
-      ...node.appearance,
-      opacity: clampNumber(opacity, "appearance.opacity", node.type),
-    },
+    opacity: clampNumber(opacity, "opacity", node.type),
   };
 }
 
@@ -105,11 +103,8 @@ export function applyMetadata(
   patch: MetadataPatch,
 ): MotionLayer {
   let next: MotionLayer = node;
-  if (patch.visible !== undefined && "appearance" in next) {
-    next = {
-      ...next,
-      appearance: { ...next.appearance, visible: Boolean(patch.visible) },
-    };
+  if (patch.visible !== undefined && next.type !== "audio") {
+    next = applyOpacity(next, patch.visible ? 100 : 0);
   }
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -282,8 +277,22 @@ export function applyTiming(
 ): MotionLayer {
   const start = Math.max(0, timing.start);
   const duration = Math.max(Number.EPSILON, timing.duration);
-  return {
+  const next = {
     ...node,
     timing: { start, duration },
   } as MotionLayer;
+  if (next.type === "audio") return next;
+  const animations = V1.getLayerAnimations(next)
+    .map((animation) => ({
+      ...animation,
+      keys: animation.keys.filter((key) => key.t <= duration + 1e-9),
+    }))
+    .filter((animation) => animation.keys.length > 0);
+  if (animations.length === 0) {
+    const { animations: _omitted, ...rest } = next as MotionLayer & {
+      animations?: unknown;
+    };
+    return rest as MotionLayer;
+  }
+  return { ...next, animations } as MotionLayer;
 }

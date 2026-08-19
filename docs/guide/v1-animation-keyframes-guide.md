@@ -15,7 +15,7 @@ Hai lớp dữ liệu:
 | Lớp | Ở đâu | Vai trò |
 | --- | --- | --- |
 | Base state | `layer` / `payload` / `style` / `payload.props` literal | Giá trị lúc t = 0 / khi không có clip |
-| Animation | `timeline.clips` (layer property) hoặc `payload.props.<propId>` keyframes (component) | Chuyển động |
+| Animation | `layer.animations[]` (layer property) hoặc `payload.props.<propId>` keyframes (component) | Chuyển động |
 
 Layer **không** ôm keyframe trên field thường. Không nhầm authoring JSON với runtime `propertyAnimations`.
 
@@ -27,7 +27,7 @@ Layer **không** ôm keyframe trên field thường. Không nhầm authoring JSO
 
 Animate field của layer: `transform.translate.x`, `appearance.opacity`, `style.fill`, …
 
-**Chỗ ghi:** `timeline.clips` — nơi duy nhất cho đường này.
+**Chỗ ghi:** `layer.animations[]` — nơi duy nhất cho đường này.
 
 ### 2. Prop keyframe animation
 
@@ -35,7 +35,7 @@ Animate public prop của component instance:
 
 **Chỗ ghi:** `payload.props.<propId>` với `{ "kind": "keyframes", "keys": [...] }`
 
-Owner fan-out vào internals qua `propBindings`. Không animate `payload.props.*` bằng `timeline.clips`.
+Owner fan-out vào internals qua `propBindings`. Không animate `payload.props.*` bằng `layer.animations`.
 
 ---
 
@@ -81,35 +81,34 @@ Cả hai đường dùng **local time của layer đích**.
 - `t = 0` = `layer.timing.start`
 - `t` phải `≤ layer.timing.duration`
 - Prop keyframes: local theo **component instance layer**
-- `timeline.clips`: local theo **layer mà clip `layerId` trỏ tới**
+- `layer.animations`: local theo **chính layer chứa animation**
 
-Không phải absolute clock của `timeline.duration`. Runtime IR (`project.propertyAnimations`) là output compiler, không phải chỗ authoring.
+Không phải absolute clock. Runtime IR (`project.propertyAnimations`) là output compiler, không phải chỗ authoring.
 
 ---
 
-## `timeline.clips`
+## `layer.animations`
 
 ```json
 {
-  "timeline": {
-    "duration": 4,
-    "clips": [
-      {
-        "id": "fade_title",
-        "layerId": "title",
-        "property": "appearance.opacity",
-        "kind": "keyframes",
-        "keys": [
-          { "t": 0, "value": 0 },
-          { "t": 1, "value": 100 }
-        ]
-      }
-    ]
-  }
+  "id": "title",
+  "type": "text",
+  "timing": { "start": 0, "duration": 4 },
+  "animations": [
+    {
+      "id": "fade_title",
+      "property": "appearance.opacity",
+      "kind": "keyframes",
+      "keys": [
+        { "t": 0, "value": 0 },
+        { "t": 1, "value": 100 }
+      ]
+    }
+  ]
 }
 ```
 
-`id` clip unique. `layerId` phải tồn tại. `property` phải animatable trên type của layer đó.
+`id` animation unique trên flatten tree. `property` unique trên một layer, phải animatable trên type của layer đó. Không có `layerId` — owner là layer chứa field.
 
 ---
 
@@ -147,8 +146,8 @@ Không animate (cấu trúc / setup / playback):
 - Ghi keyframe vào `transform.translate.x` trên layer JSON
 - Animate `frame` để “phóng to”
 - Animate trim video
-- Dùng `timeline.clips` cho prop component
-- Nhầm `timeline.clips` với runtime `propertyAnimations`
+- Dùng `layer.animations` cho prop component
+- Nhầm `layer.animations` với runtime `propertyAnimations`
 
 ---
 
@@ -207,7 +206,7 @@ Prop keyframes: xem [v1-component-guide.md](./v1-component-guide.md).
 
 ## Câu chốt
 
-Base state ở layer. Layer/property animation ở `timeline.clips`. Prop animation ở `payload.props`. `t` local theo layer. Không animate frame, trim, hay field setup. Interpolation do type: number tween, color blend, string/boolean/asset step. Không field `interpolation`.
+Base state ở layer. Layer/property animation ở `layer.animations[]`. Prop animation ở `payload.props`. `t` local theo layer. Không animate frame, trim, hay field setup. Interpolation do type: number tween, color blend, string/boolean/asset step. Không field `interpolation`.
 
 ---
 

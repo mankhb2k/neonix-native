@@ -4,13 +4,7 @@
   "metadata": {
     "id": "v1-component",
     "name": "V1 Component Example",
-    "description": "Demonstrates embedded component definition and root component layer instances",
-    "locale": "vi-VN",
-    "tags": [
-      "example",
-      "v1",
-      "component"
-    ]
+    "locale": "vi-VN"
   },
   "composition": {
     "width": 1080,
@@ -20,35 +14,6 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "capabilities": {
-    "required": [
-      "primitive.text",
-      "primitive.solid",
-      "component.embedding"
-    ]
-  },
-  "dependencies": {
-    "compiler": {
-      "range": ">=1.0.0"
-    },
-    "components": [
-      {
-        "componentId": "call-to-action",
-        "version": "1.0.0",
-        "source": "com.moticlip.store",
-        "integrity": "sha256:cta-1.0.0"
-      }
-    ]
-  },
-  "tokens": {},
-  "variables": [
-    {
-      "id": "cta-text",
-      "name": "CTA Button Text",
-      "type": "string",
-      "value": "Tìm hiểu thêm"
-    }
-  ],
   "assets": [],
   "components": [
     {
@@ -141,10 +106,7 @@
             "width": 600,
             "height": 120
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          }
+          "opacity": 100
         },
         {
           "id": "cta-label-node",
@@ -182,31 +144,13 @@
             "width": 500,
             "height": 60
           },
-          "appearance": {
-            "visible": true,
-            "opacity": 100
-          },
           "timing": {
             "start": 0,
             "duration": 5
-          }
+          },
+          "opacity": 100
         }
       ]
-    }
-  ],
-  "timeline": {},
-  "bindings": [
-    {
-      "id": "bind-cta",
-      "source": {
-        "kind": "variable",
-        "variableId": "cta-text"
-      },
-      "target": {
-        "type": "prop",
-        "layerId": "cta-instance",
-        "propId": "label"
-      }
     }
   ],
   "layers": [
@@ -250,10 +194,7 @@
         "width": 800,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     },
     {
       "id": "cta-instance",
@@ -292,10 +233,7 @@
         "width": 600,
         "height": 120
       },
-      "appearance": {
-        "visible": true,
-        "opacity": 100
-      }
+      "opacity": 100
     }
   ]
 }

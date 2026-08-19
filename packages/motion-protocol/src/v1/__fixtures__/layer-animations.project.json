@@ -1,0 +1,72 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "layer-animations",
+    "name": "Layer animations",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 0,
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "transform": {
+        "translate": {
+          "x": 540,
+          "y": 960
+        },
+        "rotate": {
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "timing": {
+        "start": 0,
+        "duration": 4
+      },
+      "payload": {
+        "text": "Hello",
+        "fontSize": 48,
+        "color": "#111111",
+        "alignment": "center"
+      },
+      "animations": [
+        {
+          "property": "opacity",
+          "keys": [
+            {
+              "t": 0,
+              "value": 0
+            },
+            {
+              "t": 1,
+              "value": 100
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

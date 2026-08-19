@@ -95,22 +95,23 @@ export function createDenseTimelineFixture(
   }
 
   const project = {
+    format: "motion-project" as const,
+    formatVersion: 1 as const,
     metadata: {
       id: `perf_${clipCount}`,
-      title: `Perf ${clipCount}`,
-      fps: 30,
+      name: `Perf ${clipCount}`,
+      locale: "vi-VN",
+    },
+    composition: {
       width: 1920,
       height: 1080,
+      fps: 30,
+      background: "#ffffff",
+      colorSpace: "srgb" as const,
     },
-    scenes: clips
-      .filter((c) => c.kind === "scene")
-      .map((c) => ({
-        id: (c as { sceneId: string }).sceneId,
-        name: c.name,
-        duration: c.duration,
-        layers: [],
-      })),
-    audioTracks: [],
+    assets: [],
+    components: [],
+    layers: [],
   } as unknown as MotionProject;
 
   return { project, lanes, clips };

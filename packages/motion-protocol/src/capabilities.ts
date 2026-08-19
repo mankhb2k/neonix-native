@@ -2,8 +2,10 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
   layersPerProject: 2_000,
   layersPerComponent: 2_000,
-  /** Max authoring `timeline.clips`. */
-  timelineClipsPerProject: 2_000,
+  /** Max authoring `layer.animations` across the flattened layer tree. */
+  animationsPerProject: 2_000,
+  /** Max `animations` on one visual layer. */
+  animationsPerLayer: 256,
   /** Max `propertyAnimations` on a compiled runtime project / layer graph. */
   propertyAnimationsPerProject: 2_000,
   /** Max keyframes trên một propertyAnimation (và authoring clip/prop keys). */
@@ -137,17 +139,9 @@ function cap(
   };
 }
 
-const APPEARANCE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
-  Object.freeze({
-    "appearance.visible": cap("boolean", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "appearance.opacity": cap("number", { min: 0, max: 100 }),
-  });
-
 const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
+    opacity: cap("number", { min: 0, max: 100 }),
     "frame.width": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
@@ -164,15 +158,10 @@ const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> 
       animatable: false,
       runtimeSupport: "compile-time",
     }),
-    "compositing.isolation": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
     "compositing.mask.sourceLayerId": cap("string", {
       animatable: false,
       runtimeSupport: "compile-time",
     }),
-    name: cap("string", { animatable: false, runtimeSupport: "compile-time" }),
     zIndex: cap("number", { animatable: false, runtimeSupport: "compile-time" }),
   });
 
@@ -533,11 +522,9 @@ export function motionPropertyCapability(
   property: string,
 ): MotionPropertyCapability | undefined {
   if (nodeType !== "audio") {
-    const appearance = APPEARANCE_PROPERTIES[property];
-    if (appearance) return appearance;
+    const layerBase = LAYER_BASE_PROPERTIES[property];
+    if (layerBase) return layerBase;
   }
-  const layerBase = LAYER_BASE_PROPERTIES[property];
-  if (layerBase) return layerBase;
   if (nodeType === "group") {
     if (property === "layout.gap")
       return cap("number", {
@@ -710,12 +697,25 @@ export function motionEffectPropertyCapability(
 export function motionPropertyCapabilities(
   nodeType: string,
 ): MotionPropertyCapabilityEntry[] {
-  return [
-    ...(nodeType === "audio" ? [] : Object.entries(APPEARANCE_PROPERTIES)),
-    ...Object.entries(LAYER_BASE_PROPERTIES),
-    ...(nodeType === "audio" ? [] : Object.entries(TRANSFORM_PROPERTIES)),
-    ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
-  ].map(([property, capability]) => ({ property, ...capability }));
+  const entries: MotionPropertyCapabilityEntry[] = [];
+  if (nodeType !== "audio") {
+    entries.push({ property: "opacity", ...LAYER_BASE_PROPERTIES.opacity! });
+  }
+  for (const [property, capability] of Object.entries(LAYER_BASE_PROPERTIES)) {
+    if (property === "opacity") continue;
+    entries.push({ property, ...capability });
+  }
+  if (nodeType !== "audio") {
+    for (const [property, capability] of Object.entries(TRANSFORM_PROPERTIES)) {
+      entries.push({ property, ...capability });
+    }
+  }
+  for (const [property, capability] of Object.entries(
+    NODE_PROPERTIES[nodeType] ?? {},
+  )) {
+    entries.push({ property, ...capability });
+  }
+  return entries;
 }
 
 /** Public AI/control surface only — callers must not expose non-public capabilities. */
@@ -727,7 +727,7 @@ export function publicMotionPropertyCapabilities(
   );
 }
 
-/** Authoring timeline.clips may target this path on this layer type. */
+/** Authoring `layer.animations[]` may target this path on this layer type. */
 export function isLayerPropertyAnimatable(
   nodeType: string,
   property: string,

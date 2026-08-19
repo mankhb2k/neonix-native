@@ -11,12 +11,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type {
-  MotionProject,
-} from "@motionvideo/motion-protocol";
-import type {
-  MotionScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 
 export function buildClipboardFromSelection(input: {
   selection: EditorSelection;
@@ -42,19 +37,21 @@ export function buildClipboardFromSelection(input: {
         : "overlay";
     if (kind === "main") {
       if (clip.kind !== "scene") continue;
-      const scene = project.scenes.find((s) => s.id === clip.sceneId);
+      const scene = project.layers.find((layer) => layer.id === clip.sceneId);
       if (!scene) continue;
       items.push({
         kind,
         name: clip.name,
         duration: clip.duration,
         offsetStart: clip.startTime - origin,
-        scene: JSON.parse(JSON.stringify(scene)) as MotionScene,
+        scene: JSON.parse(JSON.stringify(scene)) as MotionLayer,
       });
     } else if (kind === "audio") {
       const trackId = clip.kind === "audio" ? clip.audioTrackId : clip.id;
-      const track = project.timeline.audioTracks.find(
-        (t) => t.id === trackId || t.id === clip.id,
+      const audioLayer = project.layers.find(
+        (layer): layer is Extract<MotionLayer, { type: "audio" }> =>
+          layer.type === "audio" &&
+          (layer.id === trackId || layer.id === clip.id),
       );
       items.push({
         kind,
@@ -63,25 +60,24 @@ export function buildClipboardFromSelection(input: {
         offsetStart: clip.startTime - origin,
         audioAssetId:
           (clip.kind === "audio" ? clip.assetId : undefined) ??
-          track?.assetId ??
+          audioLayer?.payload.assetId ??
           clip.name,
-        trimStart: track?.trimStart ?? 0,
-        volume: track?.volume ?? 1,
-        fadeIn: track?.fadeIn ?? 0,
-        fadeOut: track?.fadeOut ?? 0,
-        loop: track?.loop ?? false,
-        audioRole: track?.role,
+        trimStart: audioLayer?.payload.trimStart ?? 0,
+        volume: audioLayer?.payload.volume ?? 100,
+        fadeIn: audioLayer?.payload.fadeIn ?? 0,
+        fadeOut: audioLayer?.payload.fadeOut ?? 0,
+        loop: audioLayer?.payload.loop ?? false,
       });
     } else if (clip.kind === "scene") {
-      const scene = project.scenes.find((s) => s.id === clip.sceneId);
+      const scene = project.layers.find((layer) => layer.id === clip.sceneId);
       items.push({
         kind,
         name: clip.name,
         duration: clip.duration,
         offsetStart: clip.startTime - origin,
-        ...(scene
-          ? { scene: JSON.parse(JSON.stringify(scene)) as MotionScene }
-          : {}),
+        scene: scene
+          ? (JSON.parse(JSON.stringify(scene)) as MotionLayer)
+          : undefined,
       });
     } else {
       items.push({

@@ -20,13 +20,13 @@ Public vocabulary = `publicMotionPropertyCapabilities(nodeType)`. Binding, anima
 
 Ngôn ngữ:
 
-- `clip` — khai báo animation trên authoring `timeline.clips`
+- `clip` — khai báo animation trên authoring `layer.animations`
 - `keyframe` — điểm `{ t, value }` (authoring) / `{ t, v }` (runtime)
 - `propertyAnimation` — output runtime đã compile từ clip / prop keyframes
 
 V1 không có tracks trong authoring/runtime animation.
 
-Runtime `propertyAnimations[]` sinh từ `timeline.clips` (và component prop keyframes). Không phải authoring.
+Runtime `propertyAnimations[]` sinh từ `layer.animations` (và component prop keyframes). Không phải authoring.
 
 ---
 
@@ -43,7 +43,7 @@ Runtime `propertyAnimations[]` sinh từ `timeline.clips` (và component prop ke
 
 Không emit: rich text runs, `payload.color` trên shape/path/svg, `style` trên image/video.
 
-Animation nguồn compile: `timeline.clips` + component `payload.props` keyframes, emit thẳng `propertyAnimations`. Compiler là hàm chuyển đổi, không có object animation trung gian.
+Animation nguồn compile: `layer.animations` + component `payload.props` keyframes, emit thẳng `propertyAnimations`. Compiler là hàm chuyển đổi, không có object animation trung gian.
 
 Variable chỉ vào layer qua `project.bindings` → public prop. Compiler **không** resolve `{ ref: { kind: "variable" } }` trên field/keyframe.
 

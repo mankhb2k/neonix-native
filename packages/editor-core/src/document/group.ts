@@ -62,7 +62,7 @@ export function isIdentityGroup(layer: MotionLayer): layer is GroupLayer {
     t.skew.y === 0 &&
     t.depth === 0;
   const appearance =
-    layer.appearance.visible !== false && layer.appearance.opacity === 100;
+    ("opacity" in layer ? (layer.opacity ?? 100) : 100) === 100;
   return identity && appearance && layer.compositing === undefined;
 }
 
@@ -103,7 +103,6 @@ function unwrapLibrarySceneWrapper(layer: MotionLayer): MotionLayer {
     return {
       ...only,
       id: layer.id,
-      name: layer.name ?? only.name,
       parentLayerId: layer.parentLayerId,
       zIndex: layer.zIndex,
       timing: { ...layer.timing },
@@ -152,12 +151,11 @@ export function groupLayers(
   const group: GroupLayer = {
     id: newId,
     type: "group",
-    name: "Group",
     parentLayerId: groupParent,
     zIndex: Math.max(...selected.map((l) => l.zIndex)),
     frame: { width: 0, height: 0 },
     transform: IDENTITY_TRANSFORM,
-    appearance: { visible: true, opacity: 100 },
+    opacity: 100,
     timing: { start: round3(groupStart), duration: round3(maxEnd) },
     children,
   };

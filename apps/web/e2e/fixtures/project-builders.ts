@@ -42,12 +42,14 @@ export type TimelineClipSeed = {
   assetId?: string;
 };
 
-function textNode(id: string, text: string) {
+function textNode(id: string, parentLayerId: string, text: string, duration: number) {
   return {
     id,
     type: "text" as const,
-    parentLayerId: null,
-    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+    parentLayerId,
+    zIndex: 0,
+    timing: { start: 0, duration },
+    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100 }),
     payload: {
       text,
       fontSize: 24,
@@ -60,9 +62,11 @@ function textNode(id: string, text: string) {
 function scene(id: string, name: string, duration: number) {
   return {
     id,
-    duration,
-    layers: [textNode(`${id}.title`, name)],
-    clips: [] as unknown[],
+    type: "group" as const,
+    parentLayerId: null,
+    timing: { start: 0, duration },
+    ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080 }),
+    children: [textNode(`${id}.title`, id, name, duration)],
   };
 }
 
@@ -138,6 +142,20 @@ export function buildStoredProject(input: {
   audioTracks?: Array<Record<string, unknown>>;
   assets?: Array<Record<string, unknown>>;
 }): StoredEditorProject {
+  const audioLayers = (input.audioTracks ?? []).map((track, index) => ({
+    id: String(track.id),
+    type: "audio" as const,
+    parentLayerId: null,
+    zIndex: -1 - index,
+    timing: {
+      start: typeof track.start === "number" ? track.start : 0,
+      duration: 2,
+    },
+    payload: {
+      assetId: String(track.assetId),
+      volume: typeof track.volume === "number" ? track.volume : 100,
+    },
+  }));
   const project = {
     format: "motion-project",
     formatVersion: 1,
@@ -154,38 +172,12 @@ export function buildStoredProject(input: {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     assets: input.assets ?? [],
-    variables: [],
-    tokens: {},
     components: [],
-    timeline: {
-      visualTracks: [
-        {
-          id: "main-track",
-          role: "main",
-          order: 0,
-          clips: (() => {
-            let cursor = 0;
-            return input.scenes.map((s) => {
-              const clip = {
-                id: `clip-${s.id}`,
-                source: { kind: "scene", sceneId: s.id },
-                start: cursor,
-                duration: s.duration,
-              };
-              cursor += s.duration;
-              return clip;
-            });
-          })(),
-        },
-      ],
-      audioTracks: input.audioTracks ?? [],
-      captionTracks: [],
-    },
-    scenes: input.scenes,
-    bindings: [],
+    layers: [
+      ...input.scenes.map((item, index) => ({ ...item, zIndex: index })),
+      ...audioLayers,
+    ],
   };
 
   return {
@@ -408,7 +400,6 @@ const VIDEO_ATOMS = visualLayerAtoms({
   originX: 0,
   originY: 0,
   opacity: 100,
-  visible: true,
 });
 
 /**
@@ -440,20 +431,13 @@ export function buildPackedMainWithGroupProject(
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [videoAsset],
     components: [],
-    timeline: { duration: 12 },
-    bindings: [],
     layers: [
       {
         id: "video-a",
         type: "video",
         parentLayerId: null,
-        name: "Video A",
         zIndex: 0,
         timing: { start: 0, duration: 4 },
         ...VIDEO_ATOMS,
@@ -463,7 +447,6 @@ export function buildPackedMainWithGroupProject(
         id: "video-b",
         type: "video",
         parentLayerId: null,
-        name: "Video B",
         zIndex: 1,
         timing: { start: 4, duration: 4 },
         ...VIDEO_ATOMS,
@@ -473,7 +456,6 @@ export function buildPackedMainWithGroupProject(
         id: "hero",
         type: "group",
         parentLayerId: null,
-        name: "Hero",
         zIndex: 2,
         timing: { start: 8, duration: 4 },
         ...VIDEO_ATOMS,
@@ -482,7 +464,6 @@ export function buildPackedMainWithGroupProject(
             id: "hero.title",
             type: "text",
             parentLayerId: "hero",
-            name: "Title",
             zIndex: 0,
             timing: { start: 0, duration: 4 },
             ...visualLayerAtoms({
@@ -496,7 +477,6 @@ export function buildPackedMainWithGroupProject(
               originX: 0,
               originY: 0,
               opacity: 100,
-              visible: true,
             }),
             payload: {
               text: "Title",

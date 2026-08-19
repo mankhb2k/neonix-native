@@ -1,5 +1,5 @@
 /**
- * Atom mặc định cho layer hình — dùng test và fixture.
+ * Atom mặc định cho layer hình — dùng test và fixture (core shape).
  */
 export function defaultTransform(overrides: Record<string, unknown> = {}) {
   return {
@@ -24,7 +24,6 @@ export function visualLayerAtoms(opts: {
   originX?: number;
   originY?: number;
   opacity?: number;
-  visible?: boolean;
   depth?: number;
 }) {
   return {
@@ -39,9 +38,6 @@ export function visualLayerAtoms(opts: {
       },
       depth: opts.depth ?? 0,
     }),
-    appearance: {
-      visible: opts.visible ?? true,
-      opacity: opts.opacity ?? 100,
-    },
+    opacity: opts.opacity ?? 100,
   };
 }

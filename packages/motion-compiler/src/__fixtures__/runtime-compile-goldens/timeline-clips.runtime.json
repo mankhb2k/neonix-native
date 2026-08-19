@@ -10,8 +10,7 @@
     "locale": "vi-VN",
     "brand": {
       "name": "Timeline Clips"
-    },
-    "description": "Text layers with timeline.clips compiled to propertyAnimations"
+    }
   },
   "assets": [],
   "composition": {
@@ -22,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "e0d1a6da9ba8a5a9068c7e58114adee4",
+  "runtimeHash": "c70bc60cfa6506b474a64700701aff86",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -71,10 +70,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Animated Title",
         "fontSize": 64,
@@ -126,10 +121,6 @@
         "start": 0,
         "duration": 5
       },
-      "inheritPosition": true,
-      "inheritRotation": true,
-      "inheritScale": true,
-      "inheritOpacity": true,
       "payload": {
         "text": "Property animation clip",
         "fontSize": 32,
@@ -143,7 +134,22 @@
       }
     }
   ],
-  "propertyAnimations": [],
+  "propertyAnimations": [
+    {
+      "layerId": "title",
+      "property": "opacity",
+      "keys": [
+        {
+          "t": 0,
+          "v": 0
+        },
+        {
+          "t": 1,
+          "v": 100
+        }
+      ]
+    }
+  ],
   "timeline": {
     "duration": 5
   }

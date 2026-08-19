@@ -36,7 +36,9 @@ function nodeDisplayName(node: MotionLayer): string {
 }
 
 function nodeVisible(node: MotionLayer): boolean {
-  return !("appearance" in node) || node.appearance?.visible !== false;
+  if (node.type === "audio") return true;
+  const opacity = "opacity" in node ? node.opacity : 100;
+  return typeof opacity !== "number" || opacity > 0;
 }
 
 function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {

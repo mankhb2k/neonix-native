@@ -22,10 +22,12 @@ import {
   MotionProjectV1Schema,
   CanonicalMotionProjectV1Schema,
   serializeMotionProjectV1,
-  deriveTimelineDurationV1,
-  hasTimelineContentV1,
-  getRootLayerTimelineEndV1,
-  canonicalizeTimelineDurationV1,
+  serializeMotionProjectV1Authoring,
+  normalizeAuthoringProjectV1,
+  deriveProjectDurationV1,
+  hasRootLayersV1,
+  getRootLayerEndV1,
+  canonicalizeProjectTimingV1,
   type MotionProjectV1,
 } from "./v1";
 
@@ -47,16 +49,18 @@ export {
   MotionProjectV1Schema,
   CanonicalMotionProjectV1Schema,
   serializeMotionProjectV1,
-  deriveTimelineDurationV1,
-  hasTimelineContentV1,
-  getRootLayerTimelineEndV1,
-  canonicalizeTimelineDurationV1,
+  serializeMotionProjectV1Authoring,
+  normalizeAuthoringProjectV1,
+  deriveProjectDurationV1,
+  hasRootLayersV1,
+  getRootLayerEndV1,
+  canonicalizeProjectTimingV1,
 };
 export type {
   MotionProjectV1,
   CanonicalMotionProjectV1,
-  CanonicalizeTimelineDurationIssue,
-  CanonicalizeTimelineDurationResult,
+  CanonicalizeProjectTimingIssue,
+  CanonicalizeProjectTimingResult,
 } from "./v1";
 
 export {
@@ -160,10 +164,7 @@ export { EffectSchema, type MotionEffect } from "./v1/effects";
 export { TransformSchema, type MotionTransform } from "./v1/transform";
 export { FrameSchema, type MotionFrame } from "./v1/frame";
 export { AppearanceSchema, type MotionAppearance } from "./v1/appearance";
-export {
-  CompositingSchema,
-  type MotionCompositing,
-} from "./v1/compositing";
+export { CompositingSchema, type MotionCompositing } from "./v1/compositing";
 
 export {
   AssetV1Schema,
@@ -214,6 +215,9 @@ export {
 export {
   LayerTimingSchema,
   type LayerTiming,
+  LayerPropertyAnimationV1Schema,
+  getLayerAnimations,
+  type LayerPropertyAnimationV1,
   PaintStyleSchema,
   type MotionPaintStyle,
   segmentTextUnits,

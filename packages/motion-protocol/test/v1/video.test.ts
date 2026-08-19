@@ -22,10 +22,7 @@ function projectWithLayer(layer: Record<string, unknown>) {
     formatVersion: 1,
     metadata: { id: "video", name: "Video", locale: "vi-VN" },
     composition: { width: 1080, height: 1920, fps: 30 },
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     assets: [VIDEO_ASSET],
-    variables: [],
-    timeline: { duration: 4 },
     layers: [
       {
         id: "video_1",

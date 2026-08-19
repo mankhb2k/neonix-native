@@ -1,17 +1,17 @@
 /**
  * Apply AI proposal into editor store — one undoable transaction.
- * Merges elementMeta on refine; materializes timeline from visualTracks.
+ * Merges elementMeta on refine; materializes UI timeline from root layers.
  */
 
 import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
 import { selectionClips, selectionNone } from "@motionvideo/editor-core";
 import {
-  clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
 import {
+  deriveProjectDurationV1,
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
@@ -149,7 +149,7 @@ export function applyAiProjectToStore(
     canRedo: false,
   });
   usePlaybackClock.getState().reset({
-    duration: clipsContentEndSeconds(clips),
+    duration: deriveProjectDurationV1(project.layers),
     currentTime: 0,
   });
 }

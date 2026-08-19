@@ -528,6 +528,12 @@ export function evaluateNodeEffects(
   );
 }
 
+function layerOpacityPercent(node: RuntimeNode): number {
+  const record = node as Record<string, unknown>;
+  if (typeof record.opacity === "number") return record.opacity;
+  return node.appearance?.opacity ?? 100;
+}
+
 function numberProperty(
   scene: RuntimeScene,
   node: RuntimeNode,
@@ -579,8 +585,18 @@ export function evaluateTransform(
   collector?: RuntimeDiagnosticCollector,
 ): Transform2D {
   const t = node.transform;
-  const appearance = node.appearance ?? { visible: true, opacity: 100 };
   const frame = nodeFrame(node);
+  const baseOpacity = layerOpacityPercent(node);
+  const opacityPercent = numberProperty(
+    scene,
+    node,
+    "opacity",
+    time,
+    baseOpacity,
+    driven,
+    collector,
+  );
+  const opacity = ratioFromPercent(opacityPercent);
   return {
     x: numberProperty(
       scene,
@@ -672,24 +688,8 @@ export function evaluateTransform(
       driven,
       collector,
     ),
-    opacity: ratioFromPercent(
-      numberProperty(
-        scene,
-        node,
-        "appearance.opacity",
-        time,
-        appearance.opacity,
-        driven,
-        collector,
-      ),
-    ),
-    visible: booleanProperty(
-      scene,
-      node,
-      "appearance.visible",
-      time,
-      appearance.visible,
-    ),
+    opacity,
+    visible: opacity > 0,
     flipX: false,
     flipY: false,
   };
@@ -860,7 +860,9 @@ export function evaluateScene(
     const node = byId.get(layerId);
     if (!node) return 0;
     let fallback = 0;
-    if (
+    if (property === "opacity") {
+      fallback = layerOpacityPercent(node);
+    } else if (
       property.startsWith("transform.") ||
       property.startsWith("appearance.") ||
       property.startsWith("frame.")

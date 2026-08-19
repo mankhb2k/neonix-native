@@ -1,4 +1,8 @@
 import {
+  createDefaultAuthoringSugar,
+  createEmptyEnvelope,
+} from "@/lib/editor/authoring/web-project-envelope";
+import {
   commitProjectMutation,
   type HistoryPush,
 } from "@/lib/editor/store/commit-document-mutation";
@@ -25,19 +29,27 @@ export function createDocumentActions(
 ): DocumentActions {
   return {
     updateBrand: (patch) => {
-      const project = get().project;
+      const state = get();
+      const project = state.project;
       if (!project) return;
-      let variables = project.variables;
+      const envelope =
+        state.envelope ?? createEmptyEnvelope(project.metadata.id);
+      const baseSugar = createDefaultAuthoringSugar({
+        name: project.metadata.name,
+      });
+      let variables =
+        envelope.authoring.variables ?? baseSugar.variables ?? [];
+      const sugarProject = { ...project, variables };
       if (patch.name !== undefined) {
         variables = updateVariable(
-          { ...project, variables },
+          sugarProject,
           "project.brandName",
           patch.name,
         );
       }
       if (patch.primaryColor !== undefined) {
         variables = updateVariable(
-          { ...project, variables },
+          { ...sugarProject, variables },
           "project.primaryColor",
           patch.primaryColor,
         );
@@ -49,7 +61,14 @@ export function createDocumentActions(
             ...project.metadata,
             name: patch.name ?? project.metadata.name,
           },
-          variables,
+        },
+        envelope: {
+          ...envelope,
+          revision: envelope.revision + 1,
+          authoring: {
+            ...envelope.authoring,
+            variables,
+          },
         },
         label: "update-brand",
       });
@@ -76,7 +95,7 @@ export function createDocumentActions(
 
     updateNodeAnimation: () => {
       // V1: preset animation clips (`scene.clips`) no longer exist — node
-      // animations now live in `timeline.clips` keyframes. No-op until the
+      // animations now live in `layer.animations[]` keyframes. No-op until the
       // keyframe editor lands (legacy action kept for API stability).
     },
 

@@ -1,9 +1,8 @@
 /**
- * Lưới khung — snap và kiểm thời gian timeline + cây layer về n / fps.
+ * Lưới khung — snap và kiểm thời gian cây layer về n / fps.
  */
-import type { LayerV1 } from "../layers";
-import type { AudioLayerV1 } from "../layers/audio";
-import type { ProjectTimelineV1 } from "./schema";
+import type { LayerV1 } from "./index";
+import type { AudioLayerV1 } from "./audio";
 
 const FRAME_GRID_EPSILON = 1e-9;
 
@@ -101,33 +100,6 @@ export function snapLayerTreeToFrameGrid(
   return layers.map((layer) => snapLayerNode(layer, safeFps));
 }
 
-/**
- * Snap mọi field timing của timeline lên frame-grid của composition.
- */
-export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
-  timeline: T,
-  fps: number,
-): T {
-  const safeFps = Math.max(1, fps);
-  const next = { ...timeline } as T & {
-    duration?: number;
-    workArea?: { start: number; end: number };
-  };
-
-  if (next.duration !== undefined) {
-    next.duration = snapSecondsToFrameGrid(next.duration, safeFps);
-  }
-
-  if (next.workArea) {
-    next.workArea = {
-      start: snapSecondsToFrameGrid(next.workArea.start, safeFps),
-      end: snapSecondsToFrameGrid(next.workArea.end, safeFps),
-    };
-  }
-
-  return next;
-}
-
 function collectLayerFrameGridIssues(
   layers: readonly LayerV1[],
   fps: number,
@@ -172,34 +144,22 @@ function collectLayerFrameGridIssues(
       );
     }
     if (layer.type === "group") {
-      collectLayerFrameGridIssues(layer.children, fps, base.concat("children"), issues);
+      collectLayerFrameGridIssues(
+        layer.children,
+        fps,
+        base.concat("children"),
+        issues,
+      );
     }
   }
 }
 
-/**
- * Thu thập lỗi timing lệch frame-grid cho timeline + layer tree.
- */
+/** Thu thập lỗi timing lệch frame-grid cho cây layer. */
 export function collectFrameGridIssues(
-  timeline: ProjectTimelineV1,
   fps: number,
   layers: readonly LayerV1[] = [],
 ): FrameGridIssue[] {
-  const safeFps = Math.max(1, fps);
   const issues: FrameGridIssue[] = [];
-
-  checkOnGrid(timeline.duration, safeFps, ["duration"], issues);
-  if (timeline.workArea) {
-    checkOnGrid(
-      timeline.workArea.start,
-      safeFps,
-      ["workArea", "start"],
-      issues,
-    );
-    checkOnGrid(timeline.workArea.end, safeFps, ["workArea", "end"], issues);
-  }
-
-  collectLayerFrameGridIssues(layers, safeFps, ["layers"], issues);
-
+  collectLayerFrameGridIssues(layers, Math.max(1, fps), ["layers"], issues);
   return issues;
 }

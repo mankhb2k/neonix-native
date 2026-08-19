@@ -1,5 +1,6 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
+import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
 import {
   parseOverlayScenes,
   type OverlaySceneItem,
@@ -13,13 +14,14 @@ import {
 } from "@motionvideo/editor-core";
 
 /** Phiên bản envelope persistence hiện tại. Tăng khi đổi schema lưu. */
-export const CURRENT_STORAGE_VERSION = 2;
+export const CURRENT_STORAGE_VERSION = 3;
 
 export type StoredProject = {
   /** Version envelope — thiếu thì coi là 0 (legacy). */
   storageVersion?: number;
   savedAt: string;
   project: MotionProject;
+  envelope?: WebProjectEnvelope;
   overlayScenes?: OverlaySceneItem[];
   timelineClips?: TimelineClip[];
   timelineLanes?: TimelineLane[];
@@ -32,6 +34,7 @@ type RawStoredRecord = {
   overlayScenes?: unknown;
   timelineClips?: unknown;
   timelineLanes?: unknown;
+  envelope?: unknown;
 };
 
 /**
@@ -99,6 +102,12 @@ export function parseStoredProjectRecord(raw: unknown): StoredProject | null {
     const project = parseProjectInput(item.project);
     const timelineClips = parseTimelineClips(item.timelineClips);
     const timelineLanes = parseTimelineLanes(item.timelineLanes);
+    const envelope =
+      item.envelope &&
+      typeof item.envelope === "object" &&
+      "authoring" in (item.envelope as object)
+        ? (item.envelope as WebProjectEnvelope)
+        : undefined;
     const base: StoredProject = {
       storageVersion:
         typeof item.storageVersion === "number" && Number.isFinite(item.storageVersion)
@@ -106,6 +115,7 @@ export function parseStoredProjectRecord(raw: unknown): StoredProject | null {
           : 0,
       savedAt: typeof item.savedAt === "string" ? item.savedAt : new Date().toISOString(),
       project,
+      ...(envelope ? { envelope } : {}),
       overlayScenes: parseOverlayScenes(item.overlayScenes),
       ...(item.timelineClips === undefined ? {} : { timelineClips }),
       ...(item.timelineLanes === undefined ? {} : { timelineLanes }),

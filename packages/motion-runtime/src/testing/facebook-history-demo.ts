@@ -1,7 +1,6 @@
 // @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
-  declareUsedCapabilities,
   visualLayerAtoms,
   type MotionProjectV1,
   type MotionLayer,
@@ -59,7 +58,6 @@ function bg(id: string, fill: string): MotionLayer {
   return {
     id,
     type: "shape",
-    name: "Background",
     parentLayerId: null,
     zIndex: 0,
     ...xform({
@@ -89,7 +87,6 @@ function rect(
   return {
     id,
     type: "shape",
-    name,
     parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 1,
     ...xform(t),
@@ -118,7 +115,6 @@ function textNode(
   return {
     id,
     type: "text",
-    name,
     parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 2,
     ...xform(t),
@@ -140,7 +136,7 @@ function fadeInPropertyAnimations(
   const items: MotionRuntimePropertyAnimation[] = [
     {
       layerId,
-      property: "appearance.opacity",
+      property: "opacity",
       keys: [
         { t: at, v: 0 },
         { t: at + duration, v: 100, easing: "easeOut" },
@@ -223,7 +219,7 @@ function buildHook(): RuntimeLayerGraph {
       ...fadeInPropertyAnimations(subId, 0.6, 0.7),
       {
         layerId: accentId,
-        property: "appearance.opacity",
+        property: "opacity",
         keys: [
           { t: 0.9, v: 0 },
           { t: 1.5, v: 100, easing: "easeOut" },
@@ -473,7 +469,7 @@ function buildIpo(): RuntimeLayerGraph {
       ...fadeInPropertyAnimations(titleId, 0.35, 0.55),
       {
         layerId: barId,
-        property: "appearance.opacity",
+        property: "opacity",
         keys: [
           { t: 0.6, v: 0 },
           { t: 1.1, v: 100, easing: "easeOut" },
@@ -556,7 +552,7 @@ function buildMeta(): RuntimeLayerGraph {
       ...fadeInPropertyAnimations(noteId, 1.1, 0.5),
       {
         layerId: "meta.overlay",
-        property: "appearance.opacity",
+        property: "opacity",
         keys: [
           { t: 2.2, v: 0 },
           { t: 3.0, v: 55, easing: "easeInOut" },
@@ -643,7 +639,6 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
   const layers: MotionLayer[] = scenes.map((scene, index) => ({
     id: scene.id,
     type: "group",
-    name: scene.name,
     parentLayerId: null,
     zIndex: index,
     ...xform({
@@ -663,25 +658,43 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
     })),
   }));
 
-  // Runtime propertyAnimations → authoring timeline.clips (compiler lowers back).
-  const clips = scenes.flatMap((scene, sceneIndex) =>
-    scene.propertyAnimations.map((anim, animIndex) => ({
-      id: `clip.${scene.id}.${animIndex}`,
-      layerId: anim.layerId,
-      property: anim.property,
-      kind: "keyframes",
-      keys: anim.keys.map((key) => ({
-        t: key.t,
-        value: key.v,
-        ...(key.easing ? { easing: key.easing } : {}),
-      })),
-    })),
-  );
+  // Runtime propertyAnimations → authoring layer.animations (compiler lowers back).
+  const animationsByLayer = new Map<
+    string,
+    Array<{
+      id: string;
+      property: string;
+      kind: "keyframes";
+      keys: Array<{ t: number; value: unknown; easing?: unknown }>;
+    }>
+  >();
+  for (const [sceneIndex, scene] of scenes.entries()) {
+    void sceneIndex;
+    for (const [animIndex, anim] of scene.propertyAnimations.entries()) {
+      const list = animationsByLayer.get(anim.layerId) ?? [];
+      list.push({
+        property: anim.property,
+        keys: anim.keys.map((key) => ({
+          t: key.t,
+          value: key.v,
+          ...(key.easing ? { easing: key.easing } : {}),
+        })),
+      });
+      animationsByLayer.set(anim.layerId, list);
+    }
+  }
 
-  const duration = scenes.reduce((sum, s) => sum + s.duration, 0);
+  const attachAnimations = (nodes: typeof layers): typeof layers =>
+    nodes.map((node) => {
+      const animations = animationsByLayer.get(node.id);
+      const next = animations ? { ...node, animations } : node;
+      if (next.type === "group") {
+        return { ...next, children: attachAnimations(next.children) };
+      }
+      return next;
+    });
 
-  return declareUsedCapabilities(
-    parseMotionProjectV1({
+  return parseMotionProjectV1({
     format: "motion-project",
     formatVersion: 1,
     metadata: {
@@ -697,18 +710,8 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {
-      colors: { brand: BLUE, dark: BLUE_DARK, ink: INK, muted: MUTED },
-      fonts: { display: "Be Vietnam Pro" },
-    },
-    variables: [],
     assets: [],
     components: [],
-    layers,
-    timeline: { duration, clips },
-    bindings: [],
-    }),
-  );
+    layers: attachAnimations(layers),
+  });
 }

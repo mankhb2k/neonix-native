@@ -36,7 +36,7 @@ function clampTime(time: number, duration: number): number {
  *
  * Ownership: `currentTime` / `mode` / `seekRevision` / `playbackRate` là SESSION
  * state của editor (không ghi vào project JSON). `duration` mirror
- * `project.timeline.duration` (protocol data) để clamp; timeline KHÔNG phải
+ * derived project length (`max` root layer end) để clamp; UI timeline KHÔNG phải
  * source-of-truth cho playback — stage đọc `project + currentTime`.
  */
 export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({

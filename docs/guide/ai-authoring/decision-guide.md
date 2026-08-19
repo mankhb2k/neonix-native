@@ -41,7 +41,7 @@ Whenever the prompt is a visual intent (“fade”, “glow”, “closer”, �
 | Scale the layer box | `transform.scale`, not `frame.width` animation |
 | Global theme | `variables` + `project.bindings` `type: "prop"` |
 | One component instance | `payload.props` |
-| Layer property motion | `timeline.clips` |
+| Layer property motion | `layer.animations` |
 | Component prop motion | `payload.props.<propId>` keyframes |
 | Caption | group + text, not a track |
 | Music | root `type: "audio"` |
@@ -62,7 +62,7 @@ Intent: fade in the title.
 }
 ```
 
-Place this object in `timeline.clips`.
+Place this object in `layer.animations`.
 
 ## Invalid example
 

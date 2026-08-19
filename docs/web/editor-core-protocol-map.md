@@ -28,8 +28,9 @@
 | Tên                                               | Lớp                   | Ghi JSON? | Vị trí                                             |
 | ------------------------------------------------- | --------------------- | --------- | -------------------------------------------------- |
 | `project.layers[]`                                | protocol (motion V1)  | ✅        | `@motionvideo/motion-protocol`                     |
-| `project.timeline.clips[]`                        | protocol              | ✅        | keyframes animation (key `t` local)                |
-| `project.timeline.duration`                       | protocol              | ✅        | độ dài MP4 cuối                                    |
+| `project.layers[].timing`                         | protocol              | ✅        | in/out của layer                                   |
+| `project.layers[].animations[]`                   | protocol              | ✅        | keyframes animation (key `t` local)                |
+| Project length                                    | derived               | ❌        | `max` root `timing.start + duration`               |
 | `project.assets[]` / `variables[]` / `bindings[]` | protocol              | ✅        | media/font, biến, liên kết variable → prop         |
 | `TimelineClip`                                    | derived editor model  | ❌        | `editor-core/src/timeline/model/timeline-types.ts` |
 | `TimelineLane`                                    | derived editor model  | ❌        | cùng file trên                                     |
@@ -98,7 +99,7 @@ Quy tắc:
 - **Không thêm synonym mới**: không `rect`/`circle` (chỉ `rectangle`/`ellipse`),
   không `scene` cho layer, không `track` cho lane, không `node` cho layer.
 - **Hàm đổi protocol JSON** phải đặt tên `apply*` / `commit*` / `execute*` và nói rõ
-  nó chạm vào `project.layers` / `project.timeline`.
+  nó chạm vào `project.layers`.
 
 ### Determinism / ID policy
 

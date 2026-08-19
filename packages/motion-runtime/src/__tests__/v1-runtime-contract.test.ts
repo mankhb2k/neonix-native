@@ -27,7 +27,7 @@ function scene(overrides: Partial<RuntimeScene> = {}): RuntimeScene {
     propertyAnimations: [
       {
         layerId: "title",
-        property: "appearance.opacity",
+        property: "opacity",
         keys: [
           { t: 0, v: 0 },
           { t: 1, v: 100 },
@@ -39,7 +39,7 @@ function scene(overrides: Partial<RuntimeScene> = {}): RuntimeScene {
 }
 
 describe("runtime V1 contract", () => {
-  it("evaluates propertyAnimations compiled from timeline.clips", () => {
+  it("evaluates propertyAnimations compiled from layer.animations", () => {
     const nodes = evaluateScene(scene(), 1);
     expect(nodes[0]?.transform.opacity).toBeCloseTo(1);
   });

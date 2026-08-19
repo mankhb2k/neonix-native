@@ -66,9 +66,8 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(isLayerPropertyBindable("audio", "transform.translate.x")).toBe(
       false,
     );
-    expect(isLayerPropertyBindable("audio", "appearance.opacity")).toBe(false);
-    expect(isLayerPropertyBindable("audio", "appearance.visible")).toBe(false);
-    expect(isLayerPropertyBindable("text", "appearance.opacity")).toBe(true);
+    expect(isLayerPropertyBindable("audio", "opacity")).toBe(false);
+    expect(isLayerPropertyBindable("text", "opacity")).toBe(true);
     expect(isLayerPropertyBindable("text", "style.fill")).toBe(false);
     expect(isLayerPropertyBindable("text", "modifiers.mp.progress")).toBe(
       false,

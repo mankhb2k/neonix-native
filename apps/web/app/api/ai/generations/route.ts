@@ -6,7 +6,10 @@ import {
   runZeroTemplateGeneration,
   type OrchestratorProgress,
 } from "@motionvideo/ai-planner";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProject,
+  serializeMotionProjectV1Authoring,
+} from "@motionvideo/motion-protocol";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -70,7 +73,7 @@ async function persistTrace(
   if (result.project) {
     await writeFile(
       path.join(dir, "project.mt.json"),
-      JSON.stringify(result.project, null, 2),
+      serializeMotionProjectV1Authoring(result.project),
       "utf8",
     );
   }

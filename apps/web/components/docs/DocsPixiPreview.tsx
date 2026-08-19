@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  deriveProjectDurationV1,
   parseMotionProjectV1,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
@@ -69,7 +70,7 @@ export function DocsPixiPreview({
       renderer.paintFrame(0);
       if (!play) return;
       const started = performance.now();
-      const duration = parsed.timeline.duration ?? 5;
+      const duration = deriveProjectDurationV1(parsed.layers) || 5;
       const tick = (now: number) => {
         const t = ((now - started) / 1000) % Math.max(duration, 0.1);
         renderer.paintFrame(Math.round(t * fps));

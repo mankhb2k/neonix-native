@@ -233,6 +233,7 @@ export const useAiJobsStore = create<AiJobsState>((set, get) => ({
         progress: 100,
         proposal: {
           ...proposal,
+          scope,
           baseRevision,
           warnings: warningList,
           generation: baseGeneration

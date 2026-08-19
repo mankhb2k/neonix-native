@@ -13,7 +13,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | #   | File                              | Tại sao đọc file này                                                                                                            |
 | --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `src/v1/project.ts`               | **Root schema** của V1. Hiểu `MotionProjectV1Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
-| 2   | `src/v1/timeline/schema.ts`       | **Timeline**. Chỉ `duration?` / `workArea?` / `clips?`. Không `visualTracks` / `audioTracks` / `captionTracks` / `markers`. |
+| 2   | `src/v1/layers/animations.ts`     | **Layer property animation**. `layer.animations[]` — không `project.timeline`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components/`              | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v1/variables.ts`             | **Binding model** — `target.type: "prop"` (`layerId` + `propId`); consumer không chạm internals. |
@@ -21,7 +21,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `test/v1/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
 
-> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi `timeline/schema.ts` và `layers/index.ts` (nested tree + audio).
+> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi `layers/animations.ts` và `layers/index.ts` (nested tree + audio).
 
 ---
 
@@ -29,13 +29,13 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 1) `src/v1/project.ts` — Root schema
 
-- Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `layers`, `timeline`, `bindings`, `provenance`, `extensions`.
-- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số layer / clip / key / component tối đa.
+- Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `layers`, `bindings`, `provenance`, `extensions`.
+- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số layer / animation / key / component tối đa.
 - Kiểm tra `.strict()` và `.superRefine()` — duplicate id có bị chặn ngay ở parse không.
 
-### 2) `src/v1/timeline/schema.ts` — Timeline metadata
+### 2) `src/v1/layers/animations.ts` — Layer property animation
 
-- `timeline` chỉ giữ `duration?`, `workArea?`, `clips?`.
+- Authoring không có `project.timeline`. Project length derive từ root layer timing.
 - Nội dung phát nằm trên `project.layers`. Root layer = lane. Mọi layer bắt buộc `zIndex` (unique trong siblings) và `timing`. Nested `zIndex >= 0`. Group phải có ≥1 child. Không field `locked`.
 - Discriminator layer luôn là `type` (không `kind`). Binding target cũng `type`.
 
@@ -51,7 +51,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Consumer: wrapper atoms + public `props` / `variantId`. Wiring owner = `propBindings`. Variant chỉ override props.
 - Prop values: static literal | keyframes (chỉ khi `animatable`). Không inline `{ ref: variable }`. Variable chỉ vào prop qua `project.bindings`.
 - Không có `component.variables`.
-- Asset props bắt buộc `assetKind`. Animate internals từ `project.timeline.clips` → reject; prop animation phải nằm trong prop value keyframes.
+- Asset props bắt buộc `assetKind`. Animate internals từ `layer.animations` → reject nếu path là `payload.props.*`; prop animation phải nằm trong prop value keyframes.
 - Project binding chỉ `type: "prop"`; nested chỉ `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
@@ -134,7 +134,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 project.ts (root schema + limits)
         │
         ▼
-timeline/schema.ts (duration / workArea / clips)   ← trọng tâm
+layers/animations.ts + layers/project-duration.ts   ← trọng tâm
         │
         ▼
 layers/component.ts (component layer) ──► components/ (sealed contract)

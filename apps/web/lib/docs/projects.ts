@@ -21,14 +21,8 @@ export function emptyProject(id: string, name: string) {
       background: "#ffffff",
       colorSpace: "srgb" as const,
     },
-    capabilities: {},
-    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
-    tokens: {},
-    variables: [],
     assets: [] as unknown[],
     components: [] as unknown[],
-    timeline: { duration: 6 },
-    bindings: [] as unknown[],
     layers: [] as unknown[],
   };
 }
@@ -37,7 +31,6 @@ export const MINIMAL_EMPTY = emptyProject("docs-minimal-empty", "Minimal empty")
 
 export const SINGLE_ROOT = {
   ...emptyProject("docs-single-root", "Single root text"),
-  timeline: { duration: 5 },
   layers: [
     {
       id: "title",
@@ -49,7 +42,7 @@ export const SINGLE_ROOT = {
         translate: { x: 960, y: 540 },
       },
       frame: { width: 800, height: 120 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 5 },
       payload: {
         text: "Hello NeonVideo" ,
@@ -73,7 +66,7 @@ export const DEPTH_DEMO = {
       zIndex: 0,
       transform: { ...transform, depth: -200 },
       frame: { width: 1920, height: 1080 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 6 },
       payload: { color: "#e8eef5" },
     },
@@ -88,7 +81,7 @@ export const DEPTH_DEMO = {
         depth: 120,
       },
       frame: { width: 640, height: 360 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 1, duration: 4 },
       payload: { color: "#0d9488" },
     },
@@ -102,7 +95,7 @@ export const DEPTH_DEMO = {
         translate: { x: 960, y: 200 },
       },
       frame: { width: 900, height: 80 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 1, duration: 3 },
       payload: {
         text: "Parallax title" ,
@@ -142,7 +135,7 @@ export const AUDIO_FADE = {
         translate: { x: 960, y: 540 },
       },
       frame: { width: 800, height: 120 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 6 },
       payload: {
         text: "With music" ,
@@ -206,7 +199,6 @@ export const INVALID_EXTRA_KEY = {
 
 export const INVALID_DUPLICATE_ID = {
   ...emptyProject("docs-dup-id", "Duplicate layer id"),
-  timeline: { duration: 3 },
   layers: [
     {
       id: "title",
@@ -215,7 +207,7 @@ export const INVALID_DUPLICATE_ID = {
       zIndex: 0,
       transform,
       frame: { width: 200, height: 80 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 3 },
       payload: {
         text: "A" ,
@@ -233,7 +225,7 @@ export const INVALID_DUPLICATE_ID = {
       zIndex: 1,
       transform,
       frame: { width: 200, height: 80 },
-      appearance: { visible: true, opacity: 100 },
+      opacity: 100,
       timing: { start: 0, duration: 3 },
       payload: {
         text: "B" ,

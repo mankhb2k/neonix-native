@@ -78,8 +78,6 @@ export function lanesFromProject(project: {
       duration: rec.timing.duration ?? 0,
     });
   }
-  const duration =
-    project.timeline?.duration ??
-    Math.max(0, ...lanes.map((l) => l.start + l.duration), 1);
+  const duration = Math.max(0, ...lanes.map((l) => l.start + l.duration), 1);
   return { lanes, duration };
 }
