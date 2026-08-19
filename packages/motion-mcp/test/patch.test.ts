@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyMotionProjectV1Patch,
   MotionProjectV1PatchSchema,
-} from "../../src/v1/patch";
-import type { MotionProjectV1 } from "../../src/v1/index";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+} from "../src/patch";
+import type { MotionProjectV1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 const ATOMS = visualLayerAtoms({ width: 100, height: 50 });
 
@@ -15,9 +15,9 @@ function textLayer(id: string, zIndex = 0) {
     parentLayerId: null,
     zIndex,
     timing: { start: 0, duration: 3 },
-            ...ATOMS,
+    ...ATOMS,
     payload: {
-      text: "Hello" ,
+      text: "Hello",
       fontSize: 24,
       color: "#000000",
       alignment: "left" as const,
@@ -34,7 +34,7 @@ function groupLayer(id: string, zIndex = 0) {
     parentLayerId: null,
     zIndex,
     timing: { start: 0, duration: 3 },
-            ...ATOMS,
+    ...ATOMS,
     children: [
       {
         ...textLayer(`${id}-label`),

@@ -1,5 +1,8 @@
-﻿import { parseMotionProjectV1, type MotionProjectV1 } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+﻿import {
+  parseMotionProjectV1,
+  type MotionProjectV1,
+} from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 function textLayer(
   id: string,
@@ -14,7 +17,19 @@ function textLayer(
     parentLayerId: null,
     zIndex,
     timing: { start, duration },
-    ...visualLayerAtoms({ x: 540, y: 960, width: 900, height: 180, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+    ...visualLayerAtoms({
+      x: 540,
+      y: 960,
+      width: 900,
+      height: 180,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0.5,
+      originY: 0.5,
+      opacity: 100,
+      visible: true,
+    }),
     payload: {
       text,
       fontSize: 64,

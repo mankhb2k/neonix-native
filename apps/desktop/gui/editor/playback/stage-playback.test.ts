@@ -8,7 +8,7 @@ import {
 import { previewParitySnapshot } from "../preview/preview-evaluate";
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {

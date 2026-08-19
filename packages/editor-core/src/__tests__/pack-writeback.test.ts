@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { validateTimelineDocument } from "../document/document";
 import { projectToTimelineDocument } from "../document/canonical-projection";
 import {
@@ -117,10 +117,7 @@ function audioLayer(
   } as MotionLayer;
 }
 
-function projectWith(
-  layers: MotionLayer[],
-  assets: unknown[] = [VIDEO_ASSET],
-) {
+function projectWith(layers: MotionLayer[], assets: unknown[] = [VIDEO_ASSET]) {
   return parseMotionProjectV1({
     format: "motion-project",
     formatVersion: 1,
@@ -228,7 +225,9 @@ describe("rebuildMainProject unique zIndex", () => {
     const packed = packRootLayersToTimeline(project);
     expect(packed.clips.every((c) => c.laneId === "lane.main")).toBe(true);
     const rebuilt = rebuildMainProject(project, packed.clips, packed.lanes);
-    const byId = Object.fromEntries(rebuilt.layers.map((l) => [l.id, l.zIndex]));
+    const byId = Object.fromEntries(
+      rebuilt.layers.map((l) => [l.id, l.zIndex]),
+    );
     // Canva: rightmost on Main is 0, increase toward the left.
     expect(byId.b).toBe(0);
     expect(byId.a).toBe(1);
@@ -252,8 +251,12 @@ describe("rebuildMainProject unique zIndex", () => {
     expect(packed.clips.find((c) => c.id === "a")?.laneId).toBe("lane.main");
     expect(packed.clips.find((c) => c.id === "b")?.laneId).toBe("lane.main");
     expect(packed.clips.find((c) => c.id === "c")?.laneId).toBe("lane.main");
-    expect(packed.clips.find((c) => c.id === "d")?.laneId).toBe("lane.overlay.0");
-    expect(packed.clips.find((c) => c.id === "e")?.laneId).toBe("lane.overlay.0");
+    expect(packed.clips.find((c) => c.id === "d")?.laneId).toBe(
+      "lane.overlay.0",
+    );
+    expect(packed.clips.find((c) => c.id === "e")?.laneId).toBe(
+      "lane.overlay.0",
+    );
     // Main 2|1|0, overlay 4|3 — no duplicates.
     expect(z).toMatchObject({ c: 0, b: 1, a: 2, e: 3, d: 4 });
     const visualZ = rebuilt.layers.map((l) => l.zIndex);

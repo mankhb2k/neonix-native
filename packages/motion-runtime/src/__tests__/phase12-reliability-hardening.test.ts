@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Phase 12 — Reliability & Production Hardening tests.
  *

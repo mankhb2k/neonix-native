@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  visualLayerAtoms,
-  type MotionLayer,
-} from "@motionvideo/motion-protocol";
+import { type MotionLayer } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { cloneLayerWithNewIds } from "../timeline/internal/scene-utils";
 
 function createDeterministicId(): (prefix: string) => string {

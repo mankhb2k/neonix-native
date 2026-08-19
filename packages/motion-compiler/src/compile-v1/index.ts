@@ -22,18 +22,19 @@
  * text measurement, so these are accepted but not consumed.
  */
 
+import { CAPABILITY_MANIFEST_VERSION, V1 } from "@motionvideo/motion-protocol";
+import { canonicalizeProjectTimingV1 } from "@motionvideo/patterns";
 import {
   computeRuntimeHash,
   computeProjectHash,
   buildCapabilityFingerprint,
-  canonicalizeProjectTimingV1,
-  CAPABILITY_MANIFEST_VERSION,
-  V1,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/render-contracts";
 import {
   MotionRuntimeProjectSchema,
   MOTION_RUNTIME_VERSION,
   type MotionRuntimeProject,
+  type ProjectMetadata,
+  type RuntimeCompositionMetadata,
 } from "@motionvideo/motion-protocol/runtime";
 import {
   DiagnosticCollector,
@@ -42,7 +43,7 @@ import {
   type CompileResult,
 } from "../compile-result";
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
-import { clone, deriveAspectRatio, type JsonRecord } from "./helpers";
+import { deriveAspectRatio } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
@@ -147,10 +148,7 @@ export function compileMotionProjectV1(
   }
 
   // Build the visual plan from project.layers.
-  const { graph, audioLayers } = buildLayerPlan(
-    normalized,
-    collector,
-  );
+  const { graph, audioLayers } = buildLayerPlan(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }
@@ -163,13 +161,13 @@ export function compileMotionProjectV1(
     // ── Build runtime shapes directly from V1 project ──
 
     const comp = normalized.composition;
-    const brand: Record<string, unknown> = {
+    const brand: ProjectMetadata["brand"] = {
       name: normalized.metadata.name ?? "Default",
     };
     if (comp.background !== "#ffffff") {
       brand.primaryColor = comp.background;
     }
-    const metadata: Record<string, unknown> = {
+    const metadata: ProjectMetadata = {
       id: normalized.metadata.id,
       name: normalized.metadata.name,
       aspectRatio: deriveAspectRatio(comp.width, comp.height),
@@ -185,7 +183,7 @@ export function compileMotionProjectV1(
       metadata.createdAt = normalized.metadata.createdAt;
     if (normalized.metadata.updatedAt)
       metadata.updatedAt = normalized.metadata.updatedAt;
-    const composition: Record<string, unknown> = {
+    const composition: RuntimeCompositionMetadata = {
       width: comp.width,
       height: comp.height,
       fps: comp.fps,
@@ -194,7 +192,7 @@ export function compileMotionProjectV1(
       audioSampleRate: comp.audioSampleRate,
     };
 
-    const runtimeAssets: JsonRecord[] = [];
+    const runtimeAssets: MotionRuntimeProject["assets"][number][] = [];
     for (const asset of normalized.assets) {
       const uri = resolveCompileAssetUri(asset, options.assetUrlResolver);
       if (!uri) {
@@ -218,15 +216,11 @@ export function compileMotionProjectV1(
     const compiledGraph =
       duration > 0
         ? compileLayerGraphToRuntime({
-            id: graph.id as string,
-            duration: graph.duration as number,
-            layers: (graph.layers ?? []) as Parameters<
-              typeof compileLayerGraphToRuntime
-            >[0]["layers"],
+            id: graph.id,
+            duration: graph.duration,
+            layers: graph.layers,
             propertyAnimations: [
-              ...((Array.isArray(graph.propertyAnimations)
-                ? graph.propertyAnimations
-                : []) as MotionRuntimeProject["propertyAnimations"]),
+              ...graph.propertyAnimations,
               ...layerAnimationsToPropertyAnimations(normalized.layers),
             ],
             variables: new Map<string, unknown>(),

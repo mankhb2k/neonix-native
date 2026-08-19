@@ -2,11 +2,8 @@
  * Compiler emit contract: V1 authoring → Runtime IR without legacy language.
  */
 import { describe, expect, it } from "vitest";
-import {
-  isLayerPropertyAnimatable,
-  V1,
-  visualLayerAtoms,
-} from "@motionvideo/motion-protocol";
+import { isLayerPropertyAnimatable, V1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { compileMotionProjectV1 } from "../index";
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
 

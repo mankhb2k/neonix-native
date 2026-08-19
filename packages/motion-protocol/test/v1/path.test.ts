@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseMotionProjectV1 } from "../../src/v1";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { isLayerPropertyBindable } from "../../src/capabilities";
 
 const ATOMS = visualLayerAtoms({ width: 200, height: 120 });

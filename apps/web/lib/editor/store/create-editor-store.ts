@@ -41,7 +41,7 @@ import {
   type DocumentPropertyCommand,
   type HistoryEntry,
 } from "@motionvideo/editor-core";
-import { deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
+import { deriveProjectDurationV1 } from "@motionvideo/patterns";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
 import type { EditorStore } from "@/lib/editor/store/types";
 
@@ -225,9 +225,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       commitNodeTransform: (rootLayerId, layerId, patch) => {
         const state = get();
         if (!state.project) return;
-        const lockedPaths = Object.keys(patch).map(
-          (key) => `transform.${key}`,
-        );
+        const lockedPaths = Object.keys(patch).map((key) => `transform.${key}`);
         if (
           lockedPaths.some((path) =>
             isPropertyLocked(state.envelope, rootLayerId, layerId, path),
@@ -336,8 +334,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
 
         const authoringPaths = authoringPathsForCommand(command);
         if (authoringPaths) {
-          const targets =
-            "targets" in command ? command.targets : [];
+          const targets = "targets" in command ? command.targets : [];
           for (const target of targets) {
             if (
               authoringPaths.some((path) =>

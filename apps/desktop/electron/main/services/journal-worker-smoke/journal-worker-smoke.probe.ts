@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Packaged-app probe for journal validate worker.
  * Triggered only when MOTIONVIDEO_JOURNAL_WORKER_SMOKE=1 and a harness token is set.
@@ -25,8 +25,27 @@ function inflateToBytes(base: string, targetBytes: number): string {
     parentLayerId: null,
     zIndex: 0,
     timing: { start: 0, duration: 1 },
-    ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
-    payload: { text: "", fontSize: 12, color: "#000000", alignment: "left", wrap: "word", overflow: "clip" },
+    ...visualLayerAtoms({
+      x: 1,
+      y: 1,
+      width: 10,
+      height: 10,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0.5,
+      originY: 0.5,
+      opacity: 100,
+      visible: true,
+    }),
+    payload: {
+      text: "",
+      fontSize: 12,
+      color: "#000000",
+      alignment: "left",
+      wrap: "word",
+      overflow: "clip",
+    },
   };
   envelope.project.layers = [node];
   let json = JSON.stringify(envelope);

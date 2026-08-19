@@ -1,5 +1,5 @@
 /**
- * Schema giá trị JSON V1 — JsonValue, ResolvableValue, VariableReference.
+ * Schema giá trị JSON V1 — JsonValue, LiteralValue, ValueKind.
  */
 import { z } from "zod";
 import { FiniteNumberSchema, IdSchema } from "./common";
@@ -16,24 +16,6 @@ export const JsonValueSchema: z.ZodType<
     z.record(JsonValueSchema),
   ]),
 );
-
-export const VariableReferenceSchema = z
-  .object({
-    ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
-    map: z
-      .object({
-        scale: FiniteNumberSchema.optional(),
-        offset: FiniteNumberSchema.optional(),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict();
-
-export const ResolvableValueSchema = z.union([
-  JsonValueSchema,
-  VariableReferenceSchema,
-]);
 
 export function isVariableReference(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(isVariableReference);

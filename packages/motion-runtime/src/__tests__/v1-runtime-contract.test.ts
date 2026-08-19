@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { evaluateScene, type RuntimeScene } from "../evaluator";
 import { RuntimeDiagnosticCollector } from "../diagnostics";
 
@@ -62,8 +62,8 @@ describe("runtime V1 contract", () => {
       0.5,
       collector,
     );
-    expect(collector.diagnostics.some((d) => d.code === "TRACK_NOT_APPLIED")).toBe(
-      true,
-    );
+    expect(
+      collector.diagnostics.some((d) => d.code === "TRACK_NOT_APPLIED"),
+    ).toBe(true);
   });
 });

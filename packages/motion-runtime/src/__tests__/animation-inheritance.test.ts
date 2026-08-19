@@ -8,7 +8,7 @@
  *   - Group visibility animation hides children
  */
 import { describe, expect, it } from "vitest";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   evaluateScene,
   type RuntimeNode,

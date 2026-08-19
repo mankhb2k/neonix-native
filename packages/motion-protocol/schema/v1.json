@@ -1100,6 +1100,53 @@
                           ],
                           "additionalProperties": false
                         },
+                        "layoutItem": {
+                          "type": "object",
+                          "properties": {
+                            "width": {
+                              "type": "string",
+                              "enum": [
+                                "fixed",
+                                "hug",
+                                "fill"
+                              ]
+                            },
+                            "height": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem/properties/width"
+                            },
+                            "alignSelf": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "start",
+                                "center",
+                                "end",
+                                "stretch"
+                              ]
+                            },
+                            "minWidth": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "maxWidth": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "minHeight": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            },
+                            "maxHeight": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 32768
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "animations": {
                           "type": "array",
                           "items": {
@@ -1342,6 +1389,157 @@
                           },
                           "maxItems": 16
                         },
+                        "layout": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "row"
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 32768
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "top": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "right": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "bottom": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        },
+                                        "left": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 32768
+                                        }
+                                      },
+                                      "required": [
+                                        "top",
+                                        "right",
+                                        "bottom",
+                                        "left"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ],
+                                  "default": 0
+                                },
+                                "align": {
+                                  "type": "string",
+                                  "enum": [
+                                    "start",
+                                    "center",
+                                    "end",
+                                    "stretch"
+                                  ],
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "type": "string",
+                                  "enum": [
+                                    "start",
+                                    "center",
+                                    "end",
+                                    "space-between"
+                                  ],
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "column"
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
+                                  "default": 0
+                                },
+                                "align": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "mode": {
+                                  "type": "string",
+                                  "const": "grid"
+                                },
+                                "columns": {
+                                  "type": "integer",
+                                  "exclusiveMinimum": true,
+                                  "minimum": 0,
+                                  "maximum": 32
+                                },
+                                "gap": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "default": 0
+                                },
+                                "padding": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/padding",
+                                  "default": 0
+                                },
+                                "align": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/align",
+                                  "default": "start"
+                                },
+                                "justify": {
+                                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layout/anyOf/0/properties/justify",
+                                  "default": "start"
+                                }
+                              },
+                              "required": [
+                                "mode",
+                                "columns"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
                         "payload": {
                           "type": "object",
                           "properties": {},
@@ -1397,6 +1595,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
@@ -1481,6 +1682,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
@@ -1598,6 +1802,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
@@ -1883,6 +2090,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
@@ -2072,6 +2282,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
@@ -2178,6 +2391,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
@@ -2256,6 +2472,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
@@ -2438,6 +2657,9 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
+                        },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
                         },
@@ -2497,6 +2719,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"
@@ -2564,6 +2789,9 @@
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "layoutItem": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/layoutItem"
                         },
                         "animations": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/animations"

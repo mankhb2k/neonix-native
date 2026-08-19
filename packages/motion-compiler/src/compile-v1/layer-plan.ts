@@ -1,6 +1,7 @@
-import { V1, deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
+import { V1 } from "@motionvideo/motion-protocol";
+import { deriveProjectDurationV1 } from "@motionvideo/patterns";
 import type { DiagnosticCollector } from "../compile-result";
-import type { JsonRecord } from "./helpers";
+import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
 import {
   prepareRuntimeLayerGraph,
   type ComponentInstanceRef,
@@ -8,7 +9,7 @@ import {
 
 export type LayerPlan = {
   duration: number;
-  graph: JsonRecord;
+  graph: RuntimeLayerGraph;
   componentInstances: Map<string, ComponentInstanceRef>;
   audioLayers: V1.AudioLayerV1[];
 };

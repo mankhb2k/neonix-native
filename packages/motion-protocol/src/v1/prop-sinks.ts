@@ -76,9 +76,3 @@ export function isOwnerPropSink(
   }
 }
 
-export function variableTypeMatchesPropKind(
-  variableType: string,
-  propKind: string,
-): boolean {
-  return variableType === propKind;
-}

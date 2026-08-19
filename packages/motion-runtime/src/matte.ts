@@ -1,6 +1,7 @@
 /** Shared matte evaluation helpers for alpha/luma mask modes (R5). */
+import type { LayerMask } from "@motionvideo/motion-protocol";
 
-export type MatteMode = "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
+export type MatteMode = LayerMask["mode"];
 
 export type MatteSample = {
   /** Coverage in [0,1] after applying mode. */

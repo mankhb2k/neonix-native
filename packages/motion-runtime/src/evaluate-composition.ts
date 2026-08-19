@@ -4,7 +4,10 @@ import type {
   MotionRuntimeProject,
   RuntimeLayerGraph,
 } from "@motionvideo/motion-protocol/runtime";
-import { timelineTotalDuration } from "./resolve-timeline";
+import {
+  listTimelineSegments,
+  timelineTotalDuration,
+} from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
 import type { RenderSnapshot } from "./render-snapshot";
 import {
@@ -38,18 +41,7 @@ import {
 function layerGraphsForComposition(
   runtime: MotionRuntimeProject,
 ): LayerGraphSegmentInput[] {
-  const duration = runtime.timeline.duration;
-  if (!(duration > 0)) return [];
-  return [
-    {
-      graphId: ROOT_LAYER_GRAPH_ID,
-      start: 0,
-      duration,
-      sourceDuration: duration,
-      trackId: "visual",
-      trackOrder: 0,
-    },
-  ];
+  return listTimelineSegments(runtime);
 }
 
 export function planCompositionFrame(
@@ -92,7 +84,7 @@ function resolveCompositionEvaluateTarget(
   const layerPlan = planCompositionFrame(runtime, globalTime, width, height);
   const primary = layerPlan.layers[layerPlan.layers.length - 1];
   if (primary) {
-    const localFrame = Math.max(0, Math.round(primary.localTime * safeFps));
+    const localFrame = frameIndexAtTime(primary.localTime, safeFps);
     return {
       scene: graph,
       time: primary.localTime,
@@ -229,7 +221,7 @@ export function evaluateCompositionFrameV1(
     const layer = layerPlan.layers[i]!;
     const scene = sceneCache.get(layer.graphId) ?? graph;
 
-    const localFrame = Math.max(0, Math.round(layer.localTime * safeFps));
+    const localFrame = frameIndexAtTime(layer.localTime, safeFps);
     const evaluated = evaluateFrame({
       scene,
       time: layer.localTime,
@@ -278,10 +270,7 @@ export function evaluateCompositionFrameV1(
       throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
       const scene = sceneCache.get(layer.graphId);
       if (!scene || (scene.space ?? "flat-2d") !== "perspective-3d") continue;
-      const localFrame = Math.max(
-        0,
-        Math.round(layer.composition.localTime * safeFps),
-      );
+      const localFrame = frameIndexAtTime(layer.composition.localTime, safeFps);
       const reEvaluated = evaluateFrame({
         scene,
         time: layer.composition.localTime,

@@ -1,10 +1,9 @@
 import { V1 } from "@motionvideo/motion-protocol";
-import type { RuntimePropertyAnimation } from "@motionvideo/motion-protocol/runtime";
-import {
-  clone,
-  setPropertyPath,
-  type JsonRecord,
-} from "./helpers";
+import type {
+  RuntimePropertyAnimation,
+  RuntimeLayerGraph,
+} from "@motionvideo/motion-protocol/runtime";
+import { clone, setPropertyPath } from "./helpers";
 import { prepareRuntimeLayer } from "./prepare";
 import { componentPropKeyframesToPropertyAnimations } from "./to-property-animations";
 
@@ -64,9 +63,7 @@ export function resolvePropTargets(
   return out;
 }
 
-function isKeyframesPropValue(
-  value: unknown,
-): value is {
+function isKeyframesPropValue(value: unknown): value is {
   kind: "keyframes";
   keys: Array<{ t: number; value: unknown; easing?: unknown }>;
 } {
@@ -117,10 +114,7 @@ function collectBindingValuesForInstance(
   for (const binding of bindings) {
     const target = binding.target;
     let propId: string | undefined;
-    if (
-      target.type === "prop" &&
-      target.layerId === instance.id
-    ) {
+    if (target.type === "prop" && target.layerId === instance.id) {
       propId = target.propId;
     }
     if (!propId || !variables.has(binding.source.variableId)) continue;
@@ -175,7 +169,11 @@ function expandOneComponentInstance(
 ): ExpandComponentResult {
   const component = components.get(instanceNode.payload.componentId);
   if (!component) {
-    return { layers: [instanceNode], wrapperId: instanceId, propertyAnimations: [] };
+    return {
+      layers: [instanceNode],
+      wrapperId: instanceId,
+      propertyAnimations: [],
+    };
   }
 
   if (componentInstances && runtimeGraphId) {
@@ -204,7 +202,9 @@ function expandOneComponentInstance(
   const processedInternals = applyComponentPropForwards(
     component,
     V1.flattenLayerTree(component.layers).map((node) =>
-      node.type === "group" ? ({ ...node, children: [] } as V1.GroupLayerV1) : node,
+      node.type === "group"
+        ? ({ ...node, children: [] } as V1.GroupLayerV1)
+        : node,
     ),
     resolvedProps,
   );
@@ -227,7 +227,9 @@ function expandOneComponentInstance(
         null, // nested instances are not graph-root-level; skip global bindings
         null,
       );
-      const nestedWrapper = nested.layers.find((n) => n.id === nested.wrapperId);
+      const nestedWrapper = nested.layers.find(
+        (n) => n.id === nested.wrapperId,
+      );
       if (nestedWrapper && nestedWrapper.type === "group") {
         nestedWrapper.parentLayerId = nestedParentId;
       }
@@ -244,7 +246,9 @@ function expandOneComponentInstance(
         : `${instanceId}__${internal.parentLayerId}`;
     if ("compositing" in cloned && cloned.compositing?.mask) {
       const sourceId = cloned.compositing.mask.sourceLayerId;
-      const isInternal = processedInternals.some((node) => node.id === sourceId);
+      const isInternal = processedInternals.some(
+        (node) => node.id === sourceId,
+      );
       if (isInternal) {
         cloned.compositing = {
           ...cloned.compositing,
@@ -302,7 +306,9 @@ function expandOneComponentInstance(
     transform: clone(instanceNode.transform),
     opacity: "opacity" in instanceNode ? (instanceNode.opacity ?? 100) : 100,
     ...(instanceNode.frame ? { frame: clone(instanceNode.frame) } : {}),
-    ...(instanceNode.zIndex !== undefined ? { zIndex: instanceNode.zIndex } : {}),
+    ...(instanceNode.zIndex !== undefined
+      ? { zIndex: instanceNode.zIndex }
+      : {}),
     ...(instanceNode.timing ? { timing: clone(instanceNode.timing) } : {}),
     ...(instanceNode.effects ? { effects: clone(instanceNode.effects) } : {}),
     ...(instanceNode.compositing
@@ -324,7 +330,11 @@ function expandOneComponentInstance(
       : {}),
   } as V1.LayerV1;
 
-  return { layers: [wrapper, ...expandedInternals], wrapperId, propertyAnimations };
+  return {
+    layers: [wrapper, ...expandedInternals],
+    wrapperId,
+    propertyAnimations,
+  };
 }
 
 /**
@@ -385,7 +395,7 @@ export function prepareRuntimeLayerGraph(
   componentInstances: Map<string, ComponentInstanceRef>,
   runtimeGraphId: string,
   propSourcesBase: LayerGraphPropSources,
-): JsonRecord {
+): RuntimeLayerGraph {
   const {
     layers: expandedLayers,
     wrapperByLayerId,
@@ -397,28 +407,19 @@ export function prepareRuntimeLayerGraph(
     componentInstances,
     propSourcesBase,
   );
-  const result: JsonRecord = {
+  const result: RuntimeLayerGraph = {
     id: runtimeGraphId,
     duration: graph.duration,
     layers: expandedLayers
       .filter((node) => node.type !== "audio")
       .map((node) => {
-      const prepared = prepareRuntimeLayer(node);
-      const compositing = (
-        prepared as {
-          compositing?: { mask?: { sourceLayerId?: string } };
+        const prepared = prepareRuntimeLayer(node);
+        const mask = prepared.compositing?.mask;
+        if (mask && wrapperByLayerId.has(mask.sourceLayerId)) {
+          mask.sourceLayerId = wrapperByLayerId.get(mask.sourceLayerId)!;
         }
-      ).compositing;
-      const mask = compositing?.mask;
-      if (
-        mask &&
-        typeof mask.sourceLayerId === "string" &&
-        wrapperByLayerId.has(mask.sourceLayerId)
-      ) {
-        mask.sourceLayerId = wrapperByLayerId.get(mask.sourceLayerId)!;
-      }
-      return prepared;
-    }),
+        return prepared;
+      }),
     propertyAnimations,
   };
   if (graph.name) result.name = graph.name;

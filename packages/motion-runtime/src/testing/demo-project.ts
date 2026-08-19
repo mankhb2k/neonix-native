@@ -1,8 +1,8 @@
 import {
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionProjectV1,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 /** Matches the in-memory layer graph id used by the runtime evaluator. */
 export const DEMO_SCENE_ID = "root";

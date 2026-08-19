@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { parseMotionProjectV1 } from "../../src/v1/parse";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { MotionV1ReferenceError } from "../../src/v1/references/types";
 
 const ATOMS = visualLayerAtoms({ width: 100, height: 100 });
@@ -21,7 +21,7 @@ function textLayer(
     timing: { start: 0, duration: 4 },
     ...ATOMS,
     payload: {
-      text: "Label" ,
+      text: "Label",
       fontSize: 24,
       color: "#111111",
       alignment: "center",
@@ -487,13 +487,9 @@ describe("V1 component / binding / keyframe references", () => {
   });
 
   it("rejects stale scenes / visualTracks on authoring projects", () => {
+    expect(() => parseMotionProjectV1(baseProject({ scenes: [] }))).toThrow();
     expect(() =>
-      parseMotionProjectV1(baseProject({ scenes: [] })),
-    ).toThrow();
-    expect(() =>
-      parseMotionProjectV1(
-        baseProject({ visualTracks: [] }),
-      ),
+      parseMotionProjectV1(baseProject({ visualTracks: [] })),
     ).toThrow();
   });
 });

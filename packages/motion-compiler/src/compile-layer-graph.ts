@@ -4,7 +4,6 @@
  * V1 animation input is already propertyAnimations (from layer.animations and
  * component prop keyframes). Compiler maps layer.animations → propertyAnimations; no intermediate model.
  */
-import { type MotionLayer } from "@motionvideo/motion-protocol";
 import {
   type MotionRuntimeProject,
   type RuntimeLayerGraph,
@@ -12,7 +11,8 @@ import {
 } from "@motionvideo/motion-protocol/runtime";
 import { applyLayoutConstraints } from "./layout-solver";
 
-type RuntimePropertyAnimation = MotionRuntimeProject["propertyAnimations"][number];
+type RuntimePropertyAnimation =
+  MotionRuntimeProject["propertyAnimations"][number];
 type RuntimeNode = Exclude<
   MotionRuntimeProject["layers"][number],
   { type: "audio" }
@@ -48,7 +48,7 @@ function mergePropertyAnimations(
 export function compileLayerGraphToRuntime(input: {
   id: string;
   duration: number;
-  layers: MotionLayer[];
+  layers: RuntimeNode[];
   propertyAnimations?: RuntimePropertyAnimation[];
   /** Unused on this path: V1 variables reach internals only via prop bindings. */
   variables: Map<string, unknown>;
@@ -69,7 +69,7 @@ export function compileLayerGraphToRuntime(input: {
           },
         }
       : node,
-  ) as RuntimeNode[];
+  );
   const sourceRef = input.sourceRef ?? {
     projectPath: ["layers", input.id],
   };

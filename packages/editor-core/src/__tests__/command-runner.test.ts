@@ -9,10 +9,8 @@ import {
   validateTimelineDocument,
   type TimelineDocument,
 } from "..";
-import {
-  parseMotionProjectV1,
-  visualLayerAtoms,
-} from "@motionvideo/motion-protocol";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 describe("Pure Command Runner Engine", () => {
   it("executes update-scene-duration command atomically", () => {

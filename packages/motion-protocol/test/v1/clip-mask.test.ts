@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { parseMotionProjectV1 } from "../../src/v1/parse";
 import { MotionV1ReferenceError } from "../../src/v1/references/types";
 import {
@@ -8,7 +8,7 @@ import {
   clipMaskGroupIsolationProject,
   clipMaskChildIsolationProject,
   clipMaskComponentInternalProject,
-} from "../../src/v1/__fixtures__/masks/clip-mask-projects";
+} from "../../../patterns/src/__fixtures__/masks/clip-mask-projects";
 
 describe("clip mask fixtures", () => {
   for (const kind of CLIP_MASK_TARGET_KINDS) {
@@ -16,14 +16,22 @@ describe("clip mask fixtures", () => {
       const project = parseMotionProjectV1(clipMaskTargetProject(kind));
       expect(project.composition.width).toBe(400);
       const artwork = project.layers.find((layer) => layer.id === "artwork");
-      expect(artwork && "compositing" in artwork && artwork.compositing?.mask?.mode).toBe("clip");
+      expect(
+        artwork && "compositing" in artwork && artwork.compositing?.mask?.mode,
+      ).toBe("clip");
     });
   }
 
   it("parses group and child isolation fixtures", () => {
-    expect(parseMotionProjectV1(clipMaskGroupIsolationProject()).layers).toHaveLength(3);
-    expect(parseMotionProjectV1(clipMaskChildIsolationProject()).layers).toHaveLength(1);
-    expect(parseMotionProjectV1(clipMaskComponentInternalProject()).components).toHaveLength(1);
+    expect(
+      parseMotionProjectV1(clipMaskGroupIsolationProject()).layers,
+    ).toHaveLength(3);
+    expect(
+      parseMotionProjectV1(clipMaskChildIsolationProject()).layers,
+    ).toHaveLength(1);
+    expect(
+      parseMotionProjectV1(clipMaskComponentInternalProject()).components,
+    ).toHaveLength(1);
   });
 
   it("rejects unknown mask source", () => {
@@ -62,7 +70,14 @@ describe("clip mask fixtures", () => {
       type: "image",
       parentLayerId: null,
       zIndex: 3,
-      ...visualLayerAtoms({ x: 0, y: 0, width: 10, height: 10, originX: 0, originY: 0 }),
+      ...visualLayerAtoms({
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+        originX: 0,
+        originY: 0,
+      }),
       payload: { assetId: "art-asset" },
       timing: { start: 0, duration: 1 },
     });

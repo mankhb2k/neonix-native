@@ -4,10 +4,10 @@ import {
   V1,
   getTextPayloadPlain,
   parseMotionProject,
-  visualLayerAtoms,
   type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   createHistoryState,
   executePropertyCommand,
@@ -93,9 +93,7 @@ describe("property commands", () => {
     if (result.status !== "applied") return;
     const root = result.document.project.layers[0];
     const title = root && root.type === "group" ? root.children[0] : undefined;
-    expect(
-      title && "opacity" in title ? title.opacity : undefined,
-    ).toBe(100);
+    expect(title && "opacity" in title ? title.opacity : undefined).toBe(100);
   });
 
   it("applies set-node-timing for layer mode in/out", () => {
@@ -185,9 +183,7 @@ describe("property commands", () => {
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const node = firstChild(result.document.project);
-    expect(
-      node && "opacity" in node ? node.opacity : undefined,
-    ).toBe(0);
+    expect(node && "opacity" in node ? node.opacity : undefined).toBe(0);
   });
 });
 
@@ -381,8 +377,10 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(withKey.status).toBe("applied");
     if (withKey.status !== "applied") return;
-    const sceneClips = V1.flattenLayerTree(withKey.document.project.layers).flatMap(
-      (layer) => (layer.type === "audio" ? [] : layer.animations ?? []),
+    const sceneClips = V1.flattenLayerTree(
+      withKey.document.project.layers,
+    ).flatMap((layer) =>
+      layer.type === "audio" ? [] : (layer.animations ?? []),
     );
     expect(sceneClips.length).toBeGreaterThan(0);
     const trackClip = sceneClips.find(
@@ -649,7 +647,7 @@ describe("Logic-2 property domain depth", () => {
     expect(b.status).toBe("applied");
     if (b.status !== "applied") return;
     const sceneClips = V1.flattenLayerTree(b.document.project.layers).flatMap(
-      (layer) => (layer.type === "audio" ? [] : layer.animations ?? []),
+      (layer) => (layer.type === "audio" ? [] : (layer.animations ?? [])),
     );
     expect(sceneClips.length).toBe(2);
     expect(new Set(sceneClips.map((c) => c.property)).size).toBe(2);
@@ -676,7 +674,9 @@ describe("Logic-2 property domain depth", () => {
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const kf = V1.flattenLayerTree(result.document.project.layers)
-      .flatMap((layer) => (layer.type === "audio" ? [] : layer.animations ?? []))
+      .flatMap((layer) =>
+        layer.type === "audio" ? [] : (layer.animations ?? []),
+      )
       .find((c) => c.property === "transform.translate.x");
     expect(kf).toBeTruthy();
     expect(kf!.keys[0]!.t).toBeLessThanOrEqual(

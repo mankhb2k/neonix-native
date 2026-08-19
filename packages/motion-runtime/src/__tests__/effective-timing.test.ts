@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Phase 3 — Effective timing tests (Group Layer Semantics).
  *
@@ -32,7 +32,19 @@ function g(
     parentLayerId: overrides.parentLayerId ?? null,
     zIndex: 0,
     timing: overrides.timing,
-    ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+    ...visualLayerAtoms({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0.5,
+      originY: 0.5,
+      opacity: 100,
+      visible: true,
+    }),
     payload: {},
     ...overrides,
   } as RuntimeNode;
@@ -45,7 +57,11 @@ function img(
     timing?: { start: number; duration: number };
   } = {},
 ): RuntimeNode {
-  return g(id, { ...overrides, type: "image", payload: { assetId: "a" } as any });
+  return g(id, {
+    ...overrides,
+    type: "image",
+    payload: { assetId: "a" } as any,
+  });
 }
 
 // ── resolveEffectiveTiming unit tests ──────────────────────────────────
@@ -79,7 +95,10 @@ describe("resolveEffectiveTiming", () => {
     // child effective = parent start + 1 = 3, end = min(5, 3+2=5) = 5
     const layers: RuntimeNode[] = [
       g("parent", { parentLayerId: null, timing: { start: 5, duration: 4 } }),
-      img("child", { parentLayerId: "parent", timing: { start: 1, duration: 2 } }),
+      img("child", {
+        parentLayerId: "parent",
+        timing: { start: 1, duration: 2 },
+      }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
@@ -93,7 +112,10 @@ describe("resolveEffectiveTiming", () => {
     // child: start=2, duration=5 → raw end = 4+5=9, clipped to 5
     const layers: RuntimeNode[] = [
       g("parent", { parentLayerId: null, timing: { start: 2, duration: 3 } }),
-      img("child", { parentLayerId: "parent", timing: { start: 2, duration: 5 } }),
+      img("child", {
+        parentLayerId: "parent",
+        timing: { start: 2, duration: 5 },
+      }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;
@@ -124,10 +146,22 @@ describe("resolveEffectiveTiming", () => {
     // group.head-rig:      start=0.5, dur=1.5 → effective 6.5-8
     // head-image:          start=0, dur=1  → effective 6.5-7.5
     const layers: RuntimeNode[] = [
-      g("group.character", { parentLayerId: null, timing: { start: 5, duration: 4 } }),
-      g("group.upper-body", { parentLayerId: "group.character", timing: { start: 1, duration: 2 } }),
-      g("group.head-rig", { parentLayerId: "group.upper-body", timing: { start: 0.5, duration: 1.5 } }),
-      img("head-image", { parentLayerId: "group.head-rig", timing: { start: 0, duration: 1 } }),
+      g("group.character", {
+        parentLayerId: null,
+        timing: { start: 5, duration: 4 },
+      }),
+      g("group.upper-body", {
+        parentLayerId: "group.character",
+        timing: { start: 1, duration: 2 },
+      }),
+      g("group.head-rig", {
+        parentLayerId: "group.upper-body",
+        timing: { start: 0.5, duration: 1.5 },
+      }),
+      img("head-image", {
+        parentLayerId: "group.head-rig",
+        timing: { start: 0, duration: 1 },
+      }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
 
@@ -203,7 +237,10 @@ describe("effective timing — parent movement", () => {
   it("moving group from start=5 to start=2 moves child from 6-8 to 3-5", () => {
     const layers: RuntimeNode[] = [
       g("parent", { parentLayerId: null, timing: { start: 2, duration: 4 } }),
-      img("child", { parentLayerId: "parent", timing: { start: 1, duration: 2 } }),
+      img("child", {
+        parentLayerId: "parent",
+        timing: { start: 1, duration: 2 },
+      }),
     ];
     const result = resolveEffectiveTiming(layers, 10);
     const ct = result.get("child")!;

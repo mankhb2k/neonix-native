@@ -22,7 +22,7 @@ import {
   type TimelineDocument,
 } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";

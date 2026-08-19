@@ -5,13 +5,16 @@
  */
 
 import { z } from "zod";
-import type { MotionProjectV1 } from "./project";
-import { MotionProjectV1Schema } from "./project";
-import { IdSchema, FiniteNumberSchema } from "./common";
-import { CompositionSettingsSchema } from "./composition";
-import { LayerV1Schema, type LayerV1 } from "./layers";
-import { flattenLayerTree } from "./layer-tree";
-import { AssetV1Schema } from "./assets";
+import {
+  MotionProjectV1Schema,
+  type MotionProjectV1,
+  IdSchema,
+  FiniteNumberSchema,
+  AssetV1Schema,
+  LayerSchema as LayerV1Schema,
+  type MotionLayer as LayerV1,
+  V1,
+} from "@motionvideo/motion-protocol";
 
 export const MOTION_PROJECT_V1_PATCH_FORMAT_VERSION = 1 as const;
 
@@ -37,7 +40,7 @@ function diagnostic(
 export const V1PatchSetCompositionSchema = z
   .object({
     op: z.literal("setComposition"),
-    changes: CompositionSettingsSchema.partial(),
+    changes: V1.CompositionSettingsSchema.partial(),
   })
   .strict();
 
@@ -116,7 +119,7 @@ function clone(project: MotionProjectV1): MotionProjectV1 {
 }
 
 function layerIds(layers: LayerV1[]): Set<string> {
-  return new Set(flattenLayerTree(layers).map((layer) => layer.id));
+  return new Set(V1.flattenLayerTree(layers).map((layer) => layer.id));
 }
 
 function insertIntoGroup(
@@ -135,7 +138,9 @@ function insertIntoGroup(
     if (node.type === "group") {
       return {
         ...node,
-        children: insertIntoGroup(node.children, parentId, child, insertAt) ?? node.children,
+        children:
+          insertIntoGroup(node.children, parentId, child, insertAt) ??
+          node.children,
       };
     }
     return node;
@@ -150,7 +155,10 @@ function replaceLayer(
   return nodes.map((node) => {
     if (node.id === layerId) return nextLayer;
     if (node.type === "group") {
-      return { ...node, children: replaceLayer(node.children, layerId, nextLayer) };
+      return {
+        ...node,
+        children: replaceLayer(node.children, layerId, nextLayer),
+      };
     }
     return node;
   });
@@ -239,7 +247,7 @@ export function applyMotionProjectV1Patch(
           next = { ...next, layers };
           break;
         }
-        const parent = flattenLayerTree(next.layers).find(
+        const parent = V1.flattenLayerTree(next.layers).find(
           (layer) => layer.id === op.layer.parentLayerId,
         );
         if (!parent || parent.type !== "group") {

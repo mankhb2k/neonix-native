@@ -77,13 +77,6 @@ export function validateLayerGraphV1(
       });
     }
 
-    if (node.type !== "group" && "layout" in node && node.layout) {
-      issues.push({
-        path: `${prefix}.${node.id}.layout`,
-        message: `Only group layers may have layout; "${node.type}" cannot`,
-      });
-    }
-
     if (
       node.type !== "audio" &&
       node.type !== "camera" &&
@@ -97,28 +90,6 @@ export function validateLayerGraphV1(
           path: `${prefix}.${node.id}.effects`,
           message: `Duplicate effect id: ${effectId}`,
         });
-      }
-    }
-
-    if ("layoutItem" in node && node.layoutItem) {
-      if (node.parentLayerId === null) {
-        issues.push({
-          path: `${prefix}.${node.id}.layoutItem`,
-          message: `Root layer ${node.id} cannot have layoutItem`,
-        });
-      } else {
-        const parent = byId.get(node.parentLayerId);
-        if (!parent || parent.type !== "group") {
-          issues.push({
-            path: `${prefix}.${node.id}.layoutItem`,
-            message: `layoutItem is only valid on a child visual layer inside a group`,
-          });
-        } else if (!("layout" in parent) || !parent.layout) {
-          issues.push({
-            path: `${prefix}.${node.id}.layoutItem`,
-            message: `layoutItem on ${node.id} requires parent group ${parent.id} to have layout`,
-          });
-        }
       }
     }
 

@@ -1,8 +1,8 @@
 import {
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionProjectV1,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 /** Layers-only HUD card used by compiler / Pixi / worker / editor preview tests. */
 export function createNeonEffectsPreviewProject(): MotionProjectV1 {

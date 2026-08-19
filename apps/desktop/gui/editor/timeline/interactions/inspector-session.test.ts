@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { describe, expect, it } from "vitest";
 import {
   canUndo,
@@ -135,7 +135,9 @@ describe("timeline session property bus", () => {
     state = reduce(state, { type: "UNDO" });
     const undone = state.project!.layers[0];
     expect(
-      undone && "transform" in undone ? undone.transform.translate.x : undefined,
+      undone && "transform" in undone
+        ? undone.transform.translate.x
+        : undefined,
     ).toBe(10);
   });
 });

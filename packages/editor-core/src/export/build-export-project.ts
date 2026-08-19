@@ -7,10 +7,10 @@
 
 import {
   parseMotionProject,
-  visualLayerAtoms,
   type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   documentFromStoreState,
   validateTimelineDocument,
@@ -259,8 +259,7 @@ export function buildExportProject(
       (layer) => layer.type !== "audio",
     );
     const fallback =
-      existingLayer ??
-      emptyPadLayer("segment_empty", 0.5, width, height);
+      existingLayer ?? emptyPadLayer("segment_empty", 0.5, width, height);
     const fallbackLayer: MotionLayer = {
       ...fallback,
       timing: {
@@ -322,12 +321,7 @@ export function buildExportProject(
         );
       }
     } else if (overlayLayers.length > 0) {
-      bakedLayer = emptyPadLayer(
-        segmentId(i),
-        duration,
-        width,
-        height,
-      );
+      bakedLayer = emptyPadLayer(segmentId(i), duration, width, height);
       for (const overlay of overlayLayers) {
         const ovLayer = layersById.get(overlay.layerId);
         if (!ovLayer) continue;

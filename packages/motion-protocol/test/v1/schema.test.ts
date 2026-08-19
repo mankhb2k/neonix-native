@@ -9,7 +9,7 @@ import {
   MotionProjectV1Schema,
 } from "../../src/v1/index";
 import { parseMotionProjectV1 } from "../../src/v1/parse";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 const FIXTURES_DIR = join(__dirname, "..", "..", "src", "v1", "__fixtures__");
 
@@ -17,7 +17,9 @@ function loadFixture(name: string): unknown {
   return JSON.parse(readFileSync(join(FIXTURES_DIR, name), "utf8"));
 }
 
-function baseProject(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function baseProject(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     format: "motion-project",
     formatVersion: 1,
@@ -46,14 +48,18 @@ function solidChild(parentId: string, id = "child") {
 
 describe("v1 schema — positive fixtures", () => {
   it("parses minimal-empty project", () => {
-    const project = MotionProjectV1Schema.parse(loadFixture("minimal-empty.project.json"));
+    const project = MotionProjectV1Schema.parse(
+      loadFixture("minimal-empty.project.json"),
+    );
     expect(project.formatVersion).toBe(MOTION_PROJECT_V1_FORMAT_VERSION);
     expect(project.layers).toEqual([]);
     expect(project).not.toHaveProperty("timeline");
   });
 
   it("parses representative project as nested layers", () => {
-    const project = parseMotionProjectV1(loadFixture("representative.project.json"));
+    const project = parseMotionProjectV1(
+      loadFixture("representative.project.json"),
+    );
     expect(project.layers.length).toBeGreaterThan(0);
     expect(project.layers.every((layer) => layer.parentLayerId === null)).toBe(
       true,
@@ -83,9 +89,7 @@ describe("v1 schema — positive fixtures", () => {
 
 describe("v1 schema — reject old contract", () => {
   it("rejects scenes", () => {
-    const result = MotionProjectV1Schema.safeParse(
-      baseProject({ scenes: [] }),
-    );
+    const result = MotionProjectV1Schema.safeParse(baseProject({ scenes: [] }));
     expect(result.success).toBe(false);
   });
 
@@ -337,7 +341,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -370,7 +374,7 @@ describe("v1 schema — reject old contract", () => {
                 zIndex: 0,
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -404,7 +408,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "A" ,
+                  text: "A",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -418,7 +422,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "B" ,
+                  text: "B",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -452,7 +456,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 3 },
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -557,9 +561,7 @@ describe("v1 schema — reject old contract", () => {
               timing: { start: 0, duration: 1 },
               ...ATOMS,
               layout: { mode: "column" },
-              children: [
-                { ...solidChild("stack"), layoutItem: { grow: 1 } },
-              ],
+              children: [{ ...solidChild("stack"), layoutItem: { grow: 1 } }],
             },
           ],
         }),
@@ -581,7 +583,7 @@ describe("v1 schema — reject old contract", () => {
               transform: ATOMS.transform,
               opacity: ATOMS.opacity,
               payload: {
-                text: "Hi" ,
+                text: "Hi",
                 fontSize: 24,
                 color: "#111111",
                 alignment: "center",
@@ -613,7 +615,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -659,7 +661,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -714,7 +716,7 @@ describe("v1 schema — reject old contract", () => {
                 timing: { start: 0, duration: 1 },
                 ...ATOMS,
                 payload: {
-                  text: "Hi" ,
+                  text: "Hi",
                   fontSize: 24,
                   color: "#111111",
                   alignment: "center",
@@ -839,9 +841,7 @@ describe("v1 schema — reject old contract", () => {
             zIndex: 0,
             timing: { start: 0, duration: 1 },
             ...ATOMS,
-            modifiers: [
-              { id: "m1", type: "parallax", factor: 1 },
-            ],
+            modifiers: [{ id: "m1", type: "parallax", factor: 1 }],
             payload: { color: "#111111" },
           },
         ],

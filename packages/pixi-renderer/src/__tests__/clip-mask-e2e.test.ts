@@ -9,7 +9,7 @@ import {
   clipMaskTargetProject,
   clipMaskGroupIsolationProject,
   clipMaskChildIsolationProject,
-} from "../../../motion-protocol/src/v1/__fixtures__/masks/clip-mask-projects";
+} from "../../../patterns/src/__fixtures__/masks/clip-mask-projects";
 
 function paintProject(raw: unknown) {
   const project = parseMotionProjectV1(raw);
@@ -31,8 +31,7 @@ describe("clip mask e2e (Pixi)", () => {
       const { painter } = paintProject(clipMaskTargetProject(kind));
       const layers = painter.getCompositingLayers();
       const target =
-        layers.get("root:artwork") ??
-        layers.get("root:artwork__instance");
+        layers.get("root:artwork") ?? layers.get("root:artwork__instance");
       expect(target?.maskSourceKey).toBe("root:clip-src");
       expect(target?.display.mask).toBeTruthy();
       painter.dispose();

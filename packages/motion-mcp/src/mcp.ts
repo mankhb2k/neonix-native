@@ -1,50 +1,42 @@
 /**
- * Hợp đồng MCP V1 — bề mặt tự động hóa, không gắn server cụ thể.
+ * MCP V1 contract moved out of motion-protocol.
  *
- * 8 operation chuẩn: schema input + kiểu kết quả.
+ * This package owns automation/tooling-facing schemas and helpers.
+ * motion-protocol stays focused on JSON schema, parse, validate.
  */
 
 import { z } from "zod";
-import { CompositionSettingsSchema } from "./composition";
-import { ProjectMetadataV1Schema } from "./metadata";
-import { MotionProjectV1Schema, type MotionProjectV1 } from "./project";
+import {
+  MotionProjectV1Schema,
+  type MotionProjectV1,
+  V1,
+} from "@motionvideo/motion-protocol";
 import { MotionProjectV1PatchSchema } from "./patch";
-import { computeProjectHash, computeProjectHashShort } from "./canonical-hash";
-
-// ── MCP format constants ──────────────────────────────────────────────
+import {
+  computeProjectHash,
+  computeProjectHashShort,
+} from "@motionvideo/render-contracts";
 
 export const MOTION_MCP_PROTOCOL_VERSION = 1 as const;
 
-// ── Common types ──────────────────────────────────────────────────────
-
 export interface MCPCapabilityCheck {
-  /** All capability IDs found in the project. */
   available: string[];
-  /** Missing required capabilities that gate execution. */
   missing: string[];
-  /** Optional capabilities that would enhance output. */
   recommended: string[];
-  /** Experimental capabilities that require opt-in. */
   experimental: string[];
-  /** Whether the operation can proceed (no missing required capabilities). */
   allowed: boolean;
 }
 
 export interface MCPBaseResult {
-  /** Stable V1 project hash (excludes timestamps, provenance, extensions). */
   projectHash?: string;
-  /** Short hash for display. */
   projectHashShort?: string;
-  /** Warnings (non-fatal). */
   warnings: string[];
 }
 
-// ── create_project ────────────────────────────────────────────────────
-
 export const MCPCreateProjectInputSchema = z
   .object({
-    metadata: ProjectMetadataV1Schema,
-    composition: CompositionSettingsSchema,
+    metadata: V1.ProjectMetadataV1Schema,
+    composition: V1.CompositionSettingsSchema,
     skillId: z
       .string()
       .optional()
@@ -58,8 +50,6 @@ export interface MCPCreateProjectResult extends MCPBaseResult {
   project: MotionProjectV1;
   skillApplied?: string;
 }
-
-// ── validate_project ──────────────────────────────────────────────────
 
 export const MCPValidateProjectInputSchema = z
   .object({
@@ -81,8 +71,6 @@ export interface MCPValidateProjectResult extends MCPBaseResult {
   capabilityCheck: MCPCapabilityCheck;
 }
 
-// ── apply_patch ───────────────────────────────────────────────────────
-
 export const MCPApplyPatchInputSchema = z
   .object({
     project: MotionProjectV1Schema,
@@ -102,8 +90,6 @@ export interface MCPApplyPatchResult extends MCPBaseResult {
   }>;
 }
 
-// ── compile_project ───────────────────────────────────────────────────
-
 export const MCPCompileProjectInputSchema = z
   .object({
     project: MotionProjectV1Schema,
@@ -117,7 +103,6 @@ export type MCPCompileProjectInput = z.infer<
 >;
 
 export interface MCPCompileProjectResult extends MCPBaseResult {
-  /** Runtime IR JSON (may be large — consider streaming). */
   runtimeProject: Record<string, unknown>;
   runtimeHash?: string;
   runtimeHashShort?: string;
@@ -128,8 +113,6 @@ export interface MCPCompileProjectResult extends MCPBaseResult {
     severity: "error" | "warning" | "info";
   }>;
 }
-
-// ── render_preview_frame ──────────────────────────────────────────────
 
 export const MCPRenderPreviewFrameInputSchema = z
   .object({
@@ -147,7 +130,6 @@ export type MCPRenderPreviewFrameInput = z.infer<
 >;
 
 export interface MCPRenderPreviewFrameResult extends MCPBaseResult {
-  /** Base64-encoded image data with data URI prefix. */
   imageDataUri: string;
   frameTime: number;
   width: number;
@@ -155,13 +137,9 @@ export interface MCPRenderPreviewFrameResult extends MCPBaseResult {
   format: "png" | "jpeg";
 }
 
-// ── list_capabilities ─────────────────────────────────────────────────
-
 export const MCPListCapabilitiesInputSchema = z
   .object({
-    /** Filter to capabilities matching this prefix (e.g. "primitive."). */
     filter: z.string().optional(),
-    /** If true, include experimental capabilities. */
     includeExperimental: z.boolean().default(false),
   })
   .strict();
@@ -181,14 +159,10 @@ export interface MCPListCapabilitiesResult extends MCPBaseResult {
   total: number;
 }
 
-// ── inspect_timeline ──────────────────────────────────────────────────
-
 export const MCPInspectTimelineInputSchema = z
   .object({
     project: MotionProjectV1Schema,
-    /** If provided, filter to a specific root layer id. */
     layerId: z.string().optional(),
-    /** If true, include full layer timing and animation detail. */
     verbose: z.boolean().default(false),
   })
   .strict();
@@ -209,11 +183,8 @@ export interface MCPInspectTimelineResult extends MCPBaseResult {
   }>;
 }
 
-// ── explain_diagnostics ───────────────────────────────────────────────
-
 export const MCPExplainDiagnosticsInputSchema = z
   .object({
-    /** Raw diagnostics from another MCP operation. */
     diagnostics: z.array(
       z
         .object({
@@ -223,9 +194,7 @@ export const MCPExplainDiagnosticsInputSchema = z
         })
         .strict(),
     ),
-    /** If true, include suggested fixes / patch operations. */
     suggestFixes: z.boolean().default(true),
-    /** Context language for explanations (e.g. "vi", "en"). */
     locale: z.string().default("en"),
   })
   .strict();
@@ -243,9 +212,6 @@ export interface MCPExplainDiagnosticsResult extends MCPBaseResult {
   }>;
 }
 
-// ── Discriminated tool union ──────────────────────────────────────────
-
-/** All 8 MCP tool operations as a discriminated union. */
 export type MCPToolOperation =
   | {
       tool: "create_project";
@@ -280,7 +246,6 @@ export type MCPToolOperation =
       input: MCPExplainDiagnosticsInput;
     };
 
-/** All 8 MCP tool results as a discriminated union. */
 export type MCPToolResult =
   | {
       tool: "create_project";
@@ -315,8 +280,6 @@ export type MCPToolResult =
       result: MCPExplainDiagnosticsResult;
     };
 
-// ── Tool registry (runtime discovery) ─────────────────────────────────
-
 export interface MCPToolDescriptor {
   name: string;
   description: string;
@@ -325,7 +288,6 @@ export interface MCPToolDescriptor {
   requiredCapabilities: string[];
 }
 
-/** Registry of all 8 MCP tools with metadata for runtime discovery. */
 export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "create_project",
@@ -378,7 +340,7 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "inspect_timeline",
     description:
-      "Inspect a project's timeline — root layers, required zIndex lanes, required timings, property keyframes",
+      "Inspect a project's timeline - root layers, required zIndex lanes, required timings, property keyframes",
     inputSchema: { $ref: "#/definitions/MCPInspectTimelineInput" },
     category: "inspect",
     requiredCapabilities: [],
@@ -393,14 +355,6 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   },
 ];
 
-// ── Preflight helpers ─────────────────────────────────────────────────
-
-/**
- * Run capability preflight on a project.
- *
- * Compares the project's required capabilities against a set of available
- * capability IDs (from the runtime environment).
- */
 export function preflightCapabilities(
   _project: MotionProjectV1,
   _availableCapabilityIds: string[],
@@ -414,36 +368,30 @@ export function preflightCapabilities(
   };
 }
 
-/**
- * Check whether an MCP tool can execute against a project, given available
- * capabilities. Returns false if any tool-required capability is missing.
- */
 export function canExecuteTool(
   toolName: string,
   _project: MotionProjectV1,
   _availableCapabilityIds: string[],
 ): { allowed: boolean; missing: string[] } {
-  const descriptor = MCP_TOOLS.find((t) => t.name === toolName);
+  const descriptor = MCP_TOOLS.find((tool) => tool.name === toolName);
   if (!descriptor) return { allowed: false, missing: ["unknown_tool"] };
   return { allowed: true, missing: [] };
 }
 
-/**
- * Compute the project hash for MCP results, excluding non-deterministic
- * fields (timestamps, provenance, extensions).
- */
 export function computeMCPProjectHash(project: MotionProjectV1): {
   projectHash: string;
   projectHashShort: string;
 } {
-  const projectHash = computeProjectHash(project);
+  const projectHash = computeProjectHash(
+    project as unknown as Record<string, unknown>,
+  );
   return {
     projectHash,
-    projectHashShort: computeProjectHashShort(project),
+    projectHashShort: computeProjectHashShort(
+      project as unknown as Record<string, unknown>,
+    ),
   };
 }
-
-// ── Built-in capability catalog ───────────────────────────────────────
 
 const KNOWN_CAPABILITIES: Array<{
   id: string;
@@ -504,7 +452,8 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "effect.noise",
     name: "Noise Effect",
-    description: "Grain overlay on the layer's opaque pixels — not a default full-screen grain",
+    description:
+      "Grain overlay on the layer's opaque pixels - not a default full-screen grain",
     category: "effect",
     experimental: false,
   },
@@ -560,7 +509,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "primitive.path",
     name: "Path",
-    description: "Bézier path geometry",
+    description: "Bezier path geometry",
     category: "primitive",
     experimental: false,
   },
@@ -615,27 +564,29 @@ const KNOWN_CAPABILITIES: Array<{
   },
 ];
 
-/**
- * List capabilities, optionally filtered by prefix.
- */
 export function listCapabilities(
   filter?: string,
   includeExperimental = false,
 ): MCPListCapabilitiesResult {
-  let caps = KNOWN_CAPABILITIES;
-  if (!includeExperimental) caps = caps.filter((c) => !c.experimental);
-  if (filter) caps = caps.filter((c) => c.id.startsWith(filter));
+  let capabilities = KNOWN_CAPABILITIES;
+  if (!includeExperimental) {
+    capabilities = capabilities.filter(
+      (capability) => !capability.experimental,
+    );
+  }
+  if (filter) {
+    capabilities = capabilities.filter((capability) =>
+      capability.id.startsWith(filter),
+    );
+  }
 
   return {
     warnings: [],
-    capabilities: caps.map((c) => ({ ...c })),
-    total: caps.length,
+    capabilities: capabilities.map((capability) => ({ ...capability })),
+    total: capabilities.length,
   };
 }
 
-/**
- * Inspect a project timeline and return a structured summary.
- */
 export function inspectTimeline(
   project: MotionProjectV1,
   layerId?: string,
@@ -664,20 +615,17 @@ export function inspectTimeline(
   };
 }
 
-/**
- * Explain diagnostics in plain language with optional suggested fixes.
- */
 export function explainDiagnostics(
   input: MCPExplainDiagnosticsInput,
 ): MCPExplainDiagnosticsResult {
-  const explanations = input.diagnostics.map((diag) => {
+  const explanations = input.diagnostics.map((diagnostic) => {
     const { explanation, suggestedAction, suggestedPatch } =
-      explainSingle(diag);
+      explainSingle(diagnostic);
     return {
       original: {
-        path: diag.path,
-        message: diag.message,
-        severity: diag.severity,
+        path: diagnostic.path,
+        message: diagnostic.message,
+        severity: diagnostic.severity,
       },
       explanation,
       ...(suggestedAction ? { suggestedAction } : {}),
@@ -690,7 +638,7 @@ export function explainDiagnostics(
   return { warnings: [], explanations };
 }
 
-function explainSingle(diag: {
+function explainSingle(diagnostic: {
   path: string;
   message: string;
   severity: string;
@@ -699,71 +647,75 @@ function explainSingle(diag: {
   suggestedAction?: string;
   suggestedPatch?: Record<string, unknown>;
 } {
-  // Unknown layer reference
-  if (diag.message.includes("Unknown layer")) {
+  if (diagnostic.message.includes("Unknown layer")) {
     return {
-      explanation: `A binding or patch references a layer that doesn't exist in project.layers.`,
+      explanation:
+        "A binding or patch references a layer that doesn't exist in project.layers.",
       suggestedAction:
         "Remove the binding or add the missing layer to project.layers.",
     };
   }
 
-  // Legacy "Unknown scene" — V1 has no scenes; explain via project.layers
-  if (diag.message.includes("Unknown scene")) {
+  if (diagnostic.message.includes("Unknown scene")) {
     return {
-      explanation: `V1 has no scenes. Visual content lives on project.layers (root zIndex is the timeline lane). The referenced id is not a layer in project.layers.`,
+      explanation:
+        "V1 has no scenes. Visual content lives on project.layers (root zIndex is the timeline lane). The referenced id is not a layer in project.layers.",
       suggestedAction:
         "Use a layer id from project.layers, or add the missing layer.",
     };
   }
 
-  // Missing required field
-  if (diag.message.includes("Required")) {
+  if (diagnostic.message.includes("Required")) {
     return {
-      explanation: `A required field is missing at "${diag.path}". Every MotionProjectV1 document must include this field.`,
-      suggestedAction: `Provide a value for the missing field at "${diag.path}".`,
+      explanation: `A required field is missing at "${diagnostic.path}". Every MotionProjectV1 document must include this field.`,
+      suggestedAction: `Provide a value for the missing field at "${diagnostic.path}".`,
     };
   }
 
-  // Validation error (post-patch)
-  if (diag.message.includes("Post-patch validation")) {
+  if (diagnostic.message.includes("Post-patch validation")) {
     return {
-      explanation: `Applying the patch produced a project that doesn't pass V1 schema validation. The patch operations may have introduced invalid state (e.g., negative durations, missing required fields, orphaned references).`,
+      explanation:
+        "Applying the patch produced a project that doesn't pass V1 schema validation. The patch operations may have introduced invalid state (e.g., negative durations, missing required fields, orphaned references).",
       suggestedAction:
         "Review the patch operations that modified the failing paths. Consider splitting the patch into smaller, incremental patches.",
     };
   }
 
-  // sceneOrder / legacy leak
-  if (diag.message.includes("sceneOrder")) {
+  if (diagnostic.message.includes("sceneOrder")) {
     return {
-      explanation: `The project contains 'sceneOrder', which is not a V1 field. V1 uses project.layers with unique root zIndex as timeline lanes.`,
+      explanation:
+        "The project contains 'sceneOrder', which is not a V1 field. V1 uses project.layers with unique root zIndex as timeline lanes.",
       suggestedAction:
         "Remove the 'sceneOrder' field and express ordering via root layer zIndex.",
     };
   }
 
-  // Transition / legacy leak — transitions are not V1 timeline primitives
-  if (diag.message.includes("scene.transition") || diag.message.includes("transition")) {
+  if (
+    diagnostic.message.includes("scene.transition") ||
+    diagnostic.message.includes("transition")
+  ) {
     return {
-      explanation: `Transition is not a V1 timeline primitive. Visual timing is a layer stack sorted by zIndex. Express motion/effects as layer or component animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
+      explanation:
+        "Transition is not a V1 timeline primitive. Visual timing is a layer stack sorted by zIndex. Express motion/effects as layer or component animation (opacity, transform, blend, mask), not transitionIn/Out fields.",
       suggestedAction:
         "Remove transition fields. Express motion as layer transform/timing on project.layers.",
     };
   }
 
-  // formatVersion must be 1
-  if (diag.message.includes("formatVersion") || diag.path.includes("formatVersion")) {
+  if (
+    diagnostic.message.includes("formatVersion") ||
+    diagnostic.path.includes("formatVersion")
+  ) {
     return {
-      explanation: `Authoring only accepts formatVersion 1 (project.layers). V1 has no tracks in authoring/runtime animation.`,
+      explanation:
+        "Authoring only accepts formatVersion 1 (project.layers). V1 has no tracks in authoring/runtime animation.",
       suggestedAction:
         "Set formatVersion to 1 and use V1 conventions (root layers with type and zIndex).",
     };
   }
 
-  // Generic fallback
   return {
-    explanation: `A "${diag.severity}" diagnostic occurred at "${diag.path}": ${diag.message}. This is a schema or reference integrity issue in the motion project.`,
+    explanation: `A "${diagnostic.severity}" diagnostic occurred at "${diagnostic.path}": ${diagnostic.message}. This is a schema or reference integrity issue in the motion project.`,
     suggestedAction:
       "Check the path for invalid values, missing references, or type mismatches.",
   };

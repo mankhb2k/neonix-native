@@ -1,9 +1,11 @@
 /**
  * Authoring JSON shape — semantic key order + prune empty (core only).
  */
-import type { LayerV1 } from "./layers";
-import type { ProjectMetadataV1 } from "./metadata";
-import type { MotionProjectV1 } from "./types";
+import { V1 } from "@motionvideo/motion-protocol";
+
+type LayerV1 = V1.LayerV1;
+type ProjectMetadataV1 = V1.ProjectMetadataV1;
+type MotionProjectV1 = V1.MotionProjectV1;
 
 const ROOT_KEY_ORDER = [
   "format",
@@ -49,10 +51,7 @@ function reorderKeys(
 function normalizeMetadata(
   metadata: ProjectMetadataV1,
 ): Record<string, unknown> {
-  return reorderKeys(
-    metadata as Record<string, unknown>,
-    METADATA_KEY_ORDER,
-  );
+  return reorderKeys(metadata as Record<string, unknown>, METADATA_KEY_ORDER);
 }
 
 function compareLayers(a: LayerV1, b: LayerV1): number {
@@ -70,15 +69,13 @@ function pruneEmptyAnimations(layer: LayerV1): LayerV1 {
 }
 
 function sortLayers(layers: LayerV1[]): LayerV1[] {
-  return [...layers]
-    .sort(compareLayers)
-    .map((layer) => {
-      const next =
-        layer.type === "group"
-          ? { ...layer, children: sortLayers(layer.children) }
-          : layer;
-      return pruneEmptyAnimations(next);
-    });
+  return [...layers].sort(compareLayers).map((layer) => {
+    const next =
+      layer.type === "group"
+        ? { ...layer, children: sortLayers(layer.children) }
+        : layer;
+    return pruneEmptyAnimations(next);
+  });
 }
 
 export function normalizeAuthoringProjectV1(

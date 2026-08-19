@@ -1,9 +1,5 @@
-import {
-  type MotionProject,
-} from "@motionvideo/motion-protocol";
-import {
-  type MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import { type MotionProject } from "@motionvideo/motion-protocol";
+import { type MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import type { ComponentInput } from "./types";
 import { compileMotionProjectV1 } from "./compile-v1";
 
@@ -86,13 +82,6 @@ export {
   type TextMeasureRequest,
   type TextMeasureResult,
 } from "./text-layout";
-export {
-  compileCaptionTracks,
-  evaluateCaptionStateAtTime,
-  type CompiledCaptionTrack,
-  type CompiledCaptionCue,
-  type ActiveCaptionState,
-} from "./caption-compiler";
 export {
   bakeMotionRecipe,
   isMotionRecipe,

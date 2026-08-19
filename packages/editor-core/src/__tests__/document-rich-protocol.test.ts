@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   parseMotionProjectV1,
   MotionProjectV1Schema,
-  visualLayerAtoms,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   collectLayerIds,
   validateTimelineDocument,
@@ -349,7 +349,9 @@ describe("sanitizeEditorProject preserves core fields", () => {
           id: "comp.badge",
           version: "1.0.0",
           integrity: "sha256-comp-badge",
-          props: [{ id: "label", name: "Label", kind: "string", default: "Hi" }],
+          props: [
+            { id: "label", name: "Label", kind: "string", default: "Hi" },
+          ],
           variants: [],
           propBindings: [],
           layers: [solidLayer("comp.layer", null, 0, 0, 1)],

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MotionProjectV1PatchSchema } from "@motionvideo/motion-protocol";
+import { MotionProjectV1PatchSchema } from "@motionvideo/motion-mcp";
 
 const Id = z.string().min(1).max(128);
 const Finite = z.number().finite();
@@ -525,12 +525,6 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("setSceneBackground"),
       sceneId: Id,
       fill: z.string().min(1),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("upsertCaptionTrack"),
-      track: z.record(z.unknown()),
     })
     .strict(),
 ]);

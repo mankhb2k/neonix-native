@@ -12,7 +12,7 @@ const AssetDimensionSchema = FiniteNumberSchema.int()
   .positive()
   .max(MOTION_PROTOCOL_LIMITS.assetDimension);
 
-function pixelFormatHasAlpha(pixelFormat: string): boolean {
+export function pixelFormatHasAlpha(pixelFormat: string): boolean {
   return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
 }
 

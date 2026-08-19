@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Requires `pnpm build:main` so dist/main/journal-validate.worker.js exists.
  * Asserts packaged-bound worker path can validate a >1MB document via worker.
@@ -34,7 +34,19 @@ function inflateToBytes(base: string, targetBytes: number): string {
     parentLayerId: null,
     zIndex: 0,
     timing: { start: 0, duration: 1 },
-    ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+    ...visualLayerAtoms({
+      x: 1,
+      y: 1,
+      width: 10,
+      height: 10,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0.5,
+      originY: 0.5,
+      opacity: 100,
+      visible: true,
+    }),
     payload: {
       text: "",
       fontSize: 12,

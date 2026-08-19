@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { describe, expect, it } from "vitest";
 import { evaluateFrame } from "./evaluated-frame";
 import {
@@ -19,7 +19,19 @@ function pathScene(): RuntimeScene {
         type: "camera",
         parentLayerId: null,
         zIndex: 0,
-        ...visualLayerAtoms({ x: 100, y: 50, width: 1, height: 1, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+        ...visualLayerAtoms({
+          x: 100,
+          y: 50,
+          width: 1,
+          height: 1,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
         payload: { zoom: 1.5, projection: "orthographic", parallaxStrength: 1 },
       },
       {
@@ -27,7 +39,19 @@ function pathScene(): RuntimeScene {
         type: "path",
         parentLayerId: null,
         zIndex: 1,
-        ...visualLayerAtoms({ x: 0, y: 0, width: 200, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+        ...visualLayerAtoms({
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
         payload: {
           contours: [
             {
@@ -36,7 +60,12 @@ function pathScene(): RuntimeScene {
               closed: false,
               segments: [
                 { kind: "line", to: { x: 180, y: 10 } },
-                { kind: "cubic", control1: { x: 180, y: 40 }, control2: { x: 120, y: 80 }, to: { x: 60, y: 80 } },
+                {
+                  kind: "cubic",
+                  control1: { x: 180, y: 40 },
+                  control2: { x: 120, y: 80 },
+                  to: { x: 60, y: 80 },
+                },
               ],
             },
           ],
@@ -77,7 +106,11 @@ describe("wave2 path + camera paint", () => {
   });
 
   it("cameraViewMatrix matches worker ordering", () => {
-    const m = cameraViewMatrix({ x: 100, y: 50, rotation: 0, zoom: 2 }, 200, 100);
+    const m = cameraViewMatrix(
+      { x: 100, y: 50, rotation: 0, zoom: 2 },
+      200,
+      100,
+    );
     // Center then zoom then -camera: point (100,50) maps near canvas center.
     expect(m.a).toBeCloseTo(2);
     expect(m.d).toBeCloseTo(2);

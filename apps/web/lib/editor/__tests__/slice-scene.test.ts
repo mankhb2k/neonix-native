@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sliceScene, clipLocalTime } from "@motionvideo/editor-core";
 import type { MotionLayer } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 function makeTextChild(
   id: string,

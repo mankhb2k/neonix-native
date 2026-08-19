@@ -29,9 +29,7 @@ export function toRuntimeProperty(property: string): string {
   return property;
 }
 
-export function pixelFormatHasAlpha(pixelFormat: string): boolean {
-  return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
-}
+export { pixelFormatHasAlpha } from "@motionvideo/motion-protocol/runtime";
 
 export function deriveAspectRatio(
   width: number,

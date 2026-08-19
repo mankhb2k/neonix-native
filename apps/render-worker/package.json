@@ -18,6 +18,7 @@
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
+    "@motionvideo/patterns": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
     "@napi-rs/canvas": "^0.1.80",
     "ffmpeg-static": "^5.2.0"

@@ -41,7 +41,7 @@ import {
 } from "./curve-sampler";
 import { evaluateDriverGraph } from "./procedural-driver";
 import { RuntimeDiagnosticCollector } from "./diagnostics";
-import { FRAME_EPSILON, deterministicUint32 } from "./determinism";
+import { deterministicUint32, quantizeTimeToMilliseconds } from "./determinism";
 import {
   resolveEffectiveTiming,
   isNodeTimeActive,
@@ -447,9 +447,7 @@ export function evaluateEffect(
         ),
       };
     case "noise": {
-      const frame = effect.animated
-        ? Math.max(0, Math.floor(time * 1000 + FRAME_EPSILON))
-        : 0;
+      const frame = effect.animated ? quantizeTimeToMilliseconds(time) : 0;
       return {
         ...effect,
         amount: effectNumber(

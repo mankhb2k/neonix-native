@@ -16,6 +16,8 @@
   "dependencies": {
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
+    "@motionvideo/patterns": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {

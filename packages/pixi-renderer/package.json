@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@motionvideo/motion-compiler": "workspace:*",
+    "@motionvideo/patterns": "workspace:*",
     "typescript": "^5.8.2",
     "vitest": "^4.1.10"
   }

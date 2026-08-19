@@ -28,6 +28,7 @@ import {
 } from "@/lib/docs/content/getting-started";
 import { getEditorPage, isEditorSlug } from "@/lib/docs/content/editor";
 import { getLayersPage, isLayersSlug } from "@/lib/docs/content/layers";
+import { getLayoutPage, isLayoutSlug } from "@/lib/docs/content/layout";
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { getProjectPage, isProjectSlug } from "@/lib/docs/content/project";
 import { stubPage } from "@/lib/docs/content/stub";
@@ -44,6 +45,7 @@ export function getDocsPage(slug: string): DocsPageView {
   if (isProjectSlug(slug)) return getProjectPage(slug);
   if (isEditorSlug(slug)) return getEditorPage(slug);
   if (isLayersSlug(slug)) return getLayersPage(slug);
+  if (isLayoutSlug(slug)) return getLayoutPage(slug);
   if (isTransformSlug(slug)) return getTransformPage(slug);
   if (isAppearanceSlug(slug)) return getAppearancePage(slug);
   if (isEffectsSlug(slug)) return getEffectsPage(slug);

@@ -1,6 +1,5 @@
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
+import { clampSegmentLocalTime } from "./determinism";
 import { ROOT_LAYER_GRAPH_ID } from "./layer-graph";
 
 export type TimelineProjectLike = {
@@ -74,10 +73,7 @@ export function resolveTimelineAtTime(
   const end = segment.start + segment.duration;
   if (t < segment.start || t >= end) return null;
 
-  const localTime = Math.min(
-    Math.max(0, t - segment.start),
-    Math.max(0, segment.duration - 1e-6),
-  );
+  const localTime = clampSegmentLocalTime(t - segment.start, segment.duration);
   return {
     graphId: segment.graphId,
     localTime,

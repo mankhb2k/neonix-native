@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseMotionProjectV1 } from "../../src/v1";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { isLayerPropertyAnimatable } from "../../src/capabilities";
 
 const ATOMS = visualLayerAtoms({ width: 800, height: 120 });
@@ -58,7 +58,9 @@ describe("V1 layer.animations", () => {
       1,
     );
     expect(
-      layer && "animations" in layer ? layer.animations?.[0]?.property : undefined,
+      layer && "animations" in layer
+        ? layer.animations?.[0]?.property
+        : undefined,
     ).toBe("transform.translate.x");
   });
 

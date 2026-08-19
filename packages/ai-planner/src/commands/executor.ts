@@ -4,8 +4,6 @@ import {
   isMotionRecipe,
 } from "@motionvideo/motion-compiler";
 import {
-  visualLayerAtoms,
-  applyMotionProjectV1Patch,
   normalizeTextPayloadInput,
   parseMotionProject as parseMotionProjectStrict,
   ProceduralDriverSchema,
@@ -13,6 +11,8 @@ import {
   type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
+import { applyMotionProjectV1Patch } from "@motionvideo/motion-mcp";
 import { type MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import {
   type CommandReceipt,
@@ -1901,7 +1901,6 @@ function applyOne(
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
-      case "upsertCaptionTrack":
       case "addComponentInstance":
       case "addAudioCue":
         return {

@@ -17,7 +17,7 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {

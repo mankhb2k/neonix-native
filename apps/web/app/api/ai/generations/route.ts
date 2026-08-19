@@ -6,10 +6,8 @@ import {
   runZeroTemplateGeneration,
   type OrchestratorProgress,
 } from "@motionvideo/ai-planner";
-import {
-  parseMotionProject,
-  serializeMotionProjectV1Authoring,
-} from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { serializeMotionProjectV1Authoring } from "@motionvideo/patterns";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;

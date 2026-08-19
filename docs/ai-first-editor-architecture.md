@@ -65,19 +65,19 @@ validates `format: "motion-project"`, `formatVersion: 1`.
 
 ## 2. Boundaries: What Lives Where
 
-| Concern                         | Lives In                                     | NOT In Project JSON   |
-| ------------------------------- | -------------------------------------------- | --------------------- |
-| Scene graph, clips, tracks      | `MotionProjectV1`                            | —                     |
-| Variable definitions & bindings | `MotionProjectV1`                            | —                     |
-| Asset references (by ID)        | `MotionProjectV1`                            | Asset binary data     |
-| Capability requirements         | `project.capabilities`                       | Runtime detection     |
-| Composition settings            | `project.composition`                        | Render worker config  |
-| Design tokens                   | `project.tokens`                             | Raw CSS / theme files |
-| Editor UI state                 | App-specific store (Zustand / session-store) | ✅ NOT in project     |
-| Undo/redo history               | Editor command history                       | ✅ NOT in project     |
+| Concern                                                 | Lives In                                     | NOT In Project JSON   |
+| ------------------------------------------------------- | -------------------------------------------- | --------------------- |
+| Scene graph, clips, tracks                              | `MotionProjectV1`                            | —                     |
+| Variable definitions & bindings                         | `MotionProjectV1`                            | —                     |
+| Asset references (by ID)                                | `MotionProjectV1`                            | Asset binary data     |
+| Capability requirements                                 | `project.capabilities`                       | Runtime detection     |
+| Composition settings                                    | `project.composition`                        | Render worker config  |
+| Design tokens                                           | `project.tokens`                             | Raw CSS / theme files |
+| Editor UI state                                         | App-specific store (Zustand / session-store) | ✅ NOT in project     |
+| Undo/redo history                                       | Editor command history                       | ✅ NOT in project     |
 | playhead / currentTime, selection, zoom, scroll, panels | UI session only — never in `MotionProjectV1` | ✅ NOT in project     |
-| AI generation metadata          | `provenance` (optional)                      | AI model state        |
-| Custom extensions               | `extensions` (namespaced)                    | —                     |
+| AI generation metadata                                  | `provenance` (optional)                      | AI model state        |
+| Custom extensions                                       | `extensions` (namespaced)                    | —                     |
 
 **Rule**: If the editor crashes and restarts, the project JSON must survive
 intact with no editor-only artifacts.
@@ -120,7 +120,7 @@ Agents don't mutate project JSON directly for partial edits — they use
 import {
   applyMotionProjectV1Patch,
   type MotionProjectV1Patch,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-mcp";
 
 const patch: MotionProjectV1Patch = {
   operations: [
@@ -317,7 +317,7 @@ if (!check.allowed) {
 import {
   computeProjectHash,
   computeProjectHashShort,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/render-contracts";
 
 const hash = computeProjectHash(project); // 64-char SHA-256
 const short = computeProjectHashShort(project); // first 16 chars
@@ -330,7 +330,7 @@ const short = computeProjectHashShort(project); // first 16 chars
 ### 6.2 Runtime Hash
 
 ```typescript
-import { computeRuntimeHash } from "@motionvideo/motion-protocol";
+import { computeRuntimeHash } from "@motionvideo/render-contracts";
 
 const runtimeHash = computeRuntimeHash(runtimeIR); // 32-char SHA-256
 

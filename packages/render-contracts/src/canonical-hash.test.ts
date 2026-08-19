@@ -11,16 +11,18 @@
 import { describe, expect, it } from "vitest";
 import {
   canonicalJson,
-  deepSortKeys,
   computeProjectHash,
   computeProjectHashShort,
   computeRuntimeHash,
+  buildCapabilityFingerprint,
+  RENDER_MANIFEST_VERSION,
+} from "./canonical-hash";
+import {
+  deepSortKeys,
   computeContentHash,
   shortHash,
   hashesMatch,
-  buildCapabilityFingerprint,
-  RENDER_MANIFEST_VERSION,
-} from "../../src/v1/canonical-hash";
+} from "./content-hash";
 
 // ── canonicalJson ─────────────────────────────────────────────────────
 
@@ -237,7 +239,13 @@ describe("computeProjectHashShort", () => {
     const hash = computeProjectHashShort({
       format: "motion-project",
       formatVersion: 1,
-      metadata: { id: "test", name: "Test", locale: "vi-VN", createdAt: "", updatedAt: "" },
+      metadata: {
+        id: "test",
+        name: "Test",
+        locale: "vi-VN",
+        createdAt: "",
+        updatedAt: "",
+      },
       composition: { width: 1920, height: 1080, fps: 30, background: "#000" },
       components: [],
       layers: [],
@@ -293,7 +301,15 @@ describe("computeRuntimeHash", () => {
   it("different IR produces different hash", () => {
     const ir2 = {
       ...baseIR,
-      layers: [{ id: "s1", type: "group", parentLayerId: null, transform: {}, payload: {} }],
+      layers: [
+        {
+          id: "s1",
+          type: "group",
+          parentLayerId: null,
+          transform: {},
+          payload: {},
+        },
+      ],
     };
     expect(computeRuntimeHash(baseIR)).not.toBe(computeRuntimeHash(ir2));
   });

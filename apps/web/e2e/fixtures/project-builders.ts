@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Minimal MotionProject + timeline builders for Playwright seeding.
  * Keep JSON plain — runs in Node and is serialized into page.addInitScript.
@@ -42,14 +42,30 @@ export type TimelineClipSeed = {
   assetId?: string;
 };
 
-function textNode(id: string, parentLayerId: string, text: string, duration: number) {
+function textNode(
+  id: string,
+  parentLayerId: string,
+  text: string,
+  duration: number,
+) {
   return {
     id,
     type: "text" as const,
     parentLayerId,
     zIndex: 0,
     timing: { start: 0, duration },
-    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100 }),
+    ...visualLayerAtoms({
+      x: 40,
+      y: 40,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      originX: 0,
+      originY: 0,
+      opacity: 100,
+    }),
     payload: {
       text,
       fontSize: 24,
@@ -217,10 +233,7 @@ export function buildOverlayCrossLaneProject(
   return buildStoredProject({
     projectId,
     name: "E2E Cross Lane Overlay",
-    scenes: [
-      scene("scene.main", "Main", 4),
-      scene("scene.ov", "OvClip", 2),
-    ],
+    scenes: [scene("scene.main", "Main", 4), scene("scene.ov", "OvClip", 2)],
     clips: [
       sceneClip({
         id: "clip.main",
@@ -248,7 +261,9 @@ export function buildOverlayCrossLaneProject(
 }
 
 /** Two audio lanes + base — cross-lane audio DnD. */
-export function buildAudioCrossLaneProject(projectId = "e2e.editor.audio-cross") {
+export function buildAudioCrossLaneProject(
+  projectId = "e2e.editor.audio-cross",
+) {
   return buildStoredProject({
     projectId,
     name: "E2E Cross Lane Audio",
@@ -524,4 +539,3 @@ export function buildPackedMainWithGroupProject(
     overlayScenes: [],
   };
 }
-

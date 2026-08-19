@@ -6,11 +6,13 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  MotionProjectV1Schema,
   normalizeAuthoringProjectV1,
   serializeMotionProjectV1Authoring,
-} from "../../src/v1/index";
-import { parseMotionProjectV1 } from "../../src/v1/parse";
+} from "../src/index";
+import {
+  MotionProjectV1Schema,
+  parseMotionProjectV1,
+} from "@motionvideo/motion-protocol";
 
 function solidLayer(
   id: string,

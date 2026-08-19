@@ -11,10 +11,12 @@ import {
   HueRotateSchema,
   PositiveNumberSchema,
 } from "../common";
+import { LayoutConstraintSchema } from "../group";
 import { LayerBaseV1Schema } from "./base";
 
 export const GroupLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("group"),
+  layout: LayoutConstraintSchema.optional(),
   payload: z.object({}).strict().optional(),
 }).strict();
 

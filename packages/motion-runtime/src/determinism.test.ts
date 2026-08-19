@@ -4,6 +4,7 @@ import {
   GEOMETRY_EPSILON,
   LENGTH_EPSILON,
   roundTimeToFrame,
+  quantizeTimeToMilliseconds,
   frameToTime,
   deterministicTieBreak,
   numericThenId,
@@ -58,6 +59,20 @@ describe("roundTimeToFrame", () => {
     expect(() => roundTimeToFrame(0, 0)).toThrow();
     expect(() => roundTimeToFrame(0, -1)).toThrow();
     expect(() => roundTimeToFrame(0, NaN)).toThrow();
+  });
+});
+
+describe("quantizeTimeToMilliseconds", () => {
+  it("maps sub-millisecond drift to a stable integer", () => {
+    expect(quantizeTimeToMilliseconds(1.0004)).toBe(1000);
+    expect(quantizeTimeToMilliseconds(1.0005000000000002)).toBe(1000);
+    expect(quantizeTimeToMilliseconds(1.001)).toBe(1001);
+  });
+
+  it("clamps negative and non-finite time to 0", () => {
+    expect(quantizeTimeToMilliseconds(-0.001)).toBe(0);
+    expect(quantizeTimeToMilliseconds(Number.NaN)).toBe(0);
+    expect(quantizeTimeToMilliseconds(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });
 
@@ -178,6 +193,8 @@ describe("deterministicRandom", () => {
   });
 
   it("is deterministic", () => {
-    expect(deterministicRandom("s", "c", 0)).toBe(deterministicRandom("s", "c", 0));
+    expect(deterministicRandom("s", "c", 0)).toBe(
+      deterministicRandom("s", "c", 0),
+    );
   });
 });

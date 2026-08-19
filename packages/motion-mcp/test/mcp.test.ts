@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
-  MCPCreateProjectInputSchema,
-  MCPValidateProjectInputSchema,
   MCPApplyPatchInputSchema,
-  MCPListCapabilitiesInputSchema,
-  MCPInspectTimelineInputSchema,
-  MCPExplainDiagnosticsInputSchema,
   MCPCompileProjectInputSchema,
+  MCPCreateProjectInputSchema,
+  MCPExplainDiagnosticsInputSchema,
+  MCPInspectTimelineInputSchema,
+  MCPListCapabilitiesInputSchema,
   MCPRenderPreviewFrameInputSchema,
+  MCPValidateProjectInputSchema,
   MCP_TOOLS,
-  preflightCapabilities,
   canExecuteTool,
   computeMCPProjectHash,
-  listCapabilities,
-  inspectTimeline,
   explainDiagnostics,
-} from "../../src/v1/mcp";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
-import type { MotionProjectV1 } from "../../src/v1/index";
+  inspectTimeline,
+  listCapabilities,
+  preflightCapabilities,
+} from "../src";
+import type { MotionProjectV1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 function minimalProject(): MotionProjectV1 {
   return {
@@ -38,9 +38,7 @@ function minimalProject(): MotionProjectV1 {
   };
 }
 
-describe("V1 MCP contract", () => {
-  // ── Input schemas ─────────────────────────────────────────────────
-
+describe("motion-mcp", () => {
   it("parses create_project input", () => {
     const input = MCPCreateProjectInputSchema.parse({
       metadata: { id: "p1", name: "Proj", locale: "en-US" },
@@ -86,9 +84,7 @@ describe("V1 MCP contract", () => {
         format: "motion-project-patch",
         formatVersion: 1,
         baseRevision: 0,
-        operations: [
-          { op: "setComposition", changes: { fps: 60 } },
-        ],
+        operations: [{ op: "setComposition", changes: { fps: 60 } }],
       },
     });
     expect(input.patch.operations).toHaveLength(1);
@@ -119,7 +115,7 @@ describe("V1 MCP contract", () => {
       height: 960,
     });
     expect(input.time).toBe(1.5);
-    expect(input.format).toBe("png"); // default
+    expect(input.format).toBe("png");
   });
 
   it("parses list_capabilities input", () => {
@@ -160,17 +156,15 @@ describe("V1 MCP contract", () => {
     expect(input.diagnostics).toHaveLength(1);
   });
 
-  // ── Tool registry ─────────────────────────────────────────────────
-
-  it("inspect_timeline describes layers, not tracks/clips", () => {
-    const tool = MCP_TOOLS.find((t) => t.name === "inspect_timeline");
-    expect(tool?.description).toMatch(/root layers/);
+  it("inspect_timeline keeps layer language, not track/clip language", () => {
+    const tool = MCP_TOOLS.find((entry) => entry.name === "inspect_timeline");
+    expect(tool?.description).toMatch(/root layers/i);
     expect(tool?.description).not.toMatch(/clips/i);
     expect(tool?.description).not.toMatch(/tracks/i);
   });
 
   it("all tool names are unique", () => {
-    const names = MCP_TOOLS.map((t) => t.name);
+    const names = MCP_TOOLS.map((entry) => entry.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
@@ -180,8 +174,6 @@ describe("V1 MCP contract", () => {
       expect(validCategories).toContain(tool.category);
     }
   });
-
-  // ── Preflight ─────────────────────────────────────────────────────
 
   it("preflightCapabilities allows empty required", () => {
     const project = minimalProject();
@@ -204,14 +196,12 @@ describe("V1 MCP contract", () => {
     expect(result.missing).toHaveLength(0);
   });
 
-  // ── Project hash ──────────────────────────────────────────────────
-
-  it("computeMCPProjectHash returns consistent hashes", () => {
+  it("computeMCPProjectHash is stable", () => {
     const project = minimalProject();
-    const h1 = computeMCPProjectHash(project);
-    const h2 = computeMCPProjectHash(project);
-    expect(h1.projectHash).toBe(h2.projectHash);
-    expect(h1.projectHashShort).toBe(h2.projectHashShort);
+    const a = computeMCPProjectHash(project);
+    const b = computeMCPProjectHash(project);
+    expect(a.projectHash).toBe(b.projectHash);
+    expect(a.projectHashShort).toBe(b.projectHashShort);
   });
 
   it("computeMCPProjectHash changes when project changes", () => {
@@ -225,27 +215,83 @@ describe("V1 MCP contract", () => {
     );
   });
 
-  // ── listCapabilities ──────────────────────────────────────────────
-
   it("lists all non-experimental capabilities by default", () => {
     const result = listCapabilities();
     expect(result.total).toBeGreaterThan(0);
-    expect(result.capabilities.every((c) => !c.experimental)).toBe(true);
+    expect(result.capabilities.every((entry) => !entry.experimental)).toBe(
+      true,
+    );
   });
 
-  it("filters capabilities by prefix", () => {
+  it("listCapabilities filters by prefix", () => {
     const result = listCapabilities("primitive.");
     expect(
-      result.capabilities.every((c) => c.id.startsWith("primitive.")),
+      result.capabilities.every((entry) => entry.id.startsWith("primitive.")),
     ).toBe(true);
   });
 
   it("includes experimental when requested", () => {
     const result = listCapabilities(undefined, true);
-    expect(result.capabilities.some((c) => c.experimental)).toBe(true);
+    expect(result.capabilities.some((entry) => entry.experimental)).toBe(true);
   });
 
-  // ── inspectTimeline ───────────────────────────────────────────────
+  it("inspectTimeline summarizes root layers", () => {
+    const project: MotionProjectV1 = {
+      ...minimalProject(),
+      layers: [
+        {
+          id: "main",
+          type: "group",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 100, height: 100 },
+          transform: {
+            translate: { x: 0, y: 0 },
+            scale: { x: 1, y: 1 },
+            rotate: { z: 0 },
+            skew: { x: 0, y: 0 },
+            origin: { x: 0.5, y: 0.5 },
+            depth: 0,
+          },
+          opacity: 100,
+          timing: { start: 0, duration: 2 },
+          payload: {},
+          children: [
+            {
+              id: "text-1",
+              type: "text",
+              parentLayerId: "main",
+              zIndex: 0,
+              frame: { width: 40, height: 20 },
+              transform: {
+                translate: { x: 0, y: 0 },
+                scale: { x: 1, y: 1 },
+                rotate: { z: 0 },
+                skew: { x: 0, y: 0 },
+                origin: { x: 0.5, y: 0.5 },
+                depth: 0,
+              },
+              opacity: 100,
+              timing: { start: 0, duration: 2 },
+              payload: {
+                text: "Hello",
+                fontSize: 16,
+                color: "#ffffff",
+                alignment: "left",
+                wrap: "word",
+                overflow: "clip",
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = inspectTimeline(project);
+    expect(result.rootLayerCount).toBe(1);
+    expect(result.totalDuration).toBe(2);
+    expect(result.layers[0]?.id).toBe("main");
+  });
 
   it("inspects an empty project", () => {
     const project = minimalProject();
@@ -265,7 +311,19 @@ describe("V1 MCP contract", () => {
           parentLayerId: null,
           zIndex: 0,
           timing: { start: 0, duration: 3 },
-          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+          }),
           children: [],
         },
         {
@@ -294,7 +352,19 @@ describe("V1 MCP contract", () => {
           parentLayerId: null,
           zIndex: 0,
           timing: { start: 0, duration: 2 },
-          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+          }),
           children: [],
         },
         {
@@ -303,18 +373,43 @@ describe("V1 MCP contract", () => {
           parentLayerId: null,
           zIndex: 1,
           timing: { start: 0, duration: 1 },
-          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+          ...visualLayerAtoms({
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            originX: 0.5,
+            originY: 0.5,
+            opacity: 100,
+            visible: true,
+          }),
           children: [],
         },
       ],
     } as unknown as MotionProjectV1;
     const result = inspectTimeline(project, "overlay");
     expect(result.rootLayerCount).toBe(1);
-    expect(result.layers[0]!.id).toBe("overlay");
-    expect(result.layers[0]!.zIndex).toBe(1);
+    expect(result.layers[0]?.id).toBe("overlay");
+    expect(result.layers[0]?.zIndex).toBe(1);
   });
 
-  // ── explainDiagnostics ────────────────────────────────────────────
+  it("explainDiagnostics rewrites legacy scene errors", () => {
+    const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
+      diagnostics: [
+        {
+          path: "timeline.sceneOrder",
+          message: "Unknown scene: intro",
+          severity: "error",
+        },
+      ],
+    });
+    expect(result.explanations[0]?.explanation).toContain("V1 has no scenes");
+  });
 
   it("explains unknown layer diagnostics", () => {
     const result = explainDiagnostics({
@@ -329,7 +424,7 @@ describe("V1 MCP contract", () => {
       ],
     });
     expect(result.explanations).toHaveLength(1);
-    expect(result.explanations[0]!.explanation).toContain("doesn't exist");
+    expect(result.explanations[0]?.explanation).toContain("doesn't exist");
   });
 
   it("explains sceneOrder leak diagnostics", () => {
@@ -340,13 +435,13 @@ describe("V1 MCP contract", () => {
         {
           path: "output.project.timeline",
           message:
-            "Skill output contains field 'sceneOrder' — use project.layers with root zIndex",
+            "Skill output contains field 'sceneOrder' - use project.layers with root zIndex",
           severity: "error",
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain("sceneOrder");
-    expect(result.explanations[0]!.explanation).toContain("project.layers");
+    expect(result.explanations[0]?.explanation).toContain("sceneOrder");
+    expect(result.explanations[0]?.explanation).toContain("project.layers");
   });
 
   it("explains scene.transition V2 leak diagnostics", () => {
@@ -357,15 +452,15 @@ describe("V1 MCP contract", () => {
         {
           path: "output.project.scenes.0.transition",
           message:
-            "Skill output contains V2 field 'scene.transition' — transitions are not V1 primitives; express effects as scene/component/layer animation",
+            "Skill output contains V2 field 'scene.transition' - transitions are not V1 primitives; express effects as scene/component/layer animation",
           severity: "error",
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain(
+    expect(result.explanations[0]?.explanation).toContain(
       "not a V1 timeline primitive",
     );
-    expect(result.explanations[0]!.suggestedAction).toContain(
+    expect(result.explanations[0]?.suggestedAction).toContain(
       "Remove transition",
     );
   });
@@ -378,13 +473,13 @@ describe("V1 MCP contract", () => {
         {
           path: "output.project.formatVersion",
           message:
-            "Skill output contains formatVersion: 2 — V1 projects must use formatVersion: 1",
+            "Skill output contains formatVersion: 2 - V1 projects must use formatVersion: 1",
           severity: "error",
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain("formatVersion");
-    expect(result.explanations[0]!.explanation).toContain("project.layers");
+    expect(result.explanations[0]?.explanation).toContain("formatVersion");
+    expect(result.explanations[0]?.explanation).toContain("project.layers");
   });
 
   it("explains post-patch validation failures", () => {
@@ -399,7 +494,7 @@ describe("V1 MCP contract", () => {
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain(
+    expect(result.explanations[0]?.explanation).toContain(
       "doesn't pass V1 schema validation",
     );
   });
@@ -422,7 +517,7 @@ describe("V1 MCP contract", () => {
       diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: true,
     });
-    expect(withFixes.explanations[0]!.suggestedAction).toBeDefined();
+    expect(withFixes.explanations[0]?.suggestedAction).toBeDefined();
 
     const withoutFixes = explainDiagnostics({
       locale: "en",
@@ -430,7 +525,7 @@ describe("V1 MCP contract", () => {
       suggestFixes: false,
     });
     expect(
-      withoutFixes.explanations[0]!.suggestedPatchOperation,
+      withoutFixes.explanations[0]?.suggestedPatchOperation,
     ).toBeUndefined();
   });
 });

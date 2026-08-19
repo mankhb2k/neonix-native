@@ -5,6 +5,8 @@ import { z } from "zod";
 import { BlendModeSchema } from "./blend-mode";
 import { LayerMaskSchema } from "./mask";
 
+export { LayerMaskSchema, type LayerMask } from "./mask";
+
 export const CompositingSchema = z
   .object({
     "blend-mode": BlendModeSchema.default("normal"),

@@ -11,11 +11,14 @@ import {
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
 import {
-  deriveProjectDurationV1,
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import { documentFromStoreState, syncProjectProtocolContract } from "@motionvideo/editor-core";
+import { deriveProjectDurationV1 } from "@motionvideo/patterns";
+import {
+  documentFromStoreState,
+  syncProjectProtocolContract,
+} from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import type {

@@ -1,4 +1,5 @@
-import { visualLayerAtoms, V1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
+import { V1 } from "@motionvideo/motion-protocol";
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 

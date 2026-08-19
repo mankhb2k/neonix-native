@@ -13,7 +13,7 @@ export function howAVideoIsDescribedPage(): DocsPageView {
       <article className="pb-20">
         <HumanName
           title="How a video is described"
-          Envelope first (composition + layers + assets). Project length is derived from root timing.
+          human="Envelope first (composition + layers + assets). Project length is derived from root timing."
         />
         <H2 id="mental-model">Mental model</H2>
         <P>

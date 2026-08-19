@@ -14,6 +14,7 @@ import { FrameSchema } from "../frame";
 import { OpacitySchema } from "../opacity";
 import { CompositingSchema } from "../compositing";
 import { IdSchema } from "../common";
+import { LayoutItemPolicySchema } from "../group";
 
 export const LayerBaseV1Schema = z
   .object({
@@ -26,6 +27,7 @@ export const LayerBaseV1Schema = z
     opacity: OpacitySchema.default(100),
     compositing: CompositingSchema.optional(),
     timing: LayerTimingSchema,
+    layoutItem: LayoutItemPolicySchema.optional(),
     animations: z
       .array(LayerPropertyAnimationV1Schema)
       .max(MOTION_PROTOCOL_LIMITS.animationsPerLayer)

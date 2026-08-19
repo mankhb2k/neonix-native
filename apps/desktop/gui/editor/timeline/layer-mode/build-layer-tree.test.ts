@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { describe, expect, it } from "vitest";
 import type { MotionLayer } from "@motionvideo/motion-protocol";
 import {
@@ -10,7 +10,8 @@ import {
 } from "./build-layer-tree";
 
 function node(
-  partial: Partial<MotionLayer> & Pick<MotionLayer, "id" | "type" | "parentLayerId">,
+  partial: Partial<MotionLayer> &
+    Pick<MotionLayer, "id" | "type" | "parentLayerId">,
 ): MotionLayer {
   return {
     zIndex: 0,
@@ -35,10 +36,34 @@ describe("buildLayerTree", () => {
   it("nests children under group and sorts siblings by zIndex desc", () => {
     const roots = buildLayerTree(
       layers([
-        node({ id: "g1", type: "group", parentLayerId: null, zIndex: 1, name: "Group" }),
-        node({ id: "a", type: "text", parentLayerId: "g1", zIndex: 1, name: "A" }),
-        node({ id: "b", type: "shape", parentLayerId: "g1", zIndex: 5, name: "B" }),
-        node({ id: "root", type: "video", parentLayerId: null, zIndex: 0, name: "Root" }),
+        node({
+          id: "g1",
+          type: "group",
+          parentLayerId: null,
+          zIndex: 1,
+          name: "Group",
+        }),
+        node({
+          id: "a",
+          type: "text",
+          parentLayerId: "g1",
+          zIndex: 1,
+          name: "A",
+        }),
+        node({
+          id: "b",
+          type: "shape",
+          parentLayerId: "g1",
+          zIndex: 5,
+          name: "B",
+        }),
+        node({
+          id: "root",
+          type: "video",
+          parentLayerId: null,
+          zIndex: 0,
+          name: "Root",
+        }),
       ]),
     );
     expect(roots.map((r) => r.id)).toEqual(["g1", "root"]);
@@ -49,7 +74,13 @@ describe("buildLayerTree", () => {
   it("treats unknown parent as root orphan", () => {
     const roots = buildLayerTree(
       layers([
-        node({ id: "x", type: "text", parentLayerId: "missing", zIndex: 0, name: "X" }),
+        node({
+          id: "x",
+          type: "text",
+          parentLayerId: "missing",
+          zIndex: 0,
+          name: "X",
+        }),
       ]),
     );
     expect(roots).toHaveLength(1);

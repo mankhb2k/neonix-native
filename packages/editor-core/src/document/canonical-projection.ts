@@ -7,7 +7,7 @@
  */
 
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
-import { computeProjectHashShort } from "@motionvideo/motion-protocol";
+import { computeProjectHashShort } from "@motionvideo/render-contracts";
 import {
   groupPathToTimelineClips,
   packRootLayersToTimeline,

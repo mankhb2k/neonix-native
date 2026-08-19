@@ -1,12 +1,25 @@
 import { V1 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+  RuntimeVisualLayer,
+} from "@motionvideo/motion-protocol/runtime";
 import { clone, pixelFormatHasAlpha, type JsonRecord } from "./helpers";
 
-function runtimeAppearance(node: V1.LayerV1): { visible: boolean; opacity: number } {
+type RuntimeAsset = MotionRuntimeProject["assets"][number];
+type RuntimeAudioLayer = Extract<
+  MotionRuntimeProject["layers"][number],
+  { type: "audio" }
+>;
+
+function runtimeAppearance(node: V1.LayerV1): {
+  visible: boolean;
+  opacity: number;
+} {
   const opacity = "opacity" in node ? (node.opacity ?? 100) : 100;
   return { visible: opacity > 0, opacity };
 }
 
-export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
+export function prepareRuntimeLayer(node: V1.LayerV1): RuntimeVisualLayer {
   if (node.type === "audio") {
     return {
       id: node.id,
@@ -176,7 +189,9 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   }
 }
 
-export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
+export function prepareRuntimeAudioLayer(
+  layer: V1.AudioLayerV1,
+): RuntimeAudioLayer {
   return {
     id: layer.id,
     type: "audio",
@@ -190,7 +205,7 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
 export function prepareRuntimeAsset(
   asset: V1.AssetV1,
   resolvedUri: string,
-): JsonRecord {
+): RuntimeAsset {
   switch (asset.assetType) {
     case "image": {
       const pixelFormat = asset.pixelFormat ?? "rgba";

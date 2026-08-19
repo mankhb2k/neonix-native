@@ -4,17 +4,10 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import {
-  V1,
-  visualLayerAtoms,
-} from "@motionvideo/motion-protocol";
-import {
-  MotionRuntimeProjectSchema,
-} from "@motionvideo/motion-protocol/runtime";
-import {
-  buildCompileCacheKeyV1,
-  compileMotionProjectV1,
-} from "../index";
+import { V1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
+import { MotionRuntimeProjectSchema } from "@motionvideo/motion-protocol/runtime";
+import { buildCompileCacheKeyV1, compileMotionProjectV1 } from "../index";
 
 const fixtureDir = fileURLToPath(
   new URL("../../../motion-protocol/src/v1/__fixtures__", import.meta.url),
@@ -77,7 +70,18 @@ describe("compileMotionProjectV1", () => {
       parentLayerId: null,
       zIndex: maxZ + 1,
       timing: { start: 0, duration: 4 },
-      ...visualLayerAtoms({ x: 100, y: 200, width: 256, height: 256, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100 }),
+      ...visualLayerAtoms({
+        x: 100,
+        y: 200,
+        width: 256,
+        height: 256,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        originX: 0.5,
+        originY: 0.5,
+        opacity: 100,
+      }),
       payload: {
         componentId: "logo-reveal",
         props: {},
@@ -86,9 +90,11 @@ describe("compileMotionProjectV1", () => {
     const result = compileMotionProjectV1(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.project.layers.some((layer) => layer.id === "badge" || layer.type === "group")).toBe(
-      true,
-    );
+    expect(
+      result.project.layers.some(
+        (layer) => layer.id === "badge" || layer.type === "group",
+      ),
+    ).toBe(true);
   });
 
   it("produces a stable compile cache key", () => {
@@ -172,8 +178,7 @@ describe("compileMotionProjectV1", () => {
     expect(
       result.project.propertyAnimations.some(
         (animation) =>
-          animation.layerId === layer.id &&
-          animation.property === "opacity",
+          animation.layerId === layer.id && animation.property === "opacity",
       ),
     ).toBe(true);
   });

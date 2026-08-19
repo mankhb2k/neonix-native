@@ -36,6 +36,14 @@ export const GEOMETRY_EPSILON = 1e-12;
  */
 export const LENGTH_EPSILON = 1e-9;
 
+/**
+ * Time-window clamp epsilon — keeps a local time strictly inside the
+ * half-open segment `[0, duration)` when it lands on the boundary.
+ * Much smaller than one frame at any supported fps, so it never eats a
+ * legitimate frame; only prevents `t == duration` from snapping past the end.
+ */
+export const TIME_CLAMP_EPSILON = 1e-6;
+
 // ── Frame rounding ────────────────────────────────────────────────────
 
 /**
@@ -45,8 +53,23 @@ export const LENGTH_EPSILON = 1e-9;
  */
 export function roundTimeToFrame(time: number, fps: number): number {
   if (!Number.isFinite(time) || time < 0) return 0;
-  if (!Number.isFinite(fps) || fps <= 0) throw new Error("FPS must be finite positive");
+  if (!Number.isFinite(fps) || fps <= 0)
+    throw new Error("FPS must be finite positive");
   return Math.floor(time * fps + FRAME_EPSILON);
+}
+
+/**
+ * Quantize a time value to a stable millisecond index.
+ * Used for evaluated-effect seeds so sub-frame jitter does not change hashes.
+ *
+ * Policy: floor with `TIME_CLAMP_EPSILON` guard — matches `roundTimeToFrame`,
+ * not `Math.round`. This keeps `1.0005s → 1000ms` (sub-millisecond drift does
+ * not push past the boundary) while still snapping the float representation
+ * of `1.001s` (≈1000.9999999999999ms) up to `1001`.
+ */
+export function quantizeTimeToMilliseconds(time: number): number {
+  if (!Number.isFinite(time) || time < 0) return 0;
+  return Math.floor(time * 1000 + TIME_CLAMP_EPSILON);
 }
 
 /**
@@ -54,9 +77,26 @@ export function roundTimeToFrame(time: number, fps: number): number {
  * is the canonical time for that frame).
  */
 export function frameToTime(frame: number, fps: number): number {
-  if (!Number.isSafeInteger(frame) || frame < 0) throw new Error("Frame must be non-negative safe integer");
-  if (!Number.isFinite(fps) || fps <= 0) throw new Error("FPS must be finite positive");
+  if (!Number.isSafeInteger(frame) || frame < 0)
+    throw new Error("Frame must be non-negative safe integer");
+  if (!Number.isFinite(fps) || fps <= 0)
+    throw new Error("FPS must be finite positive");
   return frame / fps;
+}
+
+/**
+ * Clamp a local time into the half-open segment window `[0, duration)`.
+ * Never returns `duration` itself (backed off by `TIME_CLAMP_EPSILON`), so
+ * `t → frame` maps to the last valid frame rather than past-the-end.
+ */
+export function clampSegmentLocalTime(
+  localTime: number,
+  duration: number,
+): number {
+  return Math.min(
+    Math.max(0, localTime),
+    Math.max(0, duration - TIME_CLAMP_EPSILON),
+  );
 }
 
 // ── Sort tie-break ────────────────────────────────────────────────────
@@ -114,8 +154,13 @@ function mix32(value: number): number {
  * Deterministic uint32 from seed + channel + sample index.
  * Pure random-access: output never depends on frame evaluation order.
  */
-export function deterministicUint32(seed: string | number, channel: string, sampleIndex: number): number {
-  if (!Number.isSafeInteger(sampleIndex) || sampleIndex < 0) throw new Error("Sample index must be a non-negative safe integer");
+export function deterministicUint32(
+  seed: string | number,
+  channel: string,
+  sampleIndex: number,
+): number {
+  if (!Number.isSafeInteger(sampleIndex) || sampleIndex < 0)
+    throw new Error("Sample index must be a non-negative safe integer");
   const seedHash = typeof seed === "number" ? mix32(seed) : fnv1a(seed);
   return mix32(seedHash ^ fnv1a(channel) ^ mix32(sampleIndex));
 }
@@ -123,7 +168,11 @@ export function deterministicUint32(seed: string | number, channel: string, samp
 /**
  * Deterministic float in [0, 1) from seed + channel + sample index.
  */
-export function deterministicRandom(seed: string | number, channel: string, sampleIndex: number): number {
+export function deterministicRandom(
+  seed: string | number,
+  channel: string,
+  sampleIndex: number,
+): number {
   return deterministicUint32(seed, channel, sampleIndex) / 0x1_0000_0000;
 }
 
@@ -136,10 +185,15 @@ export function deterministicRandom(seed: string | number, channel: string, samp
  * Does nothing in production — the check is only for dev confidence.
  */
 export function assertNoImplicitLocale(): void {
-  if (typeof process === "undefined" || process.env?.NODE_ENV === "production") return;
+  if (typeof process === "undefined" || process.env?.NODE_ENV === "production")
+    return;
   // Best-effort: override toLocaleString to warn if called without locale arg.
   const original = Number.prototype.toLocaleString;
-  if ((original as unknown as { __determinismWrapped?: boolean }).__determinismWrapped) return;
+  if (
+    (original as unknown as { __determinismWrapped?: boolean })
+      .__determinismWrapped
+  )
+    return;
 
   Number.prototype.toLocaleString = function (...args: unknown[]) {
     if (args.length === 0) {
@@ -150,6 +204,9 @@ export function assertNoImplicitLocale(): void {
     }
     return original.apply(this, args as [string?, Intl.NumberFormatOptions?]);
   };
-  (Number.prototype.toLocaleString as unknown as { __determinismWrapped?: boolean }).__determinismWrapped =
-    true;
+  (
+    Number.prototype.toLocaleString as unknown as {
+      __determinismWrapped?: boolean;
+    }
+  ).__determinismWrapped = true;
 }

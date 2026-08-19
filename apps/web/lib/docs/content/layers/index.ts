@@ -5,7 +5,7 @@ import { componentLayerPage } from "./component";
 import { framePage } from "./frame";
 import { groupLayerPage } from "./group";
 import { imageLayerPage } from "./image";
-import { layoutPage } from "./layout";
+import { layoutOverviewPage } from "@/lib/docs/content/layout/overview";
 import { layerTypesOverviewPage } from "./overview";
 import { pathLayerPage } from "./path";
 import { rootZIndexPage } from "./root-zindex";
@@ -80,7 +80,7 @@ export function getLayersPage(slug: LayersSlug): DocsPageView {
     case "layers/group":
       return groupLayerPage();
     case "layers/layout":
-      return layoutPage();
+      return layoutOverviewPage();
     case "layers/text":
       return textLayerPage();
     case "layers/shape":

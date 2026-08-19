@@ -9,7 +9,7 @@ import {
   clipMaskTargetProject,
   clipMaskGroupIsolationProject,
   clipMaskChildIsolationProject,
-} from "../../../motion-protocol/src/v1/__fixtures__/masks/clip-mask-projects";
+} from "../../../patterns/src/__fixtures__/masks/clip-mask-projects";
 
 function compilePaint(raw: unknown) {
   const project = parseMotionProjectV1(raw);

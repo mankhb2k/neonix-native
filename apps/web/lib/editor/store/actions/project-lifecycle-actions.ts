@@ -1,4 +1,4 @@
-import { deriveProjectDurationV1 } from "@motionvideo/motion-protocol";
+import { deriveProjectDurationV1 } from "@motionvideo/patterns";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import {

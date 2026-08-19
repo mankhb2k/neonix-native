@@ -4,9 +4,9 @@
  * Guarantees: same MotionRuntimeProject → same hash
  * regardless of serialization order, whitespace, or platform.
  *
- * Phase 11 note: equivalent functions exist in
- * @motionvideo/motion-protocol (canonical-hash.ts). This module stays
- * self-contained to avoid adding a dependency to render-contracts.
+ * This is the single source of truth for generic content hashing and
+ * hash helpers (`computeContentHash`, `shortHash`, `hashesMatch`).
+ * Project/runtime/capability hashing lives in canonical-hash.ts.
  */
 
 import { createHash } from "node:crypto";
@@ -14,15 +14,15 @@ import { createHash } from "node:crypto";
 /**
  * Deep-sort object keys recursively for canonical JSON serialization.
  */
-function deepSortKeys(value: unknown): unknown {
+export function deepSortKeys<T>(value: T): T {
   if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map(deepSortKeys);
+  if (Array.isArray(value)) return value.map(deepSortKeys) as unknown as T;
   const obj = value as Record<string, unknown>;
   const sorted: Record<string, unknown> = {};
   for (const key of Object.keys(obj).sort()) {
     sorted[key] = deepSortKeys(obj[key]);
   }
-  return sorted;
+  return sorted as unknown as T;
 }
 
 /**

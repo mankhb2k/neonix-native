@@ -12,7 +12,7 @@ import {
   parseMotionProjectV1,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 export const PREVIEW_FIXTURE_SIZES = [100, 500, 2000] as const;
 
@@ -78,7 +78,19 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
       parentLayerId: null,
       zIndex: i,
       timing: { start: 0, duration: 4 },
-      ...visualLayerAtoms({ x: 40 + col * 24, y: 40 + row * 16, width: 20, height: 12, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
+      ...visualLayerAtoms({
+        x: 40 + col * 24,
+        y: 40 + row * 16,
+        width: 20,
+        height: 12,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        originX: 0.5,
+        originY: 0.5,
+        opacity: 100,
+        visible: true,
+      }),
       payload: {
         text: `N${i}`,
         fontSize: 12,

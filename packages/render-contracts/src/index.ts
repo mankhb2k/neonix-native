@@ -15,7 +15,16 @@ export {
   createContentHasher,
   shortHash,
   hashesMatch,
+  deepSortKeys,
 } from "./content-hash";
+export {
+  RENDER_MANIFEST_VERSION,
+  canonicalJson,
+  computeProjectHash,
+  computeProjectHashShort,
+  computeRuntimeHash,
+  buildCapabilityFingerprint,
+} from "./canonical-hash";
 export {
   compareGoldenFrames,
   goldenSampleFrame,

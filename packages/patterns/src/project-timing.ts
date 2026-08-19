@@ -1,9 +1,11 @@
 /**
  * Project timing helpers — frame-grid canonicalization + derived duration.
  */
-import type { MotionProjectV1 } from "./types";
-import type { LayerV1 } from "./layers";
-import { snapLayerTreeToFrameGrid } from "./frame-grid";
+import { V1 } from "@motionvideo/motion-protocol";
+
+type LayerV1 = V1.LayerV1;
+type MotionProjectV1 = V1.MotionProjectV1;
+const snapLayerTreeToFrameGrid = V1.snapLayerTreeToFrameGrid;
 
 export interface CanonicalizeProjectTimingIssue {
   path: string;

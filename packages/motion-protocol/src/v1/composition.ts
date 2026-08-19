@@ -1,7 +1,7 @@
 /**
  * Cài đặt composition V1 — width/height/fps/background/colorSpace.
  *
- * Thay metadata.aspectRatio + fps của v2. Motion blur mặc định ở cấp composition.
+ * Motion blur mặc định ở cấp composition.
  */
 import { z } from "zod";
 import {

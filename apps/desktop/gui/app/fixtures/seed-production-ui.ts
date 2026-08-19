@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Seeds real Home / EditingWorkspace for visual baselines (P20/B1).
  * Only loaded when VITE_ENABLE_UI_FIXTURES=1.

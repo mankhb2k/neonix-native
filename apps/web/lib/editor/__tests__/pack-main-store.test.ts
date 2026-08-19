@@ -7,9 +7,9 @@ import {
 import {
   parseMotionProjectV1,
   serializeMotionProjectV1,
-  visualLayerAtoms,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 const ATOMS = visualLayerAtoms({ width: 1920, height: 1080 });
 
@@ -131,7 +131,11 @@ describe("web store packed Main write-back", () => {
     if (!project) return;
     const visual = timelineClips.filter((c) => c.kind === "scene");
     expect(visual.every((c) => c.laneId === "lane.main")).toBe(true);
-    expect(visual.map((c) => c.id).sort()).toEqual(["hero", "video-a", "video-b"]);
+    expect(visual.map((c) => c.id).sort()).toEqual([
+      "hero",
+      "video-a",
+      "video-b",
+    ]);
     const z = project.layers
       .filter((l) => l.type !== "audio")
       .map((l) => l.zIndex);
@@ -142,9 +146,11 @@ describe("web store packed Main write-back", () => {
   it("keeps unique zIndex after a no-op rebuild from packed clips", () => {
     const state = useEditorStore.getState();
     const packed = packRootLayersToTimeline(state.project!);
-    expect(packed.clips.filter((c) => c.kind === "scene").every((c) => c.laneId === "lane.main")).toBe(
-      true,
-    );
+    expect(
+      packed.clips
+        .filter((c) => c.kind === "scene")
+        .every((c) => c.laneId === "lane.main"),
+    ).toBe(true);
     const json = serializeMotionProjectV1(state.project!);
     expect(json).toContain("formatVersion");
     expect(json).not.toContain("laneId");

@@ -10,15 +10,15 @@
 > Hai serializer cho core:
 >
 > - **Canonical** — `serializeMotionProjectV1` (`packages/motion-protocol/src/v1/parse.ts`): sort key alphabet. Dùng cho **hash / compare / artifact gate**.
-> - **Authoring** — `serializeMotionProjectV1Authoring` (`packages/motion-protocol/src/v1/normalize-authoring.ts`): thứ tự field semantic + prune rỗng. Dùng cho **save file / docs / AI output**.
+> - **Authoring** — `serializeMotionProjectV1Authoring` (`packages/patterns/src/normalize-authoring.ts`): thứ tự field semantic + prune rỗng. Dùng cho **save file / docs / AI output**.
 
 ---
 
 ## 0. Core vs envelope
 
-| Tầng | Chứa | Lưu disk? |
-| ---- | ---- | --------- |
-| **Core** | `format`, `formatVersion`, `metadata` (id/name/locale), `composition`, `layers`, `assets`, `components` | Có |
+| Tầng         | Chứa                                                                                                                                                           | Lưu disk?                  |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| **Core**     | `format`, `formatVersion`, `metadata` (id/name/locale), `composition`, `layers`, `assets`, `components`                                                        | Có                         |
 | **Envelope** | `metadataExtras`, `tokens`, `variables`, `bindings`, `capabilities`, `dependencies`, `provenance`, `extensions`, `layerDisplayNames`, prop semantics, UI locks | Sidecar (web localStorage) |
 
 Trước save / compile / export: `expandAuthoringToCore(project, sugar)` — resolve bindings, layout → frame, prop keyframes → `layer.animations`, `appearance` → `opacity`, strip audit + sugar.

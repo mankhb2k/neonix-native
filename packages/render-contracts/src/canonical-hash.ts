@@ -1,10 +1,16 @@
 /**
- * Hash canonical — một nguồn cho hashing xác định.
+ * Hash canonical — deterministic hashing for motion artifacts.
  *
- * Cùng project V1 về ngữ nghĩa → cùng projectHash.
- * Loại timestamp / provenance / extensions khỏi hash render.
+ * Moved from @motionvideo/motion-protocol (V1) into render-contracts so
+ * motion-protocol stays schema-only ("atom"). Consolidates with
+ * content-hash.ts, which owns the generic helpers (`computeContentHash`,
+ * `shortHash`, `hashesMatch`, `deepSortKeys`).
+ *
+ * Same semantic project / runtime IR → same hash. Excludes timestamps /
+ * provenance / extensions from the render hash.
  */
 import { createHash } from "node:crypto";
+import { shortHash } from "./content-hash";
 
 // ── Versioning ──────────────────────────────────────────────────────────
 
@@ -13,25 +19,6 @@ import { createHash } from "node:crypto";
  * in a way that would invalidate cached exports.
  */
 export const RENDER_MANIFEST_VERSION = 1;
-
-/**
- * Short hash (first 16 hex chars) for display / comparison.
- */
-export function shortHash(full: string): string {
-  return full.slice(0, 16);
-}
-
-/**
- * Compare two full content hashes in constant-time-ish fashion.
- */
-export function hashesMatch(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
-}
 
 // ── Canonical JSON ─────────────────────────────────────────────────────
 
@@ -52,21 +39,6 @@ export function canonicalJson(value: unknown): string {
       .join(",")}}`;
   }
   return JSON.stringify(value);
-}
-
-/**
- * Deep-sort keys for JSON.stringify-based canonical output.
- * Returns a new object (not a string) suitable for JSON.stringify.
- */
-export function deepSortKeys<T>(value: T): T {
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map(deepSortKeys) as unknown as T;
-  const obj = value as Record<string, unknown>;
-  const sorted: Record<string, unknown> = {};
-  for (const key of Object.keys(obj).sort()) {
-    sorted[key] = deepSortKeys(obj[key]);
-  }
-  return sorted as unknown as T;
 }
 
 // ── Project Hash ───────────────────────────────────────────────────────
@@ -129,19 +101,6 @@ export function computeRuntimeHash(ir: Record<string, unknown>): string {
     .update(canonicalJson(hashInputs), "utf8")
     .digest("hex")
     .slice(0, 32);
-}
-
-// ── Content Hash (for render-contracts compatibility) ──────────────────
-
-/**
- * Compute a deterministic SHA-256 of any JSON-serializable object.
- * Uses deepSortKeys → JSON.stringify for cross-platform stability.
- */
-export function computeContentHash(value: object): string {
-  const sorted = deepSortKeys(value);
-  return createHash("sha256")
-    .update(JSON.stringify(sorted), "utf8")
-    .digest("hex");
 }
 
 // ── Capability Fingerprint ─────────────────────────────────────────────

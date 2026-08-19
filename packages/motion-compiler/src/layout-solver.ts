@@ -1,4 +1,9 @@
-import type { MotionLayer } from "@motionvideo/motion-protocol";
+import type {
+  EdgeInsets,
+  LayoutConstraint,
+  LayoutItemPolicy,
+} from "@motionvideo/motion-protocol";
+import type { RuntimeVisualLayer } from "@motionvideo/motion-protocol/runtime";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import {
   defaultTextMeasurementProvider,
@@ -6,15 +11,12 @@ import {
   type TextMeasurementProvider,
 } from "./text-layout";
 
-type VisualLayer = Exclude<MotionLayer, { type: "audio" | "camera" }>;
+type VisualLayer = Exclude<RuntimeVisualLayer, { type: "camera" }>;
 type GroupLayer = Extract<VisualLayer, { type: "group" }>;
-type LayoutConstraint = NonNullable<GroupLayer["layout"]>;
-type LayoutItemPolicy = NonNullable<VisualLayer["layoutItem"]>;
-type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 type MutableNode = VisualLayer;
 
-function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
-  return layer.type !== "audio" && layer.type !== "camera";
+function isVisualLayer(layer: RuntimeVisualLayer): layer is VisualLayer {
+  return layer.type !== "camera";
 }
 
 function frameWidth(node: VisualLayer): number {
@@ -107,9 +109,9 @@ function applyItemSizing(
  * min/max size clamps after fixed/hug/fill.
  */
 export function applyLayoutConstraints(
-  layers: MotionLayer[],
+  layers: RuntimeVisualLayer[],
   measure: TextMeasurementProvider = defaultTextMeasurementProvider,
-): MotionLayer[] {
+): RuntimeVisualLayer[] {
   const byId = new Map(
     layers.filter(isVisualLayer).map((node) => [node.id, cloneNode(node)]),
   );
@@ -123,10 +125,9 @@ export function applyLayoutConstraints(
 
   const visual = ordered.map((node) => stripLayoutFields(node));
 
-  return layers.map((layer) => {
-    if (layer.type === "audio") return layer;
-    return visual.find((node) => node.id === layer.id) ?? layer;
-  });
+  return layers.map(
+    (layer) => visual.find((node) => node.id === layer.id) ?? layer,
+  );
 }
 
 function stripLayoutFields(node: MutableNode): MutableNode {

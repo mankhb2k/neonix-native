@@ -64,8 +64,22 @@ export const DOCS_NAV: DocsNavGroup[] = [
       { href: "/docs/layers/solid", label: "Solid" },
       { href: "/docs/layers/adjustment", label: "Adjustment" },
       { href: "/docs/layers/group", label: "Group" },
-      { href: "/docs/layers/layout", label: "Layout" },
       { href: "/docs/layers/component", label: "Component layer" },
+    ],
+  },
+  {
+    id: "layout",
+    label: "Layout",
+    items: [
+      { href: "/docs/layout", label: "Layout overview" },
+      { href: "/docs/layout/row", label: "Row" },
+      { href: "/docs/layout/column", label: "Column" },
+      { href: "/docs/layout/grid", label: "Grid" },
+      { href: "/docs/layout/gap", label: "Gap" },
+      { href: "/docs/layout/padding", label: "Padding" },
+      { href: "/docs/layout/justify", label: "Justify" },
+      { href: "/docs/layout/align", label: "Align" },
+      { href: "/docs/layout/layout-item", label: "Layout item" },
     ],
   },
   {

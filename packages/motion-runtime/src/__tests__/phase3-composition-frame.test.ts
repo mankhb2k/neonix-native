@@ -1,4 +1,4 @@
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 /**
  * Phase 3 tests: EvaluatedCompositionFrame, stable keys, interaction snapshot,
  * camera view override, transition frame fixtures.
@@ -156,9 +156,7 @@ describe("parseStableLayerKey", () => {
 // ── Task 3.4: Camera view override seam ───────────────────────────────
 
 import { evaluateCompositionFrameV1 } from "../evaluate-composition";
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 
 function emptyRuntime(): MotionRuntimeProject {
   return {
@@ -180,7 +178,19 @@ function emptyRuntime(): MotionRuntimeProject {
         id: "n1",
         parentLayerId: null,
         zIndex: 0,
-        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
+        ...visualLayerAtoms({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          originX: 0,
+          originY: 0,
+          opacity: 100,
+          visible: true,
+        }),
         payload: {},
       } as MotionRuntimeProject["layers"][number],
     ],

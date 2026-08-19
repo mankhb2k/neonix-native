@@ -3,7 +3,7 @@ import { validateLayerAssetsV1 } from "../../../src/v1/references/layer-assets";
 import { AssetV1Schema } from "../../../src/v1/assets";
 import type { LayerV1 } from "../../../src/v1/layers";
 import type { AssetV1 } from "../../../src/v1/assets";
-import { visualLayerAtoms } from "../../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 const ATOMS = visualLayerAtoms({ width: 100, height: 100 });
 

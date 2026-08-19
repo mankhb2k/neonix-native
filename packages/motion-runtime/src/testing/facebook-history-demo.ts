@@ -1,10 +1,10 @@
 // @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionProjectV1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import type {
   MotionRuntimePropertyAnimation,
   RuntimeLayerGraph,

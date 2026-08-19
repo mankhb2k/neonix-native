@@ -5,7 +5,7 @@ import {
   TextPayloadSchema,
 } from "../src/v1/layers/text-content";
 import { parseMotionProjectV1 } from "../src/v1";
-import { visualLayerAtoms } from "../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 describe("V1 text payload", () => {
   it("parses payload.text as the canonical string", () => {

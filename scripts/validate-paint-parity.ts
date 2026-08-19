@@ -9,12 +9,15 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { evaluateFrame, type RuntimeScene } from "@motionvideo/motion-runtime";
 import { drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
 import { drawSceneFramePaint } from "../apps/render-worker/src/runtime/paint-canvas";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 function fixtureScene(): RuntimeScene {
   return {
@@ -124,7 +127,11 @@ async function main(): Promise<void> {
     background: "#0f172a",
   });
   const ops = evaluated.paint.commands.map((c) => c.op);
-  if (!ops.includes("drawShape") || !ops.includes("drawText") || !ops.includes("drawPath")) {
+  if (
+    !ops.includes("drawShape") ||
+    !ops.includes("drawText") ||
+    !ops.includes("drawPath")
+  ) {
     throw new Error(`Missing paint ops: ${ops.join(",")}`);
   }
 

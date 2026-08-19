@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   selectionClips,
   selectionNone,

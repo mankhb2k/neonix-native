@@ -76,11 +76,7 @@ function getByPointer(
   return deref(document, current, seen);
 }
 
-function getPath(
-  document: unknown,
-  start: unknown,
-  keys: string[],
-): unknown {
+function getPath(document: unknown, start: unknown, keys: string[]): unknown {
   let current: unknown = start;
   for (const key of keys) {
     current = deref(document, current);
@@ -232,7 +228,10 @@ describe("committed JSON schemas", () => {
       schema,
       "#/definitions/MotionProjectV1/properties/layers/items",
     );
-    const projectComponentLayer = findComponentLayerSchema(schema, projectLayers);
+    const projectComponentLayer = findComponentLayerSchema(
+      schema,
+      projectLayers,
+    );
     assertClosed(
       getPath(schema, projectComponentLayer, [
         "properties",
@@ -332,7 +331,7 @@ describe("Phase 8 — package.json exports", () => {
     expect(exportKeys).not.toContain("./compat");
     expect(exportKeys).not.toContain("./compat/*");
 
-    expect(exportKeys.sort()).toEqual([".", "./internal", "./runtime"].sort());
+    expect(exportKeys.sort()).toEqual([".", "./runtime"].sort());
   });
 });
 

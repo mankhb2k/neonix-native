@@ -4,7 +4,7 @@ import {
   type CommandContext,
 } from "../../ports/command-context";
 import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */

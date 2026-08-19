@@ -8,7 +8,7 @@ import {
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "../src/index";
-import { visualLayerAtoms } from "../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 const ATOMS = visualLayerAtoms({ width: 10, height: 10 });
 
@@ -28,9 +28,9 @@ describe("motion-protocol R2–R5 contract", () => {
   });
 
   it("accepts transform.depth", () => {
-    expect(TransformSchema.parse({ ...ATOMS.transform, depth: 1.5 }).depth).toBe(
-      1.5,
-    );
+    expect(
+      TransformSchema.parse({ ...ATOMS.transform, depth: 1.5 }).depth,
+    ).toBe(1.5);
   });
 
   it("exposes transform.depth in public AI vocabulary", () => {
@@ -87,12 +87,12 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(isLayerPropertyAnimatable("text", "transform.translate.x")).toBe(
       true,
     );
-    expect(motionPropertyCapability("text", "effects.fx.radius")?.animatable).toBe(
-      true,
-    );
-    expect(motionPropertyCapability("text", "effects.fx.color")?.animatable).toBe(
-      false,
-    );
+    expect(
+      motionPropertyCapability("text", "effects.fx.radius")?.animatable,
+    ).toBe(true);
+    expect(
+      motionPropertyCapability("text", "effects.fx.color")?.animatable,
+    ).toBe(false);
     expect(
       motionPropertyCapability("text", "effects.fx.intensity"),
     ).toBeUndefined();

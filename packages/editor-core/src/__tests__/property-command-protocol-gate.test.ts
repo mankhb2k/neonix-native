@@ -10,10 +10,10 @@ import { describe, expect, it } from "vitest";
 import {
   MotionProjectV1Schema,
   parseMotionProjectV1,
-  visualLayerAtoms,
   type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import {
   executePropertyCommand,
   getPropertyDefinition,

@@ -1,0 +1,29 @@
+{
+  "name": "@motionvideo/motion-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings 0"
+  },
+  "dependencies": {
+    "@motionvideo/motion-compiler": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@motionvideo/patterns": "workspace:*",
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.10"
+  }
+}

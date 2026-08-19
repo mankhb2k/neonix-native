@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   MotionProjectV1Schema,
-  visualLayerAtoms,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
-import { groupLayers, ungroupLayers, isIdentityGroup, canDrillIntoGroup, unwrapLibrarySceneWrappers } from "../document/group";
+import { visualLayerAtoms } from "@motionvideo/patterns";
+import {
+  groupLayers,
+  ungroupLayers,
+  isIdentityGroup,
+  canDrillIntoGroup,
+  unwrapLibrarySceneWrappers,
+} from "../document/group";
 import { resolveGroupPath } from "../document/group-path";
 
 function solid(

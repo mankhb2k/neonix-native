@@ -2,7 +2,7 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import { visualLayerAtoms } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 import type { OverlaySceneItem } from "../../overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,

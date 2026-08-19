@@ -9,7 +9,7 @@ import {
   RuntimeSourceRefMapSchema,
   type MotionRuntimeProject,
 } from "../../src/runtime/project";
-import { visualLayerAtoms } from "../../src/v1/layer-atoms";
+import { visualLayerAtoms } from "@motionvideo/patterns";
 
 function runtimeLayer(id = "title"): Record<string, unknown> {
   const atoms = visualLayerAtoms({
@@ -34,7 +34,7 @@ function runtimeLayer(id = "title"): Record<string, unknown> {
     transform: atoms.transform,
     appearance: { visible: true, opacity: atoms.opacity },
     payload: {
-      text: "Hello MotiClip" ,
+      text: "Hello MotiClip",
       fontSize: 64,
       alignment: "center",
     },

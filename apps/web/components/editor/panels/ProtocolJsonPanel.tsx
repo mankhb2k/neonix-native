@@ -7,7 +7,7 @@ import {
   expandAuthoringToCore,
   mergeAuthoringSugar,
 } from "@motionvideo/editor-core";
-import { serializeMotionProjectV1Authoring } from "@motionvideo/motion-protocol";
+import { serializeMotionProjectV1Authoring } from "@motionvideo/patterns";
 import { Check, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
 

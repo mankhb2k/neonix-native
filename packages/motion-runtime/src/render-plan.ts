@@ -1,4 +1,5 @@
 import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
+import type { LayerMask } from "@motionvideo/motion-protocol";
 import type {
   EvaluatedNode,
   RuntimeScene,
@@ -29,8 +30,8 @@ export type RenderPass = {
   needsOffscreen: boolean;
   mask?: {
     sourceLayerId: string;
-    mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
-    sourceVisibility: "mask-only" | "content-and-mask";
+    mode: LayerMask["mode"];
+    sourceVisibility: LayerMask["source-visibility"];
   };
   effects: RuntimeEffect[];
   isAdjustment: boolean;

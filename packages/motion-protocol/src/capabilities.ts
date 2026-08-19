@@ -64,12 +64,6 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   dashLength: 4_096,
   pathBendAmount: 1,
   parallaxFactor: 8,
-  /** Max tokens trong caption-compiler nội bộ — không phải project.captionTracks. */
-  captionTokensPerTrack: 4_096,
-  /** Max cue sau segment (caption-compiler nội bộ). */
-  captionCuesPerTrack: 1_024,
-  /** Max nhóm caption-style (không phải timeline captionTracks). */
-  captionGroupsPerProject: 32,
   /** Max beat markers in AudioAnalysis. */
   audioBeatsPerAsset: 10_000,
   /** Max energy envelope samples in AudioAnalysis. */
@@ -139,121 +133,123 @@ function cap(
   };
 }
 
-const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
-  Object.freeze({
-    opacity: cap("number", { min: 0, max: 100 }),
-    "frame.width": cap("number", {
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "frame.height": cap("number", {
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "compositing.blend-mode": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "compositing.mask.sourceLayerId": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    zIndex: cap("number", { animatable: false, runtimeSupport: "compile-time" }),
-  });
+const LAYER_BASE_PROPERTIES: Readonly<
+  Record<string, MotionPropertyCapability>
+> = Object.freeze({
+  opacity: cap("number", { min: 0, max: 100 }),
+  "frame.width": cap("number", {
+    min: 0,
+    max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "frame.height": cap("number", {
+    min: 0,
+    max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "compositing.blend-mode": cap("string", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "compositing.mask.sourceLayerId": cap("string", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  zIndex: cap("number", { animatable: false, runtimeSupport: "compile-time" }),
+});
 
-const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
-  Object.freeze({
-    "style.fill": cap("color"),
-    "style.fillOpacity": cap("number", {
-      min: 0,
-      max: 1,
-      public: false,
-      animatable: false,
-    }),
-    "style.stroke": cap("color"),
-    "style.strokeWidth": cap("number", {
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    }),
-    "style.strokeOpacity": cap("number", {
-      min: 0,
-      max: 1,
-      public: false,
-      animatable: false,
-    }),
-    "style.lineCap": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-      public: false,
-    }),
-    "style.lineJoin": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-      public: false,
-    }),
-    "style.miterLimit": cap("number", {
-      minExclusive: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-      public: false,
-      animatable: false,
-    }),
-    "style.dash": cap("json", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-      public: false,
-    }),
-    "style.dashOffset": cap("number", {
-      min: -MOTION_PROTOCOL_LIMITS.dashLength,
-      max: MOTION_PROTOCOL_LIMITS.dashLength,
-      public: false,
-      animatable: false,
-    }),
-  });
+const PAINT_STYLE_PROPERTIES: Readonly<
+  Record<string, MotionPropertyCapability>
+> = Object.freeze({
+  "style.fill": cap("color"),
+  "style.fillOpacity": cap("number", {
+    min: 0,
+    max: 1,
+    public: false,
+    animatable: false,
+  }),
+  "style.stroke": cap("color"),
+  "style.strokeWidth": cap("number", {
+    min: 0,
+    max: MOTION_PROTOCOL_LIMITS.layerDimension,
+  }),
+  "style.strokeOpacity": cap("number", {
+    min: 0,
+    max: 1,
+    public: false,
+    animatable: false,
+  }),
+  "style.lineCap": cap("string", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+    public: false,
+  }),
+  "style.lineJoin": cap("string", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+    public: false,
+  }),
+  "style.miterLimit": cap("number", {
+    minExclusive: 0,
+    max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    public: false,
+    animatable: false,
+  }),
+  "style.dash": cap("json", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+    public: false,
+  }),
+  "style.dashOffset": cap("number", {
+    min: -MOTION_PROTOCOL_LIMITS.dashLength,
+    max: MOTION_PROTOCOL_LIMITS.dashLength,
+    public: false,
+    animatable: false,
+  }),
+});
 
-const MEDIA_PAYLOAD_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
-  Object.freeze({
-    "payload.assetId": cap("asset", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.fit": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.crop": cap("json", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.crop.x": cap("number", {
-      min: 0,
-      max: 1,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.crop.y": cap("number", {
-      min: 0,
-      max: 1,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.crop.width": cap("number", {
-      minExclusive: 0,
-      max: 1,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-    "payload.crop.height": cap("number", {
-      minExclusive: 0,
-      max: 1,
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-  });
-
+const MEDIA_PAYLOAD_PROPERTIES: Readonly<
+  Record<string, MotionPropertyCapability>
+> = Object.freeze({
+  "payload.assetId": cap("asset", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.fit": cap("string", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.crop": cap("json", {
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.crop.x": cap("number", {
+    min: 0,
+    max: 1,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.crop.y": cap("number", {
+    min: 0,
+    max: 1,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.crop.width": cap("number", {
+    minExclusive: 0,
+    max: 1,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+  "payload.crop.height": cap("number", {
+    minExclusive: 0,
+    max: 1,
+    animatable: false,
+    runtimeSupport: "compile-time",
+  }),
+});
 
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
@@ -544,8 +540,12 @@ export function motionPropertyCapability(
       });
   }
   if (nodeType !== "audio" && nodeType !== "camera") {
-    if (property === "layoutItem.minWidth" || property === "layoutItem.maxWidth" ||
-        property === "layoutItem.minHeight" || property === "layoutItem.maxHeight")
+    if (
+      property === "layoutItem.minWidth" ||
+      property === "layoutItem.maxWidth" ||
+      property === "layoutItem.minHeight" ||
+      property === "layoutItem.maxHeight"
+    )
       return cap("number", {
         min: 0,
         max: MOTION_PROTOCOL_LIMITS.layerDimension,
@@ -577,7 +577,10 @@ export function motionPropertyCapability(
         "noise",
         "color-adjust",
       ] as const) {
-        const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
+        const capability = motionEffectPropertyCapability(
+          type,
+          effectMatch[1]!,
+        );
         if (capability) return capability;
       }
     }

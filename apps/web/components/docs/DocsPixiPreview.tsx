@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  deriveProjectDurationV1,
   parseMotionProjectV1,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
+import { deriveProjectDurationV1 } from "@motionvideo/patterns";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { createStageRenderer } from "@/lib/editor/stage/stage-renderer-factory";
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";

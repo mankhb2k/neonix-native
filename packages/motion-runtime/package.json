@@ -15,7 +15,8 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@motionvideo/motion-protocol": "workspace:*"
+    "@motionvideo/motion-protocol": "workspace:*",
+    "@motionvideo/patterns": "workspace:*"
   },
   "devDependencies": {
     "@motionvideo/motion-compiler": "workspace:*",

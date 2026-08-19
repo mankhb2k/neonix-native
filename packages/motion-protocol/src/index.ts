@@ -1,7 +1,7 @@
 /**
  * Public API — V1 layers-only authoring.
  *
- * `.` = JSON project (parse, layers, AssetV1, bindings, patch, MCP).
+ * `.` = JSON project (parse, layers, AssetV1, bindings, patch).
  * `./runtime` = compiler IR (`MotionRuntimeProject`, runtime assets, prepared types).
  */
 
@@ -15,12 +15,6 @@ import {
   MotionProjectV1Schema,
   CanonicalMotionProjectV1Schema,
   serializeMotionProjectV1,
-  serializeMotionProjectV1Authoring,
-  normalizeAuthoringProjectV1,
-  deriveProjectDurationV1,
-  hasRootLayersV1,
-  getRootLayerEndV1,
-  canonicalizeProjectTimingV1,
   type MotionProjectV1,
 } from "./v1";
 
@@ -42,84 +36,8 @@ export {
   MotionProjectV1Schema,
   CanonicalMotionProjectV1Schema,
   serializeMotionProjectV1,
-  serializeMotionProjectV1Authoring,
-  normalizeAuthoringProjectV1,
-  deriveProjectDurationV1,
-  hasRootLayersV1,
-  getRootLayerEndV1,
-  canonicalizeProjectTimingV1,
 };
-export type {
-  MotionProjectV1,
-  CanonicalMotionProjectV1,
-  CanonicalizeProjectTimingIssue,
-  CanonicalizeProjectTimingResult,
-} from "./v1";
-
-export {
-  canonicalJson,
-  computeProjectHash,
-  computeProjectHashShort,
-  computeRuntimeHash,
-  computeContentHash,
-  deepSortKeys,
-  shortHash,
-  hashesMatch,
-  buildCapabilityFingerprint,
-  RENDER_MANIFEST_VERSION,
-} from "./v1/canonical-hash";
-
-export {
-  MotionProjectV1PatchSchema,
-  applyMotionProjectV1Patch,
-} from "./v1/patch";
-export type {
-  MotionProjectV1Patch,
-  V1PatchOp,
-  V1PatchDiagnostic,
-  V1PatchResult,
-} from "./v1/patch";
-
-export {
-  MCPCreateProjectInputSchema,
-  MCPValidateProjectInputSchema,
-  MCPApplyPatchInputSchema,
-  MCPCompileProjectInputSchema,
-  MCPRenderPreviewFrameInputSchema,
-  MCPListCapabilitiesInputSchema,
-  MCPInspectTimelineInputSchema,
-  MCPExplainDiagnosticsInputSchema,
-  MCP_TOOLS,
-  preflightCapabilities,
-  canExecuteTool,
-  computeMCPProjectHash,
-  listCapabilities,
-  inspectTimeline,
-  explainDiagnostics,
-} from "./v1/mcp";
-export type {
-  MCPCapabilityCheck,
-  MCPBaseResult,
-  MCPCreateProjectInput,
-  MCPCreateProjectResult,
-  MCPValidateProjectInput,
-  MCPValidateProjectResult,
-  MCPApplyPatchInput,
-  MCPApplyPatchResult,
-  MCPCompileProjectInput,
-  MCPCompileProjectResult,
-  MCPRenderPreviewFrameInput,
-  MCPRenderPreviewFrameResult,
-  MCPListCapabilitiesInput,
-  MCPListCapabilitiesResult,
-  MCPInspectTimelineInput,
-  MCPInspectTimelineResult,
-  MCPExplainDiagnosticsInput,
-  MCPExplainDiagnosticsResult,
-  MCPToolOperation,
-  MCPToolResult,
-  MCPToolDescriptor,
-} from "./v1/mcp";
+export type { MotionProjectV1, CanonicalMotionProjectV1 } from "./v1";
 
 export {
   FiniteNumberSchema,
@@ -137,27 +55,41 @@ export {
 } from "./v1/common";
 
 export {
-  SourceRefSchema,
-  SourceRefKindSchema,
-  sourceRefKey,
-  type SourceRef,
-  type SourceRefKind,
-} from "./v1/source-ref";
-
-export {
   JsonValueSchema,
-  VariableReferenceSchema,
-  ResolvableValueSchema,
   LiteralValueSchema,
   ValueKindSchema,
 } from "./v1/values";
 
-export { visualLayerAtoms, defaultTransform } from "./v1/layer-atoms";
 export { EffectSchema, type MotionEffect } from "./v1/effects";
 export { TransformSchema, type MotionTransform } from "./v1/transform";
 export { FrameSchema, type MotionFrame } from "./v1/frame";
 export { OpacitySchema, type Opacity } from "./v1/opacity";
-export { CompositingSchema, type MotionCompositing } from "./v1/compositing";
+export {
+  CompositingSchema,
+  LayerMaskSchema,
+  type MotionCompositing,
+  type LayerMask,
+} from "./v1/compositing";
+export {
+  EdgeInsetsSchema,
+  LayoutSizeModeSchema,
+  LayoutJustifySchema,
+  LayoutAlignSchema,
+  LayoutItemPolicySchema,
+  LayoutConstraintSchema,
+  GroupLayoutSchema,
+  GroupLayoutItemSchema,
+  RepeatSourceSchema,
+  RepeatLayoutSchema,
+  RepeaterSchema,
+  GroupRepeaterSchema,
+  type EdgeInsets,
+  type LayoutConstraint,
+  type LayoutItemPolicy,
+  type RepeatSource,
+  type RepeatLayout,
+  type Repeater,
+} from "./v1/group";
 
 export {
   AssetV1Schema,
@@ -177,7 +109,6 @@ export {
   type AssetValidationCode,
   type AssetValidationLayer,
 } from "./v1/assets/validation";
-
 
 export {
   PointSchema,
@@ -234,5 +165,5 @@ export {
   KeyframeEasingSchema,
   ProceduralDriverSchema,
   type ProceduralDriver,
+  type KeyframeEasingV1,
 } from "./v1/animation";
-

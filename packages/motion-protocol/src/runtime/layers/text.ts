@@ -6,6 +6,8 @@ import {
   LocaleIdentifierSchema,
 } from "../common";
 import { ColorHexSchema } from "../../v1/common";
+import { KeyframeEasingNamedSchema } from "../../v1/animation/easing";
+import { normalizeTextPayloadInput as normalizeTextPayloadInputV1 } from "../../v1/layers/text-content";
 import { LayerBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
@@ -29,9 +31,7 @@ const TextAnimatorSchema = z
     stagger: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
-    easing: z
-      .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-      .default("easeOut"),
+    easing: KeyframeEasingNamedSchema.default("easeOut"),
     properties: z
       .object({
         offsetX: FiniteNumberSchema.optional(),
@@ -61,21 +61,11 @@ const TextAnimatorSchema = z
       });
   });
 
-export function segmentTextUnits(
-  text: string,
-  unit: "grapheme" | "word" | "line",
-  locale = "vi",
-): string[] {
-  if (unit === "line") return text.split(/\r?\n/);
-  const segments = [
-    ...new Intl.Segmenter(locale, { granularity: unit }).segment(text),
-  ];
-  return unit === "word"
-    ? segments
-        .map((segment) => segment.segment)
-        .filter((segment) => segment.trim().length > 0)
-    : segments.map((segment) => segment.segment);
-}
+export {
+  segmentTextUnits,
+  getTextPayloadPlain,
+  setTextPayloadPlain,
+} from "../../v1/layers/text-content";
 
 export type TextLayerPayload = {
   text: string;
@@ -92,33 +82,16 @@ export type TextLayerPayload = {
   fitText?: { minFontSize: number; maxFontSize: number };
 };
 
-export function getTextPayloadPlain(payload: { text?: string }): string {
-  return typeof payload.text === "string" ? payload.text : "";
-}
-
-export function setTextPayloadPlain<T extends { text?: string }>(
-  payload: T,
-  text: string,
-): T & { text: string } {
-  return { ...payload, text };
-}
-
 export function normalizeTextPayloadInput(raw: unknown): unknown {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
-  const payload = { ...(raw as Record<string, unknown>) };
-  const content = payload.content;
+  const normalized = normalizeTextPayloadInputV1(raw);
   if (
-    content !== null &&
-    typeof content === "object" &&
-    !Array.isArray(content) &&
-    (content as Record<string, unknown>).kind === "plain" &&
-    typeof (content as Record<string, unknown>).text === "string"
+    !normalized ||
+    typeof normalized !== "object" ||
+    Array.isArray(normalized)
   ) {
-    if (typeof payload.text !== "string") {
-      payload.text = (content as Record<string, unknown>).text;
-    }
-    delete payload.content;
+    return normalized;
   }
+  const payload = normalized as Record<string, unknown>;
   if (payload.align != null && payload.alignment == null) {
     payload.alignment = payload.align;
   }
