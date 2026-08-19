@@ -14,15 +14,12 @@ export function clipVisualClass(
   kind: ClipStripVisualKind,
   selected: boolean,
 ): string {
-  const selectedCls = selected
-    ? "ring-2 ring-[var(--fg-primary)]/25 shadow-sm"
-    : "ring-1 ring-black/5";
+  const selectedCls = selected ? "ring-1 ring-white" : "";
 
   if (kind === "audio") {
     return cn(
       "flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium",
       "bg-[var(--timeline-clip-audio)] text-[var(--timeline-clip-audio-fg)]",
-      "hover:bg-[var(--timeline-clip-audio-hover)]",
       selectedCls,
     );
   }
@@ -30,15 +27,49 @@ export function clipVisualClass(
     return cn(
       "flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium",
       "bg-[var(--timeline-clip-overlay)] text-[var(--timeline-clip-overlay-fg)]",
-      "hover:bg-[var(--timeline-clip-overlay-hover)]",
       selectedCls,
     );
   }
   return cn(
     "flex flex-col justify-center overflow-hidden rounded-md px-2 text-left text-[11px] font-medium",
     "bg-[var(--timeline-clip-frame)] text-[var(--timeline-clip-frame-fg)]",
-    "hover:bg-[var(--timeline-clip-frame-hover)]",
     selectedCls,
+  );
+}
+
+/** White edge handles — shared by clip strip (interactive) and move float (visual only). */
+export function ClipStripTrimHandles({
+  interactive = false,
+  onTrimLeft,
+  onTrimRight,
+}: {
+  interactive?: boolean;
+  onTrimLeft?: (event: ReactPointerEvent<HTMLElement>) => void;
+  onTrimRight?: (event: ReactPointerEvent<HTMLElement>) => void;
+}) {
+  const edgeCls = interactive
+    ? "cursor-col-resize pointer-events-auto"
+    : "pointer-events-none";
+
+  return (
+    <>
+      <span
+        className={cn(
+          "absolute top-0 bottom-0 left-0 w-1 rounded-l-md bg-white",
+          edgeCls,
+        )}
+        data-testid={interactive ? "timeline-clip-trim-left" : undefined}
+        onPointerDown={onTrimLeft}
+      />
+      <span
+        className={cn(
+          "absolute top-0 bottom-0 right-0 w-1 rounded-r-md bg-white",
+          edgeCls,
+        )}
+        data-testid={interactive ? "timeline-clip-trim-right" : undefined}
+        onPointerDown={onTrimRight}
+      />
+    </>
   );
 }
 
@@ -140,16 +171,11 @@ export function ClipStrip({
     >
       <span className="truncate">{clip.name}</span>
       {selected && showTrimHandles ? (
-        <>
-          <span
-            className="absolute top-0 bottom-0 left-0 w-1 cursor-col-resize rounded-l-md bg-white/80"
-            onPointerDown={(e) => handleTrimPointerDown(e, "left")}
-          />
-          <span
-            className="absolute top-0 bottom-0 right-0 w-1 cursor-col-resize rounded-r-md bg-white/80"
-            onPointerDown={(e) => handleTrimPointerDown(e, "right")}
-          />
-        </>
+        <ClipStripTrimHandles
+          interactive
+          onTrimLeft={(e) => handleTrimPointerDown(e, "left")}
+          onTrimRight={(e) => handleTrimPointerDown(e, "right")}
+        />
       ) : null}
     </div>
   );

@@ -165,10 +165,10 @@ export function createGroupActions(
       commit(project, next, "toggle-layer-visible");
     },
 
-    reorderLayers: (movingId, targetId) => {
+    reorderLayers: (movingId, targetId, edge) => {
       const project = get().project;
       if (!project || movingId === targetId) return;
-      let swapped = false;
+      let changed = false;
       const next = withScopedLayers(
         project.layers,
         get().groupPath,
@@ -176,19 +176,47 @@ export function createGroupActions(
           const moving = scoped.find((layer) => layer.id === movingId);
           const target = scoped.find((layer) => layer.id === targetId);
           if (!moving || !target) return scoped;
-          swapped = true;
+          changed = true;
+          if (!edge) {
+            return scoped.map((layer) => {
+              if (layer.id === movingId) {
+                return { ...layer, zIndex: target.zIndex };
+              }
+              if (layer.id === targetId) {
+                return { ...layer, zIndex: moving.zIndex };
+              }
+              return layer;
+            });
+          }
+          const ordered = [...scoped].sort((a, b) => b.zIndex - a.zIndex);
+          const without = ordered.filter((layer) => layer.id !== movingId);
+          const targetIndex = without.findIndex((layer) => layer.id === targetId);
+          if (targetIndex < 0) {
+            changed = false;
+            return scoped;
+          }
+          const insertAt = edge === "before" ? targetIndex : targetIndex + 1;
+          without.splice(insertAt, 0, moving);
+          const sameOrder = without.every(
+            (layer, i) => layer.id === ordered[i]?.id,
+          );
+          if (sameOrder) {
+            changed = false;
+            return scoped;
+          }
+          const count = without.length;
+          const zById = new Map(
+            without.map((layer, i) => [layer.id, count - 1 - i]),
+          );
           return scoped.map((layer) => {
-            if (layer.id === movingId) {
-              return { ...layer, zIndex: target.zIndex };
-            }
-            if (layer.id === targetId) {
-              return { ...layer, zIndex: moving.zIndex };
-            }
-            return layer;
+            const zIndex = zById.get(layer.id);
+            return zIndex == null || zIndex === layer.zIndex
+              ? layer
+              : { ...layer, zIndex };
           });
         },
       );
-      if (!swapped) return;
+      if (!changed) return;
       commit(project, next, "reorder-layers");
     },
 

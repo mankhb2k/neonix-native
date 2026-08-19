@@ -39,8 +39,9 @@ function PlayheadHandleIcon({ muted }: { muted?: boolean }) {
 }
 
 /**
- * CapCut-style playhead: handle + needle share the same center (left:0 + -translate-x-1/2).
- * Hit strip on the needle so scrub works by grabbing the line, not only the icon.
+ * CapCut-style playhead overlay on the timeline viewport (not inside scroll content).
+ * Handle + needle share the same center; needle always spans the visible panel height.
+ * Horizontal position is viewport X (content left − scrollLeft). Vertical scroll does not move it.
  */
 export function Playhead({
   leftPx,
@@ -86,7 +87,7 @@ export function Playhead({
 
   return (
     <div
-      className="pointer-events-none absolute inset-y-0 z-30"
+      className="pointer-events-none absolute inset-y-0 z-[45]"
       style={{ left: leftPx }}
       data-testid="timeline-playhead"
       data-muted={muted ? "true" : undefined}

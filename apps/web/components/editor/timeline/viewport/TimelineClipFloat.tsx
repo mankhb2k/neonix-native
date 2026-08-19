@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   clipVisualClass,
+  ClipStripTrimHandles,
   type ClipStripVisualKind,
 } from "../clips/ClipStrip";
 
@@ -14,6 +15,8 @@ type Props = {
   width: number;
   height: number;
   valid?: boolean;
+  /** Visual trim edges while dragging a selected clip (move float). */
+  showTrimHandles?: boolean;
 };
 
 /**
@@ -28,6 +31,7 @@ export function TimelineClipFloat({
   width,
   height,
   valid = true,
+  showTrimHandles = false,
 }: Props) {
   return (
     <div
@@ -45,6 +49,7 @@ export function TimelineClipFloat({
       <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
         {label}
       </span>
+      {showTrimHandles ? <ClipStripTrimHandles /> : null}
     </div>
   );
 }

@@ -24,21 +24,23 @@ export function Breadcrumbs({
   const { crumbs } = resolveGroupPath(layers, groupPath);
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1 text-[12px] text-zinc-400">
+    <div className="flex items-center gap-1 border-b border-[var(--border-subtle)] px-2 py-1 text-[12px] text-[var(--fg-muted)]">
       <button
         type="button"
-        className="rounded px-1 py-0.5 hover:bg-zinc-800 hover:text-zinc-200"
+        className="rounded px-1 py-0.5 hover:bg-[var(--bg-hover)] hover:text-[var(--fg-secondary)]"
         onClick={() => onNavigate(0)}
       >
         Composition
       </button>
       {crumbs.map((group, i) => (
         <span key={group.id} className="flex items-center gap-1">
-          <span className="text-zinc-600">›</span>
+          <span className="text-[var(--fg-disabled)]">›</span>
           <button
             type="button"
-            className={`rounded px-1 py-0.5 hover:bg-zinc-800 ${
-              i === crumbs.length - 1 ? "text-zinc-100" : "hover:text-zinc-200"
+            className={`rounded px-1 py-0.5 hover:bg-[var(--bg-hover)] ${
+              i === crumbs.length - 1
+                ? "text-[var(--fg-primary)]"
+                : "hover:text-[var(--fg-secondary)]"
             }`}
             onClick={() => onNavigate(i + 1)}
           >

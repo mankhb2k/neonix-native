@@ -20,7 +20,7 @@ import {
   computePlayheadFollowScroll,
   ensurePlayheadScrubScroll,
   resolvePlayheadScrubMax,
-  timelineTimeToContentLeft,
+  timelineTimeToViewportLeft,
   PLAYHEAD_SCRUB_EDGE_PX,
   PLAYHEAD_SCRUB_STEP_PX,
   PLAYHEAD_FOLLOW_MARGIN_PX,
@@ -281,10 +281,11 @@ export function TimelineViewport({
     [onSelect, selection],
   );
 
-  const playheadLeft = timelineTimeToContentLeft(
+  const playheadLeft = timelineTimeToViewportLeft(
     currentTime,
     TIMELINE_START_GUTTER_PX,
     pps,
+    scrollLeft,
   );
 
   ppsRef.current = pps;
@@ -394,92 +395,96 @@ export function TimelineViewport({
       className="flex min-h-0 flex-1 flex-col bg-[var(--bg-surface)]"
       data-testid="timeline-viewport"
     >
-      <div
-        ref={scrollRef}
-        className="relative min-h-0 flex-1 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        data-timeline-drop-zone="true"
-        onScroll={onScroll}
-      >
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <div
-          className="relative"
-          style={{ width: contentWidth, height: scrollContentHeight }}
+          ref={scrollRef}
+          className="relative h-full min-h-0 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          data-timeline-drop-zone="true"
+          onScroll={onScroll}
         >
-          <div className="sticky top-0 z-20 bg-[var(--bg-surface)]">
-            <TimeRuler
-              duration={surfaceDuration}
-              fps={fps}
-              pixelsPerSecond={pps}
-              scrollLeft={scrollLeft}
-              originOffsetPx={TIMELINE_START_GUTTER_PX}
-              viewWidth={viewWidth}
-              onSeekClick={onSeekClick}
-            />
-          </div>
-          <div className="relative" style={{ height: verticalInsets.contentHeight }}>
-            <div style={{ marginLeft: TIMELINE_START_GUTTER_PX }}>
-              <TimelineTrackCanvas
-                rows={rows}
-                clipsByLane={clipsByLaneMap}
-                allClips={clips}
-                lanes={lanes}
+          <div
+            className="relative"
+            style={{ width: contentWidth, height: scrollContentHeight }}
+          >
+            <div className="sticky top-0 z-20 bg-[var(--bg-surface)]">
+              <TimeRuler
+                duration={surfaceDuration}
+                fps={fps}
                 pixelsPerSecond={pps}
                 scrollLeft={scrollLeft}
+                originOffsetPx={TIMELINE_START_GUTTER_PX}
                 viewWidth={viewWidth}
-                contentWidth={trackWidth}
-                topPadding={verticalInsets.top}
-                bottomPadding={verticalInsets.bottom}
-                selectedClipIds={selectedClipIds}
-                previewSelectedIds={previewSelectedIds}
-                muteWindow={null}
-                duration={surfaceDuration}
-                selection={selection}
-                beginGesture={beginGesture}
-                onSelect={onSelect}
-                onExecute={onExecute}
-                scrollRef={scrollRef}
-                onMarqueePointerDown={beginMarquee}
-                onClipSelectPointerDown={onClipSelectPointerDown}
-                onClipDoubleClick={onClipDoubleClick}
-                exclusiveRows={mode === "layer"}
-                timelineEmpty={timelineEmpty}
-                movePreview={movePreview}
-                onMovePreview={setMovePreview}
+                onSeekClick={onSeekClick}
               />
             </div>
-          </div>
-
-          {marqueeRect ? (
             <div
-              className="pointer-events-none absolute z-40 border border-[var(--accent)] bg-[var(--accent-soft)]"
-              style={{
-                left: marqueeRect.left,
-                top: marqueeRect.top,
-                width: Math.max(1, marqueeRect.right - marqueeRect.left),
-                height: Math.max(1, marqueeRect.bottom - marqueeRect.top),
-              }}
-              data-testid="timeline-marquee"
+              className="relative"
+              style={{ height: verticalInsets.contentHeight }}
+            >
+              <div style={{ marginLeft: TIMELINE_START_GUTTER_PX }}>
+                <TimelineTrackCanvas
+                  rows={rows}
+                  clipsByLane={clipsByLaneMap}
+                  allClips={clips}
+                  lanes={lanes}
+                  pixelsPerSecond={pps}
+                  scrollLeft={scrollLeft}
+                  viewWidth={viewWidth}
+                  contentWidth={trackWidth}
+                  topPadding={verticalInsets.top}
+                  bottomPadding={verticalInsets.bottom}
+                  selectedClipIds={selectedClipIds}
+                  previewSelectedIds={previewSelectedIds}
+                  muteWindow={null}
+                  duration={surfaceDuration}
+                  selection={selection}
+                  beginGesture={beginGesture}
+                  onSelect={onSelect}
+                  onExecute={onExecute}
+                  scrollRef={scrollRef}
+                  onMarqueePointerDown={beginMarquee}
+                  onClipSelectPointerDown={onClipSelectPointerDown}
+                  onClipDoubleClick={onClipDoubleClick}
+                  exclusiveRows={mode === "layer"}
+                  timelineEmpty={timelineEmpty}
+                  movePreview={movePreview}
+                  onMovePreview={setMovePreview}
+                />
+              </div>
+            </div>
+
+            {marqueeRect ? (
+              <div
+                className="pointer-events-none absolute z-40 border border-[var(--accent)] bg-[var(--accent-soft)]"
+                style={{
+                  left: marqueeRect.left,
+                  top: marqueeRect.top,
+                  width: Math.max(1, marqueeRect.right - marqueeRect.left),
+                  height: Math.max(1, marqueeRect.bottom - marqueeRect.top),
+                }}
+                data-testid="timeline-marquee"
+              />
+            ) : null}
+
+            <ClipMoveOverlays
+              preview={movePreview}
+              pixelsPerSecond={pps}
+              contentWidth={contentWidth}
+              contentHeight={scrollContentHeight}
+              viewportClientLeft={viewportClientLeft}
+              scrollLeft={scrollLeft}
             />
-          ) : null}
 
-          <ClipMoveOverlays
-            preview={movePreview}
-            pixelsPerSecond={pps}
-            contentWidth={contentWidth}
-            contentHeight={scrollContentHeight}
-            viewportClientLeft={viewportClientLeft}
-            scrollLeft={scrollLeft}
-          />
-
-          <LibraryDropGhostOverlay contentWidth={contentWidth} />
-
-          <Playhead
-            leftPx={playheadLeft}
-            muted={timelineEmpty || surfaceDuration <= 0}
-            onScrubStart={onPlayheadScrubStart}
-            onScrubMove={onPlayheadScrubMove}
-            onScrubEnd={onPlayheadScrubEnd}
-          />
+            <LibraryDropGhostOverlay contentWidth={contentWidth} />
+          </div>
         </div>
+        <Playhead
+          leftPx={playheadLeft}
+          muted={timelineEmpty || surfaceDuration <= 0}
+          onScrubStart={onPlayheadScrubStart}
+          onScrubMove={onPlayheadScrubMove}
+          onScrubEnd={onPlayheadScrubEnd}
+        />
       </div>
 
       <TimelineHScrollBar

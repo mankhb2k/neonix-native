@@ -107,6 +107,7 @@ export function ClipMoveOverlays({
             width={ghostWidth}
             height={floatH}
             valid={preview.valid}
+            showTrimHandles
           />
           {preview.members?.map((member) => (
             <TimelineClipFloat
@@ -125,6 +126,7 @@ export function ClipMoveOverlays({
                   SECONDARY_LANE_HEIGHT_PX,
               )}
               valid={preview.valid}
+              showTrimHandles
             />
           ))}
         </>

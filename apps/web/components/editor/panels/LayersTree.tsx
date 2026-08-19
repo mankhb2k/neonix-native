@@ -1,14 +1,21 @@
 /**
- * LayersTree — layer sidebar mirroring clipkit's `panels/LayersTree.tsx`.
+ * LayersTree — layer sidebar.
  *
- * Flat-style tree: nesting is group expansion (chevron), not indented lanes.
- * Single click selects; double-click a GROUP drills in (enterGroup);
- * double-click a leaf renames. Visibility toggles `appearance.visible`.
- * ▲▼ swaps paint order (zIndex) between adjacent siblings. Group/ungroup
- * live in the header. Presentational — all mutations flow through callbacks.
+ * Single click selects; double-click group drills in / leaf renames.
+ * Visibility + lock icons on each row. Reorder: press-drag a row (siblings only).
+ * Group/ungroup in the header.
  */
 
-import { useMemo, useState } from "react";
+"use client";
+
+import { Lock, Unlock } from "lucide-react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   isIdentityGroup,
   type GroupLayer,
@@ -16,19 +23,21 @@ import {
 } from "@motionvideo/editor-core";
 
 export interface LayersTreeProps {
-  /** Layers scoped to the current groupPath (already resolved by the host). */
   layers: readonly MotionLayer[];
   selection: readonly string[];
   onSelect: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onToggleVisible: (id: string, visible: boolean) => void;
-  /** Swap paint order (zIndex) between two adjacent siblings. */
-  onReorder: (movingId: string, targetId: string) => void;
+  isLocked: (id: string) => boolean;
+  onToggleLock: (id: string, locked: boolean) => void;
+  onReorder: (
+    movingId: string,
+    targetId: string,
+    edge: "before" | "after",
+  ) => void;
   onGroup: (ids: string[]) => void;
   onUngroup: (groupId: string) => void;
-  /** Double-click a group → drill in. */
   onEnterGroup?: (groupId: string) => void;
-  /** Ungroup gate; defaults to isIdentityGroup (pixel-safe). */
   canUngroup?: (layer: GroupLayer) => boolean;
 }
 
@@ -46,6 +55,23 @@ const TYPE_ICON: Record<string, string> = {
   camera: "◎",
   component: "⬡",
   adjustment: "◐",
+};
+
+const DRAG_THRESHOLD_PX = 5;
+
+type DragSession = {
+  layerId: string;
+  siblingIds: ReadonlySet<string>;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  active: boolean;
+  suppressClick: boolean;
+};
+
+type DropHint = {
+  targetId: string;
+  edge: "before" | "after";
 };
 
 function childrenOf(layer: MotionLayer): MotionLayer[] {
@@ -96,6 +122,8 @@ export function LayersTree(props: LayersTreeProps) {
     onSelect,
     onRename,
     onToggleVisible,
+    isLocked,
+    onToggleLock,
     onReorder,
     onGroup,
     onUngroup,
@@ -105,6 +133,9 @@ export function LayersTree(props: LayersTreeProps) {
 
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropHint, setDropHint] = useState<DropHint | null>(null);
+  const dragRef = useRef<DragSession | null>(null);
 
   const selected = useMemo(() => new Set(selection), [selection]);
   const selectedRootIds = useMemo(
@@ -126,43 +157,139 @@ export function LayersTree(props: LayersTreeProps) {
     if (selectedRootIds.length >= 2) onGroup(selectedRootIds);
   };
 
+  const resolveDropHint = useCallback(
+    (clientX: number, clientY: number): DropHint | null => {
+      const session = dragRef.current;
+      if (!session?.active) return null;
+      const hoverEl = document
+        .elementFromPoint(clientX, clientY)
+        ?.closest("[data-layer-row]") as HTMLElement | null;
+      const hoverId = hoverEl?.dataset.layerId;
+      if (!hoverId || hoverId === session.layerId) return null;
+      if (!session.siblingIds.has(hoverId)) return null;
+      const rect = hoverEl.getBoundingClientRect();
+      const edge: "before" | "after" =
+        clientY < rect.top + rect.height / 2 ? "before" : "after";
+      return { targetId: hoverId, edge };
+    },
+    [],
+  );
+
+  const endDrag = useCallback(
+    (event: ReactPointerEvent<HTMLElement>, commit: boolean) => {
+      const session = dragRef.current;
+      if (!session || session.pointerId !== event.pointerId) return;
+      const hint =
+        commit && session.active
+          ? resolveDropHint(event.clientX, event.clientY)
+          : null;
+      const suppress = session.suppressClick;
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        /* already released */
+      }
+      dragRef.current = null;
+      setDraggingId(null);
+      setDropHint(null);
+      if (hint) onReorder(session.layerId, hint.targetId, hint.edge);
+      else if (!suppress) onSelect(session.layerId);
+    },
+    [onReorder, onSelect, resolveDropHint],
+  );
+
   const renderRow = (
     layer: MotionLayer,
     depth: number,
     siblings: readonly MotionLayer[],
-    index: number,
   ) => {
     const children = childrenOf(layer);
+    const nestedPaint = [...children].sort((a, b) => b.zIndex - a.zIndex);
     const isGroup = layer.type === "group" && children.length > 0;
     const isExpanded = expanded.has(layer.id);
     const isSelected = selected.has(layer.id);
+    const locked = isLocked(layer.id);
     const isVisible =
       !("appearance" in layer) || layer.appearance?.visible !== false;
     const name = layer.name ?? layer.id;
     const isRenaming = renamingId === layer.id;
-    const canMoveUp = index > 0;
-    const canMoveDown = index < siblings.length - 1;
+    const isDragging = draggingId === layer.id;
+
+    const handleRowPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0 || locked) return;
+      if ((event.target as HTMLElement).closest("button")) return;
+
+      dragRef.current = {
+        layerId: layer.id,
+        siblingIds: new Set(siblings.map((item) => item.id)),
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+        suppressClick: false,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    };
+
+    const handleRowPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+      const session = dragRef.current;
+      if (!session || session.pointerId !== event.pointerId) return;
+
+      if (!session.active) {
+        const dx = event.clientX - session.startX;
+        const dy = event.clientY - session.startY;
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+        session.active = true;
+        session.suppressClick = true;
+        setDraggingId(session.layerId);
+      }
+
+      setDropHint(resolveDropHint(event.clientX, event.clientY));
+    };
+
+    const hintHere = dropHint?.targetId === layer.id;
+    const showBefore = hintHere && dropHint?.edge === "before";
+    const showAfter = hintHere && dropHint?.edge === "after";
 
     return (
       <div key={layer.id}>
         <div
-          className={`group flex items-center gap-1.5 rounded px-1.5 py-1 text-[13px] leading-none ${
-            isSelected
-              ? "bg-blue-600/90 text-white"
-              : "text-zinc-200 hover:bg-zinc-800"
-          }`}
+          data-layer-row
+          data-layer-id={layer.id}
+          className={`relative group flex items-center gap-1.5 rounded px-1.5 py-1 text-[13px] leading-none touch-none ${
+            isSelected || isDragging
+              ? "bg-[var(--accent-soft)] text-[var(--fg-primary)]"
+              : draggingId
+                ? "text-[var(--fg-secondary)]"
+                : "text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)]"
+          } ${locked && !isDragging ? "opacity-70" : ""}`}
           style={{ paddingLeft: 8 + depth * 14 }}
-          onClick={() => onSelect(layer.id)}
           onDoubleClick={(e) => {
             e.stopPropagation();
             if (isGroup && onEnterGroup) onEnterGroup(layer.id);
             else setRenamingId(layer.id);
           }}
+          onPointerDown={handleRowPointerDown}
+          onPointerMove={handleRowPointerMove}
+          onPointerUp={(event) => endDrag(event, true)}
+          onPointerCancel={(event) => endDrag(event, false)}
         >
+          {showBefore ? (
+            <div
+              className="pointer-events-none absolute top-0 right-1 left-1 z-10 h-px bg-[var(--accent)]"
+              aria-hidden
+            />
+          ) : null}
+          {showAfter ? (
+            <div
+              className="pointer-events-none absolute right-1 bottom-0 left-1 z-10 h-px bg-[var(--accent)]"
+              aria-hidden
+            />
+          ) : null}
           <button
             type="button"
-            className={`flex w-3 shrink-0 items-center justify-center text-zinc-400 ${
-              isGroup ? "cursor-pointer" : "invisible"
+            className={`flex w-3 shrink-0 items-center justify-center text-[var(--fg-muted)] ${
+              isGroup ? "" : "invisible"
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -181,7 +308,7 @@ export function LayersTree(props: LayersTreeProps) {
             <input
               autoFocus
               defaultValue={name}
-              className="w-full rounded bg-black/40 px-1 text-[13px] text-white outline-none"
+              className="w-full rounded bg-[var(--bg-editor)] px-1 text-[13px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]"
               onClick={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               onBlur={(e) => {
@@ -198,55 +325,45 @@ export function LayersTree(props: LayersTreeProps) {
             <span className="min-w-0 flex-1 truncate">{name}</span>
           )}
 
-          <button
-            type="button"
-            className={`shrink-0 ${
-              isVisible ? "text-zinc-400" : "text-zinc-600"
-            } hover:text-white`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVisible(layer.id, !isVisible);
-            }}
-            aria-label={isVisible ? "Hide layer" : "Show layer"}
-          >
-            <Eye visible={isVisible} />
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              className={`${
+                isVisible
+                  ? "text-[var(--fg-muted)]"
+                  : "text-[var(--fg-disabled)]"
+              } hover:text-[var(--fg-primary)]`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisible(layer.id, !isVisible);
+              }}
+              aria-label={isVisible ? "Hide layer" : "Show layer"}
+            >
+              <Eye visible={isVisible} />
+            </button>
 
-          <button
-            type="button"
-            className={`shrink-0 text-zinc-500 hover:text-white ${
-              canMoveUp ? "" : "invisible"
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (canMoveUp) onReorder(layer.id, siblings[index - 1]!.id);
-            }}
-            aria-label="Move layer up"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            className={`shrink-0 text-zinc-500 hover:text-white ${
-              canMoveDown ? "" : "invisible"
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (canMoveDown) onReorder(layer.id, siblings[index + 1]!.id);
-            }}
-            aria-label="Move layer down"
-          >
-            ▼
-          </button>
+            <button
+              type="button"
+              className={`hover:text-[var(--fg-primary)] ${
+                locked ? "text-[var(--accent-text)]" : "text-[var(--fg-muted)]"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLock(layer.id, !locked);
+              }}
+              aria-label={locked ? "Unlock layer" : "Lock layer"}
+            >
+              {locked ? <Lock size={14} /> : <Unlock size={14} />}
+            </button>
+          </div>
         </div>
-
-        {isGroup && isExpanded && (
+        {isGroup && isExpanded ? (
           <div>
-            {children.map((child, i) =>
-              renderRow(child, depth + 1, children, i),
+            {nestedPaint.map((child) =>
+              renderRow(child, depth + 1, nestedPaint),
             )}
           </div>
-        )}
+        ) : null}
       </div>
     );
   };
@@ -258,9 +375,9 @@ export function LayersTree(props: LayersTreeProps) {
     selectedGroups.length === 1 && canUngroup(selectedGroups[0]!);
 
   return (
-    <div className="flex h-full flex-col bg-zinc-950 text-zinc-300">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-2 py-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+    <div className="flex h-full cursor-default flex-col bg-[var(--bg-surface)] text-[var(--fg-secondary)] [&_button]:cursor-default">
+      <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-2 py-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fg-muted)]">
           Layers
         </span>
         <div className="flex gap-1">
@@ -269,8 +386,8 @@ export function LayersTree(props: LayersTreeProps) {
             disabled={!canGroup}
             className={`rounded px-1.5 py-0.5 text-[11px] ${
               canGroup
-                ? "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
-                : "cursor-not-allowed text-zinc-600"
+                ? "bg-[var(--bg-hover)] text-[var(--fg-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg-primary)]"
+                : "text-[var(--fg-disabled)] opacity-50"
             }`}
             onClick={groupSelection}
           >
@@ -281,8 +398,8 @@ export function LayersTree(props: LayersTreeProps) {
             disabled={!ungroupEnabled}
             className={`rounded px-1.5 py-0.5 text-[11px] ${
               ungroupEnabled
-                ? "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
-                : "cursor-not-allowed text-zinc-600"
+                ? "bg-[var(--bg-hover)] text-[var(--fg-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--fg-primary)]"
+                : "text-[var(--fg-disabled)] opacity-50"
             }`}
             onClick={() => {
               if (ungroupEnabled) onUngroup(selectedGroups[0]!.id);
@@ -294,7 +411,7 @@ export function LayersTree(props: LayersTreeProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
-        {layers.map((layer, i) => renderRow(layer, 0, layers, i))}
+        {layers.map((layer) => renderRow(layer, 0, layers))}
       </div>
     </div>
   );

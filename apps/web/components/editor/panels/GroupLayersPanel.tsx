@@ -16,13 +16,16 @@ import { Breadcrumbs } from "@/components/editor/frame/Breadcrumbs";
 import { LayersTree } from "@/components/editor/panels/LayersTree";
 import { useGroupScope } from "@/hooks/editor/use-group-scope";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { isIdentityGroup, type GroupLayer } from "@motionvideo/editor-core";
+import { rootLayerIdOf, isIdentityGroup, type GroupLayer } from "@motionvideo/editor-core";
+import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
 
 export function GroupLayersPanel() {
   const scope = useGroupScope();
   const groupPath = useEditorStore((s) => s.groupPath);
   const selection = useEditorStore((s) => s.selection);
   const rootLayers = useEditorStore((s) => s.project?.layers);
+  const project = useEditorStore((s) => s.project);
+  const envelope = useEditorStore((s) => s.envelope);
 
   // Paint order = zIndex descending (front-most first).
   const layers = useMemo(
@@ -53,8 +56,18 @@ export function GroupLayersPanel() {
           onToggleVisible={(id, visible) =>
             store.getState().toggleLayerVisible(id, visible)
           }
-          onReorder={(movingId, targetId) =>
-            store.getState().reorderLayers(movingId, targetId)
+          isLocked={(id) => {
+            if (!project || !envelope) return false;
+            const rootId = rootLayerIdOf(project, id) ?? id;
+            return isElementLocked(envelope, rootId, id);
+          }}
+          onToggleLock={(id, locked) => {
+            if (!project) return;
+            const rootId = rootLayerIdOf(project, id) ?? id;
+            store.getState().setElementLocked(rootId, id, locked);
+          }}
+          onReorder={(movingId, targetId, edge) =>
+            store.getState().reorderLayers(movingId, targetId, edge)
           }
           onGroup={(ids) => store.getState().groupSelectedLayers(ids)}
           onUngroup={(groupId) => store.getState().ungroupLayer(groupId)}

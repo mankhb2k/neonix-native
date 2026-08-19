@@ -21,6 +21,7 @@ Dùng các mặc định sau trong code mới:
 - `Component` cho định nghĩa component
 - `ComponentInstance` cho layer có `type: "component"`
 - `AnimationClip` cho `timeline.clips[]`
+- `TimelineClip` cho layer được chiếu lên timeline (view dẫn xuất)
 - `TimelineDocument` cho trạng thái editor dẫn xuất bao bọc project
 - `TimelineLane` cho hàng lane dẫn xuất của editor
 - `Selection` cho trạng thái chọn trong phiên editor
@@ -42,7 +43,9 @@ Tránh dùng cùng một từ cho nhiều khái niệm khác nhau.
 | `Asset`             | Tham chiếu media hoặc font                                   | `project.assets[]`                                  | Đừng bao giờ gọi đây là clip.                            |
 | `Variable`          | Biến có tên của project                                      | `project.variables[]`                               | Nguồn dữ liệu cho các giá trị dùng chung.                |
 | `Binding`           | Liên kết từ variable tới public prop                         | `project.bindings[]`                                | Chỉ dùng khi nói về nối variable.                        |
-| `AnimationClip`     | Tín hiệu animation trên timeline                             | `timeline.clips[]`                                  | Đừng rút gọn thành `clip` khi cần rõ nghĩa.              |
+| `AnimationClip`     | Tín hiệu animation trên timeline                             | `timeline.clips[]`                                  | Protocol — không phải thanh tím trên UI.                 |
+| `TimelineClip`      | Layer (hoặc audio) **chiếu** lên timeline: `startTime`, `duration`, `laneId` | editor-core / store dẫn xuất                          | **Gọi “clip timeline” trong hội thoại là được**; trong code dùng đủ `TimelineClip`. |
+| `Clip strip`        | Hình chữ nhật bo góc trên lane — chrome UI của một `TimelineClip` | `ClipStrip.tsx`, `data-testid="timeline-clip-*"`    | Chỉ UI. Nói “strip” khi muốn tách khỏi data model.       |
 | `TimelineDocument`  | Aggregate của editor: project + trạng thái timeline dẫn xuất | document của editor-core                            | Không thuộc protocol JSON.                               |
 | `TimelineLane`      | Hàng lane dẫn xuất dùng bởi UI timeline                      | editor-core / web store                             | Thuộc tầng UI, không phải protocol chuẩn.                |
 | `Selection`         | Trạng thái chọn hiện tại của editor                          | trạng thái phiên editor                             | Chỉ dành cho UI.                                         |
@@ -55,19 +58,22 @@ Tránh dùng cùng một từ cho nhiều khái niệm khác nhau.
 
 ### `clip`
 
-Không dùng `clip` một mình.
+**Trên timeline UI:** gọi ngắn là **clip** (hoặc **clip timeline**) là ổn — ý là `TimelineClip` / thanh trên lane, **không** phải `Layer` trong JSON và **không** phải `AnimationClip` trong `timeline.clips[]`.
 
-Hãy dùng một trong các tên sau:
+Trong **code / review**, không dùng `clip` trần khi có thể nhầm tầng:
 
-- `AnimationClip` khi muốn nói tới `timeline.clips[]`
-- `TimelineClip` khi muốn nói tới đối tượng clip timeline dẫn xuất của editor
-- `MediaClip` chỉ khi bạn định nghĩa rõ ràng trong một ngữ cảnh UI cục bộ
-- `AudioClip` chỉ khi kiểu là không mơ hồ và cục bộ trong UI timeline
+| Bạn muốn nói… | Dùng |
+| --- | --- |
+| Thanh tím/xanh trên timeline (data + hành vi move/trim) | `TimelineClip` |
+| Chỉ phần vẽ (fill, label, border, trim handle) | **Clip strip** |
+| Một `Layer` trong `project.layers[]` | `Layer` |
+| Một mục trong `timeline.clips[]` (animation) | `AnimationClip` |
+| File media trong library | `Asset` |
 
-Vì sao:
+Vì sao phân tách:
 
-- `clip` bị chồng nghĩa giữa animation, UI timeline, media và hành động người dùng.
-- Một cái tên `clip` trần khiến việc review và refactor khó hơn.
+- Một **Layer** tồn tại trong JSON; **TimelineClip** là cách editor đặt layer đó lên hàng + thời gian (view-only packing, không ghi `laneId` vào V1).
+- `clip` trần dễ lẫn animation clip, media, và hành động “cắt clip”.
 
 ### `node`
 
@@ -115,6 +121,8 @@ Tránh dùng `track` cho:
 | `View model`        | Shape thân thiện với UI, dẫn xuất từ protocol hoặc document | Phải rõ là dẫn xuất.                                                                    |
 | `UI state`          | Trạng thái editor chỉ trong phiên                           | Zoom, cuộn, panel hiện tại, phiên kéo thả, v.v.                                         |
 | `Timeline viewport` | Vùng hiển thị của UI timeline                               | Chỉ để xem.                                                                             |
+| `TimelineClip`      | Layer chiếu lên timeline (start/duration/lane)              | Dẫn xuất; ánh xạ 1 layer (hoặc audio) → một “clip” trên UI.                            |
+| `Clip strip`        | Widget hình chữ nhật của một clip trên lane                 | `ClipStrip.tsx`; border trắng khi selected.                                              |
 | `Stage viewport`    | Vùng xem trước hiển thị trên canvas                         | Chỉ để xem.                                                                             |
 | `Layer tree`        | Cây UI hiển thị phân cấp layer                              | Có thể dẫn xuất từ `project.layers`.                                                    |
 | `Breadcrumbs`       | UI đường dẫn drill-down group                               | Chỉ dành cho UI.                                                                        |
@@ -137,7 +145,9 @@ Tránh dùng `track` cho:
 | `project.assets[]`           | `Asset`                  | `media clip`                                         |
 | `project.variables[]`        | `Variable`               | `data binding`                                       |
 | `project.bindings[]`         | `Binding`                | `link`, `wire`                                       |
-| `timeline.clips[]`           | `AnimationClip`          | `clip`                                               |
+| `timeline.clips[]`           | `AnimationClip`          | `clip`, `TimelineClip`                               |
+| layer trên timeline (derived) | `TimelineClip`           | `clip` trần trong API, `Layer` khi ý là JSON          |
+| chrome strip trên lane       | **Clip strip**           | `TimelineClip` khi chỉ nói UI                         |
 | lane dẫn xuất của editor     | `TimelineLane`           | `track` nếu code không thực sự nói về timeline track |
 | document dẫn xuất của editor | `TimelineDocument`       | `project document`                                   |
 
@@ -225,9 +235,10 @@ Protocol document vẫn là `MotionProjectV1`. Mọi thứ dưới đây là **e
 
 | Thuật ngữ | Nghĩa | Trông như |
 | --- | --- | --- |
-| `TimelineClip` / **strip** | Layer chiếu lên một hàng timeline | Rect bo góc trên lane (overlay tím, Main teal/green, audio) |
+| **`TimelineClip`** / **clip** (timeline) | Layer (hoặc audio) chiếu lên một hàng — data + hành vi move/trim | Một “clip” trên timeline |
+| **Clip strip** | Chrome UI của `TimelineClip` trên lane | Rect bo góc (overlay tím, Main teal, audio) — `ClipStrip.tsx` |
 | `TimelineLane` / **row** | Một hàng ngang trên timeline | Band `--timeline-track-lane` |
-| **Playhead** | Thời điểm hiện tại của phiên. Không lưu trong V1 | Kim + handle trắng |
+| **Playhead** | Thời điểm hiện tại của phiên. Không lưu trong V1 | Kim + handle; overlay viewport — **không** cuộn dọc theo lane, luôn cao hết panel |
 | **Ruler** | Vạch thời gian phía trên track | `00:00`, `00:03`, … |
 | **Float** | Bản sao clip **đang kéo**. Bám pointer, **nằm trên** ghost | Cùng fill + label với strip (`timeline-clip-move-float`) |
 | **Ghost** | Placeholder tại **điểm thả** (time + lane hoặc khe insert) | Xám `#38383e` / fill nhạt (`timeline-clip-move-ghost`, `library-drop-ghost`) |

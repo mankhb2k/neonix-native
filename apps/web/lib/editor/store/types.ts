@@ -191,7 +191,11 @@ export type EditorStoreActions = {
   navigateGroupDepth: (depth: number) => void;
   renameLayer: (layerId: string, name: string) => void;
   toggleLayerVisible: (layerId: string, visible: boolean) => void;
-  reorderLayers: (movingId: string, targetId: string) => void;
+  reorderLayers: (
+    movingId: string,
+    targetId: string,
+    edge?: "before" | "after",
+  ) => void;
   groupSelectedLayers: (ids: string[]) => void;
   ungroupLayer: (groupId: string) => void;
 };
