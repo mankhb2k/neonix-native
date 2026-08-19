@@ -14,10 +14,8 @@ import {
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
 import { flattenLayerTree, getLayerAnimations } from "../layers";
-import type { ProjectVariableV1 } from "../variables";
 import {
   isOwnerPropSink,
-  variableTypeMatchesPropKind,
 } from "../prop-sinks";
 import {
   defaultAnimatableForPropKind,
@@ -169,67 +167,6 @@ function validateAssetIdForProp(
     ];
   }
   return [];
-}
-
-function validateVariableAgainstProp(
-  variable: ProjectVariableV1,
-  prop: ComponentPropV1,
-  assetById: Map<string, AssetLike> | undefined,
-  path: string,
-): ReferenceIssue[] {
-  const issues: ReferenceIssue[] = [];
-  if (!variableTypeMatchesPropKind(variable.type, prop.kind)) {
-    issues.push({
-      path,
-      message: `props "${prop.id}" references variable "${variable.id}" of type "${variable.type}", expected kind "${prop.kind}"`,
-    });
-    return issues;
-  }
-
-  if (prop.kind === "choice" && prop.options) {
-    if (variable.type === "choice") {
-      const extra = variable.options.filter(
-        (option) => !prop.options!.includes(option),
-      );
-      if (extra.length > 0) {
-        issues.push({
-          path,
-          message: `props "${prop.id}" choice variable "${variable.id}" has options not in prop options: ${extra.join(", ")}`,
-        });
-      }
-      if (!prop.options.includes(variable.value)) {
-        issues.push({
-          path,
-          message: `props "${prop.id}" choice variable "${variable.id}" value "${variable.value}" is not in options`,
-        });
-      }
-    } else if (
-      variable.type === "string" &&
-      !prop.options.includes(variable.value)
-    ) {
-      issues.push({
-        path,
-        message: `props "${prop.id}" string variable "${variable.id}" value "${variable.value}" is not in options`,
-      });
-    }
-  }
-
-  if (prop.kind === "asset" && variable.type === "asset") {
-    if (
-      prop.assetKind &&
-      !assetTypeMatchesAssetKind(variable.assetKind, prop.assetKind)
-    ) {
-      issues.push({
-        path,
-        message: `props "${prop.id}" asset variable "${variable.id}" has assetKind "${variable.assetKind}", expected "${prop.assetKind}"`,
-      });
-    }
-    issues.push(
-      ...validateAssetIdForProp(variable.value, prop, assetById, path),
-    );
-  }
-
-  return issues;
 }
 
 function validatePropValue(

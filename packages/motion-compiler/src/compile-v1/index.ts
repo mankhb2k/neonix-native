@@ -28,9 +28,8 @@ import {
   computeRuntimeHash,
   computeProjectHash,
   buildCapabilityFingerprint,
-  preflightProjectCapabilities,
   canonicalizeProjectTimingV1,
-  CAPABILITY_MANIFEST_VERSION_V1,
+  CAPABILITY_MANIFEST_VERSION,
   V1,
 } from "@motionvideo/motion-protocol";
 import {
@@ -141,32 +140,6 @@ export function compileMotionProjectV1(
     });
   }
   normalized = durationCanonical.project;
-
-  // ── Capability preflight (Phase 11) ──────────────────────────────
-  const capabilityCheck = preflightProjectCapabilities(normalized);
-  for (const capId of capabilityCheck.undeclared) {
-    collector.warn(
-      "CAP_UNDECLARED_CAPABILITY",
-      `Project uses capability "${capId}" but it is not declared in capabilities.required`,
-      {
-        path: ["capabilities", "required"],
-        details: { capabilityId: capId },
-      },
-    );
-  }
-  for (const capId of capabilityCheck.experimentalInUse) {
-    collector.error(
-      "CAP_EXPERIMENTAL_IN_USE",
-      `Project uses experimental capability "${capId}". Opt in via capabilities.experimental or a feature flag.`,
-      {
-        path: ["capabilities", "experimental"],
-        details: { capabilityId: capId },
-      },
-    );
-  }
-  if (collector.hasErrors) {
-    return compileFailure([...collector.diagnostics]);
-  }
 
   // Semantic validation → CMP_* diagnostics.
   validateV1Semantics(normalized, collector);
@@ -358,7 +331,7 @@ export function compileMotionProjectV1(
       composition,
       compilerVersion: COMPILER_VERSION_V1,
       capabilityFingerprint: buildCapabilityFingerprint(
-        CAPABILITY_MANIFEST_VERSION_V1,
+        CAPABILITY_MANIFEST_VERSION,
       ),
       ...(compiledGraph?.space ? { space: compiledGraph.space } : {}),
       ...(compiledGraph?.motionBlur

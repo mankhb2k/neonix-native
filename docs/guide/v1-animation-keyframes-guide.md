@@ -25,7 +25,7 @@ Layer **không** ôm keyframe trên field thường. Không nhầm authoring JSO
 
 ### 1. Layer property animation
 
-Animate field của layer: `transform.translate.x`, `appearance.opacity`, `style.fill`, …
+Animate field của layer: `transform.translate.x`, `opacity`, `style.fill`, …
 
 **Chỗ ghi:** `layer.animations[]` — nơi duy nhất cho đường này.
 
@@ -97,7 +97,7 @@ Không phải absolute clock. Runtime IR (`project.propertyAnimations`) là outp
   "animations": [
     {
       "id": "fade_title",
-      "property": "appearance.opacity",
+      "property": "opacity",
       "kind": "keyframes",
       "keys": [
         { "t": 0, "value": 0 },
@@ -121,7 +121,7 @@ Không phải absolute clock. Runtime IR (`project.propertyAnimations`) là outp
 - `transform.rotate.z`
 - `transform.skew.x` / `y`
 - `transform.depth`
-- `appearance.opacity`
+- `opacity`
 - `style.fill` (shape / path / svg)
 - `style.stroke` / `style.strokeWidth` (shape / path)
 - `payload.color` (text / solid)
@@ -132,7 +132,7 @@ Không animate (cấu trúc / setup / playback):
 
 - `frame.width` / `frame.height` — scale bằng `transform.scale`. Owner **có thể bind** frame/origin như setup tĩnh; **không** keyframe.
 - `timing.*`, `zIndex`
-- `transform.origin.*`, `appearance.visible` — bindable setup, không animate
+- `transform.origin.*` — bindable setup, không animate
 - `payload.fit`, `wrap`, `alignment`, `overflow`, `fillRule`, `shape`, `assetId`
 - `payload.trimStart` / `trimEnd`, `loop`, `muted`, `framePolicy`
 - `payload.crop*`

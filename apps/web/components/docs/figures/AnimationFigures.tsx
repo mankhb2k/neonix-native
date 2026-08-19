@@ -87,7 +87,7 @@ export function KeyframesFigure() {
           fill={MUTED}
           fontFamily="monospace"
         >
-          appearance.opacity: 0 → 60 → 100
+          opacity: 0 → 60 → 100
         </text>
         <text
           x={x1}

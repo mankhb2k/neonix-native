@@ -9,11 +9,8 @@ import type { MotionProjectV1 } from "./project";
 import { MotionProjectV1Schema } from "./project";
 import { IdSchema, FiniteNumberSchema } from "./common";
 import { CompositionSettingsSchema } from "./composition";
-import { DesignTokensSchema } from "./design-tokens";
 import { LayerV1Schema, flattenLayerTree, type LayerV1 } from "./layers";
 import { AssetV1Schema } from "./assets";
-import { ProjectVariableV1Schema } from "./variables";
-import { ProjectBindingV1Schema } from "./variables";
 
 export const MOTION_PROJECT_V1_PATCH_FORMAT_VERSION = 1 as const;
 
@@ -40,13 +37,6 @@ export const V1PatchSetCompositionSchema = z
   .object({
     op: z.literal("setComposition"),
     changes: CompositionSettingsSchema.partial(),
-  })
-  .strict();
-
-export const V1PatchSetTokensSchema = z
-  .object({
-    op: z.literal("setTokens"),
-    changes: DesignTokensSchema.partial(),
   })
   .strict();
 
@@ -89,20 +79,6 @@ export const V1PatchAssetSchema = z
   })
   .strict();
 
-export const V1PatchVariableSchema = z
-  .object({
-    op: z.enum(["addVariable", "updateVariable"]),
-    variable: ProjectVariableV1Schema,
-  })
-  .strict();
-
-export const V1PatchBindingSchema = z
-  .object({
-    op: z.enum(["addBinding", "updateBinding"]),
-    binding: ProjectBindingV1Schema,
-  })
-  .strict();
-
 export const V1PatchSetValueSchema = z
   .object({
     op: z.literal("setValue"),
@@ -113,14 +89,11 @@ export const V1PatchSetValueSchema = z
 
 export const V1PatchOpSchema = z.discriminatedUnion("op", [
   V1PatchSetCompositionSchema,
-  V1PatchSetTokensSchema,
   V1PatchAddLayerSchema,
   V1PatchUpdateLayerSchema,
   V1PatchRemoveLayerSchema,
   V1PatchTrimLayerSchema,
   V1PatchAssetSchema,
-  V1PatchVariableSchema,
-  V1PatchBindingSchema,
   V1PatchSetValueSchema,
 ]);
 
@@ -249,16 +222,6 @@ export function applyMotionProjectV1Patch(
         break;
       }
 
-      case "setTokens": {
-        diagnostics.push(
-          diagnostic(
-            opPrefix,
-            "setTokens is not supported on core MotionProjectV1",
-          ),
-        );
-        break;
-      }
-
       case "addLayer": {
         if (layerIds(next.layers).has(op.layer.id)) {
           diagnostics.push(
@@ -373,28 +336,6 @@ export function applyMotionProjectV1Patch(
           }
           next = { ...next, assets: [...next.assets, op.asset] };
         }
-        break;
-      }
-
-      case "addVariable":
-      case "updateVariable": {
-        diagnostics.push(
-          diagnostic(
-            opPrefix,
-            "Variables are not supported on core MotionProjectV1",
-          ),
-        );
-        break;
-      }
-
-      case "addBinding":
-      case "updateBinding": {
-        diagnostics.push(
-          diagnostic(
-            opPrefix,
-            "Bindings are not supported on core MotionProjectV1",
-          ),
-        );
         break;
       }
 

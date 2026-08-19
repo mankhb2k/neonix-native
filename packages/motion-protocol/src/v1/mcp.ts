@@ -5,9 +5,7 @@
  */
 
 import { z } from "zod";
-import { CapabilityIdSchema } from "./capabilities";
 import { CompositionSettingsSchema } from "./composition";
-import { DesignTokensSchema } from "./design-tokens";
 import { ProjectMetadataV1Schema } from "./metadata";
 import { MotionProjectV1Schema, type MotionProjectV1 } from "./project";
 import { MotionProjectV1PatchSchema } from "./patch";
@@ -47,8 +45,6 @@ export const MCPCreateProjectInputSchema = z
   .object({
     metadata: ProjectMetadataV1Schema,
     composition: CompositionSettingsSchema,
-    tokens: DesignTokensSchema.optional(),
-    capabilities: z.array(CapabilityIdSchema).max(256).optional(),
     skillId: z
       .string()
       .optional()
@@ -406,31 +402,15 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
  * capability IDs (from the runtime environment).
  */
 export function preflightCapabilities(
-  project: MotionProjectV1,
-  availableCapabilityIds: string[],
+  _project: MotionProjectV1,
+  _availableCapabilityIds: string[],
 ): MCPCapabilityCheck {
-  const available = new Set(availableCapabilityIds);
-  const sugar = project as MotionProjectV1 & {
-    capabilities?: {
-      required?: string[];
-      optional?: string[];
-      experimental?: string[];
-    };
-  };
-  const required = new Set(sugar.capabilities?.required ?? []);
-  const optional = new Set(sugar.capabilities?.optional ?? []);
-  const experimental = new Set(sugar.capabilities?.experimental ?? []);
-
-  const missing = [...required].filter((id) => !available.has(id));
-  const recommended = [...optional].filter((id) => !available.has(id));
-  const exp = [...experimental].filter((id) => available.has(id));
-
   return {
-    available: [...required].filter((id) => available.has(id)),
-    missing,
-    recommended,
-    experimental: exp,
-    allowed: missing.length === 0,
+    available: [],
+    missing: [],
+    recommended: [],
+    experimental: [],
+    allowed: true,
   };
 }
 
@@ -440,23 +420,12 @@ export function preflightCapabilities(
  */
 export function canExecuteTool(
   toolName: string,
-  project: MotionProjectV1,
-  availableCapabilityIds: string[],
+  _project: MotionProjectV1,
+  _availableCapabilityIds: string[],
 ): { allowed: boolean; missing: string[] } {
   const descriptor = MCP_TOOLS.find((t) => t.name === toolName);
   if (!descriptor) return { allowed: false, missing: ["unknown_tool"] };
-
-  const available = new Set(availableCapabilityIds);
-  const toolReqs = new Set(descriptor.requiredCapabilities);
-  const sugar = project as MotionProjectV1 & {
-    capabilities?: { required?: string[] };
-  };
-  const projectReqs = new Set(sugar.capabilities?.required ?? []);
-
-  const missing = [...toolReqs, ...projectReqs].filter(
-    (id) => !available.has(id),
-  );
-  return { allowed: missing.length === 0, missing };
+  return { allowed: true, missing: [] };
 }
 
 /**

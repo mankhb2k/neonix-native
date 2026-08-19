@@ -21,9 +21,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "7ecf3fa9dd61602619422e6096e0ceca",
+  "runtimeHash": "0b55a1f09cc040e986d812847db7bae6",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "2cf6603729d72afd",
+  "capabilityFingerprint": "35e7e1343160d619",
   "sourceRef": {
     "layers": {
       "logo-instance__instance": "layers:logo-instance__instance",

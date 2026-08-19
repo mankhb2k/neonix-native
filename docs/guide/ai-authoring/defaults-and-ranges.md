@@ -9,7 +9,7 @@ Numeric and enum bounds the parser enforces. Not every error code — the number
 
 ## Hard rules
 
-- `appearance.opacity` is integer **0..100**, default **100**. Never 0..1.
+- `opacity` is integer **0..100**, default **100**. Never 0..1.
 - `composition.fps` is **1..120**.
 - `composition.width` / `height` must be **> 0**.
 - `composition.colorSpace` MVP: only `"srgb"`.
@@ -25,8 +25,7 @@ Numeric and enum bounds the parser enforces. Not every error code — the number
 
 | Field | Default if omitted |
 | --- | --- |
-| `appearance.visible` | `true` (still emit on visual layers when you author a full layer) |
-| `appearance.opacity` | `100` |
+| `opacity` | `100` |
 | `composition.background` | `#ffffff` |
 | `composition.colorSpace` | `srgb` |
 | `payload.fit` image/video | `cover` |

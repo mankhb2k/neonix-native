@@ -26,10 +26,10 @@ export function visiblePage(): DocsPageView {
         <HumanName
           title="Visible"
           human="Whether the visual layer is rendered."
-          jsonPath="appearance.visible"
+          jsonPath="opacity (use 0 to hide)"
         />
         <P>
-          <code>appearance.visible</code> is render on/off for visual layers. It
+          <code>opacity (use 0 to hide)</code> is render on/off for visual layers. It
           is not hit-test, selection, or editor lock. Audio has no appearance —
           mute with <code>payload.muted</code>.
         </P>
@@ -64,9 +64,9 @@ export function visiblePage(): DocsPageView {
 
         <AiWritingGuide
           items={[
-            "Set appearance.visible on visual layers only.",
+            "Set opacity (use 0 to hide) on visual layers only.",
             "Do not emit pointer-events or hitTest fields.",
-            "Do not use appearance.visible to mute audio.",
+            "Do not use opacity (use 0 to hide) to mute audio.",
           ]}
         />
       </article>

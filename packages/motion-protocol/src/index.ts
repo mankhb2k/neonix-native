@@ -6,13 +6,6 @@
  */
 
 export * from "./capabilities";
-export {
-  CAPABILITY_MANIFEST_VERSION_V1,
-  preflightProjectCapabilities,
-  inspectProjectCapabilities,
-  declareUsedCapabilities,
-  type CapabilityPreflightResult,
-} from "./v1/capabilities";
 export * from "./ai-schema-capability";
 
 export * as V1 from "./v1";
@@ -163,7 +156,7 @@ export { visualLayerAtoms, defaultTransform } from "./v1/layer-atoms";
 export { EffectSchema, type MotionEffect } from "./v1/effects";
 export { TransformSchema, type MotionTransform } from "./v1/transform";
 export { FrameSchema, type MotionFrame } from "./v1/frame";
-export { AppearanceSchema, type MotionAppearance } from "./v1/appearance";
+export { OpacitySchema, type Opacity } from "./v1/opacity";
 export { CompositingSchema, type MotionCompositing } from "./v1/compositing";
 
 export {
@@ -185,19 +178,6 @@ export {
   type AssetValidationLayer,
 } from "./v1/assets/validation";
 
-export {
-  VariableSchema,
-  ProjectBindingV1Schema,
-  type ProjectBindingV1,
-} from "./v1/variables";
-
-export {
-  LayoutConstraintSchema,
-  EdgeInsetsSchema,
-  LayoutItemPolicySchema,
-  type EdgeInsets,
-  type LayoutItemPolicy,
-} from "./v1/layout";
 
 export {
   PointSchema,
@@ -256,4 +236,3 @@ export {
   type ProceduralDriver,
 } from "./v1/animation";
 
-export { DesignTokensSchema, type DesignTokens } from "./v1/design-tokens";

@@ -267,8 +267,6 @@ describe("Phase 7 — public API V1 naming", () => {
       "EffectSchema",
       "TransformSchema",
       "AssetV1Schema",
-      "VariableSchema",
-      "ProjectBindingV1Schema",
       "PointSchema",
       "PathSegmentSchema",
       "PathContourSchema",

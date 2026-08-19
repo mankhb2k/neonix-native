@@ -15,23 +15,6 @@ describe("compile inner-glow + noise", () => {
     expect(effectTypes).toEqual(["glow", "inner-glow", "noise"]);
   });
 
-  it("warns CAP_UNDECLARED_CAPABILITY on core projects without capability declarations", () => {
-    const result = compileMotionProjectV1(createNeonEffectsPreviewProject());
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const undeclared = result.diagnostics.filter(
-      (d) => d.code === "CAP_UNDECLARED_CAPABILITY",
-    );
-    expect(undeclared.map((d) => d.details?.capabilityId)).toEqual(
-      expect.arrayContaining([
-        "primitive.shape",
-        "effect.glow",
-        "effect.inner-glow",
-        "effect.noise",
-      ]),
-    );
-  });
-
   it("fails runtime validation on empty metadata.name", () => {
     const project = createNeonEffectsPreviewProject();
     project.metadata.name = "";

@@ -5,8 +5,15 @@ import { LayoutItemPolicySchema, RepeaterSchema } from "../layout";
 import { EffectSchema } from "../../v1/effects";
 import { TransformSchema } from "../../v1/transform";
 import { FrameSchema } from "../../v1/frame";
-import { AppearanceSchema } from "../../v1/appearance";
+import { PercentSchema } from "../common";
 import { CompositingSchema } from "../../v1/compositing";
+
+const RuntimeAppearanceSchema = z
+  .object({
+    visible: z.boolean().default(true),
+    opacity: PercentSchema.default(100),
+  })
+  .strict();
 
 /** Optional scene-local in/out for Layer Mode timeline strips. */
 export const LayerTimingSchema = z
@@ -31,7 +38,7 @@ export const LayerBaseSchema = z
     zIndex: FiniteNumberSchema.int().nonnegative(),
     frame: FrameSchema,
     transform: TransformSchema,
-    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
+    appearance: RuntimeAppearanceSchema.default({ visible: true, opacity: 100 }),
     compositing: CompositingSchema.optional(),
     timing: LayerTimingSchema,
     layoutItem: LayoutItemPolicySchema.optional(),

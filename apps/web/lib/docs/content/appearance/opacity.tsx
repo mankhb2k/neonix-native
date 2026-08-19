@@ -25,7 +25,7 @@ export function opacityPage(): DocsPageView {
         <HumanName
           title="Opacity"
           human="How opaque the layer is, as an integer percent."
-          jsonPath="appearance.opacity"
+          jsonPath="opacity"
         />
         <P>
           <code>appearance</code> is the minimum display layer:{" "}
@@ -59,7 +59,7 @@ export function opacityPage(): DocsPageView {
 
         <AiWritingGuide
           items={[
-            "Use appearance.opacity as an integer 0..100 — never 0..1.",
+            "Use opacity as an integer 0..100 — never 0..1.",
             "Do not put opacity on transform.",
             "Audio uses payload.muted and payload.volume, not appearance.",
           ]}

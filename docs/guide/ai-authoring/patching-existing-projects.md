@@ -16,7 +16,7 @@ When the user says “make the title later”, “swap the image”, “fade the
 - Do not change ids unless the user asked to rename. Bindings, clips, and masks key off ids.
 - Do not move audio into `children`. Audio stays a project root.
 - Do not add unknown fields. Patch only schema paths.
-- Prefer updating a canonical path (`appearance.opacity`, `payload.props.label`) over rewriting the layer.
+- Prefer updating a canonical path (`opacity`, `payload.props.label`) over rewriting the layer.
 - Do not replace `layers[]` wholesale to tweak one field.
 - Do not restack `zIndex` for every sibling unless a collision requires it.
 - Keep `format` / `formatVersion` unchanged.
@@ -32,7 +32,7 @@ Recommended: append or edit a clip, do not rewrite the text payload.
 {
   "id": "fade-hero-title",
   "layerId": "hero-title",
-  "property": "appearance.opacity",
+  "property": "opacity",
   "keys": [
     { "t": 0, "value": 100 },
     { "t": 0.3, "value": 0 }

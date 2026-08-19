@@ -87,7 +87,7 @@ describe("V1 MCP contract", () => {
         formatVersion: 1,
         baseRevision: 0,
         operations: [
-          { op: "setTokens", changes: { colors: { brand: "#ff0" } } },
+          { op: "setComposition", changes: { fps: 60 } },
         ],
       },
     });
@@ -190,47 +190,18 @@ describe("V1 MCP contract", () => {
     expect(result.missing).toHaveLength(0);
   });
 
-  it("preflightCapabilities detects missing capabilities", () => {
-    const project: MotionProjectV1 = {
-      ...minimalProject(),
-      capabilities: { required: ["effect.glow", "primitive.video"] },
-    };
-    const result = preflightCapabilities(project, ["primitive.text"]);
-    expect(result.allowed).toBe(false);
-    expect(result.missing).toContain("effect.glow");
-    expect(result.missing).toContain("primitive.video");
-  });
-
-  it("preflightCapabilities reports optional as recommended", () => {
-    const project: MotionProjectV1 = {
-      ...minimalProject(),
-      capabilities: {
-        required: ["primitive.text"],
-        optional: ["effect.glow"],
-      },
-    };
-    const result = preflightCapabilities(project, ["primitive.text"]);
-    expect(result.allowed).toBe(true);
-    expect(result.recommended).toContain("effect.glow");
-  });
-
-  it("canExecuteTool returns true with all capabilities available", () => {
+  it("preflightCapabilities always allows (capabilities removed from core)", () => {
     const project = minimalProject();
-    const result = canExecuteTool("create_project", project, [
-      "primitive.text",
-      "anim.opacity",
-    ]);
+    const result = preflightCapabilities(project, []);
     expect(result.allowed).toBe(true);
+    expect(result.missing).toHaveLength(0);
   });
 
-  it("canExecuteTool returns false with missing capabilities", () => {
-    const project: MotionProjectV1 = {
-      ...minimalProject(),
-      capabilities: { required: ["primitive.video"] },
-    };
+  it("canExecuteTool always allows known tools (capabilities removed from core)", () => {
+    const project = minimalProject();
     const result = canExecuteTool("create_project", project, []);
-    expect(result.allowed).toBe(false);
-    expect(result.missing).toContain("primitive.video");
+    expect(result.allowed).toBe(true);
+    expect(result.missing).toHaveLength(0);
   });
 
   // ── Project hash ──────────────────────────────────────────────────

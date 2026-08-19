@@ -28,7 +28,7 @@ export function propsPage(): DocsPageView {
           <code>type: &quot;component&quot;</code> layers with{" "}
           <code>payload.componentId</code> and <code>payload.props</code>.
           Internals are sealed. Prop keyframes animate a public signal, not the
-          instance wrapper (use appearance.opacity / transform on the instance
+          instance wrapper (use opacity / transform on the instance
           for the shell).
         </P>
         <H2 id="keyframes">Prop keyframes</H2>
@@ -47,7 +47,7 @@ export function propsPage(): DocsPageView {
         />
         <AiWritingGuide
           items={[
-            "Prop keyframes are public signals. Fade the whole instance with appearance.opacity on the wrapper.",
+            "Prop keyframes are public signals. Fade the whole instance with opacity on the wrapper.",
             "Do not bind into nested-in-definition layers from the project tree.",
           ]}
         />

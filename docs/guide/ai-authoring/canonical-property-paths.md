@@ -13,7 +13,7 @@ Before writing any keyframe clip or describing a field in a patch.
 
 ## Hard rules
 
-- Path is dotted from the layer root: `appearance.opacity`, not `opacity`.
+- Path is dotted from the layer root: `opacity`, `transform.translate.x`.
 - `t` on keys is local to the target layer (`0` .. `timing.duration`).
 - Keys use `value`, not `v` (compiled IR uses `v` — do not paste IR).
 - Do not animate frame, timing, zIndex, origin, fit, trim, or assetId.
@@ -23,7 +23,7 @@ Before writing any keyframe clip or describing a field in a patch.
 
 | Path | Kind |
 | --- | --- |
-| `appearance.opacity` | number 0..100 |
+| `opacity` | number 0..100 |
 | `transform.translate.x` / `.y` | number |
 | `transform.scale.x` / `.y` | number (negative = flip) |
 | `transform.rotate.z` | angle |
@@ -54,12 +54,9 @@ Clip property: `transform.translate.x` — never `transform.x`.
 
 `transform.origin.*` is setup only (not a clip target).
 
-## Appearance paths
+## Opacity
 
-| Path | Animatable |
-| --- | --- |
-| `appearance.opacity` | yes |
-| `appearance.visible` | no (set once) |
+`opacity` is an integer 0..100 at the layer root. Animatable.
 
 ## Compositing paths
 
@@ -75,7 +72,7 @@ Animate `effects.<effectId>.<field>`. Glow and inner-glow have no `intensity` al
 | --- | --- |
 | `transform.z` | `transform.depth` or `zIndex` |
 | `transform.x` / `transform.y` | `transform.translate.x` / `.y` |
-| `opacity` | `appearance.opacity` |
+| `appearance.opacity` | `opacity` (root field) |
 | `flipX` / `flipY` | negative `transform.scale` |
 | `project.tracks` / `propertyAnimations` | `layer.animations` |
 
@@ -85,7 +82,7 @@ Animate `effects.<effectId>.<field>`. Glow and inner-glow have no `intensity` al
 {
   "id": "fade-hero-title",
   "layerId": "hero-title",
-  "property": "appearance.opacity",
+  "property": "opacity",
   "keys": [
     { "t": 0, "value": 0 },
     { "t": 0.4, "value": 100 }

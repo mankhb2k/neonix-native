@@ -31,12 +31,12 @@ function LandscapeCard({
   );
 }
 
-/** appearance.opacity: integer percent 0..100. */
+/** opacity: integer percent 0..100. */
 export function OpacityFigure() {
   const steps = [100, 60, 20];
   return (
     <Figure
-      label="appearance.opacity"
+      label="opacity"
       caption="Opacity is an integer percent: 100 fully opaque, 0 invisible. Not a 0..1 float, and never on transform. Parent opacity multiplies down to children."
     >
       <svg
@@ -66,11 +66,11 @@ export function OpacityFigure() {
   );
 }
 
-/** appearance.visible: render on/off — the layer is either painted or not. */
+/** visibility via opacity: 0 hides, 100 shows — the layer is either painted or not. */
 export function VisibleFigure() {
   return (
     <Figure
-      label="appearance.visible"
+      label="opacity (0 = hidden)"
       caption="visible is render on/off for visual layers. It is not hit-test, selection, or editor lock — and audio has no appearance at all."
     >
       <svg

@@ -15,7 +15,7 @@
 - `timing` bắt buộc; cửa sổ hiệu lực giao với composition như layer khác.
 - Playback sống trên `payload`: `assetId`, `trimStart`, `trimEnd`, `playbackRate`, `volume`, `fadeIn`, `fadeOut`, `loop`, `muted`.
 - `trim*` cắt **nguồn**, không phải layer trim protocol.
-- `volume` nguyên `0..100` (100 = đầy). Tắt tiếng bằng `muted`, không bằng `appearance.visible`.
+- `volume` nguyên `0..100` (100 = đầy). Tắt tiếng bằng `muted`, không bằng `opacity: 0`.
 - Hit-test / editor selection không thuộc JSON audio.
 
 ---

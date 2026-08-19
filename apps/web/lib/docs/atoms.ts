@@ -81,7 +81,7 @@ export const ATOM_DEPTH: QuickRef = {
 };
 
 export const ATOM_OPACITY: QuickRef = {
-  path: "appearance.opacity",
+  path: "opacity",
   type: "integer percent",
   defaultValue: "100",
   animatable: "yes",
@@ -90,11 +90,12 @@ export const ATOM_OPACITY: QuickRef = {
   range: `0..${MOTION_PROTOCOL_LIMITS.percent} (integer)`,
 };
 
+/** @deprecated visible removed from authoring core — use opacity: 0 to hide. */
 export const ATOM_VISIBLE: QuickRef = {
-  path: "appearance.visible",
+  path: "(removed)",
   type: "boolean",
   defaultValue: "true",
-  animatable: "yes (boolean keys)",
+  animatable: "no",
   appliesTo: "visual layers",
   doesNotApplyTo: "audio",
   range: "true | false",

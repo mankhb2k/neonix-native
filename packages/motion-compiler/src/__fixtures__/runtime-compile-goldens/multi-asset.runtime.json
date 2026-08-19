@@ -72,9 +72,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "d08db81ed157e28351f83f6420dc1f16",
+  "runtimeHash": "140839fcf6597ba925e8f2566b3c36e2",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "2cf6603729d72afd",
+  "capabilityFingerprint": "35e7e1343160d619",
   "sourceRef": {
     "layers": {
       "main-camera": "layers:main-camera",

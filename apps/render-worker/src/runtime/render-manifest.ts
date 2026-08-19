@@ -3,7 +3,7 @@ import type {
 } from "@motionvideo/motion-protocol/runtime";
 import {
   computeRuntimeHash,
-  CAPABILITY_MANIFEST_VERSION_V1,
+  CAPABILITY_MANIFEST_VERSION,
 } from "@motionvideo/motion-protocol";
 import {
   MOTION_RUNTIME_VERSION,
@@ -63,7 +63,7 @@ export function buildRenderManifestDigest(
       runtime: MOTION_RUNTIME_VERSION,
       compiler: compiled.compilerVersion ?? "unknown",
       capability: compiled.capabilityFingerprint ?? "unknown",
-      capabilityManifest: CAPABILITY_MANIFEST_VERSION_V1,
+      capabilityManifest: CAPABILITY_MANIFEST_VERSION,
     },
     runtimeHash,
     assetHashes: compiled.assets.map((asset) => ({

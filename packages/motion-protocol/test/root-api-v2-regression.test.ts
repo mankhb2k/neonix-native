@@ -6,7 +6,7 @@
  * barrel will cause this test to fail.
  */
 import { describe, expect, test } from "vitest";
-import { LayerSchema, VariableSchema } from "../src/index";
+import { LayerSchema } from "../src/index";
 
 describe("root API — no V2-shaped exports", () => {
   test("no *V2Schema exports", async () => {
@@ -41,17 +41,6 @@ describe("root API — schema behavior", () => {
   test("LayerSchema rejects { type: 'component' }", () => {
     const result = LayerSchema.safeParse({ type: "component" });
     expect(result.success).toBe(false);
-  });
-
-  test("VariableSchema accepts a variable with semantic", () => {
-    const result = VariableSchema.safeParse({
-      id: "my-var",
-      name: "My Color",
-      type: "color",
-      semantic: { role: "accent" },
-      value: "#ff0000",
-    });
-    expect(result.success).toBe(true);
   });
 
   test("root runtime-visible exports have no *V2 names", async () => {

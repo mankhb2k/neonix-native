@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { ColorHexSchema, FiniteNumberSchema, IdSchema, SemanticSchema } from "./common";
+import { ColorHexSchema, FiniteNumberSchema, IdSchema, SemanticSchema } from "../v1/common";
 
 const ScalarVariableBaseSchema = z.object({
   id: IdSchema,

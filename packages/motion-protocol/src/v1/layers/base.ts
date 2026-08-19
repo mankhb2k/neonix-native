@@ -11,7 +11,7 @@ import { LayerTimingSchema } from "./timing";
 import { LayerPropertyAnimationV1Schema } from "./animations";
 import { TransformSchema } from "../transform";
 import { FrameSchema } from "../frame";
-import { OpacitySchema } from "../appearance/opacity";
+import { OpacitySchema } from "../opacity";
 import { CompositingSchema } from "../compositing";
 import { IdSchema } from "../common";
 

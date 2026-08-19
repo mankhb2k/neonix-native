@@ -43,7 +43,7 @@ export function keyframesPage(): DocsPageView {
           code={JSON.stringify(
             {
               layerId: "title",
-              property: "appearance.opacity",
+              property: "opacity",
               valueKind: "number",
               keys: [
                 { t: 0, v: 0 },

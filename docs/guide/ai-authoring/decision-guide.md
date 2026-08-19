@@ -21,8 +21,8 @@ Whenever the prompt is a visual intent (“fade”, “glow”, “closer”, �
 
 | If you want… | Use |
 | --- | --- |
-| Fade / dim | `appearance.opacity` (0..100) |
-| Hide without deleting | `appearance.visible` |
+| Fade / dim | `opacity` (0..100) |
+| Hide without deleting | `opacity: 0` |
 | Stack in front | `zIndex` (unique among siblings) |
 | Near / far (parallax) | `transform.depth` |
 | Move | `transform.translate.x` / `.y` |
@@ -54,7 +54,7 @@ Intent: fade in the title.
 {
   "id": "fade-hero-title",
   "layerId": "hero-title",
-  "property": "appearance.opacity",
+  "property": "opacity",
   "keys": [
     { "t": 0, "value": 0 },
     { "t": 0.4, "value": 100 }

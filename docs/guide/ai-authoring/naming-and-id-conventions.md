@@ -50,7 +50,7 @@ Every new object. Especially when the project will be patched later.
 {
   "id": "fade-hero-title",
   "layerId": "hero-title",
-  "property": "appearance.opacity"
+  "property": "opacity"
 }
 ```
 

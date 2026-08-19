@@ -4,7 +4,7 @@
  * Không vào render hash: không ảnh hưởng output, chỉ giải thích nguồn bundle.
  */
 import { z } from "zod";
-import { IdSchema } from "./common";
+import { IdSchema } from "../v1/common";
 
 export const SourceMapSchema = z
   .object({

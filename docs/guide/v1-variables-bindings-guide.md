@@ -53,8 +53,8 @@ Project binding dừng ở prop. Owner mới nối vào leaf protocol:
 
 | Prop kind | Leaf hợp lệ |
 | --- | --- |
-| number | `frame.width/height` (setup tĩnh, **không** animate), `transform.translate/scale/rotate.z/skew/depth`, `transform.origin` (setup, không animate), `appearance.opacity`, `effects.<id>` số, `layout.gap`, `layoutItem` min/max, `payload.cornerRadius` |
-| boolean | `appearance.visible` |
+| number | `frame.width/height` (setup tĩnh, **không** animate), `transform.translate/scale/rotate.z/skew/depth`, `transform.origin` (setup, không animate), `opacity`, `effects.<id>` số, `layout.gap`, `layoutItem` min/max, `payload.cornerRadius` |
+| boolean | (reserved) |
 | string | `payload.text` |
 | color | Theo type: text/solid → `payload.color`; shape/path → `style.fill` / `style.stroke`; svg → `style.fill` only; `effects.<id>.color` trên visual có effects |
 | asset | `payload.assetId` (`assetKind` khớp) |
@@ -62,7 +62,7 @@ Project binding dừng ở prop. Owner mới nối vào leaf protocol:
 
 Không nối vào `timing.*`, `zIndex`, `semantic`, path, mask, cả khối transform/appearance/effects, object/array.
 
-`frame` / `origin` / `appearance.visible` là **bindable setup**, không phải animation target. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
+`frame` / `origin` là **bindable setup**, không phải animation target. Xem [v1-animation-keyframes-guide.md](./v1-animation-keyframes-guide.md).
 
 Protocol dùng `transform.translate` (không `position`), `hue-rotate` (không `hueRotate`).
 

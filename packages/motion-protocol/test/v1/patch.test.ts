@@ -128,21 +128,6 @@ describe("V1 patch contract", () => {
     expect(result.project!.composition.width).toBe(1080);
   });
 
-  it("rejects setTokens on core project", () => {
-    const result = applyMotionProjectV1Patch(minimalProject(), {
-      format: "motion-project-patch",
-      formatVersion: 1,
-      baseRevision: 0,
-      operations: [
-        { op: "setTokens", changes: { colors: { brand: "#ff0000" } } },
-      ],
-    });
-    expect(result.diagnostics.some((d) => d.message.includes("setTokens"))).toBe(
-      true,
-    );
-    expect(result.project).toEqual(minimalProject());
-  });
-
   it("adds a root layer", () => {
     const result = applyMotionProjectV1Patch(minimalProject(), {
       format: "motion-project-patch",
@@ -280,63 +265,6 @@ describe("V1 patch contract", () => {
     expect(result.diagnostics).toHaveLength(0);
     expect(result.project!.layers[0]!.type).toBe("audio");
     expect(result.project!.layers[0]!.zIndex).toBe(-1);
-  });
-
-  it("rejects addVariable on core project", () => {
-    const project: MotionProjectV1 = {
-      ...minimalProject(),
-      components: [
-        {
-          id: "btn",
-          version: "1.0.0",
-          integrity: "sha256:btn",
-          props: [{ id: "label", name: "Label", kind: "string", default: "Hi" }],
-          variants: [],
-          propBindings: [
-            {
-              propId: "label",
-              target: {
-                kind: "layerProperty",
-                layerId: "label-node",
-                property: "payload.text",
-              },
-            },
-          ],
-          layers: [textLayer("label-node")],
-        },
-      ],
-      layers: [
-        {
-          id: "cta",
-          type: "component",
-          parentLayerId: null,
-          zIndex: 0,
-          timing: { start: 0, duration: 3 },
-          ...ATOMS,
-          payload: { componentId: "btn", props: {} },
-        },
-      ],
-    };
-    const add = applyMotionProjectV1Patch(project, {
-      format: "motion-project-patch",
-      formatVersion: 1,
-      baseRevision: 0,
-      operations: [
-        {
-          op: "addVariable",
-          variable: {
-            id: "headline-text",
-            name: "Headline",
-            type: "string",
-            value: "Hello",
-          },
-        },
-      ],
-    });
-    expect(add.diagnostics.some((d) => d.message.includes("Variables"))).toBe(
-      true,
-    );
-    expect(add.project).toEqual(project);
   });
 
   it("re-validates output and fails on invalid composition", () => {
