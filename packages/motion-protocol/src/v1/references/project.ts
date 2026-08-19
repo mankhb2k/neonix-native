@@ -13,7 +13,8 @@ import {
 } from "../../capabilities";
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
-import { flattenLayerTree, getLayerAnimations } from "../layers";
+import { getLayerAnimations } from "../layers";
+import { flattenLayerTree } from "../layer-tree";
 import {
   isOwnerPropSink,
 } from "../prop-sinks";

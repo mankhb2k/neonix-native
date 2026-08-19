@@ -60,7 +60,7 @@ Clip property: `transform.translate.x` — never `transform.x`.
 
 ## Compositing paths
 
-`compositing.blend-mode`, `compositing.isolation`, `compositing.mask.sourceLayerId` — not clip targets.
+`compositing.blend-mode`, `compositing.mask.sourceLayerId` — not clip targets.
 
 ## Effects paths
 

@@ -1,8 +1,8 @@
 /**
  * Lưới khung — snap và kiểm thời gian cây layer về n / fps.
  */
-import type { LayerV1 } from "./index";
-import type { AudioLayerV1 } from "./audio";
+import type { AudioLayerV1 } from "./layers/audio";
+import type { LayerV1 } from "./layers";
 
 const FRAME_GRID_EPSILON = 1e-9;
 

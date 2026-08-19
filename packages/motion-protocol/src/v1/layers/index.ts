@@ -29,25 +29,6 @@ export {
   getLayerAnimations,
   type LayerPropertyAnimationV1,
 } from "./animations";
-export {
-  deriveProjectDurationV1,
-  getRootLayerEndV1,
-  hasRootLayersV1,
-  roundProjectDurationValue,
-} from "./project-duration";
-export {
-  secondsToFrameIndex,
-  snapSecondsToFrameGrid,
-  isOnFrameGrid,
-  snapLayerTreeToFrameGrid,
-  collectFrameGridIssues,
-  type FrameGridIssue,
-} from "./frame-grid";
-export {
-  canonicalizeProjectTimingV1,
-  type CanonicalizeProjectTimingIssue,
-  type CanonicalizeProjectTimingResult,
-} from "./canonicalize";
 export { PaintStyleSchema, SvgStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {
@@ -72,7 +53,6 @@ export {
 } from "./structural";
 export { ComponentLayerV1Schema, type ComponentLayerV1 } from "./component";
 export { AudioLayerV1Schema, type AudioLayerV1 } from "./audio";
-export { flattenLayerTree, isProjectRootLayer, getRootLayers } from "./flatten";
 export {
   ShapeLayerV1Schema,
   PathLayerV1Schema,

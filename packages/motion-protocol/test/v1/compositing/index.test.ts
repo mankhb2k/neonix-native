@@ -10,7 +10,7 @@ describe("CompositingSchema", () => {
 
   it("rejects isolation on compositing", () => {
     expect(
-      CompositingSchema.safeParse({ isolation: "auto" }).success,
+      CompositingSchema.safeParse({ isolation: "isolate" }).success,
     ).toBe(false);
   });
 

@@ -1,9 +1,7 @@
 /**
- * Duỗi cây layer lồng thành danh sách pre-order.
- *
- * JSON lồng (group.children) là nguồn sự thật; helper cho validate, duration, compiler.
+ * Helpers cho cây layer lồng.
  */
-import type { LayerV1 } from "./index";
+import type { LayerV1 } from "./layers";
 
 export function flattenLayerTree(layers: readonly LayerV1[]): LayerV1[] {
   const out: LayerV1[] = [];

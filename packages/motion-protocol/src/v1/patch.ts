@@ -9,7 +9,8 @@ import type { MotionProjectV1 } from "./project";
 import { MotionProjectV1Schema } from "./project";
 import { IdSchema, FiniteNumberSchema } from "./common";
 import { CompositionSettingsSchema } from "./composition";
-import { LayerV1Schema, flattenLayerTree, type LayerV1 } from "./layers";
+import { LayerV1Schema, type LayerV1 } from "./layers";
+import { flattenLayerTree } from "./layer-tree";
 import { AssetV1Schema } from "./assets";
 
 export const MOTION_PROJECT_V1_PATCH_FORMAT_VERSION = 1 as const;

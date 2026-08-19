@@ -210,12 +210,12 @@ export function BlendModeFigure() {
   );
 }
 
-/** compositing.isolation: isolate starts a new compositing group. */
-export function IsolationFigure() {
+/** Internal offscreen grouping used by the renderer when compositing needs it. */
+export function OffscreenGroupingFigure() {
   return (
     <Figure
-      label="compositing.isolation"
-      caption="Advanced. auto (default) lets blend/mask effects see everything painted below; isolate scopes them to a fresh group. AI should not emit it by default."
+      label="internal offscreen grouping"
+      caption="Renderer detail. Some blend, mask, or effects paths need an offscreen group, but this is not an authoring JSON field."
     >
       <svg
         viewBox="0 0 640 210"

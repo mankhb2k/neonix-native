@@ -4,7 +4,7 @@ import {
   hasRootLayersV1,
   getRootLayerEndV1,
   canonicalizeProjectTimingV1,
-} from "../../src/v1/layers";
+} from "../../src/v1/project-timing";
 import { visualLayerAtoms } from "../../src/v1/layer-atoms";
 import type { MotionProjectV1 } from "../../src/v1/project";
 

@@ -2,7 +2,7 @@
  * Web project envelope — authoring sugar lives beside MotionProject core.
  */
 
-import type { AuthoringSugarV1 } from "@motionvideo/motion-protocol";
+import type { AuthoringSugarV1 } from "@motionvideo/editor-core";
 
 export type ElementKey = `${string}:${string}:${string}`;
 

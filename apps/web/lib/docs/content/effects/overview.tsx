@@ -42,9 +42,9 @@ export function effectsOverviewPage(): DocsPageView {
         <H2 id="meaning">Meaning</H2>
         <P>
           Effects do not change frame, layout, transform, appearance, or
-          compositing. Appearance is show/fade. Compositing is blend, mask, and
-          isolation. Effects process pixels. Isolation or an offscreen pass is
-          an engine concern — not a new authoring field.
+          compositing. Appearance is show/fade. Compositing is blend and mask.
+          Effects process pixels. Offscreen rendering, when needed, is an
+          engine concern — not a new authoring field.
         </P>
         <H2 id="stack">Stack</H2>
         <P>

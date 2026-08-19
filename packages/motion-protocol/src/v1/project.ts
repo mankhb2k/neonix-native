@@ -8,10 +8,11 @@ import { ProjectMetadataV1Schema } from "./metadata";
 import { CompositionSettingsSchema } from "./composition";
 import { AssetV1Schema } from "./assets";
 import { ComponentDefinitionV1Schema } from "./components";
-import { flattenLayerTree, LayerV1Schema, type LayerV1 } from "./layers";
+import { LayerV1Schema, type LayerV1 } from "./layers";
+import { flattenLayerTree } from "./layer-tree";
 import { collectAudioLayerTimingIssues } from "./layers/audio";
 import { getLayerAnimations } from "./layers/animations";
-import { collectFrameGridIssues } from "./layers/frame-grid";
+import { collectFrameGridIssues } from "./frame-grid";
 import type { MotionProjectV1 } from "./types";
 
 function addDuplicateIdIssues(

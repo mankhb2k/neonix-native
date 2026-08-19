@@ -6,8 +6,12 @@
  * Không bind layer field, internals, hay computed value.
  */
 import { z } from "zod";
-import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { ColorHexSchema, FiniteNumberSchema, IdSchema, SemanticSchema } from "../v1/common";
+import {
+  MOTION_PROTOCOL_LIMITS,
+  V1,
+} from "@motionvideo/motion-protocol";
+
+const { IdSchema, ColorHexSchema, FiniteNumberSchema, SemanticSchema } = V1;
 
 const ScalarVariableBaseSchema = z.object({
   id: IdSchema,

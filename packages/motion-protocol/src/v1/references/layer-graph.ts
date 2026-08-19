@@ -3,7 +3,7 @@
  * chỉ group có children, parentLayerId khớp, zIndex unique theo cha.
  */
 import type { LayerV1 } from "../layers";
-import { flattenLayerTree } from "../layers";
+import { flattenLayerTree } from "../layer-tree";
 import { duplicates } from "./helpers";
 import type { ReferenceIssue } from "./types";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

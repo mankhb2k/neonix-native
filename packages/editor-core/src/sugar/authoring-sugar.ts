@@ -2,7 +2,7 @@
  * Editor session sugar — not part of core MotionProjectV1 on disk.
  * Web envelope / expand pipeline holds these fields.
  */
-import type { ProjectDependenciesV1 } from "../v1/components";
+import type { V1 } from "@motionvideo/motion-protocol";
 import type { NamespacedExtensions } from "./extensions";
 import type { ProjectProvenance } from "./provenance";
 import type { ProjectBindingV1, ProjectVariableV1 } from "./variables";
@@ -21,7 +21,7 @@ export type AuthoringSugarV1 = {
   variables?: ProjectVariableV1[];
   bindings?: ProjectBindingV1[];
   capabilities?: { required?: string[]; optional?: string[]; experimental?: string[] };
-  dependencies?: ProjectDependenciesV1;
+  dependencies?: V1.ProjectDependenciesV1;
   provenance?: ProjectProvenance;
   extensions?: NamespacedExtensions;
   layerDisplayNames?: Record<string, string>;

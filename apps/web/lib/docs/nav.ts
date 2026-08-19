@@ -88,7 +88,6 @@ export const DOCS_NAV: DocsNavGroup[] = [
       { href: "/docs/appearance/opacity", label: "Opacity" },
       { href: "/docs/compositing/blend-mode", label: "Blend mode" },
       { href: "/docs/compositing/mask", label: "Mask" },
-      { href: "/docs/compositing/isolation", label: "Isolation" },
     ],
   },
   {

@@ -9,6 +9,7 @@ export * from "./selection/editor-selectors";
 export * from "./timeline/model/timeline-types";
 export * from "./document/document";
 export * from "./document/sanitize-editor-project";
+export * from "./sugar";
 export * from "./document/expand-authoring-to-core";
 export * from "./document/canonical-projection";
 export * from "./document/group";

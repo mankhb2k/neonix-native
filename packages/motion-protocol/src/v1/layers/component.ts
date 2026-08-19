@@ -1,8 +1,8 @@
 /**
  * Layer instance component trên cây project — leaf authoring.
  *
- * Wrapper atoms (vỏ): frame, transform, timing, zIndex, appearance,
- * compositing, effects, semantic (+ name, layoutItem khi nằm trong group).
+ * Wrapper atoms (vỏ): frame, transform, timing, zIndex, opacity,
+ * compositing, effects (+ name khi cần đọc/hiển thị).
  * Ruột public: payload.componentId, variantId?, props.
  * Compiler bung thành wrapper group + internals. Consumer không sửa internals.
  */

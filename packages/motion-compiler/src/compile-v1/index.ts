@@ -22,9 +22,7 @@
  * text measurement, so these are accepted but not consumed.
  */
 
-import { createHash } from "node:crypto";
 import {
-  canonicalJson,
   computeRuntimeHash,
   computeProjectHash,
   buildCapabilityFingerprint,
@@ -46,7 +44,6 @@ import {
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
 import { clone, deriveAspectRatio, type JsonRecord } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
-import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
 import { layerAnimationsToPropertyAnimations } from "./to-property-animations";
@@ -90,6 +87,8 @@ export type CompileV1Options = {
    * from motion-storage before compile and pass a sync map lookup here.
    */
   assetUrlResolver?: (assetId: string) => string | undefined;
+  /** Spatial mode hint (previously read from extensions). */
+  space?: "flat-2d" | "layered-2.5d";
 };
 
 /**
@@ -148,7 +147,7 @@ export function compileMotionProjectV1(
   }
 
   // Build the visual plan from project.layers.
-  const { graph, componentInstances, audioLayers } = buildLayerPlan(
+  const { graph, audioLayers } = buildLayerPlan(
     normalized,
     collector,
   );
@@ -215,79 +214,7 @@ export function compileMotionProjectV1(
       return compileFailure([...collector.diagnostics]);
     }
 
-    // Project variables for binding injection (core projects omit variables/bindings)
-    const authoringExtras = normalized as V1.MotionProjectV1 & {
-      variables?: Array<{ id: string; value: unknown }>;
-      bindings?: V1.MotionProjectV1 extends { bindings: infer B } ? B : never[];
-      extensions?: Record<string, unknown>;
-    };
-    const projectVariables = new Map<string, unknown>(
-      (authoringExtras.variables ?? []).map(
-        (v) => [v.id, clone(v.value)] as const,
-      ),
-    );
-
-    // Component instances tracked during buildLayerPlan: componentLayerId →
-    // { componentId, runtimeGraphId }. Used to validate componentLayer bindings.
-    // componentLayer bindings are prop sources applied during expand — they do
-    // not write onto expanded internals here.
-    const components = new Map(
-      normalized.components.map((c) => [c.id, c] as const),
-    );
-
-    for (const binding of authoringExtras.bindings ?? []) {
-      const target = binding.target;
-      if (target.type !== "prop") continue;
-      const instance = componentInstances.get(target.layerId);
-      if (!instance) {
-        collector.warn(
-          "CMP_UNRESOLVED_COMPONENT",
-          `Binding "${binding.id}" targets prop on "${target.layerId}" but no component instance exists at that layer`,
-          {
-            path: ["bindings", binding.id],
-            details: { bindingId: binding.id, layerId: target.layerId },
-          },
-        );
-        continue;
-      }
-      const component = components.get(instance.componentId);
-      const leaves = component
-        ? resolvePropTargets(
-            components,
-            component,
-            target.propId,
-            instance.componentLayerId,
-          )
-        : [];
-      if (leaves.length === 0) {
-        collector.error(
-          "CMP_PRIVATE_COMPONENT_ACCESS",
-          `Binding "${binding.id}" targets "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              componentId: instance.componentId,
-              propId: target.propId,
-            },
-          },
-        );
-      }
-    }
-
-    if (collector.hasErrors) {
-      return compileFailure([...collector.diagnostics]);
-    }
-
     const duration = durationCanonical.duration;
-    const aiExt = (authoringExtras.extensions ?? {})["com.moticlip.ai"];
-    const aiRecord =
-      aiExt && typeof aiExt === "object" && !Array.isArray(aiExt)
-        ? (aiExt as {
-            activeCameraLayerId?: string;
-            space?: "flat-2d" | "layered-2.5d";
-          })
-        : undefined;
     const compiledGraph =
       duration > 0
         ? compileLayerGraphToRuntime({
@@ -302,11 +229,8 @@ export function compileMotionProjectV1(
                 : []) as MotionRuntimeProject["propertyAnimations"]),
               ...layerAnimationsToPropertyAnimations(normalized.layers),
             ],
-            variables: projectVariables,
-            ...(aiRecord?.space ? { space: aiRecord.space } : {}),
-            ...(aiRecord?.activeCameraLayerId
-              ? { activeCameraLayerId: aiRecord.activeCameraLayerId }
-              : {}),
+            variables: new Map<string, unknown>(),
+            ...(options.space ? { space: options.space } : {}),
           })
         : null;
     const visualLayers = compiledGraph?.layers ?? [];
@@ -409,48 +333,11 @@ export function buildCompileCacheKeyV1(
     normalized as unknown as Record<string, unknown>,
   ).slice(0, 16);
 
-  const projectExtras = normalized as V1.MotionProjectV1 & {
-    capabilities?: {
-      required?: string[];
-      optional?: string[];
-      experimental?: string[];
-    };
-    dependencies?: {
-      components: Array<{
-        componentId: string;
-        version: string;
-        integrity?: string;
-      }>;
-    };
-  };
-
-  const capabilitiesHash = createHash("sha256")
-    .update(
-      canonicalJson({
-        required: projectExtras.capabilities?.required ?? [],
-        optional: projectExtras.capabilities?.optional ?? [],
-        experimental: projectExtras.capabilities?.experimental ?? [],
-      }),
-    )
-    .digest("hex")
-    .slice(0, 8);
-
-  const componentDeps = (projectExtras.dependencies?.components ?? [])
-    .map((dep) => `${dep.componentId}@${dep.version}:${dep.integrity ?? ""}`)
-    .sort()
-    .join(",");
-  const componentHash = createHash("sha256")
-    .update(componentDeps)
-    .digest("hex")
-    .slice(0, 8);
-
   const profile = options.profile ?? "embedded-components";
   return [
     `proj:${projectHash}`,
     `compiler:${COMPILER_VERSION_V1}`,
     `protocol:${V1.MOTION_PROJECT_V1_FORMAT_VERSION}`,
-    `caps:${capabilitiesHash}`,
-    `deps:${componentHash}`,
     `profile:${profile}`,
   ].join("|");
 }

@@ -4,7 +4,9 @@
  * Không vào render hash: không ảnh hưởng output, chỉ giải thích nguồn bundle.
  */
 import { z } from "zod";
-import { IdSchema } from "../v1/common";
+import { V1 } from "@motionvideo/motion-protocol";
+
+const { IdSchema } = V1;
 
 export const SourceMapSchema = z
   .object({

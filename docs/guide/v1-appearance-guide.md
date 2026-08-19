@@ -24,7 +24,7 @@
 
 | Thuộc | Không thuộc |
 | --- | --- |
-| `visible`, `opacity` | compositing (`blend-mode`, mask, isolation) |
+| `visible`, `opacity` | compositing (`blend-mode`, mask) |
 | | effects (`blur`, `shadow`, …) |
 | | hit-test / pointer-events / selection |
 | | `payload.muted` / `payload.volume` (audio) |

@@ -9,11 +9,11 @@
 ## Đã chốt
 
 - `compositing` là lớp riêng trên visual layer. Tách khỏi `appearance` và `effects`.
-- Object gồm đúng 3 field: `blend-mode`, `isolation`, `mask`.
+- Object gồm đúng 2 field: `blend-mode`, `mask`.
 - Group **không** clip theo `frame`. Muốn cắt / lộ: `compositing.mask`.
 - Schema và graph validation **giữ nguyên**. Guide chỉ thu hẹp bề mặt AI mặc định.
 
-**Câu chốt:** compositing là blend + isolation + mask. Không phải opacity, không phải blur.
+**Câu chốt:** compositing là blend + mask. Không phải opacity, không phải blur.
 
 ---
 
@@ -22,7 +22,7 @@
 | Lớp | Field |
 | --- | --- |
 | `appearance` | `visible`, `opacity` |
-| `compositing` | `blend-mode`, `isolation`, `mask` |
+| `compositing` | `blend-mode`, `mask` |
 | `effects` | `blur`, `shadow`, `glow`, `inner-glow`, `noise`, `color-adjust` |
 | media `payload` | `fit`, `crop` |
 
@@ -37,14 +37,6 @@ Schema (đủ, không mở rộng):
 `normal` | `multiply` | `screen` | `add` | `darken` | `lighten` | `overlay`
 
 Cả bảy mode đều production-safe và được AI dùng khi cần. Mặc định schema: `normal`. Không emit nếu đang `normal`.
-
----
-
-## `isolation`
-
-Schema: `auto` | `isolate`. Mặc định: `auto`.
-
-**Advanced.** AI không emit `isolation` mặc định. Runtime/engine dùng `auto`. Chỉ ghi `isolate` khi thật sự cần tách scope blend / mask / effect.
 
 ---
 
@@ -87,7 +79,7 @@ Graph validation (đã có, giữ nguyên):
 }
 ```
 
-Không ghi `isolation` trong ví dụ mặc định.
+Không ghi field kỹ thuật nội bộ của renderer trong authoring JSON mặc định.
 
 ---
 

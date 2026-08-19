@@ -14,8 +14,9 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/motion-protocol": "workspace:*"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

@@ -1,6 +1,6 @@
 /**
  * Layer audio V1 — lá chỉ ở root. Playback trên payload; chỗ đứng trên timing.
- * Không frame, transform, appearance, layout. volume 0..100 nguyên, 100 = đầy.
+ * Không frame, transform, opacity, compositing hay geometry. volume 0..100 nguyên, 100 = đầy.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

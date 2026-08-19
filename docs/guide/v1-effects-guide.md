@@ -15,7 +15,7 @@
 - Áp dụng visual layer (kể cả group/component). Không audio. Camera không phải bề mặt authoring effects V1.
 - Authoring chỉ ghi `effects`. Isolation/offscreen là việc engine, không thêm field JSON.
 
-**Câu chốt:** appearance = hiện/mờ. compositing = blend/mask/isolation. effects = xử lý bề mặt pixel.
+**Câu chốt:** appearance = hiện/mờ. compositing = blend/mask. effects = xử lý bề mặt pixel.
 
 ---
 

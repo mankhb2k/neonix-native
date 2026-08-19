@@ -6,7 +6,7 @@ export const AI_GLOBAL = [
   "frame is the local size box before transform. Required on every visual layer including group. Never on audio or camera. Do not derive group.frame from children.",
   "group is a visual container and must have children and frame. group.frame does not clip. Use a mask to cut.",
   "Use layer.opacity on visual layers (integer 0..100). Do not emit hit-test fields. Audio has no opacity; use payload.volume and payload.muted.",
-  "Compositing is blend-mode, isolation, and mask — not effects or opacity. Prefer mask mode clip or alpha with source-visibility mask-only. Do not emit isolation unless you need isolate. Group frame does not clip.",
+  "Compositing is blend-mode and mask — not effects or opacity. Prefer mask mode clip or alpha with source-visibility mask-only. Group frame does not clip.",
   "Layout lives on group.layout (mode row|column|grid). Children use layoutItem (fixed|hug|fill). Not a modifier. Do not emit wrap, grow, shrink, or grid span.",
   "Every visual layer has the same transform: translate, scale, rotate.z, skew, origin, depth. Flip with negative scale. Prefer origin 0, 0.5, or 1. Never invent transform.z, flipX, or flipY.",
   "Use zIndex for stacking, not depth.",

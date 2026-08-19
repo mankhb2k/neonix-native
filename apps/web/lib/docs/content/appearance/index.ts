@@ -1,6 +1,5 @@
 import type { DocsPageView } from "@/lib/docs/content/page-view";
 import { blendModePage } from "./blend-mode";
-import { isolationPage } from "./isolation";
 import { maskPage } from "./mask";
 import { opacityPage } from "./opacity";
 import { visiblePage } from "./visible";
@@ -10,8 +9,7 @@ export type AppearanceSlug =
   | "appearance/visible"
   | "appearance/opacity"
   | "compositing/blend-mode"
-  | "compositing/mask"
-  | "compositing/isolation";
+  | "compositing/mask";
 
 const SLUGS = new Set<string>([
   "appearance",
@@ -19,7 +17,6 @@ const SLUGS = new Set<string>([
   "appearance/opacity",
   "compositing/blend-mode",
   "compositing/mask",
-  "compositing/isolation",
 ]);
 
 export function isAppearanceSlug(slug: string): slug is AppearanceSlug {
@@ -37,7 +34,5 @@ export function getAppearancePage(slug: AppearanceSlug): DocsPageView {
       return blendModePage();
     case "compositing/mask":
       return maskPage();
-    case "compositing/isolation":
-      return isolationPage();
   }
 }

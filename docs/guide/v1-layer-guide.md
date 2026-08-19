@@ -38,7 +38,7 @@ Audio là ngoại lệ: vẫn là timeline object trên `project.layers`, nhưng
 - `frame` bắt buộc trên mọi visual layer, kể cả group. Cấm audio/camera. Canonical JSON không suy group.frame từ children.
 - `transform` bắt buộc trên mọi visual layer, cùng một cấu trúc. Audio không có transform. Scale âm = lật. `depth` ≠ `zIndex`.
 - `appearance` chỉ `visible` + `opacity` trên visual layer. Không hit-test.
-- `compositing` là lớp riêng: `blend-mode`, `isolation`, `mask`. Không nhét effect hay opacity vào đây.
+- `compositing` là lớp riêng: `blend-mode`, `mask`. Không nhét effect hay opacity vào đây.
 - JSON protocol không định nghĩa hit-test, selection, hay editor UI.
 
 ---
@@ -58,7 +58,7 @@ Visual layer là object authoring trên timeline: là gì, ở đâu, sống lú
 - box local: `frame`
 - hình học: `transform`
 - hiển thị tối thiểu: `appearance` (`visible`, `opacity`)
-- chồng vẽ: `compositing` (`blend-mode`, `isolation`, `mask`)
+- chồng vẽ: `compositing` (`blend-mode`, `mask`)
 - hiệu ứng điểm ảnh: `effects`
 - bố cục khi cần: `layout` (group), `layoutItem` (child)
 - nội dung theo type: `payload`

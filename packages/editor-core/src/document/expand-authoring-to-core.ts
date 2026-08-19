@@ -4,10 +4,10 @@
 import {
   MotionProjectV1Schema,
   V1,
-  type AuthoringSugarV1,
   type MotionProject,
   type MotionProjectV1,
 } from "@motionvideo/motion-protocol";
+import type { AuthoringSugarV1 } from "../sugar";
 
 type LegacyLayer = Record<string, unknown>;
 
@@ -40,13 +40,6 @@ function migrateVisualLayer(layer: LegacyLayer): LegacyLayer {
   if ("inheritFlags" in next) delete next.inheritFlags;
   if ("semantic" in next) delete next.semantic;
   if ("name" in next) delete next.name;
-
-  if (next.compositing && typeof next.compositing === "object") {
-    const compositing = { ...(next.compositing as Record<string, unknown>) };
-    delete compositing.isolation;
-    next.compositing =
-      Object.keys(compositing).length > 0 ? compositing : undefined;
-  }
 
   if (Array.isArray(next.animations)) {
     next.animations = next.animations.map((animation: LegacyLayer) => {
