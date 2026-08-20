@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { V2ColorSchema, V2PositiveNumberSchema } from "../common";
+import {
+  V2ColorSchema,
+  V2FiniteNumberSchema,
+  V2PositiveNumberSchema,
+} from "../common";
 import { V2LayerBaseSchema } from "./base";
 
 export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
@@ -10,8 +14,10 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   style: z
     .object({
       fill: V2ColorSchema,
+      fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
       stroke: V2ColorSchema.optional(),
       strokeWidth: V2PositiveNumberSchema.optional(),
+      strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
     })
     .strict(),
 }).strict();

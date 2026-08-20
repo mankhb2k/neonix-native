@@ -195,6 +195,21 @@ export function compileProtocolV2ToPaintCommands(
         throw new Error(`Uncertified Protocol V2 atom: ${strokeWidthCapability}`);
       }
     }
+    if (layer.style.fillOpacity !== undefined) {
+      const fillOpacityCapability = `${layer.type}.${layer.payload.shape}.fillOpacity`;
+      if (!isV2AtomCertified(fillOpacityCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${fillOpacityCapability}`);
+      }
+    }
+    if (layer.style.strokeOpacity !== undefined) {
+      if (layer.style.stroke === undefined) {
+        throw new Error(`Protocol V2 atom ${layer.id}: strokeOpacity requires stroke`);
+      }
+      const strokeOpacityCapability = `${layer.type}.${layer.payload.shape}.strokeOpacity`;
+      if (!isV2AtomCertified(strokeOpacityCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${strokeOpacityCapability}`);
+      }
+    }
     if (layer.timing.start > time || time >= layer.timing.start + layer.timing.duration) {
       continue;
     }
@@ -215,10 +230,16 @@ export function compileProtocolV2ToPaintCommands(
       fill: layer.style.fill,
       width: layer.frame.width,
       height: layer.frame.height,
+      ...(layer.style.fillOpacity !== undefined
+        ? { fillOpacity: layer.style.fillOpacity }
+        : {}),
       ...(layer.style.stroke !== undefined
         ? {
             stroke: layer.style.stroke,
             strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
+            ...(layer.style.strokeOpacity !== undefined
+              ? { strokeOpacity: layer.style.strokeOpacity }
+              : {}),
           }
         : {}),
     });

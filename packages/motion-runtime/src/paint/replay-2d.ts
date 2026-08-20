@@ -331,6 +331,7 @@ export function replayPaintCommands2D(
     }
 
     ctx.save();
+    let layerAlpha = 1;
     if (pending && pending.key === cmd.key) {
       if (!pending.visible || pending.alpha <= 0) {
         ctx.restore();
@@ -345,7 +346,8 @@ export function replayPaintCommands2D(
         pending.matrix.e,
         pending.matrix.f,
       );
-      ctx.globalAlpha = pending.alpha;
+      layerAlpha = pending.alpha;
+      ctx.globalAlpha = layerAlpha;
       ctx.globalCompositeOperation = blendOp(pending.blendMode);
       pending = null;
     }
@@ -385,7 +387,15 @@ export function replayPaintCommands2D(
         cmd.width,
         cmd.height,
       );
+      ctx.globalAlpha =
+        layerAlpha * (cmd.op === "drawShape" ? cmd.fillOpacity ?? 1 : 1);
       ctx.fill();
+      if (cmd.op === "drawShape" && cmd.stroke) {
+        ctx.globalAlpha = layerAlpha * (cmd.strokeOpacity ?? 1);
+        ctx.strokeStyle = cmd.stroke;
+        ctx.lineWidth = cmd.strokeWidth ?? 1;
+        ctx.stroke();
+      }
     } else if (cmd.op === "drawPath") {
       strokePathContours(ctx, cmd.contours);
       if (cmd.fill || cmd.fillPaint) {

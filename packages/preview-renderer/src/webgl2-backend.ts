@@ -233,14 +233,14 @@ export function createWebGL2Backend(
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
         const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha;
+        color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
         gl.uniform4fv(colorLocation, color);
         gl.uniform1i(modeLocation, 0);
         gl.uniform1i(shapeLocation, command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0);
         const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
-        stroke[3] *= transform.alpha;
+        stroke[3] *= transform.alpha * (command.op === "drawShape" ? command.strokeOpacity ?? 1 : 1);
         const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;

@@ -335,6 +335,9 @@ function payloadForNode(
           : {}),
         width,
         height,
+        ...(style?.fillOpacity != null
+          ? { fillOpacity: style.fillOpacity }
+          : {}),
         ...(typeof style?.stroke === "string" ? { stroke: style.stroke } : {}),
         ...(style?.strokeWidth != null
           ? { strokeWidth: style.strokeWidth }

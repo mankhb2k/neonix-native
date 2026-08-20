@@ -304,6 +304,75 @@ test.describe("Protocol V2 atom preview", () => {
     expect(webgpu.fillPixels).toBeGreaterThan(1000);
   });
 
+  test("composites independent fill and stroke opacity in both backends", async ({ page }) => {
+    const caseId = "rectangle.paint.opacity";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    const webglFill = await readWebGLPixel(page, "preview-v2-canvas", 960, 440);
+    const webglStroke = await readWebGLPixel(page, "preview-v2-canvas", 960, 426);
+    expect(webglFill).toEqual([8, 97, 84, 255]);
+    expect(webglStroke).toEqual([76, 31, 50, 255]);
+
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 960, 440)).toEqual([
+      8,
+      97,
+      84,
+      255,
+    ]);
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 960, 426)).toEqual([
+      76,
+      31,
+      50,
+      255,
+    ]);
+  });
+
+  test("keeps independent paint opacity through Matrix4 perspective", async ({ page }) => {
+    await page.goto(
+      "/docs/preview?case=rectangle.paint.opacity-perspective&backend=webgl2",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    const webgl = await analyzePresentedCanvas(page, "preview-v2-canvas");
+    expect(webgl.bounds).not.toBeNull();
+    expect(webgl.fillPixels).toBeGreaterThan(1000);
+
+    await page.goto(
+      "/docs/preview?case=rectangle.paint.opacity-perspective&backend=webgl2",
+    );
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(
+      "/docs/preview?case=rectangle.paint.opacity-perspective&backend=webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    const webgpu = await analyzePresentedCanvas(page, "preview-v2-canvas");
+    expect(webgpu.bounds).not.toBeNull();
+    expect(webgpu.fillPixels).toBeGreaterThan(1000);
+  });
+
   test("defaults to WebGPU and falls back to WebGL2", async ({ page }) => {
     await page.goto("/docs/preview?case=primitive.shape.rectangle");
     const expectedBackend = await page.evaluate(async () => {

@@ -236,7 +236,7 @@ export function createWebGPUBackend(
           continue;
         }
         const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha;
+        color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
         const uniform = device.createBuffer({ size: 176, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
         const data = new Float32Array(44);
@@ -251,7 +251,7 @@ export function createWebGPUBackend(
         const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
-        stroke[3] *= transform.alpha;
+        stroke[3] *= transform.alpha * (command.op === "drawShape" ? command.strokeOpacity ?? 1 : 1);
         const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;

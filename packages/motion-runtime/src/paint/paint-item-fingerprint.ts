@@ -78,6 +78,12 @@ export function computePaintItemFingerprint(
   if ("fill" in drawCmd && typeof drawCmd.fill === "string") {
     parts.push(`f:${drawCmd.fill}`);
   }
+  if (drawCmd.op === "drawShape") {
+    if (drawCmd.fillOpacity != null) parts.push(`fo:${round3(drawCmd.fillOpacity)}`);
+    if (drawCmd.stroke) parts.push(`s:${drawCmd.stroke}`);
+    if (drawCmd.strokeWidth != null) parts.push(`sw:${round3(drawCmd.strokeWidth)}`);
+    if (drawCmd.strokeOpacity != null) parts.push(`so:${round3(drawCmd.strokeOpacity)}`);
+  }
 
   if (drawCmd.op === "drawImage" || drawCmd.op === "drawVideo") {
     if (drawCmd.fit) parts.push(`fit:${drawCmd.fit}`);

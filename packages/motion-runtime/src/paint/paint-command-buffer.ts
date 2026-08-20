@@ -131,6 +131,9 @@ function emitDraw(
       ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
       width: payload.width,
       height: payload.height,
+      ...(payload.fillOpacity != null
+        ? { fillOpacity: payload.fillOpacity }
+        : {}),
       cornerRadius: payload.cornerRadius,
       ...(payload.points ? { points: payload.points } : {}),
       ...(payload.stroke ? { stroke: payload.stroke } : {}),

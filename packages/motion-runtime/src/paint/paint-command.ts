@@ -116,6 +116,7 @@ export type PaintCommand =
       fillPaint?: PaintFill;
       width: number;
       height: number;
+      fillOpacity?: number;
       cornerRadius?: number;
       points?: Array<{ x: number; y: number }>;
       stroke?: string;

@@ -206,6 +206,60 @@ describe("Protocol V2 Compiler B", () => {
     ).toThrow("strokeWidth requires stroke");
   });
 
+  it("preserves independent fill and stroke opacity", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "rect-opacity",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: {
+            fill: "#00aa88",
+            fillOpacity: 0.5,
+            stroke: "#ff3366",
+            strokeOpacity: 0.25,
+          },
+        },
+      ],
+    });
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawShape",
+        fillOpacity: 0.5,
+        strokeOpacity: 0.25,
+      }),
+    );
+  });
+
+  it("rejects stroke opacity without a stroke color", () => {
+    expect(() =>
+      compileProtocolV2ToPaintCommands({
+        ...base,
+        layers: [
+          {
+            id: "invalid-stroke-opacity",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 80, height: 40 },
+            transform: identity,
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "rectangle" },
+            style: { fill: "#00aa88", strokeOpacity: 0.25 },
+          },
+        ],
+      }),
+    ).toThrow("strokeOpacity requires stroke");
+  });
+
   it("lowers the frame view into backend-neutral projection matrices", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,

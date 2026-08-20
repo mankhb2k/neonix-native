@@ -5,8 +5,10 @@ type ShapeOptions = {
   id: string;
   zIndex: number;
   fill: string;
+  fillOpacity?: number;
   stroke?: string;
   strokeWidth?: number;
+  strokeOpacity?: number;
   frame?: RectangleLayer["frame"];
   transform?: RectangleLayer["transform"];
   opacity?: number;
@@ -34,8 +36,12 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     payload: { shape },
     style: {
       fill: options.fill,
+      ...(options.fillOpacity != null ? { fillOpacity: options.fillOpacity } : {}),
       ...(options.stroke ? { stroke: options.stroke } : {}),
       ...(options.strokeWidth != null ? { strokeWidth: options.strokeWidth } : {}),
+      ...(options.strokeOpacity != null
+        ? { strokeOpacity: options.strokeOpacity }
+        : {}),
     },
   };
 }
@@ -200,6 +206,52 @@ const RECTANGLE_STROKE_WIDTH_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const RECTANGLE_PAINT_OPACITY_PROJECT = project(
+  "preview-rectangle-paint-opacity-v2",
+  [
+    rectangle({
+      id: "rectangle-paint-opacity",
+      zIndex: 0,
+      fill: "#00aa88",
+      fillOpacity: 0.5,
+      stroke: "#ff3366",
+      strokeWidth: 16,
+      strokeOpacity: 0.25,
+      frame: { width: 320, height: 180 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+    }),
+  ],
+);
+
+const RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT = project(
+  "preview-rectangle-paint-opacity-perspective-v2",
+  [
+    rectangle({
+      id: "rectangle-paint-opacity-perspective",
+      zIndex: 0,
+      fill: "#00aa88",
+      fillOpacity: 0.5,
+      stroke: "#ff3366",
+      strokeWidth: 16,
+      strokeOpacity: 0.25,
+      frame: { width: 320, height: 180 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 800, y: 420, z: 180 },
+        rotate: { x: 18, y: -24, z: 0 },
+        anchor: { x: 160, y: 90, z: 0 },
+      },
+    }),
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -265,6 +317,20 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 5 / stroke width",
     hint: "Keeps custom local stroke width attached to the Matrix4 perspective path.",
     project: RECTANGLE_STROKE_WIDTH_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "rectangle.paint.opacity",
+    label: "Paint / fill and stroke opacity",
+    group: "Task 5 / paint opacity",
+    hint: "Composites fill at 50% and stroke at 25% over the composition background.",
+    project: RECTANGLE_PAINT_OPACITY_PROJECT,
+  },
+  {
+    id: "rectangle.paint.opacity-perspective",
+    label: "Paint / opacity perspective",
+    group: "Task 5 / paint opacity",
+    hint: "Keeps independent fill and stroke alpha through Matrix4 perspective.",
+    project: RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT,
   },
   {
     id: "rectangle.transform.translate",
