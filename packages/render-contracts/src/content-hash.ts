@@ -9,7 +9,7 @@
  * Project/runtime/capability hashing lives in canonical-hash.ts.
  */
 
-import { createHash } from "node:crypto";
+import { sha256Hex } from "./sha256";
 
 /**
  * Deep-sort object keys recursively for canonical JSON serialization.
@@ -30,9 +30,7 @@ export function deepSortKeys<T>(value: T): T {
  */
 export function computeContentHash(runtimeJson: object): string {
   const sorted = deepSortKeys(runtimeJson);
-  return createHash("sha256")
-    .update(JSON.stringify(sorted), "utf8")
-    .digest("hex");
+  return sha256Hex(JSON.stringify(sorted));
 }
 
 /**
@@ -42,13 +40,13 @@ export function createContentHasher(): {
   update(chunk: string): void;
   digest(): string;
 } {
-  const hash = createHash("sha256");
+  const chunks: string[] = [];
   return {
     update(chunk: string) {
-      hash.update(chunk, "utf8");
+      chunks.push(chunk);
     },
     digest() {
-      return hash.digest("hex");
+      return sha256Hex(chunks.join(""));
     },
   };
 }

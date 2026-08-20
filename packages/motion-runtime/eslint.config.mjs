@@ -16,14 +16,6 @@ export default [
           patterns: [
             {
               group: [
-                "@motionvideo/pixi-renderer",
-                "@motionvideo/pixi-renderer/*",
-              ],
-              message:
-                "Runtime must not import Pixi renderer. It is framework-agnostic.",
-            },
-            {
-              group: [
                 "@motionvideo/remotion-renderer",
                 "@motionvideo/remotion-renderer/*",
               ],

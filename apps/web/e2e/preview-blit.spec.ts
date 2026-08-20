@@ -49,7 +49,7 @@ async function clickTestId(page: Page, testId: string) {
 }
 
 test.describe("preview blit dual-path", () => {
-  test("drag stays on Pixi live; play shows blit; pause returns to Pixi", async ({
+  test("drag stays on native live preview; play shows blit; pause returns to preview", async ({
     page,
   }) => {
     const projectId = "e2e.preview.blit-dual";
@@ -82,9 +82,9 @@ test.describe("preview blit dual-path", () => {
     await expect(stage).toHaveAttribute("data-stage-backend", "blit");
 
     const surfaces = page.getByTestId("preview-stage-surfaces");
-    const pixiCanvas = page.getByTestId("runtime-preview-canvas");
+    const previewCanvas = page.getByTestId("runtime-preview-canvas");
     const blitCanvas = page.getByTestId("runtime-preview-blit-canvas");
-    await expect(pixiCanvas).toBeVisible();
+    await expect(previewCanvas).toBeVisible();
     await expect(blitCanvas).toBeHidden();
     await expect(surfaces).toHaveAttribute("data-preview-mode", "live");
 
@@ -96,7 +96,7 @@ test.describe("preview blit dual-path", () => {
     await page.mouse.move(box!.x + 72, box!.y + 56, { steps: 6 });
     await page.mouse.up();
     await page.keyboard.press("Escape");
-    await expect(pixiCanvas).toBeVisible();
+    await expect(previewCanvas).toBeVisible();
     await expect(blitCanvas).toBeHidden();
 
     await clickTestId(page, "timeline-play");
@@ -106,7 +106,7 @@ test.describe("preview blit dual-path", () => {
     );
     await expect(surfaces).toHaveAttribute("data-preview-mode", "buffered");
     await expect(blitCanvas).toBeVisible({ timeout: 15_000 });
-    await expect(pixiCanvas).toBeHidden();
+    await expect(previewCanvas).toBeHidden();
 
     await clickTestId(page, "timeline-play");
     await expect(page.getByTestId("timeline-play")).toHaveAttribute(
@@ -114,7 +114,7 @@ test.describe("preview blit dual-path", () => {
       "Play",
     );
     await expect(surfaces).toHaveAttribute("data-preview-mode", "live");
-    await expect(pixiCanvas).toBeVisible();
+    await expect(previewCanvas).toBeVisible();
     await expect(blitCanvas).toBeHidden();
 
     const currentTime = page.getByTestId("timeline-current-time");
@@ -128,7 +128,7 @@ test.describe("preview blit dual-path", () => {
       rulerBox!.y + rulerBox!.height / 2,
     );
     await expect(currentTime).not.toHaveText(beforeTc ?? "");
-    await expect(pixiCanvas).toBeVisible();
+    await expect(previewCanvas).toBeVisible();
     await expect(surfaces).toHaveAttribute("data-preview-mode", "live");
   });
 });

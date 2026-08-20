@@ -15,7 +15,7 @@ export default tseslint.config(
         {
           paths: [
             { name: "zustand", message: "editor-react must not import Zustand." },
-            { name: "pixi.js", message: "editor-react must not import pixi.js." },
+            { name: "@motionvideo/preview-renderer", message: "editor-react must not import preview renderer." },
             { name: "remotion", message: "editor-react must not import remotion." },
           ],
           patterns: [

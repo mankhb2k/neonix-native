@@ -133,6 +133,13 @@ function emitDraw(
       height: payload.height,
       cornerRadius: payload.cornerRadius,
       ...(payload.points ? { points: payload.points } : {}),
+      ...(payload.stroke ? { stroke: payload.stroke } : {}),
+      ...(payload.strokeWidth != null
+        ? { strokeWidth: payload.strokeWidth }
+        : {}),
+      ...(payload.strokeOpacity != null
+        ? { strokeOpacity: payload.strokeOpacity }
+        : {}),
       ...(effects?.length ? { effects } : {}),
     });
     return;
@@ -169,6 +176,8 @@ function emitDraw(
       uri: payload.uri,
       width: payload.width,
       height: payload.height,
+      ...(payload.fit ? { fit: payload.fit } : {}),
+      ...(payload.crop ? { crop: payload.crop } : {}),
       ...(effects?.length ? { effects } : {}),
     });
     return;
@@ -217,7 +226,11 @@ function emitDraw(
       uri: payload.uri,
       width: payload.width,
       height: payload.height,
+      ...(payload.fit ? { fit: payload.fit } : {}),
       mediaTime: payload.mediaTime,
+      ...(payload.mediaVisible === false
+        ? { mediaVisible: false }
+        : {}),
       ...(effects?.length ? { effects } : {}),
     });
     return;

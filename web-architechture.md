@@ -49,7 +49,7 @@ flowchart TB
     ER["@motionvideo/editor-react<br/>DOM measurement · pointer capture · reusable hooks"]
     EI["@motionvideo/editor-interactions<br/>gesture state machines · transform math · timeline math"]
     EC["@motionvideo/editor-core<br/>commands · selection · history · document operations"]
-    Pixi["@motionvideo/pixi-renderer<br/>EvaluatedFrame.paint → Pixi display cache"]
+    Preview["@motionvideo/preview-renderer<br/>EvaluatedFrame.paint → WebGL2/WebGPU"]
     Canvas["Pixi canvas preview"]
     ExportUI["Export UI<br/>preset · progress · cancel · download"]
   end
@@ -262,7 +262,7 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 | `editor-react`        | Hooks DOM/React dùng chung Web/Desktop<br/>Timeline: useClipMove, useClipTrim, useLayerMove, useLayerTrim, useTimelineSeek, useTimelineMarquee, useTimelineViewportMetrics, useVisibleTimeline, useTimelineHotkeys, usePointerSessionHost | Controlled hooks, không import app store                                         |
 | `ai-planner`          | Brief → plans → typed commands → critic/repair                                                                                                                                                                                            | Planning grammar thuộc nội bộ package; zero-template là default path             |
 | `asset-registry`      | Asset contract, hash, SVG safety, font/license metadata                                                                                                                                                                                   | Có browser/server exports riêng; server implementation có thể dùng `node:crypto` |
-| `pixi-renderer`       | Preview painter và display-object cache                                                                                                                                                                                                   | Chỉ tiêu thụ contract từ `motion-runtime`, không sở hữu authoring semantics      |
+| `preview-renderer`    | Native WebGL2/WebGPU preview painter                                                                                                                                                                                                       | Chỉ tiêu thụ contract từ `motion-runtime`, không sở hữu authoring semantics      |
 | `remotion-renderer`   | Production Remotion composition, paint/audio adapter                                                                                                                                                                                      | Chỉ tiêu thụ `EvaluatedFrame`; không đóng vai trò editor preview                 |
 | `render-contracts`    | Render manifest, job request/status/result và webhook payload                                                                                                                                                                             | Thuần TypeScript/Zod; không AWS SDK, React hay renderer implementation           |
 

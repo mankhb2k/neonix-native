@@ -14,11 +14,11 @@ import {
 // ── ProviderInfo ─────────────────────────────────────────────────────
 
 describe("ProviderInfo", () => {
-  it("accepts a valid pixi-preview provider", () => {
+  it("accepts a valid native preview provider", () => {
     const parsed = ProviderInfoSchema.safeParse({
-      providerId: "pixi-preview",
-      displayName: "Pixi.js Preview",
-      version: "8.0.0",
+      providerId: "preview-webgl2",
+      displayName: "Native WebGL2 Preview",
+      version: "0.0.1",
       backend: "webgl",
     });
     expect(parsed.success).toBe(true);
@@ -58,10 +58,10 @@ describe("ProviderInfo", () => {
 // ── ProviderCapabilities ─────────────────────────────────────────────
 
 describe("ProviderCapabilities", () => {
-  const pixiCaps = {
-    providerId: "pixi-preview",
-    displayName: "Pixi.js Preview",
-    version: "8.0.0",
+  const previewCaps = {
+    providerId: "preview-webgl2",
+    displayName: "Native WebGL2 Preview",
+    version: "0.0.1",
     backend: "webgl" as const,
     supportedNodeTypes: [
       "group",
@@ -105,8 +105,8 @@ describe("ProviderCapabilities", () => {
     supportsFinalExport: true,
   };
 
-  it("accepts Pixi.js preview capabilities", () => {
-    expect(ProviderCapabilitiesSchema.safeParse(pixiCaps).success).toBe(true);
+  it("accepts native preview capabilities", () => {
+    expect(ProviderCapabilitiesSchema.safeParse(previewCaps).success).toBe(true);
   });
 
   it("accepts Remotion export capabilities", () => {
@@ -116,13 +116,13 @@ describe("ProviderCapabilities", () => {
   });
 
   it("rejects empty supportedNodeTypes", () => {
-    const bad = { ...pixiCaps, supportedNodeTypes: [] };
+    const bad = { ...previewCaps, supportedNodeTypes: [] };
     expect(ProviderCapabilitiesSchema.safeParse(bad).success).toBe(false);
   });
 
   it("rejects zero max resolution", () => {
     const bad = {
-      ...pixiCaps,
+      ...previewCaps,
       maxResolution: { width: 0, height: 1080 },
     };
     expect(ProviderCapabilitiesSchema.safeParse(bad).success).toBe(false);
@@ -152,7 +152,7 @@ describe("PreviewFrameRequest", () => {
       height: 1920,
       format: "jpeg",
       quality: 85,
-      providerId: "pixi-preview",
+      providerId: "preview-webgl2",
       background: "#000000",
     });
     expect(parsed.success).toBe(true);
@@ -289,13 +289,13 @@ describe("FinalRenderRequest", () => {
   });
 });
 
-// ── Type-level: Pixi & Remotion as providers ────────────────────────
+// ── Type-level: native preview & Remotion as providers ──────────────
 
-describe("Pixi and Remotion described as providers", () => {
-  it("Pixi.js can be described as a provider", () => {
+describe("Native preview and Remotion described as providers", () => {
+  it("Native WebGL2 can be described as a provider", () => {
     const caps = ProviderCapabilitiesSchema.parse({
-      providerId: "pixi-preview",
-      displayName: "Pixi.js Preview",
+      providerId: "preview-webgl2",
+      displayName: "Native WebGL2 Preview",
       version: "8.0.0",
       backend: "webgl",
       supportedNodeTypes: [
@@ -314,7 +314,7 @@ describe("Pixi and Remotion described as providers", () => {
       supportsAudio: false,
       supportsFinalExport: false,
     });
-    expect(caps.providerId).toBe("pixi-preview");
+    expect(caps.providerId).toBe("preview-webgl2");
     expect(caps.backend).toBe("webgl");
     expect(caps.supportsAlpha).toBe(true);
     expect(caps.supportsFinalExport).toBe(false);

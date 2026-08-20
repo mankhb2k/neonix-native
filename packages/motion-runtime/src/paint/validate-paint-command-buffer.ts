@@ -41,6 +41,24 @@ function isHttpOrDataOrRelativeUri(uri: string): boolean {
   }
 }
 
+function matrix4Finite(matrix: unknown): boolean {
+  return (
+    Array.isArray(matrix) &&
+    matrix.length === 16 &&
+    matrix.every(isFiniteNumber)
+  );
+}
+
+function isFit(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === "contain" ||
+    value === "cover" ||
+    value === "fill" ||
+    value === "none"
+  );
+}
+
 /**
  * Structural + semantic checks on a paint command stream.
  * Does not mutate the buffer.
@@ -154,11 +172,19 @@ export function validatePaintCommandBuffer(
         break;
       }
       case "setTransform": {
-        if (!matrixFinite(cmd.matrix)) {
+        if (!matrixFinite(cmd.matrix) && !matrix4Finite(cmd.matrix4)) {
           issues.push({
             severity: "error",
-            code: "non_finite_matrix",
-            message: `Transform matrix for "${cmd.key}" has non-finite values`,
+            code: "invalid_transform_matrix",
+            message: `Transform for "${cmd.key}" must contain a finite Matrix2D or 16-value Matrix4`,
+            key: cmd.key,
+          });
+        }
+        if (cmd.matrix4 !== undefined && !matrix4Finite(cmd.matrix4)) {
+          issues.push({
+            severity: "error",
+            code: "invalid_matrix4",
+            message: `Matrix4 for "${cmd.key}" must contain exactly 16 finite values`,
             key: cmd.key,
           });
         }
@@ -238,6 +264,58 @@ export function validatePaintCommandBuffer(
             message: `URI policy rejected for "${cmd.key}": ${cmd.uri}`,
             key: cmd.key,
           });
+        }
+        if (
+          (cmd.op === "drawImage" || cmd.op === "drawVideo") &&
+          !isFit(cmd.fit)
+        ) {
+          issues.push({
+            severity: "error",
+            code: "invalid_media_fit",
+            message: `Invalid fit for "${cmd.key}"`,
+            key: cmd.key,
+          });
+        }
+        if (cmd.op === "drawImage" && cmd.crop) {
+          const { x, y, width, height } = cmd.crop;
+          const cropOk =
+            isFiniteNumber(x) &&
+            isFiniteNumber(y) &&
+            isFiniteNumber(width) &&
+            isFiniteNumber(height) &&
+            x >= 0 &&
+            y >= 0 &&
+            width > 0 &&
+            height > 0 &&
+            x + width <= 1 &&
+            y + height <= 1;
+          if (!cropOk) {
+            issues.push({
+              severity: "error",
+              code: "invalid_media_crop",
+              message: `Invalid crop window for "${cmd.key}"`,
+              key: cmd.key,
+            });
+          }
+        }
+        if (cmd.op === "drawVideo" && !isFiniteNumber(cmd.mediaTime)) {
+          issues.push({
+            severity: "error",
+            code: "invalid_media_time",
+            message: `Invalid mediaTime for "${cmd.key}"`,
+            key: cmd.key,
+          });
+        }
+        if (cmd.projection) {
+          for (const [name, matrix] of Object.entries(cmd.projection)) {
+            if (!matrix4Finite(matrix)) {
+              issues.push({
+                severity: "error",
+                code: "invalid_projection_matrix",
+                message: `Projection ${name} must contain exactly 16 finite values`,
+              });
+            }
+          }
         }
         break;
       }

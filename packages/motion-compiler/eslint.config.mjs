@@ -15,14 +15,6 @@ export default [
           patterns: [
             {
               group: [
-                "@motionvideo/pixi-renderer",
-                "@motionvideo/pixi-renderer/*",
-              ],
-              message:
-                "Compiler must not import Pixi renderer. Use @motionvideo/render-contracts for shared types.",
-            },
-            {
-              group: [
                 "@motionvideo/remotion-renderer",
                 "@motionvideo/remotion-renderer/*",
               ],

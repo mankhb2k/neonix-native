@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DocsPixiPreview } from "@/components/docs/DocsPixiPreview";
+import { DocsPreview } from "@/components/docs/DocsPreview";
 import { TimelineStrip, lanesFromProject } from "@/components/docs/TimelineStrip";
 import { JsonBlock } from "@/components/docs/JsonBlock";
 import { attemptParse } from "@/lib/docs/parse-result";
@@ -48,7 +48,7 @@ export function ExamplesGallery({ items }: { items: GalleryItem[] }) {
         </p>
       ) : null}
       {selected.kind === "valid" ? (
-        <DocsPixiPreview project={selected.project} play />
+        <DocsPreview project={selected.project} play />
       ) : (
         <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-800">
           Invalid fixtures are not previewed. Schema and compile decide

@@ -53,6 +53,19 @@ export function scaleMatrix(x: number, y: number): Matrix2D {
   return { a: x, b: 0, c: 0, d: y, e: 0, f: 0 };
 }
 
+export function skewMatrix(xDegrees: number, yDegrees: number): Matrix2D {
+  const xRadians = (xDegrees * Math.PI) / 180;
+  const yRadians = (yDegrees * Math.PI) / 180;
+  return {
+    a: 1,
+    b: Math.tan(yRadians),
+    c: Math.tan(xRadians),
+    d: 1,
+    e: 0,
+    f: 0,
+  };
+}
+
 export function localTransformMatrix(transform: Transform2D): Matrix2D {
   const flipX = transform.flipX ? -1 : 1;
   const flipY = transform.flipY ? -1 : 1;

@@ -150,7 +150,6 @@ export const DOCS_NAV: DocsNavGroup[] = [
 ];
 
 const LEGACY_SLUGS = [
-  "preview",
   "transform",
   "appearance",
   "effects",

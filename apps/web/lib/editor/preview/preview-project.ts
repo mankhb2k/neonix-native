@@ -1,5 +1,5 @@
-import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
 import {
+  assertSnapshotContract,
   evaluateFrame,
   layerGraphFromRuntime,
   resolveTimelineAtTime,

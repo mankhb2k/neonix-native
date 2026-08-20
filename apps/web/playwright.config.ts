@@ -2,6 +2,14 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 3000);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const webGpuLaunchArgs = [
+  "--enable-unsafe-webgpu",
+  "--enable-gpu",
+  "--use-angle=d3d11",
+  // The current Windows image lacks System32/dxil.dll. Keep WebGPU on the
+  // NVIDIA adapter by using Dawn's non-DXC shader compiler for E2E.
+  "--disable-dawn-features=use_dxc",
+];
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,6 +30,7 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    launchOptions: { args: webGpuLaunchArgs },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.PLAYWRIGHT_BASE_URL

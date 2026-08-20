@@ -51,6 +51,18 @@ describe("buildFramePlan", () => {
     expect(plan[1]!.sceneIndex).toBe(0);
     expect(plan[1]!.localTime).toBe(1);
   });
+
+  it("emits exactly duration*fps frames for a frame-grid-aligned duration", () => {
+    // Regression: 12s @ 24fps must be 288 frames (not 289 from float drift).
+    // The frame-count policy here is Math.round(duration * fps), which is
+    // correct when duration is already snapped to the frame grid.
+    const plan = buildFramePlan(compiled(12), 24);
+    expect(plan).toHaveLength(288);
+    expect(plan[287]!.frameIndex).toBe(287);
+    expect(plan[287]!.globalTime).toBeCloseTo(287 / 24, 9);
+    // The last frame must stay inside the [0, duration) window.
+    expect(plan[287]!.globalTime).toBeLessThan(12);
+  });
 });
 
 describe("chunkFramePlan", () => {

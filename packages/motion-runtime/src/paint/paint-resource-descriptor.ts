@@ -14,7 +14,7 @@
 import type { PaintDrawCommand } from "./paint-command";
 import type { RuntimeEffect } from "../evaluator";
 import type { PathContour } from "../geometry";
-import type { PaintFill } from "../render-snapshot";
+import type { PaintFill, RenderMediaFit, RenderNormalizedRect } from "../render-snapshot";
 
 // ── Resource descriptor (frame-invariant) ─────────────────────────────
 
@@ -95,6 +95,10 @@ export type PaintFrameProperty = {
   /** Optional dynamic fill override. */
   fill?: string;
   fillPaint?: PaintFill;
+  fit?: RenderMediaFit;
+  crop?: RenderNormalizedRect;
+  mediaTime?: number;
+  mediaVisible?: boolean;
   /** Effects active this frame (may be keyframed). */
   effects?: RuntimeEffect[];
 };
@@ -180,6 +184,18 @@ export function extractPaintFrameProperty(
   }
   if ("fillPaint" in cmd) {
     base.fillPaint = (cmd as { fillPaint?: PaintFill }).fillPaint;
+  }
+  if ("fit" in cmd) {
+    base.fit = (cmd as { fit?: RenderMediaFit }).fit;
+  }
+  if ("crop" in cmd) {
+    base.crop = (cmd as { crop?: RenderNormalizedRect }).crop;
+  }
+  if ("mediaTime" in cmd) {
+    base.mediaTime = (cmd as { mediaTime?: number }).mediaTime;
+  }
+  if ("mediaVisible" in cmd) {
+    base.mediaVisible = (cmd as { mediaVisible?: boolean }).mediaVisible;
   }
   if ("effects" in cmd) {
     base.effects = (cmd as { effects?: RuntimeEffect[] }).effects;

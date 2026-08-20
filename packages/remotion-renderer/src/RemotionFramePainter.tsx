@@ -17,6 +17,7 @@ import {
   contoursToSvgPathD,
   flattenRemotionDrawables,
   type RemotionPaintTree,
+  type RemotionPaintTreeNode,
 } from "./build-remotion-paint-tree";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
 
@@ -66,6 +67,41 @@ function cssFill(
     return `radial-gradient(circle, ${stops})`;
   }
   return fill ?? fillPaint?.color ?? "#ffffff";
+}
+
+function cssObjectFit(
+  fit: "contain" | "cover" | "fill" | "none" | undefined,
+): React.CSSProperties["objectFit"] {
+  if (fit === "none") return "none";
+  if (fit === "fill") return "fill";
+  if (fit === "cover") return "cover";
+  return "contain";
+}
+
+function croppedMediaWrapperStyle(
+  style: React.CSSProperties,
+  width: number,
+  height: number,
+): React.CSSProperties {
+  return {
+    ...style,
+    width,
+    height,
+    overflow: "hidden",
+  };
+}
+
+function croppedMediaInnerStyle(
+  crop: { x: number; y: number; width: number; height: number },
+): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: `${-(crop.x / crop.width) * 100}%`,
+    top: `${-(crop.y / crop.height) * 100}%`,
+    width: `${100 / crop.width}%`,
+    height: `${100 / crop.height}%`,
+    objectFit: "fill",
+  };
 }
 
 function drawableToView(
@@ -184,6 +220,20 @@ function drawableToView(
       );
     case "drawImage":
       if (draw.uri) {
+        if (draw.crop) {
+          return (
+            <div
+              key={key}
+              data-paint-key={key}
+              style={croppedMediaWrapperStyle(style, draw.width, draw.height)}
+            >
+              <Img
+                src={draw.uri}
+                style={croppedMediaInnerStyle(draw.crop)}
+              />
+            </div>
+          );
+        }
         return (
           <Img
             key={key}
@@ -193,7 +243,7 @@ function drawableToView(
               ...style,
               width: draw.width,
               height: draw.height,
-              objectFit: "contain",
+              objectFit: cssObjectFit(draw.fit),
             }}
           />
         );
@@ -211,6 +261,7 @@ function drawableToView(
         />
       );
     case "drawVideo": {
+      if (draw.mediaVisible === false) return null;
       if (!draw.uri) {
         return (
           <div
@@ -240,7 +291,7 @@ function drawableToView(
             ...style,
             width: draw.width,
             height: draw.height,
-            objectFit: "contain",
+            objectFit: cssObjectFit(draw.fit),
           }}
         />
       );

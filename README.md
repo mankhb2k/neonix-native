@@ -78,7 +78,7 @@ flowchart LR
 
 | Package             | Input              | Output           | Use Case                    |
 | ------------------- | ------------------ | ---------------- | --------------------------- |
-| `pixi-renderer`     | PaintCommandBuffer | WebGL draw calls | Editor preview, MCP preview |
+| `preview-renderer`  | PaintCommandBuffer | WebGL2/WebGPU draw calls | Editor preview, MCP preview |
 | `remotion-renderer` | PaintCommandBuffer | MP4, GIF, still  | Cloud export                |
 
 ### Editor (dùng chung Web & Desktop)

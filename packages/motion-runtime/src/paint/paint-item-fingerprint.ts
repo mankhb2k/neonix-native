@@ -79,6 +79,20 @@ export function computePaintItemFingerprint(
     parts.push(`f:${drawCmd.fill}`);
   }
 
+  if (drawCmd.op === "drawImage" || drawCmd.op === "drawVideo") {
+    if (drawCmd.fit) parts.push(`fit:${drawCmd.fit}`);
+    if (drawCmd.op === "drawImage" && drawCmd.crop) {
+      parts.push(
+        `crop:${round3(drawCmd.crop.x)},${round3(drawCmd.crop.y)},${round3(drawCmd.crop.width)},${round3(drawCmd.crop.height)}`,
+      );
+    }
+  }
+
+  if (drawCmd.op === "drawVideo") {
+    parts.push(`mt:${round3(drawCmd.mediaTime)}`);
+    parts.push(`mv:${drawCmd.mediaVisible === false ? 0 : 1}`);
+  }
+
   // Effects
   if ("effects" in drawCmd && drawCmd.effects?.length) {
     parts.push(

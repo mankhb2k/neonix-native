@@ -67,6 +67,17 @@ export type Canvas2DReplayContext = {
     dw: number,
     dh: number,
   ): void;
+  drawImage(
+    image: Replay2DImageSource,
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+  ): void;
   createLinearGradient(
     x0: number,
     y0: number,
@@ -93,6 +104,13 @@ export type Canvas2DReplayContext = {
 
 export type ReplayPaint2DOptions = {
   getImage?: (uri: string, assetId: string) => Replay2DImageSource | null;
+};
+
+type MediaCrop = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 function hexColor(color: string | undefined, fallback = "#ffffff"): string {
@@ -182,6 +200,97 @@ function strokePathContours(
     }
     if (contour.closed) ctx.closePath();
   }
+}
+
+function imageSize(
+  image: Replay2DImageSource,
+): { width: number; height: number } | null {
+  if (!image || typeof image !== "object") return null;
+  const width = (image as { width?: unknown }).width;
+  const height = (image as { height?: unknown }).height;
+  if (typeof width !== "number" || typeof height !== "number") return null;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return null;
+  }
+  return { width, height };
+}
+
+function drawFittedMedia(
+  ctx: Canvas2DReplayContext,
+  image: Replay2DImageSource,
+  frameWidth: number,
+  frameHeight: number,
+  fit: "contain" | "cover" | "fill" | "none" | undefined,
+  crop?: MediaCrop,
+): void {
+  const size = imageSize(image);
+  if (!size) {
+    ctx.drawImage(image, 0, 0, frameWidth, frameHeight);
+    return;
+  }
+
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = size.width;
+  let sourceHeight = size.height;
+
+  if (crop) {
+    sourceX = crop.x * size.width;
+    sourceY = crop.y * size.height;
+    sourceWidth = crop.width * size.width;
+    sourceHeight = crop.height * size.height;
+  }
+
+  if (fit === "none") {
+    ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      sourceWidth,
+      sourceHeight,
+    );
+    return;
+  }
+
+  if (fit === "fill" || !fit) {
+    ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      frameWidth,
+      frameHeight,
+    );
+    return;
+  }
+
+  const scale =
+    fit === "cover"
+      ? Math.max(frameWidth / sourceWidth, frameHeight / sourceHeight)
+      : Math.min(frameWidth / sourceWidth, frameHeight / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const drawX = (frameWidth - drawWidth) / 2;
+  const drawY = (frameHeight - drawHeight) / 2;
+
+  ctx.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+  );
 }
 
 /**
@@ -291,11 +400,22 @@ export function replayPaintCommands2D(
         ctx.stroke();
       }
     } else if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
+      if (cmd.op === "drawVideo" && cmd.mediaVisible === false) {
+        ctx.restore();
+        continue;
+      }
       const uri = cmd.uri;
       const image =
         uri && options?.getImage ? options.getImage(uri, cmd.assetId) : null;
       if (image) {
-        ctx.drawImage(image, 0, 0, cmd.width, cmd.height);
+        drawFittedMedia(
+          ctx,
+          image,
+          cmd.width,
+          cmd.height,
+          cmd.fit,
+          cmd.op === "drawImage" ? cmd.crop : undefined,
+        );
       } else {
         ctx.fillStyle = "#334155";
         ctx.fillRect(0, 0, cmd.width, cmd.height);

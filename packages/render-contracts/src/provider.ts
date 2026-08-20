@@ -1,18 +1,18 @@
 /**
  * Phase 6 — Provider-neutral preview/render contract.
  *
- * Every renderer (Pixi, Remotion, server canvas, MCP preview, future
- * WebGPU renderer) implements the same request/result shapes so callers
+ * Every renderer (native preview, Remotion, server canvas, MCP preview,
+ * future WebGPU renderer) implements the same request/result shapes so callers
  * never couple to a specific backend.
  *
  * ## Usage
  *
  * ```ts
  * // Describe a provider:
- * const pixiCaps: ProviderCapabilities = {
- *   providerId: "pixi-preview",
- *   displayName: "Pixi.js Preview",
- *   version: "8.0.0",
+ * const previewCaps: ProviderCapabilities = {
+ *   providerId: "preview-webgl2",
+ *   displayName: "Native WebGL2 Preview",
+ *   version: "0.0.1",
  *   backend: "webgl",
  *   supportedNodeTypes: ["group","text","image","video","shape","path","svg","camera","solid","adjustment"],
  *   supportedEffects: ["drop-shadow","blur","tint"],
@@ -32,7 +32,7 @@
  *   height: 1920,
  *   format: "png",
  *   quality: 90,
- *   providerId: "pixi-preview",
+ *   providerId: "preview-webgl2",
  *   background: "#ffffff",
  * };
  * ```
@@ -78,8 +78,7 @@ import { z } from "zod";
  *
  * - **Canvas (export)**: `OffscreenCanvas` → `drawImage()` with
  *   `globalAlpha` and `globalCompositeOperation`.
- * - **Pixi.js (preview)**: `RenderTexture` + `Sprite` proxy with
- *   container filters.
+ * - **Native preview (WebGL2/WebGPU)**: offscreen texture + compositing pass.
  * - **Remotion (export)**: HTML `<div>` wrapper with `opacity` +
  *   `mix-blend-mode` + `filter` CSS; children absolutely positioned
  *   inside.
@@ -87,7 +86,7 @@ import { z } from "zod";
  * ## Recommendation
  *
  * `isolate` is **RECOMMENDED for the first implementation**. The
- * offscreen infrastructure already exists in Pixi (RenderTexture pool)
+ * offscreen infrastructure is provided by the native backend texture pool
  * and Canvas (OffscreenCanvas). `pass-through` is the default and
  * requires no special handling.
  */
@@ -111,7 +110,7 @@ export const GROUP_COMPOSITING_MODES: readonly GroupCompositingMode[] = [
 /**
  * Unique provider identifier.
  *
- * Convention: `<backend>-<variant>`, e.g. `"pixi-preview"`,
+ * Convention: `<backend>-<variant>`, e.g. `"preview-webgl2"`,
  * `"remotion-export"`, `"canvas-worker"`.
  */
 export type ProviderId = string;

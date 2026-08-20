@@ -1,8 +1,7 @@
 /**
- * Dual-surface stage: Pixi live (edit/scrub) + worker FrameBuffer blit (play).
+ * Dual-surface stage: native live preview (edit/scrub) + worker FrameBuffer blit (play).
  */
 
-import { createPixiStageRenderer } from "@motionvideo/pixi-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   evaluateCompositionFrame,
@@ -23,6 +22,7 @@ import {
 } from "@/lib/runtime/project-composition";
 import { createBrowserPreviewWorker } from "@/lib/editor/preview/preview-worker-client";
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
+import { createPreviewStageRenderer } from "@/lib/editor/stage/preview-stage-renderer";
 
 export type BlitStageRendererPort = StageRendererPort & {
   setPlaying(playing: boolean): void;
@@ -63,12 +63,7 @@ export async function createBlitStageRenderer(
   host.appendChild(blitCanvas);
   const blitCtx = blitCanvas.getContext("2d");
 
-  const pixi = createPixiStageRenderer();
-  await pixi.mount(liveLayer);
-  const pixiCanvas = liveLayer.querySelector("canvas");
-  if (pixiCanvas instanceof HTMLCanvasElement) {
-    pixiCanvas.dataset.testid = "runtime-preview-canvas";
-  }
+  const preview = await createPreviewStageRenderer(liveLayer);
 
   const worker = createBrowserPreviewWorker();
   let project: MotionProject | null = null;
@@ -105,14 +100,13 @@ export async function createBlitStageRenderer(
       background,
     );
     lastEvaluated = evaluated;
-    if (evaluated && !playing) pixi.paintFrame(evaluated);
+    if (evaluated && !playing) preview.preview.paintFrame(evaluated);
   };
 
   const setSurfaceMode = (mode: PresentMode) => {
     const buffered = mode === "buffered";
     liveLayer.style.visibility = buffered ? "hidden" : "visible";
     blitCanvas.style.visibility = buffered ? "visible" : "hidden";
-    pixi.setTickerEnabled(!buffered);
     host.dataset.previewMode = mode;
     host.dataset.testid = host.dataset.testid || "preview-stage-surfaces";
   };
@@ -123,7 +117,7 @@ export async function createBlitStageRenderer(
     worker,
     consumer: {
       paintCompositionFrame() {
-        /* live path uses pixi.paintFrame directly */
+        /* live path uses preview.paintFrame directly */
       },
       present(entry) {
         if (blitCtx) blitEntry(blitCtx, blitCanvas, entry);
@@ -149,9 +143,8 @@ export async function createBlitStageRenderer(
         host.dataset.compileError =
           err instanceof Error ? err.message.slice(0, 300) : String(err);
       }
-      pixi.setProject(compiled);
-      pixi.setBackground(background);
-      pixi.setViewport({ scale, offsetX: 0, offsetY: 0 });
+      preview.setBackground(background);
+      preview.setScale(scale);
       const size = stageSizeForAspect(compositionAspectRatio(project));
       applyBlitChrome(size);
       if (compiled) engine.load(compiled);
@@ -159,12 +152,12 @@ export async function createBlitStageRenderer(
     },
     setScale(next) {
       scale = next;
-      pixi.setViewport({ scale, offsetX: 0, offsetY: 0 });
+      preview.setScale(scale);
       applyBlitChrome();
     },
     setBackground(color) {
       background = color;
-      pixi.setBackground(color);
+      preview.setBackground(color);
     },
     paintFrame(frameIndex) {
       lastFrame = frameIndex;
@@ -198,7 +191,7 @@ export async function createBlitStageRenderer(
     dispose() {
       engine.dispose();
       worker.terminate();
-      pixi.dispose();
+      preview.dispose();
       blitCanvas.remove();
       liveLayer.remove();
       project = null;

@@ -17,6 +17,7 @@ export {
   hashesMatch,
   deepSortKeys,
 } from "./content-hash";
+export { sha256Hex } from "./sha256";
 export {
   RENDER_MANIFEST_VERSION,
   canonicalJson,

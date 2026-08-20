@@ -142,6 +142,16 @@ export function scaleMatrix3D(sx: number, sy: number, sz: number): Matrix4 {
   return m;
 }
 
+/** Local XY-plane skew using the same degree convention as the 2D math core. */
+export function skewMatrix3D(xDegrees: number, yDegrees: number): Matrix4 {
+  const x = Math.tan((xDegrees * Math.PI) / 180);
+  const y = Math.tan((yDegrees * Math.PI) / 180);
+  const m = createMatrix4();
+  m[1] = y;
+  m[4] = x;
+  return m;
+}
+
 export function rotationMatrixX(degrees: number): Matrix4 {
   const r = (degrees * Math.PI) / 180;
   const c = Math.cos(r);
@@ -175,6 +185,52 @@ export function rotationMatrixZ(degrees: number): Matrix4 {
   m[1] = s;
   m[4] = -s;
   m[5] = c;
+  return m;
+}
+
+/** Pixel-space orthographic projection: top-left origin, Y grows downward. */
+export function orthographicMatrix2D(width: number, height: number): Matrix4 {
+  const m = createMatrix4();
+  const w = Math.max(width, 1);
+  const h = Math.max(height, 1);
+  m[0] = 2 / w;
+  m[5] = -2 / h;
+  m[10] = 1;
+  m[12] = -1;
+  m[13] = 1;
+  return m;
+}
+
+/**
+ * Screen-oriented perspective projection with a top-left pixel origin.
+ * The camera looks toward negative Z and objects with positive Z move closer.
+ * The matrix keeps X/Y identical across WebGL2 and WebGPU; depth adaptation
+ * belongs to the backend when depth testing is introduced.
+ */
+export function perspectiveProjectionMatrix2D(
+  width: number,
+  height: number,
+  fovDegrees: number,
+  near: number,
+  far: number,
+): Matrix4 {
+  const w = Math.max(width, 1);
+  const h = Math.max(height, 1);
+  const fov = Math.min(Math.max(fovDegrees, 0.001), 179.999);
+  const cameraDistance = (h / 2) / Math.tan((fov * Math.PI) / 360);
+  const safeNear = Math.max(near, 0.001);
+  const safeFar = Math.max(far, safeNear + 0.001);
+  const zScale = (cameraDistance - safeFar) / (safeFar - safeNear);
+  const zOffset = -zScale * (cameraDistance - safeNear);
+  const m = new Float64Array(16);
+  m[0] = (2 * cameraDistance) / w;
+  m[5] = (-2 * cameraDistance) / h;
+  m[10] = zScale;
+  m[11] = -1;
+  m[12] = -cameraDistance;
+  m[13] = cameraDistance;
+  m[14] = zOffset;
+  m[15] = cameraDistance;
   return m;
 }
 

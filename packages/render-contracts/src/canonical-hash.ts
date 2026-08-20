@@ -9,7 +9,7 @@
  * Same semantic project / runtime IR → same hash. Excludes timestamps /
  * provenance / extensions from the render hash.
  */
-import { createHash } from "node:crypto";
+import { sha256Hex } from "./sha256";
 import { shortHash } from "./content-hash";
 
 // ── Versioning ──────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ function stripNonDeterministic(
 export function computeProjectHash(project: Record<string, unknown>): string {
   const stripped = stripNonDeterministic(project);
   const canonical = canonicalJson(stripped);
-  return createHash("sha256").update(canonical, "utf8").digest("hex");
+  return sha256Hex(canonical);
 }
 
 /**
@@ -97,10 +97,7 @@ export function computeProjectHashShort(
 export function computeRuntimeHash(ir: Record<string, unknown>): string {
   const hashInputs = { ...ir };
   delete hashInputs.runtimeHash;
-  return createHash("sha256")
-    .update(canonicalJson(hashInputs), "utf8")
-    .digest("hex")
-    .slice(0, 32);
+  return sha256Hex(canonicalJson(hashInputs)).slice(0, 32);
 }
 
 // ── Capability Fingerprint ─────────────────────────────────────────────
@@ -109,8 +106,5 @@ export function computeRuntimeHash(ir: Record<string, unknown>): string {
  * Build a deterministic fingerprint from a capability manifest version string.
  */
 export function buildCapabilityFingerprint(manifestVersion: string): string {
-  return createHash("sha256")
-    .update(`motion-capabilities:${manifestVersion}`)
-    .digest("hex")
-    .slice(0, 16);
+  return sha256Hex(`motion-capabilities:${manifestVersion}`).slice(0, 16);
 }

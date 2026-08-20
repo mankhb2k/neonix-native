@@ -33,8 +33,8 @@ export default tseslint.config(
               message: "editor-interactions must not import Electron.",
             },
             {
-              name: "pixi.js",
-              message: "editor-interactions must not import pixi.js.",
+              name: "@motionvideo/preview-renderer",
+              message: "editor-interactions must not import preview renderer.",
             },
             {
               name: "remotion",

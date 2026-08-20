@@ -5,7 +5,11 @@
 import type { Matrix2D } from "../matrix";
 import type { RuntimeEffect } from "../evaluator";
 import type { PathContour } from "../geometry";
-import type { PaintFill } from "../render-snapshot";
+import type {
+  PaintFill,
+  RenderMediaFit,
+  RenderNormalizedRect,
+} from "../render-snapshot";
 
 export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";
@@ -26,8 +30,9 @@ export type PaintCommand =
       time: number;
       /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */
       projection?: {
-        viewMatrix: number[]; // 4×4
-        projectionMatrix: number[]; // 4×4
+        viewMatrix: number[];
+        projectionMatrix: number[];
+        viewProjectionMatrix?: number[];
       };
     }
   | { op: "endFrame" }
@@ -113,6 +118,9 @@ export type PaintCommand =
       height: number;
       cornerRadius?: number;
       points?: Array<{ x: number; y: number }>;
+      stroke?: string;
+      strokeWidth?: number;
+      strokeOpacity?: number;
       effects?: RuntimeEffect[];
     }
   | {
@@ -132,6 +140,8 @@ export type PaintCommand =
       uri?: string;
       width: number;
       height: number;
+      fit?: RenderMediaFit;
+      crop?: RenderNormalizedRect;
       effects?: RuntimeEffect[];
     }
   | {
@@ -156,7 +166,9 @@ export type PaintCommand =
       uri?: string;
       width: number;
       height: number;
+      fit?: RenderMediaFit;
       mediaTime: number;
+      mediaVisible?: boolean;
       effects?: RuntimeEffect[];
     }
   | {

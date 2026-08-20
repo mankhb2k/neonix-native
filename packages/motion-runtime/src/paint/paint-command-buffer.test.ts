@@ -154,4 +154,66 @@ describe("decodePaintCommandBuffer", () => {
       expect(list.roots[0].children).toHaveLength(1);
     }
   });
+
+  it("preserves image crop/fit and video visibility in draw commands", () => {
+    const mediaSnapshot: RenderSnapshot = {
+      ...snapshot,
+      items: [
+        {
+          ...snapshot.items[0]!,
+          key: "s1:image",
+          layerId: "image",
+          nodeType: "image",
+          payload: {
+            kind: "image",
+            assetId: "img-1",
+            uri: "./image.png",
+            width: 80,
+            height: 40,
+            fit: "cover",
+            crop: { x: 0.1, y: 0.2, width: 0.5, height: 0.6 },
+          },
+        },
+        {
+          ...snapshot.items[0]!,
+          key: "s1:video",
+          layerId: "video",
+          nodeType: "video",
+          payload: {
+            kind: "video",
+            assetId: "vid-1",
+            uri: "./video.mp4",
+            width: 120,
+            height: 68,
+            fit: "contain",
+            mediaTime: 1.25,
+            mediaVisible: false,
+          },
+        },
+      ],
+    };
+
+    const buffer = buildPaintCommandBuffer(mediaSnapshot);
+    const drawImage = buffer.commands.find(
+      (cmd) => cmd.op === "drawImage",
+    );
+    const drawVideo = buffer.commands.find(
+      (cmd) => cmd.op === "drawVideo",
+    );
+
+    expect(drawImage && drawImage.op === "drawImage" ? drawImage.fit : null).toBe(
+      "cover",
+    );
+    expect(
+      drawImage && drawImage.op === "drawImage" ? drawImage.crop : null,
+    ).toEqual({ x: 0.1, y: 0.2, width: 0.5, height: 0.6 });
+    expect(drawVideo && drawVideo.op === "drawVideo" ? drawVideo.fit : null).toBe(
+      "contain",
+    );
+    expect(
+      drawVideo && drawVideo.op === "drawVideo"
+        ? drawVideo.mediaVisible
+        : undefined,
+    ).toBe(false);
+  });
 });

@@ -8,7 +8,11 @@ import { SiteNavButton } from "@/components/site/SiteNavButton";
 const headerOuterClass =
   "sticky top-0 z-20 border-b border-[var(--border-subtle,#e4e4e7)] bg-[color-mix(in_srgb,var(--bg-site)_90%,transparent)] backdrop-blur";
 
-export function SiteHeader({ active }: { active?: "docs" | "app" | "home" }) {
+export function SiteHeader({
+  active,
+}: {
+  active?: "docs" | "app" | "home" | "preview";
+}) {
   return (
     <header className={headerOuterClass}>
       <div
@@ -38,6 +42,12 @@ export function SiteHeader({ active }: { active?: "docs" | "app" | "home" }) {
             </SiteNavButton>
             <SiteNavButton href="/docs" active={active === "docs"}>
               Docs
+            </SiteNavButton>
+            <SiteNavButton
+              href="/docs/preview"
+              active={active === "preview"}
+            >
+              Preview
             </SiteNavButton>
             <SiteNavButton
               href={appUrl("/")}

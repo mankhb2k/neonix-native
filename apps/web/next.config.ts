@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     "@motionvideo/motion-compiler",
     "@motionvideo/ai-planner",
     "@motionvideo/asset-registry",
-    "@motionvideo/pixi-renderer",
+    "@motionvideo/preview-renderer",
     "@motionvideo/playback-engine",
   ],
   experimental: {
@@ -51,7 +51,10 @@ const nextConfig: NextConfig = {
       },
     ];
     config.plugins.push(
-      new webpack.NormalModuleReplacementPlugin(/^node:crypto$/, nodeCryptoShim),
+      new webpack.NormalModuleReplacementPlugin(
+        /^node:crypto$/,
+        nodeCryptoShim,
+      ),
     );
     return config;
   },

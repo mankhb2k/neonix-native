@@ -14,6 +14,7 @@ import {
   hierarchyRenderOrder,
   type OrderableNode,
 } from "./composition/render-order";
+import { resolveMediaTiming } from "./media-timing";
 import {
   containsPoint,
   invertMatrix,
@@ -34,6 +35,13 @@ export type PaintFillGradient = {
   stops: Array<{ offset: number; color: string }>;
 };
 export type PaintFill = PaintFillSolid | PaintFillGradient;
+export type RenderMediaFit = "contain" | "cover" | "fill" | "none";
+export type RenderNormalizedRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 export type RenderItemPayload =
   | {
@@ -77,6 +85,9 @@ export type RenderItemPayload =
       points?: Array<{ x: number; y: number }>;
       width: number;
       height: number;
+      stroke?: string;
+      strokeWidth?: number;
+      strokeOpacity?: number;
     }
   | {
       kind: "solid";
@@ -90,6 +101,8 @@ export type RenderItemPayload =
       uri?: string;
       width: number;
       height: number;
+      fit?: RenderMediaFit;
+      crop?: RenderNormalizedRect;
     }
   | {
       kind: "path";
@@ -108,7 +121,9 @@ export type RenderItemPayload =
       uri?: string;
       width: number;
       height: number;
+      fit?: RenderMediaFit;
       mediaTime: number;
+      mediaVisible?: boolean;
     }
   | {
       kind: "group";
@@ -178,6 +193,22 @@ export type RenderSnapshot = {
   cameraMatrix: Matrix2D;
   items: RenderSnapshotItem[];
 };
+
+/** Validate the interaction snapshot contract shared by preview and editor overlay. */
+export function assertSnapshotContract(snapshot: RenderSnapshot): void {
+  if (!snapshot.space) throw new Error("RenderSnapshot.space required");
+  if (!snapshot.projection || snapshot.projection.kind !== "orthographic") {
+    throw new Error("RenderSnapshot.projection.kind must be orthographic");
+  }
+  for (const item of snapshot.items) {
+    if (typeof item.depth !== "number") {
+      throw new Error(`Missing depth on ${item.key}`);
+    }
+    if (!item.projectedOffset) {
+      throw new Error(`Missing projectedOffset on ${item.key}`);
+    }
+  }
+}
 
 function resolvePaintFill(style: { fill?: unknown } | undefined): {
   fill?: string;
@@ -304,6 +335,13 @@ function payloadForNode(
           : {}),
         width,
         height,
+        ...(typeof style?.stroke === "string" ? { stroke: style.stroke } : {}),
+        ...(style?.strokeWidth != null
+          ? { strokeWidth: style.strokeWidth }
+          : {}),
+        ...(style?.strokeOpacity != null
+          ? { strokeOpacity: style.strokeOpacity }
+          : {}),
       };
     }
     case "solid": {
@@ -319,7 +357,11 @@ function payloadForNode(
     }
     case "image": {
       const imageNode = node as RuntimeNode & {
-        payload: { assetId: string };
+        payload: {
+          assetId: string;
+          fit?: RenderMediaFit;
+          crop?: RenderNormalizedRect;
+        };
       };
       const uri =
         assetUriById instanceof Map
@@ -331,11 +373,13 @@ function payloadForNode(
         ...(uri ? { uri } : {}),
         width,
         height,
+        ...(imageNode.payload.fit ? { fit: imageNode.payload.fit } : {}),
+        ...(imageNode.payload.crop ? { crop: imageNode.payload.crop } : {}),
       };
     }
     case "svg": {
       const svgNode = node as RuntimeNode & {
-        payload: { assetId: string };
+        payload: { assetId: string; fit?: RenderMediaFit };
       };
       const uri =
         assetUriById instanceof Map
@@ -347,6 +391,7 @@ function payloadForNode(
         ...(uri ? { uri } : {}),
         width,
         height,
+        ...(svgNode.payload.fit ? { fit: svgNode.payload.fit } : {}),
       };
     }
     case "path": {
@@ -377,13 +422,29 @@ function payloadForNode(
           ? assetUriById.get(videoNode.payload.assetId)
           : assetUriById?.[videoNode.payload.assetId];
       const trimStart = videoNode.payload.trimStart ?? 0;
+      const trimEnd = videoNode.payload.trimEnd;
+      const framePolicy = videoNode.payload.framePolicy ?? (videoNode.payload.loop ? "loop" : "hold");
+      const duration = trimEnd != null ? Math.max(0, trimEnd - trimStart) : null;
+      const mediaVisible =
+        framePolicy !== "transparent" ||
+        duration == null ||
+        sceneTime < duration;
+      const timing = resolveMediaTiming({
+        mediaTimeSeconds: sceneTime,
+        fps: 30,
+        trimStartSeconds: trimStart,
+        trimEndSeconds: trimEnd,
+        loop: videoNode.payload.loop || framePolicy === "loop",
+      });
       return {
         kind: "video",
         assetId: videoNode.payload.assetId,
         ...(uri ? { uri } : {}),
         width,
         height,
-        mediaTime: trimStart + sceneTime,
+        ...(videoNode.payload.fit ? { fit: videoNode.payload.fit } : {}),
+        mediaTime: timing.mediaTimeSeconds,
+        mediaVisible,
       };
     }
     case "group":

@@ -1,6 +1,6 @@
 # `@motionvideo/playback-engine`
 
-Controller **transport + frame scheduler** dùng chung cho preview realtime. Nhận Runtime IR đã compile, đánh giá frame theo clock, rồi đẩy kết quả sang painter (Pixi, Remotion, mock test). Package thuần TypeScript — không React, không Pixi, không encode.
+Controller **transport + frame scheduler** dùng chung cho preview realtime. Nhận Runtime IR đã compile, đánh giá frame theo clock, rồi đẩy kết quả sang painter (native preview, Remotion, mock test). Package thuần TypeScript — không React, không renderer, không encode.
 
 Web, desktop, và test harness dùng cùng một engine.
 
@@ -13,7 +13,7 @@ MotionRuntimeProject (Runtime IR)
         ↓
   evaluateCompositionFrameV1  (@motionvideo/motion-runtime)
         ↓
-  FrameConsumer.paintCompositionFrame  →  Pixi / Remotion / mock
+  FrameConsumer.paintCompositionFrame  →  native preview / Remotion / mock
 ```
 
 - Clock thống nhất: ưu tiên `AudioContext.currentTime`, fallback `performance.now()`.
@@ -69,7 +69,7 @@ Nền tảng (RAF, `cancelAnimationFrame`, `AudioContext`) inject qua options �
 
 - **Không compile MotionProject** — gọi `@motionvideo/motion-compiler` trước khi `load`.
 - **Không evaluate property/geometry** — engine gọi `evaluateCompositionFrameV1` từ `@motionvideo/motion-runtime`.
-- **Không paint GPU / encode MP4** — painter thuộc `@motionvideo/pixi-renderer` hoặc `@motionvideo/remotion-renderer`.
+- **Không paint GPU / encode MP4** — painter thuộc `@motionvideo/preview-renderer` hoặc `@motionvideo/remotion-renderer`.
 - **Không editor UI / Zustand / React** — không playhead, timeline chrome, store; app mount engine và overlay.
 - **Không orchestration render job** — thuộc apps + `@motionvideo/render-contracts`.
 

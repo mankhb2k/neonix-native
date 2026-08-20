@@ -8,10 +8,8 @@
  * in Phase 8 without changing the public API.
  */
 
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
-import { createHash } from "node:crypto";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
+import { sha256Hex } from "@motionvideo/render-contracts";
 import type { CompileResult } from "./compile-result";
 import type { ComponentInput } from "./types";
 
@@ -36,7 +34,7 @@ export function hashComponentDeps(components: ComponentInput[]): string {
     .map((c) => `${c.componentId}@${c.componentVersion}`)
     .sort()
     .join(",");
-  return createHash("sha256").update(normalized).digest("hex").slice(0, 12);
+  return sha256Hex(normalized).slice(0, 12);
 }
 
 /**

@@ -173,10 +173,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
         lastPlaying = playing;
         renderer?.setPlaying?.(playing);
         if (!playing) {
-          const frame = playbackFrameIndex(
-            state.currentTime,
-            fpsRef.current,
-          );
+          const frame = playbackFrameIndex(state.currentTime, fpsRef.current);
           last = frame;
           renderer?.paintFrame(frame);
           syncOverlayFromRenderer();

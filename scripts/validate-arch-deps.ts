@@ -89,7 +89,7 @@ const CORE_PACKAGES = new Set([
 ]);
 
 const RENDERER_PACKAGES = new Set([
-  "@motionvideo/pixi-renderer",
+  "@motionvideo/preview-renderer",
   "@motionvideo/remotion-renderer",
 ]);
 

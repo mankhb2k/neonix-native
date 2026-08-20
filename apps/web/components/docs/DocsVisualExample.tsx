@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DocsPixiPreview, docsStageViewBox } from "@/components/docs/DocsPixiPreview";
+import { DocsPreview, docsStageViewBox } from "@/components/docs/DocsPreview";
 import type { DocsVisualVariant } from "@/lib/docs/visual-fixtures";
 
 export type DocsOverlayKind = "none" | "origin" | "frame";
@@ -42,7 +42,7 @@ export function DocsVisualExample({
                 {item.label}
               </p>
               <div className="relative">
-                <DocsPixiPreview
+                <DocsPreview
                   project={item.project}
                   play={play}
                   chrome="bare"

@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function StageViewport({ project, width, height }: Props) {
-  const [mode, setMode] = useState<StageRendererBackend>("pixi");
+  const [mode, setMode] = useState<StageRendererBackend>("preview");
   const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {

@@ -60,6 +60,14 @@ describe("deriveProjectDurationV1", () => {
     ];
     expect(deriveProjectDurationV1(layers)).toBe(10);
   });
+
+  it("derives an exact frame-grid-aligned duration (12s)", () => {
+    // Regression: a layer whose end lands exactly on the frame grid must
+    // derive an exact duration so render can emit exactly duration*fps frames.
+    const layers = [root("main", 0, 12)];
+    expect(getRootLayerEndV1(layers)).toBe(12);
+    expect(deriveProjectDurationV1(layers)).toBe(12);
+  });
 });
 
 describe("canonicalizeProjectTimingV1", () => {

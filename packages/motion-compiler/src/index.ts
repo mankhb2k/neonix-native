@@ -90,3 +90,4 @@ export {
   type RecipeBakeInput,
   type BakedRecipe,
 } from "./recipe-registry";
+export { compileProtocolV2ToPaintCommands } from "./compile-v2";

@@ -19,6 +19,12 @@ import { projectFrameLayers } from "./frame-plan";
 import { ensureFont } from "./draw";
 
 type RuntimeAsset = MotionRuntimeProject["assets"][number];
+type MediaCrop = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 function hexColor(color: string | undefined, fallback = "#ffffff"): string {
   if (!color) return fallback;
@@ -73,11 +79,22 @@ function applyMatrix(
 }
 
 function blendOp(
-  mode: "normal" | "multiply" | "screen" | "add" | undefined,
+  mode:
+    | "normal"
+    | "multiply"
+    | "screen"
+    | "add"
+    | "darken"
+    | "lighten"
+    | "overlay"
+    | undefined,
 ): GlobalCompositeOperation {
   if (mode === "multiply") return "multiply";
   if (mode === "screen") return "screen";
   if (mode === "add") return "lighter";
+  if (mode === "darken") return "darken";
+  if (mode === "lighten") return "lighten";
+  if (mode === "overlay") return "overlay";
   return "source-over";
 }
 
@@ -114,6 +131,58 @@ function resolveAssetUri(
   if (!asset?.uri) return undefined;
   if (path.isAbsolute(asset.uri)) return undefined;
   return path.resolve(assetBaseDir, asset.uri);
+}
+
+function drawFittedMedia(
+  ctx: SKRSContext2D,
+  image: Awaited<ReturnType<typeof loadImage>>,
+  width: number,
+  height: number,
+  fit: "contain" | "cover" | "fill" | "none" | undefined,
+  crop?: MediaCrop,
+): void {
+  const sourceWidth = image.width;
+  const sourceHeight = image.height;
+  if (!sourceWidth || !sourceHeight) return;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (crop) {
+    sx = crop.x * sourceWidth;
+    sy = crop.y * sourceHeight;
+    sw = crop.width * sourceWidth;
+    sh = crop.height * sourceHeight;
+  }
+
+  if (fit === "none") {
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+    return;
+  }
+  if (fit === "fill" || !fit) {
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+    return;
+  }
+
+  const scale =
+    fit === "cover"
+      ? Math.max(width / sw, height / sh)
+      : Math.min(width / sw, height / sh);
+  const drawWidth = sw * scale;
+  const drawHeight = sh * scale;
+  ctx.drawImage(
+    image,
+    sx,
+    sy,
+    sw,
+    sh,
+    (width - drawWidth) / 2,
+    (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
 }
 
 /**
@@ -192,6 +261,10 @@ export function paintCommandsToContext(
         ctx.stroke();
       }
     } else if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
+      if (cmd.op === "drawVideo" && cmd.mediaVisible === false) {
+        ctx.restore();
+        continue;
+      }
       const uri = cmd.uri;
       if (uri && options?.loadImageSync) {
         const image = options.loadImageSync(uri);
@@ -279,6 +352,10 @@ async function paintCommandsToContextAsync(
         ctx.stroke();
       }
     } else if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
+      if (cmd.op === "drawVideo" && cmd.mediaVisible === false) {
+        ctx.restore();
+        continue;
+      }
       const uri =
         cmd.uri ??
         resolveAssetUri(cmd.assetId, assets, assetBaseDir);
@@ -289,7 +366,14 @@ async function paintCommandsToContextAsync(
             image = await loadImage(uri);
             imageCache.set(uri, image);
           }
-          ctx.drawImage(image, 0, 0, cmd.width, cmd.height);
+          drawFittedMedia(
+            ctx,
+            image,
+            cmd.width,
+            cmd.height,
+            cmd.fit,
+            cmd.op === "drawImage" ? cmd.crop : undefined,
+          );
         } catch {
           ctx.fillStyle = "#334155";
           ctx.fillRect(0, 0, cmd.width, cmd.height);
