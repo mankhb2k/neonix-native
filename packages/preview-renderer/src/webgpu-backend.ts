@@ -57,11 +57,21 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
   }
   var source = select(uniforms.color, textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw), uniforms.params.y > 0.5);
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
-    let edge = min(input.uv, vec2<f32>(1.0, 1.0) - input.uv);
-    let halfStroke = uniforms.params.zw * 0.5;
-    let distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
-    let edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
-    let strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+    var strokeCoverage = 0.0;
+    if (uniforms.params.x > 0.5) {
+      let p = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
+      let innerRadii = max(vec2<f32>(0.0001, 0.0001), vec2<f32>(1.0, 1.0) - uniforms.params.zw);
+      let innerDistance = length(p / innerRadii);
+      let edgeWidth = max(fwidth(innerDistance), 0.0001);
+      let innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
+      strokeCoverage = shapeAlpha * innerCoverage;
+    } else {
+      let edge = min(input.uv, vec2<f32>(1.0, 1.0) - input.uv);
+      let halfStroke = uniforms.params.zw * 0.5;
+      let distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
+      let edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
+      strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+    }
     source = mix(source, uniforms.media, strokeCoverage);
   }
   return vec4<f32>(source.rgb, source.a * shapeAlpha * select(1.0, uniforms.color.a, uniforms.params.y > 0.5));
@@ -238,11 +248,11 @@ export function createWebGPUBackend(
         data.set(color, 32);
         data[36] = command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0;
         data[37] = 0;
-        const stroke = command.op === "drawShape" && command.shape === "rectangle" && command.stroke
+        const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
         stroke[3] *= transform.alpha;
-        const strokeWidth = command.op === "drawShape" && command.shape === "rectangle" && command.stroke
+        const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;
         data[38] = strokeWidth / command.width;

@@ -119,6 +119,43 @@ const RECTANGLE_STROKE_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const ELLIPSE_STROKE_PROJECT = project("preview-ellipse-stroke-v2", [
+  ellipse({
+    id: "ellipse-stroke",
+    zIndex: 0,
+    fill: "#00aa88",
+    stroke: "#ff3366",
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const ELLIPSE_STROKE_PERSPECTIVE_PROJECT = project(
+  "preview-ellipse-stroke-perspective-v2",
+  [
+    ellipse({
+      id: "ellipse-stroke-perspective",
+      zIndex: 0,
+      fill: "#00aa88",
+      stroke: "#ff3366",
+      frame: { width: 320, height: 180 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 800, y: 420, z: 180 },
+        rotate: { x: 18, y: -24, z: 0 },
+        anchor: { x: 160, y: 90, z: 0 },
+      },
+    }),
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -156,6 +193,20 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 5 / rectangle stroke",
     hint: "Keeps rectangle stroke paint attached to the shared Matrix4 perspective path.",
     project: RECTANGLE_STROKE_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "ellipse.paint.stroke",
+    label: "Paint / ellipse stroke",
+    group: "Task 5 / ellipse stroke",
+    hint: "Renders an antialiased four-unit stroke around the ellipse boundary.",
+    project: ELLIPSE_STROKE_PROJECT,
+  },
+  {
+    id: "ellipse.paint.stroke-perspective",
+    label: "Paint / ellipse perspective",
+    group: "Task 5 / ellipse stroke",
+    hint: "Keeps ellipse stroke paint attached to the shared Matrix4 perspective path.",
+    project: ELLIPSE_STROKE_PERSPECTIVE_PROJECT,
   },
   {
     id: "rectangle.transform.translate",

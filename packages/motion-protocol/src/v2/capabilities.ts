@@ -6,6 +6,7 @@ export const V2_CERTIFIED_ATOMS = [
   "shape.rectangle.opacity",
   "shape.rectangle.zIndex",
   "shape.ellipse.fill",
+  "shape.ellipse.stroke",
   "shape.ellipse.transform",
   "shape.ellipse.timing",
   "shape.ellipse.opacity",

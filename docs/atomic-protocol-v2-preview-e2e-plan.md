@@ -243,7 +243,7 @@ coverage differences.
 Implement each as an independent ticket, in this order.
 
 - [x] Rectangle stroke.
-- [ ] Ellipse stroke.
+- [x] Ellipse stroke.
 - [ ] Stroke width.
 - [ ] Fill and stroke opacity.
 - [ ] Rounded rectangle.

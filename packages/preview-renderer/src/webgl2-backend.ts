@@ -48,11 +48,21 @@ void main() {
   }
   vec4 source = u_mode == 0 ? u_color : texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
   if (u_mode == 0 && u_stroke_extent.x > 0.0 && u_stroke_extent.y > 0.0) {
-    vec2 edge = min(v_uv, vec2(1.0) - v_uv);
-    vec2 halfStroke = u_stroke_extent * 0.5;
-    float distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
-    float edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
-    float strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+    float strokeCoverage;
+    if (u_shape == 1) {
+      vec2 p = v_uv * 2.0 - 1.0;
+      vec2 innerRadii = max(vec2(0.0001), vec2(1.0) - u_stroke_extent);
+      float innerDistance = length(p / innerRadii);
+      float edgeWidth = max(fwidth(innerDistance), 0.0001);
+      float innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
+      strokeCoverage = shapeAlpha * innerCoverage;
+    } else {
+      vec2 edge = min(v_uv, vec2(1.0) - v_uv);
+      vec2 halfStroke = u_stroke_extent * 0.5;
+      float distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
+      float edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
+      strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+    }
     source = mix(source, u_stroke_color, strokeCoverage);
   }
   outColor = vec4(source.rgb, source.a * shapeAlpha * (u_mode == 0 ? 1.0 : u_color.a));
@@ -227,11 +237,11 @@ export function createWebGL2Backend(
         gl.uniform4fv(colorLocation, color);
         gl.uniform1i(modeLocation, 0);
         gl.uniform1i(shapeLocation, command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0);
-        const stroke = command.op === "drawShape" && command.shape === "rectangle" && command.stroke
+        const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
         stroke[3] *= transform.alpha;
-        const strokeWidth = command.op === "drawShape" && command.shape === "rectangle" && command.stroke
+        const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;
         gl.uniform4fv(strokeColorLocation, stroke);

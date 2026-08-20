@@ -129,6 +129,34 @@ describe("Protocol V2 Compiler B", () => {
     );
   });
 
+  it("lowers a certified ellipse stroke into the paint command", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "ellipse-stroke",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "ellipse" },
+          style: { fill: "#00aa88", stroke: "#ff3366" },
+        },
+      ],
+    });
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawShape",
+        shape: "ellipse",
+        stroke: "#ff3366",
+        strokeWidth: 4,
+      }),
+    );
+  });
+
   it("lowers the frame view into backend-neutral projection matrices", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,

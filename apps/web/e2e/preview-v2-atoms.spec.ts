@@ -149,6 +149,84 @@ test.describe("Protocol V2 atom preview", () => {
     expect(webgpu.fillPixels).toBeGreaterThan(1000);
   });
 
+  test("renders ellipse stroke in WebGL2 and WebGPU", async ({ page }) => {
+    const caseId = "ellipse.paint.stroke";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+
+    const webglFill = await readWebGLPixel(page, "preview-v2-canvas", 960, 510);
+    const webglStroke = await readWebGLPixel(page, "preview-v2-canvas", 960, 422);
+    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 800, 420);
+    expect(webglFill).toEqual([0, 170, 136, 255]);
+    expect(webglStroke[0]).toBeGreaterThan(webglFill[0]);
+    expect(webglStroke[1]).toBeLessThan(webglFill[1]);
+    expect(webglStroke[2]).toBeLessThan(webglFill[2]);
+    expect(webglOutside).toEqual([16, 24, 32, 255]);
+
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 960, 510)).toEqual([
+      0,
+      170,
+      136,
+      255,
+    ]);
+    const webgpuStroke = await readPresentedPixel(page, "preview-v2-canvas", 960, 422);
+    expect(webgpuStroke[0]).toBeGreaterThan(0);
+    expect(webgpuStroke[1]).toBeLessThan(170);
+    expect(webgpuStroke[2]).toBeLessThan(136);
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 800, 420)).toEqual([
+      16,
+      24,
+      32,
+      255,
+    ]);
+  });
+
+  test("keeps ellipse stroke paint through Matrix4 perspective", async ({ page }) => {
+    await page.goto(
+      "/docs/preview?case=ellipse.paint.stroke-perspective&backend=webgl2",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    const webgl = await analyzePresentedCanvas(page, "preview-v2-canvas");
+    expect(webgl.bounds).not.toBeNull();
+    expect(webgl.fillPixels).toBeGreaterThan(1000);
+
+    await page.goto(
+      "/docs/preview?case=ellipse.paint.stroke-perspective&backend=webgl2",
+    );
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(
+      "/docs/preview?case=ellipse.paint.stroke-perspective&backend=webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    const webgpu = await analyzePresentedCanvas(page, "preview-v2-canvas");
+    expect(webgpu.bounds).not.toBeNull();
+    expect(webgpu.fillPixels).toBeGreaterThan(1000);
+  });
+
   test("defaults to WebGPU and falls back to WebGL2", async ({ page }) => {
     await page.goto("/docs/preview?case=primitive.shape.rectangle");
     const expectedBackend = await page.evaluate(async () => {
