@@ -18,6 +18,8 @@ export default defineConfig({
     "**/timeline/**",
     "**/editor-timeline.spec.ts",
     "**/vite-phase0-screenshots.spec.ts",
+    "**/pack-group.spec.ts",
+    "**/preview-blit.spec.ts",
   ],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

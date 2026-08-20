@@ -331,7 +331,7 @@ describe("Phase 8 — package.json exports", () => {
     expect(exportKeys).not.toContain("./compat");
     expect(exportKeys).not.toContain("./compat/*");
 
-    expect(exportKeys.sort()).toEqual([".", "./runtime"].sort());
+    expect(exportKeys.sort()).toEqual([".", "./runtime", "./v2"].sort());
   });
 });
 

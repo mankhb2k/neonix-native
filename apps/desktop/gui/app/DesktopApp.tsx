@@ -14,7 +14,6 @@ import {
   createInitialAppState,
   reduceAppState,
 } from "./state/app-machine";
-import type { EditorSessionHandle } from "./editor/editor-session-handle";
 import type { DesktopAPI } from "../../shared/ipc/contracts";
 
 export const JOURNAL_AUTOSAVE_MAX_MS = 45_000;
@@ -28,12 +27,6 @@ const DiagnosticsScreen = lazy(() =>
 const UiGallery = lazy(() =>
   import("./gallery/UiGallery").then((m) => ({ default: m.UiGallery })),
 );
-const EditingWorkspace = lazy(() =>
-  import("../editor/layout").then((m) => ({
-    default: m.EditingWorkspace,
-  })),
-);
-
 type Props = {
   api: DesktopAPI;
 };
@@ -51,7 +44,6 @@ export function DesktopApp({ api }: Props) {
   const [state, dispatch] = useReducer(reduceAppState, undefined, createInitialAppState);
   const stateRef = useRef(state);
   stateRef.current = state;
-  const sessionHandleRef = useRef<EditorSessionHandle | null>(null);
   const journalEpochRef = useRef(0);
   const [journalEpoch, setJournalEpoch] = useState(0);
   const autosaveTimersRef = useRef<JournalAutosaveTimers | null>(null);
@@ -199,9 +191,7 @@ export function DesktopApp({ api }: Props) {
 
   useEffect(() => {
     return api.window.onRequestCloseSave(() => {
-      const handle = sessionHandleRef.current;
-      const snap = handle?.flushSnapshot();
-      const dirty = snap?.dirty ?? stateRef.current.dirty;
+      const dirty = stateRef.current.dirty;
       if (!dirty) {
         void api.window.confirmClose(true);
         return;
@@ -214,11 +204,7 @@ export function DesktopApp({ api }: Props) {
         return;
       }
       void (async () => {
-        const saved = await performSave(
-          snap
-            ? { documentJson: snap.documentJson, projectName: snap.projectName }
-            : undefined,
-        );
+        const saved = await performSave();
         void api.window.confirmClose(saved);
       })();
     });
@@ -328,8 +314,7 @@ export function DesktopApp({ api }: Props) {
   );
 
   const onCloseToHome = useCallback(async () => {
-    const snap = sessionHandleRef.current?.flushSnapshot();
-    const dirty = snap?.dirty ?? stateRef.current.dirty;
+    const dirty = stateRef.current.dirty;
     if (dirty) {
       const leave = window.confirm(
         "Discard unsaved changes and return to Home?",
@@ -360,8 +345,6 @@ export function DesktopApp({ api }: Props) {
     (window.location.search.includes("gallery=1") ||
       window.location.hash === "#gallery");
   const uiFixture = uiFixturesEnabled() ? readUiFixtureId() : null;
-  const fixtureSeed =
-    uiFixture && uiFixturesEnabled() ? seedProductionUi(uiFixture) : null;
   const appReady =
     state.phase !== "booting" &&
     (uiFixture
@@ -457,34 +440,13 @@ export function DesktopApp({ api }: Props) {
               <p className="m-0 text-[var(--fg-muted)]">Loading editor…</p>
             }
           >
-            <EditingWorkspace
-              api={api}
-              projectId={state.projectId ?? "untitled"}
-              path={state.path}
-              documentJson={state.documentJson}
-              dirty={state.dirty}
-              error={state.error}
-              saving={state.phase === "saving"}
-              journalEpoch={journalEpoch}
-              sessionHandleRef={sessionHandleRef}
-              initialSidebarTab={
-                fixtureSeed?.kind === "editor"
-                  ? fixtureSeed.initialSidebarTab
-                  : undefined
-              }
-              timelineFocus={
-                fixtureSeed?.kind === "editor"
-                  ? fixtureSeed.timelineFocus
-                  : undefined
-              }
-              onDocumentChange={(documentJson) => {
-                dispatch({ type: "SET_DOCUMENT_JSON", documentJson });
-              }}
-              onSave={(snapshot) => void performSave(snapshot)}
-              onSaveAs={(snapshot) => void onSaveAs(snapshot)}
-              onCloseToHome={() => void onCloseToHome()}
-              onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
-            />
+            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+              <h1 className="m-0 text-xl font-semibold">Protocol V2 editor</h1>
+              <p className="mt-3 max-w-md text-sm leading-6 text-[var(--fg-muted)]">
+                The legacy desktop authoring surface is paused until it is rebuilt
+                on Protocol V2.
+              </p>
+            </div>
           </Suspense>
         ) : null}
       </div>

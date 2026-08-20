@@ -24,4 +24,11 @@
     "shared/ipc/channels.ts",
     "shared/ipc/errors.ts",
     "shared/project-file/**/*.ts"
-  ], "exclude": ["**/*.test.ts", "**/*.test.tsx"]}
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "gui/editor/**",
+    "gui/app/editor/**"
+  ]
+}

@@ -1,19 +1,7 @@
 /**
- * Playback Engine — transport, clock, scheduler, metrics, audio, media.
- *
- * Pure TypeScript package. No React, no DOM, no Pixi.
- * Consumed by web, desktop, and test harnesses.
+ * V2-only playback transport. No compiler, authoring schema, or renderer
+ * backend is owned by this package.
  */
-
-export {
-  createPlaybackEngine,
-  type PlaybackEngine,
-  type PlaybackEngineOptions,
-  type FrameConsumer,
-  type ClockDrive,
-  type PresentMode,
-  type PreviewWorkerPort,
-} from "./playback-engine";
 
 export {
   createPlaybackClock,
@@ -34,16 +22,6 @@ export {
   type PlaybackMetrics,
   type PlaybackMetricsSnapshot,
 } from "./metrics";
-
-export {
-  createAudioScheduler,
-  type AudioScheduler,
-  type AudioSchedulerOptions,
-  type AudioContextLike,
-  type AudioBufferSourceNodeLike,
-  type GainNodeLike,
-  type AudioBufferLike,
-} from "./audio-scheduler";
 
 export {
   createMediaFrameProvider,
@@ -80,3 +58,9 @@ export {
   type PlaybackEngineV2,
   type PlaybackV2Consumer,
 } from "./playback-engine-v2";
+
+export {
+  type ClockDrive,
+  type PresentMode,
+  type PreviewWorkerPort,
+} from "./preview-worker-port";

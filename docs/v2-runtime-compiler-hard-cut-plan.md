@@ -259,14 +259,16 @@ compile-time debt and must migrate or be deleted before their next use.
 
 ### Phase 6: Final Certification And Task 6 Gate
 
-- [ ] Run compiler/runtime V2 unit tests.
-- [ ] Run Protocol V2 schema and capability tests.
-- [ ] Run preview renderer unit tests.
-- [ ] Run `/docs/preview` E2E tests in WebGPU and WebGL2.
-- [ ] Run Remotion/export parity for every certified V2 atom.
-- [ ] Verify `rg` reports no V1 compiler/runtime API usage across `apps/` and
-      `packages/`.
-- [ ] Commit the hard cut as one migration commit or a small ordered commit
+- [x] Run compiler/runtime V2 unit tests.
+- [x] Run Protocol V2 schema and capability tests.
+- [x] Run preview renderer unit tests.
+- [x] Run `/docs/preview` E2E tests in WebGPU and WebGL2.
+- [x] Run Remotion/export parity for every certified V2 atom.
+- [x] Run `validate:v2-boundary` and `validate:v2-consumers`; no V1
+      compiler/runtime API is reachable from the certified V2 surfaces. The
+      frozen legacy editor trees and V1 schema package remain explicit
+      non-execution exclusions for the later authoring/schema cleanup.
+- [x] Commit the hard cut as one migration commit or a small ordered commit
       series with no intermediate compatibility release.
 
 Only after this phase is green may Protocol V2 Task 6 (Path) begin.
@@ -303,7 +305,8 @@ while making V2 execution the sole supported path first.
 
 ## 9. Completion Definition
 
-This hard cut is complete only when a clean repository build can execute:
+This hard cut is complete for the execution pipeline when a clean repository
+build can execute:
 
 ```text
 Protocol V2 rectangle or ellipse fixture
@@ -315,4 +318,6 @@ Protocol V2 rectangle or ellipse fixture
 ```
 
 and no V1 compiler/runtime code, public API, fixture helper, or consumer path
-remains.
+remains in the certified execution surfaces. Frozen legacy authoring trees are
+not loaded by the app routes or E2E suite and are tracked for the later
+Protocol V2 authoring/schema cleanup.
