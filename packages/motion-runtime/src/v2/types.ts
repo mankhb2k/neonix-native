@@ -1,7 +1,7 @@
 import type { Matrix2D } from "../matrix";
 import type { Matrix4 } from "../matrix4";
 import type { PaintCommandBuffer } from "../paint";
-import type { PaintFill } from "../render-snapshot";
+import type { PaintFill } from "../paint/paint-types";
 
 export type RuntimeCompositionV2 = {
   width: number;

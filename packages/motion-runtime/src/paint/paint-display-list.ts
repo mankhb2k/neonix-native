@@ -4,11 +4,9 @@
  */
 
 import type { Matrix2D } from "../matrix";
-import type { RuntimeEffect } from "../evaluator";
-import type { PathContour } from "../geometry";
-import type { PaintFill } from "../render-snapshot";
+import type { PaintFill, PathContour, RuntimeEffect } from "./paint-types";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
-import type { PAINT_COMMAND_VERSION } from "./paint-command-buffer";
+import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
 
 export type PaintTransformState = {
   key: string;
@@ -75,4 +73,4 @@ export type PaintValidateResult =
   | { ok: false; issues: PaintValidateIssue[] };
 
 /** Contours / fills referenced only for type re-exports in painters. */
-export type { PathContour, PaintFill };
+export type { PaintFill, PathContour } from "./paint-types";

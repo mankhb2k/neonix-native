@@ -12,9 +12,13 @@
  */
 
 import type { PaintDrawCommand } from "./paint-command";
-import type { RuntimeEffect } from "../evaluator";
-import type { PathContour } from "../geometry";
-import type { PaintFill, RenderMediaFit, RenderNormalizedRect } from "../render-snapshot";
+import type {
+  PaintFill,
+  PathContour,
+  RenderMediaFit,
+  RenderNormalizedRect,
+  RuntimeEffect,
+} from "./paint-types";
 
 // ── Resource descriptor (frame-invariant) ─────────────────────────────
 

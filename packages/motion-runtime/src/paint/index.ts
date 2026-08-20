@@ -6,9 +6,17 @@ export {
 } from "./paint-command";
 export {
   PAINT_COMMAND_VERSION,
-  buildPaintCommandBuffer,
   type PaintCommandBuffer,
-} from "./paint-command-buffer";
+} from "./paint-buffer";
+export type {
+  PaintFill,
+  PaintFillGradient,
+  PaintFillSolid,
+  PathContour,
+  RenderMediaFit,
+  RenderNormalizedRect,
+  RuntimeEffect,
+} from "./paint-types";
 export {
   type PaintDisplayList,
   type PaintDisplayNode,

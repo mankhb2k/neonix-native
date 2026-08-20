@@ -3,13 +3,13 @@
  */
 
 import type { Matrix2D } from "../matrix";
-import type { RuntimeEffect } from "../evaluator";
-import type { PathContour } from "../geometry";
 import type {
   PaintFill,
+  PathContour,
   RenderMediaFit,
   RenderNormalizedRect,
-} from "../render-snapshot";
+  RuntimeEffect,
+} from "./paint-types";
 
 export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";

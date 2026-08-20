@@ -185,7 +185,9 @@ export function deterministicRandom(
  * Does nothing in production — the check is only for dev confidence.
  */
 export function assertNoImplicitLocale(): void {
-  if (typeof process === "undefined" || process.env?.NODE_ENV === "production")
+  const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+    .process?.env?.NODE_ENV;
+  if (nodeEnv === "production")
     return;
   // Best-effort: override toLocaleString to warn if called without locale arg.
   const original = Number.prototype.toLocaleString;

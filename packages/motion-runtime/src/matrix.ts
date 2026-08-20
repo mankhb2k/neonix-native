@@ -123,3 +123,7 @@ export function inheritedParentMatrix(
     scaleMatrix(inherit.scale ? parent.scaleX : 1, inherit.scale ? parent.scaleY : 1),
   );
 }
+
+export function matrixToCssTransform(matrix: Matrix2D): string {
+  return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, ${matrix.e}, ${matrix.f})`;
+}

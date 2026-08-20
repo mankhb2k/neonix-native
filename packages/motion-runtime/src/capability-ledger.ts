@@ -220,7 +220,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       parity: "planned",
       editor: "yes",
     },
-    notes: "View matrix baked into RenderSnapshot items",
+    notes: "View matrix is resolved into Runtime V2 paint commands",
   },
   {
     id: "camera.parallax",

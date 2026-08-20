@@ -237,19 +237,25 @@ reference the old testing entrypoint.
 
 ### Phase 5: Delete V1 From Compiler And Runtime
 
-- [ ] Delete `packages/motion-compiler/src/compile-v1/`.
-- [ ] Delete V1 compiler tests, cache-key code, V1 semantic validators, V1
+- [x] Delete `packages/motion-compiler/src/compile-v1/`.
+- [x] Delete V1 compiler tests, cache-key code, V1 semantic validators, V1
       component expansion, and V1-only compile diagnostics.
-- [ ] Delete V1 runtime evaluators, V1 fixtures, V1 testing helpers, and all
+- [x] Delete V1 runtime evaluators, V1 fixtures, V1 testing helpers, and all
       exports that expose old `MotionRuntimeProject` evaluation.
-- [ ] Remove `@motionvideo/motion-protocol` V1 imports from compiler/runtime.
-- [ ] Delete obsolete V1 documentation links from package READMEs.
-- [ ] Fail CI when source code under compiler/runtime contains `V1`,
+- [x] Remove `@motionvideo/motion-protocol` V1 imports from compiler/runtime.
+- [x] Delete obsolete V1 documentation links from package READMEs.
+- [x] Fail CI when source code under compiler/runtime contains `V1`,
       `formatVersion: 1`, or imports from `motion-protocol/v1`, except in a
       separately approved one-shot migration tool outside these packages.
 
 Acceptance: compiler/runtime source trees contain no V1 execution code and
 their public entrypoints have no V1 exports.
+
+Progress: Phase 5 is complete for the compiler/runtime package boundary. The
+compiler exposes only `compileProtocolV2`; runtime exposes only V2 IR,
+backend-neutral paint commands, deterministic clock, Matrix2D/Matrix4, and
+V2-owned test fixtures. Legacy editor modules outside these packages are now
+compile-time debt and must migrate or be deleted before their next use.
 
 ### Phase 6: Final Certification And Task 6 Gate
 

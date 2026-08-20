@@ -5,8 +5,8 @@
  */
 
 import type { PaintCommand } from "./paint-command";
-import type { PaintCommandBuffer } from "./paint-command-buffer";
-import type { PaintFill } from "../render-snapshot";
+import type { PaintCommandBuffer } from "./paint-buffer";
+import type { PaintFill } from "./paint-types";
 
 export type ReplayGradient = {
   addColorStop(offset: number, color: string): void;

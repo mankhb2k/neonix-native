@@ -7,8 +7,8 @@ import {
   type PaintCommand,
   type PaintDrawCommand,
 } from "./paint-command";
-import type { PaintCommandBuffer } from "./paint-command-buffer";
-import { PAINT_COMMAND_VERSION } from "./paint-command-buffer";
+import type { PaintCommandBuffer } from "./paint-buffer";
+import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import type {
   PaintDisplayList,
   PaintDisplayNode,

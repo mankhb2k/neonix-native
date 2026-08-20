@@ -4,11 +4,11 @@ import process from "node:process";
 
 const repositoryRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const ownedRoots = [
-  path.join(repositoryRoot, "packages", "motion-compiler", "src", "compile-v2"),
-  path.join(repositoryRoot, "packages", "motion-runtime", "src", "v2"),
+  path.join(repositoryRoot, "packages", "motion-compiler", "src"),
+  path.join(repositoryRoot, "packages", "motion-runtime", "src"),
 ];
 const forbidden = [
-  { pattern: /\bV1\b|v1/, label: "V1 marker" },
+  { pattern: /\bV1\b|\bv1\b/, label: "V1 marker" },
   { pattern: /formatVersion\s*:\s*1/, label: "Runtime/Protocol V1 format" },
   { pattern: /motion-protocol[\\/]v1/, label: "Protocol V1 import" },
   { pattern: /compile(?:MotionProject|Project).*V1/, label: "V1 compiler API" },

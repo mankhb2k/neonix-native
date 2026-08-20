@@ -8,9 +8,9 @@
  * §4 in core-engine-tasks.md, Task 4.4
  */
 
-import { PAINT_COMMAND_VERSION } from "./paint-command-buffer";
+import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import { validatePaintCommandBuffer } from "./validate-paint-command-buffer";
-import type { PaintCommandBuffer } from "./paint-command-buffer";
+import type { PaintCommandBuffer } from "./paint-buffer";
 import type { PaintValidateResult } from "./paint-display-list";
 
 // ── Public contract version ───────────────────────────────────────────

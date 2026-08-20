@@ -4,8 +4,8 @@
 
 import type { Matrix2D } from "../matrix";
 import type { PaintCommand } from "./paint-command";
-import type { PaintCommandBuffer } from "./paint-command-buffer";
-import { PAINT_COMMAND_VERSION } from "./paint-command-buffer";
+import type { PaintCommandBuffer } from "./paint-buffer";
+import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import type { PaintValidateIssue, PaintValidateResult } from "./paint-display-list";
 
 function isFiniteNumber(value: unknown): value is number {
@@ -120,6 +120,17 @@ export function validatePaintCommandBuffer(
             code: "invalid_frame_size",
             message: `Invalid frame height: ${String(cmd.height)}`,
           });
+        }
+        if (cmd.projection) {
+          for (const [name, matrix] of Object.entries(cmd.projection)) {
+            if (!matrix4Finite(matrix)) {
+              issues.push({
+                severity: "error",
+                code: "invalid_projection_matrix",
+                message: `Projection ${name} must contain exactly 16 finite values`,
+              });
+            }
+          }
         }
         break;
       }
@@ -305,17 +316,6 @@ export function validatePaintCommandBuffer(
             message: `Invalid mediaTime for "${cmd.key}"`,
             key: cmd.key,
           });
-        }
-        if (cmd.projection) {
-          for (const [name, matrix] of Object.entries(cmd.projection)) {
-            if (!matrix4Finite(matrix)) {
-              issues.push({
-                severity: "error",
-                code: "invalid_projection_matrix",
-                message: `Projection ${name} must contain exactly 16 finite values`,
-              });
-            }
-          }
         }
         break;
       }

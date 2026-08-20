@@ -235,9 +235,6 @@ importers:
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/patterns':
-        specifier: workspace:*
-        version: link:../../packages/patterns
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../../packages/render-contracts
@@ -578,15 +575,6 @@ importers:
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/patterns':
-        specifier: workspace:*
-        version: link:../patterns
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../render-contracts
-      zod:
-        specifier: ^3.24.2
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.13.10
@@ -613,6 +601,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@motionvideo/motion-runtime':
+        specifier: workspace:*
+        version: link:../motion-runtime
       '@motionvideo/patterns':
         specifier: workspace:*
         version: link:../patterns
@@ -656,13 +647,7 @@ importers:
       '@motionvideo/motion-protocol':
         specifier: workspace:*
         version: link:../motion-protocol
-      '@motionvideo/patterns':
-        specifier: workspace:*
-        version: link:../patterns
     devDependencies:
-      '@motionvideo/motion-compiler':
-        specifier: workspace:*
-        version: link:../motion-compiler
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
