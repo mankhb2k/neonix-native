@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { V2ColorSchema } from "../common";
+import { V2ColorSchema, V2PositiveNumberSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
 
 export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
@@ -11,6 +11,7 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
     .object({
       fill: V2ColorSchema,
       stroke: V2ColorSchema.optional(),
+      strokeWidth: V2PositiveNumberSchema.optional(),
     })
     .strict(),
 }).strict();

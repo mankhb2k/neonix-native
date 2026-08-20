@@ -244,7 +244,7 @@ Implement each as an independent ticket, in this order.
 
 - [x] Rectangle stroke.
 - [x] Ellipse stroke.
-- [ ] Stroke width.
+- [x] Stroke width.
 - [ ] Fill and stroke opacity.
 - [ ] Rounded rectangle.
 - [ ] Gradients, only when required by a concrete product fixture.

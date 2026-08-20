@@ -186,6 +186,15 @@ export function compileProtocolV2ToPaintCommands(
         throw new Error(`Uncertified Protocol V2 atom: ${strokeCapability}`);
       }
     }
+    if (layer.style.strokeWidth !== undefined) {
+      if (layer.style.stroke === undefined) {
+        throw new Error(`Protocol V2 atom ${layer.id}: strokeWidth requires stroke`);
+      }
+      const strokeWidthCapability = `${layer.type}.${layer.payload.shape}.strokeWidth`;
+      if (!isV2AtomCertified(strokeWidthCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${strokeWidthCapability}`);
+      }
+    }
     if (layer.timing.start > time || time >= layer.timing.start + layer.timing.duration) {
       continue;
     }
@@ -209,7 +218,7 @@ export function compileProtocolV2ToPaintCommands(
       ...(layer.style.stroke !== undefined
         ? {
             stroke: layer.style.stroke,
-            strokeWidth: DEFAULT_RECTANGLE_STROKE_WIDTH,
+            strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
           }
         : {}),
     });

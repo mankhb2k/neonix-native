@@ -157,6 +157,55 @@ describe("Protocol V2 Compiler B", () => {
     );
   });
 
+  it("preserves a custom local stroke width", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "rect-wide-stroke",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 16 },
+        },
+      ],
+    });
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawShape",
+        shape: "rectangle",
+        strokeWidth: 16,
+      }),
+    );
+  });
+
+  it("rejects a stroke width without a stroke color", () => {
+    expect(() =>
+      compileProtocolV2ToPaintCommands({
+        ...base,
+        layers: [
+          {
+            id: "invalid-stroke-width",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 80, height: 40 },
+            transform: identity,
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "rectangle" },
+            style: { fill: "#00aa88", strokeWidth: 16 },
+          },
+        ],
+      }),
+    ).toThrow("strokeWidth requires stroke");
+  });
+
   it("lowers the frame view into backend-neutral projection matrices", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,
