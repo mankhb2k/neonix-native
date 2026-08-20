@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { compileProtocolV2ToPaintCommands } from "@motionvideo/motion-compiler";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
+import {
+  evaluateRuntimeProjectV2,
+  frameIndexAtTime,
+} from "@motionvideo/motion-runtime";
 import {
   createPreviewRenderer,
   type PreviewBackendKind,
@@ -164,16 +167,9 @@ function paintFrame(
   project: ReturnType<typeof MotionProtocolV2Schema.parse>,
   time: number,
 ): void {
-  const timestamp = quantizeTimeToFrame(
-    Math.max(0, time),
-    project.composition.fps,
-  );
-  renderer.paintCommands(
-    compileProtocolV2ToPaintCommands(project, {
-      frame: timestamp.frameIndex,
-      time: timestamp.time,
-    }),
-  );
+  const frame = frameIndexAtTime(Math.max(0, time), project.composition.fps);
+  const runtime = compileProtocolV2(project);
+  renderer.paintFrame(evaluateRuntimeProjectV2(runtime, frame));
   const rendererCanvas = renderer.canvas;
   if (rendererCanvas instanceof HTMLCanvasElement) {
     rendererCanvas.dataset.drawCalls = String(renderer.getStats().drawCalls);

@@ -1,10 +1,12 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { evaluateCompositionFrameV1 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
+import { useCurrentFrame } from "remotion";
+import {
+  evaluateRuntimeProjectV2,
+  type RuntimeProjectV2,
+} from "@motionvideo/motion-runtime";
 import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
 
 export type MotionCompositionProps = {
-  runtime: MotionRuntimeProject;
+  runtime: RuntimeProjectV2;
   width: number;
   height: number;
   background?: string;
@@ -21,17 +23,10 @@ export function MotionComposition({
   graphId,
 }: MotionCompositionProps) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const evaluated = evaluateCompositionFrameV1(
-    runtime,
-    frame,
-    fps,
-    width,
-    height,
-    { graphId, background },
-  );
-  if (!evaluated) {
-    return <AbsoluteFill style={{ background: background ?? "#000" }} />;
-  }
-  return <RemotionPaintRenderer paint={evaluated.paint} />;
+  void width;
+  void height;
+  void graphId;
+  void background;
+  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
+  return <RemotionPaintRenderer paint={evaluated} />;
 }

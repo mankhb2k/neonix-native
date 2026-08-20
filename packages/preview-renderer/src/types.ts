@@ -1,8 +1,8 @@
 import type {
-  EvaluatedFrame,
   PaintCommandBuffer,
   RenderMediaFit,
   RenderNormalizedRect,
+  RuntimeFrameV2,
 } from "@motionvideo/motion-runtime";
 
 export type PreviewBackendKind = "webgl2" | "webgpu";
@@ -57,7 +57,7 @@ export type PreviewRendererOptions = {
 export type PreviewRenderer = {
   readonly backend: PreviewBackendKind;
   readonly canvas: HTMLCanvasElement | OffscreenCanvas;
-  paintFrame(evaluated: EvaluatedFrame): void;
+  paintFrame(frame: RuntimeFrameV2): void;
   paintCommands(buffer: PaintCommandBuffer): void;
   resize(width: number, height: number, devicePixelRatio?: number): void;
   setAsset(assetId: string, asset: PreviewAsset): void;

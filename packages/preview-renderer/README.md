@@ -2,8 +2,8 @@
 
 Native preview rendering boundary for MotionVideo.
 
-The package consumes only `EvaluatedFrame.paint` / `PaintCommandBuffer`. It does
-not import PixiJS, compile authoring JSON, or evaluate motion. The same command
+The package consumes only `RuntimeFrameV2` / `PaintCommandBuffer`. It does not
+import PixiJS, compile authoring JSON, or evaluate motion. The same V2 command
 buffer can therefore be painted by this package for interactive preview and by
 Remotion for export.
 
@@ -29,7 +29,7 @@ const renderer = await createPreviewRenderer({
   assets,
 });
 
-renderer.paintFrame(evaluatedFrame);
+renderer.paintFrame(runtimeFrameV2);
 renderer.resize(width, height, devicePixelRatio);
 renderer.dispose();
 ```

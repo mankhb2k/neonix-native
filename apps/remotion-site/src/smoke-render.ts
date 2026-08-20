@@ -12,14 +12,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import {
-  compositionDurationInFrames,
-  CAPABILITY_MANIFEST_VERSION,
-} from "@motionvideo/motion-runtime";
-import {
-  createDemoMotionProject,
-  compileProjectV1,
-} from "@motionvideo/motion-runtime/testing";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { remotionWebpackOverride } from "./webpack-override";
 import {
   parseRenderManifest,
@@ -77,20 +71,46 @@ function probeDurationSeconds(mp4Path: string): number | null {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
-  const project = createDemoMotionProject();
-  const runtime = compileProjectV1(project);
-  const fps = runtime.metadata.fps || 30;
-  const fullDuration = compositionDurationInFrames(runtime, undefined, fps);
-  const durationInFrames = Math.max(
-    1,
-    Math.min(fullDuration, SMOKE_MAX_FRAMES),
-  );
-  const size =
-    runtime.metadata.aspectRatio === "9:16"
-      ? { width: 1080, height: 1920 }
-      : runtime.metadata.aspectRatio === "1:1"
-        ? { width: 1080, height: 1080 }
-        : { width: 1920, height: 1080 };
+  const project: MotionProtocolV2 = {
+    format: "motion-protocol",
+    formatVersion: 2,
+    id: "remotion-v2-smoke",
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#0d9488",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    layers: [
+      {
+        id: "smoke-rectangle",
+        type: "shape",
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 720, height: 420 },
+        transform: {
+          translate: { x: 600, y: 330, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+          rotate: { x: 0, y: 0, z: 0 },
+          skew: { x: 0, y: 0 },
+          anchor: { x: 0, y: 0, z: 0 },
+        },
+        opacity: 100,
+        timing: { start: 0, duration: 3 },
+        payload: { shape: "rectangle", cornerRadius: 24 },
+        style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 8 },
+      },
+    ],
+  };
+  const runtime = compileProtocolV2(project);
+  const fps = runtime.composition.fps;
+  const durationInFrames = SMOKE_MAX_FRAMES;
+  const size = {
+    width: runtime.composition.width,
+    height: runtime.composition.height,
+  };
 
   const runtimePath = path.join(OUT_DIR, "runtime.json");
   await writeFile(runtimePath, JSON.stringify(runtime), "utf8");
@@ -98,14 +118,14 @@ async function main() {
   const manifest = parseRenderManifest({
     format: "moticlip-render-manifest",
     manifestVersion: 2,
-    projectId: project.metadata.id,
+    projectId: project.id,
     projectRevision: 0,
     versions: {
       schema: 2,
       compiler: "0.0.1",
       runtime: "0.0.1",
       remotion: REMOTION_PIN,
-      capabilityManifest: CAPABILITY_MANIFEST_VERSION,
+      capabilityManifest: "v2-shape-atoms",
     },
     contentHash: "a".repeat(64),
     determinism: {
@@ -120,7 +140,7 @@ async function main() {
       ...size,
       fps,
       durationInFrames,
-      background: "#0d9488",
+      background: runtime.composition.background ?? "#000000",
     },
     runtime: {
       url: `file://${runtimePath.replace(/\\/g, "/")}`,

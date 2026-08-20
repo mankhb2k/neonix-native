@@ -15,7 +15,6 @@ import {
   assertRemotionDrawOp,
   buildRemotionPaintTree,
   contoursToSvgPathD,
-  flattenRemotionDrawables,
   type RemotionPaintTree,
   type RemotionPaintTreeNode,
 } from "./build-remotion-paint-tree";

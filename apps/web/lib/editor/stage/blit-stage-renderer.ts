@@ -100,7 +100,7 @@ export async function createBlitStageRenderer(
       background,
     );
     lastEvaluated = evaluated;
-    if (evaluated && !playing) preview.preview.paintFrame(evaluated);
+    if (evaluated && !playing) preview.preview.paintCommands(evaluated.paint);
   };
 
   const setSurfaceMode = (mode: PresentMode) => {

@@ -1,40 +1,43 @@
 import { useEffect, useState } from "react";
 import {
   AbsoluteFill,
-  Audio,
-  Sequence,
   cancelRender,
   continueRender,
   delayRender,
   useCurrentFrame,
 } from "remotion";
 import {
-  buildAudioRenderPlan,
-  evaluateCompositionFrameV1,
-  sampleAudioVolumeLinear,
-  type AudioRenderPlan,
+  evaluateRuntimeProjectV2,
+  type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 import { RemotionFramePainter } from "./RemotionFramePainter";
 
 export type MotiClipVideoProps = {
   manifest: RenderManifest;
-  /** Inline IR. When omitted, the composition fetches `manifest.runtime.url`. */
-  runtime?: MotionRuntimeProject | null;
+  /** Inline V2 Runtime IR. When omitted, fetches `manifest.runtime.url`. */
+  runtime?: RuntimeProjectV2 | null;
 };
 
-function isRuntimeProject(value: unknown): value is MotionRuntimeProject {
+function isRuntimeProject(value: unknown): value is RuntimeProjectV2 {
   if (typeof value !== "object" || value === null) return false;
-  const record = value as { format?: unknown; layers?: unknown };
-  return record.format === "motion-runtime" && Array.isArray(record.layers);
+  const record = value as {
+    format?: unknown;
+    formatVersion?: unknown;
+    nodes?: unknown;
+  };
+  return (
+    record.format === "motion-runtime" &&
+    record.formatVersion === 2 &&
+    Array.isArray(record.nodes)
+  );
 }
 
 function useResolvedRuntime(
   manifest: RenderManifest,
-  runtimeProp: MotionRuntimeProject | null | undefined,
-): MotionRuntimeProject | null {
-  const [runtime, setRuntime] = useState<MotionRuntimeProject | null>(() =>
+  runtimeProp: RuntimeProjectV2 | null | undefined,
+): RuntimeProjectV2 | null {
+  const [runtime, setRuntime] = useState<RuntimeProjectV2 | null>(() =>
     isRuntimeProject(runtimeProp) ? runtimeProp : null,
   );
 
@@ -61,7 +64,7 @@ function useResolvedRuntime(
       .then((json) => {
         const parsed = json as unknown;
         if (!isRuntimeProject(parsed)) {
-          throw new Error("Fetched runtime IR is not a MotionRuntimeProject");
+          throw new Error("Fetched runtime IR is not RuntimeProjectV2");
         }
         if (!cancelled) setRuntime(parsed);
         continueRender(handle);
@@ -78,8 +81,8 @@ function useResolvedRuntime(
 }
 
 /**
- * Production Remotion composition — evaluates each frame via
- * `evaluateCompositionFrameV1`, paints the combined paint buffer, mounts AudioRenderPlan.
+ * Production Remotion composition for the V2 Runtime IR. It evaluates each
+ * frame through the shared V2 runtime and paints the resulting command buffer.
  */
 export function MotiClipVideo({ manifest, runtime: runtimeProp }: MotiClipVideoProps) {
   const runtime = useResolvedRuntime(manifest, runtimeProp);
@@ -95,99 +98,14 @@ export function MotiClipVideo({ manifest, runtime: runtimeProp }: MotiClipVideoP
     return <AbsoluteFill style={{ background }} />;
   }
 
-  const evaluated = evaluateCompositionFrameV1(
-    runtime,
-    frame,
-    fps,
-    width,
-    height,
-    { background },
-  );
-
-  const audioPlan = buildAudioRenderPlan({
-    runtime,
-    fps,
-    durationInFrames: manifest.composition.durationInFrames,
-  });
-
-  if (!evaluated) {
-    return <AbsoluteFill style={{ background }} />;
-  }
+  void width;
+  void height;
+  void background;
+  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
 
   return (
     <AbsoluteFill>
-      <RemotionFramePainter paint={evaluated.paint} fps={fps} />
-      <MotiClipAudio plan={audioPlan} />
+      <RemotionFramePainter paint={evaluated} fps={fps} />
     </AbsoluteFill>
-  );
-}
-
-function MotiClipAudio({ plan }: { plan: AudioRenderPlan }) {
-  return (
-    <>
-      {plan.layers.map((layer, index) => (
-        <Sequence
-          key={`${layer.assetId}-${index}`}
-          from={layer.fromFrame}
-          durationInFrames={layer.durationInFrames}
-          layout="none"
-        >
-          <AudioLayerVolume layer={layer} fps={plan.fps} />
-        </Sequence>
-      ))}
-    </>
-  );
-}
-
-function AudioLayerVolume({
-  layer,
-  fps,
-}: {
-  layer: AudioRenderPlan["layers"][number];
-  fps: number;
-}) {
-  const frame = useCurrentFrame();
-  const absoluteFrame = layer.fromFrame + frame;
-  const volume = sampleAudioVolumeLinear(layer.volumeEnvelope, absoluteFrame);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const loopStartInFrames =
-    layer.loopWindowStartSeconds != null
-      ? Math.round(layer.loopWindowStartSeconds * fps)
-      : Math.round(layer.trimStartSeconds * fps);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const loopDurationInFrames =
-    layer.loopWindowEndSeconds != null && layer.loopWindowStartSeconds != null
-      ? Math.round(
-          (layer.loopWindowEndSeconds - layer.loopWindowStartSeconds) * fps,
-        )
-      : layer.trimEndSeconds > 0
-        ? Math.round((layer.trimEndSeconds - layer.trimStartSeconds) * fps)
-        : undefined;
-
-  const channelPolicy = layer.channelPolicy ?? "stereo";
-
-  return (
-    <Audio
-      src={layer.uri}
-      startFrom={Math.max(0, Math.round(layer.trimStartSeconds * fps))}
-      endAt={
-        layer.trimEndSeconds > 0
-          ? Math.round(layer.trimEndSeconds * fps)
-          : undefined
-      }
-      volume={volume}
-      playbackRate={layer.playbackRate}
-      loop={layer.loop}
-      loopVolumeCurveBehavior="repeat"
-      toneFrequency={
-        channelPolicy === "left-only"
-          ? undefined
-          : channelPolicy === "right-only"
-            ? undefined
-            : undefined
-      }
-    />
   );
 }

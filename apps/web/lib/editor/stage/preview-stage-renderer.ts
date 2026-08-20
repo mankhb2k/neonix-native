@@ -69,7 +69,7 @@ export async function createPreviewStageRenderer(
       undefined,
       background,
     );
-    if (lastEvaluated) preview.paintFrame(lastEvaluated);
+    if (lastEvaluated) preview.paintCommands(lastEvaluated.paint);
   };
 
   applyCanvasLayout();

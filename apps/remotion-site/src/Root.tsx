@@ -4,7 +4,7 @@ import {
   MotiClipVideo,
   type MotiClipVideoProps,
 } from "@motionvideo/remotion-renderer";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
+import type { RuntimeProjectV2 } from "@motionvideo/motion-runtime";
 
 export type MotiClipCompositionProps = MotiClipVideoProps;
 
@@ -33,7 +33,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={
           {
             manifest: null as unknown as MotiClipVideoProps["manifest"],
-            runtime: null as unknown as MotionRuntimeProject,
+            runtime: null as unknown as RuntimeProjectV2,
           } satisfies MotiClipCompositionProps
         }
         calculateMetadata={calculateMetadata}
