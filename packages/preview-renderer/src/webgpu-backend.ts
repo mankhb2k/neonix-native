@@ -4,6 +4,7 @@ import {
   cssColorToRgba,
   matrix4ForQuad,
   orthographicProjection,
+  gradientUniforms,
 } from "./math";
 import { mediaLayout } from "./media";
 import type { PreviewBackend } from "./backend";
@@ -36,6 +37,10 @@ struct Uniforms {
   params: vec4<f32>,
   media: vec4<f32>,
   geometry: vec4<f32>,
+  gradientStart: vec4<f32>,
+  gradientEnd: vec4<f32>,
+  gradientParams: vec4<f32>,
+  gradientRadius: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
@@ -68,6 +73,19 @@ fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32
     if (shapeAlpha <= 0.0) { discard; }
   }
   var source = select(uniforms.color, textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw), uniforms.params.y > 0.5);
+  if (uniforms.params.y <= 0.5 && uniforms.gradientParams.x > 0.5) {
+    var gradientT = 0.0;
+    if (uniforms.gradientParams.x < 1.5) {
+      let direction = vec2<f32>(cos(uniforms.gradientParams.y), sin(uniforms.gradientParams.y));
+      let extent = length(uniforms.geometry.yz) * 0.5;
+      let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
+      gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
+    } else {
+      let point = (input.uv - uniforms.gradientParams.zw) * uniforms.geometry.yz;
+      gradientT = length(point) / max(uniforms.gradientRadius.x * min(uniforms.geometry.y, uniforms.geometry.z), 0.0001);
+    }
+    source = mix(uniforms.gradientStart, uniforms.gradientEnd, clamp(gradientT, 0.0, 1.0));
+  }
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
     var strokeCoverage = 0.0;
     if (uniforms.params.x > 0.5 && uniforms.params.x < 1.5) {
@@ -261,9 +279,9 @@ export function createWebGPUBackend(
         }
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
-        const uniform = device.createBuffer({ size: 192, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(48);
+        const data = new Float32Array(64);
         const baseMatrix = transform.matrix4?.length === 16
           ? new Float32Array(transform.matrix4)
           : affineToMatrix4(transform.matrix);
@@ -290,6 +308,14 @@ export function createWebGPUBackend(
           command.height,
           0,
         ], 44);
+        const gradients = gradientUniforms(
+          command.op === "drawShape" ? command.fillPaint : undefined,
+          transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
+        );
+        data.set(gradients.start, 48);
+        data.set(gradients.end, 52);
+        data.set(gradients.params, 56);
+        data.set(gradients.radius, 60);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setBindGroup(0, bindGroup);
@@ -311,9 +337,9 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
-        const uniform = device.createBuffer({ size: 192, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(48);
+        const data = new Float32Array(64);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
         const baseMatrix = transform.matrix4?.length === 16
           ? new Float32Array(transform.matrix4)
@@ -327,6 +353,10 @@ export function createWebGPUBackend(
         data[39] = 0;
         data.set([layout.uv.x, layout.uv.y, layout.uv.width, layout.uv.height], 40);
         data.set([0, 0, 0, 0], 44);
+        data.set([0, 0, 0, 0], 48);
+        data.set([0, 0, 0, 0], 52);
+        data.set([0, 0, 0, 0], 56);
+        data.set([0, 0, 0, 0], 60);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setBindGroup(0, bindGroup);

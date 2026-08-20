@@ -468,6 +468,131 @@ test.describe("Protocol V2 atom preview", () => {
     expect(webgpu.fillPixels).toBeGreaterThan(1000);
   });
 
+  test("renders linear and radial semantic gradients in both backends", async ({ page }) => {
+    const linearPoints = {
+      left: [801, 510] as const,
+      center: [960, 510] as const,
+      right: [1119, 510] as const,
+    };
+    const radialPoints = {
+      center: [960, 510] as const,
+      edge: [960, 420] as const,
+    };
+
+    await page.goto("/docs/preview?case=rectangle.gradient.linear&backend=webgl2");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    const webglLinearLeft = await readWebGLPixel(page, "preview-v2-canvas", ...linearPoints.left);
+    const webglLinearCenter = await readWebGLPixel(page, "preview-v2-canvas", ...linearPoints.center);
+    const webglLinearRight = await readWebGLPixel(page, "preview-v2-canvas", ...linearPoints.right);
+    expect(webglLinearLeft[0]).toBeGreaterThan(220);
+    expect(webglLinearLeft[2]).toBeLessThan(40);
+    expect(webglLinearCenter[0]).toBeGreaterThan(100);
+    expect(webglLinearCenter[2]).toBeGreaterThan(100);
+    expect(webglLinearRight[0]).toBeLessThan(40);
+    expect(webglLinearRight[2]).toBeGreaterThan(220);
+
+    await page.goto("/docs/preview?case=ellipse.gradient.radial&backend=webgl2");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    const webglRadialCenter = await readWebGLPixel(page, "preview-v2-canvas", ...radialPoints.center);
+    const webglRadialEdge = await readWebGLPixel(page, "preview-v2-canvas", ...radialPoints.edge);
+    expect(webglRadialCenter[0]).toBeGreaterThan(240);
+    expect(webglRadialCenter[1]).toBeGreaterThan(240);
+    expect(webglRadialCenter[2]).toBeGreaterThan(240);
+    expect(webglRadialEdge[0]).toBeLessThan(40);
+    expect(webglRadialEdge[1]).toBeLessThan(40);
+    expect(webglRadialEdge[2]).toBeLessThan(40);
+
+    await page.goto("/docs/preview?case=rectangle.gradient.linear&backend=webgl2");
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=rectangle.gradient.linear&backend=webgpu");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    const webgpuLinearLeft = await readPresentedPixel(page, "preview-v2-canvas", ...linearPoints.left);
+    const webgpuLinearCenter = await readPresentedPixel(page, "preview-v2-canvas", ...linearPoints.center);
+    const webgpuLinearRight = await readPresentedPixel(page, "preview-v2-canvas", ...linearPoints.right);
+    expect(webgpuLinearLeft[0]).toBeGreaterThan(220);
+    expect(webgpuLinearLeft[2]).toBeLessThan(40);
+    expect(webgpuLinearCenter[0]).toBeGreaterThan(100);
+    expect(webgpuLinearCenter[2]).toBeGreaterThan(100);
+    expect(webgpuLinearRight[0]).toBeLessThan(40);
+    expect(webgpuLinearRight[2]).toBeGreaterThan(220);
+
+    await page.goto("/docs/preview?case=ellipse.gradient.radial&backend=webgpu");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    const webgpuRadialCenter = await readPresentedPixel(page, "preview-v2-canvas", ...radialPoints.center);
+    const webgpuRadialEdge = await readPresentedPixel(page, "preview-v2-canvas", ...radialPoints.edge);
+    expect(webgpuRadialCenter[0]).toBeGreaterThan(240);
+    expect(webgpuRadialCenter[1]).toBeGreaterThan(240);
+    expect(webgpuRadialCenter[2]).toBeGreaterThan(240);
+    expect(webgpuRadialEdge[0]).toBeLessThan(40);
+    expect(webgpuRadialEdge[1]).toBeLessThan(40);
+    expect(webgpuRadialEdge[2]).toBeLessThan(40);
+  });
+
+  test("keeps semantic gradient paint through Matrix4 perspective", async ({ page }) => {
+    const caseId = "rectangle.gradient.perspective";
+    async function countGradientPixels() {
+      return page.getByTestId("preview-v2-canvas").evaluate(async (node) => {
+        if (!(node instanceof HTMLCanvasElement)) throw new Error("Expected preview canvas");
+        const image = new Image();
+        image.src = node.toDataURL("image/png");
+        await image.decode();
+        const capture = document.createElement("canvas");
+        capture.width = node.width;
+        capture.height = node.height;
+        const context = capture.getContext("2d", { willReadFrequently: true });
+        if (!context) throw new Error("2D readback context is not available");
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, capture.width, capture.height).data;
+        let count = 0;
+        for (let index = 0; index < pixels.length; index += 4) {
+          if (
+            (pixels[index]! > 40 && pixels[index + 1]! < 120) ||
+            (pixels[index + 2]! > 60 && pixels[index + 1]! < 120)
+          ) {
+            count += 1;
+          }
+        }
+        return count;
+      });
+    }
+
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgl2",
+    );
+    expect(await countGradientPixels()).toBeGreaterThan(1000);
+
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-backend",
+      "webgpu",
+    );
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-draw-calls",
+      "1",
+    );
+    expect(await countGradientPixels()).toBeGreaterThan(1000);
+  });
+
   test("defaults to WebGPU and falls back to WebGL2", async ({ page }) => {
     await page.goto("/docs/preview?case=primitive.shape.rectangle");
     const expectedBackend = await page.evaluate(async () => {

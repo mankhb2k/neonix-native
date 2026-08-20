@@ -4,7 +4,7 @@ type RectangleLayer = MotionProtocolV2["layers"][number];
 type ShapeOptions = {
   id: string;
   zIndex: number;
-  fill: string;
+  fill: RectangleLayer["style"]["fill"];
   fillOpacity?: number;
   cornerRadius?: number;
   stroke?: string;
@@ -297,6 +297,71 @@ const ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const LINEAR_GRADIENT_FILL = {
+  type: "linear-gradient" as const,
+  angle: 0,
+  stops: [
+    { offset: 0, color: "#ff0000" },
+    { offset: 1, color: "#0000ff" },
+  ],
+};
+
+const RADIAL_GRADIENT_FILL = {
+  type: "radial-gradient" as const,
+  cx: 0.5,
+  cy: 0.5,
+  radius: 0.5,
+  stops: [
+    { offset: 0, color: "#ffffff" },
+    { offset: 1, color: "#000000" },
+  ],
+};
+
+const LINEAR_GRADIENT_PROJECT = project("preview-linear-gradient-v2", [
+  rectangle({
+    id: "linear-gradient",
+    zIndex: 0,
+    fill: LINEAR_GRADIENT_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const RADIAL_GRADIENT_PROJECT = project("preview-radial-gradient-v2", [
+  ellipse({
+    id: "radial-gradient",
+    zIndex: 0,
+    fill: RADIAL_GRADIENT_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const GRADIENT_PERSPECTIVE_PROJECT = project(
+  "preview-gradient-perspective-v2",
+  [
+    rectangle({
+      id: "gradient-perspective",
+      zIndex: 0,
+      fill: LINEAR_GRADIENT_FILL,
+      frame: { width: 320, height: 180 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 800, y: 420, z: 180 },
+        rotate: { x: 18, y: -24, z: 0 },
+        anchor: { x: 160, y: 90, z: 0 },
+      },
+    }),
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -390,6 +455,27 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 5 / rounded rectangle",
     hint: "Keeps rounded geometry and stroke attached to Matrix4 perspective.",
     project: ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "rectangle.gradient.linear",
+    label: "Paint / linear gradient",
+    group: "Task 5 / gradients",
+    hint: "Uses two semantic color stops from left to right.",
+    project: LINEAR_GRADIENT_PROJECT,
+  },
+  {
+    id: "ellipse.gradient.radial",
+    label: "Paint / radial gradient",
+    group: "Task 5 / gradients",
+    hint: "Uses a centered radial gradient with two semantic color stops.",
+    project: RADIAL_GRADIENT_PROJECT,
+  },
+  {
+    id: "rectangle.gradient.perspective",
+    label: "Paint / gradient perspective",
+    group: "Task 5 / gradients",
+    hint: "Keeps semantic gradient paint attached to Matrix4 perspective.",
+    project: GRADIENT_PERSPECTIVE_PROJECT,
   },
   {
     id: "rectangle.transform.translate",

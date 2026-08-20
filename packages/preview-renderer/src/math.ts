@@ -1,4 +1,42 @@
-import type { Matrix2D, Matrix4 } from "@motionvideo/motion-runtime";
+import type { Matrix2D, Matrix4, PaintFill } from "@motionvideo/motion-runtime";
+
+export type GradientUniforms = {
+  start: [number, number, number, number];
+  end: [number, number, number, number];
+  params: [number, number, number, number];
+  radius: [number, number, number, number];
+};
+
+export function gradientUniforms(
+  fillPaint: PaintFill | undefined,
+  alpha: number,
+): GradientUniforms {
+  const empty: GradientUniforms = {
+    start: [0, 0, 0, 0],
+    end: [0, 0, 0, 0],
+    params: [0, 0, 0, 0],
+    radius: [0, 0, 0, 0],
+  };
+  if (!fillPaint || fillPaint.type === "solid" || fillPaint.stops.length < 2) return empty;
+  const start = cssColorToRgba(fillPaint.stops[0]!.color);
+  const end = cssColorToRgba(fillPaint.stops[fillPaint.stops.length - 1]!.color);
+  start[3] *= alpha;
+  end[3] *= alpha;
+  if (fillPaint.type === "linear-gradient") {
+    return {
+      start,
+      end,
+      params: [1, ((fillPaint.angle ?? 0) * Math.PI) / 180, 0, 0],
+      radius: [0, 0, 0, 0],
+    };
+  }
+  return {
+    start,
+    end,
+    params: [2, 0, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
+    radius: [fillPaint.radius ?? 0.5, 0, 0, 0],
+  };
+}
 
 /** Column-major 3x3 matrix that maps composition pixels into clip space. */
 export function toClipMatrix(

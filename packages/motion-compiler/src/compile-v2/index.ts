@@ -180,6 +180,10 @@ export function compileProtocolV2ToPaintCommands(
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
     }
+    const gradientFill = typeof layer.style.fill === "object" ? layer.style.fill : null;
+    if (gradientFill && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.gradient`)) {
+      throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.gradient`);
+    }
     if (layer.style.stroke !== undefined) {
       const strokeCapability = `${layer.type}.${layer.payload.shape}.stroke`;
       if (!isV2AtomCertified(strokeCapability)) {
@@ -236,9 +240,12 @@ export function compileProtocolV2ToPaintCommands(
       key: layer.id,
       layerId: layer.id,
       shape: layer.payload.shape,
-      fill: layer.style.fill,
+      fill: typeof layer.style.fill === "string"
+        ? layer.style.fill
+        : layer.style.fill.stops[0]!.color,
       width: layer.frame.width,
       height: layer.frame.height,
+      ...(gradientFill ? { fillPaint: gradientFill } : {}),
       ...(layer.payload.cornerRadius !== undefined
         ? {
             cornerRadius: Math.min(

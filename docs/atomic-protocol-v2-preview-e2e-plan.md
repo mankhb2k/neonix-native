@@ -247,7 +247,7 @@ Implement each as an independent ticket, in this order.
 - [x] Stroke width.
 - [x] Fill and stroke opacity.
 - [x] Rounded rectangle.
-- [ ] Gradients, only when required by a concrete product fixture.
+- [x] Gradients.
 
 Every shape extension uses local composition units for geometry and stroke
 width. Compiler B applies the certified model/view/projection mat4 after the
@@ -263,6 +263,10 @@ data in Atomic V2, never as backend shader source.
 Rounded rectangle geometry is encoded as `payload.cornerRadius` in local
 composition units and is clamped to half the frame's shortest side by Compiler
 B. It must not silently fall back to a square rectangle.
+
+Gradient fill is semantic Atomic V2 data with exactly two color stops in this
+ticket. Compiler B preserves it as `fillPaint`; WebGPU and WebGL2 only receive
+the lowered gradient uniforms after Matrix4 geometry has been resolved.
 
 ## Task 6: Path Embedded in 3D
 

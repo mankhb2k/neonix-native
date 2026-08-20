@@ -4,6 +4,7 @@ import {
   cssColorToRgba,
   matrix4ForQuad,
   orthographicProjection,
+  gradientUniforms,
   webglDepthProjection,
 } from "./math";
 import { mediaLayout } from "./media";
@@ -34,6 +35,10 @@ uniform vec4 u_uv_rect;
 uniform vec4 u_stroke_color;
 uniform vec2 u_stroke_extent;
 uniform vec3 u_geometry;
+uniform vec4 u_gradient_start;
+uniform vec4 u_gradient_end;
+uniform vec4 u_gradient_params;
+uniform vec4 u_gradient_radius;
 uniform int u_mode;
 uniform int u_shape;
 in vec2 v_uv;
@@ -59,6 +64,19 @@ void main() {
     if (shapeAlpha <= 0.0) discard;
   }
   vec4 source = u_mode == 0 ? u_color : texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
+  if (u_mode == 0 && u_gradient_params.x > 0.5) {
+    float gradientT;
+    if (u_gradient_params.x < 1.5) {
+      vec2 direction = vec2(cos(u_gradient_params.y), sin(u_gradient_params.y));
+      float extent = length(u_geometry.yz) * 0.5;
+      vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
+      gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
+    } else {
+      vec2 point = (v_uv - u_gradient_params.zw) * u_geometry.yz;
+      gradientT = length(point) / max(u_gradient_radius.x * min(u_geometry.y, u_geometry.z), 0.0001);
+    }
+    source = mix(u_gradient_start, u_gradient_end, clamp(gradientT, 0.0, 1.0));
+  }
   if (u_mode == 0 && u_stroke_extent.x > 0.0 && u_stroke_extent.y > 0.0) {
     float strokeCoverage;
     if (u_shape == 1) {
@@ -182,6 +200,10 @@ export function createWebGL2Backend(
   const strokeColorLocation = gl.getUniformLocation(programHandle, "u_stroke_color");
   const strokeExtentLocation = gl.getUniformLocation(programHandle, "u_stroke_extent");
   const geometryLocation = gl.getUniformLocation(programHandle, "u_geometry");
+  const gradientStartLocation = gl.getUniformLocation(programHandle, "u_gradient_start");
+  const gradientEndLocation = gl.getUniformLocation(programHandle, "u_gradient_end");
+  const gradientParamsLocation = gl.getUniformLocation(programHandle, "u_gradient_params");
+  const gradientRadiusLocation = gl.getUniformLocation(programHandle, "u_gradient_radius");
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
   let dpr = options.devicePixelRatio ?? 1;
@@ -268,6 +290,14 @@ export function createWebGL2Backend(
           command.width,
           command.height,
         );
+        const gradients = gradientUniforms(
+          command.op === "drawShape" ? command.fillPaint : undefined,
+          transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
+        );
+        gl.uniform4fv(gradientStartLocation, gradients.start);
+        gl.uniform4fv(gradientEndLocation, gradients.end);
+        gl.uniform4fv(gradientParamsLocation, gradients.params);
+        gl.uniform4fv(gradientRadiusLocation, gradients.radius);
         const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
@@ -312,6 +342,10 @@ export function createWebGL2Backend(
         gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
         gl.uniform2f(strokeExtentLocation, 0, 0);
         gl.uniform3f(geometryLocation, 0, 0, 0);
+        gl.uniform4f(gradientStartLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientEndLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
         gl.uniform4f(uvRectLocation, layout.uv.x, layout.uv.y, layout.uv.width, layout.uv.height);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);

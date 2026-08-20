@@ -309,6 +309,49 @@ describe("Protocol V2 Compiler B", () => {
     ).toThrow("cornerRadius requires rectangle");
   });
 
+  it("lowers semantic gradient fill data without moving it into the renderer", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "gradient-rect",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: {
+            fill: {
+              type: "linear-gradient",
+              angle: 0,
+              stops: [
+                { offset: 0, color: "#ff0000" },
+                { offset: 1, color: "#0000ff" },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawShape",
+        fill: "#ff0000",
+        fillPaint: {
+          type: "linear-gradient",
+          angle: 0,
+          stops: [
+            { offset: 0, color: "#ff0000" },
+            { offset: 1, color: "#0000ff" },
+          ],
+        },
+      }),
+    );
+  });
+
   it("lowers the frame view into backend-neutral projection matrices", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,

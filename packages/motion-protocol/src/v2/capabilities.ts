@@ -1,5 +1,6 @@
 export const V2_CERTIFIED_ATOMS = [
   "shape.rectangle.fill",
+  "shape.rectangle.gradient",
   "shape.rectangle.fillOpacity",
   "shape.rectangle.cornerRadius",
   "shape.rectangle.stroke",
@@ -10,6 +11,7 @@ export const V2_CERTIFIED_ATOMS = [
   "shape.rectangle.opacity",
   "shape.rectangle.zIndex",
   "shape.ellipse.fill",
+  "shape.ellipse.gradient",
   "shape.ellipse.fillOpacity",
   "shape.ellipse.stroke",
   "shape.ellipse.strokeWidth",
