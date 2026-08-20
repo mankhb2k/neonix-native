@@ -210,6 +210,15 @@ export function compileProtocolV2ToPaintCommands(
         throw new Error(`Uncertified Protocol V2 atom: ${strokeOpacityCapability}`);
       }
     }
+    if (layer.payload.cornerRadius !== undefined) {
+      if (layer.payload.shape !== "rectangle") {
+        throw new Error(`Protocol V2 atom ${layer.id}: cornerRadius requires rectangle`);
+      }
+      const cornerRadiusCapability = `${layer.type}.${layer.payload.shape}.cornerRadius`;
+      if (!isV2AtomCertified(cornerRadiusCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${cornerRadiusCapability}`);
+      }
+    }
     if (layer.timing.start > time || time >= layer.timing.start + layer.timing.duration) {
       continue;
     }
@@ -230,6 +239,15 @@ export function compileProtocolV2ToPaintCommands(
       fill: layer.style.fill,
       width: layer.frame.width,
       height: layer.frame.height,
+      ...(layer.payload.cornerRadius !== undefined
+        ? {
+            cornerRadius: Math.min(
+              layer.payload.cornerRadius,
+              layer.frame.width / 2,
+              layer.frame.height / 2,
+            ),
+          }
+        : {}),
       ...(layer.style.fillOpacity !== undefined
         ? { fillOpacity: layer.style.fillOpacity }
         : {}),

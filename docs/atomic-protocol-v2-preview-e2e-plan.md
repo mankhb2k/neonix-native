@@ -246,7 +246,7 @@ Implement each as an independent ticket, in this order.
 - [x] Ellipse stroke.
 - [x] Stroke width.
 - [x] Fill and stroke opacity.
-- [ ] Rounded rectangle.
+- [x] Rounded rectangle.
 - [ ] Gradients, only when required by a concrete product fixture.
 
 Every shape extension uses local composition units for geometry and stroke
@@ -260,8 +260,9 @@ fixtures. Test fill/stroke ordering, partial edge coverage, bounds, and an
 interior pixel in WebGPU and WebGL2. Gradients must be defined as semantic style
 data in Atomic V2, never as backend shader source.
 
-Rounded rectangle must emit a pending diagnostic until implemented; it may not
-silently render as a square rectangle.
+Rounded rectangle geometry is encoded as `payload.cornerRadius` in local
+composition units and is clamped to half the frame's shortest side by Compiler
+B. It must not silently fall back to a square rectangle.
 
 ## Task 6: Path Embedded in 3D
 

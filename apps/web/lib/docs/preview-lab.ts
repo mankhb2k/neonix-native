@@ -6,6 +6,7 @@ type ShapeOptions = {
   zIndex: number;
   fill: string;
   fillOpacity?: number;
+  cornerRadius?: number;
   stroke?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
@@ -33,7 +34,10 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     transform: options.transform ?? IDENTITY_TRANSFORM,
     opacity: options.opacity ?? 100,
     timing: options.timing ?? { start: 0, duration: 3 },
-    payload: { shape },
+    payload: {
+      shape,
+      ...(options.cornerRadius != null ? { cornerRadius: options.cornerRadius } : {}),
+    },
     style: {
       fill: options.fill,
       ...(options.fillOpacity != null ? { fillOpacity: options.fillOpacity } : {}),
@@ -252,6 +256,47 @@ const RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const ROUNDED_RECTANGLE_PROJECT = project("preview-rounded-rectangle-v2", [
+  rectangle({
+    id: "rounded-rectangle",
+    zIndex: 0,
+    fill: "#00aa88",
+    cornerRadius: 48,
+    stroke: "#ff3366",
+    strokeWidth: 16,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
+  "preview-rounded-rectangle-perspective-v2",
+  [
+    rectangle({
+      id: "rounded-rectangle-perspective",
+      zIndex: 0,
+      fill: "#00aa88",
+      cornerRadius: 48,
+      stroke: "#ff3366",
+      strokeWidth: 16,
+      frame: { width: 320, height: 180 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 800, y: 420, z: 180 },
+        rotate: { x: 18, y: -24, z: 0 },
+        anchor: { x: 160, y: 90, z: 0 },
+      },
+    }),
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -331,6 +376,20 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 5 / paint opacity",
     hint: "Keeps independent fill and stroke alpha through Matrix4 perspective.",
     project: RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "rectangle.rounded",
+    label: "Shape / rounded rectangle",
+    group: "Task 5 / rounded rectangle",
+    hint: "Uses a local 48-unit corner radius with fill and stroke.",
+    project: ROUNDED_RECTANGLE_PROJECT,
+  },
+  {
+    id: "rectangle.rounded-perspective",
+    label: "Shape / rounded perspective",
+    group: "Task 5 / rounded rectangle",
+    hint: "Keeps rounded geometry and stroke attached to Matrix4 perspective.",
+    project: ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT,
   },
   {
     id: "rectangle.transform.translate",

@@ -33,10 +33,15 @@ uniform sampler2D u_texture;
 uniform vec4 u_uv_rect;
 uniform vec4 u_stroke_color;
 uniform vec2 u_stroke_extent;
+uniform vec3 u_geometry;
 uniform int u_mode;
 uniform int u_shape;
 in vec2 v_uv;
 out vec4 outColor;
+float roundedBoxDistance(vec2 point, vec2 halfSize, float radius) {
+  vec2 q = abs(point) - (halfSize - vec2(radius));
+  return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
 void main() {
   float shapeAlpha = 1.0;
   if (u_shape == 1) {
@@ -44,6 +49,13 @@ void main() {
     float distanceToEdge = length(p);
     float edgeWidth = max(fwidth(distanceToEdge), 0.0001);
     shapeAlpha = 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, distanceToEdge);
+    if (shapeAlpha <= 0.0) discard;
+  } else if (u_geometry.x > 0.0) {
+    vec2 halfSize = u_geometry.yz * 0.5;
+    vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
+    float distanceToEdge = roundedBoxDistance(point, halfSize, u_geometry.x);
+    float edgeWidth = max(fwidth(distanceToEdge), 0.0001);
+    shapeAlpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToEdge);
     if (shapeAlpha <= 0.0) discard;
   }
   vec4 source = u_mode == 0 ? u_color : texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
@@ -56,6 +68,18 @@ void main() {
       float edgeWidth = max(fwidth(innerDistance), 0.0001);
       float innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
       strokeCoverage = shapeAlpha * innerCoverage;
+    } else if (u_geometry.x > 0.0) {
+      vec2 halfSize = u_geometry.yz * 0.5;
+      vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
+      float strokeWidth = max(u_stroke_extent.x * u_geometry.y, u_stroke_extent.y * u_geometry.z);
+      float halfStroke = strokeWidth * 0.5;
+      float innerDistance = roundedBoxDistance(
+        point,
+        max(halfSize - vec2(halfStroke), vec2(0.0001)),
+        max(u_geometry.x - halfStroke, 0.0)
+      );
+      float edgeWidth = max(fwidth(innerDistance), 0.0001);
+      strokeCoverage = shapeAlpha * smoothstep(-edgeWidth, edgeWidth, innerDistance);
     } else {
       vec2 edge = min(v_uv, vec2(1.0) - v_uv);
       vec2 halfStroke = u_stroke_extent * 0.5;
@@ -157,6 +181,7 @@ export function createWebGL2Backend(
   const uvRectLocation = gl.getUniformLocation(programHandle, "u_uv_rect");
   const strokeColorLocation = gl.getUniformLocation(programHandle, "u_stroke_color");
   const strokeExtentLocation = gl.getUniformLocation(programHandle, "u_stroke_extent");
+  const geometryLocation = gl.getUniformLocation(programHandle, "u_geometry");
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
   let dpr = options.devicePixelRatio ?? 1;
@@ -237,6 +262,12 @@ export function createWebGL2Backend(
         gl.uniform4fv(colorLocation, color);
         gl.uniform1i(modeLocation, 0);
         gl.uniform1i(shapeLocation, command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0);
+        gl.uniform3f(
+          geometryLocation,
+          command.op === "drawShape" ? command.cornerRadius ?? 0 : 0,
+          command.width,
+          command.height,
+        );
         const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
@@ -280,6 +311,7 @@ export function createWebGL2Backend(
         gl.uniform1i(shapeLocation, 0);
         gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
         gl.uniform2f(strokeExtentLocation, 0, 0);
+        gl.uniform3f(geometryLocation, 0, 0, 0);
         gl.uniform4f(uvRectLocation, layout.uv.x, layout.uv.y, layout.uv.width, layout.uv.height);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);

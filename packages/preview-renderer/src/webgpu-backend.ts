@@ -35,12 +35,17 @@ struct Uniforms {
   color: vec4<f32>,
   params: vec4<f32>,
   media: vec4<f32>,
+  geometry: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
 @group(0) @binding(2) var imageSampler: sampler;
 struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
 struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
+fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32 {
+  let q = abs(point) - (halfSize - vec2<f32>(radius, radius));
+  return length(max(q, vec2<f32>(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
 @vertex fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
   output.position = uniforms.projection * uniforms.model * vec4<f32>(input.position, 0.0, 1.0);
@@ -49,22 +54,41 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
 }
 @fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var shapeAlpha = 1.0;
-  if (uniforms.params.x > 0.5) {
+  if (uniforms.params.x > 0.5 && uniforms.params.x < 1.5) {
     let distanceToEdge = distance(input.uv, vec2<f32>(0.5, 0.5)) * 2.0;
     let edgeWidth = max(fwidth(distanceToEdge), 0.0001);
     shapeAlpha = 1.0 - smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, distanceToEdge);
+    if (shapeAlpha <= 0.0) { discard; }
+  } else if (uniforms.geometry.x > 0.0) {
+    let halfSize = uniforms.geometry.yz * 0.5;
+    let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
+    let distanceToEdge = roundedBoxDistance(point, halfSize, uniforms.geometry.x);
+    let edgeWidth = max(fwidth(distanceToEdge), 0.0001);
+    shapeAlpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToEdge);
     if (shapeAlpha <= 0.0) { discard; }
   }
   var source = select(uniforms.color, textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw), uniforms.params.y > 0.5);
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
     var strokeCoverage = 0.0;
-    if (uniforms.params.x > 0.5) {
+    if (uniforms.params.x > 0.5 && uniforms.params.x < 1.5) {
       let p = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
       let innerRadii = max(vec2<f32>(0.0001, 0.0001), vec2<f32>(1.0, 1.0) - uniforms.params.zw);
       let innerDistance = length(p / innerRadii);
       let edgeWidth = max(fwidth(innerDistance), 0.0001);
       let innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
       strokeCoverage = shapeAlpha * innerCoverage;
+    } else if (uniforms.geometry.x > 0.0) {
+      let halfSize = uniforms.geometry.yz * 0.5;
+      let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
+      let strokeWidth = max(uniforms.params.z * uniforms.geometry.y, uniforms.params.w * uniforms.geometry.z);
+      let halfStroke = strokeWidth * 0.5;
+      let innerDistance = roundedBoxDistance(
+        point,
+        max(halfSize - vec2<f32>(halfStroke, halfStroke), vec2<f32>(0.0001, 0.0001)),
+        max(uniforms.geometry.x - halfStroke, 0.0),
+      );
+      let edgeWidth = max(fwidth(innerDistance), 0.0001);
+      strokeCoverage = shapeAlpha * smoothstep(-edgeWidth, edgeWidth, innerDistance);
     } else {
       let edge = min(input.uv, vec2<f32>(1.0, 1.0) - input.uv);
       let halfStroke = uniforms.params.zw * 0.5;
@@ -237,16 +261,18 @@ export function createWebGPUBackend(
         }
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
-        const uniform = device.createBuffer({ size: 176, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: 192, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(44);
+        const data = new Float32Array(48);
         const baseMatrix = transform.matrix4?.length === 16
           ? new Float32Array(transform.matrix4)
           : affineToMatrix4(transform.matrix);
         writeMatrix4(data, 0, projection);
         writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
         data.set(color, 32);
-        data[36] = command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0;
+        data[36] = command.op === "drawShape"
+          ? command.shape === "ellipse" ? 1 : command.cornerRadius && command.cornerRadius > 0 ? 2 : 0
+          : 0;
         data[37] = 0;
         const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
@@ -258,6 +284,12 @@ export function createWebGPUBackend(
         data[38] = strokeWidth / command.width;
         data[39] = strokeWidth / command.height;
         data.set(stroke, 40);
+        data.set([
+          command.op === "drawShape" ? command.cornerRadius ?? 0 : 0,
+          command.width,
+          command.height,
+          0,
+        ], 44);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setBindGroup(0, bindGroup);
@@ -279,9 +311,9 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
-        const uniform = device.createBuffer({ size: 176, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: 192, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(44);
+        const data = new Float32Array(48);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
         const baseMatrix = transform.matrix4?.length === 16
           ? new Float32Array(transform.matrix4)
@@ -294,6 +326,7 @@ export function createWebGPUBackend(
         data[38] = 0;
         data[39] = 0;
         data.set([layout.uv.x, layout.uv.y, layout.uv.width, layout.uv.height], 40);
+        data.set([0, 0, 0, 0], 44);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setBindGroup(0, bindGroup);

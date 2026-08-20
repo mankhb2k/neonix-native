@@ -18,7 +18,7 @@ describe("WebGPU preview backend", () => {
     const device = {
       queue: {
         writeBuffer(buffer: WebGPUBufferLike, _offset: number, data: ArrayBufferView) {
-          if (bufferSizes.get(buffer) !== 176) return;
+          if (bufferSizes.get(buffer) !== 192) return;
           const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
           uniformWrites.push(Array.from(new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4)));
         },

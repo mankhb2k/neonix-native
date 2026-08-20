@@ -260,6 +260,55 @@ describe("Protocol V2 Compiler B", () => {
     ).toThrow("strokeOpacity requires stroke");
   });
 
+  it("lowers a rounded rectangle geometry and clamps its radius", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "rounded-rect",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle", cornerRadius: 30 },
+          style: { fill: "#00aa88" },
+        },
+      ],
+    });
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawShape",
+        shape: "rectangle",
+        cornerRadius: 20,
+      }),
+    );
+  });
+
+  it("rejects corner radius on an ellipse", () => {
+    expect(() =>
+      compileProtocolV2ToPaintCommands({
+        ...base,
+        layers: [
+          {
+            id: "invalid-rounded-ellipse",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 80, height: 40 },
+            transform: identity,
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "ellipse", cornerRadius: 8 },
+            style: { fill: "#00aa88" },
+          },
+        ],
+      }),
+    ).toThrow("cornerRadius requires rectangle");
+  });
+
   it("lowers the frame view into backend-neutral projection matrices", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,

@@ -1,6 +1,7 @@
 export const V2_CERTIFIED_ATOMS = [
   "shape.rectangle.fill",
   "shape.rectangle.fillOpacity",
+  "shape.rectangle.cornerRadius",
   "shape.rectangle.stroke",
   "shape.rectangle.strokeWidth",
   "shape.rectangle.strokeOpacity",

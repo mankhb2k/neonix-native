@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   V2ColorSchema,
   V2FiniteNumberSchema,
+  V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
 } from "../common";
 import { V2LayerBaseSchema } from "./base";
@@ -9,7 +10,10 @@ import { V2LayerBaseSchema } from "./base";
 export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("shape"),
   payload: z
-    .object({ shape: z.union([z.literal("rectangle"), z.literal("ellipse")]) })
+    .object({
+      shape: z.union([z.literal("rectangle"), z.literal("ellipse")]),
+      cornerRadius: V2NonNegativeNumberSchema.optional(),
+    })
     .strict(),
   style: z
     .object({
