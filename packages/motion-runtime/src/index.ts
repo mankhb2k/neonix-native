@@ -76,3 +76,4 @@ export {
   type AudioExportManifest,
   type AudioExportLayer,
 } from "./audio-export-manifest";
+export * from "./v2";

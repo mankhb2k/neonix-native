@@ -26,6 +26,7 @@
     "validate:v1-source-of-truth": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-v1-source-of-truth.ts",
     "dump:capability-ledger": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/dump-capability-ledger.ts",
     "validate:ai-fixtures": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/validate-ai-fixtures.ts",
+    "validate:v2-boundary": "node scripts/validate-v2-boundary.mjs",
     "eval:zero-template": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/run-zero-template-eval.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
     "validate:paint-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-paint-parity.ts",
