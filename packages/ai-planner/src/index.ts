@@ -1,198 +1,44 @@
-import { type MotionProject } from "@motionvideo/motion-protocol";
-import type {
-  CreativeBriefV1,
-  CreativePlanV1,
-  SceneDesignPlanV1,
-} from "./contracts";
 import {
-  parseCreativeBriefV1,
-  parseCreativePlanV1,
-  parseSceneDesignPlanV1,
-  serializeCreativeBriefV1,
-  serializeCreativePlanV1,
-  serializeSceneDesignPlanV1,
-} from "./contracts";
-import {
-  executeCommandBatch,
-  createBlankMotionProject,
-  parseCommandBatch,
-  type CommandBatchResult,
-  type CommandReceipt,
-  type AuthoringCommand,
-  type CommandBatch,
-  type Diagnostic,
-} from "./commands";
-import {
-  planFromScratch,
-  buildCreativePlanFromBrief,
-  buildSceneDesignFromPlan,
-  buildBlankProjectCommands,
-} from "./from-scratch";
-export {
-  critiqueProject,
-  applyCriticRepair,
-  type CriticReport,
-  type CriticFinding,
-} from "./critic";
-export {
-  buildContactSheetPlan,
-  type ContactSheetPlan,
-  type ContactSheetFrame,
-} from "./contact-sheet";
-export {
-  runGenerationLoop,
-  runGenerationLoopAsync,
-  type GenerationLoopResult,
-} from "./generation-loop";
-export {
-  runZeroTemplateGeneration,
-  runScopedRefine,
-  type ZeroTemplateGenerationResult,
-  type OrchestratorProgress,
-  type OrchestratorPhase,
-} from "./orchestrator";
-export {
-  findBeatNear,
-  listDownbeats,
-  summarizeEnergy,
-  createSceneMarkersFromBeats,
-  snapClipToBeat,
-  type AudioAnalysisLike,
-  type BeatMarker,
-} from "./tools/audio-beats";
+  MotionProtocolV2Schema,
+  type MotionProtocolV2,
+} from "@motionvideo/motion-protocol/v2";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { applyMotionProtocolV2Patch, type MotionProtocolV2Patch } from "@motionvideo/motion-mcp";
 
-export {
-  MODEL_ALLOWED_COMMAND_TYPES,
-  MODEL_BLOCKED_COMMAND_TYPES,
-  isModelAllowedCommand,
-  modelCapabilityPromptBlock,
-} from "./model-allowlist";
-export {
-  probeContactSheetPng,
-  type ProbeContactSheetResult,
-} from "./probe-frames";
-export {
-  layoutRecipe,
-  LAYOUT_RECIPES,
-  type LayoutRecipeId,
-} from "./commands/layout-recipes";
-
-/** @deprecated Use CreativeBriefV1 + planMotionProject({ brief }) instead. */
-export type PlanInput = {
-  brandName: string;
-  industry: string;
-  script: string;
-  tags?: string[];
-  aspectRatio?: "9:16" | "16:9" | "1:1";
-  primaryColor?: string;
+export type V2ValidationResult = {
+  valid: boolean;
+  project: MotionProtocolV2 | null;
+  diagnostics: Array<{ path: string; message: string }>;
 };
 
-export type PlanRequest = {
-  brief:
-    | CreativeBriefV1
-    | (Omit<CreativeBriefV1, "format" | "formatVersion"> & {
-        format?: "moticlip-creative-brief";
-        formatVersion?: 1;
-      });
-  /** Only from-scratch is supported (zero-template MVP). */
-  mode?: "from-scratch";
-  seed?: string;
-  industry?: string;
-  tags?: string[];
-};
-
-export type PlanResult = {
-  brief: CreativeBriefV1;
-  plan: CreativePlanV1;
-  sceneDesign: SceneDesignPlanV1;
-  project: MotionProject;
-  receipts: CommandReceipt[];
-  generation: {
-    planId: string;
-    seed: string;
-    model: string;
-    capabilityManifestVersion: string;
-  };
-};
-
-export function briefFromLegacyInput(input: PlanInput): CreativeBriefV1 {
-  return parseCreativeBriefV1({
-    format: "moticlip-creative-brief",
-    formatVersion: 1,
-    objective: input.brandName,
-    durationSeconds: 15,
-    aspectRatio: input.aspectRatio ?? "9:16",
-    script: input.script,
-    language: "vi",
-    brand: {
-      name: input.brandName,
-      primaryColor: input.primaryColor,
-    },
-  });
-}
-
-/**
- * AI planner entrypoint — zero-template from-scratch only.
- */
-export function planMotionProject(input: PlanRequest | PlanInput): PlanResult {
-  const request: PlanRequest =
-    "brief" in input
-      ? input
-      : {
-          brief: briefFromLegacyInput(input),
-          industry: input.industry,
-          tags: input.tags,
-          mode: "from-scratch",
-        };
-
-  const artifacts = planFromScratch({
-    brief: request.brief,
-    seed: request.seed,
-    industry: request.industry,
-  });
-  if (!artifacts.batchResult.ok || !artifacts.batchResult.project) {
-    const errors = artifacts.receipts
-      .flatMap((receipt) => receipt.diagnostics)
-      .filter((item) => item.severity === "error")
-      .map((item) => `${item.code}: ${item.message}`)
-      .join("; ");
-    throw new Error(
-      `From-scratch planning failed: ${errors || "unknown error"}`,
-    );
+/** AI tooling boundary: accept Atomic Protocol V2 only. */
+export function validateAtomicProtocolV2(input: unknown): V2ValidationResult {
+  const result = MotionProtocolV2Schema.safeParse(input);
+  if (!result.success) {
+    return {
+      valid: false,
+      project: null,
+      diagnostics: result.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      })),
+    };
   }
-  return {
-    brief: artifacts.brief,
-    plan: artifacts.plan,
-    sceneDesign: artifacts.sceneDesign,
-    project: artifacts.batchResult.project,
-    receipts: artifacts.receipts,
-    generation: artifacts.generation,
-  };
+  return { valid: true, project: result.data, diagnostics: [] };
 }
 
-export {
-  parseCreativeBriefV1,
-  parseCreativePlanV1,
-  parseSceneDesignPlanV1,
-  serializeCreativeBriefV1,
-  serializeCreativePlanV1,
-  serializeSceneDesignPlanV1,
-  executeCommandBatch,
-  createBlankMotionProject,
-  parseCommandBatch,
-  buildCreativePlanFromBrief,
-  buildSceneDesignFromPlan,
-  buildBlankProjectCommands,
-  planFromScratch,
-};
+export function applyAtomicProtocolV2Patch(
+  project: MotionProtocolV2,
+  patch: MotionProtocolV2Patch,
+) {
+  return applyMotionProtocolV2Patch(project, patch);
+}
 
-export type {
-  CreativeBriefV1,
-  CreativePlanV1,
-  SceneDesignPlanV1,
-  CommandBatchResult,
-  CommandReceipt,
-  AuthoringCommand,
-  CommandBatch,
-  Diagnostic,
-};
+export function compileAtomicProtocolV2(project: unknown) {
+  return compileProtocolV2(project);
+}
+
+/** High-level generation is intentionally unavailable until V2 atoms are certified. */
+export function createHighLevelPlannerUnavailableError(): Error {
+  return new Error("High-level AI authoring is not available until Protocol V2 atoms are certified");
+}

@@ -1,402 +1,149 @@
-/**
- * Patch native V1 — bề mặt an toàn cho AI/MCP.
- *
- * Mọi thao tác đi qua project.layers; luôn validate lại MotionProjectV1Schema; idempotent.
- */
-
 import { z } from "zod";
 import {
-  MotionProjectV1Schema,
-  type MotionProjectV1,
-  IdSchema,
-  FiniteNumberSchema,
-  AssetV1Schema,
-  LayerSchema as LayerV1Schema,
-  type MotionLayer as LayerV1,
-  V1,
-} from "@motionvideo/motion-protocol";
+  MotionProtocolV2Schema,
+  V2CompositionSchema,
+  V2IdSchema,
+  V2LayerSchema,
+  type MotionProtocolV2,
+} from "@motionvideo/motion-protocol/v2";
 
-export const MOTION_PROJECT_V1_PATCH_FORMAT_VERSION = 1 as const;
+const FiniteNumberSchema = z.number().finite();
+export const V2PatchSetCompositionSchema = z.object({
+  op: z.literal("setComposition"),
+  changes: V2CompositionSchema.partial(),
+}).strict();
+export const V2PatchAddLayerSchema = z.object({
+  op: z.literal("addLayer"),
+  layer: V2LayerSchema,
+  insertAt: z.number().int().nonnegative().optional(),
+}).strict();
+export const V2PatchUpdateLayerSchema = z.object({
+  op: z.literal("updateLayer"),
+  layerId: V2IdSchema,
+  layer: V2LayerSchema,
+}).strict();
+export const V2PatchRemoveLayerSchema = z.object({
+  op: z.literal("removeLayer"),
+  layerId: V2IdSchema,
+}).strict();
+export const V2PatchTrimLayerSchema = z.object({
+  op: z.literal("trimLayer"),
+  layerId: V2IdSchema,
+  start: FiniteNumberSchema.nonnegative().optional(),
+  duration: FiniteNumberSchema.positive().optional(),
+}).strict();
+export const V2PatchSetValueSchema = z.object({
+  op: z.literal("setValue"),
+  path: z.string().min(1).max(256),
+  value: z.unknown(),
+}).strict();
 
-export interface V1PatchDiagnostic {
-  path: string;
-  message: string;
-  severity: "error" | "warning";
-}
-
-export interface V1PatchResult {
-  project: MotionProjectV1 | null;
-  diagnostics: V1PatchDiagnostic[];
-}
-
-function diagnostic(
-  path: string,
-  message: string,
-  severity: "error" | "warning" = "error",
-): V1PatchDiagnostic {
-  return { path, message, severity };
-}
-
-export const V1PatchSetCompositionSchema = z
-  .object({
-    op: z.literal("setComposition"),
-    changes: V1.CompositionSettingsSchema.partial(),
-  })
-  .strict();
-
-export const V1PatchAddLayerSchema = z
-  .object({
-    op: z.literal("addLayer"),
-    layer: LayerV1Schema,
-    insertAt: z.number().int().nonnegative().optional(),
-  })
-  .strict();
-
-export const V1PatchUpdateLayerSchema = z
-  .object({
-    op: z.literal("updateLayer"),
-    layerId: IdSchema,
-    layer: LayerV1Schema,
-  })
-  .strict();
-
-export const V1PatchRemoveLayerSchema = z
-  .object({
-    op: z.literal("removeLayer"),
-    layerId: IdSchema,
-  })
-  .strict();
-
-export const V1PatchTrimLayerSchema = z
-  .object({
-    op: z.literal("trimLayer"),
-    layerId: IdSchema,
-    start: FiniteNumberSchema.nonnegative().optional(),
-    duration: FiniteNumberSchema.positive().optional(),
-  })
-  .strict();
-
-export const V1PatchAssetSchema = z
-  .object({
-    op: z.enum(["addAsset", "updateAsset"]),
-    asset: AssetV1Schema,
-  })
-  .strict();
-
-export const V1PatchSetValueSchema = z
-  .object({
-    op: z.literal("setValue"),
-    path: z.string().min(1).max(256),
-    value: z.unknown(),
-  })
-  .strict();
-
-export const V1PatchOpSchema = z.discriminatedUnion("op", [
-  V1PatchSetCompositionSchema,
-  V1PatchAddLayerSchema,
-  V1PatchUpdateLayerSchema,
-  V1PatchRemoveLayerSchema,
-  V1PatchTrimLayerSchema,
-  V1PatchAssetSchema,
-  V1PatchSetValueSchema,
+export const V2PatchOpSchema = z.discriminatedUnion("op", [
+  V2PatchSetCompositionSchema,
+  V2PatchAddLayerSchema,
+  V2PatchUpdateLayerSchema,
+  V2PatchRemoveLayerSchema,
+  V2PatchTrimLayerSchema,
+  V2PatchSetValueSchema,
 ]);
+export type V2PatchOp = z.infer<typeof V2PatchOpSchema>;
 
-export type V1PatchOp = z.infer<typeof V1PatchOpSchema>;
+export const MotionProtocolV2PatchSchema = z.object({
+  format: z.literal("motion-protocol-patch"),
+  formatVersion: z.literal(2),
+  baseRevision: FiniteNumberSchema.int().nonnegative(),
+  operations: z.array(V2PatchOpSchema).min(1).max(1000),
+}).strict();
+export type MotionProtocolV2Patch = z.infer<typeof MotionProtocolV2PatchSchema>;
 
-export const MotionProjectV1PatchSchema = z
-  .object({
-    format: z.literal("motion-project-patch"),
-    formatVersion: z.literal(MOTION_PROJECT_V1_PATCH_FORMAT_VERSION),
-    baseRevision: FiniteNumberSchema.int().nonnegative(),
-    operations: z.array(V1PatchOpSchema).min(1).max(1000),
-  })
-  .strict();
+export type V2PatchDiagnostic = { path: string; message: string; severity: "error" | "warning" };
+export type V2PatchResult = { project: MotionProtocolV2 | null; diagnostics: V2PatchDiagnostic[] };
 
-export type MotionProjectV1Patch = z.infer<typeof MotionProjectV1PatchSchema>;
-
-function clone(project: MotionProjectV1): MotionProjectV1 {
-  return JSON.parse(JSON.stringify(project)) as MotionProjectV1;
+function clone(project: MotionProtocolV2): MotionProtocolV2 {
+  return JSON.parse(JSON.stringify(project)) as MotionProtocolV2;
 }
 
-function layerIds(layers: LayerV1[]): Set<string> {
-  return new Set(V1.flattenLayerTree(layers).map((layer) => layer.id));
-}
-
-function insertIntoGroup(
-  nodes: LayerV1[],
-  parentId: string,
-  child: LayerV1,
-  insertAt?: number,
-): LayerV1[] | null {
-  return nodes.map((node) => {
-    if (node.id === parentId) {
-      if (node.type !== "group") return node;
-      const children = [...node.children];
-      children.splice(insertAt ?? children.length, 0, child);
-      return { ...node, children };
-    }
-    if (node.type === "group") {
-      return {
-        ...node,
-        children:
-          insertIntoGroup(node.children, parentId, child, insertAt) ??
-          node.children,
-      };
-    }
-    return node;
-  });
-}
-
-function replaceLayer(
-  nodes: LayerV1[],
-  layerId: string,
-  nextLayer: LayerV1,
-): LayerV1[] {
-  return nodes.map((node) => {
-    if (node.id === layerId) return nextLayer;
-    if (node.type === "group") {
-      return {
-        ...node,
-        children: replaceLayer(node.children, layerId, nextLayer),
-      };
-    }
-    return node;
-  });
-}
-
-function removeLayer(nodes: LayerV1[], layerId: string): LayerV1[] {
-  return nodes
-    .filter((node) => node.id !== layerId)
-    .map((node) =>
-      node.type === "group"
-        ? { ...node, children: removeLayer(node.children, layerId) }
-        : node,
-    );
-}
-
-function trimLayer(
-  nodes: LayerV1[],
-  layerId: string,
-  start?: number,
-  duration?: number,
-): LayerV1[] {
-  return nodes.map((node) => {
-    if (node.id === layerId) {
-      const timing = {
-        start: start ?? node.timing.start,
-        duration: duration ?? node.timing.duration,
-      };
-      return { ...node, timing } as LayerV1;
-    }
-    if (node.type === "group") {
-      return {
-        ...node,
-        children: trimLayer(node.children, layerId, start, duration),
-      };
-    }
-    return node;
-  });
-}
-
-export function applyMotionProjectV1Patch(
-  project: MotionProjectV1,
-  patchInput: unknown,
-): V1PatchResult {
-  const patchResult = MotionProjectV1PatchSchema.safeParse(patchInput);
-  if (!patchResult.success) {
-    return {
-      project: null,
-      diagnostics: patchResult.error.issues.map((issue) => ({
-        path: issue.path.join(".") || "patch",
-        message: issue.message,
-        severity: "error" as const,
-      })),
-    };
-  }
-
-  const patch = patchResult.data;
-  const diagnostics: V1PatchDiagnostic[] = [];
-  let next = clone(project);
-
-  for (let i = 0; i < patch.operations.length; i++) {
-    const op = patch.operations[i]!;
-    const opPrefix = `operations[${i}]`;
-
-    switch (op.op) {
-      case "setComposition": {
-        next = {
-          ...next,
-          composition: { ...next.composition, ...op.changes },
-        };
-        break;
-      }
-
-      case "addLayer": {
-        if (layerIds(next.layers).has(op.layer.id)) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.layer.id`,
-              `Layer already exists: ${op.layer.id}`,
-            ),
-          );
-          break;
-        }
-        if (op.layer.parentLayerId === null) {
-          const layers = [...next.layers];
-          layers.splice(op.insertAt ?? layers.length, 0, op.layer);
-          next = { ...next, layers };
-          break;
-        }
-        const parent = V1.flattenLayerTree(next.layers).find(
-          (layer) => layer.id === op.layer.parentLayerId,
-        );
-        if (!parent || parent.type !== "group") {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.layer.parentLayerId`,
-              `Unknown group parent: ${op.layer.parentLayerId}`,
-            ),
-          );
-          break;
-        }
-        next = {
-          ...next,
-          layers: insertIntoGroup(
-            next.layers,
-            op.layer.parentLayerId,
-            op.layer,
-            op.insertAt,
-          )!,
-        };
-        break;
-      }
-
-      case "updateLayer": {
-        if (!layerIds(next.layers).has(op.layerId)) {
-          diagnostics.push(
-            diagnostic(`${opPrefix}.layerId`, `Unknown layer: ${op.layerId}`),
-          );
-          break;
-        }
-        next = {
-          ...next,
-          layers: replaceLayer(next.layers, op.layerId, op.layer),
-        };
-        break;
-      }
-
-      case "removeLayer": {
-        if (!layerIds(next.layers).has(op.layerId)) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.layerId`,
-              `Unknown layer: ${op.layerId}`,
-              "warning",
-            ),
-          );
-          break;
-        }
-        next = {
-          ...next,
-          layers: removeLayer(next.layers, op.layerId),
-        };
-        break;
-      }
-
-      case "trimLayer": {
-        if (!layerIds(next.layers).has(op.layerId)) {
-          diagnostics.push(
-            diagnostic(`${opPrefix}.layerId`, `Unknown layer: ${op.layerId}`),
-          );
-          break;
-        }
-        next = {
-          ...next,
-          layers: trimLayer(next.layers, op.layerId, op.start, op.duration),
-        };
-        break;
-      }
-
-      case "addAsset":
-      case "updateAsset": {
-        const existingIdx = next.assets.findIndex((a) => a.id === op.asset.id);
-        if (existingIdx >= 0) {
-          if (op.op === "addAsset") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.asset.id`,
-                `Asset already exists: ${op.asset.id}`,
-              ),
-            );
-            break;
-          }
-          const updAssets = [...next.assets];
-          updAssets[existingIdx] = op.asset;
-          next = { ...next, assets: updAssets };
-        } else {
-          if (op.op === "updateAsset") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.asset.id`,
-                `Asset not found: ${op.asset.id}`,
-              ),
-            );
-            break;
-          }
-          next = { ...next, assets: [...next.assets, op.asset] };
-        }
-        break;
-      }
-
-      case "setValue": {
-        try {
-          setValueAtPath(
-            next as unknown as Record<string, unknown>,
-            op.path,
-            op.value,
-          );
-        } catch (err) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.path`,
-              `Failed to set value at "${op.path}": ${String(err)}`,
-            ),
-          );
-        }
-        break;
-      }
-    }
-  }
-
-  const validation = MotionProjectV1Schema.safeParse(next);
-  if (!validation.success) {
-    diagnostics.push(
-      ...validation.error.issues.map((issue) => ({
-        path: `(${issue.path.join(".")})`,
-        message: `Post-patch validation: ${issue.message}`,
-        severity: "error" as const,
-      })),
-    );
-    return { project: null, diagnostics };
-  }
-
-  return { project: validation.data as MotionProjectV1, diagnostics };
-}
-
-function setValueAtPath(
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown,
-): void {
+function setValueAtPath(obj: Record<string, unknown>, path: string, value: unknown): void {
   const parts = path.split(".");
-  let cursor: Record<string, unknown> = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i]!;
-    if (cursor[part] === undefined || cursor[part] === null) {
-      cursor[part] = {};
-    }
+  let cursor = obj;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const part = parts[index]!;
+    if (cursor[part] === undefined || cursor[part] === null) cursor[part] = {};
     cursor = cursor[part] as Record<string, unknown>;
   }
   const last = parts[parts.length - 1];
-  if (last !== undefined) cursor[last] = value;
+  if (last) cursor[last] = value;
+}
+
+function diagnostic(path: string, message: string, severity: "error" | "warning" = "error"): V2PatchDiagnostic {
+  return { path, message, severity };
+}
+
+export function applyMotionProtocolV2Patch(project: MotionProtocolV2, patchInput: unknown): V2PatchResult {
+  const parsedPatch = MotionProtocolV2PatchSchema.safeParse(patchInput);
+  if (!parsedPatch.success) {
+    return {
+      project: null,
+      diagnostics: parsedPatch.error.issues.map((issue) => diagnostic(issue.path.join(".") || "patch", issue.message)),
+    };
+  }
+
+  const next = clone(project);
+  const diagnostics: V2PatchDiagnostic[] = [];
+  for (let index = 0; index < parsedPatch.data.operations.length; index += 1) {
+    const operation = parsedPatch.data.operations[index]!;
+    const prefix = `operations[${index}]`;
+    switch (operation.op) {
+      case "setComposition":
+        next.composition = { ...next.composition, ...operation.changes };
+        break;
+      case "addLayer":
+        if (next.layers.some((layer) => layer.id === operation.layer.id)) {
+          diagnostics.push(diagnostic(`${prefix}.layer.id`, `Layer already exists: ${operation.layer.id}`));
+          break;
+        }
+        next.layers.splice(operation.insertAt ?? next.layers.length, 0, operation.layer);
+        break;
+      case "updateLayer": {
+        const layerIndex = next.layers.findIndex((layer) => layer.id === operation.layerId);
+        if (layerIndex < 0) {
+          diagnostics.push(diagnostic(`${prefix}.layerId`, `Unknown layer: ${operation.layerId}`));
+          break;
+        }
+        next.layers[layerIndex] = operation.layer;
+        break;
+      }
+      case "removeLayer": {
+        const layerIndex = next.layers.findIndex((layer) => layer.id === operation.layerId);
+        if (layerIndex < 0) {
+          diagnostics.push(diagnostic(`${prefix}.layerId`, `Unknown layer: ${operation.layerId}`, "warning"));
+          break;
+        }
+        next.layers.splice(layerIndex, 1);
+        break;
+      }
+      case "trimLayer": {
+        const layer = next.layers.find((candidate) => candidate.id === operation.layerId);
+        if (!layer) {
+          diagnostics.push(diagnostic(`${prefix}.layerId`, `Unknown layer: ${operation.layerId}`));
+          break;
+        }
+        layer.timing = {
+          start: operation.start ?? layer.timing.start,
+          duration: operation.duration ?? layer.timing.duration,
+        };
+        break;
+      }
+      case "setValue":
+        setValueAtPath(next as unknown as Record<string, unknown>, operation.path, operation.value);
+        break;
+    }
+  }
+
+  const validated = MotionProtocolV2Schema.safeParse(next);
+  if (!validated.success) {
+    diagnostics.push(...validated.error.issues.map((issue) => diagnostic(`(${issue.path.join(".")})`, `Post-patch validation: ${issue.message}`)));
+    return { project: null, diagnostics };
+  }
+  return { project: validated.data, diagnostics };
 }

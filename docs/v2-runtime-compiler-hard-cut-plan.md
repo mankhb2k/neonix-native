@@ -214,17 +214,26 @@ planned Phase 5 deletion; it is no longer an active editor/export path.
 
 ### Phase 4: Migrate Tooling And Test Fixtures
 
-- [ ] Convert AI planner, MCP operations, CLI commands, docs fixtures, and
-      smoke fixtures to Protocol V2 input.
-- [ ] Replace V1 testing helpers with V2 fixture builders. Testing exports must
-      not compile V1 projects.
-- [ ] Rewrite runtime/compiler tests around certified V2 atoms and Runtime IR
-      V2. Delete V1 parity tests instead of maintaining dual parity.
-- [ ] Remove V1 references from package READMEs and architecture documentation.
-- [ ] Preserve valuable visual assertions by porting them to V2 only when the
-      relevant atom has been certified; otherwise remove them with the V1 code.
+- [x] Convert the AI planner boundary, MCP operations, CLI commands, docs
+      fixtures, and smoke fixtures to Protocol V2 input. High-level AI
+      generation is explicitly paused until more V2 atoms are certified.
+- [ ] Replace V1 testing helpers with V2 fixture builders. V2 builders and
+      V2 tests are in place; the old helper export remains isolated for the
+      Phase 5 source deletion because legacy editor modules still import it.
+- [x] Rewrite runtime/compiler tests around certified V2 atoms and Runtime IR
+      V2. Delete V1 parity tests and V1 runtime/compiler goldens instead of
+      maintaining dual parity.
+- [x] Remove V1 references from the active compiler/runtime/MCP/render-worker/
+      playback/remotion package READMEs and document the V2-only AI boundary.
+- [x] Preserve valuable visual assertions by porting the certified rectangle/
+      ellipse parity checks to V2; remove uncertified V1-only assertions.
 
 Acceptance: `rg` finds no compiler/runtime consumer calling a V1 API.
+
+Progress: MCP, AI planner, render-worker benchmark/smoke, and Remotion parity
+now accept Protocol V2 only. The remaining unchecked helper-export item is
+deliberately coupled to Phase 5 because disabled legacy editor modules still
+reference the old testing entrypoint.
 
 ### Phase 5: Delete V1 From Compiler And Runtime
 

@@ -2,12 +2,13 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import { compileProject } from "./compiler";
-import { compositionAspectRatio } from "./aspect";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
-import { createSmokeMotionProject } from "./fixtures/smoke-project";
-import { renderCompiledProject } from "./runtime";
+import { createSmokeProtocolV2 } from "./fixtures/smoke-project";
+import {
+  renderRuntimeProjectV2,
+  runtimeProjectV2Aspect,
+} from "./runtime/render-v2";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
@@ -18,104 +19,44 @@ function probe(file: string): Promise<string> {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
-    child.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
+    child.stderr.on("data", (data: Buffer) => (stderr += data.toString()));
     child.on("close", () => resolve(stderr));
     child.on("error", reject);
   });
 }
 
-/**
- * Real-resolution benchmark (1080x1920 @30fps) — NOT the fast e2e smoke test.
- * Prints wall-clock render/encode time + rough cloud-cost estimate so
- * the C++-vs-Node decision is based on measured numbers, not guesswork.
- */
 async function main() {
-  const project = createSmokeMotionProject(String(Date.now()));
+  const runtime = compileProtocolV2(createSmokeProtocolV2(String(Date.now())));
+  const outDir = path.join(REPO_ROOT, "tmp", "frames", runtime.id);
 
-  const presetCheck = validateMotionProjectPresets(project);
-  if (!presetCheck.ok) {
-    throw new Error(
-      `Unknown presets: ${presetCheck.unknown.map((u) => u.preset).join(", ")}`,
-    );
-  }
-
-  const compiled = compileProject(project);
-  console.log(
-    `[bench] project: ${compiled.layers.length} layers, ${compiled.timeline.duration}s total, aspect ${compiled.metadata.aspectRatio}`,
-  );
-
-  const fps = 30;
-  const scaleEnv = Number(process.env.MOTIONVIDEO_BENCH_SCALE);
-  const scaleArg = process.argv.find((a) => a.startsWith("--scale="));
-  const scaleFromArg = scaleArg ? Number(scaleArg.split("=")[1]) : NaN;
-  const scale =
-    Number.isFinite(scaleFromArg) && scaleFromArg > 0
-      ? scaleFromArg
-      : Number.isFinite(scaleEnv) && scaleEnv > 0
-        ? scaleEnv
-        : 1; // 1.0 = full production (1080p); 2.0 = 4K
-
-  const t0 = performance.now();
-  const rendered = await renderCompiledProject(compiled, {
-    fps,
-    scale,
-    outDir: path.join(REPO_ROOT, "tmp", "frames", project.metadata.id),
+  const renderStart = performance.now();
+  const rendered = await renderRuntimeProjectV2(runtime, {
+    outDir,
+    fps: runtime.composition.fps,
   });
-  const renderMs = performance.now() - t0;
+  const renderMs = performance.now() - renderStart;
 
-  const t1 = performance.now();
-  const files = await encodeOutputs(
-    rendered,
-    compositionAspectRatio(project),
-    compiled,
-  );
-  const encodeMs = performance.now() - t1;
-
-  const totalMs = renderMs + encodeMs;
+  const encodeStart = performance.now();
+  const files = await encodeOutputs(rendered, runtimeProjectV2Aspect(runtime));
+  const encodeMs = performance.now() - encodeStart;
   const mp4 = files[0]!.path;
   const info = await stat(mp4);
   const probeOut = await probe(mp4);
   const videoMatch = probeOut.match(/Video:\s*([^\n]+)/);
+  const totalMs = renderMs + encodeMs;
+  const duration = rendered.durationSec;
 
-  const videoDurationSec = compiled.timeline.duration;
-  const realtimeFactor = totalMs / 1000 / videoDurationSec;
-
-  console.log("");
-  console.log("=== KẾT QUẢ BENCHMARK (độ phân giải sản xuất thật) ===");
-  console.log(
-    `Độ phân giải: ${rendered.width}x${rendered.height} @ ${fps}fps · ${rendered.frameCount} frame`,
-  );
-  console.log(
-    `Video: ${videoDurationSec}s | File: ${(info.size / 1024).toFixed(1)} KB`,
-  );
+  console.log("=== V2 RENDER BENCHMARK ===");
+  console.log(`Resolution: ${rendered.width}x${rendered.height} @ ${rendered.fps}fps`);
+  console.log(`Frames: ${rendered.frameCount} | Duration: ${duration}s`);
+  console.log(`MP4: ${(info.size / 1024).toFixed(1)} KB`);
   console.log(`Codec: ${videoMatch?.[1]?.trim() ?? "?"}`);
-  console.log("---");
-  console.log(`Render (raster frame):  ${(renderMs / 1000).toFixed(2)}s`);
-  console.log(`Encode (ffmpeg libx264): ${(encodeMs / 1000).toFixed(2)}s`);
-  console.log(`Tổng thời gian:          ${(totalMs / 1000).toFixed(2)}s`);
-  console.log(
-    `Hệ số realtime: ${realtimeFactor.toFixed(2)}x (1.0x = render nhanh bằng độ dài video)`,
-  );
-  console.log("---");
-
-  // Rough cloud CPU-time cost model — 1 vCPU ~ $0.03–0.05/hour on common providers (2026 rates)
-  const vcpuHourRates = [0.03, 0.05];
-  console.log(
-    "Ước tính chi phí CPU-time / video (rất thô, dùng để so sánh bậc độ lớn):",
-  );
-  for (const rate of vcpuHourRates) {
-    const costPerRender = (totalMs / 1000 / 3600) * rate;
-    console.log(
-      `  @ $${rate.toFixed(2)}/vCPU-h → $${costPerRender.toFixed(5)} / video (${videoDurationSec}s)`,
-    );
-  }
-  console.log("");
-  console.log(
-    "So sánh: người dùng Remotion Lambda báo cáo 'vài xu cho nhiều phút video' ở cùng mô hình Node+ffmpeg.",
-  );
+  console.log(`Raster: ${(renderMs / 1000).toFixed(2)}s`);
+  console.log(`Encode: ${(encodeMs / 1000).toFixed(2)}s`);
+  console.log(`Realtime factor: ${(totalMs / 1000 / duration).toFixed(2)}x`);
 }
 
-main().catch((err) => {
-  console.error("[bench] FAILED", err);
+main().catch((error) => {
+  console.error("[bench] FAILED", error);
   process.exit(1);
 });

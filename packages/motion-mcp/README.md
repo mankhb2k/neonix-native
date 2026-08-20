@@ -1,17 +1,23 @@
-# motion-mcp
+# `@motionvideo/motion-mcp`
 
-Transport-agnostic MCP package for MotionVideo.
+Transport-agnostic MCP operations for Atomic Protocol V2.
 
-This package is the home for:
+The package accepts only `format: "motion-protocol"` with
+`formatVersion: 2`. Its compile operation calls `compileProtocolV2` and
+returns `RuntimeProjectV2`; it never converts or executes an older project
+format.
 
-- MCP tool contracts
-- tool registry
-- project validation / patch / compile operations
-- future stdio or HTTP server adapters
+```text
+AI / MCP operation
+        |
+  Protocol V2 JSON
+        |
+  compileProtocolV2
+        |
+  RuntimeProjectV2
+```
 
-It depends on:
-
-- `@motionvideo/motion-protocol` for JSON schema / validation
-- `@motionvideo/motion-compiler` for compile
-
-It intentionally does not own render, preview UI, or editor concerns.
+V2 patch operations are intentionally flat while Group is not certified:
+`addLayer`, `updateLayer`, `removeLayer`, `trimLayer`, `setComposition`, and
+`setValue`. Every patch is validated against the strict V2 schema before it is
+returned.

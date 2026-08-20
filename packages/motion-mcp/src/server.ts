@@ -1,4 +1,3 @@
-import type { CompileV1Options } from "@motionvideo/motion-compiler";
 import type {
   MCPToolOperation,
   MCPToolResult,
@@ -22,7 +21,7 @@ export class MotionMcpUnsupportedToolError extends Error {
 }
 
 export type ExecuteMotionMcpOptions = {
-  compileOptions?: CompileV1Options;
+  compileOptions?: Record<string, never>;
 };
 
 export function executeMotionMcpOperation(
@@ -39,7 +38,7 @@ export function executeMotionMcpOperation(
     case "compile_project":
       return {
         tool: operation.tool,
-        result: compileProject(operation.input, options.compileOptions),
+        result: compileProject(operation.input),
       };
     case "list_capabilities":
       return {

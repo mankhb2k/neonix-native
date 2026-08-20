@@ -15,7 +15,9 @@ compatibility layer. New features, however, should follow the V2 pipeline
 below rather than adding more concepts to V1.
 
 The editor is an authoring surface, not the renderer and not the protocol. The
-system has three deliberately different representations:
+old authoring/runtime path is disabled and scheduled for deletion; it is not a
+supported input to preview, playback, MCP, AI tooling, or export. The system
+has three deliberately different representations:
 
 1. **High-level Authoring JSON** expresses intent for users, AI agents,
    templates, and Skills.
@@ -26,6 +28,12 @@ system has three deliberately different representations:
 
 The key boundary is that high-level vocabulary does not leak into the atomic
 protocol, and GPU implementation details do not leak into either JSON format.
+
+> **Hard-cut status (Phase 4):** Protocol V2 is the only accepted atomic
+> execution input. The AI planner is currently a V2 validator/compiler gate;
+> high-level generation stays paused until more atoms are certified. Sections
+> below that mention the retired authoring contract are historical migration
+> notes and are not implementation guidance.
 
 ```mermaid
 flowchart TB

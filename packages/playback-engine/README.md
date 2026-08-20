@@ -11,7 +11,7 @@ MotionRuntimeProject (Runtime IR)
         ↓
   PlaybackEngine  (clock · RAF · quality · metrics)
         ↓
-  evaluateCompositionFrameV1  (@motionvideo/motion-runtime)
+  evaluateRuntimeProjectV2  (@motionvideo/motion-runtime)
         ↓
   FrameConsumer.paintCompositionFrame  →  native preview / Remotion / mock
 ```
@@ -68,7 +68,8 @@ Nền tảng (RAF, `cancelAnimationFrame`, `AudioContext`) inject qua options �
 ## Không làm
 
 - **Không compile MotionProject** — gọi `@motionvideo/motion-compiler` trước khi `load`.
-- **Không evaluate property/geometry** — engine gọi `evaluateCompositionFrameV1` từ `@motionvideo/motion-runtime`.
+- `PlaybackEngineV2` evaluates `RuntimeProjectV2` through
+  `evaluateRuntimeProjectV2` and sends `RuntimeFrameV2` to the preview consumer.
 - **Không paint GPU / encode MP4** — painter thuộc `@motionvideo/preview-renderer` hoặc `@motionvideo/remotion-renderer`.
 - **Không editor UI / Zustand / React** — không playhead, timeline chrome, store; app mount engine và overlay.
 - **Không orchestration render job** — thuộc apps + `@motionvideo/render-contracts`.

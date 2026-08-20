@@ -31,6 +31,10 @@ const frame = compileProtocolV2ToPaintCommands(protocol, { frame: 0 });
 references, and view state before emitting `RuntimeProjectV2`. Matrix4 values
 are runtime IR values; they are not stored in Atomic Protocol JSON.
 
+The package is in the V2 hard-cut migration. New tooling and runtime consumers
+must use the V2 entrypoints above; the remaining historical implementation is
+isolated for the Phase 5 deletion.
+
 `compileProtocolV2ToPaintCommands()` is only a convenience composition of the
 V2 compiler and `evaluateRuntimeProjectV2()`. Preview and export should use the
 same Runtime IR and paint semantics.

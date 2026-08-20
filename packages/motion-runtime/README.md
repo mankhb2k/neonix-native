@@ -1,49 +1,37 @@
 # `@motionvideo/motion-runtime`
 
-Evaluator thời gian chạy cho **Runtime IR** đã compile từ NeonVideo V1. Không parse authoring JSON — nhận `MotionRuntimeProject` và trả transform, bounds, hit-test, geometry tại timestamp xác định.
-
-Runtime **không** mở rộng protocol. Animation runtime là `propertyAnimations`, compile từ `layer.animations` và component prop keyframes.
-
-## Vai trò
+Runtime IR V2 evaluator. Runtime does not parse authoring JSON; it receives
+`RuntimeProjectV2`, resolves timing and stable order, and returns
+`RuntimeFrameV2` with a backend-neutral `PaintCommandBuffer`.
 
 ```text
-MotionProjectV1
-        ↓ compileMotionProjectV1
-MotionRuntimeProject (Runtime IR)
-        ↓
-  evaluateScene / evaluateProperty
-        ↓
-  world matrix · bounds · snapshot / paint
+Atomic Protocol V2
+        |
+  compileProtocolV2
+        |
+  RuntimeProjectV2
+        |
+  evaluateRuntimeProjectV2
+        |
+  RuntimeFrameV2 / PaintCommandBuffer
 ```
 
-Dùng chung bởi browser preview (`apps/web`) và worker raster (`apps/render-worker`).
+## Ownership
 
-## API chính
+| Module | Responsibility |
+| --- | --- |
+| `v2` | RuntimeProjectV2 validation and frame evaluation |
+| `matrix4` | Backend-neutral 3D transforms and projection |
+| `paint` | PaintCommandBuffer contract |
+| `clock` | Frame/time quantization |
 
 ```ts
 import {
-  evaluateScene,
-  evaluateProperty,
-  applyMatrix,
-  frameTimestamp,
-  quantizeTimeToFrame,
-  hitTestScene,
-  subtreeBounds,
-  pathMorphContours,
+  evaluateRuntimeProjectV2,
+  type RuntimeProjectV2,
+  type RuntimeFrameV2,
 } from "@motionvideo/motion-runtime";
 ```
 
-| Module | Chức năng |
-| --- | --- |
-| `evaluator` | `propertyAnimations`, hierarchy |
-| `matrix` / `spatial` | World matrix, bounds |
-| `hit-test` | Hit-test theo draw order / mask |
-| `clock` | Frame ↔ time deterministic |
-| `geometry` | Path sample; morphTargets data-only |
-
-## Docs
-
-- [`docs/guide/v1-compiler-runtime-guide.md`](../../docs/guide/v1-compiler-runtime-guide.md)
-- [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
-- [`docs/guide/v1-timeline-guide.md`](../../docs/guide/v1-timeline-guide.md)
-- Gate visual: `pnpm validate:primitives`
+See [`docs/ai-first-editor-architecture.md`](../../docs/ai-first-editor-architecture.md)
+and [`docs/v2-runtime-compiler-hard-cut-plan.md`](../../docs/v2-runtime-compiler-hard-cut-plan.md).

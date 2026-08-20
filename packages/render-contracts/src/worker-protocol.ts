@@ -21,7 +21,7 @@ export type WorkerSequenceId = number;
 export type WorkerTimings = {
   /** Wall-clock ms for the entire produce cycle. */
   totalMs: number;
-  /** Time spent in evaluateCompositionFrameV1. */
+  /** Time spent evaluating RuntimeProjectV2 into a RuntimeFrameV2. */
   evaluateMs: number;
   /** Time spent building paint commands. */
   paintBuildMs: number;
@@ -39,7 +39,7 @@ export type InitWorkerMsg = {
   type: "init";
   /** Protocol version handshake. */
   protocolVersion: typeof WORKER_PROTOCOL_VERSION;
-  /** Serialized MotionRuntimeProject (JSON). */
+  /** Serialized RuntimeProjectV2 (JSON). */
   runtimeJson: string;
   /** Composition dimensions. */
   width: number;

@@ -1,73 +1,33 @@
 import {
-  type MotionProjectV1,
-  MotionProjectV1Schema,
-} from "@motionvideo/motion-protocol";
-import { computeRuntimeHash, shortHash } from "@motionvideo/render-contracts";
-import type { MotionProjectV1Patch } from "./patch";
-import { applyMotionProjectV1Patch } from "./patch";
+  MotionProtocolV2Schema,
+  type MotionProtocolV2,
+} from "@motionvideo/motion-protocol/v2";
 import {
-  compileMotionProjectV1,
-  COMPILER_VERSION_V1,
+  compileProtocolV2,
 } from "@motionvideo/motion-compiler";
-import type { CompileV1Options } from "@motionvideo/motion-compiler";
-import type {
-  MCPApplyPatchInput,
-  MCPApplyPatchResult,
-  MCPCapabilityCheck,
-  MCPCompileProjectInput,
-  MCPCompileProjectResult,
-  MCPCreateProjectInput,
-  MCPCreateProjectResult,
-  MCPValidateProjectInput,
-  MCPValidateProjectResult,
-} from "./mcp";
-import { computeMCPProjectHash } from "./mcp";
+import { computeRuntimeHash, shortHash } from "@motionvideo/render-contracts";
+import type { MCPApplyPatchInput, MCPApplyPatchResult, MCPCapabilityCheck, MCPCompileProjectInput, MCPCompileProjectResult, MCPCreateProjectInput, MCPCreateProjectResult, MCPValidateProjectInput, MCPValidateProjectResult } from "./mcp";
+import { computeMCPProjectHash, preflightCapabilities } from "./mcp";
+import { applyMotionProtocolV2Patch } from "./patch";
 
-type DiagnosticSeverity = "error" | "warning" | "info";
+type Diagnostic = { path: string; message: string; severity: "error" | "warning" | "info" };
 
-type CompileDiagnosticLike = {
-  path?: readonly (string | number)[];
-  message: string;
-  severity: DiagnosticSeverity;
-};
+function withProjectHash<T extends { warnings: string[] }>(project: MotionProtocolV2, payload: T): T & { projectHash: string; projectHashShort: string } {
+  return { ...payload, ...computeMCPProjectHash(project) };
+}
 
 function emptyCapabilityCheck(): MCPCapabilityCheck {
-  return {
-    available: [],
-    missing: [],
-    recommended: [],
-    experimental: [],
-    allowed: true,
-  };
+  return { available: [], missing: [], recommended: [], experimental: [], allowed: true };
 }
 
-function withProjectHash<T extends { warnings: string[] }>(
-  project: MotionProjectV1,
-  payload: T,
-): T & { projectHash: string; projectHashShort: string } {
-  return {
-    ...payload,
-    ...computeMCPProjectHash(project),
-  };
-}
-
-function diagnosticPath(path?: readonly (string | number)[]): string {
-  return Array.isArray(path) ? path.join(".") : "project";
-}
-
-export function createProject(
-  input: MCPCreateProjectInput,
-): MCPCreateProjectResult {
-  const project: MotionProjectV1 = {
-    format: "motion-project",
-    formatVersion: 1,
-    metadata: input.metadata,
+export function createProject(input: MCPCreateProjectInput): MCPCreateProjectResult {
+  const project: MotionProtocolV2 = {
+    format: "motion-protocol",
+    formatVersion: 2,
+    id: input.id,
     composition: input.composition,
-    assets: [],
-    components: [],
-    layers: [],
+    layers: input.layers,
   };
-
   return withProjectHash(project, {
     warnings: [],
     project,
@@ -75,117 +35,57 @@ export function createProject(
   });
 }
 
-export function validateProject(
-  input: MCPValidateProjectInput,
-): MCPValidateProjectResult {
-  const diagnostics: MCPValidateProjectResult["diagnostics"] = [];
-  const parsed = MotionProjectV1Schema.safeParse(input.project);
+export function validateProject(input: MCPValidateProjectInput): MCPValidateProjectResult {
+  const parsed = MotionProtocolV2Schema.safeParse(input.project);
   if (!parsed.success) {
-    for (const issue of parsed.error.issues) {
-      diagnostics.push({
-        path: issue.path.join(".") || "project",
-        message: issue.message,
-        severity: "error",
-      });
-    }
     return {
       warnings: [],
       valid: false,
-      diagnostics,
+      diagnostics: parsed.error.issues.map((issue) => ({ path: issue.path.join(".") || "project", message: issue.message, severity: "error" as const })),
       capabilityCheck: emptyCapabilityCheck(),
     };
   }
-
-  for (const issue of V1.validateMotionProjectV1References(parsed.data)) {
-    diagnostics.push({
-      path: issue.path,
-      message: issue.message,
-      severity: "error",
-    });
-  }
-
+  const capabilityCheck = preflightCapabilities(parsed.data, []);
   return withProjectHash(parsed.data, {
     warnings: [],
-    valid: diagnostics.length === 0,
-    diagnostics,
-    capabilityCheck: emptyCapabilityCheck(),
+    valid: capabilityCheck.allowed,
+    diagnostics: [],
+    capabilityCheck,
   });
 }
 
 export function applyPatch(input: MCPApplyPatchInput): MCPApplyPatchResult {
-  const result = applyMotionProjectV1Patch(
-    input.project,
-    input.patch as MotionProjectV1Patch,
-  );
-
-  if (!result.project) {
-    return {
-      warnings: [],
-      applied: false,
-      project: null,
-      diagnostics: result.diagnostics.map((diagnostic) => ({
-        path: diagnostic.path,
-        message: diagnostic.message,
-        severity: diagnostic.severity,
-      })),
-    };
-  }
-
+  const result = applyMotionProtocolV2Patch(input.project, input.patch);
+  const diagnostics = result.diagnostics.map((diagnostic) => ({ ...diagnostic }));
+  if (!result.project) return { warnings: [], applied: false, project: null, diagnostics };
   return withProjectHash(result.project, {
     warnings: [],
-    applied: !result.diagnostics.some(
-      (diagnostic) => diagnostic.severity === "error",
-    ),
+    applied: !diagnostics.some((diagnostic) => diagnostic.severity === "error"),
     project: result.project,
-    diagnostics: result.diagnostics.map(
-      (diagnostic: {
-        path: string;
-        message: string;
-        severity: "error" | "warning";
-      }) => ({
-        path: diagnostic.path,
-        message: diagnostic.message,
-        severity: diagnostic.severity,
-      }),
-    ),
+    diagnostics,
   });
 }
 
-export function compileProject(
-  input: MCPCompileProjectInput,
-  options: CompileV1Options = {},
-): MCPCompileProjectResult {
-  const compile = compileMotionProjectV1(input.project, options);
-  if (!compile.ok) {
+export function compileProject(input: MCPCompileProjectInput): MCPCompileProjectResult {
+  try {
+    const runtime = compileProtocolV2(input.project);
+    const runtimeProject = runtime as unknown as Record<string, unknown>;
+    const runtimeHash = computeRuntimeHash(runtimeProject);
+    const diagnostics: Diagnostic[] = [];
+    return withProjectHash(input.project, {
+      warnings: [],
+      runtimeProject,
+      runtimeHash,
+      runtimeHashShort: shortHash(runtimeHash),
+      compilerVersion: "protocol-v2",
+      diagnostics,
+    });
+  } catch (error) {
     return withProjectHash(input.project, {
       warnings: [],
       runtimeProject: {},
-      compilerVersion: COMPILER_VERSION_V1,
-      diagnostics: compile.diagnostics.map(
-        (diagnostic: CompileDiagnosticLike) => ({
-          path: diagnosticPath(diagnostic.path),
-          message: diagnostic.message,
-          severity: diagnostic.severity,
-        }),
-      ),
+      compilerVersion: "protocol-v2",
+      diagnostics: [{ path: "project", message: error instanceof Error ? error.message : String(error), severity: "error" }],
     });
   }
-
-  const runtimeProject = compile.project as unknown as Record<string, unknown>;
-  const runtimeHash = computeRuntimeHash(runtimeProject);
-
-  return withProjectHash(input.project, {
-    warnings: [],
-    runtimeProject,
-    runtimeHash,
-    runtimeHashShort: shortHash(runtimeHash),
-    compilerVersion: COMPILER_VERSION_V1,
-    diagnostics: compile.diagnostics.map(
-      (diagnostic: CompileDiagnosticLike) => ({
-        path: diagnosticPath(diagnostic.path),
-        message: diagnostic.message,
-        severity: diagnostic.severity,
-      }),
-    ),
-  });
 }
