@@ -1,57 +1,35 @@
-import {
-  parseMotionProject,
-  type MotionProject,
-} from "@motionvideo/motion-protocol";
-import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import type { RenderJobStatus } from "@motionvideo/render-contracts";
-import { compileProject } from "./compiler";
-import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs } from "./ffmpeg";
-import { renderCompiledProject } from "./runtime";
 import { uploadOutputs } from "./upload";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
+import type { RenderJobStatus } from "@motionvideo/render-contracts";
+import {
+  renderRuntimeProjectV2,
+  runtimeProjectV2Aspect,
+} from "./runtime/render-v2";
 
 export async function processJob(rawProject: unknown): Promise<{
   status: RenderJobStatus;
   urls?: string[];
   error?: string;
 }> {
-  const project = parseMotionProject(rawProject);
-  const presetCheck = validateMotionProjectPresets(project);
-  if (!presetCheck.ok) {
-    const detail = presetCheck.unknown
-      .map((u) => `${u.layerId}:${u.preset}`)
-      .join(", ");
+  try {
+    const protocol = MotionProtocolV2Schema.parse(rawProject);
+    const runtime = compileProtocolV2(protocol);
+    const rendered = await renderRuntimeProjectV2(runtime, {
+      outDir: process.env.MOTIONVIDEO_RENDER_OUT_DIR ?? `tmp/frames/${runtime.id}`,
+    });
+    const files = await encodeOutputs(rendered, runtimeProjectV2Aspect(runtime));
+    const urls = await uploadOutputs(files);
+    return { status: "done", urls };
+  } catch (error) {
     return {
       status: "failed",
-      error: `Unknown animation presets: ${detail}`,
+      error: error instanceof Error ? error.message : String(error),
     };
   }
-
-  const compiled = compileProject(project);
-
-  // Blank-video guard: a canonical project always carries an explicit
-  // timeline.duration, but an empty draft derives `0`. MP4 export cannot
-  // produce a zero-length file unless blank videos are intentionally
-  // supported by the product.
-  if ((compiled.timeline.duration ?? 0) <= 0) {
-    return {
-      status: "failed",
-      error: "Cannot export: timeline has no content (derived duration is 0).",
-    };
-  }
-
-  const framesOrScene = await renderCompiledProject(compiled);
-  const files = await encodeOutputs(
-    framesOrScene,
-    compositionAspectRatio(project),
-    compiled,
-  );
-  const urls = await uploadOutputs(files);
-  return { status: "done", urls };
 }
 
-export type { MotionProject };
-
-console.log("[render-worker] ready — run `pnpm e2e` for a real MP4 smoke test");
+console.log("[render-worker] Protocol V2 worker ready");
 
 void processJob;

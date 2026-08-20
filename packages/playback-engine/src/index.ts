@@ -74,3 +74,9 @@ export {
   type MediaFallbackBridge,
   type VideoFrameProvider,
 } from "./media-fallback";
+
+export {
+  createPlaybackEngineV2,
+  type PlaybackEngineV2,
+  type PlaybackV2Consumer,
+} from "./playback-engine-v2";

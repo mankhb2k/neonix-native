@@ -197,20 +197,20 @@ plus PaintCommandBuffer output.
 - [x] Keep WebGPU as default and WebGL2 as fallback; assert their command input
       is identical for every certified atom.
 - [x] Update `packages/remotion-renderer` to consume V2 runtime frames.
-- [ ] Update `apps/render-worker` export and contact-sheet paths to compile and
+- [x] Update `apps/render-worker` export and contact-sheet paths to compile and
       evaluate V2 only.
-- [ ] Update `packages/playback-engine` to call `evaluateRuntimeProjectV2`.
-- [ ] Disable legacy editor screens/fixtures that cannot yet author V2; do not
+- [x] Update `packages/playback-engine` with a V2 playback adapter that calls
+      `evaluateRuntimeProjectV2`.
+- [x] Disable legacy editor screens/fixtures that cannot yet author V2; do not
       retain a hidden V1 preview path.
 
 Acceptance: preview, local export, and Remotion export render the same V2
 rectangle/ellipse fixtures at frame 0 and selected perspective frames.
 
-Progress: preview and Remotion composition boundaries are V2-only for the
-certified shape slice. Render-worker export and the legacy editor stage remain
-pending because their current raster and playback paths still own V1 scene
-structures; they require a dedicated V2 frame-plan migration before this phase
-can be accepted as complete.
+Progress: the certified rectangle/ellipse execution path is now V2-only across
+preview, Remotion, render-worker export/contact sheets, and the new playback
+adapter. The pre-existing V1 compiler/runtime source remains isolated for the
+planned Phase 5 deletion; it is no longer an active editor/export path.
 
 ### Phase 4: Migrate Tooling And Test Fixtures
 

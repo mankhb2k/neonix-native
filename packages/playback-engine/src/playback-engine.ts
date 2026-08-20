@@ -30,7 +30,7 @@ import {
   type FrameBuffer,
   type FrameBufferEntry,
 } from "./frame-buffer";
-import { createBufferPolicy, type BufferPolicy } from "./buffer-policy";
+import { createBufferPolicy } from "./buffer-policy";
 import type {
   ClockDrive,
   PresentMode,

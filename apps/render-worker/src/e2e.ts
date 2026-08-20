@@ -1,95 +1,100 @@
-import { mkdir, writeFile, stat } from "node:fs/promises";
+/** Local V2 render-worker -> PNG sequence -> MP4 smoke test. */
+import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { serializeMotionProject } from "@motionvideo/motion-protocol";
-import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import { compileProject } from "./compiler";
-import { compositionAspectRatio } from "./aspect";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
-import { createSmokeMotionProject } from "./fixtures/smoke-project";
-import { renderCompiledProject } from "./runtime";
-import { uploadOutputs } from "./upload";
+import {
+  renderRuntimeProjectV2,
+  runtimeProjectV2Aspect,
+} from "./runtime/render-v2";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
+function smokeProtocol(id: string) {
+  return {
+    format: "motion-protocol" as const,
+    formatVersion: 2 as const,
+    id,
+    composition: {
+      width: 320,
+      height: 180,
+      fps: 12,
+      background: "#101820",
+      colorSpace: "srgb" as const,
+      audioSampleRate: 48000,
+    },
+    layers: [
+      {
+        id: "back",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 220, height: 120 },
+        transform: {
+          translate: { x: 30, y: 30, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+          rotate: { x: 0, y: 0, z: 0 },
+          skew: { x: 0, y: 0 },
+          anchor: { x: 0, y: 0, z: 0 },
+        },
+        opacity: 100,
+        timing: { start: 0, duration: 2 },
+        payload: { shape: "rectangle" as const },
+        style: { fill: "#00aa88" },
+      },
+      {
+        id: "front",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 1,
+        frame: { width: 120, height: 80 },
+        transform: {
+          translate: { x: 120, y: 60, z: 0 },
+          scale: { x: 1, y: 1, z: 1 },
+          rotate: { x: 0, y: 0, z: 0 },
+          skew: { x: 0, y: 0 },
+          anchor: { x: 0, y: 0, z: 0 },
+        },
+        opacity: 100,
+        timing: { start: 0, duration: 2 },
+        payload: { shape: "ellipse" as const },
+        style: { fill: "#ff3366" },
+      },
+    ],
+  };
+}
 
 function probe(file: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(resolveFfmpegPath(), ["-i", file], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(resolveFfmpegPath(), ["-i", file], { stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
-    child.stderr.on("data", (d: Buffer) => {
-      stderr += d.toString();
-    });
-    child.on("close", () => {
-      // ffmpeg -i exits non-zero without output file; stderr still has stream info
-      resolve(stderr);
-    });
+    child.stderr.on("data", (data: Buffer) => (stderr += data.toString()));
+    child.on("close", () => resolve(stderr));
     child.on("error", reject);
   });
 }
 
-async function main() {
-  const project = createSmokeMotionProject(String(Date.now()));
-
-  const presetCheck = validateMotionProjectPresets(project);
-  if (!presetCheck.ok) {
-    throw new Error(
-      `Unknown presets: ${presetCheck.unknown.map((u) => u.preset).join(", ")}`,
-    );
-  }
-
-  const mtDir = path.join(REPO_ROOT, "tmp");
-  await mkdir(mtDir, { recursive: true });
-  const mtPath = path.join(mtDir, `${project.metadata.id}.mt`);
-  await writeFile(mtPath, serializeMotionProject(project), "utf8");
-  console.log(`[e2e] wrote ${mtPath}`);
-
-  const compiled = compileProject(project);
-  console.log(
-    `[e2e] compiled ${compiled.layers.length} layers · ${compiled.timeline.duration}s`,
-  );
-
-  const rendered = await renderCompiledProject(compiled, {
-    fps: 12,
-    scale: 0.5,
-    outDir: path.join(REPO_ROOT, "tmp", "frames", project.metadata.id),
+async function main(): Promise<void> {
+  const runtime = compileProtocolV2(smokeProtocol(`render-worker-v2-${Date.now()}`));
+  const outDir = path.join(REPO_ROOT, "tmp", "render-worker-v2-smoke");
+  await mkdir(outDir, { recursive: true });
+  const rendered = await renderRuntimeProjectV2(runtime, {
+    fps: runtime.composition.fps,
+    outDir: path.join(outDir, "frames"),
   });
-  console.log(
-    `[e2e] rendered ${rendered.frameCount} frames @ ${rendered.fps}fps (${rendered.width}x${rendered.height})`,
-  );
-
-  const files = await encodeOutputs(
-    rendered,
-    compositionAspectRatio(project),
-    compiled,
-  );
-  const urls = await uploadOutputs(files);
+  const files = await encodeOutputs(rendered, runtimeProjectV2Aspect(runtime));
   const mp4 = files[0]!.path;
   const info = await stat(mp4);
-  const probeOut = await probe(mp4);
-  const durationMatch = probeOut.match(/Duration:\s*([\d:.]+)/);
-  const videoMatch = probeOut.match(/Video:\s*([^\n]+)/);
-
-  console.log(`[e2e] MP4 ${mp4}`);
-  console.log(`[e2e] size ${(info.size / 1024).toFixed(1)} KB`);
-  console.log(`[e2e] duration ${durationMatch?.[1] ?? "?"}`);
-  console.log(`[e2e] video ${videoMatch?.[1]?.trim() ?? "?"}`);
-  console.log(`[e2e] urls ${urls.join(", ")}`);
-
-  if (info.size < 1000) {
-    throw new Error("MP4 too small — encode likely failed");
+  const probeOutput = await probe(mp4);
+  if (info.size < 1000 || !/Video:/i.test(probeOutput)) {
+    throw new Error("V2 render-worker MP4 smoke failed");
   }
-  if (!videoMatch) {
-    throw new Error("ffmpeg could not read video stream from MP4");
-  }
-
-  console.log("[e2e] OK");
+  console.log(`[e2e] V2 render OK: ${mp4} (${(info.size / 1024).toFixed(1)} KB)`);
 }
 
-main().catch((err) => {
-  console.error("[e2e] FAILED", err);
+main().catch((error: unknown) => {
+  console.error("[e2e] V2 render failed", error);
   process.exit(1);
 });

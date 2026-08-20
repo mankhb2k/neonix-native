@@ -1,37 +1,23 @@
 "use client";
 
-import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
-import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import {
-  resolveStageRendererBackend,
-  type StageRendererBackend,
-} from "@/lib/editor/stage/stage-renderer-factory";
-import { stackRootLayersToTimeline } from "@motionvideo/editor-core";
 import { subscribeLibraryDrag } from "@/lib/editor/library/library-drag-session";
 import { isOverStageDropZone } from "@/lib/editor/library/timeline-library-drop";
 import { cn } from "@/lib/utils";
-import type { MotionProject } from "@motionvideo/motion-protocol";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
-  project: MotionProject;
+  project: unknown;
   width: number;
   height: number;
 };
 
-export function StageViewport({ project, width, height }: Props) {
-  const [mode, setMode] = useState<StageRendererBackend>("preview");
+/**
+ * The old authoring editor cannot produce Atomic Protocol V2 yet. Keep its
+ * stage visibly disabled so it cannot silently execute the V1 preview path.
+ * The certified V2 surface is `/docs/preview` until authoring migration lands.
+ */
+export function StageViewport({ width, height }: Props) {
   const [dragOver, setDragOver] = useState(false);
-
-  useEffect(() => {
-    setMode(resolveStageRendererBackend());
-  }, []);
-
-  const preview = useMemo(() => resolvePreviewProject(project), [project]);
-  const { paintClips, paintLanes } = useMemo(() => {
-    const stacked = stackRootLayersToTimeline(preview.project);
-    return { paintClips: stacked.clips, paintLanes: stacked.lanes };
-  }, [preview.project]);
 
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
@@ -47,7 +33,7 @@ export function StageViewport({ project, width, height }: Props) {
     <main
       className="editor-panel flex flex-col overflow-hidden [grid-area:stage]"
       data-testid="editor-stage"
-      data-stage-backend={mode}
+      data-stage-backend="disabled-v1"
     >
       <div
         className={cn(
@@ -59,12 +45,14 @@ export function StageViewport({ project, width, height }: Props) {
         <div
           className="relative z-[1] flex max-h-full w-full max-w-[min(90%,1080px)] items-center justify-center overflow-hidden rounded-sm bg-[var(--preview-bg)] shadow-lg"
           style={{ aspectRatio: `${width} / ${height}` }}
+          data-testid="editor-stage-v1-disabled"
         >
-          <PreviewStageHost
-            project={preview.project}
-            clips={paintClips}
-            lanes={paintLanes}
-          />
+          <a
+            className="text-sm text-[var(--fg-muted)] underline underline-offset-4"
+            href="/docs/preview"
+          >
+            Open Protocol V2 preview
+          </a>
         </div>
       </div>
     </main>
