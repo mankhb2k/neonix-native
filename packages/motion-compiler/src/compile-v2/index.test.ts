@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileProtocolV2ToPaintCommands } from "./index";
+import { compileProtocolV2, compileProtocolV2ToPaintCommands } from "./index";
 
 const identity = {
   translate: { x: 0, y: 0, z: 0 },
@@ -24,6 +24,43 @@ const base = {
 };
 
 describe("Protocol V2 Compiler B", () => {
+  it("emits RuntimeProjectV2 before frame evaluation", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      layers: [
+        {
+          id: "runtime-rect",
+          type: "shape",
+          parentLayerId: null,
+          zIndex: 2,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 75,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: { fill: "#00aa88" },
+        },
+      ],
+    });
+
+    expect(runtime).toMatchObject({
+      format: "motion-runtime",
+      formatVersion: 2,
+      id: "v2-rectangle",
+      composition: { width: 320, height: 180, fps: 30 },
+    });
+    expect(runtime.nodes).toHaveLength(1);
+    expect(runtime.nodes[0]).toMatchObject({
+      id: "runtime-rect",
+      zIndex: 2,
+      opacity: 0.75,
+      content: { kind: "shape", shape: "rectangle", fill: "#00aa88" },
+    });
+    expect(runtime.nodes[0]?.localMatrix).toHaveLength(16);
+    expect(runtime.nodes[0]?.worldMatrix).toHaveLength(16);
+    expect(runtime.view.viewProjectionMatrix).toHaveLength(16);
+  });
+
   it("emits a valid empty frame", () => {
     const buffer = compileProtocolV2ToPaintCommands({ ...base, layers: [] });
     expect(buffer.commands.map((command) => command.op)).toEqual([

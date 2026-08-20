@@ -68,7 +68,7 @@ import {
   type RuntimeProjectV2,
 } from "@motionvideo/motion-compiler";
 
-const runtime = compileProtocolV2(protocol, { frame: 0 });
+const runtime = compileProtocolV2(protocol);
 ```
 
 Compiler B has two explicit operations:
@@ -176,15 +176,15 @@ schema, compiler, fixture, or type.
 
 ### Phase 2: Refactor Compiler B To V2 Runtime IR
 
-- [ ] Rename the V2 compiler entrypoint to `compileProtocolV2`.
-- [ ] Make it validate `MotionProtocolV2Schema`, V2 capability certification,
+- [x] Rename the V2 compiler entrypoint to `compileProtocolV2`.
+- [x] Make it validate `MotionProtocolV2Schema`, V2 capability certification,
       layer references, timing, and normalized view state.
-- [ ] Emit `RuntimeProjectV2`, not a direct renderer-specific representation.
-- [ ] Implement `compileProtocolV2ToPaintCommands` only as a thin composition
+- [x] Emit `RuntimeProjectV2`, not a direct renderer-specific representation.
+- [x] Implement `compileProtocolV2ToPaintCommands` only as a thin composition
       of compiler plus V2 runtime evaluation.
-- [ ] Keep the existing rectangle/ellipse fixtures byte-for-byte deterministic
+- [x] Keep the existing rectangle/ellipse fixtures byte-for-byte deterministic
       where their output contract is unchanged.
-- [ ] Replace public `compileMotionProject` with the V2-only API; do not retain
+- [x] Replace public `compileMotionProject` with the V2-only API; do not retain
       its V1 parameter type or alias.
 
 Acceptance: compiler unit tests use only V2 JSON and assert RuntimeProjectV2

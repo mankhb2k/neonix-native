@@ -28,6 +28,7 @@ function stableNodeOrder(project: RuntimeProjectV2): RuntimeProjectV2["nodes"] {
 export function evaluateRuntimeProjectV2(
   project: RuntimeProjectV2,
   frame: number,
+  options: { time?: number } = {},
 ): RuntimeFrameV2 {
   assertFrame(frame);
   const validation = validateRuntimeProjectV2(project);
@@ -42,7 +43,10 @@ export function evaluateRuntimeProjectV2(
   if (!Number.isFinite(project.composition.fps) || project.composition.fps <= 0) {
     throw new Error("Runtime V2 composition fps must be finite and positive");
   }
-  const time = frameToTime(frame, project.composition.fps);
+  const time = options.time ?? frameToTime(frame, project.composition.fps);
+  if (!Number.isFinite(time) || time < 0) {
+    throw new Error("Runtime V2 time must be finite and non-negative");
+  }
   const commands: PaintCommand[] = [
     {
       op: "beginFrame",

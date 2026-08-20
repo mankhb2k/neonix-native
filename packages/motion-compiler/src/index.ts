@@ -1,12 +1,3 @@
-import { type MotionProject } from "@motionvideo/motion-protocol";
-import { type MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
-import type { ComponentInput } from "./types";
-import { compileMotionProjectV1 } from "./compile-v1";
-
-export type CompileOptions = {
-  components?: ComponentInput[];
-};
-
 /** Closed allowlist of Clip.source.presetId values the compiler expands. Unknown IDs throw. */
 export {
   COMPILED_PRESET_IDS,
@@ -19,26 +10,6 @@ export {
   type UnknownPresetRef,
   type PresetValidationResult,
 } from "./validate-presets";
-
-export function compileMotionProject(
-  project: MotionProject,
-  options: CompileOptions = {},
-): MotionRuntimeProject {
-  const result = compileMotionProjectV1(
-    project as Parameters<typeof compileMotionProjectV1>[0],
-    options as unknown as Parameters<typeof compileMotionProjectV1>[1],
-  );
-  if (!result.ok) {
-    throw new Error(
-      `compileMotionProject failed: ${result.diagnostics
-        .map(
-          (d: { code: string; message: string }) => `${d.code}: ${d.message}`,
-        )
-        .join(" | ")}`,
-    );
-  }
-  return result.project;
-}
 
 export type { CompiledProject } from "./compile-result";
 export {
@@ -90,4 +61,8 @@ export {
   type RecipeBakeInput,
   type BakedRecipe,
 } from "./recipe-registry";
-export { compileProtocolV2ToPaintCommands } from "./compile-v2";
+export {
+  compileProtocolV2,
+  compileProtocolV2ToPaintCommands,
+  type CompileProtocolV2Options,
+} from "./compile-v2";

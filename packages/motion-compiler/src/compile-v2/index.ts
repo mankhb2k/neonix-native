@@ -2,7 +2,8 @@ import {
   multiplyMatrix4,
   multiplyMatrix,
   IDENTITY_MATRIX4,
-  matrix4ToArray,
+  evaluateRuntimeProjectV2,
+  frameIndexAtTime,
   orthographicMatrix2D,
   perspectiveProjectionMatrix2D,
   rotationMatrixX,
@@ -18,6 +19,7 @@ import {
   type Matrix4,
   type Matrix2D,
   type PaintCommandBuffer,
+  type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import {
   MotionProtocolV2Schema,
@@ -144,38 +146,17 @@ function stableLayerOrder(
 
 const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
 
-/**
- * Protocol V2 shape compiler boundary.
- *
- * Atomic semantic transforms are lowered into both a legacy affine matrix and
- * a backend-neutral column-major Matrix4 during the Runtime IR migration.
- */
-export function compileProtocolV2ToPaintCommands(
-  input: unknown,
-  options: { frame?: number; time?: number } = {},
-): PaintCommandBuffer {
-  const project = MotionProtocolV2Schema.parse(input);
-  const frame = options.frame ?? 0;
-  const time = options.time ?? frame / project.composition.fps;
-  const projection = viewProjectionMatrix4(project);
-  const commands: PaintCommandBuffer["commands"] = [
-    {
-      op: "beginFrame",
-      width: project.composition.width,
-      height: project.composition.height,
-      background: project.composition.background,
-      graphId: project.id,
-      frame,
-      time,
-      projection: {
-        viewMatrix: matrix4ToArray(projection.viewMatrix),
-        projectionMatrix: matrix4ToArray(projection.projectionMatrix),
-        viewProjectionMatrix: matrix4ToArray(projection.viewProjectionMatrix),
-      },
-    },
-  ];
+export type CompileProtocolV2Options = Record<string, never>;
 
-  for (const layer of stableLayerOrder(project)) {
+/** Compile Atomic Protocol V2 into backend-neutral Runtime IR V2. */
+export function compileProtocolV2(
+  input: unknown,
+  _options: CompileProtocolV2Options = {},
+): RuntimeProjectV2 {
+  const project = MotionProtocolV2Schema.parse(input);
+  const projection = viewProjectionMatrix4(project);
+
+  const nodes = stableLayerOrder(project).map((layer) => {
     const fillCapability = `${layer.type}.${layer.payload.shape}.fill`;
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
@@ -223,53 +204,79 @@ export function compileProtocolV2ToPaintCommands(
         throw new Error(`Uncertified Protocol V2 atom: ${cornerRadiusCapability}`);
       }
     }
-    if (layer.timing.start > time || time >= layer.timing.start + layer.timing.duration) {
-      continue;
-    }
-    commands.push({
-      op: "setTransform",
-      key: layer.id,
-      matrix: shapeTransformMatrix2D(layer.transform),
-      matrix4: Array.from(shapeModelMatrix4(layer.transform)),
-      alpha: layer.opacity / 100,
-      visible: layer.opacity > 0,
-      zIndex: layer.zIndex,
-    });
-    commands.push({
-      op: "drawShape",
-      key: layer.id,
-      layerId: layer.id,
-      shape: layer.payload.shape,
-      fill: typeof layer.style.fill === "string"
-        ? layer.style.fill
-        : layer.style.fill.stops[0]!.color,
-      width: layer.frame.width,
-      height: layer.frame.height,
-      ...(gradientFill ? { fillPaint: gradientFill } : {}),
-      ...(layer.payload.cornerRadius !== undefined
-        ? {
-            cornerRadius: Math.min(
-              layer.payload.cornerRadius,
-              layer.frame.width / 2,
-              layer.frame.height / 2,
-            ),
-          }
-        : {}),
-      ...(layer.style.fillOpacity !== undefined
-        ? { fillOpacity: layer.style.fillOpacity }
-        : {}),
-      ...(layer.style.stroke !== undefined
-        ? {
-            stroke: layer.style.stroke,
-            strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
-            ...(layer.style.strokeOpacity !== undefined
-              ? { strokeOpacity: layer.style.strokeOpacity }
-              : {}),
-          }
-        : {}),
-    });
-  }
 
-  commands.push({ op: "endFrame" });
-  return { version: 1, commands, diagnostics: [] };
+    const localMatrix = shapeModelMatrix4(layer.transform);
+    return {
+      id: layer.id,
+      parentId: layer.parentLayerId,
+      zIndex: layer.zIndex,
+      timing: layer.timing,
+      opacity: layer.opacity / 100,
+      visible: layer.opacity > 0,
+      localMatrix,
+      worldMatrix: localMatrix,
+      matrix2D: shapeTransformMatrix2D(layer.transform),
+      content: {
+        kind: "shape" as const,
+        shape: layer.payload.shape,
+        width: layer.frame.width,
+        height: layer.frame.height,
+        fill: typeof layer.style.fill === "string"
+          ? layer.style.fill
+          : layer.style.fill.stops[0]!.color,
+        ...(gradientFill ? { fillPaint: gradientFill } : {}),
+        ...(layer.payload.cornerRadius !== undefined
+          ? {
+              cornerRadius: Math.min(
+                layer.payload.cornerRadius,
+                layer.frame.width / 2,
+                layer.frame.height / 2,
+              ),
+            }
+          : {}),
+        ...(layer.style.fillOpacity !== undefined
+          ? { fillOpacity: layer.style.fillOpacity }
+          : {}),
+        ...(layer.style.stroke !== undefined
+          ? {
+              stroke: layer.style.stroke,
+              strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
+              ...(layer.style.strokeOpacity !== undefined
+                ? { strokeOpacity: layer.style.strokeOpacity }
+                : {}),
+            }
+          : {}),
+      },
+    };
+  });
+
+  return {
+    format: "motion-runtime",
+    formatVersion: 2,
+    id: project.id,
+    composition: {
+      width: project.composition.width,
+      height: project.composition.height,
+      fps: project.composition.fps,
+      background: project.composition.background,
+      graphId: project.id,
+    },
+    view: projection,
+    nodes,
+  };
+}
+
+/** Compile V2 and evaluate one frame into the backend-neutral paint contract. */
+export function compileProtocolV2ToPaintCommands(
+  input: unknown,
+  options: { frame?: number; time?: number } = {},
+): PaintCommandBuffer {
+  const runtime = compileProtocolV2(input);
+  const frame = options.frame ??
+    (options.time == null
+      ? 0
+      : frameIndexAtTime(options.time, runtime.composition.fps));
+  return evaluateRuntimeProjectV2(runtime, frame, {
+    ...(options.time != null ? { time: options.time } : {}),
+  });
 }

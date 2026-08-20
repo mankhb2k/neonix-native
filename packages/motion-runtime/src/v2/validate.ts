@@ -2,7 +2,7 @@ import type { RuntimeProjectV2, RuntimeValidationV2 } from "./types";
 
 function matrixIs4x4(value: unknown): boolean {
   return value instanceof Float64Array
-    ? value.length === 16
+    ? value.length === 16 && Array.from(value).every(Number.isFinite)
     : Array.isArray(value) && value.length === 16 && value.every(Number.isFinite);
 }
 

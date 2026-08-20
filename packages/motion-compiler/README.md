@@ -1,42 +1,50 @@
 # `@motionvideo/motion-compiler`
 
-Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand component instance, repeater, text animator, bindings, và `layer.animations` thành `layers` + `propertyAnimations` — không còn tham chiếu authoring.
-
-## Vai trò
+Compiler B lowers Atomic Protocol V2 JSON into backend-neutral Runtime IR V2.
+It does not render pixels, own GPU resources, or evaluate a frame by itself.
 
 ```text
-MotionProjectV1 (+ Component registry)
-        ↓
-  compileMotionProjectV1
-        ↓
-MotionRuntimeProject  →  runtime / draw / encode
+Atomic Protocol V2 JSON
+        |
+  compileProtocolV2
+        |
+RuntimeProjectV2
+        |
+evaluateRuntimeProjectV2
+        |
+PaintCommandBuffer
 ```
 
-Browser và render-worker phải dùng cùng compiler (hoặc bản tương đương) để parity preview/export.
-
-## API chính
+## Public V2 API
 
 ```ts
 import {
-  compileMotionProject,
-  type CompileOptions,
-  type CompiledProject,
+  compileProtocolV2,
+  compileProtocolV2ToPaintCommands,
 } from "@motionvideo/motion-compiler";
 
-const runtime = compileMotionProject(project, { components });
+const runtime = compileProtocolV2(protocol);
+const frame = compileProtocolV2ToPaintCommands(protocol, { frame: 0 });
 ```
 
-`CompiledProject` = alias của `MotionRuntimeProject`.
+`compileProtocolV2()` validates the V2 schema, certified capabilities, timing,
+references, and view state before emitting `RuntimeProjectV2`. Matrix4 values
+are runtime IR values; they are not stored in Atomic Protocol JSON.
 
-## Không làm
+`compileProtocolV2ToPaintCommands()` is only a convenience composition of the
+V2 compiler and `evaluateRuntimeProjectV2()`. Preview and export should use the
+same Runtime IR and paint semantics.
 
-- Không raster PNG/MP4 (thuộc `apps/render-worker`)
-- Không evaluate tại thời điểm t (thuộc `@motionvideo/motion-runtime`)
-- Không validate Zod lần đầu (gọi `parseMotionProject` trước khi compile)
+## Ownership
 
-## Docs
+- `@motionvideo/motion-protocol`: Atomic Protocol V2 schema and certification.
+- `@motionvideo/motion-runtime`: timing evaluation, matrix validation, and
+  backend-neutral paint commands.
+- `@motionvideo/preview-renderer`: WebGPU default with WebGL2 fallback.
+- `apps/render-worker`: export and encoding.
 
-- [`docs/guide/v1-compiler-runtime-guide.md`](../../docs/guide/v1-compiler-runtime-guide.md)
-- [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
-- [`docs/guide/v1-timeline-guide.md`](../../docs/guide/v1-timeline-guide.md)
-- [`docs/guide/v1-group-guide.md`](../../docs/guide/v1-group-guide.md)
+## Out Of Scope
+
+- Pixel rasterization and GPU resource ownership.
+- Frame evaluation and timeline playback.
+- High-level authoring patterns, presets, templates, and components.
