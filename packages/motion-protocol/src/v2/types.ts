@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { V2Composition } from "./composition";
+import type { V2Asset } from "./assets";
 import { V2LayerSchema } from "./layers";
 
 export type MotionProtocolV2 = {
@@ -7,5 +8,6 @@ export type MotionProtocolV2 = {
   formatVersion: 2;
   id: string;
   composition: V2Composition;
+  assets?: Array<V2Asset>;
   layers: Array<z.infer<typeof V2LayerSchema>>;
 };

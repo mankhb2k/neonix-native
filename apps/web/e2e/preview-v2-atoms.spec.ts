@@ -314,6 +314,91 @@ test.describe("Protocol V2 atom preview", () => {
     expect(Math.abs(webgpu.bounds!.bottom - webgl.bounds!.bottom)).toBeLessThanOrEqual(1);
   });
 
+  test("renders Image Atom contain, cover, and crop through both backends", async ({ page }) => {
+    const cases = [
+      { id: "image.fit.contain", center: [960, 540] as const, background: [740, 540] as const },
+      { id: "image.fit.cover", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.crop", center: [960, 540] as const, background: [780, 540] as const },
+    ];
+
+    for (const fixture of cases) {
+      await page.goto(`/docs/preview?case=${fixture.id}&backend=webgl2`);
+      const canvas = page.getByTestId("preview-v2-canvas");
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).toHaveAttribute("data-draw-calls", "1");
+      expect(await readWebGLPixel(page, "preview-v2-canvas", ...fixture.center)).not.toEqual([
+        16,
+        24,
+        32,
+        255,
+      ]);
+      expect(await readWebGLPixel(page, "preview-v2-canvas", ...fixture.background)).toEqual([
+        16,
+        24,
+        32,
+        255,
+      ]);
+    }
+
+    await page.goto("/docs/preview?case=image.fit.contain&backend=webgl2");
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    for (const fixture of cases) {
+      await page.goto(`/docs/preview?case=${fixture.id}&backend=webgpu`);
+      const canvas = page.getByTestId("preview-v2-canvas");
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      await expect(canvas).toHaveAttribute("data-draw-calls", "1");
+      await page.waitForTimeout(100);
+      expect(await readPresentedPixel(page, "preview-v2-canvas", ...fixture.center)).not.toEqual([
+        16,
+        24,
+        32,
+        255,
+      ]);
+      expect(await readPresentedPixel(page, "preview-v2-canvas", ...fixture.background)).toEqual([
+        16,
+        24,
+        32,
+        255,
+      ]);
+    }
+  });
+
+  test("reports a missing Image Atom asset without crashing the preview", async ({ page }) => {
+    await page.goto("/docs/preview?case=image.missing-asset&backend=webgl2");
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).toHaveAttribute("data-draw-calls", "0");
+    await expect(canvas).toHaveAttribute("data-diagnostics", /preview_asset_missing/);
+  });
+
+  test("seeks the Video Atom to the requested composition frame in both backends", async ({ page }) => {
+    for (const backend of ["webgl2", "webgpu"] as const) {
+      if (backend === "webgpu") {
+        test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+      }
+      await page.goto(`/docs/preview?case=video.frame-seek&backend=${backend}&time=0`);
+      const canvas = page.getByTestId("preview-v2-canvas");
+      await expect(canvas).toHaveAttribute("data-backend", backend);
+      await expect(canvas).toHaveAttribute("data-draw-calls", "1");
+      await expect(canvas).toHaveAttribute("data-video-times", "video:0.000:visible");
+      await page.waitForTimeout(100);
+      const firstFrame = backend === "webgl2"
+        ? await readWebGLPixel(page, "preview-v2-canvas", 960, 540)
+        : await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+      expect(firstFrame).not.toEqual([16, 24, 32, 255]);
+
+      await page.goto(`/docs/preview?case=video.frame-seek&backend=${backend}&time=1`);
+      await expect(canvas).toHaveAttribute("data-backend", backend);
+      await expect(canvas).toHaveAttribute("data-draw-calls", "1");
+      await expect(canvas).toHaveAttribute("data-video-times", "video:1.000:visible");
+      await page.waitForTimeout(100);
+      const secondFrame = backend === "webgl2"
+        ? await readWebGLPixel(page, "preview-v2-canvas", 960, 540)
+        : await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+      expect(secondFrame).not.toEqual([16, 24, 32, 255]);
+    }
+  });
+
   test("keeps rectangle stroke paint through Matrix4 perspective", async ({ page }) => {
     await page.goto(
       "/docs/preview?case=rectangle.paint.stroke-perspective&backend=webgl2",

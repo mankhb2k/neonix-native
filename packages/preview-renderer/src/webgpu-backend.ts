@@ -219,12 +219,27 @@ export function createWebGPUBackend(
   };
 
   const textureFor = (assetId: string, asset: PreviewAsset): WebGPUTextureLike | null => {
-    if (!device.queue.copyExternalImageToTexture) {
+    if (!asset.pixels && !device.queue.copyExternalImageToTexture) {
       pushDiagnostic({ severity: "warning", code: "webgpu_external_image_unavailable", message: "This WebGPU device cannot upload texture image assets" });
       return null;
     }
-    const texture = textures.get(assetId) ?? device.createTexture({ size: { width: asset.width, height: asset.height }, format: "rgba8unorm", usage: TEXTURE_BINDING | TEXTURE_COPY_DST });
-    device.queue.copyExternalImageToTexture({ source: asset.source }, { texture }, { width: asset.width, height: asset.height });
+    const texture = textures.get(assetId) ?? device.createTexture({
+      size: { width: asset.width, height: asset.height },
+      format: "rgba8unorm",
+      // Chromium/Dawn requires RenderAttachment for copyExternalImageToTexture
+      // when the source is an HTMLVideoElement.
+      usage: TEXTURE_BINDING | TEXTURE_COPY_DST | TEXTURE_RENDER_ATTACHMENT,
+    });
+    if (asset.pixels && device.queue.writeTexture) {
+      device.queue.writeTexture(
+        { texture },
+        asset.pixels,
+        { bytesPerRow: asset.width * 4, rowsPerImage: asset.height },
+        { width: asset.width, height: asset.height },
+      );
+    } else {
+      device.queue.copyExternalImageToTexture?.({ source: asset.source }, { texture }, { width: asset.width, height: asset.height });
+    }
     textures.set(assetId, texture);
     return texture;
   };

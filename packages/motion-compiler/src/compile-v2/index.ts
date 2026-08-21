@@ -142,6 +142,97 @@ export function compileProtocolV2(
       return null;
     }
     if (context.timing.duration <= 0) return null;
+    if (layer.type === "image") {
+      for (const capability of [
+        "image.transform",
+        "image.timing",
+        "image.opacity",
+        "image.zIndex",
+        "image.asset",
+        "image.fit",
+        "image.crop",
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+      const asset = project.assets?.find((candidate) => candidate.id === layer.payload.assetId);
+      return {
+        id: layer.id,
+        parentId: null,
+        zIndex: layer.zIndex,
+        timing: context.timing,
+        opacity: context.opacity,
+        visible: context.visible,
+        localMatrix: context.localMatrix,
+        worldMatrix: context.worldMatrix,
+        content: {
+          kind: "image" as const,
+          assetId: layer.payload.assetId,
+          ...(asset?.uri ? { uri: asset.uri } : {}),
+          width: layer.frame.width,
+          height: layer.frame.height,
+          ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
+          ...(layer.payload.crop ? { crop: layer.payload.crop } : {}),
+        },
+      };
+    }
+    if (layer.type === "video") {
+      for (const capability of [
+        "video.transform",
+        "video.timing",
+        "video.opacity",
+        "video.zIndex",
+        "video.asset",
+        "video.fit",
+        "video.trim",
+        "video.loop",
+        "video.mute",
+        "video.framePolicy",
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+      const asset = project.assets?.find((candidate) => candidate.id === layer.payload.assetId);
+      if (asset?.kind !== undefined && asset.kind !== "video") {
+        throw new Error(`Protocol V2 video layer ${layer.id} references a non-video asset`);
+      }
+      const sourceFps = asset?.kind === "video" && asset.fps !== undefined
+        ? asset.fps
+        : project.composition.fps;
+      return {
+        id: layer.id,
+        parentId: null,
+        zIndex: layer.zIndex,
+        timing: context.timing,
+        opacity: context.opacity,
+        visible: context.visible,
+        localMatrix: context.localMatrix,
+        worldMatrix: context.worldMatrix,
+        content: {
+          kind: "video" as const,
+          assetId: layer.payload.assetId,
+          ...(asset?.uri ? { uri: asset.uri } : {}),
+          width: layer.frame.width,
+          height: layer.frame.height,
+          ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
+          trimStart: layer.payload.trimStart ?? 0,
+          ...(layer.payload.trimEnd !== undefined
+            ? { trimEnd: layer.payload.trimEnd }
+            : asset?.kind === "video" && asset.duration !== undefined
+              ? { trimEnd: asset.duration }
+              : {}),
+          ...(asset?.kind === "video" && asset.duration !== undefined
+            ? { sourceDuration: asset.duration }
+            : {}),
+          sourceFps,
+          loop: layer.payload.loop ?? false,
+          muted: layer.payload.muted ?? true,
+          framePolicy: layer.payload.framePolicy ?? "floor",
+        },
+      };
+    }
     if (layer.type === "path") {
       for (const capability of [
         "path.transform",

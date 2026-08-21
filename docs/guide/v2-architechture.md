@@ -169,8 +169,8 @@ all node types to the schema in advance:
 | `shape.rectangle`, `shape.ellipse` | Tasks 2-5 | Certified. Frame, 3D transform, timing, opacity, zIndex, fill, gradient, and supported stroke behavior are live. |
 | `path` | Task 6: Path Embedded in 3D | Certified for the current static surface. Closed/open local-plane contours, `nonzero`/`evenodd` fill rules, holes, fixed-width stroke joins/caps/dashes, and topology-matched morph interpolation are resolved by Runtime before the shared Matrix4 transform. |
 | `group` | Task 7: Group and Parent Transform | Certified. Compiler B lowers parent-to-child world Matrix4 inheritance, inherited opacity, nested timing, and deterministic child ordering. Runtime receives drawable leaves only. |
-| `image` | Task 8 | Planned. Adds V2 asset descriptors, fit/crop semantics, texture caching, and deterministic alpha E2E. |
-| `video` | Task 9 | Planned. Adds source, trim, loop, mute, deterministic frame selection, and local media fixtures. |
+| `image` | Task 8: Image | Certified. Protocol stores `assets[]` metadata plus `payload.assetId`; Compiler emits backend-neutral `drawImage`, and preview backends own texture upload/cache, fit/crop, and alpha handling. |
+| `video` | Task 9: Video | Certified. Protocol stores video metadata plus trim/loop/mute/frame policy; Runtime emits deterministic `mediaTime`, and preview backends seek the host-owned media source before upload. |
 | `text` | Task 10 | Planned. Adds explicit font assets plus renderer-neutral shaping and glyph-run Runtime IR. |
 | `effects` | Task 11 | Planned operators, not layer types. Each effect receives its own offscreen and pixel-parity contract. |
 | `mask` and blend modes | Task 12 | Planned after groups and offscreen compositing boundaries are certified. |

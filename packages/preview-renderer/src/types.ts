@@ -16,6 +16,8 @@ export type PreviewAsset = {
   width: number;
   height: number;
   kind?: PreviewAssetKind;
+  /** Optional RGBA8 pixels for deterministic uploads and non-DOM hosts. */
+  pixels?: Uint8Array;
 };
 
 export type PreviewAssetResolver = (input: {

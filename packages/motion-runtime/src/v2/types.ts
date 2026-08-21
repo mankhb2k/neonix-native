@@ -8,6 +8,8 @@ import type {
   PathStrokeDash,
   PathStrokeJoin,
   PathStrokeMesh,
+  RenderMediaFit,
+  RenderNormalizedRect,
 } from "../paint/paint-types";
 
 export type RuntimeCompositionV2 = {
@@ -60,6 +62,32 @@ export type RuntimePathV2 = {
   strokeDash?: PathStrokeDash;
 };
 
+export type RuntimeImageV2 = {
+  kind: "image";
+  assetId: string;
+  uri?: string;
+  width: number;
+  height: number;
+  fit?: RenderMediaFit;
+  crop?: RenderNormalizedRect;
+};
+
+export type RuntimeVideoV2 = {
+  kind: "video";
+  assetId: string;
+  uri?: string;
+  width: number;
+  height: number;
+  fit?: RenderMediaFit;
+  trimStart: number;
+  trimEnd?: number;
+  sourceDuration?: number;
+  sourceFps: number;
+  loop: boolean;
+  muted: boolean;
+  framePolicy: "floor" | "round" | "ceil";
+};
+
 export type RuntimeNodeV2 = {
   id: string;
   parentId: string | null;
@@ -69,7 +97,7 @@ export type RuntimeNodeV2 = {
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
-  content: RuntimeShapeV2 | RuntimePathV2;
+  content: RuntimeShapeV2 | RuntimePathV2 | RuntimeImageV2 | RuntimeVideoV2;
 };
 
 export type RuntimeProjectV2 = {

@@ -105,6 +105,49 @@ describe("Runtime IR V2", () => {
     ]);
   });
 
+  it("resolves deterministic video media time from composition frames", () => {
+    const videoRuntime: RuntimeProjectV2 = {
+      ...project,
+      id: "runtime-v2-video",
+      nodes: [{
+        id: "video",
+        parentId: null,
+        zIndex: 0,
+        timing: { start: 0, duration: 6 },
+        opacity: 1,
+        visible: true,
+        localMatrix: identityMatrix4(),
+        worldMatrix: identityMatrix4(),
+        content: {
+          kind: "video",
+          assetId: "clip",
+          width: 160,
+          height: 90,
+          trimStart: 1,
+          trimEnd: 4,
+          sourceDuration: 60.5,
+          sourceFps: 30,
+          loop: true,
+          muted: true,
+          framePolicy: "floor",
+        },
+      }],
+    };
+    const first = evaluateRuntimeProjectV2(videoRuntime, 15);
+    const looped = evaluateRuntimeProjectV2(videoRuntime, 105);
+    expect(first.commands).toContainEqual(expect.objectContaining({
+      op: "drawVideo",
+      mediaTime: 1.5,
+      mediaVisible: true,
+      muted: true,
+    }));
+    expect(looped.commands).toContainEqual(expect.objectContaining({
+      op: "drawVideo",
+      mediaTime: 1.5,
+      mediaVisible: true,
+    }));
+  });
+
   it("keeps semantic gradient and independent paint opacity in Runtime V2", () => {
     const frame = evaluateRuntimeProjectV2(
       {

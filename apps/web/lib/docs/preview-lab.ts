@@ -72,6 +72,7 @@ function project(
   id: string,
   layers: V2Layer[],
   view: MotionProtocolV2["composition"]["view"] = ORTHOGRAPHIC_VIEW,
+  assets?: NonNullable<MotionProtocolV2["assets"]>,
 ): MotionProtocolV2 {
   return {
     format: "motion-protocol",
@@ -86,9 +87,109 @@ function project(
       audioSampleRate: 48000,
       view,
     },
+    ...(assets ? { assets } : {}),
     layers,
   };
 }
+
+const PREVIEW_IMAGE_ASSET = {
+  id: "preview-image-v2",
+  kind: "image" as const,
+  uri: "/docs/example1-1.jpg",
+  mimeType: "image/jpeg",
+  width: 1920,
+  height: 1920,
+};
+
+function imageProject(
+  id: string,
+  payload: { assetId: string; fit?: "contain" | "cover" | "fill" | "none"; crop?: { x: number; y: number; width: number; height: number } },
+  frame: { width: number; height: number },
+  translate: { x: number; y: number },
+  assets: NonNullable<MotionProtocolV2["assets"]> = [PREVIEW_IMAGE_ASSET],
+): MotionProtocolV2 {
+  return project(
+    id,
+    [{
+      id: "image",
+      type: "image",
+      parentLayerId: null,
+      zIndex: 0,
+      frame,
+      transform: { ...IDENTITY_TRANSFORM, translate: { ...translate, z: 0 } },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload,
+    }],
+    ORTHOGRAPHIC_VIEW,
+    assets,
+  );
+}
+
+const IMAGE_CONTAIN_PROJECT = imageProject(
+  "preview-image-contain-v2",
+  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "contain" },
+  { width: 480, height: 360 },
+  { x: 720, y: 360 },
+);
+
+const IMAGE_COVER_PROJECT = imageProject(
+  "preview-image-cover-v2",
+  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+  { width: 480, height: 360 },
+  { x: 720, y: 360 },
+);
+
+const IMAGE_CROP_PROJECT = imageProject(
+  "preview-image-crop-v2",
+  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "fill", crop: { x: 0.5, y: 0, width: 0.5, height: 1 } },
+  { width: 320, height: 240 },
+  { x: 800, y: 420 },
+);
+
+const IMAGE_MISSING_ASSET_PROJECT = imageProject(
+  "preview-image-missing-asset-v2",
+  { assetId: "missing-image" },
+  { width: 320, height: 240 },
+  { x: 800, y: 420 },
+  [],
+);
+
+const PREVIEW_VIDEO_ASSET = {
+  id: "preview-video-v2",
+  kind: "video" as const,
+  uri: "/docs/example-video.mp4",
+  mimeType: "video/mp4",
+  width: 1920,
+  height: 1080,
+  duration: 60.5,
+  fps: 30,
+};
+
+const VIDEO_PROJECT = project(
+  "preview-video-v2",
+  [{
+    id: "video",
+    type: "video",
+    parentLayerId: null,
+    zIndex: 0,
+    frame: { width: 960, height: 540 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 270, z: 0 } },
+    opacity: 100,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      assetId: PREVIEW_VIDEO_ASSET.id,
+      fit: "cover",
+      trimStart: 0,
+      trimEnd: 3,
+      loop: false,
+      muted: true,
+      framePolicy: "floor",
+    },
+  }],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_VIDEO_ASSET],
+);
 
 const RECTANGLE_PROJECT = project("preview-rectangle-v2", [
   rectangle({ id: "rectangle", zIndex: 0, fill: "#00aa88" }),
@@ -773,6 +874,41 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 4 / Certified atoms",
     hint: "Parametric ellipse with antialiased coverage inside its frame.",
     project: ELLIPSE_PROJECT,
+  },
+  {
+    id: "image.fit.contain",
+    label: "Image / contain",
+    group: "Task 8 / Image",
+    hint: "A local 1:1 photo is contained inside a 4:3 frame, leaving deterministic side letterbox regions.",
+    project: IMAGE_CONTAIN_PROJECT,
+  },
+  {
+    id: "image.fit.cover",
+    label: "Image / cover",
+    group: "Task 8 / Image",
+    hint: "The square photo covers the 4:3 frame and crops its vertical edges through the backend-neutral UV layout.",
+    project: IMAGE_COVER_PROJECT,
+  },
+  {
+    id: "image.crop",
+    label: "Image / crop",
+    group: "Task 8 / Image",
+    hint: "A normalized crop selects the right half of the local photo through backend-neutral UV coordinates.",
+    project: IMAGE_CROP_PROJECT,
+  },
+  {
+    id: "image.missing-asset",
+    label: "Image / missing asset",
+    group: "Task 8 / Image",
+    hint: "An unresolved asset remains a valid V2 command and reports a deterministic missing-asset diagnostic.",
+    project: IMAGE_MISSING_ASSET_PROJECT,
+  },
+  {
+    id: "video.frame-seek",
+    label: "Video / deterministic frame seek",
+    group: "Task 9 / Video",
+    hint: "The local MP4 is decoded at the requested composition frame; runtime emits source media time before the renderer uploads it.",
+    project: VIDEO_PROJECT,
   },
   {
     id: "path.closed-fill.perspective",

@@ -14,6 +14,7 @@ export type {
   RuntimeShapeV2,
   RuntimeTimingV2,
   RuntimeViewV2,
+  RuntimeVideoV2,
   RuntimeDiagnosticV2,
   RuntimeValidationV2,
 } from "./types";

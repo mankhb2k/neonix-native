@@ -174,6 +174,7 @@ export type PaintCommand =
       fit?: RenderMediaFit;
       mediaTime: number;
       mediaVisible?: boolean;
+      muted?: boolean;
       effects?: RuntimeEffect[];
     }
   | {

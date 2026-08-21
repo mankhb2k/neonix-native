@@ -12,6 +12,11 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
+      "image.fit.contain",
+      "image.fit.cover",
+      "image.crop",
+      "image.missing-asset",
+      "video.frame-seek",
       "path.closed-fill.perspective",
       "path.fill-rule.nonzero",
       "path.fill-rule.evenodd",

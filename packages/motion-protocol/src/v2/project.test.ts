@@ -95,6 +95,82 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
   });
 
+  it("accepts an image asset reference with fit and normalized crop", () => {
+    const image = {
+      ...RECTANGLE_PROJECT,
+      id: "image-project-v2",
+      assets: [{
+        id: "photo",
+        kind: "image" as const,
+        uri: "/docs/preview-image.svg",
+        mimeType: "image/svg+xml",
+        width: 200,
+        height: 100,
+      }],
+      layers: [{
+        id: "image",
+        type: "image" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 320, height: 240 },
+        transform: RECTANGLE_PROJECT.layers[0].transform,
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        payload: {
+          assetId: "photo",
+          fit: "cover" as const,
+          crop: { x: 0.25, y: 0, width: 0.5, height: 1 },
+        },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(image)).toEqual(image);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...image,
+      layers: [{ ...image.layers[0], payload: { assetId: "photo", crop: { x: 0.75, y: 0, width: 0.5, height: 1 } } }],
+    })).toThrow(/crop x \+ width/);
+  });
+
+  it("accepts a video asset with trim, loop, mute, and frame policy", () => {
+    const video = {
+      ...RECTANGLE_PROJECT,
+      id: "video-project-v2",
+      assets: [{
+        id: "clip",
+        kind: "video" as const,
+        uri: "/docs/example-video.mp4",
+        mimeType: "video/mp4",
+        width: 1920,
+        height: 1080,
+        duration: 60.5,
+        fps: 30,
+      }],
+      layers: [{
+        id: "video",
+        type: "video" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 960, height: 540 },
+        transform: RECTANGLE_PROJECT.layers[0].transform,
+        opacity: 100,
+        timing: { start: 0, duration: 3 },
+        payload: {
+          assetId: "clip",
+          fit: "cover" as const,
+          trimStart: 1,
+          trimEnd: 4,
+          loop: true,
+          muted: true,
+          framePolicy: "floor" as const,
+        },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(video)).toEqual(video);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...video,
+      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimStart: 4, trimEnd: 1 } }],
+    })).toThrow(/trimEnd must be greater/);
+  });
+
   it("requires one explicit view projection with complete parameters", () => {
     expect(() =>
       MotionProtocolV2Schema.parse({
@@ -273,6 +349,9 @@ describe("Motion Protocol V2 schema", () => {
     expect(isV2AtomCertified("group.transform")).toBe(true);
     expect(isV2AtomCertified("group.timing")).toBe(true);
     expect(isV2AtomCertified("group.opacity")).toBe(true);
+    expect(isV2AtomCertified("image.asset")).toBe(true);
+    expect(isV2AtomCertified("image.fit")).toBe(true);
+    expect(isV2AtomCertified("image.crop")).toBe(true);
     expect(isV2AtomCertified("shape.path.fill")).toBe(false);
   });
 });

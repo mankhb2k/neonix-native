@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { V2CompositionSchema } from "./composition";
 import { V2IdSchema } from "./common";
+import { V2AssetListSchema } from "./assets";
 import { V2LayerListSchema } from "./layers";
 import type { MotionProtocolV2 } from "./types";
 
@@ -10,13 +11,25 @@ export const MotionProtocolV2Schema = z
     formatVersion: z.literal(2),
     id: V2IdSchema,
     composition: V2CompositionSchema,
+    assets: V2AssetListSchema.optional(),
     layers: V2LayerListSchema,
   })
   .strict()
   .superRefine((project, ctx) => {
     const ids = new Set<string>();
     const zIndexes = new Set<number>();
+    const assetIds = new Set<string>();
     const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
+    for (const [index, asset] of (project.assets ?? []).entries()) {
+      if (assetIds.has(asset.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate asset id: ${asset.id}`,
+          path: ["assets", index, "id"],
+        });
+      }
+      assetIds.add(asset.id);
+    }
     for (const [index, layer] of project.layers.entries()) {
       if (ids.has(layer.id)) {
         ctx.addIssue({

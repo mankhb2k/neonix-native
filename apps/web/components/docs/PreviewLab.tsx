@@ -35,9 +35,10 @@ export function PreviewLab() {
         ? "webgl2"
         : "auto";
   const requestedTime = Number(searchParams.get("time"));
-  const time = Number.isFinite(requestedTime) && requestedTime >= 0
-    ? requestedTime
-    : selected.previewTime ?? 0;
+  const time =
+    Number.isFinite(requestedTime) && requestedTime >= 0
+      ? requestedTime
+      : (selected.previewTime ?? 0);
   const groups = useMemo(() => previewLabGroups(), []);
   const json = JSON.stringify(selected.project, null, 2);
 
@@ -57,10 +58,10 @@ export function PreviewLab() {
 
   return (
     <div
-      className="grid min-h-[calc(100vh-4rem)] grid-cols-1 bg-[#07080c] text-slate-100 lg:grid-cols-[18rem_minmax(0,1fr)]"
+      className="grid min-h-[calc(100vh-4rem)] grid-cols-1 bg-[#07080c] text-slate-100 lg:grid-cols-[26rem_minmax(0,1fr)]"
       data-testid="preview-v2-lab"
     >
-      <aside className="border-b border-white/10 lg:border-r lg:border-b-0">
+      <aside className="border-b border-white/10 lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)] lg:min-h-0 lg:flex-col lg:overflow-hidden lg:border-r lg:border-b-0">
         <div className="border-b border-white/10 px-4 py-3">
           <p className="text-[11px] font-semibold tracking-[0.16em] text-cyan-300/80 uppercase">
             Protocol V2 atoms
@@ -73,7 +74,7 @@ export function PreviewLab() {
             .
           </p>
         </div>
-        <nav className="max-h-[40vh] overflow-y-auto px-2 py-3 lg:max-h-[calc(100vh-8rem)]">
+        <nav className="max-h-[40vh] overflow-y-auto px-2 py-3 lg:min-h-0 lg:max-h-none lg:flex-1">
           {groups.map((group) => (
             <div key={group.label} className="mb-4">
               <p className="px-2 pb-1 text-[11px] font-semibold tracking-[0.14em] text-slate-500 uppercase">
@@ -152,13 +153,17 @@ function PreviewPlayback({
 }) {
   const duration = Math.max(
     1,
-    ...project.layers.map((layer) => layer.timing.start + layer.timing.duration),
+    ...project.layers.map(
+      (layer) => layer.timing.start + layer.timing.duration,
+    ),
   );
   const fps = project.composition.fps;
   const firstTime = Math.min(Math.max(0, initialTime), duration);
   const [currentTime, setCurrentTime] = useState(firstTime);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(null);
+  const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(
+    null,
+  );
   const currentTimeRef = useRef(firstTime);
 
   useEffect(() => {
@@ -193,7 +198,9 @@ function PreviewPlayback({
     <div className="w-full max-w-[960px] shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0c0e14] px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-slate-400">Renderer</span>
+          <span className="text-[11px] font-medium text-slate-400">
+            Renderer
+          </span>
           <div
             className="inline-flex rounded-md border border-white/10 p-0.5"
             role="group"
@@ -222,7 +229,9 @@ function PreviewPlayback({
           className="font-mono text-[11px] text-slate-500"
           data-testid="preview-active-backend"
         >
-          {activeBackend ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : "WebGL2"}` : "Loading renderer..."}
+          {activeBackend
+            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : "WebGL2"}`
+            : "Loading renderer..."}
         </span>
       </div>
       <div className="aspect-video w-full">
@@ -245,7 +254,11 @@ function PreviewPlayback({
           data-testid="preview-play-toggle"
           onClick={() => setIsPlaying((playing) => !playing)}
         >
-          {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+          {isPlaying ? (
+            <Pause size={15} fill="currentColor" />
+          ) : (
+            <Play size={15} fill="currentColor" />
+          )}
         </button>
         <input
           type="range"

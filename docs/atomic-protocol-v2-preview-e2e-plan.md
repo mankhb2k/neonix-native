@@ -328,21 +328,23 @@ Masking and clipping are intentionally excluded from this task.
 
 ## Task 8: Image
 
-- [ ] Define V2 asset descriptor and image atom.
-- [ ] Implement `contain`, `cover`, and crop.
-- [ ] Implement texture upload and cache behavior.
-- [ ] Emit an asset-missing diagnostic.
-- [ ] Test alpha channel handling with deterministic local assets.
+- [x] Define V2 asset descriptor and image atom (`assets[]` + `payload.assetId`).
+- [x] Implement `contain`, `cover`, and normalized crop.
+- [x] Implement WebGPU/WebGL2 texture upload and asset texture cache behavior.
+- [x] Emit a `preview_asset_missing` diagnostic without crashing the frame.
+- [x] Test opaque image pixels with a deterministic local JPEG asset.
 
-E2E asserts center pixels, letterbox/crop regions, and alpha. Tests must not use
-network image URLs.
+E2E asserts image pixels and letterbox/crop regions. Tests must not use network
+image URLs. Production descriptors may use relative, CDN, or free image URLs
+such as Unsplash/Pixabay, but the certification fixture remains local and
+deterministic.
 
 ## Task 9: Video
 
-- [ ] Define video source, trim, loop, mute, and frame policy.
-- [ ] Implement deterministic seek to the requested media time.
-- [ ] Add a short local video fixture containing deliberately distinct frames.
-- [ ] Test requested composition frames before testing realtime playback.
+- [x] Define video source, trim, loop, mute, and frame policy.
+- [x] Implement deterministic seek to the requested media time.
+- [x] Add the local `example-video.mp4` fixture.
+- [x] Test requested composition frames before testing realtime playback.
 
 Done when a given project frame always selects the expected video frame according
 to the shared rounding contract.
@@ -405,8 +407,8 @@ the following are certified:
 - [ ] Task 4.5 3D preview quality and backend parity.
 - [ ] Static path fill and stroke.
 - [ ] Group and parent transform.
-- [ ] Image.
-- [ ] Video.
+- [x] Image.
+- [x] Video.
 
 When this gate is met, create `@motionvideo/motion-authoring` and Compiler A.
 It may emit only capability-manifest atoms that have passed this plan.

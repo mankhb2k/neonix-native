@@ -7,7 +7,7 @@ import {
 } from "../matrix4";
 import type { PaintCommand } from "../paint";
 import { validateRuntimeProjectV2 } from "./validate";
-import type { RuntimeFrameV2, RuntimeProjectV2 } from "./types";
+import type { RuntimeFrameV2, RuntimeProjectV2, RuntimeVideoV2 } from "./types";
 
 function assertFrame(frame: number): void {
   if (!Number.isSafeInteger(frame) || frame < 0) {
@@ -21,6 +21,44 @@ function stableNodeOrder(project: RuntimeProjectV2): RuntimeProjectV2["nodes"] {
       left.zIndex - right.zIndex ||
       (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
   );
+}
+
+function quantizeVideoFrame(
+  frame: number,
+  policy: RuntimeVideoV2["framePolicy"],
+): number {
+  if (policy === "round") return Math.round(frame);
+  if (policy === "ceil") return Math.ceil(frame);
+  return Math.floor(frame);
+}
+
+function resolveVideoMedia(
+  video: RuntimeVideoV2,
+  localTime: number,
+): { mediaTime: number; visible: boolean } {
+  const trimStart = video.trimStart;
+  const trimEnd = video.trimEnd ?? video.sourceDuration;
+  const span = trimEnd === undefined ? Number.POSITIVE_INFINITY : trimEnd - trimStart;
+  if (!Number.isFinite(video.sourceFps) || video.sourceFps <= 0 || span <= 0 || localTime < 0) {
+    return { mediaTime: trimStart, visible: false };
+  }
+
+  let elapsed = localTime;
+  if (elapsed >= span) {
+    if (!video.loop || !Number.isFinite(span)) {
+      return {
+        mediaTime: Math.max(trimStart, (trimEnd ?? trimStart) - 1 / video.sourceFps),
+        visible: false,
+      };
+    }
+    elapsed %= span;
+  }
+
+  let mediaTime = trimStart + quantizeVideoFrame(elapsed * video.sourceFps, video.framePolicy) / video.sourceFps;
+  if (trimEnd !== undefined && mediaTime >= trimEnd) {
+    mediaTime = Math.max(trimStart, trimEnd - 1 / video.sourceFps);
+  }
+  return { mediaTime, visible: true };
 }
 
 /**
@@ -147,6 +185,33 @@ export function evaluateRuntimeProjectV2(
         ...(node.content.strokeJoin ? { strokeJoin: node.content.strokeJoin } : {}),
         ...(node.content.strokeCap ? { strokeCap: node.content.strokeCap } : {}),
         ...(node.content.strokeDash ? { strokeDash: node.content.strokeDash } : {}),
+      });
+    } else if (node.content.kind === "image") {
+      commands.push({
+        op: "drawImage",
+        key: node.id,
+        layerId: node.id,
+        assetId: node.content.assetId,
+        ...(node.content.uri ? { uri: node.content.uri } : {}),
+        width: node.content.width,
+        height: node.content.height,
+        ...(node.content.fit ? { fit: node.content.fit } : {}),
+        ...(node.content.crop ? { crop: node.content.crop } : {}),
+      });
+    } else if (node.content.kind === "video") {
+      const media = resolveVideoMedia(node.content, Math.max(0, time - node.timing.start));
+      commands.push({
+        op: "drawVideo",
+        key: node.id,
+        layerId: node.id,
+        assetId: node.content.assetId,
+        ...(node.content.uri ? { uri: node.content.uri } : {}),
+        width: node.content.width,
+        height: node.content.height,
+        ...(node.content.fit ? { fit: node.content.fit } : {}),
+        mediaTime: media.mediaTime,
+        mediaVisible: media.visible,
+        muted: node.content.muted,
       });
     } else {
       commands.push({

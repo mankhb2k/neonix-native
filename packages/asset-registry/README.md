@@ -24,7 +24,13 @@ import {
 
 Binary font/image/video **không** nằm trong package — sống dưới `assets/` hoặc CDN/product storage.
 
+Atomic Protocol V2 references image and video assets by `payload.assetId`. The V2 project
+may carry a small renderer-neutral `assets[]` descriptor list; this package can
+provide the manifest/storage adapter that resolves those ids to URLs or local
+files. GPU textures remain owned by preview backends and are never stored in
+Protocol JSON.
+
 ## Docs
 
-- Authoring format: [`docs/guide/v1-format-guide.md`](../../docs/guide/v1-format-guide.md)
+- V2 architecture: [`docs/guide/v2-architechture.md`](../../docs/guide/v2-architechture.md)
 - Fixture import: `assets/`

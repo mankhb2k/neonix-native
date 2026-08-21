@@ -197,6 +197,44 @@ export function validateRuntimeProjectV2(
         nodeId: node.id,
       });
     }
+    if (node.content.kind === "image") {
+      if (!node.content.assetId.trim()) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_image_asset", message: "Runtime V2 image assetId must be non-empty", nodeId: node.id });
+      }
+      if (node.content.fit && !["contain", "cover", "fill", "none"].includes(node.content.fit)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_image_fit", message: "Runtime V2 image fit is invalid", nodeId: node.id });
+      }
+      if (node.content.crop) {
+        const crop = node.content.crop;
+        if (
+          ![crop.x, crop.y, crop.width, crop.height].every(Number.isFinite) ||
+          crop.x < 0 || crop.y < 0 || crop.width <= 0 || crop.height <= 0 ||
+          crop.x + crop.width > 1 || crop.y + crop.height > 1
+        ) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_image_crop", message: "Runtime V2 image crop must be a normalized rectangle inside the asset", nodeId: node.id });
+        }
+      }
+    }
+    if (node.content.kind === "video") {
+      if (!node.content.assetId.trim()) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_asset", message: "Runtime V2 video assetId must be non-empty", nodeId: node.id });
+      }
+      if (!Number.isFinite(node.content.trimStart) || node.content.trimStart < 0) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_trim_start", message: "Runtime V2 video trimStart must be non-negative", nodeId: node.id });
+      }
+      if (node.content.trimEnd !== undefined && (!Number.isFinite(node.content.trimEnd) || node.content.trimEnd <= node.content.trimStart)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_trim_end", message: "Runtime V2 video trimEnd must be greater than trimStart", nodeId: node.id });
+      }
+      if (!Number.isFinite(node.content.sourceFps) || node.content.sourceFps <= 0) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_fps", message: "Runtime V2 video sourceFps must be positive", nodeId: node.id });
+      }
+      if (!["floor", "round", "ceil"].includes(node.content.framePolicy)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_frame_policy", message: "Runtime V2 video framePolicy is invalid", nodeId: node.id });
+      }
+      if (node.content.fit && !["contain", "cover", "fill", "none"].includes(node.content.fit)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_video_fit", message: "Runtime V2 video fit is invalid", nodeId: node.id });
+      }
+    }
     if (node.content.kind === "path") {
       if (node.content.fillRule !== "nonzero" && node.content.fillRule !== "evenodd") {
         diagnostics.push({

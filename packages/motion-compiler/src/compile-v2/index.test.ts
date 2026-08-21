@@ -154,6 +154,92 @@ describe("Protocol V2 Compiler B", () => {
     ]);
   });
 
+  it("lowers an Image Atom to a backend-neutral drawImage command", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      assets: [{
+        id: "photo",
+        kind: "image" as const,
+        uri: "/docs/preview-image.svg",
+        mimeType: "image/svg+xml",
+        width: 200,
+        height: 100,
+      }],
+      layers: [{
+        id: "image",
+        type: "image" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 320, height: 240 },
+        transform: { ...identity, translate: { x: 20, y: 30, z: 0 } },
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        payload: {
+          assetId: "photo",
+          fit: "cover" as const,
+          crop: { x: 0.25, y: 0, width: 0.5, height: 1 },
+        },
+      }],
+    });
+    expect(buffer.commands).toContainEqual(expect.objectContaining({
+      op: "drawImage",
+      key: "image",
+      assetId: "photo",
+      uri: "/docs/preview-image.svg",
+      width: 320,
+      height: 240,
+      fit: "cover",
+      crop: { x: 0.25, y: 0, width: 0.5, height: 1 },
+    }));
+  });
+
+  it("lowers a Video Atom with source timing policy to drawVideo", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      assets: [{
+        id: "clip",
+        kind: "video" as const,
+        uri: "/docs/example-video.mp4",
+        mimeType: "video/mp4",
+        width: 1920,
+        height: 1080,
+        duration: 60.5,
+        fps: 30,
+      }],
+      layers: [{
+        id: "video",
+        type: "video" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 960, height: 540 },
+        transform: identity,
+        opacity: 100,
+        timing: { start: 0, duration: 3 },
+        payload: {
+          assetId: "clip",
+          fit: "cover" as const,
+          trimStart: 1,
+          trimEnd: 4,
+          loop: true,
+          muted: true,
+          framePolicy: "round" as const,
+        },
+      }],
+    });
+    expect(buffer.commands).toContainEqual(expect.objectContaining({
+      op: "drawVideo",
+      key: "video",
+      assetId: "clip",
+      uri: "/docs/example-video.mp4",
+      width: 960,
+      height: 540,
+      fit: "cover",
+      mediaTime: 1,
+      mediaVisible: true,
+      muted: true,
+    }));
+  });
+
   it("lowers a filled local-plane path into one resolved mesh command", () => {
     const buffer = compileProtocolV2ToPaintCommands({
       ...base,
