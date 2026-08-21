@@ -235,6 +235,23 @@ export function validateRuntimeProjectV2(
         diagnostics.push({ severity: "error", code: "runtime_v2_video_fit", message: "Runtime V2 video fit is invalid", nodeId: node.id });
       }
     }
+    if (node.content.kind === "text") {
+      if (!node.content.fontAssetId.trim() || !node.content.fontUri.trim() || !node.content.fontIntegrity.trim()) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_font", message: "Runtime V2 text requires an exact font asset reference", nodeId: node.id });
+      }
+      if (![node.content.fontSize, node.content.lineHeight, node.content.letterSpacing].every(Number.isFinite) || node.content.fontSize <= 0 || node.content.lineHeight <= 0) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_metrics", message: "Runtime V2 text metrics are invalid", nodeId: node.id });
+      }
+      if (!['left', 'center', 'right'].includes(node.content.align) || !['top', 'middle', 'bottom'].includes(node.content.verticalAlign)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_alignment", message: "Runtime V2 text alignment is invalid", nodeId: node.id });
+      }
+      if (node.content.wrap !== "none" || node.content.overflow !== "visible" || node.content.direction !== "ltr") {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_mvp_contract", message: "Runtime V2 text must use the certified MVP layout contract", nodeId: node.id });
+      }
+      if (node.content.layout && (!Number.isSafeInteger(node.content.layout.unitsPerEm) || node.content.layout.unitsPerEm <= 0)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_layout", message: "Runtime V2 text layout unitsPerEm is invalid", nodeId: node.id });
+      }
+    }
     if (node.content.kind === "path") {
       if (node.content.fillRule !== "nonzero" && node.content.fillRule !== "evenodd") {
         diagnostics.push({

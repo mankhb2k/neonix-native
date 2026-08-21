@@ -185,6 +185,40 @@ export function evaluateRuntimeProjectV2(
         ...(node.content.strokeJoin ? { strokeJoin: node.content.strokeJoin } : {}),
         ...(node.content.strokeCap ? { strokeCap: node.content.strokeCap } : {}),
         ...(node.content.strokeDash ? { strokeDash: node.content.strokeDash } : {}),
+        ...(node.content.effects ? { effects: node.content.effects } : {}),
+      });
+    } else if (node.content.kind === "text") {
+      if (!node.content.layout) {
+        diagnostics.push({
+          severity: "warning",
+          code: "runtime_v2_text_unprepared",
+          message: `Runtime V2 text layer ${node.id} has no resolved glyph layout`,
+          layerId: node.id,
+          key: node.id,
+        });
+        continue;
+      }
+      commands.push({
+        op: "drawText",
+        key: node.id,
+        layerId: node.id,
+        text: node.content.text,
+        fontSize: node.content.fontSize,
+        fontAssetId: node.content.fontAssetId,
+        align: node.content.align,
+        verticalAlign: node.content.verticalAlign,
+        wrap: node.content.wrap,
+        overflow: node.content.overflow,
+        direction: node.content.direction,
+        language: node.content.language,
+        lineHeight: node.content.lineHeight,
+        letterSpacing: node.content.letterSpacing,
+        fill: node.content.fill,
+        width: node.content.width,
+        height: node.content.height,
+        glyphs: node.content.layout.glyphs,
+        lines: node.content.layout.lines,
+        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else if (node.content.kind === "image") {
       commands.push({
@@ -197,6 +231,7 @@ export function evaluateRuntimeProjectV2(
         height: node.content.height,
         ...(node.content.fit ? { fit: node.content.fit } : {}),
         ...(node.content.crop ? { crop: node.content.crop } : {}),
+        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else if (node.content.kind === "video") {
       const media = resolveVideoMedia(node.content, Math.max(0, time - node.timing.start));
@@ -212,6 +247,7 @@ export function evaluateRuntimeProjectV2(
         mediaTime: media.mediaTime,
         mediaVisible: media.visible,
         muted: node.content.muted,
+        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else {
       commands.push({
@@ -236,6 +272,7 @@ export function evaluateRuntimeProjectV2(
         ...(node.content.strokeOpacity != null
           ? { strokeOpacity: node.content.strokeOpacity }
           : {}),
+        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     }
   }

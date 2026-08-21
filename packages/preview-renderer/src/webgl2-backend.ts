@@ -1,4 +1,4 @@
-import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import type { PaintCommand, PaintCommandBuffer, RuntimeEffect } from "@motionvideo/motion-runtime";
 import {
   cssColorToRgba,
   matrix4ForQuad,
@@ -8,6 +8,8 @@ import {
   webglClipSpaceProjection,
 } from "./math";
 import { mediaLayout } from "./media";
+import { createTextAtlas, type TextAtlas } from "./text-atlas";
+import { colorAdjustUniforms } from "./effects";
 import type { PreviewBackend } from "./backend";
 import type {
   PreviewAsset,
@@ -39,6 +41,8 @@ uniform vec4 u_gradient_start;
 uniform vec4 u_gradient_end;
 uniform vec4 u_gradient_params;
 uniform vec4 u_gradient_radius;
+uniform vec4 u_color_adjust_meta;
+uniform vec4 u_color_adjust[4];
 uniform int u_mode;
 uniform int u_shape;
 in vec2 v_uv;
@@ -46,6 +50,22 @@ out vec4 outColor;
 float roundedBoxDistance(vec2 point, vec2 halfSize, float radius) {
   vec2 q = abs(point) - (halfSize - vec2(radius));
   return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
+vec3 applyHueRotate(vec3 color, float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  return vec3(
+    color.r * (0.213 + c * 0.787 - s * 0.213) + color.g * (0.715 - c * 0.715 - s * 0.715) + color.b * (0.072 - c * 0.072 + s * 0.928),
+    color.r * (0.213 - c * 0.213 + s * 0.143) + color.g * (0.715 + c * 0.285 + s * 0.140) + color.b * (0.072 - c * 0.072 - s * 0.283),
+    color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072)
+  );
+}
+vec4 applyColorAdjust(vec4 source, vec4 effect) {
+  vec3 color = clamp(source.rgb + vec3(effect.x), 0.0, 1.0);
+  color = clamp((color - vec3(0.5)) * effect.y + vec3(0.5), 0.0, 1.0);
+  float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  color = mix(vec3(luma), color, effect.z);
+  return vec4(clamp(applyHueRotate(color, effect.w), 0.0, 1.0), source.a);
 }
 void main() {
   float shapeAlpha = 1.0;
@@ -63,7 +83,9 @@ void main() {
     shapeAlpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToEdge);
     if (shapeAlpha <= 0.0) discard;
   }
-  vec4 source = u_mode == 0 ? u_color : texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
+  vec4 sampled = texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
+  vec4 source = u_mode == 0 ? u_color : sampled;
+  if (u_mode == 2) source = vec4(u_color.rgb, u_color.a * sampled.a);
   if (u_mode == 0 && u_gradient_params.x > 0.5) {
     float gradientT;
     if (u_gradient_params.x < 1.5) {
@@ -107,7 +129,11 @@ void main() {
     }
     source = mix(source, u_stroke_color, strokeCoverage);
   }
-  outColor = vec4(source.rgb, source.a * shapeAlpha * (u_mode == 0 ? 1.0 : u_color.a));
+  if (u_color_adjust_meta.x > 0.5) source = applyColorAdjust(source, u_color_adjust[0]);
+  if (u_color_adjust_meta.x > 1.5) source = applyColorAdjust(source, u_color_adjust[1]);
+  if (u_color_adjust_meta.x > 2.5) source = applyColorAdjust(source, u_color_adjust[2]);
+  if (u_color_adjust_meta.x > 3.5) source = applyColorAdjust(source, u_color_adjust[3]);
+  outColor = vec4(source.rgb, source.a * shapeAlpha * (u_mode == 1 ? u_color.a : 1.0));
 }`;
 
 type GL = WebGL2RenderingContext;
@@ -170,6 +196,7 @@ export function createWebGL2Backend(
   const canvas = options.canvas;
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGLTexture>();
+  const textAtlases = new Map<string, TextAtlas>();
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
   const vao = gl.createVertexArray();
@@ -210,6 +237,13 @@ export function createWebGL2Backend(
   const gradientEndLocation = gl.getUniformLocation(programHandle, "u_gradient_end");
   const gradientParamsLocation = gl.getUniformLocation(programHandle, "u_gradient_params");
   const gradientRadiusLocation = gl.getUniformLocation(programHandle, "u_gradient_radius");
+  const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
+  const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
+  const setColorAdjust = (effects: RuntimeEffect[] | undefined) => {
+    const uniforms = colorAdjustUniforms(effects);
+    gl.uniform4fv(colorAdjustMetaLocation, uniforms.subarray(0, 4));
+    gl.uniform4fv(colorAdjustLocation, uniforms.subarray(4));
+  };
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
   let dpr = options.devicePixelRatio ?? 1;
@@ -314,6 +348,7 @@ export function createWebGL2Backend(
         gl.uniform4fv(strokeColorLocation, stroke);
         gl.uniform2f(strokeExtentLocation, strokeWidth / command.width, strokeWidth / command.height);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
+        setColorAdjust(command.effects);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
@@ -347,6 +382,7 @@ export function createWebGL2Backend(
         gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
         gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
+        setColorAdjust(command.effects);
         for (const pathDraw of meshes) {
           const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
           for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
@@ -401,11 +437,53 @@ export function createWebGL2Backend(
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(textureLocation, 0);
+        setColorAdjust(command.effects);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
-        skippedCommands += 1;
-        pushDiagnostic({ severity: "info", code: "preview_op_pending", message: `${command.op} is pending in the native preview backend`, key: command.key, layerId: command.layerId });
+        if (!transform || !transform.visible || transform.alpha <= 0 || !command.glyphs?.length) {
+          skippedCommands += 1;
+          if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        const atlas = textAtlases.get(command.key) ?? createTextAtlas(command);
+        if (!atlas) {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        textAtlases.set(command.key, atlas);
+        const texture = uploadTexture(atlas.id, atlas.asset);
+        if (!texture) {
+          skippedCommands += 1;
+          continue;
+        }
+        blend(gl, currentBlend);
+        bindVertexBuffer(quadBuffer);
+        const color = cssColorToRgba(command.fill);
+        color[3] *= transform.alpha;
+        gl.uniformMatrix4fv(projectionLocation, false, projection);
+        gl.uniform4fv(colorLocation, color);
+        gl.uniform1i(modeLocation, 2);
+        gl.uniform1i(shapeLocation, 0);
+        gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
+        gl.uniform2f(strokeExtentLocation, 0, 0);
+        gl.uniform3f(geometryLocation, 0, 0, 0);
+        gl.uniform4f(gradientStartLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientEndLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(textureLocation, 0);
+        const baseMatrix = packMatrix4F32(transform.matrix4);
+        for (const glyph of atlas.glyphs) {
+          gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, glyph.x, glyph.y, glyph.width, glyph.height));
+          gl.uniform4f(uvRectLocation, glyph.uv.x, glyph.uv.y, glyph.uv.width, glyph.uv.height);
+          setColorAdjust(command.effects);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          drawCalls += 1;
+        }
       } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "offscreen, isolation, and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       } else if (command.op === "unsupported") {
@@ -443,6 +521,7 @@ export function createWebGL2Backend(
     dispose() {
       for (const texture of textures.values()) gl.deleteTexture(texture);
       textures.clear();
+      textAtlases.clear();
       gl.deleteBuffer(quadBuffer);
       gl.deleteBuffer(pathBuffer);
       gl.deleteBuffer(pathIndexBuffer);

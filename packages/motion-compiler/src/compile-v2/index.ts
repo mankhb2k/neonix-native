@@ -13,6 +13,7 @@ import {
   type PaintCommandBuffer,
   type RuntimeNodeV2,
   type RuntimeProjectV2,
+  type RuntimeEffect,
   identityMatrix4,
   interpolatePathContours,
   tessellateClosedPath,
@@ -75,6 +76,24 @@ function stableLayerOrder(
 
 const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
 const DEFAULT_PATH_STROKE_WIDTH = 1;
+
+function lowerEffects(
+  effects: Array<{
+    id: string;
+    type: "color-adjust";
+    brightness: number;
+    contrast: number;
+    saturation: number;
+    hueRotate: number;
+  }> | undefined,
+): RuntimeEffect[] | undefined {
+  if (!effects?.length) return undefined;
+  if (!isV2AtomCertified("effect.color-adjust")) {
+    throw new Error("Uncertified Protocol V2 atom: effect.color-adjust");
+  }
+  // Preserve authoring order. A later effect always receives the prior result.
+  return effects.map((effect) => ({ ...effect }));
+}
 
 type LayerContext = {
   localMatrix: Matrix4;
@@ -157,6 +176,7 @@ export function compileProtocolV2(
         }
       }
       const asset = project.assets?.find((candidate) => candidate.id === layer.payload.assetId);
+      const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
         parentId: null,
@@ -174,6 +194,7 @@ export function compileProtocolV2(
           height: layer.frame.height,
           ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
           ...(layer.payload.crop ? { crop: layer.payload.crop } : {}),
+          ...(effects ? { effects } : {}),
         },
       };
     }
@@ -201,6 +222,7 @@ export function compileProtocolV2(
       const sourceFps = asset?.kind === "video" && asset.fps !== undefined
         ? asset.fps
         : project.composition.fps;
+      const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
         parentId: null,
@@ -230,6 +252,59 @@ export function compileProtocolV2(
           loop: layer.payload.loop ?? false,
           muted: layer.payload.muted ?? true,
           framePolicy: layer.payload.framePolicy ?? "floor",
+          ...(effects ? { effects } : {}),
+        },
+      };
+    }
+    if (layer.type === "text") {
+      for (const capability of [
+        "text.transform",
+        "text.timing",
+        "text.opacity",
+        "text.zIndex",
+        "text.font",
+        "text.layout.singleLine",
+        "text.align",
+        "text.verticalAlign",
+        "text.fill",
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+      const asset = project.assets?.find((candidate) => candidate.id === layer.payload.fontAssetId);
+      if (asset?.kind !== "font") {
+        throw new Error(`Protocol V2 text layer ${layer.id} references a non-font asset`);
+      }
+      const effects = lowerEffects(layer.effects);
+      return {
+        id: layer.id,
+        parentId: null,
+        zIndex: layer.zIndex,
+        timing: context.timing,
+        opacity: context.opacity,
+        visible: context.visible,
+        localMatrix: context.localMatrix,
+        worldMatrix: context.worldMatrix,
+        content: {
+          kind: "text" as const,
+          text: layer.payload.text,
+          fontAssetId: layer.payload.fontAssetId,
+          fontUri: asset.uri,
+          fontIntegrity: asset.integrity,
+          fontSize: layer.payload.fontSize,
+          lineHeight: layer.payload.lineHeight,
+          letterSpacing: layer.payload.letterSpacing,
+          align: layer.payload.align,
+          verticalAlign: layer.payload.verticalAlign,
+          wrap: layer.payload.wrap,
+          overflow: layer.payload.overflow,
+          direction: layer.payload.direction,
+          language: layer.payload.language,
+          fill: layer.style.fill,
+          width: layer.frame.width,
+          height: layer.frame.height,
+          ...(effects ? { effects } : {}),
         },
       };
     }
@@ -299,6 +374,7 @@ export function compileProtocolV2(
       const strokeDash = layer.style.strokeDash
         ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
         : undefined;
+      const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
         // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
@@ -346,6 +422,7 @@ export function compileProtocolV2(
           ...(layer.style.fillOpacity !== undefined
             ? { fillOpacity: layer.style.fillOpacity }
             : {}),
+          ...(effects ? { effects } : {}),
         },
       };
     }
@@ -397,6 +474,7 @@ export function compileProtocolV2(
       }
     }
 
+    const effects = lowerEffects(layer.effects);
     return {
       id: layer.id,
       // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
@@ -438,6 +516,7 @@ export function compileProtocolV2(
                 : {}),
             }
           : {}),
+        ...(effects ? { effects } : {}),
       },
     };
   }).filter((node): node is RuntimeNodeV2 => node !== null);

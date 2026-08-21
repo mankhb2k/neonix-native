@@ -65,6 +65,25 @@ export const MotionProtocolV2Schema = z
         });
       }
       zIndexes.add(layer.zIndex);
+      if (layer.type === "text") {
+        const assetIndex = (project.assets ?? []).findIndex(
+          (asset) => asset.id === layer.payload.fontAssetId,
+        );
+        const asset = assetIndex >= 0 ? project.assets?.[assetIndex] : undefined;
+        if (!asset) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unknown font asset: ${layer.payload.fontAssetId}`,
+            path: ["layers", index, "payload", "fontAssetId"],
+          });
+        } else if (asset.kind !== "font") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Text layer must reference a font asset: ${layer.payload.fontAssetId}`,
+            path: ["layers", index, "payload", "fontAssetId"],
+          });
+        }
+      }
     }
   }) as z.ZodType<MotionProtocolV2>;
 

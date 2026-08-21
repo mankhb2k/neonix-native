@@ -12,6 +12,8 @@ export type {
   PaintFill,
   PaintFillGradient,
   PaintFillSolid,
+  PaintTextGlyph,
+  PaintTextLine,
   PathContour,
   PathMesh,
   PathStrokeMesh,
@@ -21,6 +23,7 @@ export type {
   RenderMediaFit,
   RenderNormalizedRect,
   RuntimeEffect,
+  RuntimeColorAdjustEffect,
 } from "./paint-types";
 export {
   type PaintDisplayList,

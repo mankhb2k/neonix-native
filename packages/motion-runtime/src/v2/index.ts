@@ -1,5 +1,11 @@
 export { evaluateRuntimeProjectV2 } from "./evaluate";
 export {
+  prepareRuntimeProjectV2Text,
+  type PrepareRuntimeTextResultV2,
+  type RuntimeTextFontResolverV2,
+  type RuntimeTextShaperLoaderV2,
+} from "./text-layout";
+export {
   assertRuntimeFrameV2,
   assertRuntimeProjectV2,
   isRuntimeProjectV2,
@@ -12,6 +18,8 @@ export type {
   RuntimePathV2,
   RuntimeProjectV2,
   RuntimeShapeV2,
+  RuntimeTextLayoutV2,
+  RuntimeTextV2,
   RuntimeTimingV2,
   RuntimeViewV2,
   RuntimeVideoV2,

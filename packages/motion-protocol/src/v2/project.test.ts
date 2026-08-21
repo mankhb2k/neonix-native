@@ -65,6 +65,41 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(ellipse)).toEqual(ellipse);
   });
 
+  it("accepts ordered color-adjust effects only on drawable leaves", () => {
+    const withEffect = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{
+          id: "grade",
+          type: "color-adjust" as const,
+          brightness: -0.1,
+          contrast: 1.2,
+          saturation: 0.5,
+          hueRotate: 30,
+        }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(withEffect)).toEqual(withEffect);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...withEffect,
+      layers: [{
+        ...withEffect.layers[0],
+        effects: [{ ...withEffect.layers[0].effects[0], brightness: 2 }],
+      }],
+    })).toThrow();
+    expect(() => MotionProtocolV2Schema.parse({
+      ...withEffect,
+      layers: [{
+        ...withEffect.layers[0],
+        effects: [
+          withEffect.layers[0].effects[0],
+          { ...withEffect.layers[0].effects[0] },
+        ],
+      }],
+    })).toThrow(/Duplicate effect id/);
+  });
+
   it("accepts an open stroke-only path with join, cap, and dash semantics", () => {
     const path = {
       ...RECTANGLE_PROJECT,
@@ -169,6 +204,56 @@ describe("Motion Protocol V2 schema", () => {
       ...video,
       layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimStart: 4, trimEnd: 1 } }],
     })).toThrow(/trimEnd must be greater/);
+  });
+
+  it("accepts text only with an exact font asset and the locked MVP layout", () => {
+    const text = {
+      ...RECTANGLE_PROJECT,
+      id: "text-project-v2",
+      assets: [{
+        id: "roboto-regular",
+        kind: "font" as const,
+        uri: "/fonts/Roboto-Regular.ttf",
+        mimeType: "font/ttf" as const,
+        family: "Roboto",
+        weight: 400,
+        style: "normal" as const,
+        integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+      }],
+      layers: [{
+        id: "headline",
+        type: "text" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 320, height: 100 },
+        transform: RECTANGLE_PROJECT.layers[0].transform,
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        payload: {
+          text: "NeonVideo",
+          fontAssetId: "roboto-regular",
+          fontSize: 48,
+          lineHeight: 56,
+          letterSpacing: 0,
+          align: "center" as const,
+          verticalAlign: "middle" as const,
+          wrap: "none" as const,
+          overflow: "visible" as const,
+          direction: "ltr" as const,
+          language: "en",
+        },
+        style: { fill: "#ffffff" },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(text)).toEqual(text);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...text,
+      layers: [{ ...text.layers[0], payload: { ...text.layers[0].payload, fontAssetId: "missing" } }],
+    })).toThrow(/Unknown font asset/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...text,
+      assets: [{ ...text.assets[0], kind: "image" as const, width: 10, height: 10 }],
+    })).toThrow(/Text layer must reference a font asset/);
   });
 
   it("requires one explicit view projection with complete parameters", () => {
@@ -352,6 +437,7 @@ describe("Motion Protocol V2 schema", () => {
     expect(isV2AtomCertified("image.asset")).toBe(true);
     expect(isV2AtomCertified("image.fit")).toBe(true);
     expect(isV2AtomCertified("image.crop")).toBe(true);
+    expect(isV2AtomCertified("effect.color-adjust")).toBe(true);
     expect(isV2AtomCertified("shape.path.fill")).toBe(false);
   });
 });

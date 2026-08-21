@@ -40,6 +40,54 @@ const base = {
 };
 
 describe("Protocol V2 Compiler B", () => {
+  it("lowers the Text atom without shaping or font I/O", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      id: "v2-text",
+      assets: [{
+        id: "roboto-regular",
+        kind: "font" as const,
+        uri: "/fonts/Roboto-Regular.ttf",
+        mimeType: "font/ttf" as const,
+        family: "Roboto",
+        weight: 400,
+        style: "normal" as const,
+        integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+      }],
+      layers: [{
+        id: "headline",
+        type: "text" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 320, height: 100 },
+        transform: identity,
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        payload: {
+          text: "NeonVideo",
+          fontAssetId: "roboto-regular",
+          fontSize: 48,
+          lineHeight: 56,
+          letterSpacing: 0,
+          align: "center" as const,
+          verticalAlign: "middle" as const,
+          wrap: "none" as const,
+          overflow: "visible" as const,
+          direction: "ltr" as const,
+          language: "en",
+        },
+        style: { fill: "#ffffff" },
+      }],
+    });
+    expect(runtime.nodes[0]?.content).toMatchObject({
+      kind: "text",
+      fontUri: "/fonts/Roboto-Regular.ttf",
+      align: "center",
+      verticalAlign: "middle",
+    });
+    expect(runtime.nodes[0]?.content.kind === "text" && runtime.nodes[0].content.layout).toBeUndefined();
+  });
+
   it("emits RuntimeProjectV2 before frame evaluation", () => {
     const runtime = compileProtocolV2({
       ...base,
@@ -75,6 +123,52 @@ describe("Protocol V2 Compiler B", () => {
     expect(runtime.nodes[0]?.localMatrix).toHaveLength(16);
     expect(runtime.nodes[0]?.worldMatrix).toHaveLength(16);
     expect(runtime.view.worldToClipMatrix).toHaveLength(16);
+  });
+
+  it("preserves ordered color-adjust effects from Protocol V2 through PaintCommand", () => {
+    const project = {
+      ...base,
+      id: "v2-color-adjust",
+      layers: [{
+        id: "graded-rectangle",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 80, height: 40 },
+        transform: identity,
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        effects: [
+          {
+            id: "first",
+            type: "color-adjust" as const,
+            brightness: -0.1,
+            contrast: 1.2,
+            saturation: 0.8,
+            hueRotate: 15,
+          },
+          {
+            id: "second",
+            type: "color-adjust" as const,
+            brightness: 0.05,
+            contrast: 0.9,
+            saturation: 1.1,
+            hueRotate: -5,
+          },
+        ],
+        payload: { shape: "rectangle" as const },
+        style: { fill: "#ff0000" },
+      }],
+    };
+    const runtime = compileProtocolV2(project);
+    expect(runtime.nodes[0]?.content).toMatchObject({
+      kind: "shape",
+      effects: project.layers[0].effects,
+    });
+    const draw = compileProtocolV2ToPaintCommands(project).commands.find(
+      (command) => command.op === "drawShape",
+    );
+    expect(draw).toMatchObject({ effects: project.layers[0].effects });
   });
 
   it("emits a valid empty frame", () => {

@@ -351,21 +351,28 @@ to the shared rounding contract.
 
 ## Task 10: Text
 
-- [ ] Require explicit font assets; do not rely on system font fallback.
-- [ ] Add renderer-neutral text layout and glyph-run Runtime IR.
-- [ ] Keep glyph atlases and GPU buffers inside renderer backends.
-- [ ] Add font-missing diagnostics.
-- [ ] Test layout metrics before browser pixel baselines.
+- [x] Require explicit font assets; do not rely on system font fallback.
+- [x] Add renderer-neutral text layout and glyph-run Runtime IR.
+- [x] Keep glyph atlases and GPU buffers inside renderer backends.
+- [x] Add font-missing diagnostics.
+- [x] Test layout metrics before browser pixel baselines.
 
 Text starts only after image/video behavior is certified because font shaping has
-separate determinism and asset concerns.
+separate determinism and asset concerns. The first certified surface is one
+static face, single-style LTR text with `wrap: "none"` and `overflow:
+"visible"`; word wrapping, clipping, RTL, variable fonts, rich text, stroke,
+and gradients remain separate certification tickets in
+`docs/task10-text-v2-plan.md`.
 
 ## Task 11: Effects
 
 Effects are atomic render operators, not layer types. Implement one operator per
 ticket and retain authoring order.
 
-- [ ] Color adjust.
+- [x] Color adjust: ordered, pixel-local color adjustment on drawable leaves;
+  fixture coverage proves desaturation and WebGPU/WebGL2 parity. This first
+  operator is fused into the leaf fragment pass because it cannot alter its
+  projected footprint. Blur and spatial effects still require offscreen targets.
 - [ ] Blur.
 - [ ] Shadow.
 - [ ] Glow.

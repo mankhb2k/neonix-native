@@ -4,6 +4,7 @@ import {
   V2FiniteNumberSchema,
 } from "../common";
 import { V2LayerBaseSchema } from "./base";
+import { V2EffectListSchema } from "../effects";
 
 const V2PathPointSchema = z
   .object({
@@ -42,6 +43,7 @@ const V2PathMorphSchema = z
 
 export const V2PathLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("path"),
+  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       contours: z.array(V2PathContourSchema).min(1),

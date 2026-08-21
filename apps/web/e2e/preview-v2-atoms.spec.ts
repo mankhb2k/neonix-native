@@ -26,6 +26,82 @@ async function supportsWebGPU(page: Page): Promise<boolean> {
 }
 
 test.describe("Protocol V2 atom preview", () => {
+  test("applies the V2 color-adjust effect in matching GPU backends", async ({ page }) => {
+    const caseId = "effect.color-adjust";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute("data-backend", "webgl2");
+    const source = await readWebGLPixel(page, "preview-v2-canvas", 480, 540);
+    const adjusted = await readWebGLPixel(page, "preview-v2-canvas", 1440, 540);
+    expect(source).toEqual([255, 0, 0, 255]);
+    expect(adjusted[0]).toBeGreaterThan(50);
+    expect(adjusted[0]).toBeLessThan(60);
+    expect(Math.abs(adjusted[0] - adjusted[1])).toBeLessThanOrEqual(1);
+    expect(Math.abs(adjusted[1] - adjusted[2])).toBeLessThanOrEqual(1);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute("data-backend", "webgpu");
+    const webgpu = await readPresentedPixel(page, "preview-v2-canvas", 1440, 540);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpu[index]! - adjusted[index]!)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("renders Runtime-shaped exact-font text through both GPU backends", async ({ page }) => {
+    const caseId = "text.single-line.alignment";
+    const textPixels = async () => page.getByTestId("preview-v2-canvas").evaluate(async (node) => {
+      if (!(node instanceof HTMLCanvasElement)) throw new Error("Expected preview canvas");
+      const image = new Image();
+      image.src = node.toDataURL("image/png");
+      await image.decode();
+      const capture = document.createElement("canvas");
+      capture.width = node.width;
+      capture.height = node.height;
+      const context = capture.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Missing readback context");
+      context.drawImage(image, 0, 0);
+      const data = context.getImageData(0, 0, capture.width, capture.height).data;
+      let count = 0;
+      let left = capture.width;
+      let top = capture.height;
+      let right = -1;
+      let bottom = -1;
+      for (let y = 0; y < capture.height; y += 1) {
+        for (let x = 0; x < capture.width; x += 1) {
+          const offset = (y * capture.width + x) * 4;
+          if (data[offset]! > 210 && data[offset + 1]! > 210 && data[offset + 2]! > 210) {
+            count += 1;
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x);
+            bottom = Math.max(bottom, y);
+          }
+        }
+      }
+      return { count, left, top, right, bottom };
+    });
+
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+    await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(10);
+    const webgl = await textPixels();
+    expect(webgl.count).toBeGreaterThan(1_000);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+    await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(10);
+    const webgpu = await textPixels();
+    expect(webgpu.count).toBeGreaterThan(1_000);
+    expect(Math.abs(webgpu.left - webgl.left)).toBeLessThanOrEqual(2);
+    expect(Math.abs(webgpu.top - webgl.top)).toBeLessThanOrEqual(2);
+    expect(Math.abs(webgpu.right - webgl.right)).toBeLessThanOrEqual(2);
+    expect(Math.abs(webgpu.bottom - webgl.bottom)).toBeLessThanOrEqual(2);
+  });
+
   test("renders the certified rectangle fill through WebGL2 fallback", async ({
     page,
   }) => {
@@ -1082,6 +1158,23 @@ test.describe("Protocol V2 atom preview", () => {
       "aria-label",
       "Play",
     );
+  });
+
+  test("advances a V2 video preview through the playback engine", async ({
+    page,
+  }) => {
+    await page.goto("/docs/preview?case=video.frame-seek&backend=webgl2&time=0");
+    const slider = page.getByTestId("preview-time-slider");
+    const toggle = page.getByTestId("preview-play-toggle");
+    await expect(slider).toHaveValue("0");
+
+    await toggle.click();
+    await expect
+      .poll(async () => Number(await slider.inputValue()), { timeout: 5_000 })
+      .toBeGreaterThan(0.2);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", "Play");
   });
 
   test("keeps 3D rectangle bounds and interior pixels within backend tolerance", async ({

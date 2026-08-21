@@ -24,12 +24,28 @@ export const V2VideoAssetSchema = z
   })
   .strict();
 
+/** An exact font face. Family names are display metadata; the binary hash is identity. */
+export const V2FontAssetSchema = z
+  .object({
+    id: V2IdSchema,
+    kind: z.literal("font"),
+    uri: z.string().trim().min(1),
+    mimeType: z.enum(["font/ttf", "font/otf"]),
+    family: z.string().trim().min(1),
+    weight: z.number().int().min(1).max(1000),
+    style: z.enum(["normal", "italic"]),
+    integrity: z.string().regex(/^sha256:[a-f0-9]{64}$/i),
+  })
+  .strict();
+
 export const V2AssetSchema = z.discriminatedUnion("kind", [
   V2ImageAssetSchema,
   V2VideoAssetSchema,
+  V2FontAssetSchema,
 ]);
 export const V2AssetListSchema = z.array(V2AssetSchema);
 
 export type V2ImageAsset = z.infer<typeof V2ImageAssetSchema>;
 export type V2VideoAsset = z.infer<typeof V2VideoAssetSchema>;
+export type V2FontAsset = z.infer<typeof V2FontAssetSchema>;
 export type V2Asset = z.infer<typeof V2AssetSchema>;

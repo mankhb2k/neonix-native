@@ -51,6 +51,33 @@ export type PathStrokeJoin = "miter" | "bevel" | "round";
 export type PathStrokeCap = "butt" | "square" | "round";
 export type PathStrokeDash = { array: number[]; offset: number };
 
+/** A positioned font-outline glyph, resolved by Runtime before GPU submission. */
+export type PaintTextGlyph = {
+  glyphId: number;
+  cluster: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  path: string;
+  pathScale: number;
+  outline: { x: number; y: number; width: number; height: number };
+};
+
+export type PaintTextLine = {
+  baselineY: number;
+  advanceWidth: number;
+};
+
+export type RuntimeColorAdjustEffect = {
+  id: string;
+  type: "color-adjust";
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hueRotate: number;
+};
+
 export type RuntimeEffect =
   | { id: string; type: "blur"; radius: number; seed?: number }
   | {
@@ -72,12 +99,4 @@ export type RuntimeEffect =
       animated: boolean;
       seed?: number;
     }
-  | {
-      id: string;
-      type: "color-adjust";
-      brightness?: number;
-      contrast?: number;
-      saturation?: number;
-      hueRotate?: number;
-      seed?: number;
-    };
+  | RuntimeColorAdjustEffect;

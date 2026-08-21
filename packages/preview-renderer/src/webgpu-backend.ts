@@ -7,6 +7,8 @@ import {
   gradientUniforms,
 } from "./math";
 import { mediaLayout } from "./media";
+import { createTextAtlas, type TextAtlas } from "./text-atlas";
+import { colorAdjustUniforms } from "./effects";
 import type { PreviewBackend } from "./backend";
 import type {
   PreviewAsset,
@@ -29,6 +31,8 @@ const TEXTURE_BINDING = 0x04;
 const TEXTURE_COPY_DST = 0x02;
 const TEXTURE_RENDER_ATTACHMENT = 0x10;
 const MSAA_SAMPLE_COUNT = 4;
+const UNIFORM_FLOATS = 84;
+const UNIFORM_BYTES = UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 
 const SHADER = `
 struct Uniforms {
@@ -42,6 +46,11 @@ struct Uniforms {
   gradientEnd: vec4<f32>,
   gradientParams: vec4<f32>,
   gradientRadius: vec4<f32>,
+  colorAdjustMeta: vec4<f32>,
+  colorAdjust0: vec4<f32>,
+  colorAdjust1: vec4<f32>,
+  colorAdjust2: vec4<f32>,
+  colorAdjust3: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
@@ -51,6 +60,22 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
 fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32 {
   let q = abs(point) - (halfSize - vec2<f32>(radius, radius));
   return length(max(q, vec2<f32>(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
+fn applyHueRotate(color: vec3<f32>, angle: f32) -> vec3<f32> {
+  let c = cos(angle);
+  let s = sin(angle);
+  return vec3<f32>(
+    color.r * (0.213 + c * 0.787 - s * 0.213) + color.g * (0.715 - c * 0.715 - s * 0.715) + color.b * (0.072 - c * 0.072 + s * 0.928),
+    color.r * (0.213 - c * 0.213 + s * 0.143) + color.g * (0.715 + c * 0.285 + s * 0.140) + color.b * (0.072 - c * 0.072 - s * 0.283),
+    color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072),
+  );
+}
+fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
+  var color = clamp(source.rgb + vec3<f32>(effect.x), vec3<f32>(0.0), vec3<f32>(1.0));
+  color = clamp((color - vec3<f32>(0.5)) * effect.y + vec3<f32>(0.5), vec3<f32>(0.0), vec3<f32>(1.0));
+  let luma = dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
+  color = mix(vec3<f32>(luma), color, effect.z);
+  return vec4<f32>(clamp(applyHueRotate(color, effect.w), vec3<f32>(0.0), vec3<f32>(1.0)), source.a);
 }
 @vertex fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
@@ -73,7 +98,11 @@ fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32
     shapeAlpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToEdge);
     if (shapeAlpha <= 0.0) { discard; }
   }
-  var source = select(uniforms.color, textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw), uniforms.params.y > 0.5);
+  let sampled = textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw);
+  var source = select(uniforms.color, sampled, uniforms.params.y > 0.5);
+  if (uniforms.params.y > 1.5) {
+    source = vec4<f32>(uniforms.color.rgb, uniforms.color.a * sampled.a);
+  }
   if (uniforms.params.y <= 0.5 && uniforms.gradientParams.x > 0.5) {
     var gradientT = 0.0;
     if (uniforms.gradientParams.x < 1.5) {
@@ -117,7 +146,11 @@ fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32
     }
     source = mix(source, uniforms.media, strokeCoverage);
   }
-  return vec4<f32>(source.rgb, source.a * shapeAlpha * select(1.0, uniforms.color.a, uniforms.params.y > 0.5));
+  if (uniforms.colorAdjustMeta.x > 0.5) { source = applyColorAdjust(source, uniforms.colorAdjust0); }
+  if (uniforms.colorAdjustMeta.x > 1.5) { source = applyColorAdjust(source, uniforms.colorAdjust1); }
+  if (uniforms.colorAdjustMeta.x > 2.5) { source = applyColorAdjust(source, uniforms.colorAdjust2); }
+  if (uniforms.colorAdjustMeta.x > 3.5) { source = applyColorAdjust(source, uniforms.colorAdjust3); }
+  return vec4<f32>(source.rgb, source.a * shapeAlpha * select(1.0, uniforms.color.a, uniforms.params.y > 0.5 && uniforms.params.y < 1.5));
 }`;
 
 function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {
@@ -192,6 +225,7 @@ export function createWebGPUBackend(
   const objects = createBackendObjects(device, format);
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGPUTextureLike>();
+  const textAtlases = new Map<string, TextAtlas>();
   const whiteTexture = device.createTexture({
     size: { width: 1, height: 1 },
     format: "rgba8unorm",
@@ -302,9 +336,9 @@ export function createWebGPUBackend(
         }
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
-        const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(64);
+        const data = new Float32Array(UNIFORM_FLOATS);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);
         writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
@@ -337,6 +371,7 @@ export function createWebGPUBackend(
         data.set(gradients.end, 52);
         data.set(gradients.params, 56);
         data.set(gradients.radius, 60);
+        data.set(colorAdjustUniforms(command.effects), 64);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setPipeline(objects.pipeline);
@@ -375,9 +410,9 @@ export function createWebGPUBackend(
           transientBuffers.add(indexBuffer);
           device.queue.writeBuffer(vertexBuffer, 0, vertexData);
           device.queue.writeBuffer(indexBuffer, 0, indexData);
-          const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+          const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
           transientBuffers.add(uniform);
-          const data = new Float32Array(64);
+          const data = new Float32Array(UNIFORM_FLOATS);
           pathDraw.color[3] *= transform.alpha * pathDraw.opacity;
           writeMatrix4(data, 0, projection);
           writeMatrix4(data, 16, packMatrix4F32(transform.matrix4));
@@ -389,6 +424,7 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 52);
           data.set([0, 0, 0, 0], 56);
           data.set([0, 0, 0, 0], 60);
+          data.set(colorAdjustUniforms(command.effects), 64);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
           pass.setPipeline(objects.pathPipeline);
@@ -414,9 +450,9 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
-        const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+        const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
-        const data = new Float32Array(64);
+        const data = new Float32Array(UNIFORM_FLOATS);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);
@@ -432,6 +468,7 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 52);
         data.set([0, 0, 0, 0], 56);
         data.set([0, 0, 0, 0], 60);
+        data.set(colorAdjustUniforms(command.effects), 64);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
         pass.setPipeline(objects.pipeline);
@@ -439,9 +476,53 @@ export function createWebGPUBackend(
         pass.setBindGroup(0, bindGroup);
         pass.draw(4);
         drawCalls += 1;
-      } else if (command.op === "drawText" || command.op === "unsupported") {
+      } else if (command.op === "drawText") {
+        if (!transform || !transform.visible || transform.alpha <= 0 || !command.glyphs?.length) {
+          skippedCommands += 1;
+          if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        const atlas = textAtlases.get(command.key) ?? createTextAtlas(command);
+        if (!atlas) {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        textAtlases.set(command.key, atlas);
+        const image = textures.get(atlas.id) ?? textureFor(atlas.id, atlas.asset);
+        if (!image) {
+          skippedCommands += 1;
+          continue;
+        }
+        const color = cssColorToRgba(command.fill);
+        color[3] *= transform.alpha;
+        const baseMatrix = packMatrix4F32(transform.matrix4);
+        for (const glyph of atlas.glyphs) {
+          const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+          transientBuffers.add(uniform);
+          const data = new Float32Array(UNIFORM_FLOATS);
+          writeMatrix4(data, 0, projection);
+          writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, glyph.x, glyph.y, glyph.width, glyph.height));
+          data.set(color, 32);
+          data.set([0, 2, 0, 0], 36);
+          data.set([glyph.uv.x, glyph.uv.y, glyph.uv.width, glyph.uv.height], 40);
+          data.set([0, 0, 0, 0], 44);
+          data.set([0, 0, 0, 0], 48);
+          data.set([0, 0, 0, 0], 52);
+          data.set([0, 0, 0, 0], 56);
+          data.set([0, 0, 0, 0], 60);
+          data.set(colorAdjustUniforms(command.effects), 64);
+          device.queue.writeBuffer(uniform, 0, data);
+          const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
+          pass.setPipeline(objects.pipeline);
+          pass.setVertexBuffer(0, objects.vertexBuffer);
+          pass.setBindGroup(0, bindGroup);
+          pass.draw(4);
+          drawCalls += 1;
+        }
+      } else if (command.op === "unsupported") {
         skippedCommands += 1;
-        pushDiagnostic({ severity: command.op === "unsupported" ? "error" : "info", code: command.op === "unsupported" ? "preview_unsupported_command" : "preview_op_pending", message: command.op === "unsupported" ? command.message : `${command.op} is pending in the native preview backend`, key: command.key, layerId: command.layerId });
+        pushDiagnostic({ severity: "error", code: "preview_unsupported_command", message: command.message, key: command.key, layerId: command.layerId });
       } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "offscreen, isolation, and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       }
@@ -495,6 +576,7 @@ export function createWebGPUBackend(
       transientBuffers.clear();
       for (const texture of textures.values()) texture.destroy?.();
       textures.clear();
+      textAtlases.clear();
     },
   };
 }

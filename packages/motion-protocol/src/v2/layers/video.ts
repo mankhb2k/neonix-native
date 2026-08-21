@@ -2,12 +2,14 @@ import { z } from "zod";
 import { V2IdSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
 import { V2ImageFitSchema } from "./image";
+import { V2EffectListSchema } from "../effects";
 
 export const V2VideoFramePolicySchema = z.enum(["floor", "round", "ceil"]);
 
 export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
   id: V2IdSchema,
   type: z.literal("video"),
+  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       assetId: V2IdSchema,

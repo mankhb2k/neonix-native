@@ -14,6 +14,12 @@ import type {
   PreviewBackendKind,
   PreviewBackendPreference,
 } from "@motionvideo/preview-renderer";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
+import {
+  createPlaybackEngineV2,
+  type PlaybackEngineV2,
+} from "@motionvideo/playback-engine";
 
 const backendOptions: Array<{
   id: PreviewBackendPreference;
@@ -151,47 +157,64 @@ function PreviewPlayback({
   initialTime: number;
   onBackendChange: (backend: PreviewBackendPreference) => void;
 }) {
+  const runtime = useMemo(() => compileProtocolV2(project), [project]);
   const duration = Math.max(
     1,
-    ...project.layers.map(
-      (layer) => layer.timing.start + layer.timing.duration,
+    ...runtime.nodes.map(
+      (node) => node.timing.start + node.timing.duration,
     ),
   );
-  const fps = project.composition.fps;
+  const fps = runtime.composition.fps;
   const firstTime = Math.min(Math.max(0, initialTime), duration);
   const [currentTime, setCurrentTime] = useState(firstTime);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackFrame, setPlaybackFrame] = useState<RuntimeFrameV2 | null>(
+    null,
+  );
   const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(
     null,
   );
-  const currentTimeRef = useRef(firstTime);
+  const engineRef = useRef<PlaybackEngineV2 | null>(null);
 
   useEffect(() => {
-    if (!isPlaying) return undefined;
-    let previous = performance.now();
-    let animationFrame = 0;
-    const tick = (now: number) => {
-      const delta = (now - previous) / 1000;
-      previous = now;
-      const next = currentTimeRef.current + delta;
-      if (next >= duration) {
-        currentTimeRef.current = 0;
-        setCurrentTime(0);
-        setIsPlaying(false);
-        return;
-      }
-      currentTimeRef.current = next;
-      setCurrentTime(next);
-      animationFrame = requestAnimationFrame(tick);
+    const engine = createPlaybackEngineV2({
+      paintCompositionFrame(frame) {
+        setPlaybackFrame(frame);
+        setCurrentTime(frame.time);
+        if (frame.time >= duration) setIsPlaying(false);
+      },
+    });
+    engine.load(runtime);
+    engineRef.current = engine;
+    const firstFrame = engine.renderFrameAt(firstTime);
+    if (firstFrame) {
+      setPlaybackFrame(firstFrame);
+      setCurrentTime(firstFrame.time);
+    }
+    return () => {
+      engine.dispose();
+      if (engineRef.current === engine) engineRef.current = null;
     };
-    animationFrame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [duration, isPlaying]);
+  }, [duration, firstTime, runtime]);
 
   function seek(next: number) {
     const clamped = Math.min(Math.max(0, next), duration);
-    currentTimeRef.current = clamped;
+    engineRef.current?.pause();
+    setIsPlaying(false);
+    engineRef.current?.seek(clamped);
     setCurrentTime(clamped);
+  }
+
+  function togglePlayback() {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (engine.playing) {
+      engine.pause();
+      setIsPlaying(false);
+      return;
+    }
+    setIsPlaying(true);
+    engine.play();
   }
 
   return (
@@ -239,6 +262,8 @@ function PreviewPlayback({
           project={project}
           backend={backend}
           time={currentTime}
+          frame={playbackFrame ?? undefined}
+          isPlaying={isPlaying}
           onBackendReady={setActiveBackend}
         />
       </div>
@@ -252,7 +277,7 @@ function PreviewPlayback({
           aria-label={isPlaying ? "Pause" : "Play"}
           title={isPlaying ? "Pause" : "Play"}
           data-testid="preview-play-toggle"
-          onClick={() => setIsPlaying((playing) => !playing)}
+          onClick={togglePlayback}
         >
           {isPlaying ? (
             <Pause size={15} fill="currentColor" />

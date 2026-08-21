@@ -16,6 +16,7 @@ type ShapeOptions = {
   transform?: RectangleLayer["transform"];
   opacity?: number;
   timing?: RectangleLayer["timing"];
+  effects?: RectangleLayer["effects"];
 };
 
 const IDENTITY_TRANSFORM: RectangleLayer["transform"] = {
@@ -36,6 +37,7 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     transform: options.transform ?? IDENTITY_TRANSFORM,
     opacity: options.opacity ?? 100,
     timing: options.timing ?? { start: 0, duration: 3 },
+    ...(options.effects ? { effects: options.effects } : {}),
     payload: {
       shape,
       ...(options.cornerRadius != null ? { cornerRadius: options.cornerRadius } : {}),
@@ -851,6 +853,101 @@ const GRADIENT_PERSPECTIVE_PROJECT = project(
   },
 );
 
+type TextLayer = Extract<V2Layer, { type: "text" }>;
+
+const PREVIEW_ROBOTO_REGULAR_FONT = {
+  id: "preview-roboto-regular-v2",
+  kind: "font" as const,
+  uri: "/fonts/Roboto-Regular.ttf",
+  mimeType: "font/ttf" as const,
+  family: "Roboto",
+  weight: 400,
+  style: "normal" as const,
+  integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+};
+
+function textLayer(options: {
+  id: string;
+  zIndex: number;
+  text: string;
+  align: TextLayer["payload"]["align"];
+  verticalAlign: TextLayer["payload"]["verticalAlign"];
+  transform: TextLayer["transform"];
+}): TextLayer {
+  return {
+    id: options.id,
+    type: "text",
+    parentLayerId: null,
+    zIndex: options.zIndex,
+    frame: { width: 1140, height: 220 },
+    transform: options.transform,
+    opacity: 100,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      text: options.text,
+      fontAssetId: PREVIEW_ROBOTO_REGULAR_FONT.id,
+      fontSize: 96,
+      lineHeight: 120,
+      letterSpacing: 1,
+      align: options.align,
+      verticalAlign: options.verticalAlign,
+      wrap: "none",
+      overflow: "visible",
+      direction: "ltr",
+      language: "vi",
+    },
+    style: { fill: "#f8fafc" },
+  };
+}
+
+const TEXT_ALIGNMENT_PROJECT = project(
+  "preview-text-alignment-v2",
+  [
+    rectangle({
+      id: "text-frame",
+      zIndex: 0,
+      fill: "#173247",
+      frame: { width: 1140, height: 220 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 390, y: 430, z: 0 } },
+    }),
+    textLayer({
+      id: "text-center-middle",
+      zIndex: 1,
+      text: "NeonVideo V2 - Xin chao",
+      align: "center",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 390, y: 430, z: 0 } },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
+  rectangle({
+    id: "source-red",
+    zIndex: 0,
+    fill: "#ff0000",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
+  }),
+  rectangle({
+    id: "desaturated-red",
+    zIndex: 1,
+    fill: "#ff0000",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
+    effects: [{
+      id: "desaturate",
+      type: "color-adjust",
+      brightness: 0,
+      contrast: 1,
+      saturation: 0,
+      hueRotate: 0,
+    }],
+  }),
+]);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -909,6 +1006,20 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 9 / Video",
     hint: "The local MP4 is decoded at the requested composition frame; runtime emits source media time before the renderer uploads it.",
     project: VIDEO_PROJECT,
+  },
+  {
+    id: "text.single-line.alignment",
+    label: "Text / exact font alignment",
+    group: "Task 10 / Text",
+    hint: "Roboto Regular is hash-verified, shaped by Runtime, and aligned inside the immutable text frame before its glyph atlas reaches WebGPU or WebGL2.",
+    project: TEXT_ALIGNMENT_PROJECT,
+  },
+  {
+    id: "effect.color-adjust",
+    label: "Effect / color adjust",
+    group: "Task 11 / Effects",
+    hint: "The right red rectangle is desaturated after its layer has been rasterized.",
+    project: COLOR_ADJUST_PROJECT,
   },
   {
     id: "path.closed-fill.perspective",

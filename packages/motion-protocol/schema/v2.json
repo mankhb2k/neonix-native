@@ -232,6 +232,60 @@
                   "kind"
                 ],
                 "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "font"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "enum": [
+                      "font/ttf",
+                      "font/otf"
+                    ]
+                  },
+                  "family": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "normal",
+                      "italic"
+                    ]
+                  },
+                  "integrity": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "uri",
+                  "mimeType",
+                  "family",
+                  "weight",
+                  "style",
+                  "integrity"
+                ],
+                "additionalProperties": false
               }
             ]
           }
@@ -401,6 +455,51 @@
                     "type": "string",
                     "const": "image"
                   },
+                  "effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "color-adjust"
+                        },
+                        "brightness": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        "contrast": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 4
+                        },
+                        "saturation": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 4
+                        },
+                        "hueRotate": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "brightness",
+                        "contrast",
+                        "saturation",
+                        "hueRotate"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 8
+                  },
                   "payload": {
                     "type": "object",
                     "properties": {
@@ -495,6 +594,9 @@
                   "type": {
                     "type": "string",
                     "const": "shape"
+                  },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
                   },
                   "payload": {
                     "type": "object",
@@ -669,7 +771,135 @@
                   },
                   "type": {
                     "type": "string",
+                    "const": "text"
+                  },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "fontAssetId": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                      },
+                      "fontSize": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                      },
+                      "lineHeight": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                      },
+                      "letterSpacing": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                      },
+                      "align": {
+                        "type": "string",
+                        "enum": [
+                          "left",
+                          "center",
+                          "right"
+                        ]
+                      },
+                      "verticalAlign": {
+                        "type": "string",
+                        "enum": [
+                          "top",
+                          "middle",
+                          "bottom"
+                        ]
+                      },
+                      "wrap": {
+                        "type": "string",
+                        "const": "none"
+                      },
+                      "overflow": {
+                        "type": "string",
+                        "const": "visible"
+                      },
+                      "direction": {
+                        "type": "string",
+                        "const": "ltr"
+                      },
+                      "language": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 35
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "fontAssetId",
+                      "fontSize",
+                      "lineHeight",
+                      "letterSpacing",
+                      "align",
+                      "verticalAlign",
+                      "wrap",
+                      "overflow",
+                      "direction",
+                      "language"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "style": {
+                    "type": "object",
+                    "properties": {
+                      "fill": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                      }
+                    },
+                    "required": [
+                      "fill"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "parentLayerId",
+                  "zIndex",
+                  "frame",
+                  "transform",
+                  "opacity",
+                  "timing",
+                  "type",
+                  "payload",
+                  "style"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "parentLayerId": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
+                  },
+                  "zIndex": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  },
+                  "frame": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
+                  },
+                  "transform": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform"
+                  },
+                  "opacity": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "timing": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing"
+                  },
+                  "type": {
+                    "type": "string",
                     "const": "path"
+                  },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
                   },
                   "payload": {
                     "type": "object",
@@ -712,7 +942,7 @@
                                         "const": "line"
                                       },
                                       "to": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/contours/items/properties/start"
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                       }
                                     },
                                     "required": [
@@ -729,13 +959,13 @@
                                         "const": "cubic"
                                       },
                                       "control1": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/contours/items/properties/start"
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                       },
                                       "control2": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/contours/items/properties/start"
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                       },
                                       "to": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/contours/items/properties/start"
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
                                       }
                                     },
                                     "required": [
@@ -778,7 +1008,7 @@
                           "targetContours": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/contours/items"
+                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items"
                             },
                             "minItems": 1
                           },
@@ -904,6 +1134,9 @@
                   "type": {
                     "type": "string",
                     "const": "video"
+                  },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
                   },
                   "payload": {
                     "type": "object",

@@ -2,6 +2,8 @@ import type { Matrix4 } from "../matrix4";
 import type { PaintCommandBuffer } from "../paint";
 import type {
   PaintFill,
+  PaintTextGlyph,
+  PaintTextLine,
   PathContour,
   PathMesh,
   PathStrokeCap,
@@ -10,6 +12,7 @@ import type {
   PathStrokeMesh,
   RenderMediaFit,
   RenderNormalizedRect,
+  RuntimeEffect,
 } from "../paint/paint-types";
 
 export type RuntimeCompositionV2 = {
@@ -42,6 +45,7 @@ export type RuntimeShapeV2 = {
   stroke?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
+  effects?: RuntimeEffect[];
 };
 
 export type RuntimePathV2 = {
@@ -60,6 +64,7 @@ export type RuntimePathV2 = {
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
+  effects?: RuntimeEffect[];
 };
 
 export type RuntimeImageV2 = {
@@ -70,6 +75,7 @@ export type RuntimeImageV2 = {
   height: number;
   fit?: RenderMediaFit;
   crop?: RenderNormalizedRect;
+  effects?: RuntimeEffect[];
 };
 
 export type RuntimeVideoV2 = {
@@ -86,6 +92,38 @@ export type RuntimeVideoV2 = {
   loop: boolean;
   muted: boolean;
   framePolicy: "floor" | "round" | "ceil";
+  effects?: RuntimeEffect[];
+};
+
+export type RuntimeTextLayoutV2 = {
+  unitsPerEm: number;
+  ascender: number;
+  descender: number;
+  glyphs: PaintTextGlyph[];
+  lines: PaintTextLine[];
+};
+
+/** Text stays semantic until the host has resolved the exact font binary. */
+export type RuntimeTextV2 = {
+  kind: "text";
+  text: string;
+  fontAssetId: string;
+  fontUri: string;
+  fontIntegrity: string;
+  fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
+  align: "left" | "center" | "right";
+  verticalAlign: "top" | "middle" | "bottom";
+  wrap: "none";
+  overflow: "visible";
+  direction: "ltr";
+  language: string;
+  fill: string;
+  width: number;
+  height: number;
+  layout?: RuntimeTextLayoutV2;
+  effects?: RuntimeEffect[];
 };
 
 export type RuntimeNodeV2 = {
@@ -97,7 +135,7 @@ export type RuntimeNodeV2 = {
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
-  content: RuntimeShapeV2 | RuntimePathV2 | RuntimeImageV2 | RuntimeVideoV2;
+  content: RuntimeShapeV2 | RuntimePathV2 | RuntimeImageV2 | RuntimeVideoV2 | RuntimeTextV2;
 };
 
 export type RuntimeProjectV2 = {

@@ -3,9 +3,11 @@ export {
   V2AssetListSchema,
   V2AssetSchema,
   V2ImageAssetSchema,
+  V2FontAssetSchema,
   V2VideoAssetSchema,
   type V2Asset,
   type V2ImageAsset,
+  type V2FontAsset,
   type V2VideoAsset,
 } from "./assets";
 export {
@@ -17,6 +19,12 @@ export {
 } from "./common";
 export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
+export {
+  V2ColorAdjustEffectSchema,
+  V2EffectListSchema,
+  type V2ColorAdjustEffect,
+  type V2Effect,
+} from "./effects";
 export {
   isV2AtomCertified,
   V2_CERTIFIED_ATOMS,
@@ -34,6 +42,7 @@ export {
   V2PathContourSchema,
   V2PathLayerSchema,
   V2ShapeLayerSchema,
+  V2TextLayerSchema,
   type V2Frame,
   type V2GroupLayer,
   type V2ImageFit,
@@ -43,6 +52,7 @@ export {
   type V2Layer,
   type V2PathLayer,
   type V2ShapeLayer,
+  type V2TextLayer,
 } from "./layers";
 export { V2TimingSchema, type V2Timing } from "./timing";
 export { V2TransformSchema, type V2Transform } from "./transform";

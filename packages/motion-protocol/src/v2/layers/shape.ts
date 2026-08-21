@@ -6,6 +6,7 @@ import {
   V2PositiveNumberSchema,
 } from "../common";
 import { V2LayerBaseSchema } from "./base";
+import { V2EffectListSchema } from "../effects";
 
 const V2GradientStopSchema = z
   .object({
@@ -35,6 +36,7 @@ const V2GradientFillSchema = z.discriminatedUnion("type", [
 
 export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("shape"),
+  effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       shape: z.union([z.literal("rectangle"), z.literal("ellipse")]),

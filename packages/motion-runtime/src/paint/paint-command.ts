@@ -4,6 +4,8 @@
 
 import type {
   PaintFill,
+  PaintTextGlyph,
+  PaintTextLine,
   PathContour,
   PathMesh,
   PathStrokeMesh,
@@ -81,6 +83,12 @@ export type PaintCommand =
       width: number;
       height: number;
       fontAssetId?: string;
+      /** Runtime-resolved glyph outlines. Native backends must not shape text. */
+      glyphs?: PaintTextGlyph[];
+      lines?: PaintTextLine[];
+      verticalAlign?: "top" | "middle" | "bottom";
+      direction?: "ltr" | "rtl";
+      language?: string;
       wrap?: "none" | "word" | "character";
       lineHeight?: number;
       letterSpacing?: number;

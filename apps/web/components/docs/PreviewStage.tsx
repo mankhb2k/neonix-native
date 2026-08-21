@@ -9,6 +9,10 @@ import {
 import {
   evaluateRuntimeProjectV2,
   frameIndexAtTime,
+  prepareRuntimeProjectV2Text,
+  type RuntimeFrameV2,
+  type RuntimeProjectV2,
+  type RuntimeTextShaperLoaderV2,
 } from "@motionvideo/motion-runtime";
 import {
   createPreviewRenderer,
@@ -21,6 +25,8 @@ import {
 type PreviewStageProps = {
   project: unknown;
   time?: number;
+  frame?: RuntimeFrameV2;
+  isPlaying?: boolean;
   backend?: PreviewBackendPreference;
   onBackendReady?: (backend: PreviewBackendKind | null) => void;
 };
@@ -28,6 +34,8 @@ type PreviewStageProps = {
 export function PreviewStage({
   project,
   time = 0,
+  frame,
+  isPlaying = false,
   backend = "auto",
   onBackendReady,
 }: PreviewStageProps) {
@@ -36,8 +44,12 @@ export function PreviewStage({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const projectRef = useRef<ReturnType<typeof MotionProtocolV2Schema.parse> | null>(null);
   const assetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
+  const runtimeRef = useRef<RuntimeProjectV2 | null>(null);
+  const preparationDiagnosticsRef = useRef<string[]>([]);
   const paintRequestRef = useRef(0);
   const timeRef = useRef(time);
+  const frameRef = useRef<RuntimeFrameV2 | null>(frame ?? null);
+  const isPlayingRef = useRef(isPlaying);
   const [rendererError, setRendererError] = useState<string | null>(null);
   const parsedResult = useMemo(
     () => MotionProtocolV2Schema.safeParse(project),
@@ -45,6 +57,8 @@ export function PreviewStage({
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
   const error = parsedResult.success ? rendererError : parsedResult.error.message;
+  frameRef.current = frame ?? null;
+  isPlayingRef.current = isPlaying;
 
   useEffect(() => {
     timeRef.current = time;
@@ -52,8 +66,23 @@ export function PreviewStage({
     const parsed = projectRef.current;
     if (!renderer || !parsed) return;
     const requestId = ++paintRequestRef.current;
-    void paintFrame(renderer, parsed, time, assetsRef.current, requestId, paintRequestRef);
-  }, [time]);
+    void paintFrame(
+      renderer,
+      parsed,
+      time,
+      assetsRef.current,
+      requestId,
+      paintRequestRef,
+      frameRef.current,
+      isPlayingRef.current,
+      runtimeRef.current,
+      preparationDiagnosticsRef.current,
+    );
+  }, [frame, isPlaying, time]);
+
+  useEffect(() => {
+    syncPreviewVideoPlayback(assetsRef.current, isPlaying);
+  }, [isPlaying]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -74,9 +103,23 @@ export function PreviewStage({
     let cancelled = false;
     const devicePixelRatio = window.devicePixelRatio || 1;
     void (async () => {
-      const assets = await loadPreviewAssets(parsedProject);
+      const resources = await loadPreviewResources(parsedProject);
       if (cancelled) return;
-      assetsRef.current = assets;
+      assetsRef.current = resources.assets;
+      const compiled = compileProtocolV2(parsedProject);
+      const prepared = compiled.nodes.some((node) => node.content.kind === "text")
+        ? await prepareRuntimeProjectV2Text(
+            compiled,
+            async (font) => resources.fontBytes.get(font.assetId) ?? null,
+            loadBrowserHarfBuzz,
+          )
+        : null;
+      runtimeRef.current = prepared?.project ?? null;
+      preparationDiagnosticsRef.current = [
+        ...resources.diagnostics,
+        ...(prepared?.diagnostics.map((diagnostic) => diagnostic.code) ?? []),
+      ];
+      syncPreviewVideoPlayback(resources.assets, isPlayingRef.current);
       const renderer = await createPreviewRenderer({
         canvas,
         backend,
@@ -84,7 +127,7 @@ export function PreviewStage({
         height: parsedProject.composition.height,
         devicePixelRatio,
         preserveDrawingBuffer: true,
-        assets,
+        assets: resources.assets,
       });
       if (cancelled) {
         renderer.dispose();
@@ -95,7 +138,18 @@ export function PreviewStage({
       onBackendReady?.(renderer.backend);
       setRendererError(null);
       const requestId = ++paintRequestRef.current;
-      void paintFrame(renderer, parsedProject, timeRef.current, assets, requestId, paintRequestRef);
+      void paintFrame(
+        renderer,
+        parsedProject,
+        timeRef.current,
+        resources.assets,
+        requestId,
+        paintRequestRef,
+        frameRef.current,
+        isPlayingRef.current,
+        runtimeRef.current,
+        preparationDiagnosticsRef.current,
+      );
       applyCanvasLayout(
         host,
         canvas,
@@ -116,6 +170,8 @@ export function PreviewStage({
       onBackendReady?.(null);
       projectRef.current = null;
       assetsRef.current = new Map();
+      runtimeRef.current = null;
+      preparationDiagnosticsRef.current = [];
       canvasRef.current = null;
       canvas.remove();
     };
@@ -139,7 +195,18 @@ export function PreviewStage({
           devicePixelRatio,
         );
         const requestId = ++paintRequestRef.current;
-        void paintFrame(renderer, parsed, timeRef.current, assetsRef.current, requestId, paintRequestRef);
+        void paintFrame(
+          renderer,
+          parsed,
+          timeRef.current,
+          assetsRef.current,
+          requestId,
+          paintRequestRef,
+          frameRef.current,
+          isPlayingRef.current,
+          runtimeRef.current,
+          preparationDiagnosticsRef.current,
+        );
       }
       applyCanvasLayout(
         host,
@@ -177,12 +244,30 @@ export function PreviewStage({
   );
 }
 
-async function loadPreviewAssets(
+type PreviewResources = {
+  assets: ReadonlyMap<string, PreviewAsset>;
+  fontBytes: ReadonlyMap<string, ArrayBuffer>;
+  diagnostics: string[];
+};
+
+async function loadPreviewResources(
   project: MotionProtocolV2,
-): Promise<ReadonlyMap<string, PreviewAsset>> {
+): Promise<PreviewResources> {
   const loaded = new Map<string, PreviewAsset>();
+  const fontBytes = new Map<string, ArrayBuffer>();
+  const diagnostics: string[] = [];
   for (const asset of project.assets ?? []) {
     try {
+      if (asset.kind === "font") {
+        const response = await fetch(asset.uri);
+        if (!response.ok) throw new Error(`Unable to load font asset ${asset.id}`);
+        const bytes = await response.arrayBuffer();
+        if (!(await matchesIntegrity(bytes, asset.integrity))) {
+          throw new Error(`Font integrity mismatch for ${asset.id}`);
+        }
+        fontBytes.set(asset.id, bytes);
+        continue;
+      }
       if (asset.kind === "video") {
         const video = document.createElement("video");
         video.crossOrigin = "anonymous";
@@ -220,10 +305,26 @@ async function loadPreviewAssets(
         pixels,
       });
     } catch {
-      // Keep the renderer alive so it can report preview_asset_missing.
+      diagnostics.push(asset.kind === "font" ? "preview_font_unavailable" : "preview_asset_missing");
+      // Keep the renderer alive so it can report the missing resource.
     }
   }
-  return loaded;
+  return { assets: loaded, fontBytes, diagnostics };
+}
+
+async function matchesIntegrity(bytes: ArrayBuffer, integrity: string): Promise<boolean> {
+  const expected = integrity.toLowerCase().replace(/^sha256:/, "");
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const actual = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+  return actual === expected;
+}
+
+function loadBrowserHarfBuzz(): ReturnType<RuntimeTextShaperLoaderV2> {
+  // Deliberately opaque to webpack: this public ESM module imports its matching
+  // WASM sibling and must not be inspected by Next SSR.
+  return Function("specifier", "return import(specifier)")(
+    "/vendor/harfbuzz/index.mjs",
+  ) as ReturnType<RuntimeTextShaperLoaderV2>;
 }
 
 function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
@@ -281,6 +382,24 @@ async function seekPreviewVideos(
   }
 }
 
+function syncPreviewVideoPlayback(
+  assets: ReadonlyMap<string, PreviewAsset>,
+  isPlaying: boolean,
+): void {
+  for (const asset of assets.values()) {
+    if (asset.kind !== "video" || !(asset.source instanceof HTMLVideoElement)) {
+      continue;
+    }
+    if (isPlaying) {
+      void asset.source.play().catch(() => {
+        // Browser autoplay policy can reject playback; transport remains usable.
+      });
+    } else {
+      asset.source.pause();
+    }
+  }
+}
+
 async function paintFrame(
   renderer: PreviewRenderer,
   project: ReturnType<typeof MotionProtocolV2Schema.parse>,
@@ -288,11 +407,17 @@ async function paintFrame(
   assets: ReadonlyMap<string, PreviewAsset>,
   requestId: number,
   requestRef: { current: number },
+  frameOverride: RuntimeFrameV2 | null,
+  realtime: boolean,
+  runtimeOverride: RuntimeProjectV2 | null,
+  preparationDiagnostics: readonly string[],
 ): Promise<void> {
-  const frame = frameIndexAtTime(Math.max(0, time), project.composition.fps);
-  const runtime = compileProtocolV2(project);
-  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
-  await seekPreviewVideos(evaluated, assets);
+  const frameIndex = frameIndexAtTime(Math.max(0, time), project.composition.fps);
+  const evaluated =
+    runtimeOverride
+      ? evaluateRuntimeProjectV2(runtimeOverride, frameIndex, { time })
+      : frameOverride ?? evaluateRuntimeProjectV2(compileProtocolV2(project), frameIndex, { time });
+  if (!realtime) await seekPreviewVideos(evaluated, assets);
   if (requestId !== requestRef.current) return;
   renderer.paintFrame(evaluated);
   const rendererCanvas = renderer.canvas;
@@ -305,6 +430,7 @@ async function paintFrame(
     rendererCanvas.dataset.diagnostics = [
       ...evaluated.diagnostics,
       ...renderer.getStats().diagnostics,
+      ...preparationDiagnostics.map((code) => ({ code })),
     ]
       .map((diagnostic) => diagnostic.code)
       .join(",");
