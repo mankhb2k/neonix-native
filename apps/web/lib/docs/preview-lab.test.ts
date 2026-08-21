@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { compileProtocolV2ToPaintCommands } from "@motionvideo/motion-compiler";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   PREVIEW_LAB_CASES,
   PREVIEW_LAB_DEFAULT_CASE,
@@ -12,6 +12,19 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
+      "rectangle.paint.stroke",
+      "rectangle.paint.stroke-perspective",
+      "ellipse.paint.stroke",
+      "ellipse.paint.stroke-perspective",
+      "rectangle.paint.stroke-width",
+      "rectangle.paint.stroke-width-perspective",
+      "rectangle.paint.opacity",
+      "rectangle.paint.opacity-perspective",
+      "rectangle.rounded",
+      "rectangle.rounded-perspective",
+      "rectangle.gradient.linear",
+      "ellipse.gradient.radial",
+      "rectangle.gradient.perspective",
       "rectangle.transform.translate",
       "rectangle.transform.scale",
       "rectangle.transform.anchor",
@@ -25,6 +38,14 @@ describe("Protocol V2 preview lab fixtures", () => {
       "rectangle.timing",
       "rectangle.opacity",
       "rectangle.z-index",
+      "matrix4.2d.identity",
+      "matrix4.2d.rotate-z",
+      "matrix4.2d.skew",
+      "matrix4.3d.rotate-x",
+      "matrix4.3d.rotate-y",
+      "matrix4.3d.translate-z",
+      "matrix4.3d.anchor-z",
+      "matrix4.camera-plane",
     ]);
     expect(PREVIEW_LAB_DEFAULT_CASE).toBe("primitive.shape.rectangle");
     expect(previewLabCaseById(null).id).toBe(PREVIEW_LAB_DEFAULT_CASE);

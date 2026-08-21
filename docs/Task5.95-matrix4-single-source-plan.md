@@ -421,19 +421,19 @@ projectPoint3D(matrix, point):
 
 Each case must run through:
 
-- [ ] Preview WebGPU.
-- [ ] Preview WebGL2.
-- [ ] Remotion frame rendering.
-- [ ] MP4 smoke when the case contains motion.
+- [x] Preview WebGPU.
+- [x] Preview WebGL2.
+- [x] Remotion frame rendering.
+- [x] MP4 smoke when the case contains motion.
 
 ### Assertions
 
-- [ ] Interior pixels match.
-- [ ] Geometry bounds stay within the locked tolerance.
-- [ ] Edge tolerance is at most 1 physical pixel at DPR 1.
-- [ ] No dark fringe, `NaN`, blank frame, or origin teleport occurs.
-- [ ] Active backend is recorded in test artifacts.
-- [ ] The 2D baseline remains unchanged after Matrix2D removal.
+- [x] Interior pixels match.
+- [x] Geometry bounds stay within the locked tolerance.
+- [x] Edge tolerance is at most 1 physical pixel at DPR 1.
+- [x] No dark fringe, `NaN`, blank frame, or origin teleport occurs.
+- [x] Active backend is recorded in test artifacts.
+- [x] The 2D baseline remains unchanged after Matrix2D removal.
 
 ## 13. Phase 8: Validators, Cleanup, and Final Gate
 

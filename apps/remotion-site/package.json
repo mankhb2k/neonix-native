@@ -6,6 +6,7 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render:smoke": "tsx src/smoke-render.ts",
+    "e2e:matrix4": "tsx src/matrix4-parity-render.ts",
     "e2e": "tsx src/smoke-render.ts",
     "typecheck": "tsc --noEmit"
   },

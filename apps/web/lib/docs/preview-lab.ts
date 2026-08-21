@@ -1,3 +1,4 @@
+import { MATRIX4_PARITY_CASES } from "@motionvideo/motion-compiler/testing";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 type RectangleLayer = MotionProtocolV2["layers"][number];
@@ -761,6 +762,16 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
       }),
     ]),
   },
+  ...MATRIX4_PARITY_CASES.map((item) => ({
+    id: item.id,
+    label: item.id.replace("matrix4.", "Matrix4 / ").replaceAll("-", " "),
+    group: "Task 5.95 / Matrix4 parity",
+    hint:
+      item.id === "matrix4.camera-plane"
+        ? "A point behind the perspective camera must stay clipped instead of appearing at the origin."
+        : "Shared Matrix4 fixture used by Preview and Remotion parity tests.",
+    project: item.project,
+  })),
 ];
 
 export const PREVIEW_LAB_DEFAULT_CASE = "primitive.shape.rectangle";

@@ -169,10 +169,14 @@ function paintFrame(
 ): void {
   const frame = frameIndexAtTime(Math.max(0, time), project.composition.fps);
   const runtime = compileProtocolV2(project);
-  renderer.paintFrame(evaluateRuntimeProjectV2(runtime, frame));
+  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
+  renderer.paintFrame(evaluated);
   const rendererCanvas = renderer.canvas;
   if (rendererCanvas instanceof HTMLCanvasElement) {
     rendererCanvas.dataset.drawCalls = String(renderer.getStats().drawCalls);
+    rendererCanvas.dataset.diagnostics = evaluated.diagnostics
+      .map((diagnostic) => diagnostic.code)
+      .join(",");
   }
 }
 
