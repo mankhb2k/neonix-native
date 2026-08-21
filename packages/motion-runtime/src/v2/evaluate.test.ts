@@ -174,4 +174,33 @@ describe("Runtime IR V2", () => {
       }),
     );
   });
+
+  it("reports a layer that is entirely behind the camera", () => {
+    const projection = perspectiveProjectionMatrix2D(320, 180, 60, 1, 4000);
+    const frame = evaluateRuntimeProjectV2(
+      {
+        ...project,
+        view: {
+          viewMatrix: identityMatrix4(),
+          projectionMatrix: projection,
+          viewProjectionMatrix: multiplyMatrix4(projection, identityMatrix4()),
+        },
+        nodes: [
+          {
+            ...project.nodes[0]!,
+            worldMatrix: translationMatrix3D(0, 0, 1000),
+            localMatrix: translationMatrix3D(0, 0, 1000),
+          },
+        ],
+      },
+      0,
+    );
+
+    expect(frame.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: "layer_behind_camera",
+        layerId: "ellipse",
+      }),
+    );
+  });
 });

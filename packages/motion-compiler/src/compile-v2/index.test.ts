@@ -1,4 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  multiplyMatrix4,
+  rotationMatrixX,
+  rotationMatrixY,
+  rotationMatrixZ,
+  translationMatrix3D,
+  transformPoint4,
+} from "@motionvideo/motion-runtime";
 import { compileProtocolV2, compileProtocolV2ToPaintCommands } from "./index";
 
 const identity = {
@@ -411,6 +419,51 @@ describe("Protocol V2 Compiler B", () => {
     expect(begin.projection?.projectionMatrix).toHaveLength(16);
     expect(begin.projection?.viewProjectionMatrix).toHaveLength(16);
     expect(begin.projection?.projectionMatrix?.[11]).toBe(-1);
+  });
+
+  it("applies the inverse camera transform in the locked order", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      composition: {
+        ...base.composition,
+        view: {
+          projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+          transform: {
+            translate: { x: 10, y: 20, z: 30 },
+            rotate: { x: 10, y: 20, z: 30 },
+          },
+        },
+      },
+      layers: [],
+    });
+    const begin = buffer.commands[0];
+    if (!begin || begin.op !== "beginFrame" || !begin.projection) {
+      throw new Error("Missing compiled camera projection");
+    }
+
+    const expectedRotation = multiplyMatrix4(
+      multiplyMatrix4(rotationMatrixX(-10), rotationMatrixY(-20)),
+      rotationMatrixZ(-30),
+    );
+    const expectedView = multiplyMatrix4(
+      translationMatrix3D(-10, -20, -30),
+      expectedRotation,
+    );
+    expect(begin.projection.viewMatrix).toEqual(Array.from(expectedView));
+
+    const point = { x: 120, y: 80, z: 40 };
+    expect(transformPoint4(
+      begin.projection.viewMatrix,
+      point,
+    )).toEqual(transformPoint4(expectedView, point));
+    expect(begin.projection.viewProjectionMatrix).toEqual(
+      Array.from(
+        multiplyMatrix4(
+          new Float64Array(begin.projection.projectionMatrix),
+          expectedView,
+        ),
+      ),
+    );
   });
 
   it("lowers translate, scale, and local anchor into affine and Matrix4 outputs", () => {

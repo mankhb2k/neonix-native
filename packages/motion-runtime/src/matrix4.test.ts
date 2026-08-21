@@ -9,7 +9,9 @@ import {
   multiplyMatrix4,
   scaleMatrix3D,
   translationMatrix3D,
+  transformPoint4,
   transformPoint3D,
+  projectPoint3D,
 } from "./matrix4";
 
 const identityValues = [
@@ -123,7 +125,75 @@ describe("Canonical local Matrix4 composition", () => {
       rotate: { x: 0, y: 90, z: 0 },
       anchor: { x: 0, y: 0, z: 100 },
     });
-    expect(transformPoint3D(rotateX, 0, 0, 0).y).toBeCloseTo(100, 8);
-    expect(transformPoint3D(rotateY, 0, 0, 0).x).toBeCloseTo(-100, 8);
+    expect(transformPoint3D(rotateX, 0, 0, 0)!.y).toBeCloseTo(100, 8);
+    expect(transformPoint3D(rotateY, 0, 0, 0)!.x).toBeCloseTo(-100, 8);
+  });
+});
+
+describe("Matrix4 homogeneous projection safety", () => {
+  it("keeps w explicit before perspective division", () => {
+    const matrix = translationMatrix3D(12, -8, 40);
+    expect(transformPoint4(matrix, { x: 0, y: 0, z: 0 })).toEqual({
+      x: 12,
+      y: -8,
+      z: 40,
+      w: 1,
+    });
+  });
+
+  it("classifies the camera plane instead of teleporting to the origin", () => {
+    const cameraPlane = createMatrix4([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 0,
+    ]);
+    expect(projectPoint3D(cameraPlane, { x: 30, y: 40, z: 50 })).toEqual({
+      kind: "clipped",
+      reason: "near-plane",
+      w: 0,
+    });
+    expect(transformPoint3D(cameraPlane, 30, 40, 50)).toBeUndefined();
+  });
+
+  it("distinguishes behind-camera, near-plane, far-plane, and valid points", () => {
+    const behind = translationMatrix3D(0, 0, 0);
+    behind[15] = -1;
+    expect(projectPoint3D(behind, { x: 0, y: 0, z: 0 })).toMatchObject({
+      kind: "clipped",
+      reason: "behind-camera",
+    });
+
+    const near = identityMatrix4();
+    near[14] = -1;
+    expect(projectPoint3D(near, { x: 0, y: 0, z: 0 })).toMatchObject({
+      kind: "clipped",
+      reason: "near-plane",
+    });
+
+    const far = identityMatrix4();
+    far[14] = 2;
+    expect(projectPoint3D(far, { x: 0, y: 0, z: 0 })).toMatchObject({
+      kind: "clipped",
+      reason: "far-plane",
+    });
+
+    expect(projectPoint3D(identityMatrix4(), { x: 2, y: -3, z: 0.5 })).toEqual({
+      kind: "projected",
+      x: 2,
+      y: -3,
+      z: 0.5,
+      w: 1,
+    });
+  });
+
+  it("classifies non-finite homogeneous coordinates explicitly", () => {
+    const matrix = identityMatrix4();
+    matrix[0] = Number.NaN;
+    expect(projectPoint3D(matrix, { x: 1, y: 2, z: 0 })).toEqual({
+      kind: "clipped",
+      reason: "non-finite",
+      w: 1,
+    });
   });
 });

@@ -30,6 +30,31 @@ export type Matrix4Values = readonly [
 /** 3D point / vector. */
 export type Point3D = { x: number; y: number; z: number };
 
+/** Matrix-like input accepted at runtime boundaries and after serialization. */
+export type Matrix4Like = {
+  readonly length: number;
+  readonly [index: number]: number;
+};
+
+/** A point after multiplication by a Matrix4, before perspective division. */
+export type HomogeneousPoint4 = Point3D & { w: number };
+
+export type ProjectionClipReason =
+  | "near-plane"
+  | "far-plane"
+  | "behind-camera"
+  | "non-finite";
+
+export type ProjectedPoint3D = { kind: "projected" } & HomogeneousPoint4;
+
+export type ClippedPoint3D = {
+  kind: "clipped";
+  reason: ProjectionClipReason;
+  w: number;
+};
+
+export type ProjectPoint3DResult = ProjectedPoint3D | ClippedPoint3D;
+
 // ── Factory ───────────────────────────────────────────────────────────
 
 function assertMatrix4Values(values: readonly number[]): void {
@@ -354,21 +379,86 @@ export function lookAtMatrix(
 /**
  * Transform a 3D point by a 4×4 matrix (divides by w).
  */
-export function transformPoint3D(
-  m: Matrix4,
+export function transformPoint4(m: Matrix4Like, point: Point3D): HomogeneousPoint4;
+export function transformPoint4(
+  m: Matrix4Like,
   x: number,
   y: number,
   z: number,
-): Point3D {
-  const w = m[3]! * x + m[7]! * y + m[11]! * z + m[15]!;
-  if (Math.abs(w) < GEOMETRY_EPSILON) {
-    return { x: 0, y: 0, z: 0 };
-  }
-  const invW = 1 / w;
+): HomogeneousPoint4;
+export function transformPoint4(
+  m: Matrix4Like,
+  pointOrX: Point3D | number,
+  y?: number,
+  z?: number,
+): HomogeneousPoint4 {
+  const x = typeof pointOrX === "number" ? pointOrX : pointOrX.x;
+  const pointY = typeof pointOrX === "number" ? y! : pointOrX.y;
+  const pointZ = typeof pointOrX === "number" ? z! : pointOrX.z;
   return {
-    x: (m[0]! * x + m[4]! * y + m[8]! * z + m[12]!) * invW,
-    y: (m[1]! * x + m[5]! * y + m[9]! * z + m[13]!) * invW,
-    z: (m[2]! * x + m[6]! * y + m[10]! * z + m[14]!) * invW,
+    x: m[0]! * x + m[4]! * pointY + m[8]! * pointZ + m[12]!,
+    y: m[1]! * x + m[5]! * pointY + m[9]! * pointZ + m[13]!,
+    z: m[2]! * x + m[6]! * pointY + m[10]! * pointZ + m[14]!,
+    w: m[3]! * x + m[7]! * pointY + m[11]! * pointZ + m[15]!,
+  };
+}
+
+/**
+ * Project a point using the canonical V2 depth range [0, 1]. XY values outside
+ * the viewport remain projected so callers can calculate offscreen bounds.
+ */
+export function projectPoint3D(
+  m: Matrix4Like,
+  point: Point3D,
+): ProjectPoint3DResult {
+  const raw = transformPoint4(m, point);
+  if (![raw.x, raw.y, raw.z, raw.w].every(Number.isFinite)) {
+    return { kind: "clipped", reason: "non-finite", w: raw.w };
+  }
+  if (raw.w < -GEOMETRY_EPSILON) {
+    return { kind: "clipped", reason: "behind-camera", w: raw.w };
+  }
+  if (Math.abs(raw.w) <= GEOMETRY_EPSILON) {
+    return { kind: "clipped", reason: "near-plane", w: raw.w };
+  }
+
+  const depth = raw.z / raw.w;
+  if (!Number.isFinite(depth)) {
+    return { kind: "clipped", reason: "non-finite", w: raw.w };
+  }
+  if (depth < -GEOMETRY_EPSILON) {
+    return { kind: "clipped", reason: "near-plane", w: raw.w };
+  }
+  if (depth > 1 + GEOMETRY_EPSILON) {
+    return { kind: "clipped", reason: "far-plane", w: raw.w };
+  }
+
+  return {
+    kind: "projected",
+    x: raw.x / raw.w,
+    y: raw.y / raw.w,
+    z: depth,
+    w: raw.w,
+  };
+}
+
+/**
+ * Divide a transformed point by w without applying camera/depth clipping.
+ * Invalid homogeneous coordinates return undefined, never the origin.
+ */
+export function transformPoint3D(
+  m: Matrix4Like,
+  x: number,
+  y: number,
+  z: number,
+): Point3D | undefined {
+  const raw = transformPoint4(m, { x, y, z });
+  if (![raw.x, raw.y, raw.z, raw.w].every(Number.isFinite)) return undefined;
+  if (Math.abs(raw.w) <= GEOMETRY_EPSILON) return undefined;
+  return {
+    x: raw.x / raw.w,
+    y: raw.y / raw.w,
+    z: raw.z / raw.w,
   };
 }
 
@@ -377,13 +467,13 @@ export function transformPoint3D(
  * Returns {x, y} in screen space.
  */
 export function transformPoint3Dto2D(
-  m: Matrix4,
+  m: Matrix4Like,
   x: number,
   y: number,
   z = 0,
-): { x: number; y: number } {
+): { x: number; y: number } | undefined {
   const p = transformPoint3D(m, x, y, z);
-  return { x: p.x, y: p.y };
+  return p ? { x: p.x, y: p.y } : undefined;
 }
 
 // ── Local transform (Phase 11 3D compose) ─────────────────────────────

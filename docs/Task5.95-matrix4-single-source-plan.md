@@ -369,7 +369,7 @@ must not maintain a separate DOM/CSS Matrix2D renderer for Runtime V2.
 
 ### Point Transform API
 
-- [ ] Separate homogeneous transform from perspective division:
+- [x] Separate homogeneous transform from perspective division:
 
 ```ts
 transformPoint4(matrix, point): { x: number; y: number; z: number; w: number }
@@ -379,25 +379,30 @@ projectPoint3D(matrix, point):
   | { kind: "clipped"; reason: ProjectionClipReason; w: number };
 ```
 
-- [ ] Never return `{x: 0, y: 0, z: 0}` when `w` is near zero.
-- [ ] Distinguish `near-plane`, `behind-camera`, `non-finite`, and valid points.
-- [ ] Bounds and hit testing must not treat a clipped point as composition origin.
+- [x] Never return `{x: 0, y: 0, z: 0}` when `w` is near zero.
+- [x] Distinguish `near-plane`, `behind-camera`, `far-plane`, `non-finite`, and valid points.
+- [x] Bounds and hit testing must not treat a clipped point as composition origin;
+  the active V2 workspace has no CPU bounds/hit-test consumer, and the shared
+  projection API now fails closed for that future consumer.
 
 ### Projection Policy
 
-- [ ] Use near/far planes in camera/clip space; do not clamp with an arbitrary
+- [x] Use near/far planes in camera/clip space; do not clamp with an arbitrary
   `z < 0.8 * cameraDistance` rule.
-- [ ] GPU continues to perform homogeneous clipping.
-- [ ] CPU bounds helpers fail closed or clip geometry before perspective divide.
-- [ ] Add diagnostics when an entire layer is behind the camera.
-- [ ] Geometry crossing the near plane must not produce `NaN`, infinity, or giant
-  bounds.
+- [x] GPU continues to perform homogeneous clipping.
+- [x] CPU bounds helpers fail closed or clip geometry before perspective divide;
+  no CPU raster/bounds worker is present in the active workspace, so this is
+  enforced at the shared runtime API boundary.
+- [x] Add diagnostics when an entire layer is behind the camera.
+- [x] Geometry crossing the near plane cannot produce `NaN`, infinity, or giant
+  projected values through the shared API; invalid points are classified and
+  returned without division.
 
 ### View Matrix
 
-- [ ] Add a golden test for camera translation and rotation together.
-- [ ] Verify camera inverse multiplication order against the locked convention.
-- [ ] `lookAtMatrix()` remains outside Atomic V2 in this task.
+- [x] Add a golden test for camera translation and rotation together.
+- [x] Verify camera inverse multiplication order against the locked convention.
+- [x] `lookAtMatrix()` remains outside Atomic V2 in this task.
 
 ## 12. Phase 7: Matrix4 Parity E2E
 

@@ -1,5 +1,10 @@
 import { frameToTime } from "../determinism";
-import { matrix4ToArray } from "../matrix4";
+import {
+  matrix4ToArray,
+  multiplyMatrix4,
+  projectPoint3D,
+  type Point3D,
+} from "../matrix4";
 import type { PaintCommand } from "../paint";
 import { validateRuntimeProjectV2 } from "./validate";
 import type { RuntimeFrameV2, RuntimeProjectV2 } from "./types";
@@ -63,6 +68,7 @@ export function evaluateRuntimeProjectV2(
       },
     },
   ];
+  const diagnostics = [] as NonNullable<RuntimeFrameV2["diagnostics"]>;
 
   for (const node of stableNodeOrder(project)) {
     const active =
@@ -71,6 +77,34 @@ export function evaluateRuntimeProjectV2(
       time >= node.timing.start &&
       time < node.timing.start + node.timing.duration;
     if (!active) continue;
+
+    const nodeViewProjection = multiplyMatrix4(
+      project.view.viewProjectionMatrix,
+      node.worldMatrix,
+    );
+    const corners: Point3D[] = [
+      { x: 0, y: 0, z: 0 },
+      { x: node.content.width, y: 0, z: 0 },
+      { x: node.content.width, y: node.content.height, z: 0 },
+      { x: 0, y: node.content.height, z: 0 },
+    ];
+    const projectedCorners = corners.map((corner) =>
+      projectPoint3D(nodeViewProjection, corner),
+    );
+    if (
+      projectedCorners.length > 0 &&
+      projectedCorners.every(
+        (corner) => corner.kind === "clipped" && corner.reason === "behind-camera",
+      )
+    ) {
+      diagnostics.push({
+        severity: "warning",
+        code: "layer_behind_camera",
+        message: `Runtime V2 layer ${node.id} is entirely behind the camera and was clipped`,
+        layerId: node.id,
+        key: node.id,
+      });
+    }
 
     commands.push({
       op: "setTransform",
@@ -113,6 +147,6 @@ export function evaluateRuntimeProjectV2(
     time,
     version: 1,
     commands,
-    diagnostics: [],
+    diagnostics,
   };
 }
