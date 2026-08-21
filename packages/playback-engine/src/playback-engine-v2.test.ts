@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { IDENTITY_MATRIX4, orthographicMatrix2D } from "@motionvideo/motion-runtime";
+import { identityMatrix4, orthographicMatrix2D } from "@motionvideo/motion-runtime";
 import { createPlaybackEngineV2 } from "./playback-engine-v2";
 
 const runtime = {
@@ -14,7 +14,7 @@ const runtime = {
     graphId: "playback-v2",
   },
   view: {
-    viewMatrix: IDENTITY_MATRIX4,
+    viewMatrix: identityMatrix4(),
     projectionMatrix: orthographicMatrix2D(320, 180),
     viewProjectionMatrix: orthographicMatrix2D(320, 180),
   },
@@ -26,9 +26,8 @@ const runtime = {
       timing: { start: 0, duration: 2 },
       opacity: 1,
       visible: true,
-      localMatrix: IDENTITY_MATRIX4,
-      worldMatrix: IDENTITY_MATRIX4,
-      matrix2D: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      localMatrix: identityMatrix4(),
+      worldMatrix: identityMatrix4(),
       content: {
         kind: "shape" as const,
         shape: "rectangle" as const,

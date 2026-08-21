@@ -1,7 +1,7 @@
 import {
   multiplyMatrix4,
-  multiplyMatrix,
-  IDENTITY_MATRIX4,
+  identityMatrix4,
+  composeLocalMatrix4,
   evaluateRuntimeProjectV2,
   frameIndexAtTime,
   orthographicMatrix2D,
@@ -9,15 +9,8 @@ import {
   rotationMatrixX,
   rotationMatrixY,
   rotationMatrixZ,
-  rotationMatrix,
-  scaleMatrix3D,
-  scaleMatrix,
-  skewMatrix3D,
-  skewMatrix,
   translationMatrix3D,
-  translationMatrix,
   type Matrix4,
-  type Matrix2D,
   type PaintCommandBuffer,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
@@ -25,74 +18,7 @@ import {
   isV2AtomCertified,
   parseMotionProtocol,
   type MotionProtocolV2,
-  type V2Transform,
 } from "@motionvideo/motion-protocol";
-
-function shapeTransformMatrix2D(
-  transform: V2Transform,
-): Matrix2D {
-  const anchorX = transform.anchor.x;
-  const anchorY = transform.anchor.y;
-  return multiplyMatrix(
-    multiplyMatrix(
-      multiplyMatrix(
-        multiplyMatrix(
-          translationMatrix(transform.translate.x, transform.translate.y),
-          translationMatrix(anchorX, anchorY),
-        ),
-        rotationMatrix(transform.rotate.z),
-      ),
-      skewMatrix(transform.skew.x, transform.skew.y),
-    ),
-    multiplyMatrix(
-      scaleMatrix(transform.scale.x, transform.scale.y),
-      translationMatrix(-anchorX, -anchorY),
-    ),
-  );
-}
-
-function shapeModelMatrix4(
-  transform: V2Transform,
-): Matrix4 {
-  const translate = translationMatrix3D(
-    transform.translate.x,
-    transform.translate.y,
-    transform.translate.z,
-  );
-  const anchor = translationMatrix3D(
-    transform.anchor.x,
-    transform.anchor.y,
-    transform.anchor.z,
-  );
-  const inverseAnchor = translationMatrix3D(
-    -transform.anchor.x,
-    -transform.anchor.y,
-    -transform.anchor.z,
-  );
-  const rotation = multiplyMatrix4(
-    multiplyMatrix4(
-      rotationMatrixZ(transform.rotate.z),
-      rotationMatrixY(transform.rotate.y),
-    ),
-    rotationMatrixX(transform.rotate.x),
-  );
-  let matrix = multiplyMatrix4(translate, anchor);
-  matrix = multiplyMatrix4(matrix, rotation);
-  matrix = multiplyMatrix4(
-    matrix,
-    skewMatrix3D(transform.skew.x, transform.skew.y),
-  );
-  matrix = multiplyMatrix4(
-    matrix,
-    scaleMatrix3D(
-      transform.scale.x,
-      transform.scale.y,
-      transform.scale.z,
-    ),
-  );
-  matrix = multiplyMatrix4(matrix, inverseAnchor);
-  return matrix;
-}
 
 function viewProjectionMatrix4(project: MotionProtocolV2): {
   viewMatrix: Matrix4;
@@ -101,7 +27,7 @@ function viewProjectionMatrix4(project: MotionProtocolV2): {
 } {
   const { width, height } = project.composition;
   const view = project.composition.view;
-  let viewMatrix = IDENTITY_MATRIX4;
+  let viewMatrix = identityMatrix4();
   if (view) {
     const viewTranslate = translationMatrix3D(
       -view.transform.translate.x,
@@ -205,7 +131,7 @@ export function compileProtocolV2(
       }
     }
 
-    const localMatrix = shapeModelMatrix4(layer.transform);
+    const localMatrix = composeLocalMatrix4(layer.transform);
     return {
       id: layer.id,
       parentId: layer.parentLayerId,
@@ -215,7 +141,6 @@ export function compileProtocolV2(
       visible: layer.opacity > 0,
       localMatrix,
       worldMatrix: localMatrix,
-      matrix2D: shapeTransformMatrix2D(layer.transform),
       content: {
         kind: "shape" as const,
         shape: layer.payload.shape,

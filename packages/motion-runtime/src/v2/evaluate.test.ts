@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  IDENTITY_MATRIX4,
+  identityMatrix4,
   multiplyMatrix4,
   orthographicMatrix2D,
   perspectiveProjectionMatrix2D,
@@ -21,7 +21,7 @@ const project: RuntimeProjectV2 = {
     graphId: "runtime-v2-shapes",
   },
   view: {
-    viewMatrix: IDENTITY_MATRIX4,
+    viewMatrix: identityMatrix4(),
     projectionMatrix: orthographicMatrix2D(320, 180),
     viewProjectionMatrix: orthographicMatrix2D(320, 180),
   },
@@ -35,7 +35,6 @@ const project: RuntimeProjectV2 = {
       visible: true,
       localMatrix: translationMatrix3D(80, 40, 12),
       worldMatrix: translationMatrix3D(80, 40, 12),
-      matrix2D: { a: 1, b: 0, c: 0, d: 1, e: 80, f: 40 },
       content: {
         kind: "shape",
         shape: "ellipse",
@@ -51,9 +50,8 @@ const project: RuntimeProjectV2 = {
       timing: { start: 1, duration: 1 },
       opacity: 1,
       visible: true,
-      localMatrix: IDENTITY_MATRIX4,
-      worldMatrix: IDENTITY_MATRIX4,
-      matrix2D: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      localMatrix: identityMatrix4(),
+      worldMatrix: identityMatrix4(),
       content: {
         kind: "shape",
         shape: "rectangle",
@@ -153,9 +151,9 @@ describe("Runtime IR V2", () => {
       {
         ...project,
         view: {
-          viewMatrix: IDENTITY_MATRIX4,
+          viewMatrix: identityMatrix4(),
           projectionMatrix: projection,
-          viewProjectionMatrix: multiplyMatrix4(projection, IDENTITY_MATRIX4),
+          viewProjectionMatrix: multiplyMatrix4(projection, identityMatrix4()),
         },
       },
       0,

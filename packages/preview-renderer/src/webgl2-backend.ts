@@ -1,9 +1,9 @@
 import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import {
-  affineToMatrix4,
   cssColorToRgba,
   matrix4ForQuad,
-  orthographicProjection,
+  packMatrix4F32,
+  projectionMatrixForPaint,
   gradientUniforms,
   webglDepthProjection,
 } from "./math";
@@ -244,7 +244,9 @@ export function createWebGL2Backend(
     let currentBlend: BlendMode = "normal";
     let frameWidth = width;
     let frameHeight = height;
-    let projection = orthographicProjection(frameWidth, frameHeight);
+    let projection = webglDepthProjection(
+      projectionMatrixForPaint(undefined, frameWidth, frameHeight),
+    );
     gl.viewport(0, 0, Math.max(1, Math.round(width * dpr)), Math.max(1, Math.round(height * dpr)));
     gl.clearColor(...cssColorToRgba(bufferToPaint.commands[0]?.op === "beginFrame" ? bufferToPaint.commands[0].background : options.background));
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -254,10 +256,9 @@ export function createWebGL2Backend(
       if (command.op === "beginFrame") {
         frameWidth = command.width;
         frameHeight = command.height;
-        const projectionValues = command.projection?.viewProjectionMatrix ?? command.projection?.projectionMatrix;
-        projection = projectionValues?.length === 16
-          ? webglDepthProjection(projectionValues)
-          : webglDepthProjection(orthographicProjection(frameWidth, frameHeight));
+        projection = webglDepthProjection(
+          projectionMatrixForPaint(command, command.width, command.height),
+        );
         gl.clearColor(...cssColorToRgba(command.background ?? options.background));
         gl.clear(gl.COLOR_BUFFER_BIT);
       } else if (command.op === "setTransform") {
@@ -274,9 +275,7 @@ export function createWebGL2Backend(
           continue;
         }
         blend(gl, currentBlend);
-        const baseMatrix = transform.matrix4?.length === 16
-          ? new Float32Array(transform.matrix4)
-          : affineToMatrix4(transform.matrix);
+        const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
         const color = cssColorToRgba(command.fill);
@@ -331,9 +330,7 @@ export function createWebGL2Backend(
         }
         blend(gl, currentBlend);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
-        const baseMatrix = transform.matrix4?.length === 16
-          ? new Float32Array(transform.matrix4)
-          : affineToMatrix4(transform.matrix);
+        const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, layout.x, layout.y, layout.width, layout.height));
         gl.uniform4fv(colorLocation, [1, 1, 1, transform.alpha]);

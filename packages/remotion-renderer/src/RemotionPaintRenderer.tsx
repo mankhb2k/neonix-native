@@ -4,7 +4,6 @@
 
 export {
   RemotionFramePainter,
-  RemotionFramePainterFromTree,
   RemotionPaintRenderer,
   type RemotionFramePainterProps,
 } from "./RemotionFramePainter";

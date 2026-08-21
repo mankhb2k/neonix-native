@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@motionvideo/motion-runtime": "workspace:*",
+    "@motionvideo/preview-renderer": "workspace:*",
     "remotion": "4.0.506"
   },
   "peerDependencies": {

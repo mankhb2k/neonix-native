@@ -437,9 +437,6 @@ describe("Protocol V2 Compiler B", () => {
       ],
     });
     const transform = buffer.commands.find((command) => command.op === "setTransform");
-    expect(transform).toMatchObject({
-      matrix: { a: 2, b: 0, c: 0, d: 3, e: -8, f: -12 },
-    });
     if (!transform || transform.op !== "setTransform") throw new Error("Missing transform");
     expect(transform.matrix4).toHaveLength(16);
     expect(transform.matrix4?.[12]).toBeCloseTo(-8, 8);
@@ -471,12 +468,12 @@ describe("Protocol V2 Compiler B", () => {
     });
     const transform = buffer.commands.find((command) => command.op === "setTransform");
     if (!transform || transform.op !== "setTransform") throw new Error("Missing transform");
-    expect(transform.matrix.a).toBeCloseTo(0, 8);
-    expect(transform.matrix.b).toBeCloseTo(1, 8);
-    expect(transform.matrix.c).toBeCloseTo(-1, 8);
-    expect(transform.matrix.d).toBeCloseTo(1, 8);
-    expect(transform.matrix.e).toBeCloseTo(30, 8);
-    expect(transform.matrix.f).toBeCloseTo(-20, 8);
+    expect(transform.matrix4[0]).toBeCloseTo(0, 8);
+    expect(transform.matrix4[1]).toBeCloseTo(1, 8);
+    expect(transform.matrix4[4]).toBeCloseTo(-1, 8);
+    expect(transform.matrix4[5]).toBeCloseTo(1, 8);
+    expect(transform.matrix4[12]).toBeCloseTo(30, 8);
+    expect(transform.matrix4[13]).toBeCloseTo(-20, 8);
     expect(transform.matrix4).toHaveLength(16);
   });
 

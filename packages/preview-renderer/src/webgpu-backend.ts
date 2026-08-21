@@ -1,9 +1,9 @@
 import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import {
-  affineToMatrix4,
   cssColorToRgba,
   matrix4ForQuad,
-  orthographicProjection,
+  packMatrix4F32,
+  projectionMatrixForPaint,
   gradientUniforms,
 } from "./math";
 import { mediaLayout } from "./media";
@@ -166,8 +166,8 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string): {
   return { pipeline, layout, vertexBuffer, sampler };
 }
 
-function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array | number[]): void {
-  for (let index = 0; index < 16; index += 1) target[offset + index] = matrix[index] ?? 0;
+function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array): void {
+  target.set(matrix, offset);
 }
 
 export function createWebGPUBackend(
@@ -256,15 +256,12 @@ export function createWebGPUBackend(
     pass.setPipeline(objects.pipeline);
     pass.setVertexBuffer(0, objects.vertexBuffer);
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
-    let projection = orthographicProjection(frameWidth, frameHeight);
+    let projection = projectionMatrixForPaint(undefined, frameWidth, frameHeight);
     let drawCalls = 0;
     let skippedCommands = 0;
     for (const command of buffer.commands) {
       if (command.op === "beginFrame") {
-        const projectionValues = command.projection?.viewProjectionMatrix ?? command.projection?.projectionMatrix;
-        projection = projectionValues?.length === 16
-          ? new Float32Array(projectionValues)
-          : orthographicProjection(command.width, command.height);
+        projection = projectionMatrixForPaint(command, command.width, command.height);
       } else if (command.op === "setTransform") {
         transform = command;
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
@@ -282,9 +279,7 @@ export function createWebGPUBackend(
         const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
         const data = new Float32Array(64);
-        const baseMatrix = transform.matrix4?.length === 16
-          ? new Float32Array(transform.matrix4)
-          : affineToMatrix4(transform.matrix);
+        const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);
         writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
         data.set(color, 32);
@@ -341,9 +336,7 @@ export function createWebGPUBackend(
         transientBuffers.add(uniform);
         const data = new Float32Array(64);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
-        const baseMatrix = transform.matrix4?.length === 16
-          ? new Float32Array(transform.matrix4)
-          : affineToMatrix4(transform.matrix);
+        const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);
         writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, layout.x, layout.y, layout.width, layout.height));
         data.set([1, 1, 1, transform.alpha], 32);

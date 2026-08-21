@@ -1,4 +1,3 @@
-import type { Matrix2D } from "../matrix";
 import type { Matrix4 } from "../matrix4";
 import type { PaintCommandBuffer } from "../paint";
 import type { PaintFill } from "../paint/paint-types";
@@ -45,7 +44,6 @@ export type RuntimeNodeV2 = {
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
-  matrix2D: Matrix2D;
   content: RuntimeShapeV2;
 };
 

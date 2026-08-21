@@ -15,13 +15,12 @@ export type {
   WebGPUInitOptions,
 } from "./types";
 export {
-  affineToMatrix4,
   cssColorToRgba,
   fitMode,
   matrix4ForQuad,
-  matrixForQuad,
+  packMatrix4F32,
   orthographicProjection,
-  toClipMatrix,
+  projectionMatrixForPaint,
   webglDepthProjection,
 } from "./math";
 export { mediaLayout, type MediaLayout } from "./media";

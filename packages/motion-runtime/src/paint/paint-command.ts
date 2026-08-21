@@ -2,7 +2,6 @@
  * Paint command op types — shared language between runtime and painters.
  */
 
-import type { Matrix2D } from "../matrix";
 import type {
   PaintFill,
   PathContour,
@@ -55,7 +54,7 @@ export type PaintCommand =
   | {
       op: "setTransform";
       key: string;
-      matrix: Matrix2D;
+      matrix4: number[];
       alpha: number;
       visible: boolean;
       zIndex: number;
@@ -68,7 +67,6 @@ export type PaintCommand =
         | "lighten"
         | "overlay";
       /** 4×4 world matrix for perspective-3d projection (Phase 11). */
-      matrix4?: number[];
     }
   | {
       op: "drawText";

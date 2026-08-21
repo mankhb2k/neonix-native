@@ -83,7 +83,7 @@ export function decodePaintCommandBuffer(
       case "setTransform": {
         transforms.set(cmd.key, {
           key: cmd.key,
-          matrix: cmd.matrix,
+          matrix4: cmd.matrix4,
           alpha: cmd.alpha,
           visible: cmd.visible,
           zIndex: cmd.zIndex,

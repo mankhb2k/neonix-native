@@ -43,7 +43,11 @@ const packageRules = {
     ],
   },
   "remotion-renderer": {
-    dependencies: new Set(["@motionvideo/motion-runtime", "remotion"]),
+    dependencies: new Set([
+      "@motionvideo/motion-runtime",
+      "@motionvideo/preview-renderer",
+      "remotion",
+    ]),
     exports: new Set(["."]),
     forbiddenImports: [
       "@motionvideo/motion-protocol",

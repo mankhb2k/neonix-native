@@ -45,7 +45,7 @@ describe("paint-preflight", () => {
         {
           op: "setTransform",
           key: "k",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 0,

@@ -461,6 +461,9 @@ importers:
       '@motionvideo/patterns':
         specifier: workspace:*
         version: link:../patterns
+      '@motionvideo/render-contracts':
+        specifier: workspace:*
+        version: link:../render-contracts
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -741,6 +744,9 @@ importers:
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
+      '@motionvideo/preview-renderer':
+        specifier: workspace:*
+        version: link:../preview-renderer
       remotion:
         specifier: 4.0.506
         version: 4.0.506(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

@@ -19,32 +19,53 @@ import { GEOMETRY_EPSILON } from "./determinism";
 /** 16-element column-major 4×4 matrix (Float64Array for SIMD-friendly layout). */
 export type Matrix4 = Float64Array;
 
+/** Exact 16-value column-major Matrix4 input. */
+export type Matrix4Values = readonly [
+  number, number, number, number,
+  number, number, number, number,
+  number, number, number, number,
+  number, number, number, number,
+];
+
 /** 3D point / vector. */
 export type Point3D = { x: number; y: number; z: number };
 
 // ── Factory ───────────────────────────────────────────────────────────
 
-/**
- * Create a new 4×4 matrix from 16 values (column-major order).
- * Omitted values default to identity.
- */
-export function createMatrix4(values?: number[]): Matrix4 {
-  const m = new Float64Array(16);
-  if (values) {
-    for (let i = 0; i < Math.min(16, values.length); i++) {
-      m[i] = values[i]!;
-    }
-  } else {
-    // Identity
-    m[0] = 1;
-    m[5] = 1;
-    m[10] = 1;
-    m[15] = 1;
+function assertMatrix4Values(values: readonly number[]): void {
+  if (values.length !== 16) {
+    throw new Error(`Matrix4 requires exactly 16 values, received ${values.length}`);
   }
+  if (values.some((value) => !Number.isFinite(value))) {
+    throw new Error("Matrix4 values must be finite numbers");
+  }
+}
+
+/** Create a fresh identity Matrix4. */
+export function identityMatrix4(): Matrix4 {
+  const m = new Float64Array(16);
+  m[0] = 1;
+  m[5] = 1;
+  m[10] = 1;
+  m[15] = 1;
   return m;
 }
 
-export const IDENTITY_MATRIX4: Matrix4 = createMatrix4();
+/** Create a Matrix4 from exactly 16 finite column-major values. */
+export function matrix4FromValues(values: Matrix4Values): Matrix4 {
+  assertMatrix4Values(values);
+  return new Float64Array(values);
+}
+
+/**
+ * Create a Matrix4. With no input this returns a fresh identity; supplied input
+ * must contain exactly 16 finite values and is never partially zero-filled.
+ */
+export function createMatrix4(values?: readonly number[]): Matrix4 {
+  if (values === undefined) return identityMatrix4();
+  assertMatrix4Values(values);
+  return new Float64Array(values);
+}
 
 // ── Core operations ───────────────────────────────────────────────────
 
@@ -71,7 +92,21 @@ export function multiplyMatrix4(a: Matrix4, b: Matrix4): Matrix4 {
  */
 export function invertMatrix4(m: Matrix4): Matrix4 | undefined {
   const out = new Float64Array(16);
-  const a = new Float64Array(m);
+  if (m.length !== 16 || Array.from(m).some((value) => !Number.isFinite(value))) {
+    return undefined;
+  }
+  const isAffine =
+    Math.abs(m[3]!) <= GEOMETRY_EPSILON &&
+    Math.abs(m[7]!) <= GEOMETRY_EPSILON &&
+    Math.abs(m[11]!) <= GEOMETRY_EPSILON &&
+    Math.abs(m[15]! - 1) <= GEOMETRY_EPSILON;
+  const scaleIndices = isAffine
+    ? [0, 1, 2, 4, 5, 6, 8, 9, 10]
+    : Array.from({ length: 16 }, (_, index) => index);
+  const scale = Math.max(...scaleIndices.map((index) => Math.abs(m[index]!)));
+  if (!Number.isFinite(scale) || scale === 0) return undefined;
+  const a = new Float64Array(m.length);
+  for (let i = 0; i < m.length; i++) a[i] = m[i]! / scale;
 
   const s0 = a[0]! * a[5]! - a[4]! * a[1]!;
   const s1 = a[0]! * a[6]! - a[4]! * a[2]!;
@@ -90,7 +125,7 @@ export function invertMatrix4(m: Matrix4): Matrix4 | undefined {
   const det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
   if (Math.abs(det) < GEOMETRY_EPSILON) return undefined;
 
-  const invDet = 1 / det;
+  const invDet = 1 / (det * scale);
   out[0] = (a[5]! * c5 - a[6]! * c4 + a[7]! * c3) * invDet;
   out[1] = (-a[1]! * c5 + a[2]! * c4 - a[3]! * c3) * invDet;
   out[2] = (a[13]! * s5 - a[14]! * s4 + a[15]! * s3) * invDet;
@@ -353,23 +388,12 @@ export function transformPoint3Dto2D(
 
 // ── Local transform (Phase 11 3D compose) ─────────────────────────────
 
-export type Transform3DInput = {
-  x: number;
-  y: number;
-  z?: number;
-  width: number;
-  height: number;
-  rotation?: number;
-  rotationX?: number;
-  rotationY?: number;
-  rotationZ?: number;
-  scaleX: number;
-  scaleY: number;
-  anchorX: number;
-  anchorY: number;
-  anchorZ?: number;
-  flipX?: boolean;
-  flipY?: boolean;
+export type LocalTransform3D = {
+  translate: Point3D;
+  rotate: Point3D;
+  scale: Point3D;
+  skew: { x: number; y: number };
+  anchor: Point3D;
 };
 
 /**
@@ -377,39 +401,25 @@ export type Transform3DInput = {
  *
  * Compose order: T(pos) · Rz · Ry · Rx · S · T(-anchor)
  */
-export function localTransformMatrix3D(t: Transform3DInput): Matrix4 {
-  const z = t.z ?? 0;
-  const rotZ = t.rotationZ ?? t.rotation ?? 0;
-  const rotY = t.rotationY ?? 0;
-  const rotX = t.rotationX ?? 0;
-  const fx = t.flipX ? -1 : 1;
-  const fy = t.flipY ? -1 : 1;
-  const az = t.anchorZ ?? 0;
-
-  // T(-anchor)
-  const anchorX = t.anchorX * t.width;
-  const anchorY = t.anchorY * t.height;
-  const anchorZ = az * 0; // 2D planes have no Z thickness
-
-  const mAnchor = translationMatrix3D(-anchorX, -anchorY, -anchorZ);
-
-  // S(scaleX · flipX, scaleY · flipY, 1)
-  const mScale = scaleMatrix3D(t.scaleX * fx, t.scaleY * fy, 1);
-
-  // Rx · Ry · Rz
-  const mRx = rotationMatrixX(rotX);
-  const mRy = rotationMatrixY(rotY);
-  const mRz = rotationMatrixZ(rotZ);
-  const mRot = multiplyMatrix4(multiplyMatrix4(mRz, mRy), mRx);
-
-  // T(pos)
-  const mPos = translationMatrix3D(t.x, t.y, z);
-
-  // Compose: T(pos) · Rz · Ry · Rx · S · T(-anchor)
-  let m = multiplyMatrix4(mPos, mRot);
-  m = multiplyMatrix4(m, mScale);
-  m = multiplyMatrix4(m, mAnchor);
-  return m;
+export function composeLocalMatrix4(t: LocalTransform3D): Matrix4 {
+  const rotation = multiplyMatrix4(
+    multiplyMatrix4(rotationMatrixZ(t.rotate.z), rotationMatrixY(t.rotate.y)),
+    rotationMatrixX(t.rotate.x),
+  );
+  let matrix = multiplyMatrix4(
+    translationMatrix3D(t.translate.x, t.translate.y, t.translate.z),
+    translationMatrix3D(t.anchor.x, t.anchor.y, t.anchor.z),
+  );
+  matrix = multiplyMatrix4(matrix, rotation);
+  matrix = multiplyMatrix4(matrix, skewMatrix3D(t.skew.x, t.skew.y));
+  matrix = multiplyMatrix4(
+    matrix,
+    scaleMatrix3D(t.scale.x, t.scale.y, t.scale.z),
+  );
+  return multiplyMatrix4(
+    matrix,
+    translationMatrix3D(-t.anchor.x, -t.anchor.y, -t.anchor.z),
+  );
 }
 
 // ── Extract depth for sorting ─────────────────────────────────────────
@@ -418,25 +428,12 @@ export function localTransformMatrix3D(t: Transform3DInput): Matrix4 {
  * Extract the transformed Z coordinate of a point through a 4×4 matrix.
  * Used for painter's depth-sort key.
  */
-export function depthFromMat4(
-  m: Matrix4,
-  centerX: number,
-  centerY: number,
-): number {
-  const p = transformPoint3D(m, centerX, centerY, 0);
-  return p.z;
-}
-
 // ── Convert to plain array (for serialization / paint contract) ──────
 
 export function matrix4ToArray(m: Matrix4): number[] {
   return Array.from(m);
 }
 
-export function arrayToMatrix4(arr: number[]): Matrix4 {
-  const m = new Float64Array(16);
-  for (let i = 0; i < Math.min(16, arr.length); i++) {
-    m[i] = arr[i]!;
-  }
-  return m;
+export function arrayToMatrix4(arr: readonly number[]): Matrix4 {
+  return createMatrix4(arr);
 }

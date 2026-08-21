@@ -78,6 +78,13 @@ async function main() {
       background: "#0d9488",
       colorSpace: "srgb",
       audioSampleRate: 48000,
+      view: {
+        projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+        transform: {
+          translate: { x: 0, y: 0, z: 0 },
+          rotate: { x: 0, y: 0, z: 0 },
+        },
+      },
     },
     layers: [
       {
@@ -87,11 +94,11 @@ async function main() {
         zIndex: 0,
         frame: { width: 720, height: 420 },
         transform: {
-          translate: { x: 600, y: 330, z: 0 },
+          translate: { x: 600, y: 330, z: 180 },
           scale: { x: 1, y: 1, z: 1 },
-          rotate: { x: 0, y: 0, z: 0 },
+          rotate: { x: 8, y: -12, z: 0 },
           skew: { x: 0, y: 0 },
-          anchor: { x: 0, y: 0, z: 0 },
+          anchor: { x: 360, y: 210, z: 120 },
         },
         opacity: 100,
         timing: { start: 0, duration: 3 },

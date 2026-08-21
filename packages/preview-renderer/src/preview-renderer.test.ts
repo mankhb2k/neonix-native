@@ -1,22 +1,38 @@
 import { describe, expect, it } from "vitest";
 import {
-  affineToMatrix4,
   cssColorToRgba,
   matrix4ForQuad,
   orthographicProjection,
-  toClipMatrix,
+  packMatrix4F32,
+  projectionMatrixForPaint,
   webglDepthProjection,
 } from "./math";
 import { mediaLayout } from "./media";
 
 describe("preview-renderer primitives", () => {
-  it("maps composition pixels to clip space", () => {
-    const matrix = Array.from(toClipMatrix({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }, 100, 50));
-    expect(matrix[0]).toBeCloseTo(0.02);
-    expect(matrix[4]).toBeCloseTo(-0.04);
-    expect(matrix[6]).toBe(-1);
-    expect(matrix[7]).toBe(1);
-    expect(matrix[8]).toBe(1);
+  it("packs only finite canonical Matrix4 values", () => {
+    expect(packMatrix4F32(new Array(16).fill(1))).toHaveLength(16);
+    expect(() => packMatrix4F32([1, 2])).toThrow(/exactly 16/);
+    expect(() => packMatrix4F32([...new Array(15).fill(1), Number.NaN])).toThrow(/finite/);
+  });
+
+  it("selects one projection for both backend paths", () => {
+    const projection = projectionMatrixForPaint(
+      {
+        op: "beginFrame",
+        width: 320,
+        height: 180,
+        graphId: "projection",
+        frame: 0,
+        time: 0,
+        projection: {
+          projectionMatrix: Array.from(orthographicProjection(320, 180)),
+        },
+      },
+      320,
+      180,
+    );
+    expect(Array.from(projection)).toEqual(Array.from(orthographicProjection(320, 180)));
   });
 
   it("parses the colors used by paint commands", () => {
@@ -27,7 +43,7 @@ describe("preview-renderer primitives", () => {
 
   it("keeps the shared Matrix4 quad layout in composition pixels", () => {
     const model = matrix4ForQuad(
-      affineToMatrix4({ a: 1, b: 0, c: 0, d: 1, e: 7, f: 11 }),
+      new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 11, 0, 1]),
       0,
       0,
       96,

@@ -76,7 +76,7 @@ describe("replayPaintCommands2D", () => {
         {
           op: "setTransform",
           key: "shape",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 0,
@@ -93,7 +93,7 @@ describe("replayPaintCommands2D", () => {
         {
           op: "setTransform",
           key: "text",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 1,
@@ -135,7 +135,7 @@ describe("replayPaintCommands2D", () => {
         {
           op: "setTransform",
           key: "hidden",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 0,
           visible: false,
           zIndex: 0,

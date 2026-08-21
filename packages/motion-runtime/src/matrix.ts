@@ -2,7 +2,6 @@
 export type Transform2D = {
   x: number;
   y: number;
-  depth: number;
   width: number;
   height: number;
   rotation: number;

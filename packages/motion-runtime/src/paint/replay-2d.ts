@@ -16,6 +16,39 @@ export type ReplayFillStyle = string | ReplayGradient;
 
 export type Replay2DImageSource = unknown;
 
+function matrix4ToAffine2D(matrix4: readonly number[]): {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+} | undefined {
+  if (matrix4.length !== 16 || matrix4.some((value) => !Number.isFinite(value))) {
+    return undefined;
+  }
+  const isAffine2D =
+    Math.abs(matrix4[2]!) < 1e-9 &&
+    Math.abs(matrix4[3]!) < 1e-9 &&
+    Math.abs(matrix4[6]!) < 1e-9 &&
+    Math.abs(matrix4[7]!) < 1e-9 &&
+    Math.abs(matrix4[8]!) < 1e-9 &&
+    Math.abs(matrix4[9]!) < 1e-9 &&
+    Math.abs(matrix4[10]! - 1) < 1e-9 &&
+    Math.abs(matrix4[11]!) < 1e-9 &&
+    Math.abs(matrix4[14]!) < 1e-9 &&
+    Math.abs(matrix4[15]! - 1) < 1e-9;
+  if (!isAffine2D) return undefined;
+  return {
+    a: matrix4[0]!,
+    b: matrix4[1]!,
+    c: matrix4[4]!,
+    d: matrix4[5]!,
+    e: matrix4[12]!,
+    f: matrix4[13]!,
+  };
+}
+
 export type Canvas2DReplayContext = {
   save(): void;
   restore(): void;
@@ -338,14 +371,13 @@ export function replayPaintCommands2D(
         pending = null;
         continue;
       }
-      ctx.setTransform(
-        pending.matrix.a,
-        pending.matrix.b,
-        pending.matrix.c,
-        pending.matrix.d,
-        pending.matrix.e,
-        pending.matrix.f,
-      );
+      const affine = matrix4ToAffine2D(pending.matrix4);
+      if (!affine) {
+        ctx.restore();
+        pending = null;
+        continue;
+      }
+      ctx.setTransform(affine.a, affine.b, affine.c, affine.d, affine.e, affine.f);
       layerAlpha = pending.alpha;
       ctx.globalAlpha = layerAlpha;
       ctx.globalCompositeOperation = blendOp(pending.blendMode);

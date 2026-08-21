@@ -2,10 +2,11 @@ export { MotionComposition } from "./MotionComposition";
 export type { MotionCompositionProps } from "./MotionComposition";
 export { MotiClipVideo } from "./MotiClipVideo";
 export type { MotiClipVideoProps } from "./MotiClipVideo";
+export { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
+export type { RemotionPreviewCanvasProps } from "./RemotionPreviewCanvas";
 export {
   RemotionPaintRenderer,
   RemotionFramePainter,
-  RemotionFramePainterFromTree,
 } from "./RemotionFramePainter";
 export type { RemotionFramePainterProps } from "./RemotionFramePainter";
 export {

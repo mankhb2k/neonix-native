@@ -1,10 +1,10 @@
-import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { useCurrentFrame } from "remotion";
 import {
   assertRuntimeProjectV2,
   evaluateRuntimeProjectV2,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
-import { RemotionFramePainter } from "./RemotionFramePainter";
+import { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
 
 export type MotiClipVideoProps = {
   /** Canonical V2 Runtime IR supplied by the export/application layer. */
@@ -18,12 +18,15 @@ export type MotiClipVideoProps = {
 export function MotiClipVideo({ runtime: runtimeProp }: MotiClipVideoProps) {
   const runtime = assertRuntimeProjectV2(runtimeProp);
   const frame = useCurrentFrame();
-  const { fps, background } = runtime.composition;
+  const { background } = runtime.composition;
   const evaluated = evaluateRuntimeProjectV2(runtime, frame);
 
   return (
-    <AbsoluteFill style={{ background }}>
-      <RemotionFramePainter paint={evaluated} fps={fps} />
-    </AbsoluteFill>
+    <RemotionPreviewCanvas
+      frame={evaluated}
+      width={runtime.composition.width}
+      height={runtime.composition.height}
+      background={background}
+    />
   );
 }

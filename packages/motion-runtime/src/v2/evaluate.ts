@@ -75,7 +75,6 @@ export function evaluateRuntimeProjectV2(
     commands.push({
       op: "setTransform",
       key: node.id,
-      matrix: node.matrix2D,
       matrix4: matrix4ToArray(node.worldMatrix),
       alpha: node.opacity,
       visible: true,

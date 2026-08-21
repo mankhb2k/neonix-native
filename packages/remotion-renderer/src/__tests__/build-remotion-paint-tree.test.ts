@@ -25,7 +25,7 @@ const buffer: PaintCommandBuffer = {
     {
       op: "setTransform",
       key: "s:shape",
-      matrix: { a: 1, b: 0, c: 0, d: 1, e: 5, f: 6 },
+      matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 6, 0, 1],
       alpha: 1,
       visible: true,
       zIndex: 0,
@@ -42,7 +42,7 @@ const buffer: PaintCommandBuffer = {
     {
       op: "setTransform",
       key: "s:path",
-      matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
       alpha: 1,
       visible: true,
       zIndex: 1,
@@ -110,7 +110,7 @@ describe("buildRemotionPaintTree", () => {
         {
           op: "setTransform",
           key: "s:x",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 0,

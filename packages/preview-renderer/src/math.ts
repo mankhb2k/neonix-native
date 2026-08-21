@@ -1,4 +1,8 @@
-import type { Matrix2D, Matrix4, PaintFill } from "@motionvideo/motion-runtime";
+import type {
+  Matrix4,
+  PaintCommand,
+  PaintFill,
+} from "@motionvideo/motion-runtime";
 
 export type GradientUniforms = {
   start: [number, number, number, number];
@@ -6,6 +10,26 @@ export type GradientUniforms = {
   params: [number, number, number, number];
   radius: [number, number, number, number];
 };
+
+/** Pack one validated Runtime V2 Matrix4 into the GPU's float32 uniform layout. */
+export function packMatrix4F32(matrix: readonly number[]): Float32Array {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
+    throw new Error("Preview Matrix4 must contain exactly 16 finite values");
+  }
+  return new Float32Array(matrix);
+}
+
+/** Select the canonical composition projection shared by both preview backends. */
+export function projectionMatrixForPaint(
+  beginFrame: Extract<PaintCommand, { op: "beginFrame" }> | undefined,
+  width: number,
+  height: number,
+): Float32Array {
+  const values = beginFrame?.projection?.viewProjectionMatrix ?? beginFrame?.projection?.projectionMatrix;
+  return values?.length === 16
+    ? packMatrix4F32(values)
+    : orthographicProjection(beginFrame?.width ?? width, beginFrame?.height ?? height);
+}
 
 export function gradientUniforms(
   fillPaint: PaintFill | undefined,
@@ -36,37 +60,6 @@ export function gradientUniforms(
     params: [2, 0, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
     radius: [fillPaint.radius ?? 0.5, 0, 0, 0],
   };
-}
-
-/** Column-major 3x3 matrix that maps composition pixels into clip space. */
-export function toClipMatrix(
-  matrix: Matrix2D,
-  width: number,
-  height: number,
-): Float32Array {
-  const w = Math.max(width, 1);
-  const h = Math.max(height, 1);
-  return new Float32Array([
-    (2 * matrix.a) / w,
-    (-2 * matrix.b) / h,
-    0,
-    (2 * matrix.c) / w,
-    (-2 * matrix.d) / h,
-    0,
-    (2 * matrix.e) / w - 1,
-    1 - (2 * matrix.f) / h,
-    1,
-  ]);
-}
-
-/** Promote an affine transform into the shared column-major 4x4 model format. */
-export function affineToMatrix4(matrix: Matrix2D): Float32Array {
-  return new Float32Array([
-    matrix.a, matrix.b, 0, 0,
-    matrix.c, matrix.d, 0, 0,
-    0, 0, 1, 0,
-    matrix.e, matrix.f, 0, 1,
-  ]);
 }
 
 /** Apply local quad geometry to a model matrix. Vertices are the unit quad. */
@@ -115,38 +108,6 @@ export function webglDepthProjection(matrix: Float32Array | number[]): Float32Ar
     output[row + 2] = 2 * (matrix[row + 2] ?? 0) - (matrix[row + 3] ?? 0);
   }
   return output;
-}
-
-export function scaleMatrixForQuad(
-  matrix: Matrix2D,
-  width: number,
-  height: number,
-): Matrix2D {
-  return {
-    a: matrix.a * width,
-    b: matrix.b * width,
-    c: matrix.c * height,
-    d: matrix.d * height,
-    e: matrix.e,
-    f: matrix.f,
-  };
-}
-
-export function matrixForQuad(
-  matrix: Matrix2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): Matrix2D {
-  return {
-    a: matrix.a * width,
-    b: matrix.b * width,
-    c: matrix.c * height,
-    d: matrix.d * height,
-    e: matrix.a * x + matrix.c * y + matrix.e,
-    f: matrix.b * x + matrix.d * y + matrix.f,
-  };
 }
 
 export function cssColorToRgba(value: string | undefined): [number, number, number, number] {

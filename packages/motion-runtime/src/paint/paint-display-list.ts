@@ -3,14 +3,13 @@
  * Ephemeral per-frame structure — not a second JSON schema.
  */
 
-import type { Matrix2D } from "../matrix";
 import type { RuntimeEffect } from "./paint-types";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
 
 export type PaintTransformState = {
   key: string;
-  matrix: Matrix2D;
+  matrix4: number[];
   alpha: number;
   visible: boolean;
   zIndex: number;

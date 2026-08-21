@@ -89,7 +89,7 @@ describe("WebGPU preview backend", () => {
         {
           op: "setTransform",
           key: "rectangle",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 7, f: 11 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 11, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 0,
@@ -106,7 +106,7 @@ describe("WebGPU preview backend", () => {
         {
           op: "setTransform",
           key: "ellipse",
-          matrix: { a: 1, b: 0, c: 0, d: 1, e: 140, f: 40 },
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 140, 40, 0, 1],
           alpha: 1,
           visible: true,
           zIndex: 1,

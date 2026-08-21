@@ -30,14 +30,7 @@ import type { PaintDrawCommand } from "./paint-command";
 export function computePaintItemFingerprint(
   drawCmd: PaintDrawCommand,
   transform: {
-    matrix: {
-      a: number;
-      b: number;
-      c: number;
-      d: number;
-      e: number;
-      f: number;
-    };
+    matrix4: readonly number[];
     alpha: number;
     visible: boolean;
     zIndex: number;
@@ -47,10 +40,7 @@ export function computePaintItemFingerprint(
   const parts: string[] = [];
 
   // Transform
-  const m = transform.matrix;
-  parts.push(
-    `m:${round3(m.a)},${round3(m.b)},${round3(m.c)},${round3(m.d)},${round3(m.e)},${round3(m.f)}`,
-  );
+  parts.push(`m4:${transform.matrix4.map(round3).join(",")}`);
   parts.push(`a:${round3(transform.alpha)}`);
   parts.push(`v:${transform.visible ? 1 : 0}`);
   parts.push(`z:${transform.zIndex}`);

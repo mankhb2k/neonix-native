@@ -42,15 +42,26 @@ async function discoverWebGPU(): Promise<{ device: NonNullable<PreviewRendererOp
   };
 }
 
-async function createBackend(options: PreviewRendererOptions): Promise<PreviewBackend> {
+async function createBackend(
+  options: PreviewRendererOptions,
+  onDiagnostic: (diagnostic: PreviewDiagnostic) => void = (diagnostic) =>
+    reportDiagnostic(options, diagnostic),
+): Promise<PreviewBackend> {
   const preference = options.backend ?? "auto";
-  const report = (diagnostic: PreviewDiagnostic) => reportDiagnostic(options, diagnostic);
+  const report = onDiagnostic;
   if (preference === "webgpu" || preference === "auto") {
     if (options.webgpu || webgpuApiAvailable()) {
       try {
         const init = options.webgpu ?? (await discoverWebGPU());
         if (init) {
-          return createWebGPUBackend(options, init, report);
+          const backend = createWebGPUBackend(options, init, report);
+          report({
+            severity: "info",
+            code: "preview_backend_selected",
+            message: `Preview backend selected: ${backend.kind}`,
+            key: backend.kind,
+          });
+          return backend;
         }
       } catch (error) {
         if (preference === "webgpu") throw error;
@@ -62,12 +73,30 @@ async function createBackend(options: PreviewRendererOptions): Promise<PreviewBa
       }
     }
     if (preference === "webgpu") throw new Error("preview-renderer: requested WebGPU but no device is available");
+    report({
+      severity: "warning",
+      code: "webgpu_fallback",
+      message: "WebGPU is unavailable; falling back to WebGL2",
+    });
   }
-  return createWebGL2Backend(options, report);
+  const backend = createWebGL2Backend(options, report);
+  report({
+    severity: "info",
+    code: "preview_backend_selected",
+    message: `Preview backend selected: ${backend.kind}`,
+    key: backend.kind,
+  });
+  return backend;
 }
 
 export async function createPreviewRenderer(options: PreviewRendererOptions): Promise<PreviewRenderer> {
-  const backend = await createBackend(options);
+  const lifecycleDiagnostics: PreviewDiagnostic[] = [];
+  const backend = await createBackend(options, (diagnostic) => {
+    if (diagnostic.code === "webgpu_fallback" || diagnostic.code === "preview_backend_selected") {
+      lifecycleDiagnostics.push(diagnostic);
+    }
+    reportDiagnostic(options, diagnostic);
+  });
   const width = (options.width ?? options.canvas.width) || 1;
   const height = (options.height ?? options.canvas.height) || 1;
   const dpr = options.devicePixelRatio ?? 1;
@@ -94,7 +123,11 @@ export async function createPreviewRenderer(options: PreviewRendererOptions): Pr
       backend.removeAsset(assetId);
     },
     getStats() {
-      return backend.stats();
+      const stats = backend.stats();
+      return {
+        ...stats,
+        diagnostics: [...lifecycleDiagnostics, ...stats.diagnostics],
+      };
     },
     captureImageBitmap() {
       if (typeof createImageBitmap !== "function") return Promise.resolve(null);

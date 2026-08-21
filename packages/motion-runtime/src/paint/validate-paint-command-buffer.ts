@@ -2,7 +2,6 @@
  * Validate PaintCommandBuffer invariants before decode/paint.
  */
 
-import type { Matrix2D } from "../matrix";
 import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
 import { PAINT_COMMAND_VERSION } from "./paint-buffer";
@@ -10,17 +9,6 @@ import type { PaintValidateIssue, PaintValidateResult } from "./paint-display-li
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-function matrixFinite(matrix: Matrix2D): boolean {
-  return (
-    isFiniteNumber(matrix.a) &&
-    isFiniteNumber(matrix.b) &&
-    isFiniteNumber(matrix.c) &&
-    isFiniteNumber(matrix.d) &&
-    isFiniteNumber(matrix.e) &&
-    isFiniteNumber(matrix.f)
-  );
 }
 
 function isHttpOrDataOrRelativeUri(uri: string): boolean {
@@ -183,19 +171,11 @@ export function validatePaintCommandBuffer(
         break;
       }
       case "setTransform": {
-        if (!matrixFinite(cmd.matrix) && !matrix4Finite(cmd.matrix4)) {
+        if (!matrix4Finite(cmd.matrix4)) {
           issues.push({
             severity: "error",
             code: "invalid_transform_matrix",
-            message: `Transform for "${cmd.key}" must contain a finite Matrix2D or 16-value Matrix4`,
-            key: cmd.key,
-          });
-        }
-        if (cmd.matrix4 !== undefined && !matrix4Finite(cmd.matrix4)) {
-          issues.push({
-            severity: "error",
-            code: "invalid_matrix4",
-            message: `Matrix4 for "${cmd.key}" must contain exactly 16 finite values`,
+            message: `Transform for "${cmd.key}" must contain exactly 16 finite Matrix4 values`,
             key: cmd.key,
           });
         }
