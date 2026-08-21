@@ -32,6 +32,7 @@
     "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs",
     "validate:v2-renderers": "node scripts/validate-v2-renderers.mjs",
     "validate:v2-core": "node scripts/validate-v2-core.mjs",
+    "validate:v2-hard-lock": "node scripts/validate-v2-hard-lock.mjs",
     "eval:zero-template": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/run-zero-template-eval.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
     "validate:paint-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-paint-parity.ts",

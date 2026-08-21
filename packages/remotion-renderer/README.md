@@ -1,55 +1,49 @@
 # `@motionvideo/remotion-renderer`
 
-Cầu **Runtime IR / paint tree → Remotion React** để encode/export (và snapshot parity với preview). Nhận dữ liệu đã compile/evaluate; không phải editor UI.
+Remotion export surface for Runtime V2. The package receives an already
+evaluated `RuntimeFrameV2` and renders the same `PaintCommandBuffer` meaning as
+the native preview. It does not parse authoring JSON or compile a project.
 
-## Vai trò
+## Pipeline
 
 ```text
-Compiled / evaluated frame (motion-runtime + compiler)
-        ↓
-  buildRemotionPaintTree / RemotionFramePainter
-        ↓
-  MotionComposition · MotiClipVideo  →  Remotion encode
+Atomic Protocol V2
+        |
+  motion-compiler
+        |
+  motion-runtime
+        |
+  RuntimeFrameV2 / PaintCommandBuffer
+        |
+  RemotionPreviewCanvas
+        |
+  Remotion encode
 ```
 
-- Composition Remotion cho timeline video.
-- Paint tree / frame painter từ drawables runtime.
-- Snapshot renderer phục vụ parity test với native/DOM preview.
-- Re-export một số helper timeline duration từ `motion-runtime` cho composition.
-
-## API chính
+## Public API
 
 ```ts
 import {
   MotionComposition,
   MotiClipVideo,
   RemotionFramePainter,
-  buildRemotionPaintTree,
+  RemotionPreviewCanvas,
 } from "@motionvideo/remotion-renderer";
 ```
 
-| Nhóm                                  | Chức năng                         |
-| ------------------------------------- | --------------------------------- |
-| `MotionComposition` / `MotiClipVideo` | Entry composition Remotion        |
-| `RemotionFramePainter*`               | Vẽ frame từ tree / snapshot       |
-| `build-remotion-paint-tree`           | Flatten drawables → tree Remotion |
+`RemotionFramePainter` and `RemotionPreviewCanvas` consume required Matrix4
+transforms from Runtime V2. They do not create semantic transforms, convert to
+CSS `matrix(...)`, or maintain a separate export transform model. The native
+preview package owns WebGPU/WebGL2 backend selection; Remotion schedules the
+same runtime frame for encoding.
 
-## Không làm
+## Boundaries
 
-- **Không editor chrome / timeline UX** — không playhead, marquee, Zustand.
-- **Không orchestration job** — tạo/hủy job, webhook, storage thuộc apps + `render-contracts`.
-- **Không compile MotionProject** — gọi `@motionvideo/motion-compiler` trước khi đưa vào composition.
-- **Không preview GPU browser** — preview stage dùng `@motionvideo/preview-renderer` (hoặc DOM host trong app).
-- **Không tự pin/version Lambda** — pin nằm ở `render-contracts` (`REMOTION_PIN`); worker/app cấu hình deployment.
+- No editor chrome, timeline UX, or authoring state.
+- No Protocol or Compiler imports in production renderer code.
+- No `render-contracts` dependency; job orchestration belongs to the app or
+  worker layer.
+- No V1 project input or compatibility branch.
 
-## Peer dependencies
-
-- `react` / `react-dom` ^19
-
-## Phụ thuộc
-
-- `remotion`
-- `@motionvideo/motion-compiler` · `motion-runtime` · `motion-protocol`
-The render core receives `RuntimeProjectV2` directly. Manifest, URL loading,
-Lambda jobs, webhooks and storage belong to the application/export layer and
-are intentionally outside this package.
+`RemotionPaintRenderer` remains a source-compatible alias for the Matrix4-only
+`RemotionFramePainter` while existing callers migrate to the clearer name.

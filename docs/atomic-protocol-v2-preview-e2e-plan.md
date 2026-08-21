@@ -270,6 +270,12 @@ the lowered gradient uniforms after Matrix4 geometry has been resolved.
 
 ## Task 6: Path Embedded in 3D
 
+**Dependency gate:** Task 6 is locked until Task 5.95 Phase 8 is accepted.
+The Matrix4 hard-lock validator, Runtime V2 public-surface cleanup, preview /
+Remotion boundary checks, and the final export gates must pass before path
+tessellation is added. This keeps path work focused on local-plane geometry
+and prevents a second transform contract from entering the renderer.
+
 Implement in this order.
 
 - [ ] Closed path with solid fill.

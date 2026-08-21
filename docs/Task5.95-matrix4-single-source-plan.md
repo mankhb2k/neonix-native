@@ -439,21 +439,21 @@ Each case must run through:
 
 ### Static Validators
 
-- [ ] Ban `Matrix2D` and `matrix2D` in the certified V2 render path.
-- [ ] Ban optional `matrix4` in the Runtime V2 transform command.
-- [ ] Ban renderer-side semantic transform composition.
-- [ ] Ban Protocol imports from Preview and Remotion.
-- [ ] Ban Compiler imports from Preview and Remotion.
-- [ ] Ban CSS `matrix(...)` in the Remotion V2 painter.
-- [ ] Ban `anchorZ * 0` and partial Matrix4 construction.
+- [x] Ban `Matrix2D` and `matrix2D` in the certified V2 render path.
+- [x] Ban optional `matrix4` in the Runtime V2 transform command.
+- [x] Ban renderer-side semantic transform composition.
+- [x] Ban Protocol imports from Preview and Remotion.
+- [x] Ban Compiler imports from Preview and Remotion.
+- [x] Ban CSS `matrix(...)` in the Remotion V2 painter.
+- [x] Ban `anchorZ * 0` and partial Matrix4 construction.
 
 ### Documentation
 
-- [ ] Update `ai-first-editor-architecture.md` to describe Matrix4-only Runtime V2.
-- [ ] Update `atomic-protocol-v2-preview-e2e-plan.md` so Task 6 depends on Task
+- [x] Update `ai-first-editor-architecture.md` to describe Matrix4-only Runtime V2.
+- [x] Update `atomic-protocol-v2-preview-e2e-plan.md` so Task 6 depends on Task
   5.95.
-- [ ] Update Runtime, Preview, and Remotion READMEs.
-- [ ] Document that Matrix2D may only be an editor-local derived optimization,
+- [x] Update Runtime, Preview, and Remotion READMEs.
+- [x] Document that Matrix2D may only be an editor-local derived optimization,
   never Runtime IR.
 
 ### Final Commands
@@ -470,6 +470,7 @@ pnpm --filter @motionvideo/preview-renderer test
 pnpm --filter @motionvideo/remotion-renderer typecheck
 pnpm --filter @motionvideo/remotion-renderer test
 pnpm validate:v2-core
+pnpm validate:v2-hard-lock
 pnpm test:parity
 ```
 
@@ -516,7 +517,7 @@ Task 5.95 is complete when all of the following are true:
 
 - [ ] Atomic Protocol V2 remains semantic JSON and contains no Matrix4.
 - [ ] Compiler emits Matrix4 only.
-- [ ] Runtime V2 has no `matrix2D` or optional Matrix4 fallback.
+- [x] Runtime V2 has no `matrix2D` or optional Matrix4 fallback.
 - [ ] Preview WebGPU and WebGL2 consume Matrix4 only.
 - [ ] Remotion/export consume the same RuntimeFrameV2 and Matrix4 contract.
 - [ ] Orthographic 2D remains pixel-stable through Matrix4.
@@ -525,7 +526,7 @@ Task 5.95 is complete when all of the following are true:
 - [ ] `zIndex` remains the only MVP compositing order.
 - [ ] Protocol, compiler, runtime, preview, Remotion, Playwright, and MP4 smoke
   gates pass.
-- [ ] Static validation prevents Matrix2D from returning to the certified V2
+- [x] Static validation prevents Matrix2D from returning to the certified V2
   render path.
 
 Only after this checklist is accepted may Task 6: Path Embedded in 3D start.

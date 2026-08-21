@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   replayPaintCommands2D,
   type Canvas2DReplayContext,
-  type PaintCommandBuffer,
-} from "../index";
+} from "./replay-2d";
+import type { PaintCommandBuffer } from "./paint-buffer";
 
 type Op =
   | { op: "fillRect"; x: number; y: number; w: number; h: number; fill: unknown }

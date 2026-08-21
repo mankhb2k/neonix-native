@@ -25,6 +25,18 @@ Atomic Protocol V2
 | `paint` | PaintCommandBuffer contract |
 | `clock` | Frame/time quantization |
 
+## Matrix4 hard-lock
+
+Runtime V2 uses one backend-neutral `Matrix4` representation for both 2D and
+3D. A 2D layer is simply an XY-plane transform with `z = 0` and an orthographic
+projection. The runtime public API does not export the old affine/Canvas2D
+adapters, and `PaintCommand.setTransform.matrix4` is required rather than an
+optional fallback.
+
+Those adapters may exist temporarily for the deferred editor migration, but
+they are editor-local implementation details and never Runtime IR. Preview and
+Remotion consume only `RuntimeFrameV2` / `PaintCommandBuffer`.
+
 ```ts
 import {
   evaluateRuntimeProjectV2,

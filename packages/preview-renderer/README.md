@@ -7,6 +7,11 @@ import PixiJS, compile authoring JSON, or evaluate motion. The same V2 command
 buffer can therefore be painted by this package for interactive preview and by
 Remotion for export.
 
+The render contract is Matrix4-only. Compiler B/runtime resolve local, world,
+view, and projection matrices before this package is called; a backend only
+uploads the provided matrices and paints commands. WebGPU is the default
+selection and WebGL2 is the explicit fallback.
+
 ## Backends
 
 - `webgl2`: synchronous MVP backend for solid, rectangle/ellipse shape, image,

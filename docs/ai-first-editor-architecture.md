@@ -10,9 +10,9 @@
 ## 0. Canonical Target: High-level Intent to Atomic 3D
 
 This document defines the target architecture for NeonVideo. The application is
-still in development, so the existing V1 path remains available as a
-compatibility layer. New features, however, should follow the V2 pipeline
-below rather than adding more concepts to V1.
+still in development, but the compiler, protocol, runtime, preview, and export
+render core are now V2-only. The editor and high-level authoring surfaces are
+deferred until the certified atomic pipeline is complete.
 
 The editor is an authoring surface, not the renderer and not the protocol. The
 old authoring/runtime path is disabled and scheduled for deletion; it is not a
@@ -34,6 +34,13 @@ protocol, and GPU implementation details do not leak into either JSON format.
 > high-level generation stays paused until more atoms are certified. Sections
 > below that mention the retired authoring contract are historical migration
 > notes and are not implementation guidance.
+
+> **Hard-lock status (Task 5.95 Phase 8):** Compiler B emits Runtime IR with
+> required Matrix4 transforms. Runtime V2, native preview, and Remotion export
+> consume the same `RuntimeFrameV2` / `PaintCommandBuffer` meaning. WebGPU is
+> the preview default and WebGL2 is the explicit fallback. Legacy affine and
+> Canvas2D adapters are editor-local only and are not part of the runtime public
+> API.
 
 ```mermaid
 flowchart TB
@@ -217,11 +224,12 @@ export pipeline.
 
 ---
 
-## 1. Legacy Reference: V1 Compatibility Path
+## 1. Archived Reference: V1 Compatibility Path
 
-The following sections document the existing V1 interfaces that are still
-useful for migration, integrations, and current tooling. They are not the
-place to add new high-level concepts or renderer-specific behavior.
+The following sections are retained only as historical migration notes. They
+are not executable requirements and are not supported by the compiler,
+protocol, runtime, preview, or export packages. New work must not add imports,
+schemas, fixtures, or compatibility branches to this archived path.
 
 ---
 
@@ -814,10 +822,10 @@ script, you only need `motion-protocol` (for schema/parse/patch) and optionally
 - [ ] Preview and Remotion/export consume the same runtime frame meaning
 - [ ] Every certified atom has JSON, compiler, WebGPU, WebGL2, and E2E coverage
 
-## 10. Legacy V1 Gate Checklist
+## 10. Archived V1 Gate Checklist
 
-These checks describe the retained V1 compatibility path. They are historical
-integration gates, not requirements for new Atomic Protocol V2 features.
+These checks describe the retired V1 compatibility path. They are historical
+records only, not requirements for new Atomic Protocol V2 features.
 
 - [x] A developer can build a Skill without opening editor code
 - [x] A developer can build an MCP tool without knowing V2/compat
