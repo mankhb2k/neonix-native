@@ -42,8 +42,8 @@ export type ProjectedQuadGeometry = {
   kind: "projected-quad";
   /** Four corners in screen space (clockwise or counter-clockwise) */
   corners: [Vec2, Vec2, Vec2, Vec2];
-  /** Depth for sorting (0=far, 1=near) */
-  depth: number;
+  /** Deterministic painter ordering derived from transformed Z. */
+  zSortKey: number;
 };
 
 /** Generic mesh (reserved for future advanced 3D). */

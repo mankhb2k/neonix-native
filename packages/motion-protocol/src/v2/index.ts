@@ -16,12 +16,22 @@ export {
 export {
   V2FrameSchema,
   V2LayerBaseSchema,
+  V2GroupLayerSchema,
   V2LayerSchema,
+  V2PathContourSchema,
+  V2PathLayerSchema,
   V2ShapeLayerSchema,
   type V2Frame,
+  type V2GroupLayer,
   type V2Layer,
+  type V2PathLayer,
   type V2ShapeLayer,
 } from "./layers";
 export { V2TimingSchema, type V2Timing } from "./timing";
 export { V2TransformSchema, type V2Transform } from "./transform";
-export { V2ViewSchema, type V2View } from "./view";
+export {
+  V2ProjectionSchema,
+  V2ViewSchema,
+  type V2Projection,
+  type V2View,
+} from "./view";

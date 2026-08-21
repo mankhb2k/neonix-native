@@ -40,7 +40,6 @@ export default [
             {
               group: [
                 "@motionvideo/editor-core",
-                "@motionvideo/editor-interactions",
                 "@motionvideo/editor-react",
               ],
               message: "Runtime must not import editor packages.",

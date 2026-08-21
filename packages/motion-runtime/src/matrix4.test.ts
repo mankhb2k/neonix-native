@@ -7,6 +7,8 @@ import {
   invertMatrix4,
   matrix4FromValues,
   multiplyMatrix4,
+  orthographicProjectionMatrix,
+  perspectiveProjectionMatrix,
   scaleMatrix3D,
   translationMatrix3D,
   transformPoint4,
@@ -131,6 +133,22 @@ describe("Canonical local Matrix4 composition", () => {
 });
 
 describe("Matrix4 homogeneous projection safety", () => {
+  it("uses centered zoom and canonical clip Z for orthographic projection", () => {
+    const projection = orthographicProjectionMatrix(320, 180, 2, 1, 4000);
+
+    expect(projectPoint3D(projection, { x: 160, y: 90, z: 0 })).toMatchObject({
+      kind: "projected",
+      x: 0,
+      y: 0,
+    });
+    const nearPlane = projectPoint3D(projection, { x: 160, y: 90, z: 1 });
+    const farPlane = projectPoint3D(projection, { x: 160, y: 90, z: -4000 });
+    expect(nearPlane).toMatchObject({ kind: "projected" });
+    expect(farPlane).toMatchObject({ kind: "projected" });
+    if (nearPlane.kind === "projected") expect(nearPlane.z).toBeCloseTo(0, 12);
+    if (farPlane.kind === "projected") expect(farPlane.z).toBeCloseTo(1, 12);
+  });
+
   it("keeps w explicit before perspective division", () => {
     const matrix = translationMatrix3D(12, -8, 40);
     expect(transformPoint4(matrix, { x: 0, y: 0, z: 0 })).toEqual({
@@ -185,6 +203,47 @@ describe("Matrix4 homogeneous projection safety", () => {
       z: 0.5,
       w: 1,
     });
+  });
+
+  it("uses the canonical clip Z range for V2 perspective projection", () => {
+    const height = 180;
+    const near = 1;
+    const far = 4000;
+    const fov = 60;
+    const cameraDistance = (height / 2) / Math.tan((fov * Math.PI) / 360);
+    const projection = perspectiveProjectionMatrix(320, height, fov, near, far);
+    const nearPlane = projectPoint3D(projection, {
+      x: 0,
+      y: 0,
+      z: cameraDistance - near,
+    });
+    const farPlane = projectPoint3D(projection, {
+      x: 0,
+      y: 0,
+      z: cameraDistance - far,
+    });
+
+    expect(projectPoint3D(projection, { x: 0, y: 0, z: 0 })).toMatchObject({
+      kind: "projected",
+    });
+    expect(nearPlane).toMatchObject({ kind: "projected" });
+    expect(farPlane).toMatchObject({ kind: "projected" });
+    if (nearPlane.kind === "projected") expect(nearPlane.z).toBeCloseTo(0, 12);
+    if (farPlane.kind === "projected") expect(farPlane.z).toBeCloseTo(1, 12);
+    expect(
+      projectPoint3D(projection, {
+        x: 0,
+        y: 0,
+        z: cameraDistance - near + 0.01,
+      }),
+    ).toMatchObject({ kind: "clipped", reason: "near-plane" });
+    expect(
+      projectPoint3D(projection, {
+        x: 0,
+        y: 0,
+        z: cameraDistance - far - 0.01,
+      }),
+    ).toMatchObject({ kind: "clipped", reason: "far-plane" });
   });
 
   it("classifies non-finite homogeneous coordinates explicitly", () => {

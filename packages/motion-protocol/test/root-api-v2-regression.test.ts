@@ -15,6 +15,13 @@ const validProject = {
     background: "#101820",
     colorSpace: "srgb" as const,
     audioSampleRate: 48000,
+    view: {
+      projection: { kind: "orthographic" as const, zoom: 1, near: 1, far: 4000 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        rotate: { x: 0, y: 0, z: 0 },
+      },
+    },
   },
   layers: [],
 };

@@ -248,26 +248,40 @@ export function rotationMatrixZ(degrees: number): Matrix4 {
   return m;
 }
 
-/** Pixel-space orthographic projection: top-left origin, Y grows downward. */
-export function orthographicMatrix2D(width: number, height: number): Matrix4 {
+/**
+ * Canonical V2 orthographic projection: top-left pixel origin, Y grows
+ * downward, and clip Z is in the WebGPU-compatible [0, 1] range.
+ */
+export function orthographicProjectionMatrix(
+  width: number,
+  height: number,
+  zoom: number,
+  near: number,
+  far: number,
+): Matrix4 {
   const m = createMatrix4();
   const w = Math.max(width, 1);
   const h = Math.max(height, 1);
-  m[0] = 2 / w;
-  m[5] = -2 / h;
-  m[10] = 1;
-  m[12] = -1;
-  m[13] = 1;
+  const safeZoom = Math.max(zoom, 0.001);
+  const safeNear = Math.max(near, 0.001);
+  const safeFar = Math.max(far, safeNear + 0.001);
+  const zRange = safeNear + safeFar;
+  m[0] = (2 * safeZoom) / w;
+  m[5] = (-2 * safeZoom) / h;
+  m[10] = -1 / zRange;
+  m[12] = -safeZoom;
+  m[13] = safeZoom;
+  m[14] = safeNear / zRange;
   return m;
 }
 
 /**
  * Screen-oriented perspective projection with a top-left pixel origin.
  * The camera looks toward negative Z and objects with positive Z move closer.
- * The matrix keeps X/Y identical across WebGL2 and WebGPU; depth adaptation
- * belongs to the backend when depth testing is introduced.
+ * It emits canonical V2 clip Z in [0, 1]. WebGL2 conversion belongs solely
+ * to the preview backend; Runtime V2 never emits WebGL clip coordinates.
  */
-export function perspectiveProjectionMatrix2D(
+export function perspectiveProjectionMatrix(
   width: number,
   height: number,
   fovDegrees: number,
@@ -280,8 +294,10 @@ export function perspectiveProjectionMatrix2D(
   const cameraDistance = (h / 2) / Math.tan((fov * Math.PI) / 360);
   const safeNear = Math.max(near, 0.001);
   const safeFar = Math.max(far, safeNear + 0.001);
-  const zScale = (cameraDistance - safeFar) / (safeFar - safeNear);
-  const zOffset = -zScale * (cameraDistance - safeNear);
+  // Camera-space Z is source Z minus cameraDistance. Map the near and far
+  // camera planes exactly to canonical clip Z 0 and 1, respectively.
+  const zScale = safeFar / (safeNear - safeFar);
+  const zOffset = zScale * (safeNear - cameraDistance);
   const m = new Float64Array(16);
   m[0] = (2 * cameraDistance) / w;
   m[5] = (-2 * cameraDistance) / h;
@@ -299,24 +315,6 @@ export function perspectiveProjectionMatrix2D(
 /**
  * Perspective projection matrix (WebGL NDC convention).
  */
-export function perspectiveMatrix(
-  fovDegrees: number,
-  aspect: number,
-  near: number,
-  far: number,
-): Matrix4 {
-  const f = 1 / Math.tan((fovDegrees * Math.PI) / 360);
-  const nf = 1 / (near - far);
-  const m = new Float64Array(16);
-  m[0] = f / aspect;
-  m[5] = f;
-  m[10] = (far + near) * nf;
-  m[11] = -1;
-  m[14] = 2 * far * near * nf;
-  // m[15] stays 0
-  return m;
-}
-
 /**
  * Camera lookAt matrix (world space → camera space).
  */
@@ -404,8 +402,8 @@ export function transformPoint4(
 }
 
 /**
- * Project a point using the canonical V2 depth range [0, 1]. XY values outside
- * the viewport remain projected so callers can calculate offscreen bounds.
+ * Project a point using canonical V2 clip Z in [0, 1]. XY values outside the
+ * viewport remain projected so callers can calculate offscreen bounds.
  */
 export function projectPoint3D(
   m: Matrix4Like,
@@ -422,14 +420,14 @@ export function projectPoint3D(
     return { kind: "clipped", reason: "near-plane", w: raw.w };
   }
 
-  const depth = raw.z / raw.w;
-  if (!Number.isFinite(depth)) {
+  const clipZ = raw.z / raw.w;
+  if (!Number.isFinite(clipZ)) {
     return { kind: "clipped", reason: "non-finite", w: raw.w };
   }
-  if (depth < -GEOMETRY_EPSILON) {
+  if (clipZ < -GEOMETRY_EPSILON) {
     return { kind: "clipped", reason: "near-plane", w: raw.w };
   }
-  if (depth > 1 + GEOMETRY_EPSILON) {
+  if (clipZ > 1 + GEOMETRY_EPSILON) {
     return { kind: "clipped", reason: "far-plane", w: raw.w };
   }
 
@@ -437,13 +435,13 @@ export function projectPoint3D(
     kind: "projected",
     x: raw.x / raw.w,
     y: raw.y / raw.w,
-    z: depth,
+    z: clipZ,
     w: raw.w,
   };
 }
 
 /**
- * Divide a transformed point by w without applying camera/depth clipping.
+ * Divide a transformed point by w without applying camera clip-plane checks.
  * Invalid homogeneous coordinates return undefined, never the origin.
  */
 export function transformPoint3D(
@@ -512,12 +510,6 @@ export function composeLocalMatrix4(t: LocalTransform3D): Matrix4 {
   );
 }
 
-// ── Extract depth for sorting ─────────────────────────────────────────
-
-/**
- * Extract the transformed Z coordinate of a point through a 4×4 matrix.
- * Used for painter's depth-sort key.
- */
 // ── Convert to plain array (for serialization / paint contract) ──────
 
 export function matrix4ToArray(m: Matrix4): number[] {

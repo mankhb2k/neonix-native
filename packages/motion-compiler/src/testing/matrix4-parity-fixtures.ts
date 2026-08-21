@@ -23,10 +23,18 @@ const perspectiveView: NonNullable<MotionProtocolV2["composition"]["view"]> = {
   },
 };
 
+const orthographicView: MotionProtocolV2["composition"]["view"] = {
+  projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
+  transform: {
+    translate: { x: 0, y: 0, z: 0 },
+    rotate: { x: 0, y: 0, z: 0 },
+  },
+};
+
 function project(
   id: string,
   transform: MotionProtocolV2["layers"][number]["transform"],
-  view?: MotionProtocolV2["composition"]["view"],
+  view: MotionProtocolV2["composition"]["view"] = orthographicView,
 ): MotionProtocolV2 {
   return {
     format: "motion-protocol",
@@ -39,7 +47,7 @@ function project(
       background: "#101820",
       colorSpace: "srgb",
       audioSampleRate: 48000,
-      ...(view ? { view } : {}),
+      view,
     },
     layers: [
       {
@@ -143,11 +151,47 @@ const cases: Matrix4ParityCase[] = [
   },
   {
     id: "matrix4.camera-plane",
-    project: project(
-      "matrix4-camera-plane",
-      v2Transform({ translate: { x: 800, y: 420, z: 1100 } }),
-      perspectiveView,
-    ),
+    project: (() => {
+      const cameraPlaneProject = project(
+        "matrix4-camera-plane",
+        v2Transform({ translate: { x: 800, y: 420, z: 1100 } }),
+        perspectiveView,
+      );
+      return {
+        ...cameraPlaneProject,
+        layers: [
+          ...cameraPlaneProject.layers,
+          {
+            id: "camera-plane-reference",
+            type: "shape" as const,
+            parentLayerId: null,
+            zIndex: 1,
+            frame: { width: 320, height: 180 },
+            transform: v2Transform({
+              translate: { x: 800, y: 420, z: 160 },
+            }),
+            opacity: 100,
+            timing: { start: 0, duration: 3 },
+            payload: { shape: "rectangle" as const },
+            style: { fill: "#00aa88" },
+          },
+          {
+            id: "camera-plane-origin-sentinel",
+            type: "shape" as const,
+            parentLayerId: null,
+            zIndex: 2,
+            frame: { width: 96, height: 64 },
+            transform: v2Transform({
+              translate: { x: 32, y: 32, z: 0 },
+            }),
+            opacity: 100,
+            timing: { start: 0, duration: 3 },
+            payload: { shape: "rectangle" as const },
+            style: { fill: "#ff3366" },
+          },
+        ],
+      };
+    })(),
     motion: false,
   },
 ];

@@ -1,18 +1,22 @@
 import {
   multiplyMatrix4,
-  identityMatrix4,
   composeLocalMatrix4,
   evaluateRuntimeProjectV2,
   frameIndexAtTime,
-  orthographicMatrix2D,
-  perspectiveProjectionMatrix2D,
+  orthographicProjectionMatrix,
+  perspectiveProjectionMatrix,
   rotationMatrixX,
   rotationMatrixY,
   rotationMatrixZ,
   translationMatrix3D,
   type Matrix4,
   type PaintCommandBuffer,
+  type RuntimeNodeV2,
   type RuntimeProjectV2,
+  identityMatrix4,
+  interpolatePathContours,
+  tessellateClosedPath,
+      tessellatePathStroke,
 } from "@motionvideo/motion-runtime";
 import {
   isV2AtomCertified,
@@ -21,43 +25,42 @@ import {
 } from "@motionvideo/motion-protocol";
 
 function viewProjectionMatrix4(project: MotionProtocolV2): {
-  viewMatrix: Matrix4;
-  projectionMatrix: Matrix4;
-  viewProjectionMatrix: Matrix4;
+  worldToClipMatrix: Matrix4;
 } {
   const { width, height } = project.composition;
   const view = project.composition.view;
-  let viewMatrix = identityMatrix4();
-  if (view) {
-    const viewTranslate = translationMatrix3D(
-      -view.transform.translate.x,
-      -view.transform.translate.y,
-      -view.transform.translate.z,
-    );
-    const viewRotation = multiplyMatrix4(
-      multiplyMatrix4(
-        rotationMatrixX(-view.transform.rotate.x),
-        rotationMatrixY(-view.transform.rotate.y),
-      ),
-      rotationMatrixZ(-view.transform.rotate.z),
-    );
-    viewMatrix = multiplyMatrix4(viewTranslate, viewRotation);
-  }
-  const projection = view?.projection;
+  const viewTranslate = translationMatrix3D(
+    -view.transform.translate.x,
+    -view.transform.translate.y,
+    -view.transform.translate.z,
+  );
+  const viewRotation = multiplyMatrix4(
+    multiplyMatrix4(
+      rotationMatrixX(-view.transform.rotate.x),
+      rotationMatrixY(-view.transform.rotate.y),
+    ),
+    rotationMatrixZ(-view.transform.rotate.z),
+  );
+  const viewMatrix = multiplyMatrix4(viewTranslate, viewRotation);
+  const projection = view.projection;
   const projectionMatrix =
     projection?.kind === "perspective"
-      ? perspectiveProjectionMatrix2D(
+      ? perspectiveProjectionMatrix(
           width,
           height,
           projection.fov,
           projection.near,
           projection.far,
         )
-      : orthographicMatrix2D(width, height);
+      : orthographicProjectionMatrix(
+          width,
+          height,
+          projection.zoom,
+          projection.near,
+          projection.far,
+        );
   return {
-    viewMatrix,
-    projectionMatrix,
-    viewProjectionMatrix: multiplyMatrix4(projectionMatrix, viewMatrix),
+    worldToClipMatrix: multiplyMatrix4(projectionMatrix, viewMatrix),
   };
 }
 
@@ -71,6 +74,15 @@ function stableLayerOrder(
 }
 
 const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
+const DEFAULT_PATH_STROKE_WIDTH = 1;
+
+type LayerContext = {
+  localMatrix: Matrix4;
+  worldMatrix: Matrix4;
+  opacity: number;
+  visible: boolean;
+  timing: { start: number; duration: number };
+};
 
 export type CompileProtocolV2Options = Record<string, never>;
 
@@ -81,8 +93,171 @@ export function compileProtocolV2(
 ): RuntimeProjectV2 {
   const project = parseMotionProtocol(input);
   const projection = viewProjectionMatrix4(project);
+  const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
+  const contextCache = new Map<string, LayerContext>();
 
-  const nodes = stableLayerOrder(project).map((layer) => {
+  const resolveLayerContext = (layer: MotionProtocolV2["layers"][number]): LayerContext => {
+    const cached = contextCache.get(layer.id);
+    if (cached) return cached;
+    const localMatrix = composeLocalMatrix4(layer.transform);
+    const parent = layer.parentLayerId === null ? null : layerById.get(layer.parentLayerId) ?? null;
+    const parentContext = parent
+      ? resolveLayerContext(parent)
+      : {
+          localMatrix: identityMatrix4(),
+          worldMatrix: identityMatrix4(),
+          opacity: 1,
+          visible: true,
+          timing: { start: 0, duration: Number.POSITIVE_INFINITY },
+        };
+    const start = parentContext.timing.start + layer.timing.start;
+    const end = Math.min(
+      parentContext.timing.start + parentContext.timing.duration,
+      start + layer.timing.duration,
+    );
+    const context: LayerContext = {
+      localMatrix,
+      worldMatrix: multiplyMatrix4(parentContext.worldMatrix, localMatrix),
+      opacity: parentContext.opacity * (layer.opacity / 100),
+      visible: parentContext.visible && layer.opacity > 0 && end > start,
+      timing: { start, duration: Math.max(0, end - start) },
+    };
+    contextCache.set(layer.id, context);
+    return context;
+  };
+
+  const nodes = stableLayerOrder(project).map((layer): RuntimeNodeV2 | null => {
+    const context = resolveLayerContext(layer);
+    if (layer.type === "group") {
+      for (const capability of [
+        "group.transform",
+        "group.timing",
+        "group.opacity",
+        "group.zIndex",
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+      return null;
+    }
+    if (context.timing.duration <= 0) return null;
+    if (layer.type === "path") {
+      for (const capability of [
+        "path.transform",
+        "path.timing",
+        "path.opacity",
+        "path.zIndex",
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+      const contours = layer.payload.morph
+        ? interpolatePathContours(
+            layer.payload.contours,
+            layer.payload.morph.targetContours,
+            layer.payload.morph.progress,
+          )
+        : layer.payload.contours;
+      const hasFill = layer.style.fill !== undefined;
+      if (hasFill && !isV2AtomCertified("path.fill")) {
+        throw new Error("Uncertified Protocol V2 atom: path.fill");
+      }
+      if (hasFill && contours.some((contour) => !contour.closed)) {
+        throw new Error(`Protocol V2 atom ${layer.id}: fill requires closed contours`);
+      }
+      if (layer.style.fillOpacity !== undefined && !isV2AtomCertified("path.fillOpacity")) {
+        throw new Error("Uncertified Protocol V2 atom: path.fillOpacity");
+      }
+      if (layer.style.stroke !== undefined && !isV2AtomCertified("path.stroke")) {
+        throw new Error("Uncertified Protocol V2 atom: path.stroke");
+      }
+      if (layer.style.strokeWidth !== undefined) {
+        if (layer.style.stroke === undefined) {
+          throw new Error(`Protocol V2 atom ${layer.id}: strokeWidth requires stroke`);
+        }
+        if (!isV2AtomCertified("path.strokeWidth")) {
+          throw new Error("Uncertified Protocol V2 atom: path.strokeWidth");
+        }
+      }
+      if (layer.style.strokeOpacity !== undefined) {
+        if (layer.style.stroke === undefined) {
+          throw new Error(`Protocol V2 atom ${layer.id}: strokeOpacity requires stroke`);
+        }
+        if (!isV2AtomCertified("path.strokeOpacity")) {
+          throw new Error("Uncertified Protocol V2 atom: path.strokeOpacity");
+        }
+      }
+      if (layer.style.stroke !== undefined) {
+        for (const capability of ["path.strokeJoin", "path.strokeCap"]) {
+          if (!isV2AtomCertified(capability)) {
+            throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+          }
+        }
+        if (layer.style.strokeDash && !isV2AtomCertified("path.strokeDash")) {
+          throw new Error("Uncertified Protocol V2 atom: path.strokeDash");
+        }
+      }
+      if (layer.payload.morph && !isV2AtomCertified("path.morph")) {
+        throw new Error("Uncertified Protocol V2 atom: path.morph");
+      }
+      const strokeWidth = layer.style.strokeWidth ?? DEFAULT_PATH_STROKE_WIDTH;
+      const strokeJoin = layer.style.strokeJoin ?? "miter";
+      const strokeCap = layer.style.strokeCap ?? "butt";
+      const strokeDash = layer.style.strokeDash
+        ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
+        : undefined;
+      return {
+        id: layer.id,
+        // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
+        // receives paintable leaves only, so no unresolved parent remains.
+        parentId: null,
+        zIndex: layer.zIndex,
+        timing: context.timing,
+        opacity: context.opacity,
+        visible: context.visible,
+        localMatrix: context.localMatrix,
+        worldMatrix: context.worldMatrix,
+        content: {
+          kind: "path" as const,
+          width: layer.frame.width,
+          height: layer.frame.height,
+          contours,
+          ...(hasFill
+            ? {
+                mesh: tessellateClosedPath(contours, layer.payload.fillRule),
+                fill: layer.style.fill!,
+              }
+            : {}),
+          ...(layer.style.stroke !== undefined
+            ? {
+                stroke: layer.style.stroke,
+                strokeWidth,
+                strokeMesh: tessellatePathStroke(
+                  contours,
+                  strokeWidth,
+                  {
+                    join: strokeJoin,
+                    cap: strokeCap,
+                    dash: strokeDash,
+                  },
+                ),
+                ...(layer.style.strokeOpacity !== undefined
+                  ? { strokeOpacity: layer.style.strokeOpacity }
+                  : {}),
+                strokeJoin,
+                strokeCap,
+                ...(strokeDash ? { strokeDash } : {}),
+              }
+            : {}),
+          fillRule: layer.payload.fillRule,
+          ...(layer.style.fillOpacity !== undefined
+            ? { fillOpacity: layer.style.fillOpacity }
+            : {}),
+        },
+      };
+    }
     const fillCapability = `${layer.type}.${layer.payload.shape}.fill`;
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
@@ -131,16 +306,17 @@ export function compileProtocolV2(
       }
     }
 
-    const localMatrix = composeLocalMatrix4(layer.transform);
     return {
       id: layer.id,
-      parentId: layer.parentLayerId,
+      // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
+      // receives paintable leaves only, so no unresolved parent remains.
+      parentId: null,
       zIndex: layer.zIndex,
-      timing: layer.timing,
-      opacity: layer.opacity / 100,
-      visible: layer.opacity > 0,
-      localMatrix,
-      worldMatrix: localMatrix,
+      timing: context.timing,
+      opacity: context.opacity,
+      visible: context.visible,
+      localMatrix: context.localMatrix,
+      worldMatrix: context.worldMatrix,
       content: {
         kind: "shape" as const,
         shape: layer.payload.shape,
@@ -173,7 +349,7 @@ export function compileProtocolV2(
           : {}),
       },
     };
-  });
+  }).filter((node): node is RuntimeNodeV2 => node !== null);
 
   return {
     format: "motion-runtime",

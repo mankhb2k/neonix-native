@@ -26,7 +26,6 @@ export default [
                 "@motionvideo/web",
                 "@motionvideo/desktop",
                 "@motionvideo/editor-core",
-                "@motionvideo/editor-interactions",
                 "@motionvideo/editor-react",
               ],
               message:

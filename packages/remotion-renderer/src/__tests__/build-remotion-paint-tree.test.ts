@@ -9,6 +9,13 @@ import {
   flattenRemotionDrawables,
 } from "../build-remotion-paint-tree";
 
+const IDENTITY_MATRIX4 = [
+  1, 0, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+];
+
 const buffer: PaintCommandBuffer = {
   version: PAINT_COMMAND_VERSION,
   diagnostics: [],
@@ -21,6 +28,7 @@ const buffer: PaintCommandBuffer = {
       graphId: "s",
       frame: 0,
       time: 0,
+      projection: { worldToClipMatrix: IDENTITY_MATRIX4 },
     },
     {
       op: "setTransform",
@@ -106,6 +114,7 @@ describe("buildRemotionPaintTree", () => {
           graphId: "s",
           frame: 0,
           time: 0,
+          projection: { worldToClipMatrix: IDENTITY_MATRIX4 },
         },
         {
           op: "setTransform",

@@ -3,9 +3,9 @@ import {
   cssColorToRgba,
   matrix4ForQuad,
   packMatrix4F32,
-  projectionMatrixForPaint,
+  worldToClipMatrixForPaint,
   gradientUniforms,
-  webglDepthProjection,
+  webglClipSpaceProjection,
 } from "./math";
 import { mediaLayout } from "./media";
 import type { PreviewBackend } from "./backend";
@@ -173,10 +173,12 @@ export function createWebGL2Backend(
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
   const vao = gl.createVertexArray();
-  const buffer = gl.createBuffer();
-  if (!vao || !buffer) throw new Error("preview-renderer: unable to create WebGL buffers");
+  const quadBuffer = gl.createBuffer();
+  const pathBuffer = gl.createBuffer();
+  const pathIndexBuffer = gl.createBuffer();
+  if (!vao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
   gl.bindVertexArray(vao);
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1]),
@@ -184,10 +186,14 @@ export function createWebGL2Backend(
   );
   const position = gl.getAttribLocation(programHandle, "a_position");
   const uv = gl.getAttribLocation(programHandle, "a_uv");
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0);
-  gl.enableVertexAttribArray(uv);
-  gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
+  const bindVertexBuffer = (nextBuffer: WebGLBuffer) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, nextBuffer);
+    gl.enableVertexAttribArray(position);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(uv);
+    gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
+  };
+  bindVertexBuffer(quadBuffer);
   gl.bindVertexArray(null);
 
   const projectionLocation = gl.getUniformLocation(programHandle, "u_projection");
@@ -242,11 +248,11 @@ export function createWebGL2Backend(
     let skippedCommands = 0;
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
     let currentBlend: BlendMode = "normal";
-    let frameWidth = width;
-    let frameHeight = height;
-    let projection = webglDepthProjection(
-      projectionMatrixForPaint(undefined, frameWidth, frameHeight),
-    );
+    const firstCommand = bufferToPaint.commands[0];
+    if (!firstCommand || firstCommand.op !== "beginFrame") {
+      throw new Error("Preview renderer requires beginFrame as the first command");
+    }
+    let projection = webglClipSpaceProjection(worldToClipMatrixForPaint(firstCommand));
     gl.viewport(0, 0, Math.max(1, Math.round(width * dpr)), Math.max(1, Math.round(height * dpr)));
     gl.clearColor(...cssColorToRgba(bufferToPaint.commands[0]?.op === "beginFrame" ? bufferToPaint.commands[0].background : options.background));
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -254,11 +260,7 @@ export function createWebGL2Backend(
     gl.bindVertexArray(vao);
     for (const command of bufferToPaint.commands) {
       if (command.op === "beginFrame") {
-        frameWidth = command.width;
-        frameHeight = command.height;
-        projection = webglDepthProjection(
-          projectionMatrixForPaint(command, command.width, command.height),
-        );
+        projection = webglClipSpaceProjection(worldToClipMatrixForPaint(command));
         gl.clearColor(...cssColorToRgba(command.background ?? options.background));
         gl.clear(gl.COLOR_BUFFER_BIT);
       } else if (command.op === "setTransform") {
@@ -275,6 +277,7 @@ export function createWebGL2Backend(
           continue;
         }
         blend(gl, currentBlend);
+        bindVertexBuffer(quadBuffer);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
@@ -309,6 +312,52 @@ export function createWebGL2Backend(
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
+      } else if (command.op === "drawPath") {
+        if (!transform || !transform.visible || transform.alpha <= 0) {
+          skippedCommands += 1;
+          continue;
+        }
+        const meshes = [
+          command.fill && command.mesh
+            ? { mesh: command.mesh, color: cssColorToRgba(command.fill), opacity: command.fillOpacity ?? 1 }
+            : null,
+          command.stroke && command.strokeMesh
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1 }
+            : null,
+        ].filter((entry) => entry !== null).map((entry) => entry!);
+        if (meshes.length === 0) {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        blend(gl, currentBlend);
+        bindVertexBuffer(pathBuffer);
+        gl.uniformMatrix4fv(projectionLocation, false, projection);
+        gl.uniformMatrix4fv(modelLocation, false, packMatrix4F32(transform.matrix4));
+        gl.uniform1i(modeLocation, 0);
+        gl.uniform1i(shapeLocation, 0);
+        gl.uniform2f(strokeExtentLocation, 0, 0);
+        gl.uniform3f(geometryLocation, 0, 0, 0);
+        gl.uniform4f(gradientStartLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientEndLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
+        gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
+        gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
+        for (const pathDraw of meshes) {
+          const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
+          for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
+            vertexData[index * 4] = pathDraw.mesh.vertices[index * 2]!;
+            vertexData[index * 4 + 1] = pathDraw.mesh.vertices[index * 2 + 1]!;
+          }
+          gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pathIndexBuffer);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(pathDraw.mesh.indices), gl.DYNAMIC_DRAW);
+          pathDraw.color[3] *= transform.alpha * pathDraw.opacity;
+          gl.uniform4fv(colorLocation, pathDraw.color);
+          gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
+          gl.drawElements(gl.TRIANGLES, pathDraw.mesh.indices.length, gl.UNSIGNED_INT, 0);
+          drawCalls += 1;
+        }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
         if (!transform || !transform.visible || transform.alpha <= 0 || (command.op === "drawVideo" && command.mediaVisible === false)) {
           skippedCommands += 1;
@@ -329,6 +378,7 @@ export function createWebGL2Backend(
           continue;
         }
         blend(gl, currentBlend);
+        bindVertexBuffer(quadBuffer);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
@@ -349,7 +399,7 @@ export function createWebGL2Backend(
         gl.uniform1i(textureLocation, 0);
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
-      } else if (command.op === "drawText" || command.op === "drawPath") {
+      } else if (command.op === "drawText") {
         skippedCommands += 1;
         pushDiagnostic({ severity: "info", code: "preview_op_pending", message: `${command.op} is pending in the native preview backend`, key: command.key, layerId: command.layerId });
       } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {
@@ -389,7 +439,9 @@ export function createWebGL2Backend(
     dispose() {
       for (const texture of textures.values()) gl.deleteTexture(texture);
       textures.clear();
-      gl.deleteBuffer(buffer);
+      gl.deleteBuffer(quadBuffer);
+      gl.deleteBuffer(pathBuffer);
+      gl.deleteBuffer(pathIndexBuffer);
       gl.deleteVertexArray(vao);
       gl.deleteProgram(programHandle);
     },

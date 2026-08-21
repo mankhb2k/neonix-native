@@ -14,7 +14,7 @@ export const V2CompositionSchema = z
     background: V2ColorSchema,
     colorSpace: z.literal("srgb"),
     audioSampleRate: V2FiniteNumberSchema.int().positive(),
-    view: V2ViewSchema.optional(),
+    view: V2ViewSchema,
   })
   .strict();
 

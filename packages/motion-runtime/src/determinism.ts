@@ -116,7 +116,7 @@ export function deterministicTieBreak(a: string, b: string): number {
 
 /**
  * Compare two numbers, then tie-break by id.
- * Usage: layers.sort((a, b) => numericThenId(a.depth, b.depth, a.id, b.id))
+ * Usage: layers.sort((a, b) => numericThenId(a.zIndex, b.zIndex, a.id, b.id))
  */
 export function numericThenId(
   aValue: number,

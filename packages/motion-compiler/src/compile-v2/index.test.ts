@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   multiplyMatrix4,
+  perspectiveProjectionMatrix,
   rotationMatrixX,
   rotationMatrixY,
   rotationMatrixZ,
@@ -28,6 +29,13 @@ const base = {
     background: "#101820",
     colorSpace: "srgb" as const,
     audioSampleRate: 48000,
+    view: {
+      projection: { kind: "orthographic" as const, zoom: 1, near: 1, far: 4000 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        rotate: { x: 0, y: 0, z: 0 },
+      },
+    },
   },
 };
 
@@ -66,7 +74,7 @@ describe("Protocol V2 Compiler B", () => {
     });
     expect(runtime.nodes[0]?.localMatrix).toHaveLength(16);
     expect(runtime.nodes[0]?.worldMatrix).toHaveLength(16);
-    expect(runtime.view.viewProjectionMatrix).toHaveLength(16);
+    expect(runtime.view.worldToClipMatrix).toHaveLength(16);
   });
 
   it("emits a valid empty frame", () => {
@@ -144,6 +152,97 @@ describe("Protocol V2 Compiler B", () => {
       }),
       expect.objectContaining({ op: "endFrame" }),
     ]);
+  });
+
+  it("lowers a filled local-plane path into one resolved mesh command", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "triangle",
+          type: "path",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 220, height: 180 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: {
+            fillRule: "nonzero",
+            contours: [{
+              id: "triangle-contour",
+              start: { x: 20, y: 10 },
+              segments: [
+                { kind: "line", to: { x: 180, y: 40 } },
+                { kind: "line", to: { x: 70, y: 150 } },
+                { kind: "line", to: { x: 20, y: 10 } },
+              ],
+              closed: true,
+            }],
+          },
+          style: { fill: "#00aa88" },
+        },
+      ],
+    });
+
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawPath",
+        key: "triangle",
+        fill: "#00aa88",
+        fillRule: "nonzero",
+        mesh: expect.objectContaining({
+          vertices: expect.any(Array),
+          indices: expect.any(Array),
+          bounds: { x: 20, y: 10, width: 160, height: 140 },
+        }),
+      }),
+    );
+  });
+
+  it("lowers a certified path stroke into a separate resolved stroke mesh", () => {
+    const buffer = compileProtocolV2ToPaintCommands({
+      ...base,
+      layers: [
+        {
+          id: "triangle-stroke",
+          type: "path",
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 220, height: 180 },
+          transform: identity,
+          opacity: 100,
+          timing: { start: 0, duration: 1 },
+          payload: {
+            fillRule: "nonzero",
+            contours: [{
+              id: "triangle-contour",
+              start: { x: 20, y: 10 },
+              segments: [
+                { kind: "line", to: { x: 180, y: 40 } },
+                { kind: "line", to: { x: 70, y: 150 } },
+                { kind: "line", to: { x: 20, y: 10 } },
+              ],
+              closed: true,
+            }],
+          },
+          style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 12, strokeOpacity: 0.75 },
+        },
+      ],
+    });
+
+    expect(buffer.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawPath",
+        stroke: "#ff3366",
+        strokeWidth: 12,
+        strokeOpacity: 0.75,
+        strokeMesh: expect.objectContaining({
+          vertices: expect.any(Array),
+          indices: expect.any(Array),
+        }),
+      }),
+    );
   });
 
   it("lowers a certified rectangle stroke into the paint command", () => {
@@ -415,10 +514,8 @@ describe("Protocol V2 Compiler B", () => {
     const begin = buffer.commands[0];
     expect(begin?.op).toBe("beginFrame");
     if (!begin || begin.op !== "beginFrame") throw new Error("Missing beginFrame");
-    expect(begin.projection?.viewMatrix).toHaveLength(16);
-    expect(begin.projection?.projectionMatrix).toHaveLength(16);
-    expect(begin.projection?.viewProjectionMatrix).toHaveLength(16);
-    expect(begin.projection?.projectionMatrix?.[11]).toBe(-1);
+    expect(begin.projection.worldToClipMatrix).toHaveLength(16);
+    expect(begin.projection.worldToClipMatrix[11]).toBe(-1);
   });
 
   it("applies the inverse camera transform in the locked order", () => {
@@ -449,17 +546,16 @@ describe("Protocol V2 Compiler B", () => {
       translationMatrix3D(-10, -20, -30),
       expectedRotation,
     );
-    expect(begin.projection.viewMatrix).toEqual(Array.from(expectedView));
-
+    const expectedProjection = perspectiveProjectionMatrix(320, 180, 60, 1, 4000);
     const point = { x: 120, y: 80, z: 40 };
     expect(transformPoint4(
-      begin.projection.viewMatrix,
+      expectedView,
       point,
     )).toEqual(transformPoint4(expectedView, point));
-    expect(begin.projection.viewProjectionMatrix).toEqual(
+    expect(begin.projection.worldToClipMatrix).toEqual(
       Array.from(
         multiplyMatrix4(
-          new Float64Array(begin.projection.projectionMatrix),
+          expectedProjection,
           expectedView,
         ),
       ),
@@ -528,6 +624,90 @@ describe("Protocol V2 Compiler B", () => {
     expect(transform.matrix4[12]).toBeCloseTo(30, 8);
     expect(transform.matrix4[13]).toBeCloseTo(-20, 8);
     expect(transform.matrix4).toHaveLength(16);
+  });
+
+  it("lowers group transforms, opacity, and nested timing into the child leaf", () => {
+    const buffer = compileProtocolV2ToPaintCommands(
+      {
+        ...base,
+        layers: [
+          {
+            id: "group",
+            type: "group" as const,
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 200, height: 120 },
+            transform: {
+              ...identity,
+              translate: { x: 100, y: 50, z: 30 },
+            },
+            opacity: 50,
+            timing: { start: 0.5, duration: 2 },
+          },
+          {
+            id: "child",
+            type: "shape" as const,
+            parentLayerId: "group",
+            zIndex: 1,
+            frame: { width: 80, height: 40 },
+            transform: {
+              ...identity,
+              translate: { x: 20, y: 10, z: 5 },
+            },
+            opacity: 80,
+            timing: { start: 0.25, duration: 1.5 },
+            payload: { shape: "rectangle" as const },
+            style: { fill: "#00aa88" },
+          },
+        ],
+      },
+      { time: 0.75 },
+    );
+    const transforms = buffer.commands.filter((command) => command.op === "setTransform");
+    expect(transforms).toHaveLength(1);
+    expect(transforms[0]).toMatchObject({
+      key: "child",
+      alpha: 0.4,
+      zIndex: 1,
+    });
+    if (transforms[0]?.op !== "setTransform") throw new Error("Missing child transform");
+    expect(transforms[0].matrix4[12]).toBeCloseTo(120, 8);
+    expect(transforms[0].matrix4[13]).toBeCloseTo(60, 8);
+    expect(transforms[0].matrix4[14]).toBeCloseTo(35, 8);
+    expect(buffer.commands.some((command) => command.op === "drawShape" && command.key === "group")).toBe(false);
+
+    expect(
+      compileProtocolV2ToPaintCommands(
+        {
+          ...base,
+          layers: [
+            {
+              id: "group",
+              type: "group" as const,
+              parentLayerId: null,
+              zIndex: 0,
+              frame: { width: 200, height: 120 },
+              transform: identity,
+              opacity: 50,
+              timing: { start: 0.5, duration: 2 },
+            },
+            {
+              id: "child",
+              type: "shape" as const,
+              parentLayerId: "group",
+              zIndex: 1,
+              frame: { width: 80, height: 40 },
+              transform: identity,
+              opacity: 80,
+              timing: { start: 0.25, duration: 1.5 },
+              payload: { shape: "rectangle" as const },
+              style: { fill: "#00aa88" },
+            },
+          ],
+        },
+        { time: 0.749 },
+      ).commands.map((command) => command.op),
+    ).toEqual(["beginFrame", "endFrame"]);
   });
 
   it("respects timing boundaries, opacity, and paint order", () => {

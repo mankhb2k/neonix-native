@@ -278,13 +278,13 @@ and prevents a second transform contract from entering the renderer.
 
 Implement in this order.
 
-- [ ] Closed path with solid fill.
-- [ ] `fillRule: "nonzero"`.
-- [ ] `fillRule: "evenodd"`.
-- [ ] Stroke.
-- [ ] Stroke joins, caps, and dashes.
-- [ ] Multiple contours.
-- [ ] Path morph only after the static path suite is certified.
+- [x] Closed path with solid fill (local-plane contours; five-point fixture has WebGPU/WebGL2 parity coverage).
+- [x] `fillRule: "nonzero"`.
+- [x] `fillRule: "evenodd"`.
+- [x] Basic stroke (Runtime-resolved local-plane stroke mesh; fixed width and independent opacity).
+- [x] Stroke joins, caps, and dashes (miter/bevel/round joins, butt/square/round caps, deterministic dash arrays).
+- [x] Multiple contours (donut/hole fixtures cover both fill rules).
+- [x] Path morph after static path certification (topology-matched contour interpolation before tessellation).
 
 Path commands remain two-dimensional coordinates in the atom's local plane.
 Compiler B/runtime owns parsing, flattening, and tessellation in that local
@@ -292,20 +292,33 @@ space; the resulting vertices are then transformed by the same world/view/
 projection mat4 contract as every other atom. GPU backends must not independently
 flatten, round, or reinterpret a path after projection.
 
-E2E fixtures include a triangle, a donut/hole, two contours, and a stroked
-line. Each static geometry case also has one rotate X or Y perspective fixture.
+E2E fixtures include a triangle, a donut/hole with two contours, a stroked
+closed path, an open capped/dashed path, and a topology-matched morph path. Each
+static geometry case also has one rotate X or Y perspective fixture.
 Tests assert fill, hole, edge, outside pixels, projected bounds, and consistent
 ordering relative to another `zIndex` layer.
 
+Task 6 is complete when the static Path geometry, paint, stroke, and morph
+fixtures pass the shared Runtime, WebGPU, WebGL2, and preview E2E gates above.
+
 ## Task 7: Group and Parent Transform
 
-- [ ] Add `group` after shape and path behavior is stable.
-- [ ] Implement parent-to-child world mat4 inheritance using the one shared
+- [x] Add `group` after shape and path behavior is stable.
+- [x] Implement parent-to-child world mat4 inheritance using the one shared
   documented multiplication order.
-- [ ] Implement inherited opacity.
-- [ ] Implement nested timing.
-- [ ] Test nested rotation, parent translation, parent/child opacity, sibling
+- [x] Implement inherited opacity.
+- [x] Implement nested timing.
+- [x] Test nested rotation, parent translation, parent/child opacity, sibling
   ordering, child z-index, parent rotate X/Y, and parent/child Z translation.
+
+The V2 Group is a hierarchy-only Protocol atom. Compiler B resolves its local
+Matrix4 into each drawable leaf's `worldMatrix`, multiplies parent opacity, and
+intersects parent and child active windows. Runtime V2 receives paintable leaves
+only, with `parentId: null`; the Group itself never becomes a GPU draw call.
+
+The preview fixture `group.parent-transform` covers a rotated and translated
+perspective parent, two overlapping rectangle children, inherited opacity, Z
+translation, stable sibling ordering, and equivalent WebGPU/WebGL2 bounds.
 
 Groups establish hierarchy, not implicit cameras or depth-buffer behavior.
 Before effects or masks use a group as an offscreen surface, a later task must

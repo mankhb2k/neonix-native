@@ -1,4 +1,8 @@
 export const V2_CERTIFIED_ATOMS = [
+  "group.transform",
+  "group.timing",
+  "group.opacity",
+  "group.zIndex",
   "shape.rectangle.fill",
   "shape.rectangle.gradient",
   "shape.rectangle.fillOpacity",
@@ -20,6 +24,21 @@ export const V2_CERTIFIED_ATOMS = [
   "shape.ellipse.timing",
   "shape.ellipse.opacity",
   "shape.ellipse.zIndex",
+  "path.fill",
+  "path.fillOpacity",
+  "path.fillRule.nonzero",
+  "path.fillRule.evenodd",
+  "path.stroke",
+  "path.strokeWidth",
+  "path.strokeOpacity",
+  "path.strokeJoin",
+  "path.strokeCap",
+  "path.strokeDash",
+  "path.morph",
+  "path.transform",
+  "path.timing",
+  "path.opacity",
+  "path.zIndex",
 ] as const;
 
 export type V2CertifiedAtom = (typeof V2_CERTIFIED_ATOMS)[number];

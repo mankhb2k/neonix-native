@@ -19,8 +19,7 @@ export {
   fitMode,
   matrix4ForQuad,
   packMatrix4F32,
-  orthographicProjection,
-  projectionMatrixForPaint,
-  webglDepthProjection,
+  worldToClipMatrixForPaint,
+  webglClipSpaceProjection,
 } from "./math";
 export { mediaLayout, type MediaLayout } from "./media";

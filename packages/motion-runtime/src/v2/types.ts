@@ -1,6 +1,14 @@
 import type { Matrix4 } from "../matrix4";
 import type { PaintCommandBuffer } from "../paint";
-import type { PaintFill } from "../paint/paint-types";
+import type {
+  PaintFill,
+  PathContour,
+  PathMesh,
+  PathStrokeCap,
+  PathStrokeDash,
+  PathStrokeJoin,
+  PathStrokeMesh,
+} from "../paint/paint-types";
 
 export type RuntimeCompositionV2 = {
   width: number;
@@ -11,9 +19,8 @@ export type RuntimeCompositionV2 = {
 };
 
 export type RuntimeViewV2 = {
-  viewMatrix: Matrix4;
-  projectionMatrix: Matrix4;
-  viewProjectionMatrix: Matrix4;
+  /** The only view value Runtime V2 exposes to painters: world space to clip space. */
+  worldToClipMatrix: Matrix4;
 };
 
 export type RuntimeTimingV2 = {
@@ -35,6 +42,24 @@ export type RuntimeShapeV2 = {
   strokeOpacity?: number;
 };
 
+export type RuntimePathV2 = {
+  kind: "path";
+  width: number;
+  height: number;
+  contours: PathContour[];
+  mesh?: PathMesh;
+  strokeMesh?: PathStrokeMesh;
+  fillRule: "nonzero" | "evenodd";
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  strokeJoin?: PathStrokeJoin;
+  strokeCap?: PathStrokeCap;
+  strokeDash?: PathStrokeDash;
+};
+
 export type RuntimeNodeV2 = {
   id: string;
   parentId: string | null;
@@ -44,7 +69,7 @@ export type RuntimeNodeV2 = {
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
-  content: RuntimeShapeV2;
+  content: RuntimeShapeV2 | RuntimePathV2;
 };
 
 export type RuntimeProjectV2 = {

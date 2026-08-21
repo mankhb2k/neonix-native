@@ -85,6 +85,14 @@ describe("WebGPU preview backend", () => {
           frame: 0,
           time: 0,
           background: "#101820",
+          projection: {
+            worldToClipMatrix: [
+              2 / 320, 0, 0, 0,
+              0, -2 / 180, 0, 0,
+              0, 0, 1, 0,
+              -1, 1, 0, 1,
+            ],
+          },
         },
         {
           op: "setTransform",

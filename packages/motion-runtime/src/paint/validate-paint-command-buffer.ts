@@ -109,16 +109,12 @@ export function validatePaintCommandBuffer(
             message: `Invalid frame height: ${String(cmd.height)}`,
           });
         }
-        if (cmd.projection) {
-          for (const [name, matrix] of Object.entries(cmd.projection)) {
-            if (!matrix4Finite(matrix)) {
-              issues.push({
-                severity: "error",
-                code: "invalid_projection_matrix",
-                message: `Projection ${name} must contain exactly 16 finite values`,
-              });
-            }
-          }
+        if (!cmd.projection || !matrix4Finite(cmd.projection.worldToClipMatrix)) {
+          issues.push({
+            severity: "error",
+            code: "invalid_projection_matrix",
+            message: "Projection worldToClipMatrix must contain exactly 16 finite values",
+          });
         }
         break;
       }
@@ -296,6 +292,56 @@ export function validatePaintCommandBuffer(
             message: `Invalid mediaTime for "${cmd.key}"`,
             key: cmd.key,
           });
+        }
+        if (cmd.op === "drawPath" && cmd.mesh) {
+          const mesh = cmd.mesh;
+          const verticesOk =
+            mesh.vertices.length >= 6 &&
+            mesh.vertices.length % 2 === 0 &&
+            mesh.vertices.every(isFiniteNumber);
+          const indicesOk =
+            mesh.indices.length >= 3 &&
+            mesh.indices.length % 3 === 0 &&
+            mesh.indices.every(
+              (value) =>
+                Number.isSafeInteger(value) &&
+                value >= 0 &&
+                value < mesh.vertices.length / 2,
+            );
+          const boundsOk = Object.values(mesh.bounds).every(isFiniteNumber);
+          if (!verticesOk || !indicesOk || !boundsOk) {
+            issues.push({
+              severity: "error",
+              code: "invalid_path_mesh",
+              message: `Invalid Runtime-resolved path mesh for "${cmd.key}"`,
+              key: cmd.key,
+            });
+          }
+        }
+        if (cmd.op === "drawPath" && cmd.strokeMesh) {
+          const mesh = cmd.strokeMesh;
+          const verticesOk =
+            mesh.vertices.length >= 6 &&
+            mesh.vertices.length % 2 === 0 &&
+            mesh.vertices.every(isFiniteNumber);
+          const indicesOk =
+            mesh.indices.length >= 3 &&
+            mesh.indices.length % 3 === 0 &&
+            mesh.indices.every(
+              (value) =>
+                Number.isSafeInteger(value) &&
+                value >= 0 &&
+                value < mesh.vertices.length / 2,
+            );
+          const boundsOk = Object.values(mesh.bounds).every(isFiniteNumber);
+          if (!verticesOk || !indicesOk || !boundsOk) {
+            issues.push({
+              severity: "error",
+              code: "invalid_path_stroke_mesh",
+              message: `Invalid Runtime-resolved path stroke mesh for "${cmd.key}"`,
+              key: cmd.key,
+            });
+          }
         }
         break;
       }

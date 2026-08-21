@@ -9,6 +9,7 @@ export type {
   RuntimeCompositionV2,
   RuntimeFrameV2,
   RuntimeNodeV2,
+  RuntimePathV2,
   RuntimeProjectV2,
   RuntimeShapeV2,
   RuntimeTimingV2,

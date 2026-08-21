@@ -35,6 +35,22 @@ export type PathContour = {
   closed: boolean;
 };
 
+/**
+ * Local-plane triangles resolved by Runtime before GPU submission. Vertices are
+ * packed XY pairs, indices address those pairs, and bounds are local units.
+ */
+export type PathMesh = {
+  vertices: number[];
+  indices: number[];
+  bounds: { x: number; y: number; width: number; height: number };
+};
+
+/** Local-plane triangles for the basic closed-path stroke subtask. */
+export type PathStrokeMesh = PathMesh;
+export type PathStrokeJoin = "miter" | "bevel" | "round";
+export type PathStrokeCap = "butt" | "square" | "round";
+export type PathStrokeDash = { array: number[]; offset: number };
+
 export type RuntimeEffect =
   | { id: string; type: "blur"; radius: number; seed?: number }
   | {

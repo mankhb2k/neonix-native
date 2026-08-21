@@ -113,21 +113,21 @@ describe("deterministicTieBreak", () => {
 describe("numericThenId", () => {
   it("sorts by numeric first", () => {
     const items = [
-      { depth: 3, id: "a" },
-      { depth: 1, id: "b" },
-      { depth: 2, id: "c" },
+      { zIndex: 3, id: "a" },
+      { zIndex: 1, id: "b" },
+      { zIndex: 2, id: "c" },
     ];
-    items.sort((a, b) => numericThenId(a.depth, b.depth, a.id, b.id));
-    expect(items.map((i) => i.depth)).toEqual([1, 2, 3]);
+    items.sort((a, b) => numericThenId(a.zIndex, b.zIndex, a.id, b.id));
+    expect(items.map((i) => i.zIndex)).toEqual([1, 2, 3]);
   });
 
   it("tie-breaks by id when numeric equal", () => {
     const items = [
-      { depth: 1, id: "c" },
-      { depth: 1, id: "a" },
-      { depth: 1, id: "b" },
+      { zIndex: 1, id: "c" },
+      { zIndex: 1, id: "a" },
+      { zIndex: 1, id: "b" },
     ];
-    items.sort((a, b) => numericThenId(a.depth, b.depth, a.id, b.id));
+    items.sort((a, b) => numericThenId(a.zIndex, b.zIndex, a.id, b.id));
     expect(items.map((i) => i.id)).toEqual(["a", "b", "c"]);
   });
 });

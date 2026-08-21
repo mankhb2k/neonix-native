@@ -30,9 +30,7 @@ function normalizeRuntimeProjectV2(input: RuntimeProjectV2): RuntimeProjectV2 {
   const nodes = input.nodes;
   const normalizedView = {
     ...view,
-    viewMatrix: normalizeMatrix4(view.viewMatrix),
-    projectionMatrix: normalizeMatrix4(view.projectionMatrix),
-    viewProjectionMatrix: normalizeMatrix4(view.viewProjectionMatrix),
+    worldToClipMatrix: normalizeMatrix4(view.worldToClipMatrix),
   };
   const normalizedNodes = nodes.map((node) => ({
     ...node,
@@ -40,9 +38,7 @@ function normalizeRuntimeProjectV2(input: RuntimeProjectV2): RuntimeProjectV2 {
     worldMatrix: normalizeMatrix4(node.worldMatrix),
   }));
   const unchanged =
-    normalizedView.viewMatrix === view.viewMatrix &&
-    normalizedView.projectionMatrix === view.projectionMatrix &&
-    normalizedView.viewProjectionMatrix === view.viewProjectionMatrix &&
+    normalizedView.worldToClipMatrix === view.worldToClipMatrix &&
     normalizedNodes.every((node, index) =>
       node.localMatrix === nodes[index]!.localMatrix &&
       node.worldMatrix === nodes[index]!.worldMatrix,
@@ -153,14 +149,12 @@ export function validateRuntimeProjectV2(
       message: "Runtime V2 composition fps must be finite and positive",
     });
   }
-  for (const [name, matrix] of Object.entries(project.view)) {
-    if (!matrixIs4x4(matrix)) {
-      diagnostics.push({
-        severity: "error",
-        code: "runtime_v2_view_matrix",
-        message: `Runtime V2 view.${name} must be a finite 4x4 matrix`,
-      });
-    }
+  if (!matrixIs4x4(project.view.worldToClipMatrix)) {
+    diagnostics.push({
+      severity: "error",
+      code: "runtime_v2_view_matrix",
+      message: "Runtime V2 view.worldToClipMatrix must be a finite 4x4 matrix",
+    });
   }
 
   const ids = new Set<string>();
@@ -202,6 +196,62 @@ export function validateRuntimeProjectV2(
         message: "Runtime V2 node timing must use a non-negative start and positive duration",
         nodeId: node.id,
       });
+    }
+    if (node.content.kind === "path") {
+      if (node.content.fillRule !== "nonzero" && node.content.fillRule !== "evenodd") {
+        diagnostics.push({
+          severity: "error",
+          code: "runtime_v2_path_fill_rule",
+          message: "Runtime V2 path fillRule must be nonzero or evenodd",
+          nodeId: node.id,
+        });
+      }
+      if (node.content.fill !== undefined) {
+        const mesh = node.content.mesh;
+        const verticesAreValid = !!mesh && mesh.vertices.length >= 6 && mesh.vertices.length % 2 === 0 && mesh.vertices.every(Number.isFinite);
+        const indicesAreValid = !!mesh && mesh.indices.length >= 3 && mesh.indices.length % 3 === 0 && mesh.indices.every((index) => Number.isSafeInteger(index) && index >= 0 && index < mesh.vertices.length / 2);
+        if (!verticesAreValid || !indicesAreValid) {
+          diagnostics.push({
+            severity: "error",
+            code: "runtime_v2_path_mesh",
+            message: "Runtime V2 filled path must contain finite XY vertices and triangle indices",
+            nodeId: node.id,
+          });
+        }
+      }
+      if (node.content.stroke !== undefined) {
+        const strokeWidth = node.content.strokeWidth;
+        if (strokeWidth === undefined || !Number.isFinite(strokeWidth) || strokeWidth <= 0) {
+          diagnostics.push({
+            severity: "error",
+            code: "runtime_v2_path_stroke_width",
+            message: "Runtime V2 path strokeWidth must be finite and positive when stroke is present",
+            nodeId: node.id,
+          });
+        }
+        const strokeMesh = node.content.strokeMesh;
+        const strokeVerticesAreValid = !!strokeMesh && strokeMesh.vertices.length >= 6 && strokeMesh.vertices.length % 2 === 0 && strokeMesh.vertices.every(Number.isFinite);
+        const strokeIndicesAreValid = !!strokeMesh && strokeMesh.indices.length >= 3 && strokeMesh.indices.length % 3 === 0 && strokeMesh.indices.every((index) => Number.isSafeInteger(index) && index >= 0 && index < strokeMesh.vertices.length / 2);
+        if (!strokeVerticesAreValid || !strokeIndicesAreValid) {
+          diagnostics.push({
+            severity: "error",
+            code: "runtime_v2_path_stroke_mesh",
+            message: "Runtime V2 stroked path must contain finite stroke mesh vertices and triangle indices",
+            nodeId: node.id,
+          });
+        }
+      }
+      if (node.content.strokeJoin && !["miter", "bevel", "round"].includes(node.content.strokeJoin)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_path_stroke_join", message: "Runtime V2 path strokeJoin is invalid", nodeId: node.id });
+      }
+      if (node.content.strokeCap && !["butt", "square", "round"].includes(node.content.strokeCap)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_path_stroke_cap", message: "Runtime V2 path strokeCap is invalid", nodeId: node.id });
+      }
+      if (node.content.strokeDash) {
+        if (node.content.strokeDash.array.length === 0 || !node.content.strokeDash.array.every((value) => Number.isFinite(value) && value > 0) || !Number.isFinite(node.content.strokeDash.offset)) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_path_stroke_dash", message: "Runtime V2 path strokeDash is invalid", nodeId: node.id });
+        }
+      }
     }
     if (!Number.isFinite(node.opacity) || node.opacity < 0 || node.opacity > 1) {
       diagnostics.push({

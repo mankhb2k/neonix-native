@@ -3,7 +3,7 @@ import {
   cssColorToRgba,
   matrix4ForQuad,
   packMatrix4F32,
-  projectionMatrixForPaint,
+  worldToClipMatrixForPaint,
   gradientUniforms,
 } from "./math";
 import { mediaLayout } from "./media";
@@ -22,6 +22,7 @@ import type {
 } from "./types";
 
 const BUFFER_VERTEX = 0x20;
+const BUFFER_INDEX = 0x10;
 const BUFFER_UNIFORM = 0x40;
 const BUFFER_COPY_DST = 0x08;
 const TEXTURE_BINDING = 0x04;
@@ -127,6 +128,7 @@ function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUConte
 
 function createBackendObjects(device: WebGPUDeviceLike, format: string): {
   pipeline: WebGPURenderPipelineLike;
+  pathPipeline: WebGPURenderPipelineLike;
   layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
   vertexBuffer: ReturnType<WebGPUDeviceLike["createBuffer"]>;
   sampler: ReturnType<WebGPUDeviceLike["createSampler"]>;
@@ -139,7 +141,7 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string): {
       { binding: 2, visibility: 2, sampler: { type: "filtering" } },
     ],
   });
-  const pipeline = device.createRenderPipeline({
+  const pipelineOptions = {
     layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
     vertex: {
       module: shader,
@@ -157,13 +159,20 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string): {
         },
       }],
     },
-    primitive: { topology: "triangle-strip" },
     multisample: { count: MSAA_SAMPLE_COUNT },
+  };
+  const pipeline = device.createRenderPipeline({
+    ...pipelineOptions,
+    primitive: { topology: "triangle-strip" },
+  });
+  const pathPipeline = device.createRenderPipeline({
+    ...pipelineOptions,
+    primitive: { topology: "triangle-list" },
   });
   const vertexBuffer = device.createBuffer({ size: 64, usage: BUFFER_VERTEX | BUFFER_COPY_DST });
   device.queue.writeBuffer(vertexBuffer, 0, new Float32Array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]));
   const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
-  return { pipeline, layout, vertexBuffer, sampler };
+  return { pipeline, pathPipeline, layout, vertexBuffer, sampler };
 }
 
 function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array): void {
@@ -253,15 +262,17 @@ export function createWebGPUBackend(
     const pass = encoder.beginRenderPass({
       colorAttachments: [{ view: multisampleTarget, resolveTarget: target, clearValue: { r: background[0], g: background[1], b: background[2], a: background[3] }, loadOp: "clear", storeOp: "discard" }],
     });
-    pass.setPipeline(objects.pipeline);
-    pass.setVertexBuffer(0, objects.vertexBuffer);
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
-    let projection = projectionMatrixForPaint(undefined, frameWidth, frameHeight);
+    const firstCommand = buffer.commands[0];
+    if (!firstCommand || firstCommand.op !== "beginFrame") {
+      throw new Error("Preview renderer requires beginFrame as the first command");
+    }
+    let projection = worldToClipMatrixForPaint(firstCommand);
     let drawCalls = 0;
     let skippedCommands = 0;
     for (const command of buffer.commands) {
       if (command.op === "beginFrame") {
-        projection = projectionMatrixForPaint(command, command.width, command.height);
+        projection = worldToClipMatrixForPaint(command);
       } else if (command.op === "setTransform") {
         transform = command;
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
@@ -313,9 +324,65 @@ export function createWebGPUBackend(
         data.set(gradients.radius, 60);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
+        pass.setPipeline(objects.pipeline);
+        pass.setVertexBuffer(0, objects.vertexBuffer);
         pass.setBindGroup(0, bindGroup);
         pass.draw(4);
         drawCalls += 1;
+      } else if (command.op === "drawPath") {
+        if (!transform || !transform.visible || transform.alpha <= 0) {
+          skippedCommands += 1;
+          continue;
+        }
+        const meshes = [
+          command.fill && command.mesh
+            ? { mesh: command.mesh, color: cssColorToRgba(command.fill), opacity: command.fillOpacity ?? 1 }
+            : null,
+          command.stroke && command.strokeMesh
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1 }
+            : null,
+        ].filter((entry) => entry !== null).map((entry) => entry!);
+        if (meshes.length === 0) {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        for (const pathDraw of meshes) {
+          const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
+          for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
+            vertexData[index * 4] = pathDraw.mesh.vertices[index * 2]!;
+            vertexData[index * 4 + 1] = pathDraw.mesh.vertices[index * 2 + 1]!;
+          }
+          const vertexBuffer = device.createBuffer({ size: vertexData.byteLength, usage: BUFFER_VERTEX | BUFFER_COPY_DST });
+          const indexData = new Uint32Array(pathDraw.mesh.indices);
+          const indexBuffer = device.createBuffer({ size: indexData.byteLength, usage: BUFFER_INDEX | BUFFER_COPY_DST });
+          transientBuffers.add(vertexBuffer);
+          transientBuffers.add(indexBuffer);
+          device.queue.writeBuffer(vertexBuffer, 0, vertexData);
+          device.queue.writeBuffer(indexBuffer, 0, indexData);
+          const uniform = device.createBuffer({ size: 256, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+          transientBuffers.add(uniform);
+          const data = new Float32Array(64);
+          pathDraw.color[3] *= transform.alpha * pathDraw.opacity;
+          writeMatrix4(data, 0, projection);
+          writeMatrix4(data, 16, packMatrix4F32(transform.matrix4));
+          data.set(pathDraw.color, 32);
+          data.set([0, 0, 0, 0], 36);
+          data.set([0, 0, 0, 0], 40);
+          data.set([0, 0, 0, 0], 44);
+          data.set([0, 0, 0, 0], 48);
+          data.set([0, 0, 0, 0], 52);
+          data.set([0, 0, 0, 0], 56);
+          data.set([0, 0, 0, 0], 60);
+          device.queue.writeBuffer(uniform, 0, data);
+          const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
+          pass.setPipeline(objects.pathPipeline);
+          pass.setVertexBuffer(0, vertexBuffer);
+          pass.setIndexBuffer(indexBuffer, "uint32");
+          pass.setBindGroup(0, bindGroup);
+          pass.drawIndexed(indexData.length);
+          drawCalls += 1;
+        }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
         if (!transform || !transform.visible || transform.alpha <= 0 || (command.op === "drawVideo" && command.mediaVisible === false)) {
           skippedCommands += 1;
@@ -352,10 +419,12 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 60);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
+        pass.setPipeline(objects.pipeline);
+        pass.setVertexBuffer(0, objects.vertexBuffer);
         pass.setBindGroup(0, bindGroup);
         pass.draw(4);
         drawCalls += 1;
-      } else if (command.op === "drawText" || command.op === "drawPath" || command.op === "unsupported") {
+      } else if (command.op === "drawText" || command.op === "unsupported") {
         skippedCommands += 1;
         pushDiagnostic({ severity: command.op === "unsupported" ? "error" : "info", code: command.op === "unsupported" ? "preview_unsupported_command" : "preview_op_pending", message: command.op === "unsupported" ? command.message : `${command.op} is pending in the native preview backend`, key: command.key, layerId: command.layerId });
       } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {

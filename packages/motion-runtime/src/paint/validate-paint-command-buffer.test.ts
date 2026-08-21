@@ -21,6 +21,7 @@ function bufferWithTransform(transform: Record<string, unknown>): PaintCommandBu
         graphId: "matrix4-boundary",
         frame: 0,
         time: 0,
+        projection: { worldToClipMatrix: identity },
       },
       transform as never,
       {
@@ -75,5 +76,40 @@ describe("Paint Matrix4 boundary", () => {
       expect(result.ok).toBe(false);
       expect(result.issues.some((issue) => issue.code === "invalid_transform_matrix")).toBe(true);
     }
+  });
+
+  it("rejects an invalid pre-tessellated path mesh", () => {
+    const result = validatePaintCommandBuffer({
+      version: 1,
+      diagnostics: [],
+      commands: [
+        {
+          op: "beginFrame",
+          width: 320,
+          height: 180,
+          graphId: "path-mesh",
+          frame: 0,
+          time: 0,
+          projection: { worldToClipMatrix: identity },
+        },
+        { op: "setTransform", key: "path", matrix4: identity, alpha: 1, visible: true, zIndex: 0 },
+        {
+          op: "drawPath",
+          key: "path",
+          layerId: "path",
+          contours: [],
+          fillRule: "nonzero",
+          fill: "#00aa88",
+          mesh: {
+            vertices: [0, 0, 10],
+            indices: [0, 1, 2],
+            bounds: { x: 0, y: 0, width: 10, height: 10 },
+          },
+        },
+        { op: "endFrame" },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.code === "invalid_path_mesh")).toBe(true);
   });
 });

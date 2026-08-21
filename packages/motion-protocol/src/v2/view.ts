@@ -9,23 +9,30 @@ const Vec3Schema = z
   })
   .strict();
 
-const ProjectionSchema = z
-  .union([
-  z.object({ kind: z.literal("orthographic") }).strict(),
-  z
-    .object({
-      kind: z.literal("perspective"),
-      fov: V2FiniteNumberSchema.min(0.001).max(179.999),
-      near: V2PositiveNumberSchema,
-      far: V2PositiveNumberSchema,
-    })
-    .strict(),
+export const V2ProjectionSchema = z
+  .discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("orthographic"),
+        zoom: V2PositiveNumberSchema,
+        near: V2PositiveNumberSchema,
+        far: V2PositiveNumberSchema,
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("perspective"),
+        fov: V2FiniteNumberSchema.min(0.001).max(179.999),
+        near: V2PositiveNumberSchema,
+        far: V2PositiveNumberSchema,
+      })
+      .strict(),
   ])
   .superRefine((value, ctx) => {
-    if (value.kind === "perspective" && value.far <= value.near) {
+    if (value.far <= value.near) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Perspective far must be greater than near",
+        message: `${value.kind} far must be greater than near`,
         path: ["far"],
       });
     }
@@ -33,7 +40,7 @@ const ProjectionSchema = z
 
 export const V2ViewSchema = z
   .object({
-    projection: ProjectionSchema,
+    projection: V2ProjectionSchema,
     transform: z
       .object({
         translate: Vec3Schema,
@@ -44,3 +51,4 @@ export const V2ViewSchema = z
   .strict();
 
 export type V2View = z.infer<typeof V2ViewSchema>;
+export type V2Projection = z.infer<typeof V2ProjectionSchema>;

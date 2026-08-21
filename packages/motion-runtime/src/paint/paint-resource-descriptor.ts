@@ -77,10 +77,14 @@ export type PaintPathResource = {
   fillRule: "nonzero" | "evenodd";
   fill?: string;
   fillPaint?: PaintFill;
+  strokeMesh?: import("./paint-types").PathStrokeMesh;
   stroke?: string;
   strokeWidth?: number;
   fillOpacity?: number;
   strokeOpacity?: number;
+  strokeJoin?: "miter" | "bevel" | "round";
+  strokeCap?: "butt" | "square" | "round";
+  strokeDash?: { array: number[]; offset: number };
 };
 
 export type PaintResourceDescriptor =
@@ -165,10 +169,14 @@ export function extractPaintResource(
         fillRule: cmd.fillRule,
         fill: cmd.fill,
         fillPaint: cmd.fillPaint,
+        strokeMesh: cmd.strokeMesh,
         stroke: cmd.stroke,
         strokeWidth: cmd.strokeWidth,
         fillOpacity: cmd.fillOpacity,
         strokeOpacity: cmd.strokeOpacity,
+        strokeJoin: cmd.strokeJoin,
+        strokeCap: cmd.strokeCap,
+        strokeDash: cmd.strokeDash,
       };
     default:
       return null;

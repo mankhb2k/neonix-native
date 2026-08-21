@@ -1,6 +1,13 @@
 /** V2-only runtime public API. */
 export * from "./matrix4";
 export {
+  flattenPathContour,
+  interpolatePathContours,
+  tessellateClosedPath,
+  tessellatePathStroke,
+  type PathStrokeOptions,
+} from "./path-tessellation";
+export {
   frameIndexAtTime,
   frameTimestamp,
   quantizeTimeToFrame,

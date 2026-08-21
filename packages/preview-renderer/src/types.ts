@@ -156,8 +156,10 @@ export type WebGPUCommandEncoderLike = {
 export type WebGPURenderPassEncoderLike = {
   setPipeline(pipeline: WebGPURenderPipelineLike): void;
   setVertexBuffer(slot: number, buffer: WebGPUBufferLike): void;
+  setIndexBuffer(buffer: WebGPUBufferLike, indexFormat: "uint16" | "uint32"): void;
   setBindGroup(index: number, bindGroup: WebGPUBindGroupLike): void;
   draw(vertexCount: number, instanceCount?: number): void;
+  drawIndexed(indexCount: number, instanceCount?: number): void;
   end(): void;
 };
 

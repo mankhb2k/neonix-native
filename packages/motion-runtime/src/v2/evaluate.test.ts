@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   identityMatrix4,
   multiplyMatrix4,
-  orthographicMatrix2D,
-  perspectiveProjectionMatrix2D,
+  orthographicProjectionMatrix,
+  perspectiveProjectionMatrix,
   translationMatrix3D,
 } from "../matrix4";
 import { evaluateRuntimeProjectV2 } from "./evaluate";
@@ -21,9 +21,7 @@ const project: RuntimeProjectV2 = {
     graphId: "runtime-v2-shapes",
   },
   view: {
-    viewMatrix: identityMatrix4(),
-    projectionMatrix: orthographicMatrix2D(320, 180),
-    viewProjectionMatrix: orthographicMatrix2D(320, 180),
+    worldToClipMatrix: orthographicProjectionMatrix(320, 180, 1, 1, 4000),
   },
   nodes: [
     {
@@ -145,15 +143,58 @@ describe("Runtime IR V2", () => {
     );
   });
 
+  it("emits a path's Runtime-resolved mesh without a second transform contract", () => {
+    const frame = evaluateRuntimeProjectV2(
+      {
+        ...project,
+        nodes: [
+          {
+            ...project.nodes[0]!,
+            id: "triangle",
+            content: {
+              kind: "path",
+              width: 220,
+              height: 180,
+              fill: "#00aa88",
+              fillRule: "nonzero",
+              contours: [{
+                id: "triangle-contour",
+                start: { x: 20, y: 10 },
+                segments: [
+                  { kind: "line", to: { x: 180, y: 40 } },
+                  { kind: "line", to: { x: 70, y: 150 } },
+                  { kind: "line", to: { x: 20, y: 10 } },
+                ],
+                closed: true,
+              }],
+              mesh: {
+                vertices: [20, 10, 180, 40, 70, 150],
+                indices: [0, 1, 2],
+                bounds: { x: 20, y: 10, width: 160, height: 140 },
+              },
+            },
+          },
+        ],
+      },
+      0,
+    );
+
+    expect(frame.commands).toContainEqual(
+      expect.objectContaining({
+        op: "drawPath",
+        key: "triangle",
+        mesh: expect.objectContaining({ indices: [0, 1, 2] }),
+      }),
+    );
+  });
+
   it("preserves the resolved Matrix4 and perspective projection contract", () => {
-    const projection = perspectiveProjectionMatrix2D(320, 180, 60, 1, 4000);
+    const projection = perspectiveProjectionMatrix(320, 180, 60, 1, 4000);
     const frame = evaluateRuntimeProjectV2(
       {
         ...project,
         view: {
-          viewMatrix: identityMatrix4(),
-          projectionMatrix: projection,
-          viewProjectionMatrix: multiplyMatrix4(projection, identityMatrix4()),
+          worldToClipMatrix: projection,
         },
       },
       0,
@@ -162,7 +203,7 @@ describe("Runtime IR V2", () => {
       expect.objectContaining({
         op: "beginFrame",
         projection: expect.objectContaining({
-          projectionMatrix: Array.from(projection),
+          worldToClipMatrix: Array.from(projection),
         }),
       }),
     );
@@ -176,14 +217,12 @@ describe("Runtime IR V2", () => {
   });
 
   it("reports a layer that is entirely behind the camera", () => {
-    const projection = perspectiveProjectionMatrix2D(320, 180, 60, 1, 4000);
+    const projection = perspectiveProjectionMatrix(320, 180, 60, 1, 4000);
     const frame = evaluateRuntimeProjectV2(
       {
         ...project,
         view: {
-          viewMatrix: identityMatrix4(),
-          projectionMatrix: projection,
-          viewProjectionMatrix: multiplyMatrix4(projection, identityMatrix4()),
+          worldToClipMatrix: projection,
         },
         nodes: [
           {

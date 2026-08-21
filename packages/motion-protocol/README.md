@@ -33,7 +33,7 @@ MotionProtocolV2
 ├── composition
 │   ├── width / height / fps
 │   ├── background / colorSpace
-│   └── optional view + projection
+│   └── required view + projection
 └── layers[]
     └── certified atomic layer
         ├── frame

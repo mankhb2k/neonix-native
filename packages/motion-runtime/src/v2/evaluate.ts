@@ -62,9 +62,7 @@ export function evaluateRuntimeProjectV2(
       frame,
       time,
       projection: {
-        viewMatrix: matrix4ToArray(project.view.viewMatrix),
-        projectionMatrix: matrix4ToArray(project.view.projectionMatrix),
-        viewProjectionMatrix: matrix4ToArray(project.view.viewProjectionMatrix),
+        worldToClipMatrix: matrix4ToArray(project.view.worldToClipMatrix),
       },
     },
   ];
@@ -79,14 +77,26 @@ export function evaluateRuntimeProjectV2(
     if (!active) continue;
 
     const nodeViewProjection = multiplyMatrix4(
-      project.view.viewProjectionMatrix,
+      project.view.worldToClipMatrix,
       node.worldMatrix,
     );
+    const localBounds = node.content.kind === "path"
+      ? (() => {
+          const bounds = [node.content.mesh?.bounds, node.content.strokeMesh?.bounds].filter(
+            (value): value is NonNullable<typeof value> => value !== undefined,
+          );
+          const left = Math.min(...bounds.map((value) => value.x));
+          const top = Math.min(...bounds.map((value) => value.y));
+          const right = Math.max(...bounds.map((value) => value.x + value.width));
+          const bottom = Math.max(...bounds.map((value) => value.y + value.height));
+          return { x: left, y: top, width: right - left, height: bottom - top };
+        })()
+      : { x: 0, y: 0, width: node.content.width, height: node.content.height };
     const corners: Point3D[] = [
-      { x: 0, y: 0, z: 0 },
-      { x: node.content.width, y: 0, z: 0 },
-      { x: node.content.width, y: node.content.height, z: 0 },
-      { x: 0, y: node.content.height, z: 0 },
+      { x: localBounds.x, y: localBounds.y, z: 0 },
+      { x: localBounds.x + localBounds.width, y: localBounds.y, z: 0 },
+      { x: localBounds.x + localBounds.width, y: localBounds.y + localBounds.height, z: 0 },
+      { x: localBounds.x, y: localBounds.y + localBounds.height, z: 0 },
     ];
     const projectedCorners = corners.map((corner) =>
       projectPoint3D(nodeViewProjection, corner),
@@ -114,29 +124,55 @@ export function evaluateRuntimeProjectV2(
       visible: true,
       zIndex: node.zIndex,
     });
-    commands.push({
-      op: "drawShape",
-      key: node.id,
-      layerId: node.id,
-      shape: node.content.shape,
-      fill: node.content.fill,
-      width: node.content.width,
-      height: node.content.height,
-      ...(node.content.fillPaint ? { fillPaint: node.content.fillPaint } : {}),
-      ...(node.content.fillOpacity != null
-        ? { fillOpacity: node.content.fillOpacity }
-        : {}),
-      ...(node.content.cornerRadius != null
-        ? { cornerRadius: node.content.cornerRadius }
-        : {}),
-      ...(node.content.stroke ? { stroke: node.content.stroke } : {}),
-      ...(node.content.strokeWidth != null
-        ? { strokeWidth: node.content.strokeWidth }
-        : {}),
-      ...(node.content.strokeOpacity != null
-        ? { strokeOpacity: node.content.strokeOpacity }
-        : {}),
-    });
+    if (node.content.kind === "path") {
+      commands.push({
+        op: "drawPath",
+        key: node.id,
+        layerId: node.id,
+        contours: node.content.contours,
+        mesh: node.content.mesh,
+        ...(node.content.strokeMesh ? { strokeMesh: node.content.strokeMesh } : {}),
+        fillRule: node.content.fillRule,
+        ...(node.content.fill ? { fill: node.content.fill } : {}),
+        ...(node.content.fillOpacity != null
+          ? { fillOpacity: node.content.fillOpacity }
+          : {}),
+        ...(node.content.stroke ? { stroke: node.content.stroke } : {}),
+        ...(node.content.strokeWidth != null
+          ? { strokeWidth: node.content.strokeWidth }
+          : {}),
+        ...(node.content.strokeOpacity != null
+          ? { strokeOpacity: node.content.strokeOpacity }
+          : {}),
+        ...(node.content.strokeJoin ? { strokeJoin: node.content.strokeJoin } : {}),
+        ...(node.content.strokeCap ? { strokeCap: node.content.strokeCap } : {}),
+        ...(node.content.strokeDash ? { strokeDash: node.content.strokeDash } : {}),
+      });
+    } else {
+      commands.push({
+        op: "drawShape",
+        key: node.id,
+        layerId: node.id,
+        shape: node.content.shape,
+        fill: node.content.fill,
+        width: node.content.width,
+        height: node.content.height,
+        ...(node.content.fillPaint ? { fillPaint: node.content.fillPaint } : {}),
+        ...(node.content.fillOpacity != null
+          ? { fillOpacity: node.content.fillOpacity }
+          : {}),
+        ...(node.content.cornerRadius != null
+          ? { cornerRadius: node.content.cornerRadius }
+          : {}),
+        ...(node.content.stroke ? { stroke: node.content.stroke } : {}),
+        ...(node.content.strokeWidth != null
+          ? { strokeWidth: node.content.strokeWidth }
+          : {}),
+        ...(node.content.strokeOpacity != null
+          ? { strokeOpacity: node.content.strokeOpacity }
+          : {}),
+      });
+    }
   }
 
   commands.push({ op: "endFrame" });

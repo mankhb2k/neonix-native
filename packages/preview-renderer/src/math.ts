@@ -1,8 +1,4 @@
-import type {
-  Matrix4,
-  PaintCommand,
-  PaintFill,
-} from "@motionvideo/motion-runtime";
+import type { Matrix4, PaintCommand, PaintFill } from "@motionvideo/motion-runtime";
 
 export type GradientUniforms = {
   start: [number, number, number, number];
@@ -19,16 +15,14 @@ export function packMatrix4F32(matrix: readonly number[]): Float32Array {
   return new Float32Array(matrix);
 }
 
-/** Select the canonical composition projection shared by both preview backends. */
-export function projectionMatrixForPaint(
-  beginFrame: Extract<PaintCommand, { op: "beginFrame" }> | undefined,
-  width: number,
-  height: number,
+/** Read the one canonical Runtime V2 world-to-clip Matrix4 for a frame. */
+export function worldToClipMatrixForPaint(
+  beginFrame: Extract<PaintCommand, { op: "beginFrame" }>,
 ): Float32Array {
-  const values = beginFrame?.projection?.viewProjectionMatrix ?? beginFrame?.projection?.projectionMatrix;
-  return values?.length === 16
-    ? packMatrix4F32(values)
-    : orthographicProjection(beginFrame?.width ?? width, beginFrame?.height ?? height);
+  if (!beginFrame.projection) {
+    throw new Error("Runtime V2 beginFrame requires projection.worldToClipMatrix");
+  }
+  return packMatrix4F32(beginFrame.projection.worldToClipMatrix);
 }
 
 export function gradientUniforms(
@@ -89,19 +83,10 @@ export function matrix4ForQuad(
   return output;
 }
 
-export function orthographicProjection(width: number, height: number): Float32Array {
-  const w = Math.max(width, 1);
-  const h = Math.max(height, 1);
-  return new Float32Array([
-    2 / w, 0, 0, 0,
-    0, -2 / h, 0, 0,
-    0, 0, 1, 0,
-    -1, 1, 0, 1,
-  ]);
-}
-
-/** Convert canonical 0..1 depth clip coordinates to WebGL2 -1..1 clip space. */
-export function webglDepthProjection(matrix: Float32Array | number[]): Float32Array {
+/** Convert canonical clip Z [0, 1] to WebGL2 clip Z [-1, 1]. */
+export function webglClipSpaceProjection(
+  matrix: Float32Array | number[],
+): Float32Array {
   const output = new Float32Array(matrix);
   for (let column = 0; column < 4; column += 1) {
     const row = column * 4;

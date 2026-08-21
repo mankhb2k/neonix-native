@@ -1,7 +1,8 @@
 import { MATRIX4_PARITY_CASES } from "@motionvideo/motion-compiler/testing";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
-type RectangleLayer = MotionProtocolV2["layers"][number];
+type V2Layer = MotionProtocolV2["layers"][number];
+type RectangleLayer = Extract<V2Layer, { type: "shape" }>;
 type ShapeOptions = {
   id: string;
   zIndex: number;
@@ -59,10 +60,18 @@ function ellipse(options: ShapeOptions): RectangleLayer {
   return shapeLayer(options, "ellipse");
 }
 
+const ORTHOGRAPHIC_VIEW: MotionProtocolV2["composition"]["view"] = {
+  projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
+  transform: {
+    translate: { x: 0, y: 0, z: 0 },
+    rotate: { x: 0, y: 0, z: 0 },
+  },
+};
+
 function project(
   id: string,
-  layers: RectangleLayer[],
-  view?: MotionProtocolV2["composition"]["view"],
+  layers: V2Layer[],
+  view: MotionProtocolV2["composition"]["view"] = ORTHOGRAPHIC_VIEW,
 ): MotionProtocolV2 {
   return {
     format: "motion-protocol",
@@ -75,7 +84,7 @@ function project(
       background: "#101820",
       colorSpace: "srgb",
       audioSampleRate: 48000,
-      ...(view ? { view } : {}),
+      view,
     },
     layers,
   };
@@ -94,6 +103,384 @@ const ELLIPSE_PROJECT = project("preview-ellipse-v2", [
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
   }),
 ]);
+
+const PATH_PENTAGON_PERSPECTIVE_PROJECT = project(
+  "preview-path-pentagon-perspective-v2",
+  [
+    {
+      id: "pentagon",
+      type: "path",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 320, height: 240 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 800, y: 400, z: 180 },
+        rotate: { x: 0, y: -24, z: 0 },
+        anchor: { x: 160, y: 120, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: {
+        contours: [{
+          id: "pentagon-contour",
+          start: { x: 28, y: 42 },
+          segments: [
+            { kind: "line", to: { x: 126, y: 18 } },
+            { kind: "line", to: { x: 292, y: 72 } },
+            { kind: "line", to: { x: 246, y: 214 } },
+            { kind: "line", to: { x: 72, y: 232 } },
+            { kind: "line", to: { x: 28, y: 42 } },
+          ],
+          closed: true,
+        }],
+        fillRule: "nonzero",
+      },
+      style: { fill: "#00aa88" },
+    },
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
+const PATH_STROKE_PROJECT: MotionProtocolV2 = {
+  ...PATH_PENTAGON_PERSPECTIVE_PROJECT,
+  id: "preview-path-stroke-perspective-v2",
+  layers: PATH_PENTAGON_PERSPECTIVE_PROJECT.layers.map((layer) => {
+    if (layer.type !== "path") return layer;
+    return {
+      ...layer,
+      id: "pentagon-stroke",
+      style: {
+        ...layer.style,
+        stroke: "#ff3366",
+        strokeWidth: 18,
+        strokeOpacity: 0.9,
+        strokeJoin: "round",
+        strokeDash: { array: [72, 28], offset: 0 },
+      },
+    };
+  }),
+};
+
+const PATH_OPEN_STROKE_PROJECT = project(
+  "preview-path-open-stroke-v2",
+  [
+    {
+      id: "open-stroke",
+      type: "path",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1120, height: 320 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 400, y: 360, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: {
+        contours: [{
+          id: "open-line",
+          start: { x: 60, y: 160 },
+          segments: [{ kind: "line", to: { x: 1060, y: 160 } }],
+          closed: false,
+        }],
+        fillRule: "nonzero",
+      },
+      style: {
+        stroke: "#ff3366",
+        strokeWidth: 34,
+        strokeCap: "round",
+        strokeDash: { array: [110, 44], offset: 0 },
+      },
+    },
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
+const PATH_MORPH_PROJECT = project(
+  "preview-path-morph-v2",
+  [
+    {
+      id: "morph-path",
+      type: "path",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 420, height: 320 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 760, y: 360, z: 0 },
+        rotate: { x: 0, y: -12, z: 0 },
+        anchor: { x: 210, y: 160, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: {
+        contours: [{
+          id: "morph-contour",
+          start: { x: 40, y: 40 },
+          segments: [
+            { kind: "line", to: { x: 380, y: 40 } },
+            { kind: "line", to: { x: 380, y: 280 } },
+            { kind: "line", to: { x: 40, y: 280 } },
+            { kind: "line", to: { x: 40, y: 40 } },
+          ],
+          closed: true,
+        }],
+        fillRule: "nonzero",
+        morph: {
+          progress: 0.5,
+          targetContours: [{
+            id: "morph-contour",
+            start: { x: 210, y: 20 },
+            segments: [
+              { kind: "line", to: { x: 400, y: 160 } },
+              { kind: "line", to: { x: 210, y: 300 } },
+              { kind: "line", to: { x: 20, y: 160 } },
+              { kind: "line", to: { x: 210, y: 20 } },
+            ],
+            closed: true,
+          }],
+        },
+      },
+      style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 10 },
+    },
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
+const GROUP_PARENT_TRANSFORM_PROJECT = project(
+  "preview-group-parent-transform-v2",
+  [
+    {
+      id: "group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1000, height: 700 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 420, y: 220, z: 240 },
+        rotate: { x: 12, y: -18, z: 0 },
+        anchor: { x: 500, y: 350, z: 0 },
+      },
+      opacity: 70,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "group-back",
+      type: "shape",
+      parentLayerId: "group",
+      zIndex: 1,
+      frame: { width: 620, height: 420 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 140, y: 140, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#00aa88" },
+    },
+    {
+      id: "group-front",
+      type: "shape",
+      parentLayerId: "group",
+      zIndex: 2,
+      frame: { width: 400, height: 280 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 320, y: 260, z: 120 },
+        rotate: { x: 0, y: 0, z: 12 },
+        anchor: { x: 200, y: 140, z: 0 },
+      },
+      opacity: 80,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#ff3366" },
+    },
+  ],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
+const PATH_DONUT_OUTER = {
+  id: "donut-outer",
+  start: { x: 0, y: 0 },
+  segments: [
+    { kind: "line" as const, to: { x: 600, y: 0 } },
+    { kind: "line" as const, to: { x: 600, y: 400 } },
+    { kind: "line" as const, to: { x: 0, y: 400 } },
+    { kind: "line" as const, to: { x: 0, y: 0 } },
+  ],
+  closed: true as const,
+};
+
+const PATH_DONUT_INNER_NONZERO = {
+  id: "donut-inner-nonzero",
+  start: { x: 170, y: 110 },
+  segments: [
+    { kind: "line" as const, to: { x: 170, y: 290 } },
+    { kind: "line" as const, to: { x: 430, y: 290 } },
+    { kind: "line" as const, to: { x: 430, y: 110 } },
+    { kind: "line" as const, to: { x: 170, y: 110 } },
+  ],
+  closed: true as const,
+};
+
+const PATH_DONUT_INNER_EVENODD = {
+  id: "donut-inner-evenodd",
+  start: { x: 170, y: 110 },
+  segments: [
+    { kind: "line" as const, to: { x: 430, y: 110 } },
+    { kind: "line" as const, to: { x: 430, y: 290 } },
+    { kind: "line" as const, to: { x: 170, y: 290 } },
+    { kind: "line" as const, to: { x: 170, y: 110 } },
+  ],
+  closed: true as const,
+};
+
+function pathDonutProject(
+  id: string,
+  fillRule: "nonzero" | "evenodd",
+  inner: typeof PATH_DONUT_INNER_NONZERO,
+): MotionProtocolV2 {
+  return project(
+    id,
+    [{
+      id: `donut-${fillRule}`,
+      type: "path",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 600, height: 400 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 650, y: 300, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: {
+        contours: [PATH_DONUT_OUTER, inner],
+        fillRule,
+      },
+      style: { fill: "#00aa88" },
+    }],
+    {
+      projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        rotate: { x: 0, y: 0, z: 0 },
+      },
+    },
+  );
+}
+
+const PATH_NONZERO_DONUT_PROJECT = pathDonutProject(
+  "preview-path-nonzero-donut-v2",
+  "nonzero",
+  PATH_DONUT_INNER_NONZERO,
+);
+
+const PATH_EVENODD_DONUT_PROJECT = pathDonutProject(
+  "preview-path-evenodd-donut-v2",
+  "evenodd",
+  PATH_DONUT_INNER_EVENODD,
+);
+
+const PATH_FIVE_POINT_STAR = {
+  id: "five-point-star",
+  start: { x: 300, y: 20 },
+  segments: [
+    { kind: "line" as const, to: { x: 555, y: 320 } },
+    { kind: "line" as const, to: { x: 40, y: 130 } },
+    { kind: "line" as const, to: { x: 560, y: 130 } },
+    { kind: "line" as const, to: { x: 45, y: 320 } },
+    { kind: "line" as const, to: { x: 300, y: 20 } },
+  ],
+  closed: true as const,
+};
+
+const PATH_SIX_POINT_POLYGON = {
+  id: "six-point-polygon",
+  start: { x: 300, y: 20 },
+  segments: [
+    { kind: "line" as const, to: { x: 540, y: 140 } },
+    { kind: "line" as const, to: { x: 470, y: 340 } },
+    { kind: "line" as const, to: { x: 300, y: 390 } },
+    { kind: "line" as const, to: { x: 90, y: 300 } },
+    { kind: "line" as const, to: { x: 50, y: 110 } },
+    { kind: "line" as const, to: { x: 300, y: 20 } },
+  ],
+  closed: true as const,
+};
+
+function pathStarProject(
+  id: string,
+  fillRule: "nonzero" | "evenodd",
+  contour = PATH_FIVE_POINT_STAR,
+): MotionProtocolV2 {
+  return project(
+    id,
+    [{
+      id: `star-${fillRule}`,
+      type: "path",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 600, height: 400 },
+      transform: {
+        ...IDENTITY_TRANSFORM,
+        translate: { x: 650, y: 300, z: 0 },
+      },
+      opacity: 100,
+      timing: { start: 0, duration: 3 },
+      payload: {
+        contours: [contour],
+        fillRule,
+      },
+      style: { fill: "#00aa88" },
+    }],
+    {
+      projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        rotate: { x: 0, y: 0, z: 0 },
+      },
+    },
+  );
+}
+
+const PATH_NONZERO_STAR_PROJECT = pathStarProject(
+  "preview-path-nonzero-star-v2",
+  "nonzero",
+);
+
+const PATH_EVENODD_STAR_PROJECT = pathStarProject(
+  "preview-path-evenodd-star-v2",
+  "evenodd",
+  PATH_SIX_POINT_POLYGON,
+);
 
 const RECTANGLE_STROKE_PROJECT = project("preview-rectangle-stroke-v2", [
   rectangle({
@@ -386,6 +773,62 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 4 / Certified atoms",
     hint: "Parametric ellipse with antialiased coverage inside its frame.",
     project: ELLIPSE_PROJECT,
+  },
+  {
+    id: "path.closed-fill.perspective",
+    label: "Path / five-point fill",
+    group: "Task 6 / Path embedded in 3D",
+    hint: "Five arbitrary local-plane points are closed, tessellated, and rotated through the shared Matrix4 perspective path.",
+    project: PATH_PENTAGON_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "path.fill-rule.nonzero",
+    label: "Path / nonzero five-point star",
+    group: "Task 6 / Path fill rules",
+    hint: "A self-intersecting five-point path fills its center because the winding count is nonzero.",
+    project: PATH_NONZERO_STAR_PROJECT,
+  },
+  {
+    id: "path.fill-rule.evenodd",
+    label: "Path / evenodd six-point polygon",
+    group: "Task 6 / Path fill rules",
+    hint: "A six-point local path demonstrates a second contour geometry under even-odd fill semantics.",
+    project: PATH_EVENODD_STAR_PROJECT,
+  },
+  {
+    id: "path.multiple-contours.donut",
+    label: "Path / multiple contours donut",
+    group: "Task 6 / Multiple contours",
+    hint: "Two nested contours form a hole before the path is transformed by the shared Matrix4 pipeline.",
+    project: PATH_NONZERO_DONUT_PROJECT,
+  },
+  {
+    id: "path.paint.stroke",
+    label: "Path / stroke",
+    group: "Task 6 / Path stroke",
+    hint: "A Runtime-resolved local-plane stroke follows the five-point path through the shared Matrix4 perspective pipeline.",
+    project: PATH_STROKE_PROJECT,
+  },
+  {
+    id: "path.paint.stroke-cap-dash",
+    label: "Path / cap and dash",
+    group: "Task 6 / Path stroke",
+    hint: "An open stroke uses round caps and a deterministic dash pattern on the local plane.",
+    project: PATH_OPEN_STROKE_PROJECT,
+  },
+  {
+    id: "path.morph",
+    label: "Path / morph",
+    group: "Task 6 / Path morph",
+    hint: "Matching contour topology is interpolated at progress 0.5 before the shared Matrix4 tessellation path.",
+    project: PATH_MORPH_PROJECT,
+  },
+  {
+    id: "group.parent-transform",
+    label: "Group / parent transform",
+    group: "Task 7 / Group and Parent Transform",
+    hint: "A non-rendering Group inherits Matrix4 translation, X/Y rotation, opacity, timing, and child ordering into two rectangle leaves.",
+    project: GROUP_PARENT_TRANSFORM_PROJECT,
   },
   {
     id: "rectangle.paint.stroke",
@@ -768,7 +1211,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 5.95 / Matrix4 parity",
     hint:
       item.id === "matrix4.camera-plane"
-        ? "A point behind the perspective camera must stay clipped instead of appearing at the origin."
+        ? "The behind-camera layer stays clipped while a valid reference and origin sentinel make the result visible."
         : "Shared Matrix4 fixture used by Preview and Remotion parity tests.",
     project: item.project,
   })),

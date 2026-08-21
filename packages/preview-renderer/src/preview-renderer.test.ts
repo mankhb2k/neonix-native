@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { orthographicProjectionMatrix } from "@motionvideo/motion-runtime";
 import {
   cssColorToRgba,
   matrix4ForQuad,
-  orthographicProjection,
   packMatrix4F32,
-  projectionMatrixForPaint,
-  webglDepthProjection,
+  worldToClipMatrixForPaint,
+  webglClipSpaceProjection,
 } from "./math";
 import { mediaLayout } from "./media";
 
@@ -16,8 +16,9 @@ describe("preview-renderer primitives", () => {
     expect(() => packMatrix4F32([...new Array(15).fill(1), Number.NaN])).toThrow(/finite/);
   });
 
-  it("selects one projection for both backend paths", () => {
-    const projection = projectionMatrixForPaint(
+  it("reads one world-to-clip matrix for both backend paths", () => {
+    const worldToClipMatrix = orthographicProjectionMatrix(320, 180, 1, 1, 4000);
+    const projection = worldToClipMatrixForPaint(
       {
         op: "beginFrame",
         width: 320,
@@ -26,13 +27,13 @@ describe("preview-renderer primitives", () => {
         frame: 0,
         time: 0,
         projection: {
-          projectionMatrix: Array.from(orthographicProjection(320, 180)),
+          worldToClipMatrix: Array.from(worldToClipMatrix),
         },
       },
-      320,
-      180,
     );
-    expect(Array.from(projection)).toEqual(Array.from(orthographicProjection(320, 180)));
+    expect(Array.from(projection)).toEqual(
+      Array.from(new Float32Array(worldToClipMatrix)),
+    );
   });
 
   it("parses the colors used by paint commands", () => {
@@ -49,20 +50,20 @@ describe("preview-renderer primitives", () => {
       96,
       64,
     );
-    expect(Array.from(orthographicProjection(320, 180))).toHaveLength(16);
+    expect(Array.from(orthographicProjectionMatrix(320, 180, 1, 1, 4000))).toHaveLength(16);
     expect(model[0]).toBe(96);
     expect(model[5]).toBe(64);
     expect(model[12]).toBe(7);
     expect(model[13]).toBe(11);
   });
 
-  it("adapts only canonical depth for WebGL2", () => {
-    const canonical = orthographicProjection(320, 180);
-    const adapted = webglDepthProjection(canonical);
+  it("adapts canonical clip Z for WebGL2", () => {
+    const canonical = new Float32Array(orthographicProjectionMatrix(320, 180, 1, 1, 4000));
+    const adapted = webglClipSpaceProjection(canonical);
     expect(adapted[0]).toBe(canonical[0]);
     expect(adapted[5]).toBe(canonical[5]);
-    expect(adapted[10]).toBe(2 * canonical[10] - canonical[11]);
-    expect(adapted[14]).toBe(2 * canonical[14] - canonical[15]);
+    expect(adapted[10]).toBeCloseTo(2 * canonical[10] - canonical[11], 7);
+    expect(adapted[14]).toBeCloseTo(2 * canonical[14] - canonical[15], 7);
   });
 
   it("keeps media fit and crop in the backend-neutral layout", () => {

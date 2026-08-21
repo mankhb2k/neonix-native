@@ -16,6 +16,7 @@ export const MotionProtocolV2Schema = z
   .superRefine((project, ctx) => {
     const ids = new Set<string>();
     const zIndexes = new Set<number>();
+    const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
     for (const [index, layer] of project.layers.entries()) {
       if (ids.has(layer.id)) {
         ctx.addIssue({
@@ -26,11 +27,22 @@ export const MotionProtocolV2Schema = z
       }
       ids.add(layer.id);
       if (layer.parentLayerId !== null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Protocol V2 core only supports root atoms until groups are certified",
-          path: ["layers", index, "parentLayerId"],
-        });
+        const parent = layerById.get(layer.parentLayerId);
+        if (!parent) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown parent layer: ${layer.parentLayerId}`, path: ["layers", index, "parentLayerId"] });
+        } else if (parent.type !== "group") {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Only group layers can parent child layers", path: ["layers", index, "parentLayerId"] });
+        }
+        const ancestry = new Set<string>();
+        let current: string | null = layer.parentLayerId;
+        while (current !== null) {
+          if (ancestry.has(current) || current === layer.id) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Layer parent hierarchy contains a cycle", path: ["layers", index, "parentLayerId"] });
+            break;
+          }
+          ancestry.add(current);
+          current = layerById.get(current)?.parentLayerId ?? null;
+        }
       }
       if (zIndexes.has(layer.zIndex)) {
         ctx.addIssue({

@@ -5,6 +5,8 @@
 import type {
   PaintFill,
   PathContour,
+  PathMesh,
+  PathStrokeMesh,
   RenderMediaFit,
   RenderNormalizedRect,
   RuntimeEffect,
@@ -27,11 +29,9 @@ export type PaintCommand =
       graphId: string;
       frame: number;
       time: number;
-      /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */
-      projection?: {
-        viewMatrix: number[];
-        projectionMatrix: number[];
-        viewProjectionMatrix?: number[];
+      /** Canonical V2 world-space to clip-space Matrix4. */
+      projection: {
+        worldToClipMatrix: number[];
       };
     }
   | { op: "endFrame" }
@@ -148,6 +148,9 @@ export type PaintCommand =
       key: string;
       layerId: string;
       contours: PathContour[];
+      /** Runtime-resolved local-plane mesh. GPU backends must not tessellate contours. */
+      mesh?: PathMesh;
+      strokeMesh?: PathStrokeMesh;
       fillRule: "nonzero" | "evenodd";
       fill?: string;
       fillPaint?: PaintFill;
@@ -155,6 +158,9 @@ export type PaintCommand =
       strokeWidth?: number;
       fillOpacity?: number;
       strokeOpacity?: number;
+      strokeJoin?: "miter" | "bevel" | "round";
+      strokeCap?: "butt" | "square" | "round";
+      strokeDash?: { array: number[]; offset: number };
       effects?: RuntimeEffect[];
     }
   | {

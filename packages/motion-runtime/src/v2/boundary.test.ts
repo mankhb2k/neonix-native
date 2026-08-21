@@ -23,9 +23,7 @@ const project: RuntimeProjectV2 = {
     graphId: "runtime-boundary",
   },
   view: {
-    viewMatrix: identity,
-    projectionMatrix: identity,
-    viewProjectionMatrix: identity,
+    worldToClipMatrix: identity,
   },
   nodes: [],
 };
@@ -47,8 +45,8 @@ describe("Runtime V2 consumer boundaries", () => {
   it("rehydrates matrices after JSON transport", () => {
     const transported = JSON.parse(JSON.stringify(project)) as unknown;
     const restored = assertRuntimeProjectV2(transported);
-    expect(restored.view.viewMatrix).toBeInstanceOf(Float64Array);
-    expect(Array.from(restored.view.viewMatrix)).toEqual(Array.from(identity));
+    expect(restored.view.worldToClipMatrix).toBeInstanceOf(Float64Array);
+    expect(Array.from(restored.view.worldToClipMatrix)).toEqual(Array.from(identity));
   });
 
   it("accepts only a RuntimeFrameV2 paint envelope", () => {
@@ -67,6 +65,7 @@ describe("Runtime V2 consumer boundaries", () => {
           graphId: "runtime-boundary",
           frame: 0,
           time: 0,
+          projection: { worldToClipMatrix: Array.from(identity) },
         },
         { op: "endFrame" as const },
       ],

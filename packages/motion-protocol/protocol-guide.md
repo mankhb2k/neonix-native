@@ -30,6 +30,9 @@ Protocol owns the JSON contract. Compiler lowering belongs to
 - `anchor` is the transform pivot; `origin` is not a Protocol V2 field.
 - `translate.z` is the 3D position component; legacy `depth` is not used.
 - `zIndex` controls ordering; it is not a camera depth substitute.
+- `composition.view` is required. Its projection is either
+  `orthographic` (`zoom`, `near`, `far`) or `perspective` (`fov`, `near`,
+  `far`), and its transform always uses `translate` and `rotate` Vec3 values.
 - A capability must be certified before compiler lowering can use it.
 - High-level patterns, presets, templates and components are future authoring
   layers and do not belong in this atomic contract.

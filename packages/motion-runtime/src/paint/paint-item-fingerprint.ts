@@ -74,6 +74,15 @@ export function computePaintItemFingerprint(
     if (drawCmd.strokeWidth != null) parts.push(`sw:${round3(drawCmd.strokeWidth)}`);
     if (drawCmd.strokeOpacity != null) parts.push(`so:${round3(drawCmd.strokeOpacity)}`);
   }
+  if (drawCmd.op === "drawPath") {
+    if (drawCmd.stroke) parts.push(`s:${drawCmd.stroke}`);
+    if (drawCmd.strokeWidth != null) parts.push(`sw:${round3(drawCmd.strokeWidth)}`);
+    if (drawCmd.strokeOpacity != null) parts.push(`so:${round3(drawCmd.strokeOpacity)}`);
+    if (drawCmd.strokeMesh) parts.push(`sm:${drawCmd.strokeMesh.vertices.length}:${drawCmd.strokeMesh.indices.length}`);
+    if (drawCmd.strokeJoin) parts.push(`sj:${drawCmd.strokeJoin}`);
+    if (drawCmd.strokeCap) parts.push(`sc:${drawCmd.strokeCap}`);
+    if (drawCmd.strokeDash) parts.push(`sd:${drawCmd.strokeDash.array.map(round3).join(",")}:${round3(drawCmd.strokeDash.offset)}`);
+  }
 
   if (drawCmd.op === "drawImage" || drawCmd.op === "drawVideo") {
     if (drawCmd.fit) parts.push(`fit:${drawCmd.fit}`);
