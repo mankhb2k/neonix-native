@@ -1,52 +1,60 @@
-/**
- * Phase 4 guard — ensures the public root API exports zero V2-shaped names.
- *
- * Any PR that introduces `*V2Schema`, `*V2` type/schema, or V2-specific
- * authoring types (MotionProjectV2, MotionComponentV2, etc.) from the root
- * barrel will cause this test to fail.
- */
-import { describe, expect, test } from "vitest";
-import { LayerSchema } from "../src/index";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import * as Protocol from "../src/index";
+import * as V2 from "../src/v2/index";
 
-describe("root API — no V2-shaped exports", () => {
-  test("no *V2Schema exports", async () => {
-    const mod = await import("../src/index");
-    const exported = new Set(Object.keys(mod));
-    const v2SchemaExports = [...exported].filter(
-      (k) => k.endsWith("V2Schema") || k.endsWith("V2"),
-    );
-    expect(v2SchemaExports).toEqual([]);
+const validProject = {
+  format: "motion-protocol" as const,
+  formatVersion: 2 as const,
+  id: "root-v2",
+  composition: {
+    width: 320,
+    height: 180,
+    fps: 30,
+    background: "#101820",
+    colorSpace: "srgb" as const,
+    audioSampleRate: 48000,
+  },
+  layers: [],
+};
+
+describe("Protocol root API V2", () => {
+  it("exports the V2 schema and version", () => {
+    expect(Protocol.MOTION_FORMAT_VERSION).toBe(2);
+    expect(Protocol.MotionProtocolV2Schema.safeParse(validProject).success).toBe(true);
+    expect(Object.keys(Protocol)).toContain("MotionProtocolV2Schema");
   });
 
-  test("no V2-suffixed type exports", async () => {
-    // Dynamic import is for values-only; types are not enumerable via keys.
-    // We rely on the gate (validate-v1-source-of-truth) for type-level checks.
-    // This test guards runtime-visible exports only.
-    const mod = await import("../src/index");
-    const exported = new Set(Object.keys(mod));
-    const forbidden = [
-      "MotionProjectV2",
-      "MotionComponentV2",
-      "NormalizedMotionProjectV2",
-      "parseMotionProjectV2",
-      "parseMotionComponentV2",
-      "serializeMotionProjectV2",
-    ];
-    const present = forbidden.filter((k) => exported.has(k));
-    expect(present).toEqual([]);
-  });
-});
-
-describe("root API — schema behavior", () => {
-  test("LayerSchema rejects { type: 'component' }", () => {
-    const result = LayerSchema.safeParse({ type: "component" });
-    expect(result.success).toBe(false);
+  it("keeps root and /v2 exports aligned and retires ./runtime", () => {
+    expect(V2.MotionProtocolV2Schema).toBe(Protocol.MotionProtocolV2Schema);
+    const packageJson = JSON.parse(
+      readFileSync(join(__dirname, "..", "package.json"), "utf8"),
+    ) as { exports: Record<string, string> };
+    expect(Object.keys(packageJson.exports).sort()).toEqual([".", "./v2"]);
+    expect(packageJson.exports["./runtime"]).toBeUndefined();
   });
 
-  test("root runtime-visible exports have no *V2 names", async () => {
-    const mod = await import("../src/index");
-    const exported = new Set(Object.keys(mod));
-    const v2Names = [...exported].filter((k) => k.includes("V2"));
-    expect(v2Names).toEqual([]);
+  it("parses and serializes only Protocol V2", () => {
+    expect(Protocol.parseMotionProtocol(validProject)).toEqual(validProject);
+    expect(JSON.parse(Protocol.serializeMotionProtocol(validProject))).toEqual(validProject);
+    expect(() => Protocol.parseMotionProtocol({
+      format: "motion-project",
+      formatVersion: 1,
+    })).toThrow();
+  });
+
+  it("does not expose retired V1 or Runtime IR symbols", () => {
+    const exported = new Set(Object.keys(Protocol));
+    for (const name of [
+      "MotionProjectV1",
+      "MotionProjectSchema",
+      "parseMotionProjectV1",
+      "serializeMotionProjectV1",
+      "MotionRuntimeProjectSchema",
+      "AssetSchema",
+    ]) {
+      expect(exported.has(name), `${name} must not be public`).toBe(false);
+    }
   });
 });

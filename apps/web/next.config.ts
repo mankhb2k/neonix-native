@@ -7,6 +7,8 @@ const browserCryptoExternal =
   "var {createHash:()=>({update(){return this},digest(){return ''}}),createHmac:()=>{throw new Error('createHmac is server-only')},randomUUID:()=>(crypto.randomUUID()),timingSafeEqual:(a,b)=>a===b}";
 
 const nextConfig: NextConfig = {
+  // Allow isolated browser smoke runs to use a fresh build directory.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Legacy editor/Storybook lint debt is checked separately with `pnpm lint:web`.
   // Do not make a production build unavailable while that surface is frozen.
   eslint: {

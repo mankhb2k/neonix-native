@@ -1,5 +1,10 @@
 export { evaluateRuntimeProjectV2 } from "./evaluate";
-export { validateRuntimeProjectV2 } from "./validate";
+export {
+  assertRuntimeFrameV2,
+  assertRuntimeProjectV2,
+  isRuntimeProjectV2,
+  validateRuntimeProjectV2,
+} from "./validate";
 export type {
   RuntimeCompositionV2,
   RuntimeFrameV2,

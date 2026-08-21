@@ -1,41 +1,32 @@
 import { default as sharedConfig } from "../../eslint.package.mjs";
 
-/**
- * V1 Protocol ESLint config — extends shared baseline with import-boundary
- * guards that keep the authoring protocol (v1) and runtime IR layers separate.
- */
+/** Protocol owns strict Atomic Protocol V2 and nothing downstream. */
 export default [
   ...sharedConfig,
-  // ── src/index.ts (public barrel) ──────────────────────────────────
   {
-    files: ["src/index.ts"],
+    files: ["src/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["./runtime/layers", "./runtime/layers/*"],
-              message:
-                "src/index.ts must not import from runtime/layers. Runtime node types are a separate entry point.",
+              group: [
+                "@motionvideo/motion-runtime",
+                "@motionvideo/motion-runtime/*",
+              ],
+              message: "Protocol must not import Runtime IR.",
             },
-          ],
-        },
-      ],
-    },
-  },
-  // ── src/v1/** (authoring protocol) ────────────────────────────────
-  {
-    files: ["src/v1/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
             {
-              group: ["../runtime/**", "../../runtime/**"],
-              message:
-                "src/v1/ must not import from src/runtime/. The authoring protocol must not depend on runtime IR types.",
+              group: [
+                "@motionvideo/motion-compiler",
+                "@motionvideo/motion-compiler/*",
+                "@motionvideo/preview-renderer",
+                "@motionvideo/preview-renderer/*",
+                "@motionvideo/remotion-renderer",
+                "@motionvideo/remotion-renderer/*",
+              ],
+              message: "Protocol must not import compiler or renderer packages.",
             },
           ],
         },

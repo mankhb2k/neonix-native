@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { buildStubRenderManifest } from "@/lib/server/render/build-manifest";
+import {
+  buildStubRenderManifest,
+  buildStubRuntimeProjectV2,
+} from "@/lib/server/render/build-manifest";
 import {
   buildIdempotencyKey,
   resolveRequestUserId,
@@ -43,6 +46,10 @@ export async function POST(request: Request) {
       projectRevision,
       preset: presetRaw,
     });
+    const runtime = buildStubRuntimeProjectV2({
+      projectId: body.projectId,
+      preset: presetRaw,
+    });
     const gate = preflightRenderManifest(manifest, {
       requireProductionGate: process.env.MOTICLIP_EXPORT_PRODUCTION_GATE === "1",
     });
@@ -56,7 +63,7 @@ export async function POST(request: Request) {
         { status: 422 },
       );
     }
-    await startRenderOnLambda({ job, manifest });
+    await startRenderOnLambda({ job, manifest, runtime });
   }
 
   return NextResponse.json(

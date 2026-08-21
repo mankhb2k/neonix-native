@@ -50,4 +50,6 @@ import {
 
 - `remotion`
 - `@motionvideo/motion-compiler` · `motion-runtime` · `motion-protocol`
-- `@motionvideo/render-contracts`
+The render core receives `RuntimeProjectV2` directly. Manifest, URL loading,
+Lambda jobs, webhooks and storage belong to the application/export layer and
+are intentionally outside this package.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { evaluateRuntimeProjectV2 } from "@motionvideo/motion-runtime";
-import { createV2OverlapProject, createV2ShapeProject } from "@motionvideo/motion-runtime/testing";
+import { createV2OverlapProject, createV2ShapeProject } from "@motionvideo/motion-compiler/testing";
 import { buildRemotionPaintTree, flattenRemotionDrawables } from "../build-remotion-paint-tree";
 
 describe("Remotion Protocol V2 parity", () => {

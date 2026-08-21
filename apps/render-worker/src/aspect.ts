@@ -1,5 +1,6 @@
-import type { AspectRatio } from "@motionvideo/motion-protocol";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+
+export type AspectRatio = "1:1" | "16:9" | "9:16";
 
 /** Map Protocol V2 composition dimensions to the encoder aspect union. */
 export function compositionAspectRatio(

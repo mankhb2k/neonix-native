@@ -2,7 +2,7 @@ import { encodeOutputs } from "./ffmpeg";
 import { uploadOutputs } from "./upload";
 import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import type { RenderJobStatus } from "@motionvideo/render-contracts";
+import type { RenderJobStatus } from "./job-status";
 import {
   renderRuntimeProjectV2,
   runtimeProjectV2Aspect,

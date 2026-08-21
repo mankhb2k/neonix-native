@@ -7,7 +7,7 @@ import {
   type RuntimeFrameV2,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
-import type { AspectRatio } from "@motionvideo/motion-protocol";
+import type { AspectRatio } from "../aspect";
 import type { RenderResult } from "./index";
 
 type Point = { x: number; y: number };

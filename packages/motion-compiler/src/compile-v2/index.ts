@@ -22,11 +22,11 @@ import {
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import {
-  MotionProtocolV2Schema,
   isV2AtomCertified,
+  parseMotionProtocol,
   type MotionProtocolV2,
   type V2Transform,
-} from "@motionvideo/motion-protocol/v2";
+} from "@motionvideo/motion-protocol";
 
 function shapeTransformMatrix2D(
   transform: V2Transform,
@@ -153,7 +153,7 @@ export function compileProtocolV2(
   input: unknown,
   _options: CompileProtocolV2Options = {},
 ): RuntimeProjectV2 {
-  const project = MotionProtocolV2Schema.parse(input);
+  const project = parseMotionProtocol(input);
   const projection = viewProjectionMatrix4(project);
 
   const nodes = stableLayerOrder(project).map((layer) => {

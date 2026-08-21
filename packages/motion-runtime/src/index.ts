@@ -21,5 +21,6 @@ export {
 } from "./determinism";
 export * from "./media-timing";
 export * from "./capability-ledger";
+export * from "./runtime-hash";
 export * from "./paint";
 export * from "./v2";

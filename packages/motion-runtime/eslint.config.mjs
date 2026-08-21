@@ -1,9 +1,8 @@
 import { default as sharedConfig } from "../../eslint.package.mjs";
 
 /**
- * Motion Runtime ESLint config — extends shared baseline with import-boundary
- * guards that prevent the runtime from depending on editor, renderer, compiler,
- * or app packages.
+ * Runtime is a framework-agnostic consumer of Runtime IR V2.
+ * It must not depend on Protocol JSON, Compiler, editor, or app packages.
  */
 export default [
   ...sharedConfig,
@@ -14,6 +13,14 @@ export default [
         "error",
         {
           patterns: [
+            {
+              group: [
+                "@motionvideo/motion-protocol",
+                "@motionvideo/motion-protocol/*",
+              ],
+              message:
+                "Runtime must not import Protocol schemas. Runtime consumes Runtime IR, not authoring JSON.",
+            },
             {
               group: [
                 "@motionvideo/remotion-renderer",
@@ -45,18 +52,6 @@ export default [
           ],
         },
       ],
-    },
-  },
-  // ── Test files exempt from import-boundary rules ──────────────────
-  // Test utilities need the compiler to prepare runtime projects.
-  {
-    files: [
-      "src/**/*.{test,spec}.{ts,tsx}",
-      "src/**/__tests__/**/*.{ts,tsx}",
-      "src/testing/**/*.{ts,tsx}",
-    ],
-    rules: {
-      "no-restricted-imports": "off",
     },
   },
 ];

@@ -6,7 +6,7 @@
  * Skip without Chromium unless REMOTION_E2E_REQUIRE=1.
  */
 
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,10 +15,6 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import { type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { remotionWebpackOverride } from "./webpack-override";
-import {
-  parseRenderManifest,
-  REMOTION_PIN,
-} from "@motionvideo/render-contracts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SITE_ROOT = path.resolve(__dirname, "..");
@@ -107,53 +103,6 @@ async function main() {
   const runtime = compileProtocolV2(project);
   const fps = runtime.composition.fps;
   const durationInFrames = SMOKE_MAX_FRAMES;
-  const size = {
-    width: runtime.composition.width,
-    height: runtime.composition.height,
-  };
-
-  const runtimePath = path.join(OUT_DIR, "runtime.json");
-  await writeFile(runtimePath, JSON.stringify(runtime), "utf8");
-
-  const manifest = parseRenderManifest({
-    format: "moticlip-render-manifest",
-    manifestVersion: 2,
-    projectId: project.id,
-    projectRevision: 0,
-    versions: {
-      schema: 2,
-      compiler: "0.0.1",
-      runtime: "0.0.1",
-      remotion: REMOTION_PIN,
-      capabilityManifest: "v2-shape-atoms",
-    },
-    contentHash: "a".repeat(64),
-    determinism: {
-      version: 1,
-      frameEpsilon: 1.7763568394002505e-15,
-      geometryEpsilon: 1e-12,
-      lengthEpsilon: 1e-9,
-      hashAlgorithm: "sha256",
-      canonicalJson: true,
-    },
-    composition: {
-      ...size,
-      fps,
-      durationInFrames,
-      background: runtime.composition.background ?? "#000000",
-    },
-    runtime: {
-      url: `file://${runtimePath.replace(/\\/g, "/")}`,
-      sha256: "smoke-local",
-    },
-    assets: [],
-    output: {
-      codec: "h264",
-      pixelFormat: "yuv420p",
-      privacy: "private",
-    },
-  });
-
   const entry = path.join(SITE_ROOT, "src/index.ts");
   console.log("[e2e] bundling", entry);
   const serveUrl = await bundle({
@@ -161,7 +110,7 @@ async function main() {
     webpackOverride: remotionWebpackOverride,
   });
 
-  const inputProps = { manifest, runtime };
+  const inputProps = { runtime };
   const composition = await selectComposition({
     serveUrl,
     id: "MotiClipVideo",

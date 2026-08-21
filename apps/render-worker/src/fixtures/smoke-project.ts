@@ -1,7 +1,7 @@
 import {
   createV2OverlapProject,
   createV2ShapeProject,
-} from "@motionvideo/motion-runtime/testing";
+} from "@motionvideo/motion-compiler/testing";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 /** Certified V2 fixture used by render-worker smoke tests and benchmarks. */

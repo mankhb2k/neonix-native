@@ -1,9 +1,126 @@
-import type { RuntimeProjectV2, RuntimeValidationV2 } from "./types";
+import { validatePaintCommandBuffer } from "../paint/validate-paint-command-buffer";
+import type {
+  RuntimeFrameV2,
+  RuntimeProjectV2,
+  RuntimeValidationV2,
+} from "./types";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function serializedMatrixValues(value: unknown): number[] | undefined {
+  if (Array.isArray(value)) return value;
+  if (!isRecord(value)) return undefined;
+  const values = Array.from({ length: 16 }, (_, index) => value[String(index)]);
+  return values.every((item) => typeof item === "number")
+    ? values as number[]
+    : undefined;
+}
+
+function normalizeMatrix4(value: unknown): unknown {
+  if (value instanceof Float64Array) return value;
+  const values = serializedMatrixValues(value);
+  return values ? new Float64Array(values) : value;
+}
+
+/** Rehydrate matrices after JSON transport (for example Remotion inputProps). */
+function normalizeRuntimeProjectV2(input: RuntimeProjectV2): RuntimeProjectV2 {
+  const view = input.view;
+  const nodes = input.nodes;
+  const normalizedView = {
+    ...view,
+    viewMatrix: normalizeMatrix4(view.viewMatrix),
+    projectionMatrix: normalizeMatrix4(view.projectionMatrix),
+    viewProjectionMatrix: normalizeMatrix4(view.viewProjectionMatrix),
+  };
+  const normalizedNodes = nodes.map((node) => ({
+    ...node,
+    localMatrix: normalizeMatrix4(node.localMatrix),
+    worldMatrix: normalizeMatrix4(node.worldMatrix),
+  }));
+  const unchanged =
+    normalizedView.viewMatrix === view.viewMatrix &&
+    normalizedView.projectionMatrix === view.projectionMatrix &&
+    normalizedView.viewProjectionMatrix === view.viewProjectionMatrix &&
+    normalizedNodes.every((node, index) =>
+      node.localMatrix === nodes[index]!.localMatrix &&
+      node.worldMatrix === nodes[index]!.worldMatrix,
+    );
+  return unchanged
+    ? input
+    : ({ ...input, view: normalizedView, nodes: normalizedNodes } as RuntimeProjectV2);
+}
+
+/** Fast boundary check used by renderer consumers before deep validation. */
+export function isRuntimeProjectV2(input: unknown): input is RuntimeProjectV2 {
+  if (!isRecord(input)) return false;
+  const composition = input.composition;
+  const view = input.view;
+  return (
+    input.format === "motion-runtime" &&
+    input.formatVersion === 2 &&
+    typeof input.id === "string" &&
+    isRecord(composition) &&
+    isRecord(view) &&
+    Array.isArray(input.nodes)
+  );
+}
+
+function validationError(prefix: string, diagnostics: RuntimeValidationV2["diagnostics"]): Error {
+  return new Error(
+    `${prefix}: ${diagnostics
+      .filter((diagnostic) => diagnostic.severity === "error")
+      .map((diagnostic) => diagnostic.message)
+      .join(" | ")}`,
+  );
+}
+
+/** Fail-closed Runtime V2 project boundary for preview/export consumers. */
+export function assertRuntimeProjectV2(input: unknown): RuntimeProjectV2 {
+  if (!isRuntimeProjectV2(input)) {
+    throw new Error("Expected RuntimeProjectV2 with motion-runtime format version 2");
+  }
+  const normalized = normalizeRuntimeProjectV2(input);
+  const validation = validateRuntimeProjectV2(normalized);
+  if (!validation.ok) throw validationError("Runtime V2 validation failed", validation.diagnostics);
+  return normalized;
+}
+
+/** Fail-closed Runtime V2 frame boundary for preview consumers. */
+export function assertRuntimeFrameV2(input: unknown): asserts input is RuntimeFrameV2 {
+  if (!isRecord(input)) {
+    throw new Error("Expected RuntimeFrameV2");
+  }
+  const frame = input.frame;
+  const time = input.time;
+  if (
+    input.runtimeFormat !== "motion-runtime" ||
+    input.runtimeVersion !== 2 ||
+    typeof frame !== "number" ||
+    !Number.isSafeInteger(frame) ||
+    frame < 0 ||
+    typeof time !== "number" ||
+    !Number.isFinite(time) ||
+    time < 0 ||
+    !Array.isArray(input.commands) ||
+    !Array.isArray(input.diagnostics)
+  ) {
+    throw new Error("Expected RuntimeFrameV2 with motion-runtime version 2");
+  }
+  const validation = validatePaintCommandBuffer(input as unknown as RuntimeFrameV2);
+  if (!validation.ok) {
+    const details = validation.issues
+      .filter((issue) => issue.severity === "error")
+      .map((issue) => issue.message)
+      .join(" | ");
+    throw new Error(`RuntimeFrameV2 paint validation failed: ${details}`);
+  }
+}
 
 function matrixIs4x4(value: unknown): boolean {
-  return value instanceof Float64Array
-    ? value.length === 16 && Array.from(value).every(Number.isFinite)
-    : Array.isArray(value) && value.length === 16 && value.every(Number.isFinite);
+  const values = serializedMatrixValues(value);
+  return values !== undefined && values.length === 16 && values.every(Number.isFinite);
 }
 
 export function validateRuntimeProjectV2(

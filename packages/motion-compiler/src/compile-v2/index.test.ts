@@ -524,4 +524,88 @@ describe("Protocol V2 Compiler B", () => {
       ),
     ).toEqual(["beginFrame", "endFrame"]);
   });
+
+  it("rejects retired V1 envelopes before lowering", () => {
+    expect(() =>
+      compileProtocolV2({
+        format: "motion-project",
+        formatVersion: 1,
+        id: "legacy",
+        composition: base.composition,
+        layers: [],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects mixed V1/V2 fields instead of migrating them", () => {
+    expect(() =>
+      compileProtocolV2({
+        ...base,
+        bone: { id: "legacy-bone" },
+        layers: [],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      compileProtocolV2({
+        ...base,
+        layers: [
+          {
+            id: "mixed",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 40, height: 20 },
+            transform: { ...identity, origin: { x: 0.5, y: 0.5 } },
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "rectangle" },
+            style: { fill: "#00aa88" },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects unknown atom and transform fields fail-closed", () => {
+    expect(() =>
+      compileProtocolV2({
+        ...base,
+        layers: [
+          {
+            id: "unknown-shape",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 40, height: 20 },
+            transform: identity,
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "polygon" },
+            style: { fill: "#00aa88" },
+          },
+        ],
+      }),
+    ).toThrow();
+
+    expect(() =>
+      compileProtocolV2({
+        ...base,
+        layers: [
+          {
+            id: "unknown-transform",
+            type: "shape",
+            parentLayerId: null,
+            zIndex: 0,
+            frame: { width: 40, height: 20 },
+            transform: { ...identity, depth: 100 },
+            opacity: 100,
+            timing: { start: 0, duration: 1 },
+            payload: { shape: "rectangle" },
+            style: { fill: "#00aa88" },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
 });

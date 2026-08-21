@@ -1,5 +1,6 @@
 import { useCurrentFrame } from "remotion";
 import {
+  assertRuntimeProjectV2,
   evaluateRuntimeProjectV2,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
@@ -27,6 +28,6 @@ export function MotionComposition({
   void height;
   void graphId;
   void background;
-  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
+  const evaluated = evaluateRuntimeProjectV2(assertRuntimeProjectV2(runtime), frame);
   return <RemotionPaintRenderer paint={evaluated} />;
 }

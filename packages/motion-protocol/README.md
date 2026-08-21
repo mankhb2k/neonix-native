@@ -1,91 +1,73 @@
 # `@motionvideo/motion-protocol`
 
-Canonical Zod schemas and TypeScript types for **Motion Format V1** — the only authoring protocol between editor/AI, compiler, and runtime.
+Atomic Protocol V2 schema and capability contract for NeonVideo.
 
-Three package entries:
+This package owns authoring JSON only. It does not own Runtime IR, Matrix4
+buffers, GPU resources, preview rendering, or Remotion rendering.
 
-| Import                                 | Role                                                                |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| `@motionvideo/motion-protocol`         | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings |
-| `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
+## Public API
 
-> **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
+```ts
+import {
+  MotionProtocolV2Schema,
+  parseMotionProtocol,
+  type MotionProtocolV2,
+} from "@motionvideo/motion-protocol";
 
-> **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind only `target.type: "prop"` (`layerId` + `propId`). Component internals are sealed. Runtime IR is produced by `@motionvideo/motion-compiler`.
-
----
-
-## Design
-
-1. **Single contract** — Editor, AI planner, and compiler validate the same Zod schemas.
-2. **Authoring → Runtime** — `MotionProjectV1` (variables, props, bindings) compiles to `MotionRuntimeProject` (literal layer graph + `propertyAnimations`).
-3. **Strict bounds** — `.strict()`, finite numbers, `MOTION_PROTOCOL_LIMITS`.
-4. **Parse path** — `parseMotionProjectV1`: normalize → schema → reference validation.
-
----
-
-## Package layout
-
-| Path                                             | Role                                                                              |
-| ------------------------------------------------ | --------------------------------------------------------------------------------- |
-| [`src/index.ts`](./src/index.ts)                 | Authoring barrel (`.`)                                                            |
-| [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`)                                                   |
-| [`src/internal.ts`](./src/internal.ts)           | Caption leftover schemas (`./internal`)                                           |
-| [`src/v1/`](./src/v1)                            | Authoring schemas (project, layers, components, variables, animation, references) |
-| [`src/runtime/`](./src/runtime)                  | Runtime IR schemas                                                                |
-| [`src/capabilities.ts`](./src/capabilities.ts)   | Limits + property capability registry                                             |
-| [`review-guide.md`](./review-guide.md)           | How to review the V1 component/timing contract                                    |
-
----
-
-## Timing model
-
-- Project length is derived: `max(root.timing.start + root.timing.duration)`. Empty → `0`.
-- Authoring JSON has no `timeline` field (`duration`, `workArea`, `clips` are gone).
-- `project.layers[]` = root lanes; every layer requires `zIndex` (root visual `>= 0`, audio `< 0`, nested `>= 0`, unique among siblings)
-- Nesting via `group.children[]` (at least one child); child timing is local to parent and must fit inside the parent duration
-- Audio is a root-only leaf (`type: "audio"`) and has no `animations`
-- Layer property motion lives on `layer.animations[]`
-- `frame` = local size box before transform. Required on every visual layer including group (does not clip, not derived from children). Forbidden on audio/camera
-- `transform` = shared visual geometry (`translate`, `scale`, `rotate.z`, `skew`, `origin`, `depth`). Audio has none. Negative scale flips. `depth` is not `zIndex`.
-
-See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md) and [docs/guide/v1-group-guide.md](../../docs/guide/v1-group-guide.md).
-
----
-
-## Components
-
-- Sealed definition: public `props` / `variants`; owner-only `propBindings` + internal `layers`
-- Instance = `type: "component"` layer on the **project layer tree**
-- Prop keyframe `t` is local to the instance: `0..layer.timing.duration`
-- Layer property motion uses `layer.animations` / prop keyframes
-
-### Bindings (`ProjectBindingV1Schema`)
-
-```text
-target.type: prop → one project-tree component instance (layerId + propId)
-nested-in-definition → owner childProp / layerProperty only
+const protocol: MotionProtocolV2 = MotionProtocolV2Schema.parse(input);
 ```
 
-See [docs/guide/v1-component-guide.md](../../docs/guide/v1-component-guide.md).
+The explicit V2 entrypoint is also available:
 
----
-
-## Pipeline
-
-```text
-JSON  →  parseMotionProjectV1()  →  MotionProjectV1
-                │
-                ▼  @motionvideo/motion-compiler
-         MotionRuntimeProject (flat layers[] + propertyAnimations)
+```ts
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 ```
 
----
+The retired `./runtime` entrypoint and all V1 parser/schema exports have been
+removed.
 
-## Scripts
+## Protocol V2 shape
+
+```text
+MotionProtocolV2
+├── composition
+│   ├── width / height / fps
+│   ├── background / colorSpace
+│   └── optional view + projection
+└── layers[]
+    └── certified atomic layer
+        ├── frame
+        ├── transform (3D translate / scale / rotate / skew / anchor)
+        ├── timing
+        ├── opacity / zIndex
+        └── shape payload + paint style
+```
+
+Every schema is strict. Unknown fields are rejected. A Protocol V1 envelope,
+legacy origin/depth fields, bones, high-level patterns, and runtime-only fields
+are not accepted by this package.
+
+## Pipeline ownership
+
+```text
+Atomic Protocol V2 JSON
+        |
+        v
+@motionvideo/motion-compiler
+        |
+        v
+RuntimeProjectV2
+        |
+        v
+@motionvideo/motion-runtime
+```
+
+Preview and export consume Runtime IR through their own renderers.
+
+## Commands
 
 ```bash
 pnpm --filter @motionvideo/motion-protocol typecheck
 pnpm --filter @motionvideo/motion-protocol test
-pnpm --filter @motionvideo/motion-protocol generate:schema
+pnpm --filter @motionvideo/motion-protocol check:schema
 ```

@@ -11,6 +11,7 @@ import { buildExportCanaryRecord } from "@/lib/server/render/export-canary";
 import {
   CAPABILITY_MANIFEST_VERSION,
   PAINT_COMMAND_VERSION,
+  type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 
@@ -34,6 +35,7 @@ function lambdaConfigured(): boolean {
 export async function startRenderOnLambda(input: {
   job: PersistentRenderJob;
   manifest: RenderManifest;
+  runtime: RuntimeProjectV2;
 }): Promise<LambdaRenderStartResult> {
   if (!lambdaConfigured()) {
     const renderId = `local_${input.job.jobId}`;
@@ -80,9 +82,7 @@ export async function startRenderOnLambda(input: {
     composition: "MotiClipVideo",
     // MotiClipVideo fetches MotionRuntimeProject from manifest.runtime.url
     // (https). Do not inline the IR here — Lambda inputProps stay small.
-    inputProps: {
-      manifest: input.manifest,
-    },
+    inputProps: { runtime: input.runtime },
     codec: input.manifest.output.codec === "prores" ? "prores" : "h264",
     privacy: "private",
     framesPerLambda: 20,

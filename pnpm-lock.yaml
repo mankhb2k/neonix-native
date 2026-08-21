@@ -186,9 +186,6 @@ importers:
       '@motionvideo/remotion-renderer':
         specifier: workspace:*
         version: link:../../packages/remotion-renderer
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../../packages/render-contracts
       '@remotion/bundler':
         specifier: 4.0.506
         version: 4.0.506(@swc/helpers@0.5.15)(postcss@8.5.22)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(webpack-hot-middleware@2.26.1)
@@ -235,9 +232,6 @@ importers:
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../../packages/render-contracts
       '@napi-rs/canvas':
         specifier: ^0.1.80
         version: 0.1.100
@@ -467,9 +461,6 @@ importers:
       '@motionvideo/patterns':
         specifier: workspace:*
         version: link:../patterns
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../render-contracts
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -623,9 +614,6 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
-      '@motionvideo/patterns':
-        specifier: workspace:*
-        version: link:../patterns
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -643,10 +631,6 @@ importers:
         version: 3.25.2(zod@3.25.76)
 
   packages/motion-runtime:
-    dependencies:
-      '@motionvideo/motion-protocol':
-        specifier: workspace:*
-        version: link:../motion-protocol
     devDependencies:
       '@types/node':
         specifier: ^22.13.10
@@ -754,22 +738,16 @@ importers:
 
   packages/remotion-renderer:
     dependencies:
-      '@motionvideo/motion-compiler':
-        specifier: workspace:*
-        version: link:../motion-compiler
-      '@motionvideo/motion-protocol':
-        specifier: workspace:*
-        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../render-contracts
       remotion:
         specifier: 4.0.506
         version: 4.0.506(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
     devDependencies:
+      '@motionvideo/motion-compiler':
+        specifier: workspace:*
+        version: link:../motion-compiler
       '@motionvideo/patterns':
         specifier: workspace:*
         version: link:../patterns

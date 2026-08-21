@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isV2AtomCertified } from "./capabilities";
 import { MotionProtocolV2Schema } from "./project";
 
 const RECTANGLE_PROJECT = {
@@ -151,5 +152,11 @@ describe("Motion Protocol V2 schema", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("certifies rectangle and ellipse while keeping Path for Task 6", () => {
+    expect(isV2AtomCertified("shape.rectangle.fill")).toBe(true);
+    expect(isV2AtomCertified("shape.ellipse.fill")).toBe(true);
+    expect(isV2AtomCertified("shape.path.fill")).toBe(false);
   });
 });

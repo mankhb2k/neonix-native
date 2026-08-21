@@ -1,5 +1,6 @@
 import {
   assertValidPaintBuffer,
+  assertRuntimeFrameV2,
   type PaintCommandBuffer,
   type RuntimeFrameV2,
 } from "@motionvideo/motion-runtime";
@@ -75,6 +76,7 @@ export async function createPreviewRenderer(options: PreviewRendererOptions): Pr
     backend: backend.kind,
     canvas: options.canvas,
     paintFrame(frame: RuntimeFrameV2) {
+      assertRuntimeFrameV2(frame);
       assertValidPaintBuffer(frame);
       backend.paint(frame);
     },

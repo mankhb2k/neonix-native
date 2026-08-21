@@ -2,7 +2,12 @@
  * Minimal RenderManifest builder for create-job (server-owned URLs).
  */
 
-import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
+import {
+  CAPABILITY_MANIFEST_VERSION,
+  createMatrix4,
+  orthographicMatrix2D,
+  type RuntimeProjectV2,
+} from "@motionvideo/motion-runtime";
 import {
   parseRenderManifest,
   REMOTION_PIN,
@@ -58,4 +63,34 @@ export function buildStubRenderManifest(input: {
       privacy: "private",
     },
   });
+}
+
+/**
+ * Temporary V2 runtime for the API stub. Real export orchestration will load
+ * the compiled RuntimeProjectV2 for the requested project before dispatch.
+ */
+export function buildStubRuntimeProjectV2(input: {
+  projectId: string;
+  preset: RenderPresetId;
+}): RuntimeProjectV2 {
+  const spec = RENDER_PRESET_SPECS[input.preset];
+  const projection = orthographicMatrix2D(spec.width, spec.height);
+  return {
+    format: "motion-runtime",
+    formatVersion: 2,
+    id: input.projectId,
+    composition: {
+      width: spec.width,
+      height: spec.height,
+      fps: spec.fps,
+      background: "#000000",
+      graphId: input.projectId,
+    },
+    view: {
+      viewMatrix: createMatrix4(),
+      projectionMatrix: projection,
+      viewProjectionMatrix: projection,
+    },
+    nodes: [],
+  };
 }

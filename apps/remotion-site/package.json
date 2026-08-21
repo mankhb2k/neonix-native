@@ -13,7 +13,6 @@
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
-    "@motionvideo/render-contracts": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",
     "@remotion/bundler": "4.0.506",
     "@remotion/cli": "4.0.506",

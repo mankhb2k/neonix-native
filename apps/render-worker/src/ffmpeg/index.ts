@@ -4,8 +4,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import type { AspectRatio } from "@motionvideo/motion-protocol";
 import type { RenderResult } from "../runtime";
+import type { AspectRatio } from "../aspect";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -1,24 +1,19 @@
-/**
- * Generates JSON Schema (Draft-07) for the v1 motion-project format.
- *
- * Usage: pnpm generate:schema  (runs `tsx scripts/generate-json-schema.ts`)
- *
- * Writes `schema/v1.json` deterministically.
- * Freshness is gated by `test/schema-files.test.ts` on every test run.
- */
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { serializeMotionProjectV1JsonSchema } from "./v1-json-schema";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { MotionProtocolV2Schema } from "../src/index";
 
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const SCHEMA_DIR = join(ROOT, "schema");
-if (!existsSync(SCHEMA_DIR)) mkdirSync(SCHEMA_DIR, { recursive: true });
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const schemaDir = join(root, "schema");
+const schemaPath = join(schemaDir, "v2.json");
 
-writeFileSync(
-  join(SCHEMA_DIR, "v1.json"),
-  serializeMotionProjectV1JsonSchema(),
-  "utf8",
-);
+if (!existsSync(schemaDir)) mkdirSync(schemaDir, { recursive: true });
 
-console.log("Generated schema/v1.json");
+const schema = zodToJsonSchema(MotionProtocolV2Schema, {
+  name: "MotionProtocolV2",
+  target: "jsonSchema7",
+});
+
+writeFileSync(schemaPath, `${JSON.stringify(schema, null, 2)}\n`, "utf8");
+console.log("Generated schema/v2.json");

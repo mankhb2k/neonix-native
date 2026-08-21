@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createV2ShapeProject } from "@motionvideo/motion-runtime/testing";
+import { createV2ShapeProject } from "@motionvideo/motion-compiler/testing";
 import {
   compileAtomicProtocolV2,
   validateAtomicProtocolV2,

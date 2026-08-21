@@ -1,177 +1,71 @@
 /**
- * Pixi ↔ Remotion sampled-frame parity harness.
+ * V2 compiler/runtime -> Remotion paint-tree parity harness.
  *
- * Three layers:
- * 1. Semantic — shared EvaluatedFrame.paint digest
- * 2. Structural — compositingFingerprint + Remotion paint tree keys
- * 3. Visual — canvas still PNG artifacts (CI upload under tmp/parity-*)
- *
+ * The filename is retained for the existing root command, but this harness
+ * intentionally has no Pixi or Protocol V1 dependency.
  * Usage: pnpm test:parity
  */
 
-import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import {
-  compositionDurationInFrames,
-  compositingFingerprint,
-  evaluateCompositionFrame,
-  type EvaluatedFrame,
+  evaluateRuntimeProjectV2,
+  type RuntimeFrameV2,
 } from "@motionvideo/motion-runtime";
 import {
-  createDemoMotionProject,
-  compileProjectV1,
-} from "@motionvideo/motion-runtime/testing";
+  createV2OverlapProject,
+  createV2ShapeProject,
+} from "@motionvideo/motion-compiler/testing";
 import {
   buildRemotionPaintTree,
   flattenRemotionDrawables,
 } from "../packages/remotion-renderer/src/build-remotion-paint-tree";
-import { drawSceneFramePaint } from "../apps/render-worker/src/runtime/paint-canvas";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-const outRoot = path.join(repoRoot, "tmp", "parity-pixi-remotion");
+const outRoot = path.join(repoRoot, "tmp", "parity-v2-remotion");
 
-const SAMPLE_LABELS = ["before", "start", "middle", "end", "after"] as const;
-
-function paintDigest(frame: EvaluatedFrame): string {
-  return createHash("sha256")
-    .update(JSON.stringify(frame.paint.commands))
-    .digest("hex")
-    .slice(0, 16);
-}
-
-function sampleFrames(
-  durationInFrames: number,
-): Record<(typeof SAMPLE_LABELS)[number], number> {
-  const last = Math.max(0, durationInFrames - 1);
-  return {
-    before: 0,
-    start: Math.min(1, last),
-    middle: Math.floor(last / 2),
-    end: last,
-    after: last,
-  };
+function paintDigest(frame: RuntimeFrameV2): string {
+  return JSON.stringify(frame.commands);
 }
 
 async function main() {
   await mkdir(outRoot, { recursive: true });
-  const project = createDemoMotionProject();
-  const runtime = compileProjectV1(project);
-  const fps = runtime.metadata.fps || 30;
-  const durationInFrames = compositionDurationInFrames(runtime, undefined, fps);
-  const width = 640;
-  const height = 360;
-  const samples = sampleFrames(durationInFrames);
-  const report: Array<{
-    label: string;
-    frame: number;
-    digest: string;
-    remotionDigest: string;
-    structuralMatch: boolean;
-    match: boolean;
-    compositing: ReturnType<typeof compositingFingerprint>;
-    remotionDrawableCount: number;
-  }> = [];
-
-  for (const label of SAMPLE_LABELS) {
-    const frame = samples[label]!;
-    const evaluated = evaluateCompositionFrame(
-      runtime,
-      frame,
-      fps,
-      width,
-      height,
-      undefined,
-      "#0d9488",
-    );
-    if (!evaluated) throw new Error(`No evaluated frame at ${label}/${frame}`);
-
-    const remotionEvaluated = evaluateCompositionFrame(
-      runtime,
-      frame,
-      fps,
-      width,
-      height,
-      undefined,
-      "#0d9488",
-    );
-    const digest = paintDigest(evaluated);
-    const remotionDigest = paintDigest(remotionEvaluated!);
-    const match = digest === remotionDigest;
-    const compositing = compositingFingerprint(evaluated.paint);
-    const tree = buildRemotionPaintTree(evaluated.paint);
-    const remotionDrawableCount = flattenRemotionDrawables(tree).length;
-    const drawOps = evaluated.paint.commands.filter((c) =>
-      [
-        "drawText",
-        "drawShape",
-        "drawSolid",
-        "drawImage",
-        "drawPath",
-        "drawVideo",
-      ].includes(c.op),
-    ).length;
-    const structuralMatch = remotionDrawableCount === drawOps;
-
-    report.push({
-      label,
-      frame,
-      digest,
-      remotionDigest,
-      structuralMatch,
-      match,
-      compositing,
-      remotionDrawableCount,
-    });
-
-    const scene = runtime.scenes.find((s) => s.id === evaluated.sceneId);
-    if (scene) {
-      const png = await drawSceneFramePaint(
-        scene,
-        runtime.metadata,
-        runtime.assets,
-        evaluated.time,
-        width,
-        height,
-        outRoot,
-      );
-      await writeFile(path.join(outRoot, `${label}-${frame}.png`), png);
-    }
-    await writeFile(
-      path.join(outRoot, `${label}-${frame}.paint.json`),
-      `${JSON.stringify(evaluated.paint, null, 2)}\n`,
-    );
-  }
-
+  const cases = [
+    compileProtocolV2(createV2OverlapProject("parity-v2-overlap")),
+    compileProtocolV2(createV2ShapeProject({ id: "parity-v2-ellipse", shape: "ellipse" })),
+  ];
+  const report = cases.flatMap((runtime) =>
+    [0, 15, 60].map((frame) => {
+      const evaluated = evaluateRuntimeProjectV2(runtime, frame);
+      const tree = buildRemotionPaintTree(evaluated);
+      const drawables = flattenRemotionDrawables(tree);
+      const expected = evaluated.commands.filter((command) => command.op === "drawShape");
+      const structuralMatch = drawables.length === expected.length;
+      return {
+        id: runtime.id,
+        frame,
+        digest: paintDigest(evaluated),
+        drawableCount: drawables.length,
+        expectedCount: expected.length,
+        structuralMatch,
+      };
+    }),
+  );
   await writeFile(
     path.join(outRoot, "report.json"),
-    `${JSON.stringify(
-      {
-        durationInFrames,
-        samples,
-        report,
-        layers: ["semantic", "structural", "visual-png"],
-      },
-      null,
-      2,
-    )}\n`,
+    `${JSON.stringify({ protocol: 2, report }, null, 2)}\n`,
+    "utf8",
   );
-
-  const failed = report.filter((row) => !row.match || !row.structuralMatch);
+  const failed = report.filter((row) => !row.structuralMatch);
   if (failed.length) {
-    console.error("[parity] mismatch", failed);
-    process.exit(1);
+    throw new Error(`V2 Remotion parity mismatch: ${JSON.stringify(failed)}`);
   }
-  console.log(`[parity] ok — artifacts in ${outRoot}`);
-  for (const row of report) {
-    console.log(
-      `  ${row.label}@${row.frame} digest=${row.digest} drawables=${row.remotionDrawableCount}`,
-    );
-  }
+  console.log(`[parity:v2] ok - ${report.length} samples in ${outRoot}`);
 }
 
 main().catch((error) => {

@@ -4,7 +4,7 @@
  */
 
 import type { Matrix2D } from "../matrix";
-import type { PaintFill, PathContour, RuntimeEffect } from "./paint-types";
+import type { RuntimeEffect } from "./paint-types";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
 
