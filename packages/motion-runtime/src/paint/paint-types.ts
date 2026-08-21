@@ -78,25 +78,12 @@ export type RuntimeColorAdjustEffect = {
   hueRotate: number;
 };
 
+export type RuntimeBlurEffect = {
+  id: string;
+  type: "blur";
+  radius: number;
+};
+
 export type RuntimeEffect =
-  | { id: string; type: "blur"; radius: number; seed?: number }
-  | {
-      id: string;
-      type: "shadow" | "glow" | "inner-glow";
-      color: string;
-      opacity: number;
-      blur?: number;
-      radius?: number;
-      offset?: { x: number; y: number };
-      seed?: number;
-    }
-  | {
-      id: string;
-      type: "noise";
-      amount: number;
-      scale: number;
-      opacity: number;
-      animated: boolean;
-      seed?: number;
-    }
+  | RuntimeBlurEffect
   | RuntimeColorAdjustEffect;

@@ -11,6 +11,7 @@ export {
   isRuntimeProjectV2,
   validateRuntimeProjectV2,
 } from "./validate";
+export { buildRuntimeEffectPlan, type RuntimeEffectStep } from "./effects";
 export type {
   RuntimeCompositionV2,
   RuntimeFrameV2,

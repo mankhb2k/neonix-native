@@ -47,6 +47,33 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
+  test("runs the V2 blur effect through isolated WebGL2 and WebGPU passes", async ({ page }) => {
+    const caseId = "effect.blur";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /offscreen|compositing_pending/);
+    const crispOutside = await readWebGLPixel(page, "preview-v2-canvas", 284, 540);
+    const blurredOutside = await readWebGLPixel(page, "preview-v2-canvas", 1244, 540);
+    const blurredCenter = await readWebGLPixel(page, "preview-v2-canvas", 1440, 540);
+    expect(crispOutside).toEqual([16, 24, 32, 255]);
+    expect(blurredOutside[0]).toBeGreaterThan(20);
+    expect(blurredOutside[1]).toBeLessThan(24);
+    expect(blurredCenter).toEqual([255, 51, 102, 255]);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /offscreen|compositing_pending/);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 1244, 540);
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 1440, 540);
+    expect(webgpuOutside[0]).toBeGreaterThan(20);
+    expect(webgpuOutside[1]).toBeLessThan(24);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuCenter[index]! - blurredCenter[index]!)).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("renders Runtime-shaped exact-font text through both GPU backends", async ({ page }) => {
     const caseId = "text.single-line.alignment";
     const textPixels = async () => page.getByTestId("preview-v2-canvas").evaluate(async (node) => {

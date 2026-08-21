@@ -80,19 +80,23 @@ const DEFAULT_PATH_STROKE_WIDTH = 1;
 function lowerEffects(
   effects: Array<{
     id: string;
-    type: "color-adjust";
-    brightness: number;
-    contrast: number;
-    saturation: number;
-    hueRotate: number;
+    type: "color-adjust" | "blur";
+    brightness?: number;
+    contrast?: number;
+    saturation?: number;
+    hueRotate?: number;
+    radius?: number;
   }> | undefined,
 ): RuntimeEffect[] | undefined {
   if (!effects?.length) return undefined;
-  if (!isV2AtomCertified("effect.color-adjust")) {
-    throw new Error("Uncertified Protocol V2 atom: effect.color-adjust");
-  }
   // Preserve authoring order. A later effect always receives the prior result.
-  return effects.map((effect) => ({ ...effect }));
+  return effects.map((effect) => {
+    const capability = effect.type === "blur" ? "effect.blur" : "effect.color-adjust";
+    if (!isV2AtomCertified(capability)) {
+      throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+    }
+    return { ...effect } as RuntimeEffect;
+  });
 }
 
 type LayerContext = {

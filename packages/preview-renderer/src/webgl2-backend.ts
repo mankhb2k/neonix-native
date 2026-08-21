@@ -136,6 +136,30 @@ void main() {
   outColor = vec4(source.rgb, source.a * shapeAlpha * (u_mode == 1 ? u_color.a : 1.0));
 }`;
 
+const BLUR_VERTEX_SHADER = `#version 300 es
+in vec2 a_position;
+in vec2 a_uv;
+out vec2 v_uv;
+void main() {
+  gl_Position = vec4(a_position * 2.0 - 1.0, 0.0, 1.0);
+  v_uv = a_uv;
+}`;
+
+const BLUR_FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+uniform sampler2D u_texture;
+uniform vec2 u_texel_step;
+in vec2 v_uv;
+out vec4 outColor;
+void main() {
+  vec4 color = texture(u_texture, v_uv) * 0.227027;
+  color += texture(u_texture, v_uv + u_texel_step * 1.384615) * 0.316216;
+  color += texture(u_texture, v_uv - u_texel_step * 1.384615) * 0.316216;
+  color += texture(u_texture, v_uv + u_texel_step * 3.230769) * 0.070270;
+  color += texture(u_texture, v_uv - u_texel_step * 3.230769) * 0.070270;
+  outColor = color;
+}`;
+
 type GL = WebGL2RenderingContext;
 type BlendMode = "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
 
@@ -152,9 +176,9 @@ function shader(gl: GL, type: number, source: string): WebGLShader {
   return result;
 }
 
-function program(gl: GL): WebGLProgram {
-  const vertex = shader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-  const fragment = shader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+function program(gl: GL, vertexSource = VERTEX_SHADER, fragmentSource = FRAGMENT_SHADER): WebGLProgram {
+  const vertex = shader(gl, gl.VERTEX_SHADER, vertexSource);
+  const fragment = shader(gl, gl.FRAGMENT_SHADER, fragmentSource);
   const result = gl.createProgram();
   if (!result) throw new Error("preview-renderer: unable to create WebGL program");
   gl.attachShader(result, vertex);
@@ -199,11 +223,13 @@ export function createWebGL2Backend(
   const textAtlases = new Map<string, TextAtlas>();
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
+  const blurProgramHandle = program(gl, BLUR_VERTEX_SHADER, BLUR_FRAGMENT_SHADER);
   const vao = gl.createVertexArray();
+  const blurVao = gl.createVertexArray();
   const quadBuffer = gl.createBuffer();
   const pathBuffer = gl.createBuffer();
   const pathIndexBuffer = gl.createBuffer();
-  if (!vao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
+  if (!vao || !blurVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(
@@ -223,6 +249,16 @@ export function createWebGL2Backend(
   bindVertexBuffer(quadBuffer);
   gl.bindVertexArray(null);
 
+  gl.bindVertexArray(blurVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  const blurPosition = gl.getAttribLocation(blurProgramHandle, "a_position");
+  const blurUv = gl.getAttribLocation(blurProgramHandle, "a_uv");
+  gl.enableVertexAttribArray(blurPosition);
+  gl.vertexAttribPointer(blurPosition, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(blurUv);
+  gl.vertexAttribPointer(blurUv, 2, gl.FLOAT, false, 16, 8);
+  gl.bindVertexArray(null);
+
   const projectionLocation = gl.getUniformLocation(programHandle, "u_projection");
   const modelLocation = gl.getUniformLocation(programHandle, "u_model");
   const colorLocation = gl.getUniformLocation(programHandle, "u_color");
@@ -239,6 +275,8 @@ export function createWebGL2Backend(
   const gradientRadiusLocation = gl.getUniformLocation(programHandle, "u_gradient_radius");
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
+  const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
+  const blurTexelStepLocation = gl.getUniformLocation(blurProgramHandle, "u_texel_step");
   const setColorAdjust = (effects: RuntimeEffect[] | undefined) => {
     const uniforms = colorAdjustUniforms(effects);
     gl.uniform4fv(colorAdjustMetaLocation, uniforms.subarray(0, 4));
@@ -247,6 +285,12 @@ export function createWebGL2Backend(
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
   let dpr = options.devicePixelRatio ?? 1;
+  let effectWidth = 0;
+  let effectHeight = 0;
+  let effectSourceTexture: WebGLTexture | null = null;
+  let effectHorizontalTexture: WebGLTexture | null = null;
+  let effectSourceFramebuffer: WebGLFramebuffer | null = null;
+  let effectHorizontalFramebuffer: WebGLFramebuffer | null = null;
   let lastStats: PreviewRenderStats = {
     backend: "webgl2",
     drawCalls: 0,
@@ -279,6 +323,52 @@ export function createWebGL2Backend(
     return texture;
   };
 
+  const deleteEffectTargets = () => {
+    if (effectSourceTexture) gl.deleteTexture(effectSourceTexture);
+    if (effectHorizontalTexture) gl.deleteTexture(effectHorizontalTexture);
+    if (effectSourceFramebuffer) gl.deleteFramebuffer(effectSourceFramebuffer);
+    if (effectHorizontalFramebuffer) gl.deleteFramebuffer(effectHorizontalFramebuffer);
+    effectSourceTexture = null;
+    effectHorizontalTexture = null;
+    effectSourceFramebuffer = null;
+    effectHorizontalFramebuffer = null;
+    effectWidth = 0;
+    effectHeight = 0;
+  };
+
+  const ensureEffectTargets = (targetWidth: number, targetHeight: number) => {
+    if (effectSourceTexture && effectHorizontalTexture && effectSourceFramebuffer && effectHorizontalFramebuffer && effectWidth === targetWidth && effectHeight === targetHeight) {
+      return;
+    }
+    deleteEffectTargets();
+    const createTarget = () => {
+      const texture = gl.createTexture();
+      const framebuffer = gl.createFramebuffer();
+      if (!texture || !framebuffer) throw new Error("preview-renderer: unable to allocate WebGL effect target");
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, targetWidth, targetHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        throw new Error("preview-renderer: incomplete WebGL effect framebuffer");
+      }
+      return { texture, framebuffer };
+    };
+    const source = createTarget();
+    const horizontal = createTarget();
+    effectSourceTexture = source.texture;
+    effectSourceFramebuffer = source.framebuffer;
+    effectHorizontalTexture = horizontal.texture;
+    effectHorizontalFramebuffer = horizontal.framebuffer;
+    effectWidth = targetWidth;
+    effectHeight = targetHeight;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  };
+
   const paint = (bufferToPaint: PaintCommandBuffer): PreviewRenderStats => {
     const started = performance.now();
     diagnostics.length = 0;
@@ -286,12 +376,16 @@ export function createWebGL2Backend(
     let skippedCommands = 0;
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
     let currentBlend: BlendMode = "normal";
+    let activeOffscreen: { key: string; layerId?: string; effects: RuntimeEffect[]; blend: BlendMode } | null = null;
     const firstCommand = bufferToPaint.commands[0];
     if (!firstCommand || firstCommand.op !== "beginFrame") {
       throw new Error("Preview renderer requires beginFrame as the first command");
     }
     let projection = webglClipSpaceProjection(worldToClipMatrixForPaint(firstCommand));
-    gl.viewport(0, 0, Math.max(1, Math.round(width * dpr)), Math.max(1, Math.round(height * dpr)));
+    const physicalWidth = Math.max(1, Math.round(width * dpr));
+    const physicalHeight = Math.max(1, Math.round(height * dpr));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, physicalWidth, physicalHeight);
     gl.clearColor(...cssColorToRgba(bufferToPaint.commands[0]?.op === "beginFrame" ? bufferToPaint.commands[0].background : options.background));
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(programHandle);
@@ -305,6 +399,7 @@ export function createWebGL2Backend(
         transform = command;
         currentBlend = command.blendMode ?? "normal";
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
+        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -352,6 +447,7 @@ export function createWebGL2Backend(
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
+        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -399,6 +495,7 @@ export function createWebGL2Backend(
           drawCalls += 1;
         }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
+        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
         if (!transform || !transform.visible || transform.alpha <= 0 || (command.op === "drawVideo" && command.mediaVisible === false)) {
           skippedCommands += 1;
           continue;
@@ -441,6 +538,7 @@ export function createWebGL2Backend(
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
+        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
         if (!transform || !transform.visible || transform.alpha <= 0 || !command.glyphs?.length) {
           skippedCommands += 1;
           if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
@@ -484,12 +582,62 @@ export function createWebGL2Backend(
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
           drawCalls += 1;
         }
-      } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {
-        pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "offscreen, isolation, and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
+      } else if (command.op === "beginLayer" && command.offscreen) {
+        if (activeOffscreen) {
+          pushDiagnostic({ severity: "error", code: "preview_nested_offscreen_unsupported", message: "Nested offscreen scopes are not implemented yet", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        ensureEffectTargets(physicalWidth, physicalHeight);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, effectSourceFramebuffer);
+        gl.viewport(0, 0, physicalWidth, physicalHeight);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        activeOffscreen = { key: command.key, layerId: command.layerId, effects: [], blend: currentBlend };
+      } else if (command.op === "endLayer") {
+        if (!activeOffscreen || !effectSourceTexture || !effectHorizontalTexture || !effectHorizontalFramebuffer) {
+          pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "endLayer has no active offscreen source", key: command.key });
+          continue;
+        }
+        const blur = activeOffscreen.effects.find((effect) => effect.type === "blur");
+        if (!blur) {
+          pushDiagnostic({ severity: "error", code: "preview_offscreen_effect_missing", message: "Offscreen scope requires a supported effect", key: activeOffscreen.key, layerId: activeOffscreen.layerId });
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          activeOffscreen = null;
+          continue;
+        }
+        const radius = Math.min(blur.radius * dpr, 256);
+        gl.useProgram(blurProgramHandle);
+        gl.bindVertexArray(blurVao);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.uniform1i(blurTextureLocation, 0);
+        gl.disable(gl.BLEND);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, effectHorizontalFramebuffer);
+        gl.viewport(0, 0, physicalWidth, physicalHeight);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.bindTexture(gl.TEXTURE_2D, effectSourceTexture);
+        gl.uniform2f(blurTexelStepLocation, radius / physicalWidth, 0);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, physicalWidth, physicalHeight);
+        blend(gl, activeOffscreen.blend);
+        gl.bindTexture(gl.TEXTURE_2D, effectHorizontalTexture);
+        gl.uniform2f(blurTexelStepLocation, 0, radius / physicalHeight);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        drawCalls += 2;
+        gl.useProgram(programHandle);
+        gl.bindVertexArray(vao);
+        activeOffscreen = null;
+      } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
+        pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       } else if (command.op === "unsupported") {
         skippedCommands += 1;
         pushDiagnostic({ severity: "error", code: "preview_unsupported_command", message: command.message, key: command.key, layerId: command.layerId });
       }
+    }
+    if (activeOffscreen) {
+      pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_unclosed", message: "Offscreen scope was not closed", key: activeOffscreen.key, layerId: activeOffscreen.layerId });
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     gl.bindVertexArray(null);
     lastStats = { backend: "webgl2", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, diagnostics: [...diagnostics] };
@@ -504,6 +652,7 @@ export function createWebGL2Backend(
       dpr = nextDpr;
       canvas.width = Math.max(1, Math.round(width * dpr));
       canvas.height = Math.max(1, Math.round(height * dpr));
+      deleteEffectTargets();
     },
     paint,
     stats: () => lastStats,
@@ -526,7 +675,10 @@ export function createWebGL2Backend(
       gl.deleteBuffer(pathBuffer);
       gl.deleteBuffer(pathIndexBuffer);
       gl.deleteVertexArray(vao);
+      gl.deleteVertexArray(blurVao);
       gl.deleteProgram(programHandle);
+      gl.deleteProgram(blurProgramHandle);
+      deleteEffectTargets();
     },
   };
 }

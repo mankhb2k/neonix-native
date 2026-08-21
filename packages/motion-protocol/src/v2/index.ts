@@ -21,8 +21,11 @@ export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
 export {
   V2ColorAdjustEffectSchema,
+  V2BlurEffectSchema,
+  V2EffectSchema,
   V2EffectListSchema,
   type V2ColorAdjustEffect,
+  type V2BlurEffect,
   type V2Effect,
 } from "./effects";
 export {

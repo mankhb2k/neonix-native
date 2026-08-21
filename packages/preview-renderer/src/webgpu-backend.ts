@@ -21,6 +21,7 @@ import type {
   WebGPURenderPipelineLike,
   WebGPUTextureLike,
   WebGPUBufferLike,
+  WebGPUCommandEncoderLike,
 } from "./types";
 
 const BUFFER_VERTEX = 0x20;
@@ -153,13 +154,37 @@ fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
   return vec4<f32>(source.rgb, source.a * shapeAlpha * select(1.0, uniforms.color.a, uniforms.params.y > 0.5 && uniforms.params.y < 1.5));
 }`;
 
+const POST_SHADER = `
+struct PostUniforms { step: vec4<f32> };
+@group(0) @binding(0) var<uniform> uniforms: PostUniforms;
+@group(0) @binding(1) var imageTexture: texture_2d<f32>;
+@group(0) @binding(2) var imageSampler: sampler;
+struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
+struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
+@vertex fn vertexMain(input: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = vec4<f32>(input.position * 2.0 - vec2<f32>(1.0, 1.0), 0.0, 1.0);
+  output.uv = input.uv;
+  return output;
+}
+@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  if (uniforms.step.z <= 0.0) { return textureSample(imageTexture, imageSampler, input.uv); }
+  let offset = uniforms.step.xy;
+  var color = textureSample(imageTexture, imageSampler, input.uv) * 0.227027;
+  color += textureSample(imageTexture, imageSampler, input.uv + offset * 1.384615) * 0.316216;
+  color += textureSample(imageTexture, imageSampler, input.uv - offset * 1.384615) * 0.316216;
+  color += textureSample(imageTexture, imageSampler, input.uv + offset * 3.230769) * 0.070270;
+  color += textureSample(imageTexture, imageSampler, input.uv - offset * 3.230769) * 0.070270;
+  return color;
+}`;
+
 function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {
   const context = (canvas as unknown as { getContext(contextId: string): unknown }).getContext("webgpu");
   if (!context || typeof context !== "object") return null;
   return context as WebGPUContextLike;
 }
 
-function createBackendObjects(device: WebGPUDeviceLike, format: string): {
+function createBackendObjects(device: WebGPUDeviceLike, format: string, sampleCount = MSAA_SAMPLE_COUNT): {
   pipeline: WebGPURenderPipelineLike;
   pathPipeline: WebGPURenderPipelineLike;
   layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
@@ -192,7 +217,7 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string): {
         },
       }],
     },
-    multisample: { count: MSAA_SAMPLE_COUNT },
+    multisample: { count: sampleCount },
   };
   const pipeline = device.createRenderPipeline({
     ...pipelineOptions,
@@ -206,6 +231,42 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string): {
   device.queue.writeBuffer(vertexBuffer, 0, new Float32Array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]));
   const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
   return { pipeline, pathPipeline, layout, vertexBuffer, sampler };
+}
+
+function createPostObjects(device: WebGPUDeviceLike, format: string, sampleCount = 1): {
+  pipeline: WebGPURenderPipelineLike;
+  layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
+} {
+  const shader = device.createShaderModule({ code: POST_SHADER });
+  const layout = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: 3, buffer: { type: "uniform" } },
+      { binding: 1, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 2, visibility: 2, sampler: { type: "filtering" } },
+    ],
+  });
+  const pipeline = device.createRenderPipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+    vertex: {
+      module: shader,
+      entryPoint: "vertexMain",
+      buffers: [{ arrayStride: 16, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }, { shaderLocation: 1, offset: 8, format: "float32x2" }] }],
+    },
+    fragment: {
+      module: shader,
+      entryPoint: "fragmentMain",
+      targets: [{
+        format,
+        blend: {
+          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+        },
+      }],
+    },
+    primitive: { topology: "triangle-strip" },
+    multisample: { count: sampleCount },
+  });
+  return { pipeline, layout };
 }
 
 function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array): void {
@@ -223,6 +284,9 @@ export function createWebGPUBackend(
   const format = init.format ?? "bgra8unorm";
   context.configure({ device, format, alphaMode: "premultiplied" });
   const objects = createBackendObjects(device, format);
+  const singleSampleObjects = createBackendObjects(device, format, 1);
+  const postObjects = createPostObjects(device, format);
+  const postMsaaObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT);
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGPUTextureLike>();
   const textAtlases = new Map<string, TextAtlas>();
@@ -245,6 +309,11 @@ export function createWebGPUBackend(
   let msaaTexture: WebGPUTextureLike | null = null;
   let msaaWidth = 0;
   let msaaHeight = 0;
+  let stageTextures: [WebGPUTextureLike, WebGPUTextureLike] | null = null;
+  let effectSourceTexture: WebGPUTextureLike | null = null;
+  let effectHorizontalTexture: WebGPUTextureLike | null = null;
+  let effectWidth = 0;
+  let effectHeight = 0;
   let lastStats: PreviewRenderStats = { backend: "webgpu", drawCalls: 0, skippedCommands: 0, frameTimeMs: 0, diagnostics };
 
   const pushDiagnostic = (diagnostic: PreviewDiagnostic) => {
@@ -296,6 +365,35 @@ export function createWebGPUBackend(
     return msaaTexture;
   };
 
+  const disposeEffectTargets = () => {
+    stageTextures?.[0].destroy?.();
+    stageTextures?.[1].destroy?.();
+    effectSourceTexture?.destroy?.();
+    effectHorizontalTexture?.destroy?.();
+    stageTextures = null;
+    effectSourceTexture = null;
+    effectHorizontalTexture = null;
+    effectWidth = 0;
+    effectHeight = 0;
+  };
+
+  const ensureEffectTargets = (targetWidth: number, targetHeight: number) => {
+    const nextWidth = Math.max(1, Math.round(targetWidth));
+    const nextHeight = Math.max(1, Math.round(targetHeight));
+    if (stageTextures && effectSourceTexture && effectHorizontalTexture && effectWidth === nextWidth && effectHeight === nextHeight) return;
+    disposeEffectTargets();
+    const createTexture = () => device.createTexture({
+      size: { width: nextWidth, height: nextHeight },
+      format,
+      usage: TEXTURE_BINDING | TEXTURE_RENDER_ATTACHMENT,
+    });
+    stageTextures = [createTexture(), createTexture()];
+    effectSourceTexture = createTexture();
+    effectHorizontalTexture = createTexture();
+    effectWidth = nextWidth;
+    effectHeight = nextHeight;
+  };
+
   const paint = (buffer: PaintCommandBuffer): PreviewRenderStats => {
     const started = performance.now();
     diagnostics.length = 0;
@@ -305,12 +403,47 @@ export function createWebGPUBackend(
     const background = cssColorToRgba(
       frame?.op === "beginFrame" ? frame.background ?? options.background : options.background,
     );
-    const target = context.getCurrentTexture().createView();
-    const multisampleTarget = ensureMsaaTexture(options.canvas.width, options.canvas.height).createView();
     const encoder = device.createCommandEncoder();
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [{ view: multisampleTarget, resolveTarget: target, clearValue: { r: background[0], g: background[1], b: background[2], a: background[3] }, loadOp: "clear", storeOp: "discard" }],
-    });
+    const target = context.getCurrentTexture().createView();
+    const physicalWidth = Math.max(1, options.canvas.width);
+    const physicalHeight = Math.max(1, options.canvas.height);
+    ensureEffectTargets(physicalWidth, physicalHeight);
+    const stages = stageTextures!;
+    const sourceTexture = effectSourceTexture!;
+    const horizontalTexture = effectHorizontalTexture!;
+    const multisampleTarget = ensureMsaaTexture(physicalWidth, physicalHeight).createView();
+    const post = (nextPass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]>, texture: WebGPUTextureLike, stepX = 0, stepY = 0, blurred = false, multisampled = false) => {
+      const uniform = device.createBuffer({ size: 16, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      transientBuffers.add(uniform);
+      device.queue.writeBuffer(uniform, 0, new Float32Array([stepX, stepY, blurred ? 1 : 0, 0]));
+      const postPipeline = multisampled ? postMsaaObjects : postObjects;
+      const bindGroup = device.createBindGroup({ layout: postPipeline.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: objects.sampler }] });
+      nextPass.setPipeline(postPipeline.pipeline);
+      nextPass.setVertexBuffer(0, objects.vertexBuffer);
+      nextPass.setBindGroup(0, bindGroup);
+      nextPass.draw(4);
+    };
+    const beginStagePass = (output: WebGPUTextureLike, source?: WebGPUTextureLike) => {
+      const nextPass = encoder.beginRenderPass({
+        colorAttachments: [{ view: multisampleTarget, resolveTarget: output.createView(), clearValue: { r: background[0], g: background[1], b: background[2], a: background[3] }, loadOp: "clear", storeOp: "discard" }],
+      });
+      if (source) post(nextPass, source, 0, 0, false, true);
+      return nextPass;
+    };
+    let stageIndex = 0;
+    let pass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]> | null = beginStagePass(stages[stageIndex]);
+    let activeObjects = objects;
+    let activeOffscreen: { key: string; layerId?: string; radius: number } | null = null;
+    const closePass = () => {
+      pass?.end();
+      pass = null;
+    };
+    const ensureStagePass = () => {
+      if (pass) return;
+      stageIndex = stageIndex === 0 ? 1 : 0;
+      pass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
+      activeObjects = objects;
+    };
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
     const firstCommand = buffer.commands[0];
     if (!firstCommand || firstCommand.op !== "beginFrame") {
@@ -325,6 +458,8 @@ export function createWebGPUBackend(
       } else if (command.op === "setTransform") {
         transform = command;
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
+        if (!activeOffscreen) ensureStagePass();
+        if (activeOffscreen) activeOffscreen.radius = command.effects?.find((effect) => effect.type === "blur")?.radius ?? 0;
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -374,12 +509,14 @@ export function createWebGPUBackend(
         data.set(colorAdjustUniforms(command.effects), 64);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
-        pass.setPipeline(objects.pipeline);
-        pass.setVertexBuffer(0, objects.vertexBuffer);
-        pass.setBindGroup(0, bindGroup);
-        pass.draw(4);
+        pass!.setPipeline(activeObjects.pipeline);
+        pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+        pass!.setBindGroup(0, bindGroup);
+        pass!.draw(4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
+        if (!activeOffscreen) ensureStagePass();
+        if (activeOffscreen) activeOffscreen.radius = command.effects?.find((effect) => effect.type === "blur")?.radius ?? 0;
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -427,14 +564,16 @@ export function createWebGPUBackend(
           data.set(colorAdjustUniforms(command.effects), 64);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
-          pass.setPipeline(objects.pathPipeline);
-          pass.setVertexBuffer(0, vertexBuffer);
-          pass.setIndexBuffer(indexBuffer, "uint32");
-          pass.setBindGroup(0, bindGroup);
-          pass.drawIndexed(indexData.length);
+          pass!.setPipeline(activeObjects.pathPipeline);
+          pass!.setVertexBuffer(0, vertexBuffer);
+          pass!.setIndexBuffer(indexBuffer, "uint32");
+          pass!.setBindGroup(0, bindGroup);
+          pass!.drawIndexed(indexData.length);
           drawCalls += 1;
         }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
+        if (!activeOffscreen) ensureStagePass();
+        if (activeOffscreen) activeOffscreen.radius = command.effects?.find((effect) => effect.type === "blur")?.radius ?? 0;
         if (!transform || !transform.visible || transform.alpha <= 0 || (command.op === "drawVideo" && command.mediaVisible === false)) {
           skippedCommands += 1;
           continue;
@@ -471,12 +610,14 @@ export function createWebGPUBackend(
         data.set(colorAdjustUniforms(command.effects), 64);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
-        pass.setPipeline(objects.pipeline);
-        pass.setVertexBuffer(0, objects.vertexBuffer);
-        pass.setBindGroup(0, bindGroup);
-        pass.draw(4);
+        pass!.setPipeline(activeObjects.pipeline);
+        pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+        pass!.setBindGroup(0, bindGroup);
+        pass!.draw(4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
+        if (!activeOffscreen) ensureStagePass();
+        if (activeOffscreen) activeOffscreen.radius = command.effects?.find((effect) => effect.type === "blur")?.radius ?? 0;
         if (!transform || !transform.visible || transform.alpha <= 0 || !command.glyphs?.length) {
           skippedCommands += 1;
           if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
@@ -514,20 +655,59 @@ export function createWebGPUBackend(
           data.set(colorAdjustUniforms(command.effects), 64);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
-          pass.setPipeline(objects.pipeline);
-          pass.setVertexBuffer(0, objects.vertexBuffer);
-          pass.setBindGroup(0, bindGroup);
-          pass.draw(4);
+          pass!.setPipeline(activeObjects.pipeline);
+          pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+          pass!.setBindGroup(0, bindGroup);
+          pass!.draw(4);
           drawCalls += 1;
         }
       } else if (command.op === "unsupported") {
         skippedCommands += 1;
         pushDiagnostic({ severity: "error", code: "preview_unsupported_command", message: command.message, key: command.key, layerId: command.layerId });
-      } else if (command.op === "beginLayer" && (command.offscreen || command.isolation || command.mask)) {
-        pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "offscreen, isolation, and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
+      } else if (command.op === "beginLayer" && command.offscreen) {
+        if (activeOffscreen) {
+          pushDiagnostic({ severity: "error", code: "preview_nested_offscreen_unsupported", message: "Nested offscreen scopes are not implemented yet", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        closePass();
+        pass = encoder.beginRenderPass({
+          colorAttachments: [{ view: sourceTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+        });
+        activeObjects = singleSampleObjects;
+        activeOffscreen = { key: command.key, layerId: command.layerId, radius: 0 };
+      } else if (command.op === "endLayer") {
+        if (!activeOffscreen) {
+          pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "endLayer has no active offscreen source", key: command.key });
+          continue;
+        }
+        closePass();
+        const radius = Math.min(activeOffscreen.radius * dpr, 256);
+        const horizontalPass = encoder.beginRenderPass({
+          colorAttachments: [{ view: horizontalTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+        });
+        post(horizontalPass, sourceTexture, radius / physicalWidth, 0, true);
+        horizontalPass.end();
+        stageIndex = stageIndex === 0 ? 1 : 0;
+        const previousStage = stages[stageIndex === 0 ? 1 : 0];
+        const compositePass = beginStagePass(stages[stageIndex], previousStage);
+        post(compositePass, horizontalTexture, 0, radius / physicalHeight, true, true);
+        compositePass.end();
+        drawCalls += 2;
+        activeOffscreen = null;
+        activeObjects = objects;
+      } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
+        pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       }
     }
-    pass.end();
+    if (activeOffscreen) {
+      pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_unclosed", message: "Offscreen scope was not closed", key: activeOffscreen.key, layerId: activeOffscreen.layerId });
+    }
+    closePass();
+    const presentPass = encoder.beginRenderPass({
+      colorAttachments: [{ view: target, clearValue: { r: background[0], g: background[1], b: background[2], a: background[3] }, loadOp: "clear", storeOp: "store" }],
+    });
+    post(presentPass, stages[stageIndex]);
+    presentPass.end();
     device.queue.submit([encoder.finish()]);
     const submittedBuffers = [...transientBuffers];
     transientBuffers.clear();
@@ -554,6 +734,7 @@ export function createWebGPUBackend(
       msaaTexture = null;
       msaaWidth = 0;
       msaaHeight = 0;
+      disposeEffectTargets();
     },
     paint,
     stats: () => lastStats,
@@ -569,9 +750,11 @@ export function createWebGPUBackend(
     diagnostics,
     dispose() {
       objects.vertexBuffer.destroy?.();
+      singleSampleObjects.vertexBuffer.destroy?.();
       whiteTexture.destroy?.();
       msaaTexture?.destroy?.();
       msaaTexture = null;
+      disposeEffectTargets();
       for (const buffer of transientBuffers) buffer.destroy?.();
       transientBuffers.clear();
       for (const texture of textures.values()) texture.destroy?.();

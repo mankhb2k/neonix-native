@@ -154,6 +154,17 @@ export function evaluateRuntimeProjectV2(
       });
     }
 
+    const needsOffscreen = node.content.effects?.some((effect) => effect.type === "blur") === true &&
+      !(node.content.kind === "text" && !node.content.layout);
+    if (needsOffscreen) {
+      commands.push({
+        op: "beginLayer",
+        key: node.id,
+        layerId: node.id,
+        isolation: true,
+        offscreen: true,
+      });
+    }
     commands.push({
       op: "setTransform",
       key: node.id,
@@ -274,6 +285,9 @@ export function evaluateRuntimeProjectV2(
           : {}),
         ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
+    }
+    if (needsOffscreen) {
+      commands.push({ op: "endLayer", key: node.id });
     }
   }
 

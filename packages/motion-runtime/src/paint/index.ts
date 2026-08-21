@@ -24,6 +24,7 @@ export type {
   RenderNormalizedRect,
   RuntimeEffect,
   RuntimeColorAdjustEffect,
+  RuntimeBlurEffect,
 } from "./paint-types";
 export {
   type PaintDisplayList,

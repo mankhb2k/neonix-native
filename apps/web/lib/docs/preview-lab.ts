@@ -948,6 +948,24 @@ const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
   }),
 ]);
 
+const BLUR_PROJECT = project("preview-effect-blur-v2", [
+  rectangle({
+    id: "crisp-reference",
+    zIndex: 0,
+    fill: "#ff3366",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
+  }),
+  rectangle({
+    id: "blurred-rectangle",
+    zIndex: 1,
+    fill: "#ff3366",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
+    effects: [{ id: "soften", type: "blur", radius: 24 }],
+  }),
+]);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -1020,6 +1038,13 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 11 / Effects",
     hint: "The right red rectangle is desaturated after its layer has been rasterized.",
     project: COLOR_ADJUST_PROJECT,
+  },
+  {
+    id: "effect.blur",
+    label: "Effect / blur",
+    group: "Task 11 / Effects",
+    hint: "The right rectangle is rendered to an isolated source texture, blurred horizontally and vertically, then composited back over the stage.",
+    project: BLUR_PROJECT,
   },
   {
     id: "path.closed-fill.perspective",

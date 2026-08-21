@@ -100,6 +100,21 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow(/Duplicate effect id/);
   });
 
+  it("accepts blur with a positive bounded radius", () => {
+    const blur = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{ id: "soften", type: "blur" as const, radius: 18 }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(blur)).toEqual(blur);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...blur,
+      layers: [{ ...blur.layers[0], effects: [{ id: "soften", type: "blur", radius: 0 }] }],
+    })).toThrow();
+  });
+
   it("accepts an open stroke-only path with join, cap, and dash semantics", () => {
     const path = {
       ...RECTANGLE_PROJECT,
