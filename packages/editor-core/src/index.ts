@@ -137,3 +137,7 @@ export {
   findBaseClipAtTimeForExport,
   resolveBakedLocalTime,
 } from "./export/build-export-project";
+
+// Pure pointer, timeline, and stage interaction algorithms. DOM/browser
+// adapters deliberately remain in the host application.
+export * from "./interactions";

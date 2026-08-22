@@ -15,7 +15,7 @@ import {
   type StagePreviewPayload,
   type StageSession,
   type StageTransformValues,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 
 export type UseStagePointerSessionArgs = {
   onPreview?: (payload: StagePreviewPayload) => void;

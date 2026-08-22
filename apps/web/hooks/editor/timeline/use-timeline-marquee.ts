@@ -14,7 +14,6 @@ import {
 } from "@motionvideo/editor-core";
 import {
   TIMELINE_PLAYHEAD_GUTTER_PX,
-  autoScrollElementNearEdge,
   clipIdsInMarqueeIndexed,
   commitMarqueeSelectionIds,
   marqueeTrackScrollBounds,
@@ -22,7 +21,8 @@ import {
   resolveMarqueeSelectionIds,
   shouldPublishMarqueeIds,
   type MarqueeRect,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
+import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 
 const MARQUEE_THRESHOLD_PX = 4;

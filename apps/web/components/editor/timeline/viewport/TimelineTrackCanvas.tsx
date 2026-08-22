@@ -6,7 +6,7 @@ import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
 import { LANE_GAP_PX } from "../timeline-scale";
-import type { ClipMovePreview } from "@motionvideo/editor-interactions";
+import type { ClipMovePreview } from "@motionvideo/editor-core";
 import type {
   EditorSelection,
   TimelineClip,

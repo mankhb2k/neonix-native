@@ -13,7 +13,7 @@ import {
 import {
   resolveClipTrimUpdate,
   type ClipTrimPreview,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 

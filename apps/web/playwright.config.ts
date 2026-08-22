@@ -13,14 +13,7 @@ const webGpuLaunchArgs = [
 
 export default defineConfig({
   testDir: "./e2e",
-  // CapCut timeline e2e still deferred; new AI Studio acceptance lives in smoke.spec.ts.
-  testIgnore: [
-    "**/timeline/**",
-    "**/editor-timeline.spec.ts",
-    "**/vite-phase0-screenshots.spec.ts",
-    "**/pack-group.spec.ts",
-    "**/preview-blit.spec.ts",
-  ],
+  // Retired V1 editor suites are excluded; active coverage is V2 preview/smoke.
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

@@ -81,6 +81,35 @@ describe("Runtime IR V2", () => {
     );
   });
 
+  it("owns ordered effects on a layer scope rather than its drawable", () => {
+    const frame = evaluateRuntimeProjectV2({
+      ...project,
+      nodes: [{
+        ...project.nodes[0]!,
+        content: {
+          ...project.nodes[0]!.content,
+          effects: [
+            { id: "grade", type: "color-adjust", brightness: -0.1, contrast: 1.1, saturation: 0.8, hueRotate: 0 },
+            { id: "soften", type: "blur", radius: 12 },
+          ],
+        },
+      }],
+    }, 0);
+
+    expect(frame.commands.map((command) => command.op)).toEqual([
+      "beginFrame",
+      "beginLayer",
+      "setTransform",
+      "drawShape",
+      "endLayer",
+      "endFrame",
+    ]);
+    const scope = frame.commands.find((command) => command.op === "beginLayer");
+    expect(scope).toMatchObject({ offscreen: true, effectProgram: { output: "effect:soften" } });
+    const draw = frame.commands.find((command) => command.op === "drawShape");
+    expect(draw).not.toHaveProperty("effects");
+  });
+
   it("uses frame-grid timing and stable z-index/id ordering", () => {
     const active = evaluateRuntimeProjectV2(
       {

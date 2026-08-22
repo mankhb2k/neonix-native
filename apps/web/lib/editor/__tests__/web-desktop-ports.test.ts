@@ -4,10 +4,12 @@ import {
   playbackFrameTime,
 } from "@motionvideo/editor-core";
 import {
-  clientXToStripTime,
   resolvePlayheadScrubMax,
+} from "@motionvideo/editor-core";
+import {
+  clientXToStripTime,
   scrollTracksHorizontallyNearEdge,
-} from "@motionvideo/editor-interactions";
+} from "@/lib/editor/interaction-host/timeline-dom";
 import { seedWebEditorUi } from "@/lib/editor/fixtures/seed-editor-ui";
 
 describe("playback time-frame (web port)", () => {

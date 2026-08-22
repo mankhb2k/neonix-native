@@ -5,16 +5,13 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export function generateStaticParams() {
-  return DOCS_PAGE_SLUGS.filter((slug) => slug !== "" && slug !== "preview").map(
-    (slug) => ({
-      slug: slug.split("/"),
-    }),
-  );
+  return DOCS_PAGE_SLUGS.map((slug) => ({
+    slug: slug.split("/"),
+  }));
 }
 
 function slugFromParams(slug: string[] | undefined): DocsPageSlug | null {
   const joined = (slug ?? []).join("/");
-  if (joined === "preview") return null;
   if ((DOCS_PAGE_SLUGS as readonly string[]).includes(joined)) {
     return joined as DocsPageSlug;
   }

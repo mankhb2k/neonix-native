@@ -9,6 +9,7 @@ export {
   RemotionFramePainter,
 } from "./RemotionFramePainter";
 export type { RemotionFramePainterProps } from "./RemotionFramePainter";
+export { assertRemotionTextPrepared } from "./text-runtime";
 export {
   buildRemotionPaintTree,
   flattenRemotionDrawables,

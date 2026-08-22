@@ -3,10 +3,7 @@
  */
 
 import { useCallback, useState } from "react";
-import {
-  resolveStageHit,
-  type StagePoint,
-} from "@motionvideo/editor-interactions";
+import { resolveStageHit } from "@/lib/editor/legacy-runtime/stage-hit-test-policy";
 import type {
   RenderSnapshot,
   RenderSnapshotItem,
@@ -15,6 +12,7 @@ import {
   selectionNone,
   selectionNode,
   type EditorSelection,
+  type StagePoint,
 } from "@motionvideo/editor-core";
 
 export type UseStageSelectionArgs = {

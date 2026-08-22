@@ -1,9 +1,9 @@
 import {
-  parseMotionProject,
-  type MotionProject,
+  parseMotionProtocol,
 } from "@motionvideo/motion-protocol";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
-/** Parse editor/web project JSON. Only V1 (`formatVersion: 1`) is accepted. */
-export function parseProjectInput(input: unknown): MotionProject {
-  return parseMotionProject(input);
+/** Parse only the strict Atomic Protocol V2 document shape. */
+export function parseProjectInput(input: unknown): MotionProtocolV2 {
+  return parseMotionProtocol(input);
 }

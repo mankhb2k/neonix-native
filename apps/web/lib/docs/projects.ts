@@ -1,4 +1,4 @@
-import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
+const V2_Z_POSITION_RANGE = 10000;
 
 const transform = {
   translate: { x: 0, y: 0 },
@@ -255,4 +255,4 @@ export const INVALID_MISSING_REF = {
   ],
 };
 
-export const DEPTH_LIMIT = MOTION_PROTOCOL_LIMITS.zPositionRange;
+export const DEPTH_LIMIT = V2_Z_POSITION_RANGE;

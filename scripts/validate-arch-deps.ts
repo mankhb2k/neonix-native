@@ -84,7 +84,6 @@ const CORE_PACKAGES = new Set([
   "@motionvideo/motion-compiler",
   "@motionvideo/motion-runtime",
   "@motionvideo/editor-core",
-  "@motionvideo/editor-interactions",
   "@motionvideo/render-contracts",
 ]);
 

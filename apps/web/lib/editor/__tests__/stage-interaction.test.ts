@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createStageSession,
   type StageTransformValues,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 
 describe("stage interaction session", () => {
   it("previews move deltas and commits once", () => {

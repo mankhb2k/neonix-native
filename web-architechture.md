@@ -47,7 +47,7 @@ flowchart TB
     EditorUI["Editor UI riêng từng app<br/>timeline · inspector · layers · stage overlay"]
     AppState["App state riêng<br/>Web Zustand / Desktop session-store"]
     ER["@motionvideo/editor-react<br/>DOM measurement · pointer capture · reusable hooks"]
-    EI["@motionvideo/editor-interactions<br/>gesture state machines · transform math · timeline math"]
+    EI["@motionvideo/editor-core/interactions<br/>gesture state machines · transform math · timeline math"]
     EC["@motionvideo/editor-core<br/>commands · selection · history · document operations"]
     Preview["@motionvideo/preview-renderer<br/>EvaluatedFrame.paint → WebGL2/WebGPU"]
     Canvas["Pixi canvas preview"]

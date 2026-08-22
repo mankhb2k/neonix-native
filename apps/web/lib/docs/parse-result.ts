@@ -1,4 +1,4 @@
-import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
+import { parseMotionProtocol } from "@motionvideo/motion-protocol";
 
 export type ParseAttempt = {
   ok: boolean;
@@ -7,8 +7,8 @@ export type ParseAttempt = {
 
 export function attemptParse(input: unknown): ParseAttempt {
   try {
-    parseMotionProjectV1(input);
-    return { ok: true, message: "parseMotionProjectV1 accepted this JSON." };
+    parseMotionProtocol(input);
+    return { ok: true, message: "Protocol V2 accepted this JSON." };
   } catch (err) {
     const message =
       err instanceof Error ? err.message.slice(0, 400) : String(err);

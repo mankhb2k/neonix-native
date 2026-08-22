@@ -18,7 +18,6 @@ import {
 } from "@motionvideo/editor-core";
 import {
   computePlayheadFollowScroll,
-  ensurePlayheadScrubScroll,
   resolvePlayheadScrubMax,
   timelineTimeToViewportLeft,
   PLAYHEAD_SCRUB_EDGE_PX,
@@ -26,7 +25,8 @@ import {
   PLAYHEAD_FOLLOW_MARGIN_PX,
   type ClipMovePreview,
   type MarqueeRect,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
+import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   useCallback,
   useEffect,

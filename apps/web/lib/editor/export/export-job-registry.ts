@@ -4,7 +4,7 @@
  */
 
 import type { RenderJobProgress } from "@motionvideo/render-contracts";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type ExportJobRecord = RenderJobProgress & {
   projectId: string;
@@ -23,7 +23,7 @@ export function cancelExportJob(_jobId: string): boolean {
 }
 
 export async function startExportJob(
-  _project: MotionProject,
+  _project: MotionProtocolV2,
 ): Promise<ExportJobRecord> {
   throw new Error(
     "Local render-worker export is retired. Use POST /api/renders (Remotion Lambda).",

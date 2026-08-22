@@ -11,7 +11,7 @@ import type {
   StageBounds,
   StagePoint,
   StageTransformValues,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 
 export type UseNodeTransformArgs = {
   beginMove: (args: BeginMoveArgs) => void;

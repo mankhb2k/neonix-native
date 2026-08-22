@@ -962,7 +962,7 @@ const BLUR_PROJECT = project("preview-effect-blur-v2", [
     fill: "#ff3366",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
-    effects: [{ id: "soften", type: "blur", radius: 24 }],
+    effects: [{ id: "soften", type: "blur", radius: 40 }],
   }),
 ]);
 
@@ -1043,7 +1043,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     id: "effect.blur",
     label: "Effect / blur",
     group: "Task 11 / Effects",
-    hint: "The right rectangle is rendered to an isolated source texture, blurred horizontally and vertically, then composited back over the stage.",
+    hint: "The right rectangle uses a 40 px screen-space Gaussian blur through a linear premultiplied pyramid, then composites back over the stage.",
     project: BLUR_PROJECT,
   },
   {

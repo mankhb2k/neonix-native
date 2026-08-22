@@ -119,6 +119,7 @@ export function decodePaintCommandBuffer(
           layerId: cmd.layerId,
           isolation: Boolean(cmd.isolation),
           offscreen: Boolean(cmd.offscreen),
+          ...(cmd.effectProgram ? { effectProgram: cmd.effectProgram } : {}),
           ...(cmd.mask ? { mask: cmd.mask } : {}),
           children: [],
         };
@@ -150,9 +151,6 @@ export function decodePaintCommandBuffer(
           key: cmd.key,
           transform,
           draw: cmd,
-          ...("effects" in cmd && cmd.effects?.length
-            ? { effects: cmd.effects }
-            : {}),
         });
         transforms.delete(cmd.key);
         break;

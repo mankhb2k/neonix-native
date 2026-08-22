@@ -2,14 +2,14 @@
  * Request MP4 export via Remotion Lambda BFF (POST /api/renders).
  */
 
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type ExportError = {
   error: string;
 };
 
 export async function exportMotionProject(
-  project: MotionProject,
+  project: MotionProtocolV2,
 ): Promise<{ jobId: string }> {
   const res = await fetch("/api/renders", {
     method: "POST",
@@ -18,7 +18,7 @@ export async function exportMotionProject(
       "x-user-id": "web-editor",
     },
     body: JSON.stringify({
-      projectId: project.metadata.id,
+      projectId: project.id,
       projectRevision: 0,
       preset: "export-1080p",
     }),

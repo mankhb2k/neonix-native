@@ -8,7 +8,7 @@ import type {
   TimelineLane,
   TimelineTrackKind,
 } from "@motionvideo/editor-core";
-import type { ClipMoveDropTarget } from "@motionvideo/editor-interactions";
+import type { ClipMoveDropTarget } from "@motionvideo/editor-core";
 
 /** CapCut-style drop target from editor-core policy / app DOM collectors. */
 export type ClipMovePolicyTarget = {

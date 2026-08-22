@@ -11,8 +11,8 @@ import type {
   PathStrokeMesh,
   RenderMediaFit,
   RenderNormalizedRect,
-  RuntimeEffect,
 } from "./paint-types";
+import type { RuntimeEffectProgram } from "../v2/effect-program";
 
 export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";
@@ -46,6 +46,8 @@ export type PaintCommand =
       layerId?: string;
       isolation?: boolean;
       offscreen?: boolean;
+      /** Runtime-only ordered effect graph for this compositing scope. */
+      effectProgram?: RuntimeEffectProgram;
       mask?: {
         mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
         sourceKey: string;
@@ -111,7 +113,6 @@ export type PaintCommand =
         };
         sourceRef?: { kind: "text-run"; layerId: string; runId: string };
       }>;
-      effects?: RuntimeEffect[];
     }
   | {
       op: "drawShape";
@@ -128,7 +129,6 @@ export type PaintCommand =
       stroke?: string;
       strokeWidth?: number;
       strokeOpacity?: number;
-      effects?: RuntimeEffect[];
     }
   | {
       op: "drawSolid";
@@ -137,7 +137,6 @@ export type PaintCommand =
       fill: string;
       width: number;
       height: number;
-      effects?: RuntimeEffect[];
     }
   | {
       op: "drawImage";
@@ -149,7 +148,6 @@ export type PaintCommand =
       height: number;
       fit?: RenderMediaFit;
       crop?: RenderNormalizedRect;
-      effects?: RuntimeEffect[];
     }
   | {
       op: "drawPath";
@@ -169,7 +167,6 @@ export type PaintCommand =
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
-      effects?: RuntimeEffect[];
     }
   | {
       op: "drawVideo";
@@ -183,7 +180,6 @@ export type PaintCommand =
       mediaTime: number;
       mediaVisible?: boolean;
       muted?: boolean;
-      effects?: RuntimeEffect[];
     }
   | {
       op: "unsupported";

@@ -141,12 +141,11 @@ pnpm --filter @motionvideo/desktop dev
 
 | Tài liệu                                                             | Nội dung                                            |
 | -------------------------------------------------------------------- | --------------------------------------------------- |
-| [Motion Format V1](docs/guide/v1-format-guide.md)                    | Canonical authoring JSON (`zIndex`, timing, frame, group) |
-| [Timeline](docs/guide/v1-timeline-guide.md)                          | Clock vs lanes; required layer timing                     |
-| [Group](docs/guide/v1-group-guide.md)                                | Visual container; children ≥1; no default clip            |
-| [Components](docs/guide/v1-component-guide.md)                       | Sealed instance + public props                            |
+| [V2 Guides](docs/guide/README.md)                                    | Active documentation entrypoint for the V2 render core    |
+| [V2 Architecture](docs/guide/v2-architechture.md)                    | MCP/editor/AI through high-level, atomic, runtime, and render |
+| [Atomic V2 Preview E2E Plan](docs/atomic-protocol-v2-preview-e2e-plan.md) | Atom-by-atom certification and parity gates          |
 | [AI-First Editor Architecture](docs/ai-first-editor-architecture.md) | Kiến trúc AI agent, MCP, Skills, editor             |
-| [Web Architecture](web-architechture.md)                             | Kiến trúc Web, Pixi preview, Remotion Lambda export |
+| [Web Architecture](web-architechture.md)                             | Kiến trúc Web và Remotion export |
 
 ---
 

@@ -23,3 +23,8 @@ export {
   webglClipSpaceProjection,
 } from "./math";
 export { mediaLayout, type MediaLayout } from "./media";
+export {
+  buildEffectPassPlan,
+  type EffectPassPlan,
+  type EffectPassPlanDiagnostic,
+} from "./effect-pass-plan";

@@ -3,7 +3,7 @@
  */
 
 import { useCallback, type RefObject } from "react";
-import { clientXToTimelineTime } from "@motionvideo/editor-interactions";
+import { clientXToTimelineTime } from "@/lib/editor/interaction-host/timeline-dom";
 
 export type UseTimelineSeekArgs = {
   tracksScrollRef: RefObject<HTMLElement | null>;

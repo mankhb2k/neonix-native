@@ -27,7 +27,7 @@ import {
   resolveStageHit,
   selectionBoxFromWorldAndDelta,
   type ResizeHandle,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 import type { RenderSnapshot } from "@motionvideo/motion-runtime";
 
 type Props = {

@@ -1,4 +1,4 @@
-import type { PaintCommand, PaintCommandBuffer, RuntimeEffect } from "@motionvideo/motion-runtime";
+import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import {
   cssColorToRgba,
   matrix4ForQuad,
@@ -10,6 +10,8 @@ import {
 import { mediaLayout } from "./media";
 import { createTextAtlas, type TextAtlas } from "./text-atlas";
 import { colorAdjustUniforms } from "./effects";
+import { buildEffectPassPlan, type EffectPassPlan } from "./effect-pass-plan";
+import { blurPyramidPlan } from "./blur-quality";
 import type { PreviewBackend } from "./backend";
 import type {
   PreviewAsset,
@@ -148,16 +150,72 @@ void main() {
 const BLUR_FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_texture;
-uniform vec2 u_texel_step;
+uniform vec4 u_post_params;
+uniform vec4 u_color_adjust_meta;
+uniform vec4 u_color_adjust[4];
 in vec2 v_uv;
 out vec4 outColor;
+vec3 srgbToLinear(vec3 color) {
+  vec3 low = color / 12.92;
+  vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+  return mix(low, high, step(vec3(0.04045), color));
+}
+vec3 linearToSrgb(vec3 color) {
+  vec3 low = color * 12.92;
+  vec3 high = 1.055 * pow(max(color, vec3(0.0)), vec3(1.0 / 2.4)) - vec3(0.055);
+  return mix(low, high, step(vec3(0.0031308), color));
+}
+vec4 decodePremultiplied(vec4 color) {
+  if (color.a <= 0.000001) return vec4(0.0);
+  return vec4(srgbToLinear(clamp(color.rgb / color.a, 0.0, 1.0)) * color.a, color.a);
+}
+vec4 encodePremultiplied(vec4 color) {
+  if (color.a <= 0.000001) return vec4(0.0);
+  return vec4(linearToSrgb(max(color.rgb / color.a, vec3(0.0))) * color.a, color.a);
+}
+vec4 readColor(vec2 uv) {
+  vec4 color = texture(u_texture, uv);
+  return u_post_params.w < -0.5 ? decodePremultiplied(color) : color;
+}
+vec3 applyPostHueRotate(vec3 color, float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  return vec3(
+    color.r * (0.213 + c * 0.787 - s * 0.213) + color.g * (0.715 - c * 0.715 - s * 0.715) + color.b * (0.072 - c * 0.072 + s * 0.928),
+    color.r * (0.213 - c * 0.213 + s * 0.143) + color.g * (0.715 + c * 0.285 + s * 0.140) + color.b * (0.072 - c * 0.072 - s * 0.283),
+    color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072)
+  );
+}
+vec4 applyPostColorAdjust(vec4 source, vec4 effect) {
+  if (source.a <= 0.000001) return vec4(0.0);
+  vec3 color = clamp(source.rgb / source.a + vec3(effect.x), 0.0, 1.0);
+  color = clamp((color - vec3(0.5)) * effect.y + vec3(0.5), 0.0, 1.0);
+  float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  color = mix(vec3(luma), color, effect.z);
+  return vec4(applyPostHueRotate(color, effect.w) * source.a, source.a);
+}
 void main() {
-  vec4 color = texture(u_texture, v_uv) * 0.227027;
-  color += texture(u_texture, v_uv + u_texel_step * 1.384615) * 0.316216;
-  color += texture(u_texture, v_uv - u_texel_step * 1.384615) * 0.316216;
-  color += texture(u_texture, v_uv + u_texel_step * 3.230769) * 0.070270;
-  color += texture(u_texture, v_uv - u_texel_step * 3.230769) * 0.070270;
-  outColor = color;
+  float sigma = u_post_params.z;
+  vec4 color = readColor(v_uv);
+  if (sigma > 0.0) {
+    float totalWeight = 1.0;
+    float support = ceil(3.0 * sigma);
+    for (int i = 1; i <= 12; i++) {
+      float offset = float(i);
+      if (offset <= support) {
+        float weight = exp(-0.5 * offset * offset / (sigma * sigma));
+        color += readColor(v_uv + u_post_params.xy * offset) * weight;
+        color += readColor(v_uv - u_post_params.xy * offset) * weight;
+        totalWeight += 2.0 * weight;
+      }
+    }
+    color /= totalWeight;
+  }
+  if (u_color_adjust_meta.x > 0.5) color = applyPostColorAdjust(color, u_color_adjust[0]);
+  if (u_color_adjust_meta.x > 1.5) color = applyPostColorAdjust(color, u_color_adjust[1]);
+  if (u_color_adjust_meta.x > 2.5) color = applyPostColorAdjust(color, u_color_adjust[2]);
+  if (u_color_adjust_meta.x > 3.5) color = applyPostColorAdjust(color, u_color_adjust[3]);
+  outColor = u_post_params.w > 0.5 ? encodePremultiplied(color) : color;
 }`;
 
 type GL = WebGL2RenderingContext;
@@ -200,6 +258,11 @@ function blend(gl: GL, mode: BlendMode): void {
   else if (mode === "multiply") gl.blendFuncSeparate(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   else if (mode === "screen") gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_COLOR, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   else gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+}
+
+function blendPremultiplied(gl: GL): void {
+  gl.enable(gl.BLEND);
+  gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 }
 
 function assetSource(asset: PreviewAsset): TexImageSource {
@@ -276,21 +339,28 @@ export function createWebGL2Backend(
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
-  const blurTexelStepLocation = gl.getUniformLocation(blurProgramHandle, "u_texel_step");
-  const setColorAdjust = (effects: RuntimeEffect[] | undefined) => {
-    const uniforms = colorAdjustUniforms(effects);
+  const blurPostParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_post_params");
+  const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
+  const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
+  const setColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
+    const uniforms = colorAdjustUniforms(adjustments);
     gl.uniform4fv(colorAdjustMetaLocation, uniforms.subarray(0, 4));
     gl.uniform4fv(colorAdjustLocation, uniforms.subarray(4));
+  };
+  const setPostColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
+    const uniforms = colorAdjustUniforms(adjustments);
+    gl.uniform4fv(blurColorAdjustMetaLocation, uniforms.subarray(0, 4));
+    gl.uniform4fv(blurColorAdjustLocation, uniforms.subarray(4));
   };
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
   let dpr = options.devicePixelRatio ?? 1;
   let effectWidth = 0;
   let effectHeight = 0;
-  let effectSourceTexture: WebGLTexture | null = null;
-  let effectHorizontalTexture: WebGLTexture | null = null;
-  let effectSourceFramebuffer: WebGLFramebuffer | null = null;
-  let effectHorizontalFramebuffer: WebGLFramebuffer | null = null;
+  type EffectTarget = { texture: WebGLTexture; framebuffer: WebGLFramebuffer };
+  type EffectLevel = { width: number; height: number; a: EffectTarget; b: EffectTarget };
+  let effectSourceTarget: EffectTarget | null = null;
+  let effectLevels: EffectLevel[] = [];
   let lastStats: PreviewRenderStats = {
     backend: "webgl2",
     drawCalls: 0,
@@ -324,24 +394,32 @@ export function createWebGL2Backend(
   };
 
   const deleteEffectTargets = () => {
-    if (effectSourceTexture) gl.deleteTexture(effectSourceTexture);
-    if (effectHorizontalTexture) gl.deleteTexture(effectHorizontalTexture);
-    if (effectSourceFramebuffer) gl.deleteFramebuffer(effectSourceFramebuffer);
-    if (effectHorizontalFramebuffer) gl.deleteFramebuffer(effectHorizontalFramebuffer);
-    effectSourceTexture = null;
-    effectHorizontalTexture = null;
-    effectSourceFramebuffer = null;
-    effectHorizontalFramebuffer = null;
+    if (effectSourceTarget) {
+      gl.deleteTexture(effectSourceTarget.texture);
+      gl.deleteFramebuffer(effectSourceTarget.framebuffer);
+    }
+    for (const level of effectLevels) {
+      gl.deleteTexture(level.a.texture);
+      gl.deleteTexture(level.b.texture);
+      gl.deleteFramebuffer(level.a.framebuffer);
+      gl.deleteFramebuffer(level.b.framebuffer);
+    }
+    effectSourceTarget = null;
+    effectLevels = [];
     effectWidth = 0;
     effectHeight = 0;
   };
 
   const ensureEffectTargets = (targetWidth: number, targetHeight: number) => {
-    if (effectSourceTexture && effectHorizontalTexture && effectSourceFramebuffer && effectHorizontalFramebuffer && effectWidth === targetWidth && effectHeight === targetHeight) {
+    if (effectSourceTarget && effectLevels.length > 0 && effectWidth === targetWidth && effectHeight === targetHeight) {
       return;
     }
     deleteEffectTargets();
-    const createTarget = () => {
+    const supportsFloatTargets = Boolean(
+      gl.getExtension("EXT_color_buffer_float")
+      && gl.getExtension("OES_texture_float_linear"),
+    );
+    const createTarget = (targetLevelWidth: number, targetLevelHeight: number, floating = supportsFloatTargets): EffectTarget => {
       const texture = gl.createTexture();
       const framebuffer = gl.createFramebuffer();
       if (!texture || !framebuffer) throw new Error("preview-renderer: unable to allocate WebGL effect target");
@@ -350,7 +428,17 @@ export function createWebGL2Backend(
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, targetWidth, targetHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        floating ? gl.RGBA16F : gl.RGBA8,
+        targetLevelWidth,
+        targetLevelHeight,
+        0,
+        gl.RGBA,
+        floating ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE,
+        null,
+      );
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
       if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
@@ -358,12 +446,20 @@ export function createWebGL2Backend(
       }
       return { texture, framebuffer };
     };
-    const source = createTarget();
-    const horizontal = createTarget();
-    effectSourceTexture = source.texture;
-    effectSourceFramebuffer = source.framebuffer;
-    effectHorizontalTexture = horizontal.texture;
-    effectHorizontalFramebuffer = horizontal.framebuffer;
+    effectSourceTarget = createTarget(targetWidth, targetHeight, false);
+    let levelWidth = targetWidth;
+    let levelHeight = targetHeight;
+    for (let level = 0; level < 9; level += 1) {
+      effectLevels.push({
+        width: levelWidth,
+        height: levelHeight,
+        a: createTarget(levelWidth, levelHeight),
+        b: createTarget(levelWidth, levelHeight),
+      });
+      if (levelWidth === 1 && levelHeight === 1) break;
+      levelWidth = Math.max(1, Math.ceil(levelWidth / 2));
+      levelHeight = Math.max(1, Math.ceil(levelHeight / 2));
+    }
     effectWidth = targetWidth;
     effectHeight = targetHeight;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -376,7 +472,16 @@ export function createWebGL2Backend(
     let skippedCommands = 0;
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
     let currentBlend: BlendMode = "normal";
-    let activeOffscreen: { key: string; layerId?: string; effects: RuntimeEffect[]; blend: BlendMode } | null = null;
+    let activeEffectScope: {
+      key: string;
+      layerId?: string;
+      plan: EffectPassPlan;
+      blend: BlendMode;
+    } | null = null;
+    const sourceColorAdjust = () =>
+      activeEffectScope?.plan.requiresOffscreen
+        ? undefined
+        : activeEffectScope?.plan.sourceColorAdjust;
     const firstCommand = bufferToPaint.commands[0];
     if (!firstCommand || firstCommand.op !== "beginFrame") {
       throw new Error("Preview renderer requires beginFrame as the first command");
@@ -399,7 +504,10 @@ export function createWebGL2Backend(
         transform = command;
         currentBlend = command.blendMode ?? "normal";
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
-        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
+        if (activeEffectScope && !activeEffectScope.plan.supported) {
+          skippedCommands += 1;
+          continue;
+        }
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -443,11 +551,14 @@ export function createWebGL2Backend(
         gl.uniform4fv(strokeColorLocation, stroke);
         gl.uniform2f(strokeExtentLocation, strokeWidth / command.width, strokeWidth / command.height);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
-        setColorAdjust(command.effects);
+        setColorAdjust(sourceColorAdjust());
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
-        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
+        if (activeEffectScope && !activeEffectScope.plan.supported) {
+          skippedCommands += 1;
+          continue;
+        }
         if (!transform || !transform.visible || transform.alpha <= 0) {
           skippedCommands += 1;
           continue;
@@ -478,7 +589,7 @@ export function createWebGL2Backend(
         gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
         gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
-        setColorAdjust(command.effects);
+        setColorAdjust(sourceColorAdjust());
         for (const pathDraw of meshes) {
           const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
           for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
@@ -495,7 +606,10 @@ export function createWebGL2Backend(
           drawCalls += 1;
         }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
-        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
+        if (activeEffectScope && !activeEffectScope.plan.supported) {
+          skippedCommands += 1;
+          continue;
+        }
         if (!transform || !transform.visible || transform.alpha <= 0 || (command.op === "drawVideo" && command.mediaVisible === false)) {
           skippedCommands += 1;
           continue;
@@ -534,11 +648,14 @@ export function createWebGL2Backend(
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(textureLocation, 0);
-        setColorAdjust(command.effects);
+        setColorAdjust(sourceColorAdjust());
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
-        if (activeOffscreen) activeOffscreen.effects = command.effects ?? [];
+        if (activeEffectScope && !activeEffectScope.plan.supported) {
+          skippedCommands += 1;
+          continue;
+        }
         if (!transform || !transform.visible || transform.alpha <= 0 || !command.glyphs?.length) {
           skippedCommands += 1;
           if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
@@ -578,56 +695,123 @@ export function createWebGL2Backend(
         for (const glyph of atlas.glyphs) {
           gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, glyph.x, glyph.y, glyph.width, glyph.height));
           gl.uniform4f(uvRectLocation, glyph.uv.x, glyph.uv.y, glyph.uv.width, glyph.uv.height);
-          setColorAdjust(command.effects);
+          setColorAdjust(sourceColorAdjust());
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
           drawCalls += 1;
         }
-      } else if (command.op === "beginLayer" && command.offscreen) {
-        if (activeOffscreen) {
-          pushDiagnostic({ severity: "error", code: "preview_nested_offscreen_unsupported", message: "Nested offscreen scopes are not implemented yet", key: command.key, layerId: command.layerId });
+      } else if (command.op === "beginLayer" && command.effectProgram) {
+        if (activeEffectScope) {
+          pushDiagnostic({ severity: "error", code: "preview_nested_effect_scope_unsupported", message: "Nested effect scopes are not implemented yet", key: command.key, layerId: command.layerId });
           continue;
         }
+        const plan = buildEffectPassPlan(command.effectProgram);
+        for (const diagnostic of plan.diagnostics) {
+          pushDiagnostic({ severity: "error", code: diagnostic.code, message: diagnostic.message, key: command.key, layerId: command.layerId });
+        }
+        activeEffectScope = { key: command.key, layerId: command.layerId, plan, blend: currentBlend };
+        if (!plan.requiresOffscreen || !plan.supported) continue;
         ensureEffectTargets(physicalWidth, physicalHeight);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, effectSourceFramebuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, effectSourceTarget!.framebuffer);
         gl.viewport(0, 0, physicalWidth, physicalHeight);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        activeOffscreen = { key: command.key, layerId: command.layerId, effects: [], blend: currentBlend };
       } else if (command.op === "endLayer") {
-        if (!activeOffscreen || !effectSourceTexture || !effectHorizontalTexture || !effectHorizontalFramebuffer) {
-          pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "endLayer has no active offscreen source", key: command.key });
+        const scope = activeEffectScope;
+        if (!scope || scope.key !== command.key) {
+          pushDiagnostic({ severity: "error", code: "preview_effect_scope_invalid", message: "endLayer has no matching effect scope", key: command.key });
           continue;
         }
-        const blur = activeOffscreen.effects.find((effect) => effect.type === "blur");
-        if (!blur) {
-          pushDiagnostic({ severity: "error", code: "preview_offscreen_effect_missing", message: "Offscreen scope requires a supported effect", key: activeOffscreen.key, layerId: activeOffscreen.layerId });
+        if (!scope.plan.requiresOffscreen || !scope.plan.supported) {
+          activeEffectScope = null;
+          continue;
+        }
+        if (!effectSourceTarget || effectLevels.length === 0 || !scope.plan.blur) {
+          pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          activeOffscreen = null;
+          activeEffectScope = null;
           continue;
         }
-        const radius = Math.min(blur.radius * dpr, 256);
+        const sigma = Math.min(scope.plan.blur.radius * dpr, 256);
+        const blurPlan = blurPyramidPlan(sigma, physicalWidth, physicalHeight);
         gl.useProgram(blurProgramHandle);
         gl.bindVertexArray(blurVao);
         gl.activeTexture(gl.TEXTURE0);
         gl.uniform1i(blurTextureLocation, 0);
-        gl.disable(gl.BLEND);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, effectHorizontalFramebuffer);
-        gl.viewport(0, 0, physicalWidth, physicalHeight);
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.bindTexture(gl.TEXTURE_2D, effectSourceTexture);
-        gl.uniform2f(blurTexelStepLocation, radius / physicalWidth, 0);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, physicalWidth, physicalHeight);
-        blend(gl, activeOffscreen.blend);
-        gl.bindTexture(gl.TEXTURE_2D, effectHorizontalTexture);
-        gl.uniform2f(blurTexelStepLocation, 0, radius / physicalHeight);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-        drawCalls += 2;
+        const runPost = (
+          source: WebGLTexture,
+          target: WebGLFramebuffer | null,
+          targetWidth: number,
+          targetHeight: number,
+          stepX: number,
+          stepY: number,
+          passSigma: number,
+          colorMode = 0,
+          composite = false,
+          adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
+        ) => {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target);
+          gl.viewport(0, 0, targetWidth, targetHeight);
+          if (composite) blendPremultiplied(gl);
+          else gl.disable(gl.BLEND);
+          gl.bindTexture(gl.TEXTURE_2D, source);
+          gl.uniform4f(blurPostParamsLocation, stepX, stepY, passSigma, colorMode);
+          setPostColorAdjust(adjustments);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          drawCalls += 1;
+        };
+
+        const root = effectLevels[0]!;
+        // The isolated source is premultiplied sRGB. Blur linear premultiplied
+        // samples so transparent edges do not darken or form colored blocks.
+        runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust);
+        let activeTarget = root.a;
+        for (let levelIndex = 1; levelIndex <= blurPlan.levels; levelIndex += 1) {
+          const level = effectLevels[levelIndex]!;
+          runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
+          activeTarget = level.a;
+        }
+
+        const blurLevel = effectLevels[blurPlan.levels]!;
+        const horizontalTarget = activeTarget === blurLevel.a ? blurLevel.b : blurLevel.a;
+        runPost(
+          activeTarget.texture,
+          horizontalTarget.framebuffer,
+          blurLevel.width,
+          blurLevel.height,
+          1 / blurLevel.width,
+          0,
+          blurPlan.levelSigma,
+        );
+        const verticalTarget = activeTarget;
+        runPost(
+          horizontalTarget.texture,
+          verticalTarget.framebuffer,
+          blurLevel.width,
+          blurLevel.height,
+          0,
+          1 / blurLevel.height,
+          blurPlan.levelSigma,
+        );
+        activeTarget = verticalTarget;
+
+        for (let levelIndex = blurPlan.levels - 1; levelIndex >= 0; levelIndex -= 1) {
+          const level = effectLevels[levelIndex]!;
+          runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
+          activeTarget = level.a;
+        }
+
+        if (scope.plan.outputColorAdjust.length) {
+          const adjustedTarget = activeTarget === root.a ? root.b : root.a;
+          runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust);
+          activeTarget = adjustedTarget;
+        }
+        if (scope.blend !== "normal") {
+          pushDiagnostic({ severity: "info", code: "preview_blur_blend_normalized", message: "Blur currently composites with premultiplied normal blending", key: scope.key, layerId: scope.layerId });
+        }
+        runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         gl.useProgram(programHandle);
         gl.bindVertexArray(vao);
-        activeOffscreen = null;
+        activeEffectScope = null;
       } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       } else if (command.op === "unsupported") {
@@ -635,8 +819,8 @@ export function createWebGL2Backend(
         pushDiagnostic({ severity: "error", code: "preview_unsupported_command", message: command.message, key: command.key, layerId: command.layerId });
       }
     }
-    if (activeOffscreen) {
-      pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_unclosed", message: "Offscreen scope was not closed", key: activeOffscreen.key, layerId: activeOffscreen.layerId });
+    if (activeEffectScope) {
+      pushDiagnostic({ severity: "error", code: "preview_effect_scope_unclosed", message: "Effect scope was not closed", key: activeEffectScope.key, layerId: activeEffectScope.layerId });
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     gl.bindVertexArray(null);

@@ -18,7 +18,7 @@ import {
   resolveClipMoveDrag,
   type ClipMoveDropTarget,
   type ClipMovePreview,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 import type {

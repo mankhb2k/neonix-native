@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { appHref } from "@/components/AppLink";
 
-/** Legacy route — gửi về workspace; tạo mới dùng modal. */
+/** V2 route — gửi về workspace để chọn một certified V2 atom. */
 export default function NewProjectRedirectPage() {
   const router = useRouter();
 

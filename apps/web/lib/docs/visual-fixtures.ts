@@ -166,7 +166,9 @@ function originProject(id: string, origin: { x: number; y: number }) {
         origin,
         animations: [
           {
+            id: "rotate-z",
             property: "transform.rotate.z",
+            kind: "keyframes",
             keys: [
               { t: 0, value: 0 },
               { t: 4, value: 360 },

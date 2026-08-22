@@ -5,8 +5,7 @@ import {
   type MotiClipVideoProps,
 } from "@motionvideo/remotion-renderer";
 import {
-  createMatrix4,
-  orthographicMatrix2D,
+  orthographicProjectionMatrix,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 
@@ -38,9 +37,7 @@ const defaultRuntime: RuntimeProjectV2 = {
     graphId: "remotion-default-runtime-v2",
   },
   view: {
-    viewMatrix: createMatrix4(),
-    projectionMatrix: orthographicMatrix2D(1920, 1080),
-    viewProjectionMatrix: orthographicMatrix2D(1920, 1080),
+    worldToClipMatrix: orthographicProjectionMatrix(1920, 1080, 1, 1, 4000),
   },
   nodes: [],
 };

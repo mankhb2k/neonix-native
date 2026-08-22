@@ -4,7 +4,9 @@ Closed-loop asset ingest: receive bytes → unique `assetId` → object store �
 `AssetV1` for the project JSON. Storage does **not** own product TTL or the
 user library — that belongs to the web app DB. Missing file → re-upload → new id.
 
-See `docs/guide/asset-format-storage.md`.
+The V1 asset-storage guide was retired with the V2 hard-cut. See
+[`docs/guide/v2-architechture.md`](../../docs/guide/v2-architechture.md) for
+the active render pipeline boundary.
 
 ## Run locally
 
@@ -22,4 +24,4 @@ Env: see [`.env.example`](./.env.example).
 | `MOTION_STORAGE_API_TOKEN` | unset | Optional bearer token |
 | `R2_*` | — | Required when provider=`r2` |
 
-See `docs/guide/asset-format-storage.md`.
+See [`docs/guide/v2-architechture.md`](../../docs/guide/v2-architechture.md).

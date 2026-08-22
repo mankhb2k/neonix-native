@@ -11,7 +11,8 @@ import {
   type PointerPos,
   type PointerSessionConfig,
   type PointerSessionEndReason,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
+import { browserScheduler } from "@/lib/editor/interaction-host/browser-scheduler";
 
 export type ActivePointerGesture = {
   controller: PointerSessionController<unknown>;
@@ -69,6 +70,7 @@ export function usePointerSessionHost(
       clearActive("pointercancel");
       const controller = new PointerSessionController(config, {
         coordinator,
+        scheduler: browserScheduler,
       });
       if (!controller.start(initialPos)) return null;
 

@@ -1,17 +1,19 @@
 import {
-  applyMatrix,
-  evaluateScene,
-  layerGraphFromRuntime,
-  type EvaluatedNode,
-  type Matrix2D,
+  evaluateRuntimeProjectV2,
+  frameIndexAtTime,
+  type Matrix4,
+  type RuntimeNodeV2,
+  type RuntimeProjectV2,
+  type RuntimeShapeV2,
 } from "@motionvideo/motion-runtime";
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
 
+/**
+ * V2 compatibility data for the frozen DOM editor. The certified preview path
+ * is `PreviewStage`; this adapter must never reintroduce the V1 scene graph.
+ */
 export type PreviewParityNode = {
   id: string;
-  type: string;
+  type: "shape";
   visible: boolean;
   worldOpacity: number;
   transform: {
@@ -27,8 +29,8 @@ export type PreviewParityNode = {
     flipY: boolean;
   };
   worldOrigin: { x: number; y: number };
-  worldMatrix: Matrix2D;
-  worldBounds: EvaluatedNode["worldBounds"];
+  worldMatrix: Matrix4;
+  worldBounds: { x: number; y: number; width: number; height: number };
 };
 
 export type PreviewParitySnapshot = {
@@ -37,50 +39,72 @@ export type PreviewParitySnapshot = {
   layers: PreviewParityNode[];
 };
 
-export function matrixToCss(matrix: Matrix2D): string {
-  return `matrix(${matrix.a}, ${matrix.b}, ${matrix.c}, ${matrix.d}, ${matrix.e}, ${matrix.f})`;
+/** @deprecated Frozen DOM preview only. Certified V2 preview uses Canvas backends. */
+export function matrixToCss(matrix: Matrix4): string {
+  return `matrix3d(${Array.from(matrix).join(", ")})`;
 }
 
+/**
+ * Evaluate only the certified Runtime V2 document model. The output retains
+ * the old DOM adapter shape so the frozen editor cannot pull V1 APIs back in.
+ */
 export function previewParitySnapshot(
-  runtime: MotionRuntimeProject,
+  runtime: RuntimeProjectV2,
   graphId: string | undefined,
   time: number,
 ): PreviewParitySnapshot {
-  const scene = layerGraphFromRuntime(runtime);
-  if (scene.layers.length === 0 && !(scene.duration > 0))
-    throw new Error("Runtime preview requires at least one layer");
-  const evaluated = evaluateScene(scene, time);
+  const frame = frameIndexAtTime(Math.max(0, time), runtime.composition.fps);
+  evaluateRuntimeProjectV2(runtime, frame, { time });
+
   return {
-    graphId: scene.id,
+    graphId: graphId ?? runtime.composition.graphId,
     time,
-    layers: evaluated.map((item) => {
-      const worldOrigin = applyMatrix(item.worldMatrix, 0, 0);
-      return {
-        id: item.layer.id,
-        type: item.layer.type,
-        visible: item.visible,
-        worldOpacity: item.worldOpacity,
-        transform: {
-          x: item.transform.x,
-          y: item.transform.y,
-          width: item.transform.width,
-          height: item.transform.height,
-          rotation: item.transform.rotation,
-          scaleX: item.transform.scaleX,
-          scaleY: item.transform.scaleY,
-          opacity: item.transform.opacity,
-          flipX: item.transform.flipX,
-          flipY: item.transform.flipY,
-        },
-        worldOrigin,
-        worldMatrix: item.worldMatrix,
-        worldBounds: item.worldBounds,
-      };
-    }),
+    layers: runtime.nodes
+      .filter(
+        (node): node is RuntimeNodeV2 & { content: RuntimeShapeV2 } =>
+          node.visible &&
+          node.opacity > 0 &&
+          node.content.kind === "shape" &&
+          time >= node.timing.start &&
+          time < node.timing.start + node.timing.duration,
+      )
+      .map((node) => {
+        const x = node.worldMatrix[12] ?? 0;
+        const y = node.worldMatrix[13] ?? 0;
+        return {
+          id: node.id,
+          type: node.content.kind,
+          visible: node.visible,
+          worldOpacity: node.opacity,
+          transform: {
+            x,
+            y,
+            width: node.content.width,
+            height: node.content.height,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            opacity: node.opacity,
+            flipX: false,
+            flipY: false,
+          },
+          worldOrigin: { x, y },
+          worldMatrix: node.worldMatrix,
+          worldBounds: {
+            x,
+            y,
+            width: node.content.width,
+            height: node.content.height,
+          },
+        };
+      }),
   };
 }
 
-export function stageSizeForAspect(aspectRatio: string): { width: number; height: number } {
+export function stageSizeForAspect(aspectRatio: string): {
+  width: number;
+  height: number;
+} {
   switch (aspectRatio) {
     case "16:9":
       return { width: 1920, height: 1080 };

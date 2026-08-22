@@ -29,7 +29,7 @@ import {
   type LibraryCommitPoint,
 } from "@/lib/editor/library/commit-library-payload";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { autoScrollElementNearEdge } from "@motionvideo/editor-interactions";
+import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 
 /**
  * Pointer gesture for library tiles (Text / Shape).

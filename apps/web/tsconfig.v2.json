@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "app/app/**/*.ts",
+    "app/app/**/*.tsx",
+    "components/AppLink.tsx",
+    "components/docs/PreviewStage.tsx",
+    "components/editor-v2/**/*.ts",
+    "components/editor-v2/**/*.tsx",
+    "components/hub/WorkspaceHome.tsx",
+    "lib/hosts.ts",
+    "lib/v2-editor/**/*.ts",
+    "lib/v2-editor/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    ".next-*"
+  ]
+}

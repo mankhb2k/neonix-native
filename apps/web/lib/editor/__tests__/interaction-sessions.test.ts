@@ -10,7 +10,7 @@ import {
   normalizeMarquee,
   updateClipMoveSessionState,
   updateLibraryDropSessionState,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 
 describe("TimelineGeometry Engine", () => {
   it("converts time to pixels and pixels to time accurately", () => {

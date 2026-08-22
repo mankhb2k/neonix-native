@@ -1,6 +1,6 @@
 # Editor Interactions Fix Plan
 
-> Scope: web-first cleanup for `@motionvideo/editor-interactions`.
+> Historical scope: web-first cleanup for interaction logic, now merged into `@motionvideo/editor-core`.
 > Goal: keep interactions as pure gesture/coordinate math while making every public name map cleanly to `editor-core` and the JSON protocol vocabulary.
 
 ## Current Position
@@ -57,7 +57,7 @@ Acceptance:
 
 Acceptance:
 
-- [ ] `pnpm.cmd --filter @motionvideo/editor-interactions typecheck` does not fail on Vitest imports.
+- [ ] `pnpm.cmd --filter @motionvideo/editor-core typecheck:test` does not fail on Vitest imports.
 - [ ] Tests remain included by `vitest.config.ts`.
 - [ ] No package source depends on test-only globals.
 
@@ -207,9 +207,9 @@ Acceptance:
 
 ## Verification Checklist
 
-- [ ] `pnpm.cmd --filter @motionvideo/editor-interactions lint`
-- [ ] `pnpm.cmd --filter @motionvideo/editor-interactions typecheck`
-- [ ] `pnpm.cmd --filter @motionvideo/editor-interactions test`
+- [ ] `pnpm.cmd --filter @motionvideo/editor-core lint`
+- [ ] `pnpm.cmd --filter @motionvideo/editor-core typecheck`
+- [ ] `pnpm.cmd --filter @motionvideo/editor-core test`
 - [ ] `pnpm.cmd --filter @motionvideo/web lint`
 - [ ] `pnpm.cmd --filter @motionvideo/web typecheck`
 - [ ] Targeted web tests for stage/timeline hooks if touched.

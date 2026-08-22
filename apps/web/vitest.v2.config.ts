@@ -1,0 +1,18 @@
+import path from "node:path";
+import { defineConfig } from "vitest/config";
+
+/** Only certified Protocol V2 app tests run from the root test contract. */
+export default defineConfig({
+  test: {
+    environment: "happy-dom",
+    include: ["lib/docs/preview-lab.test.ts"],
+    globals: false,
+    clearMocks: true,
+    restoreMocks: true,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "."),
+    },
+  },
+});

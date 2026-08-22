@@ -124,7 +124,7 @@ import {
 - UI shell, CSS, layout cua app
 - Renderer-specific code nhu Pixi, Remotion, canvas painting
 
-Neu mot tinh nang can UI hoac gesture, no thuong nam o `@motionvideo/editor-interactions` hoac `@motionvideo/editor-react`.
+Gesture logic thuần nằm trong `src/interactions`; UI và browser adapters vẫn thuộc app host hoặc `@motionvideo/editor-react`.
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClipMovePreview } from "@motionvideo/editor-interactions";
+import type { ClipMovePreview } from "@motionvideo/editor-core";
 
 import {
   clipStripHeightPx,

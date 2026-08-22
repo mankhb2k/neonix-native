@@ -5,6 +5,7 @@ import {
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
+import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotiClipVideoProps = {
   /** Canonical V2 Runtime IR supplied by the export/application layer. */
@@ -16,7 +17,7 @@ export type MotiClipVideoProps = {
  * frame through the shared V2 runtime and paints the resulting command buffer.
  */
 export function MotiClipVideo({ runtime: runtimeProp }: MotiClipVideoProps) {
-  const runtime = assertRuntimeProjectV2(runtimeProp);
+  const runtime = assertRemotionTextPrepared(assertRuntimeProjectV2(runtimeProp));
   const frame = useCurrentFrame();
   const { background } = runtime.composition;
   const evaluated = evaluateRuntimeProjectV2(runtime, frame);

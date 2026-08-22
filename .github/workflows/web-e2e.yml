@@ -37,8 +37,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck web
-        run: pnpm --filter @motionvideo/web typecheck
+      - name: Full repository typecheck
+        run: pnpm typecheck
+
+      - name: V2 certification typecheck
+        run: pnpm typecheck:v2
 
       - name: Unit tests
         run: pnpm --filter @motionvideo/web test
@@ -46,8 +49,8 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter @motionvideo/web exec playwright install --with-deps chromium
 
-      - name: Chromium E2E (timeline)
-        run: pnpm --filter @motionvideo/web e2e:timeline
+      - name: Chromium E2E (V2 smoke and preview)
+        run: pnpm --filter @motionvideo/web e2e -- e2e/smoke.spec.ts e2e/preview-v2-atoms.spec.ts e2e/matrix4-parity.spec.ts
         env:
           CI: true
 

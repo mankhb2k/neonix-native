@@ -5,6 +5,7 @@ import {
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
+import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotionCompositionProps = {
   runtime: RuntimeProjectV2;
@@ -28,6 +29,9 @@ export function MotionComposition({
   void height;
   void graphId;
   void background;
-  const evaluated = evaluateRuntimeProjectV2(assertRuntimeProjectV2(runtime), frame);
+  const evaluated = evaluateRuntimeProjectV2(
+    assertRemotionTextPrepared(assertRuntimeProjectV2(runtime)),
+    frame,
+  );
   return <RemotionPaintRenderer paint={evaluated} />;
 }

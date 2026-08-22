@@ -3,9 +3,9 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Motion JSON docs — NeonVideo",
+  title: "V2 architecture - NeonVideo",
   description:
-    "Authoring law for MotionProjectV1: mental model, atoms, validation.",
+    "NeonVideo V2 pipeline from high-level authoring through Atomic Protocol, runtime, preview, and export.",
 };
 
 export default function DocsIndexPage() {

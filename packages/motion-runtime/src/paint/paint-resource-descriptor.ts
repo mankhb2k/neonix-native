@@ -17,7 +17,6 @@ import type {
   PathContour,
   RenderMediaFit,
   RenderNormalizedRect,
-  RuntimeEffect,
 } from "./paint-types";
 
 // ── Resource descriptor (frame-invariant) ─────────────────────────────
@@ -107,8 +106,6 @@ export type PaintFrameProperty = {
   crop?: RenderNormalizedRect;
   mediaTime?: number;
   mediaVisible?: boolean;
-  /** Effects active this frame (may be keyframed). */
-  effects?: RuntimeEffect[];
 };
 
 // ── Split helper ──────────────────────────────────────────────────────
@@ -208,9 +205,6 @@ export function extractPaintFrameProperty(
   }
   if ("mediaVisible" in cmd) {
     base.mediaVisible = (cmd as { mediaVisible?: boolean }).mediaVisible;
-  }
-  if ("effects" in cmd) {
-    base.effects = (cmd as { effects?: RuntimeEffect[] }).effects;
   }
   return base;
 }

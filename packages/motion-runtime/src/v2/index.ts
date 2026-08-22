@@ -11,7 +11,23 @@ export {
   isRuntimeProjectV2,
   validateRuntimeProjectV2,
 } from "./validate";
-export { buildRuntimeEffectPlan, type RuntimeEffectStep } from "./effects";
+export { buildRuntimeEffectProgram } from "./effects";
+export {
+  assertRuntimeEffectProgram,
+  validateRuntimeEffectProgram,
+  RUNTIME_EFFECT_SOURCE_SURFACE,
+  type RuntimeAlphaMaskEffectOp,
+  type RuntimeBlurEffectOp,
+  type RuntimeColorAdjustEffectOp,
+  type RuntimeCompositeEffectOp,
+  type RuntimeEffectOp,
+  type RuntimeEffectProgram,
+  type RuntimeEffectProgramDiagnostic,
+  type RuntimeEffectProgramValidation,
+  type RuntimeOffsetEffectOp,
+  type RuntimeTintEffectOp,
+  type SurfaceRef,
+} from "./effect-program";
 export type {
   RuntimeCompositionV2,
   RuntimeFrameV2,

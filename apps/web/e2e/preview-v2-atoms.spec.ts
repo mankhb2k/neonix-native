@@ -56,10 +56,19 @@ test.describe("Protocol V2 atom preview", () => {
     const crispOutside = await readWebGLPixel(page, "preview-v2-canvas", 284, 540);
     const blurredOutside = await readWebGLPixel(page, "preview-v2-canvas", 1244, 540);
     const blurredCenter = await readWebGLPixel(page, "preview-v2-canvas", 1440, 540);
+    const profileX = [1160, 1180, 1200, 1220, 1240, 1260, 1280, 1300];
+    const webglProfile = await Promise.all(
+      profileX.map((x) => readWebGLPixel(page, "preview-v2-canvas", x, 540)),
+    );
     expect(crispOutside).toEqual([16, 24, 32, 255]);
     expect(blurredOutside[0]).toBeGreaterThan(20);
-    expect(blurredOutside[1]).toBeLessThan(24);
+    expect(blurredOutside[1]).toBeGreaterThan(24);
+    expect(blurredOutside[2]).toBeGreaterThan(32);
     expect(blurredCenter).toEqual([255, 51, 102, 255]);
+    expect(new Set(webglProfile.map((pixel) => pixel[0])).size).toBeGreaterThanOrEqual(6);
+    for (let index = 1; index < webglProfile.length; index += 1) {
+      expect(webglProfile[index]![0]).toBeGreaterThanOrEqual(webglProfile[index - 1]![0]);
+    }
 
     test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
     await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
@@ -67,10 +76,17 @@ test.describe("Protocol V2 atom preview", () => {
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /offscreen|compositing_pending/);
     const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 1244, 540);
     const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 1440, 540);
+    const webgpuProfile = await Promise.all(
+      profileX.map((x) => readPresentedPixel(page, "preview-v2-canvas", x, 540)),
+    );
     expect(webgpuOutside[0]).toBeGreaterThan(20);
-    expect(webgpuOutside[1]).toBeLessThan(24);
+    expect(webgpuOutside[1]).toBeGreaterThan(24);
+    expect(webgpuOutside[2]).toBeGreaterThan(32);
     for (let index = 0; index < 4; index += 1) {
       expect(Math.abs(webgpuCenter[index]! - blurredCenter[index]!)).toBeLessThanOrEqual(1);
+    }
+    for (let index = 0; index < webglProfile.length; index += 1) {
+      expect(Math.abs(webgpuProfile[index]![0] - webglProfile[index]![0])).toBeLessThanOrEqual(2);
     }
   });
 

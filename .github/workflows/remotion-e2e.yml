@@ -47,7 +47,7 @@ jobs:
       - name: Encode smoke MP4
         env:
           REMOTION_E2E_REQUIRE: "1"
-        run: pnpm e2e:remotion
+        run: pnpm --filter @motionvideo/remotion-site e2e
 
       - name: Upload smoke MP4
         if: always()

@@ -7,6 +7,7 @@ import {
 } from "../matrix4";
 import type { PaintCommand } from "../paint";
 import { validateRuntimeProjectV2 } from "./validate";
+import { buildRuntimeEffectProgram } from "./effects";
 import type { RuntimeFrameV2, RuntimeProjectV2, RuntimeVideoV2 } from "./types";
 
 function assertFrame(frame: number): void {
@@ -154,15 +155,17 @@ export function evaluateRuntimeProjectV2(
       });
     }
 
-    const needsOffscreen = node.content.effects?.some((effect) => effect.type === "blur") === true &&
-      !(node.content.kind === "text" && !node.content.layout);
-    if (needsOffscreen) {
+    const effectProgram = node.content.kind === "text" && !node.content.layout
+      ? undefined
+      : buildRuntimeEffectProgram(node.content.effects);
+    if (effectProgram) {
       commands.push({
         op: "beginLayer",
         key: node.id,
         layerId: node.id,
-        isolation: true,
-        offscreen: true,
+        isolation: effectProgram.requiresOffscreen,
+        offscreen: effectProgram.requiresOffscreen,
+        effectProgram,
       });
     }
     commands.push({
@@ -196,7 +199,6 @@ export function evaluateRuntimeProjectV2(
         ...(node.content.strokeJoin ? { strokeJoin: node.content.strokeJoin } : {}),
         ...(node.content.strokeCap ? { strokeCap: node.content.strokeCap } : {}),
         ...(node.content.strokeDash ? { strokeDash: node.content.strokeDash } : {}),
-        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else if (node.content.kind === "text") {
       if (!node.content.layout) {
@@ -229,7 +231,6 @@ export function evaluateRuntimeProjectV2(
         height: node.content.height,
         glyphs: node.content.layout.glyphs,
         lines: node.content.layout.lines,
-        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else if (node.content.kind === "image") {
       commands.push({
@@ -242,7 +243,6 @@ export function evaluateRuntimeProjectV2(
         height: node.content.height,
         ...(node.content.fit ? { fit: node.content.fit } : {}),
         ...(node.content.crop ? { crop: node.content.crop } : {}),
-        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else if (node.content.kind === "video") {
       const media = resolveVideoMedia(node.content, Math.max(0, time - node.timing.start));
@@ -258,7 +258,6 @@ export function evaluateRuntimeProjectV2(
         mediaTime: media.mediaTime,
         mediaVisible: media.visible,
         muted: node.content.muted,
-        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     } else {
       commands.push({
@@ -283,10 +282,9 @@ export function evaluateRuntimeProjectV2(
         ...(node.content.strokeOpacity != null
           ? { strokeOpacity: node.content.strokeOpacity }
           : {}),
-        ...(node.content.effects ? { effects: node.content.effects } : {}),
       });
     }
-    if (needsOffscreen) {
+    if (effectProgram) {
       commands.push({ op: "endLayer", key: node.id });
     }
   }

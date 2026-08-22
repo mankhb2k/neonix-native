@@ -12,7 +12,7 @@ import {
 import {
   clampNodeLocalTiming,
   type ClipTrimPreview,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 import type { LayerMoveSession } from "./use-layer-move";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 import type { PointerEvent as ReactPointerEvent } from "react";

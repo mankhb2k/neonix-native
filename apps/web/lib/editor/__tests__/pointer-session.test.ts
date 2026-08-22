@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   selectionIdsEqual,
   shouldCommitPointerSession,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 
 describe("UX-02 pointer session contract", () => {
   it("commits only on pointerup", () => {

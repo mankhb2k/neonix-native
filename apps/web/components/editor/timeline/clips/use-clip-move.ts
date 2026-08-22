@@ -17,7 +17,7 @@ import {
 import {
   computeAutoScrollNearEdge,
   type ClipMovePreview,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
 import {
   getTimelineLibraryDropHost,
   resolveClipMoveDropAtY,

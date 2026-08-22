@@ -20,7 +20,6 @@ import type { PaintDrawCommand } from "./paint-command";
  *   - alpha
  *   - width/height
  *   - fill
- *   - effects
  *   - blend mode
  *   - zIndex/render order
  *
@@ -96,16 +95,6 @@ export function computePaintItemFingerprint(
   if (drawCmd.op === "drawVideo") {
     parts.push(`mt:${round3(drawCmd.mediaTime)}`);
     parts.push(`mv:${drawCmd.mediaVisible === false ? 0 : 1}`);
-  }
-
-  // Effects
-  if ("effects" in drawCmd && drawCmd.effects?.length) {
-    parts.push(
-      `fx:${drawCmd.effects
-        .map((e: { id: string; type: string }) => `${e.type}(${e.id})`)
-        .sort()
-        .join(",")}`,
-    );
   }
 
   return parts.join("|");

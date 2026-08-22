@@ -143,7 +143,7 @@ const appLayerRestrictions = {
             "@/lib/editor/timeline/sessions/pointer-session-controller",
           ],
           message:
-            "Import from @motionvideo/editor-interactions — local seek/pointer barrels were removed.",
+            "Import pure gesture logic from @motionvideo/editor-core; use apps/web/lib/editor/interaction-host for DOM adapters.",
         },
       ],
     },

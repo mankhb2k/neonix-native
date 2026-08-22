@@ -42,4 +42,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Paint-path parity (shared commands vs legacy draw)
-        run: pnpm validate:paint-parity
+        run: pnpm exec tsx scripts/validate-paint-parity.ts

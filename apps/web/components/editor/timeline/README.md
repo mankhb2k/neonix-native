@@ -1,6 +1,6 @@
 # Web Timeline Architecture
 
-> **Pure logic lives in packages.** The web timeline is a thin consumer — it picks shared hooks, adapters, and pure functions from `@motionvideo/editor-core`, `@motionvideo/editor-interactions`, and local hooks under `apps/web/hooks/editor`.
+> **Pure logic lives in packages.** The web timeline is a thin consumer — it picks shared logic from `@motionvideo/editor-core` and DOM adapters from local hooks under `apps/web/hooks/editor`.
 
 **Chrome words** (float, ghost, playhead, insert line, snap guide): [`docs/web/editor-vocabulary.md`](../../../../../docs/web/editor-vocabulary.md) §9.
 
@@ -44,7 +44,7 @@
 | Package                            | What web uses                                                                                                                                                                                                                                              |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `visualTracksToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
-| `@motionvideo/editor-interactions` | `computePlayheadFollowScroll`, `ensurePlayheadScrubScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants                                                 |
+| `@motionvideo/editor-core` | `computePlayheadFollowScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants |
 | `apps/web/hooks/editor`            | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                          |
 
 ## Web-only Files (Thin Adapters)

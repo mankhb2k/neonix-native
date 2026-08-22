@@ -3,7 +3,7 @@
  * Ephemeral per-frame structure — not a second JSON schema.
  */
 
-import type { RuntimeEffect } from "./paint-types";
+import type { RuntimeEffectProgram } from "../v2/effect-program";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
 
@@ -22,6 +22,7 @@ export type PaintLayerScope = {
   layerId?: string;
   isolation: boolean;
   offscreen: boolean;
+  effectProgram?: RuntimeEffectProgram;
   mask?: {
     mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
     sourceKey: string;
@@ -43,7 +44,6 @@ export type PaintDrawable = {
   key: string;
   transform: PaintTransformState;
   draw: PaintDrawCommand;
-  effects?: RuntimeEffect[];
 };
 
 export type PaintDisplayNode = PaintLayerScope | PaintGroupScope | PaintDrawable;

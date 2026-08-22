@@ -31,11 +31,35 @@ engine.load(runtime satisfies RuntimeProjectV2);
 engine.play();
 engine.seek(1.5);
 engine.pause();
+engine.dispose();
 ```
+
+`play()` schedules Runtime V2 frames from a monotonic clock. A browser host can
+use the emitted frames to repaint a native media source without seeking the
+video on every tick. `seek()` remains the deterministic path for scrubbing and
+frame-accurate tests.
 
 The engine does not parse authoring JSON, compile projects, calculate GPU
 commands, or encode video. WebGPU/WebGL2 and export adapters consume the same
 V2 frame semantics after playback evaluates the runtime project.
+
+### Browser preview example
+
+```ts
+const runtime = compileProtocolV2(projectWithVideoV2);
+let latestFrame = null;
+const engine = createPlaybackEngineV2({
+  paintCompositionFrame(frame) {
+    latestFrame = frame;
+    // React host passes latestFrame to <PreviewStage frame={latestFrame}
+    // isPlaying={engine.playing} />.
+  },
+});
+
+engine.load(runtime);
+engine.renderFrameAt(0); // deterministic first frame
+engine.play();           // realtime clock; video element is already playing
+```
 
 Clock, quality, metrics, frame buffering, media texture transport, and worker
 ports remain backend-neutral utilities. Audio scheduling is intentionally not

@@ -6,6 +6,7 @@ import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
 import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import type { PaintValidateIssue, PaintValidateResult } from "./paint-display-list";
+import { validateRuntimeEffectProgram } from "../v2/effect-program";
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -152,6 +153,27 @@ export function validatePaintCommandBuffer(
       }
       case "beginLayer": {
         layerStack.push(cmd.key);
+        if (cmd.effectProgram) {
+          const effectValidation = validateRuntimeEffectProgram(cmd.effectProgram);
+          if (!effectValidation.ok) {
+            for (const issue of effectValidation.diagnostics) {
+              issues.push({
+                severity: "error",
+                code: `invalid_effect_program_${issue.code}`,
+                message: issue.message,
+                key: cmd.key,
+              });
+            }
+          }
+          if (cmd.offscreen !== cmd.effectProgram.requiresOffscreen) {
+            issues.push({
+              severity: "error",
+              code: "effect_program_offscreen_mismatch",
+              message: `Layer "${cmd.key}" offscreen must match effectProgram.requiresOffscreen`,
+              key: cmd.key,
+            });
+          }
+        }
         break;
       }
       case "endLayer": {

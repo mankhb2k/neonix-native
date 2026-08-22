@@ -10,9 +10,9 @@ import {
 import { compileProjectV1 } from "@motionvideo/motion-runtime/testing";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import {
-  clientXToStripTime,
   resolvePlayheadScrubMax,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
+import { clientXToStripTime } from "@/lib/editor/interaction-host/timeline-dom";
 import { Pause, Play } from "lucide-react";
 import {
   useCallback,

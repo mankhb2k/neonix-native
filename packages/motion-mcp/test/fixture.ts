@@ -12,6 +12,13 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
       background: "#101820",
       colorSpace: "srgb",
       audioSampleRate: 48000,
+      view: {
+        projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
+        transform: {
+          translate: { x: 0, y: 0, z: 0 },
+          rotate: { x: 0, y: 0, z: 0 },
+        },
+      },
     },
     layers: [{
       id: "shape",

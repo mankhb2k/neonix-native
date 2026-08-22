@@ -4,8 +4,7 @@
 
 import {
   CAPABILITY_MANIFEST_VERSION,
-  createMatrix4,
-  orthographicMatrix2D,
+  orthographicProjectionMatrix,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import {
@@ -74,7 +73,13 @@ export function buildStubRuntimeProjectV2(input: {
   preset: RenderPresetId;
 }): RuntimeProjectV2 {
   const spec = RENDER_PRESET_SPECS[input.preset];
-  const projection = orthographicMatrix2D(spec.width, spec.height);
+  const worldToClipMatrix = orthographicProjectionMatrix(
+    spec.width,
+    spec.height,
+    1,
+    1,
+    4000,
+  );
   return {
     format: "motion-runtime",
     formatVersion: 2,
@@ -87,9 +92,7 @@ export function buildStubRuntimeProjectV2(input: {
       graphId: input.projectId,
     },
     view: {
-      viewMatrix: createMatrix4(),
-      projectionMatrix: projection,
-      viewProjectionMatrix: projection,
+      worldToClipMatrix,
     },
     nodes: [],
   };

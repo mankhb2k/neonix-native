@@ -373,11 +373,14 @@ ticket and retain authoring order.
   fixture coverage proves desaturation and WebGPU/WebGL2 parity. This first
   operator is fused into the leaf fragment pass because it cannot alter its
   projected footprint. Blur and spatial effects still require offscreen targets.
-- [x] Blur: Runtime opens an isolated source layer. WebGL2 renders it through
-  reusable FBO textures; WebGPU resolves stage textures through a ping-pong
-  MSAA path. Both backends run horizontal then vertical Gaussian passes and
-  composite the result back in paint order. The blur fixture asserts a soft
-  exterior pixel, an opaque center pixel, and backend availability parity.
+- [x] Blur: Runtime opens an isolated source layer. `radius` is the Gaussian
+  sigma in composition/output pixels; quality remains renderer policy. Both
+  backends decode the isolated source to linear premultiplied RGBA, use a 2x
+  pyramid for large sigma, run separable Gaussian passes, reconstruct to output
+  resolution, and composite with premultiplied blending. WebGL2 uses an RGBA8
+  capture target plus RGBA16F working targets when supported; WebGPU uses
+  RGBA16F working targets. The 40 px fixture asserts a monotonic edge profile,
+  an opaque center, transparent-edge color correctness, and backend parity.
 - [ ] Shadow.
 - [ ] Glow.
 - [ ] Noise.

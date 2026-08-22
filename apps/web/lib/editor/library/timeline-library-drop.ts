@@ -5,9 +5,9 @@
 
 import {
   clientPointToTimelineTime,
-  metricsFromScrollElement,
   TIMELINE_PLAYHEAD_GUTTER_PX,
-} from "@motionvideo/editor-interactions";
+} from "@motionvideo/editor-core";
+import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   audioDropPolicy,
   audioHitToLane,

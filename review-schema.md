@@ -8,9 +8,7 @@ Kế hoạch bộ guide cho AI tạo JSON. Các mục **đã chốt** trỏ th�
 
 V1 là **layers-only**. Nguồn:
 
-- [docs/guide/v1-format-guide.md](docs/guide/v1-format-guide.md)
-- [docs/guide/v1-timeline-guide.md](docs/guide/v1-timeline-guide.md)
-- [docs/guide/v1-group-guide.md](docs/guide/v1-group-guide.md)
+- [docs/guide/v2-architechture.md](docs/guide/v2-architechture.md)
 
 Đã chốt:
 
@@ -42,7 +40,8 @@ Sau layer, bổ sung vocabulary đóng:
 
 ## 3. Variables & Bindings
 
-Đã có [docs/guide/v1-component-guide.md](docs/guide/v1-component-guide.md). Còn cần guide riêng cho AI:
+The V1 component guide was retired. Components belong to future high-level
+authoring and must lower to certified Atomic V2 atoms.
 
 - Literal vs variable
 - `target.type: layer` vs `componentLayer`
@@ -60,7 +59,8 @@ Sau layer, bổ sung vocabulary đóng:
 
 ## 5. Asset Authoring
 
-[docs/guide/asset-format-storage.md](docs/guide/asset-format-storage.md) nói storage. AI còn cần authoring: metadata theo `image` / `svg` / `video` / `audio`, `crop` / `fit` / `payload.trim*`.
+The V1 asset-storage guide was retired. Future V2 asset authoring must be
+specified only after image/video atoms are certified.
 
 ---
 
