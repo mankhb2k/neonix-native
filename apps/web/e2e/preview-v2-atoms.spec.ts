@@ -14,7 +14,7 @@ async function supportsWebGPU(page: Page): Promise<boolean> {
         } | null>;
       };
     }).gpu;
-    const adapter = await gpu?.requestAdapter?.({ powerPreference: "high-performance" });
+    const adapter = await gpu?.requestAdapter?.();
     if (!adapter?.requestDevice) return false;
     try {
       await adapter.requestDevice();
@@ -157,6 +157,14 @@ test.describe("Protocol V2 atom preview", () => {
     expect(fillAtBounds).toEqual([0, 170, 136, 255]);
     expect(background).toEqual([16, 24, 32, 255]);
     expect(outsideBounds).toEqual([16, 24, 32, 255]);
+  });
+
+  test("presents the top-left rectangle without vertically flipping WebGPU textures", async ({ page }) => {
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=primitive.shape.rectangle&backend=webgpu");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute("data-backend", "webgpu");
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 48, 32)).toEqual([0, 170, 136, 255]);
+    expect(await readPresentedPixel(page, "preview-v2-canvas", 48, 1047)).toEqual([16, 24, 32, 255]);
   });
 
   test("renders ellipse center, bounding corners, and antialiased edge", async ({

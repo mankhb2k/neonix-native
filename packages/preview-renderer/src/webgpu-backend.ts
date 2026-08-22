@@ -163,7 +163,14 @@ struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32
 struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
 @vertex fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
-  output.position = vec4<f32>(input.position * 2.0 - vec2<f32>(1.0, 1.0), 0.0, 1.0);
+  // WebGPU textures have a top-left origin. Keep that convention when a
+  // fullscreen pass copies an offscreen texture into another render target.
+  output.position = vec4<f32>(
+    input.position.x * 2.0 - 1.0,
+    1.0 - input.position.y * 2.0,
+    0.0,
+    1.0,
+  );
   output.uv = input.uv;
   return output;
 }
