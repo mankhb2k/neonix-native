@@ -328,7 +328,7 @@ export function compileProtocolV2(
         "text.opacity",
         "text.zIndex",
         "text.font",
-        "text.layout.singleLine",
+        layer.payload.text.includes("\n") ? "text.layout.multiline" : "text.layout.singleLine",
         "text.align",
         "text.verticalAlign",
         "text.fill",

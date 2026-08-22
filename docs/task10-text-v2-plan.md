@@ -27,6 +27,8 @@ Text Layer V2 + exact font asset
   units. High-level authoring may lower relative units before V2.
 - `align` positions each line inside `frame.width`; `verticalAlign` positions
   the whole line-box block inside `frame.height`.
+- Explicit `\n` characters create deterministic paragraph lines. `wrap: "none"`
+  still means there is no automatic word or character wrapping.
 - The Runtime owns shaping, glyph positions, baseline, and local glyph bounds.
   Renderers do not rewrap or calculate advances.
 - The atom is embedded on local `z = 0` and uses the existing shared Matrix4.
@@ -39,7 +41,7 @@ Required text payload fields:
 
 ```ts
 {
-  text: string;              // NFC canonical text
+  text: string;              // NFC canonical text; explicit newlines are supported
   fontAssetId: string;
   fontSize: number;          // > 0
   lineHeight: number;        // > 0, absolute local units
@@ -88,6 +90,8 @@ animation. Each will be a later capability ticket.
   explicit host resolvers.
 - [x] Produce glyph IDs, source clusters, advances, baselines, local bounds,
   and outline paths in Runtime text layout.
+- [x] Shape explicit newline-separated paragraphs with per-line alignment and
+  deterministic line-height placement.
 - [x] Add no-fallback and missing-font diagnostics.
 - [ ] Add deterministic metric tests for Vietnamese strings. Latin and alignment
   coverage are certified; Vietnamese expands after the first multi-script ticket.
@@ -111,6 +115,8 @@ animation. Each will be a later capability ticket.
 - [x] Preload the exact font in PreviewStage before text preparation.
 - [x] Make Remotion consume the same prepared Runtime V2 frame semantics.
 - [x] Add local `/docs/preview` fixtures and browser E2E pixel tests.
+- [x] Add left-aligned, right-aligned, and explicit multiline paragraph
+  preview fixtures with WebGL2/WebGPU smoke coverage.
 
 ### Deferred Tickets
 

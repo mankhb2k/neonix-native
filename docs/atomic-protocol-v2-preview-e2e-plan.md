@@ -360,9 +360,10 @@ to the shared rounding contract.
 
 Text starts only after image/video behavior is certified because font shaping has
 separate determinism and asset concerns. The first certified surface is one
-static face, single-style LTR text with `wrap: "none"` and `overflow:
-"visible"`; word wrapping, clipping, RTL, variable fonts, rich text, stroke,
-and gradients remain separate certification tickets in
+static face, single-style LTR text with explicit newline paragraphs,
+`wrap: "none"`, and `overflow: "visible"`; automatic word wrapping, clipping,
+RTL, variable fonts, rich text, stroke, and gradients remain separate
+certification tickets in
 `docs/task10-text-v2-plan.md`.
 
 ## Task 11: Effects

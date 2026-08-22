@@ -388,6 +388,45 @@ test.describe("Protocol V2 atom preview", () => {
     expect(Math.abs(webgpu.bottom - webgl.bottom)).toBeLessThanOrEqual(2);
   });
 
+  test("renders left, right, and explicit multiline text examples", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const countBrightPixels = async () => canvas.evaluate((node) => {
+      if (!(node instanceof HTMLCanvasElement)) throw new Error("Expected preview canvas");
+      const image = new Image();
+      image.src = node.toDataURL("image/png");
+      return image.decode().then(() => {
+        const capture = document.createElement("canvas");
+        capture.width = node.width;
+        capture.height = node.height;
+        const context = capture.getContext("2d", { willReadFrequently: true });
+        if (!context) throw new Error("Missing canvas context");
+        context.drawImage(image, 0, 0);
+        const data = context.getImageData(0, 0, capture.width, capture.height).data;
+        let count = 0;
+        for (let index = 0; index < data.length; index += 4) {
+          if (data[index]! > 210 && data[index + 1]! > 210 && data[index + 2]! > 210) count += 1;
+        }
+        return count;
+      });
+    });
+
+    const cases = ["text.left.alignment", "text.right.alignment", "text.paragraph.multiline"];
+    for (const caseId of cases) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+      expect(await countBrightPixels()).toBeGreaterThan(100);
+    }
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    for (const caseId of cases) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+      expect(await countBrightPixels()).toBeGreaterThan(100);
+    }
+  });
+
   test("renders the certified rectangle fill through WebGL2 fallback", async ({
     page,
   }) => {

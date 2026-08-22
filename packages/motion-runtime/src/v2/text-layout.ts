@@ -28,67 +28,74 @@ function layoutText(
   const blob = new hb.Blob(bytes);
   const face = new hb.Face(blob);
   const font = new hb.Font(face);
-  const buffer = new hb.Buffer();
-  buffer.addText(text.text);
-  buffer.setLanguage(text.language);
-  buffer.guessSegmentProperties();
-  hb.shape(font, buffer);
-
-  const infos = buffer.getGlyphInfos();
-  const positions = buffer.getGlyphPositions();
   const fontScale = text.fontSize / face.upem;
   const metrics = font.hExtents();
   const glyphs: PaintTextGlyph[] = [];
-  let penX = 0;
-
-  for (let index = 0; index < infos.length; index += 1) {
-    const info = infos[index]!;
-    const position = positions[index]!;
-    const extents = font.glyphExtents(info.codepoint);
-    if (extents && extents.width !== 0 && extents.height !== 0) {
-      glyphs.push({
-        glyphId: info.codepoint,
-        cluster: info.cluster,
-        x: penX + (position.xOffset + extents.xBearing) * fontScale,
-        y: -(position.yOffset + extents.yBearing) * fontScale,
-        width: extents.width * fontScale,
-        height: -extents.height * fontScale,
-        path: font.glyphToPath(info.codepoint),
-        pathScale: fontScale,
-        outline: {
-          x: extents.xBearing,
-          y: extents.yBearing,
-          width: extents.width,
-          height: extents.height,
-        },
-      });
-    }
-    penX += position.xAdvance * fontScale;
-    if (index < infos.length - 1) penX += text.letterSpacing;
-  }
-
-  const alignedX = text.align === "center"
-    ? (text.width - penX) / 2
-    : text.align === "right"
-      ? text.width - penX
-      : 0;
   const glyphHeight = (metrics.ascender - metrics.descender) * fontScale;
+  const sourceLines = text.text.split("\n");
   const lineTop = text.verticalAlign === "middle"
-    ? (text.height - text.lineHeight) / 2
+    ? (text.height - text.lineHeight * sourceLines.length) / 2
     : text.verticalAlign === "bottom"
-      ? text.height - text.lineHeight
+      ? text.height - text.lineHeight * sourceLines.length
       : 0;
-  const baselineY = lineTop + (text.lineHeight - glyphHeight) / 2 + metrics.ascender * fontScale;
-  for (const glyph of glyphs) {
-    glyph.x += alignedX;
-    glyph.y += baselineY;
+  const lines: RuntimeTextLayoutV2["lines"] = [];
+
+  for (const [lineIndex, sourceLine] of sourceLines.entries()) {
+    const buffer = new hb.Buffer();
+    buffer.addText(sourceLine);
+    buffer.setLanguage(text.language);
+    buffer.guessSegmentProperties();
+    hb.shape(font, buffer);
+    const infos = buffer.getGlyphInfos();
+    const positions = buffer.getGlyphPositions();
+    let penX = 0;
+    for (let index = 0; index < infos.length; index += 1) {
+      const info = infos[index]!;
+      const position = positions[index]!;
+      const extents = font.glyphExtents(info.codepoint);
+      if (extents && extents.width !== 0 && extents.height !== 0) {
+        glyphs.push({
+          glyphId: info.codepoint,
+          cluster: info.cluster,
+          x: penX + (position.xOffset + extents.xBearing) * fontScale,
+          y: -(position.yOffset + extents.yBearing) * fontScale,
+          width: extents.width * fontScale,
+          height: -extents.height * fontScale,
+          path: font.glyphToPath(info.codepoint),
+          pathScale: fontScale,
+          outline: {
+            x: extents.xBearing,
+            y: extents.yBearing,
+            width: extents.width,
+            height: extents.height,
+          },
+        });
+      }
+      penX += position.xAdvance * fontScale;
+      if (index < infos.length - 1) penX += text.letterSpacing;
+    }
+    const alignedX = text.align === "center"
+      ? (text.width - penX) / 2
+      : text.align === "right"
+        ? text.width - penX
+        : 0;
+    const baselineY = lineTop + lineIndex * text.lineHeight + (text.lineHeight - glyphHeight) / 2 + metrics.ascender * fontScale;
+    const lineGlyphStart = glyphs.length - infos.filter((info) => {
+      const extents = font.glyphExtents(info.codepoint);
+      return extents && extents.width !== 0 && extents.height !== 0;
+    }).length;
+    for (let glyphIndex = lineGlyphStart; glyphIndex < glyphs.length; glyphIndex += 1) {
+      glyphs[glyphIndex]!.x += alignedX;
+      glyphs[glyphIndex]!.y += baselineY;
+    }
+    lines.push({ baselineY, advanceWidth: penX });
   }
   return {
     unitsPerEm: face.upem,
     ascender: metrics.ascender,
     descender: metrics.descender,
     glyphs,
-    lines: [{ baselineY, advanceWidth: penX }],
+    lines,
   };
 }
 

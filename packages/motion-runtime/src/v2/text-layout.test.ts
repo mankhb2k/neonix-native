@@ -94,4 +94,20 @@ describe("Runtime V2 text layout", () => {
     expect(left.y).toBeLessThan(center.y);
     expect(center.y).toBeLessThan(right.y);
   });
+
+  it("shapes explicit line breaks as a paragraph while preserving per-line alignment", async () => {
+    const bytes = await readFile(new URL("../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
+    const next: RuntimeProjectV2 = {
+      ...project,
+      nodes: project.nodes.map((node) => node.content.kind === "text"
+        ? { ...node, content: { ...node.content, text: "First line\nSecond line", align: "right" as const } }
+        : node),
+    };
+    const prepared = await prepareRuntimeProjectV2Text(next, async () => bytes, async () => harfBuzz);
+    const content = prepared.project.nodes[0]!.content;
+    if (content.kind !== "text" || !content.layout) throw new Error("Missing paragraph layout");
+    expect(content.layout.lines).toHaveLength(2);
+    expect(content.layout.lines[1]!.baselineY - content.layout.lines[0]!.baselineY).toBe(content.lineHeight);
+    expect(content.layout.glyphs.length).toBeGreaterThan(0);
+  });
 });

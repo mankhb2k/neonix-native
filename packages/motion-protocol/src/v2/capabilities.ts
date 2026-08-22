@@ -34,6 +34,7 @@ export const V2_CERTIFIED_ATOMS = [
   "text.zIndex",
   "text.font",
   "text.layout.singleLine",
+  "text.layout.multiline",
   "text.align",
   "text.verticalAlign",
   "text.fill",

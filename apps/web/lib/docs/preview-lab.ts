@@ -1302,21 +1302,24 @@ function textLayer(options: {
   align: TextLayer["payload"]["align"];
   verticalAlign: TextLayer["payload"]["verticalAlign"];
   transform: TextLayer["transform"];
+  frame?: { width: number; height: number };
+  fontSize?: number;
+  lineHeight?: number;
 }): TextLayer {
   return {
     id: options.id,
     type: "text",
     parentLayerId: null,
     zIndex: options.zIndex,
-    frame: { width: 1140, height: 220 },
+    frame: options.frame ?? { width: 1140, height: 220 },
     transform: options.transform,
     opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
       text: options.text,
       fontAssetId: PREVIEW_ROBOTO_REGULAR_FONT.id,
-      fontSize: 96,
-      lineHeight: 120,
+      fontSize: options.fontSize ?? 96,
+      lineHeight: options.lineHeight ?? 120,
       letterSpacing: 1,
       align: options.align,
       verticalAlign: options.verticalAlign,
@@ -1346,6 +1349,80 @@ const TEXT_ALIGNMENT_PROJECT = project(
       align: "center",
       verticalAlign: "middle",
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 390, y: 430, z: 0 } },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_LEFT_PROJECT = project(
+  "preview-text-left-v2",
+  [
+    rectangle({
+      id: "text-left-frame",
+      zIndex: 0,
+      fill: "#173247",
+      frame: { width: 1280, height: 220 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
+    }),
+    textLayer({
+      id: "text-left",
+      zIndex: 1,
+      text: "Left aligned text",
+      align: "left",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
+      frame: { width: 1280, height: 220 },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_RIGHT_PROJECT = project(
+  "preview-text-right-v2",
+  [
+    rectangle({
+      id: "text-right-frame",
+      zIndex: 0,
+      fill: "#173247",
+      frame: { width: 1280, height: 220 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
+    }),
+    textLayer({
+      id: "text-right",
+      zIndex: 1,
+      text: "Right aligned text",
+      align: "right",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
+      frame: { width: 1280, height: 220 },
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_PARAGRAPH_PROJECT = project(
+  "preview-text-paragraph-v2",
+  [
+    rectangle({
+      id: "text-paragraph-frame",
+      zIndex: 0,
+      fill: "#173247",
+      frame: { width: 1280, height: 420 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 330, z: 0 } },
+    }),
+    textLayer({
+      id: "text-paragraph",
+      zIndex: 1,
+      text: "Paragraph line one\nParagraph line two\nParagraph line three",
+      align: "left",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 330, z: 0 } },
+      frame: { width: 1280, height: 420 },
+      fontSize: 64,
+      lineHeight: 84,
     }),
   ],
   ORTHOGRAPHIC_VIEW,
@@ -1875,6 +1952,27 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 10 / Text",
     hint: "Roboto Regular is hash-verified, shaped by Runtime, and aligned inside the immutable text frame before its glyph atlas reaches WebGPU or WebGL2.",
     project: TEXT_ALIGNMENT_PROJECT,
+  },
+  {
+    id: "text.left.alignment",
+    label: "Text / left alignment",
+    group: "Task 10 / Text",
+    hint: "The same immutable frame keeps the glyph run pinned to its left edge.",
+    project: TEXT_LEFT_PROJECT,
+  },
+  {
+    id: "text.right.alignment",
+    label: "Text / right alignment",
+    group: "Task 10 / Text",
+    hint: "The same immutable frame keeps the glyph run pinned to its right edge.",
+    project: TEXT_RIGHT_PROJECT,
+  },
+  {
+    id: "text.paragraph.multiline",
+    label: "Text / paragraph",
+    group: "Task 10 / Text",
+    hint: "Explicit newline characters create deterministic paragraph lines; each line uses the same alignment and line height inside the frame.",
+    project: TEXT_PARAGRAPH_PROJECT,
   },
   {
     id: "effect.color-adjust",
