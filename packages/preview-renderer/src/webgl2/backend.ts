@@ -6,19 +6,19 @@ import {
   worldToClipMatrixForPaint,
   gradientUniforms,
   webglClipSpaceProjection,
-} from "./math";
-import { mediaLayout } from "./media";
-import { createTextAtlas, type TextAtlas } from "./text-atlas";
-import { colorAdjustUniforms } from "./effects";
-import { buildEffectPassPlan, type EffectPassPlan } from "./effect-pass-plan";
-import { blurPyramidPlan } from "./blur-quality";
-import type { PreviewBackend } from "./backend";
+} from "../math";
+import { mediaLayout } from "../media";
+import { createTextAtlas, type TextAtlas } from "../text-atlas";
+import { colorAdjustUniforms } from "../effects";
+import { buildEffectPassPlan, type EffectPassPlan } from "../effect-pass-plan";
+import { blurPyramidPlan } from "../blur-quality";
+import type { PreviewBackend } from "../backend";
 import type {
   PreviewAsset,
   PreviewDiagnostic,
   PreviewRendererOptions,
   PreviewRenderStats,
-} from "./types";
+} from "../types";
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 a_position;

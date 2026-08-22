@@ -5,13 +5,13 @@ import {
   packMatrix4F32,
   worldToClipMatrixForPaint,
   gradientUniforms,
-} from "./math";
-import { mediaLayout } from "./media";
-import { createTextAtlas, type TextAtlas } from "./text-atlas";
-import { colorAdjustUniforms } from "./effects";
-import { buildEffectPassPlan, type EffectPassPlan } from "./effect-pass-plan";
-import { blurPyramidPlan } from "./blur-quality";
-import type { PreviewBackend } from "./backend";
+} from "../math";
+import { mediaLayout } from "../media";
+import { createTextAtlas, type TextAtlas } from "../text-atlas";
+import { colorAdjustUniforms } from "../effects";
+import { buildEffectPassPlan, type EffectPassPlan } from "../effect-pass-plan";
+import { blurPyramidPlan } from "../blur-quality";
+import type { PreviewBackend } from "../backend";
 import type {
   PreviewAsset,
   PreviewDiagnostic,
@@ -24,7 +24,7 @@ import type {
   WebGPUTextureLike,
   WebGPUBufferLike,
   WebGPUCommandEncoderLike,
-} from "./types";
+} from "../types";
 
 const BUFFER_VERTEX = 0x20;
 const BUFFER_INDEX = 0x10;

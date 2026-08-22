@@ -4,8 +4,8 @@ import {
   type PaintCommandBuffer,
   type RuntimeFrameV2,
 } from "@motionvideo/motion-runtime";
-import { createWebGL2Backend } from "./webgl2-backend";
-import { createWebGPUBackend } from "./webgpu-backend";
+import { createWebGL2Backend } from "./webgl2";
+import { createWebGPUBackend } from "./webgpu";
 import type { PreviewBackend } from "./backend";
 import type { PreviewDiagnostic, PreviewRenderer, PreviewRendererOptions } from "./types";
 

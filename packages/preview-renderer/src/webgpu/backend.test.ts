@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createWebGPUBackend } from "./webgpu-backend";
+import { createWebGPUBackend } from "./backend";
 import type {
   PreviewRendererOptions,
   WebGPUBufferLike,
   WebGPUDeviceLike,
-} from "./types";
+} from "../types";
 
 describe("WebGPU preview backend", () => {
   it("submits rectangle and ellipse geometry before releasing GPU resources", async () => {
