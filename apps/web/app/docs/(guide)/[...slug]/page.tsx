@@ -5,7 +5,7 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export function generateStaticParams() {
-  return DOCS_PAGE_SLUGS.map((slug) => ({
+  return DOCS_PAGE_SLUGS.filter((slug) => slug !== "").map((slug) => ({
     slug: slug.split("/"),
   }));
 }
