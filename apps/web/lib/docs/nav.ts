@@ -43,7 +43,6 @@ const hidden = (slug: string, label: string, surface: DocsSurface): DocsEntry =>
 /** Public V2 docs only. Source files for hidden concepts remain available. */
 export const DOCS_ENTRIES: DocsEntry[] = [
   published("", "Overview", "start", "authoring"),
-  published("architecture", "V2 architecture", "start", "authoring"),
   published("authoring", "Authoring model", "start", "authoring"),
   published("ai", "AI and MCP guidance", "start", "authoring"),
   published("atoms", "Atomic Protocol V2", "protocol", "protocol"),

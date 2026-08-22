@@ -56,54 +56,9 @@ ${FENCE}
 
 ## Continue
 
-- Read [V2 architecture](/docs/architecture) for the complete pipeline.
 - Read [Authoring model](/docs/authoring) for the boundary between intent and atoms.
 - Read [Atomic Protocol V2](/docs/atoms) for the atom catalog.
 - Read [Runtime, preview, and export](/docs/rendering) for adapter responsibilities.`,
-  },
-  architecture: {
-    title: "V2 architecture",
-    markdown: String.raw`# V2 architecture
-
-## One render meaning
-
-MCP tools, AI agents, templates, and the future editor are authoring surfaces. They describe intent. They do not own GPU state, shader code, Matrix4 math, or video encoding.
-
-${FENCE}text
-MCP / AI / Editor intent
-        |
-        v
-High-level authoring JSON
-        |
-        v  Compiler A
-Atomic Protocol V2 JSON
-        |
-        v  Compiler B
-Runtime IR and Matrix4 values
-        |
-        v
-Runtime frame
-        |
-        +--> native preview adapter
-        |
-        +--> export adapter
-${FENCE}
-
-## Composition and view
-
-The composition owns the output dimensions, frame rate, background, timeline, and node tree. The view owns projection and camera-like transform intent when the runtime needs it.
-
-## Atomic Protocol V2
-
-V2 is the stable interchange boundary. It contains explicit nodes and operators such as Shape, Path, Text, Transform, Timing, Effects, Mask, and Composite. A pattern or preset is expanded before it reaches this boundary.
-
-## Runtime IR
-
-Runtime resolves assets, text layout, animations, Matrix4 values, projection, paint commands, and effect programs. The renderer consumes the resolved result; it does not reinterpret authoring semantics.
-
-## Preview and export
-
-Preview and export can use different platform adapters. They must receive the same runtime meaning for the same protocol document and time. This documentation page does not execute either adapter.`,
   },
   authoring: {
     title: "Authoring model",
@@ -628,8 +583,3 @@ export function getV2DocsPage(slug: string): DocsPageView | null {
 export function getPublishedV2Slugs(): string[] {
   return Object.keys(V2_PAGES);
 }
-
-
-
-
-

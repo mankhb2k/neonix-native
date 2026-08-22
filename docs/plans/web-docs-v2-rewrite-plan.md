@@ -123,7 +123,6 @@ The public navigation should be rebuilt in this order:
 
 ```text
 Getting started
-V2 architecture
 High-level authoring
 Atomic Protocol V2
 Runtime and rendering
@@ -142,25 +141,7 @@ Rewrite these pages first:
 - A minimal V2 document;
 - How AI and MCP should produce intent.
 
-### 4.2 V2 architecture
-
-Use [`docs/guide/v2-architechture.md`](../guide/v2-architechture.md) as the
-architecture source, rendered through the web docs. Keep the public page
-focused on the following pipeline:
-
-```text
-MCP / AI / Editor intent
-        -> High-level authoring
-        -> Compiler A
-        -> Atomic Protocol V2
-        -> Compiler B
-        -> Runtime IR
-        -> Matrix4 and frame evaluation
-        -> WebGPU preview / WebGL2 fallback
-        -> Remotion export
-```
-
-### 4.3 Atomic Protocol V2
+### 4.2 Atomic Protocol V2
 
 The public atom reference should be organized as:
 
@@ -281,7 +262,7 @@ Acceptance criteria:
 - Published pages have deterministic slugs.
 - Direct access to hidden component pages returns 404.
 
-### Phase 2 - Rewrite architecture and getting started
+### Phase 2 - Rewrite getting started
 
 - Rewrite the home docs page around V2.
 - Explain high-level authoring versus Atomic Protocol.
@@ -425,11 +406,10 @@ Use small commits with no render-core changes mixed in:
 
 1. `docs: add V2 documentation registry`
 2. `docs: hide unfinished component documentation`
-3. `docs: rewrite V2 architecture and getting started`
-4. `docs: rewrite atomic protocol reference`
-5. `docs: rewrite V2 effects and media reference`
-6. `docs: rewrite AI and MCP authoring guidance`
-7. `test: validate static V2 documentation boundary`
+3. `docs: rewrite atomic protocol reference`
+4. `docs: rewrite V2 effects and media reference`
+5. `docs: rewrite AI and MCP authoring guidance`
+6. `test: validate static V2 documentation boundary`
 
 Do not use `git reset --hard`, broad `git restore`, or repository-wide
 checkouts during this work. Existing editor, Remotion, compiler, runtime, and

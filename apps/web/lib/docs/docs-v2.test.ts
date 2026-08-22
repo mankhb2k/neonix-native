@@ -11,6 +11,7 @@ import {
   DOCS_PAGE_SLUGS,
   isHiddenDocsSlug,
 } from "./nav";
+import { getV2DocsPage } from "./content/v2";
 import { getDocsPage } from "./page-content";
 
 const publicContentPath = path.join(process.cwd(), "lib", "docs", "content", "v2.tsx");
@@ -34,6 +35,14 @@ describe("static V2 documentation", () => {
     expect(DOCS_NAV.flatMap((group) => group.items.map((item) => item.href))).not.toContain(
       "/docs/components",
     );
+  });
+
+  it("keeps internal architecture out of the public docs", () => {
+    expect(DOCS_PAGE_SLUGS).not.toContain("architecture");
+    expect(DOCS_NAV.flatMap((group) => group.items.map((item) => item.href))).not.toContain(
+      "/docs/architecture",
+    );
+    expect(getV2DocsPage("architecture")).toBeNull();
   });
 
   it("keeps the public content static and V2-only", () => {
