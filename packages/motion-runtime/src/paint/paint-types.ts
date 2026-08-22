@@ -84,6 +84,17 @@ export type RuntimeBlurEffect = {
   radius: number;
 };
 
+export type RuntimeDropShadowEffect = {
+  id: string;
+  type: "drop-shadow";
+  x: number;
+  y: number;
+  blur: number;
+  color: string;
+  opacity: number;
+};
+
 export type RuntimeEffect =
   | RuntimeBlurEffect
-  | RuntimeColorAdjustEffect;
+  | RuntimeColorAdjustEffect
+  | RuntimeDropShadowEffect;

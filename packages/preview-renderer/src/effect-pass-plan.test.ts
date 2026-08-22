@@ -14,7 +14,7 @@ describe("EffectPassPlan", () => {
     expect(plan.supported).toBe(true);
     expect(plan.requiresOffscreen).toBe(true);
     expect(plan.sourceColorAdjust.map((op) => op.id)).toEqual(["grade-before"]);
-    expect(plan.blur?.id).toBe("soften");
+    expect(plan.blurs.map((op) => op.id)).toEqual(["soften"]);
     expect(plan.outputColorAdjust.map((op) => op.id)).toEqual(["grade-after"]);
   });
 
@@ -26,6 +26,48 @@ describe("EffectPassPlan", () => {
 
     expect(plan.requiresOffscreen).toBe(false);
     expect(plan.sourceColorAdjust).toHaveLength(1);
-    expect(plan.blur).toBeUndefined();
+    expect(plan.blurs).toEqual([]);
+  });
+
+  it("keeps consecutive blur operators in their original order", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "soften-a", type: "blur", radius: 4 },
+      { id: "soften-b", type: "blur", radius: 40 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(true);
+    expect(plan.blurs.map((op) => [op.id, op.radius])).toEqual([
+      ["soften-a", 4],
+      ["soften-b", 40],
+    ]);
+  });
+
+  it("recognizes the immutable-source branching program for one drop shadow", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "shadow", type: "drop-shadow", x: 18, y: 20, blur: 24, color: "#ff3366", opacity: 0.25 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(true);
+    expect(plan.requiresOffscreen).toBe(true);
+    expect(plan.shadow).toMatchObject({
+      alphaMask: { input: "source", output: "effect:shadow:alpha" },
+      blur: { radius: 24 },
+      tint: { color: "#ff3366", opacity: 0.25 },
+      offset: { x: 18, y: 20 },
+      composite: { source: "source", mode: "source-over" },
+    });
+  });
+
+  it("diagnoses a mixed linear and branching program until that graph is implemented", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },
+      { id: "shadow", type: "drop-shadow", x: 18, y: 20, blur: 24, color: "#ff3366", opacity: 0.25 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(false);
+    expect(plan.diagnostics.some((diagnostic) => diagnostic.code === "effect_pass_operator_unsupported")).toBe(true);
   });
 });

@@ -966,6 +966,243 @@ const BLUR_PROJECT = project("preview-effect-blur-v2", [
   }),
 ]);
 
+const BLUR_STROKE_PROJECT = project("preview-effect-blur-stroke-v2", [
+  rectangle({
+    id: "blurred-fill-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
+    effects: [{ id: "soften-fill", type: "blur", radius: 24 }],
+  }),
+  rectangle({
+    id: "blurred-stroke-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    stroke: "#ff3366",
+    strokeWidth: 18,
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
+    effects: [{ id: "soften-stroke", type: "blur", radius: 24 }],
+  }),
+]);
+
+const DROP_SHADOW_PROJECT = project("preview-effect-drop-shadow-v2", [
+  rectangle({
+    id: "shadow-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+  }),
+  rectangle({
+    id: "drop-shadow-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "pink-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 24,
+      color: "#ff3366",
+      opacity: 0.65,
+    }],
+  }),
+]);
+
+const DROP_SHADOW_NEGATIVE_PROJECT = project("preview-effect-drop-shadow-negative-v2", [
+  rectangle({
+    id: "negative-shadow-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+  }),
+  rectangle({
+    id: "negative-shadow-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "blue-shadow-up-left",
+      type: "drop-shadow",
+      x: -24,
+      y: -28,
+      blur: 24,
+      color: "#3366ff",
+      opacity: 0.65,
+    }],
+  }),
+]);
+
+const DROP_SHADOW_ZERO_BLUR_PROJECT = project("preview-effect-drop-shadow-zero-blur-v2", [
+  rectangle({
+    id: "zero-blur-shadow-rectangle",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "crisp-pink-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 0,
+      color: "#ff3366",
+      opacity: 0.65,
+    }],
+  }),
+]);
+
+const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alpha-color-v2", [
+  rectangle({
+    id: "alpha-color-shadow",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+    effects: [{
+      id: "half-alpha-blue-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 0,
+      color: "#3366ff80",
+      opacity: 1,
+    }],
+  }),
+  rectangle({
+    id: "opaque-color-shadow",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "opaque-blue-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 0,
+      color: "#3366ff",
+      opacity: 1,
+    }],
+  }),
+]);
+
+const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2", [
+  rectangle({
+    id: "fill-only-shadow-source",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    fillOpacity: 0.2,
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+    effects: [{
+      id: "fill-only-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 0,
+      color: "#ff3366",
+      opacity: 0.75,
+    }],
+  }),
+  rectangle({
+    id: "fill-and-stroke-shadow-source",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    fillOpacity: 0.2,
+    stroke: "#d9d9d9",
+    strokeWidth: 24,
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "fill-and-stroke-shadow",
+      type: "drop-shadow",
+      x: 24,
+      y: 28,
+      blur: 0,
+      color: "#ff3366",
+      opacity: 0.75,
+    }],
+  }),
+]);
+
+const EFFECT_ORDER_GRADIENT_FILL = {
+  type: "linear-gradient" as const,
+  angle: 0,
+  stops: [
+    { offset: 0, color: "#000000" },
+    { offset: 1, color: "#ffffff" },
+  ],
+};
+
+const EFFECT_ORDER_PROJECT = project("preview-effect-order-v2", [
+  rectangle({
+    id: "color-then-blur",
+    zIndex: 0,
+    fill: EFFECT_ORDER_GRADIENT_FILL,
+    frame: { width: 600, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 180, y: 360, z: 0 } },
+    effects: [
+      { id: "contrast-first", type: "color-adjust", brightness: 0, contrast: 4, saturation: 1, hueRotate: 0 },
+      { id: "blur-second", type: "blur", radius: 40 },
+    ],
+  }),
+  rectangle({
+    id: "blur-then-color",
+    zIndex: 1,
+    fill: EFFECT_ORDER_GRADIENT_FILL,
+    frame: { width: 600, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1140, y: 360, z: 0 } },
+    effects: [
+      { id: "blur-first", type: "blur", radius: 40 },
+      { id: "contrast-second", type: "color-adjust", brightness: 0, contrast: 4, saturation: 1, hueRotate: 0 },
+    ],
+  }),
+]);
+
+const BLUR_CHAIN_PROJECT = project("preview-effect-blur-chain-v2", [
+  rectangle({
+    id: "single-blur",
+    zIndex: 0,
+    fill: "#ff3366",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
+    effects: [{ id: "single-soften", type: "blur", radius: 20 }],
+  }),
+  rectangle({
+    id: "double-blur",
+    zIndex: 1,
+    fill: "#ff3366",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
+    effects: [
+      { id: "first-soften", type: "blur", radius: 20 },
+      { id: "second-soften", type: "blur", radius: 20 },
+    ],
+  }),
+]);
+
+function blurRadiusProject(id: string, radius: number): MotionProtocolV2 {
+  return project(id, [rectangle({
+    id: `blur-${radius}`,
+    zIndex: 0,
+    fill: "#ff3366",
+    frame: { width: 1200, height: 900 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 360, y: 90, z: 0 } },
+    effects: [{ id: `soften-${radius}`, type: "blur", radius }],
+  })]);
+}
+
+const BLUR_RADIUS_4_PROJECT = blurRadiusProject("preview-effect-blur-radius-4-v2", 4);
+const BLUR_RADIUS_40_PROJECT = blurRadiusProject("preview-effect-blur-radius-40-v2", 40);
+const BLUR_RADIUS_256_PROJECT = blurRadiusProject("preview-effect-blur-radius-256-v2", 256);
+
 export type PreviewLabCase = {
   id: string;
   label: string;
@@ -1045,6 +1282,83 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 11 / Effects",
     hint: "The right rectangle uses a 40 px screen-space Gaussian blur through a linear premultiplied pyramid, then composites back over the stage.",
     project: BLUR_PROJECT,
+  },
+  {
+    id: "effect.blur.stroke",
+    label: "Effect / blur with stroke",
+    group: "Task 11 / Effects",
+    hint: "A neutral gray fill and pink stroke make the blur contribution of each source region measurable before drop-shadow work begins.",
+    project: BLUR_STROKE_PROJECT,
+  },
+  {
+    id: "effect.drop-shadow",
+    label: "Effect / drop shadow",
+    group: "Task 11 / Effects",
+    hint: "A pink alpha-derived shadow is blurred and offset behind the immutable gray source before source-over compositing.",
+    project: DROP_SHADOW_PROJECT,
+  },
+  {
+    id: "effect.drop-shadow.negative-offset",
+    label: "Effect / shadow negative offset",
+    group: "Task 11 / Effects",
+    hint: "A blue shadow is displaced above and left of the immutable source, proving signed projected-pixel offsets.",
+    project: DROP_SHADOW_NEGATIVE_PROJECT,
+  },
+  {
+    id: "effect.drop-shadow.zero-blur",
+    label: "Effect / shadow zero blur",
+    group: "Task 11 / Effects",
+    hint: "A zero-sigma shadow retains a crisp translated alpha silhouette before the source is composited over it.",
+    project: DROP_SHADOW_ZERO_BLUR_PROJECT,
+  },
+  {
+    id: "effect.drop-shadow.alpha-color",
+    label: "Effect / shadow alpha color",
+    group: "Task 11 / Effects",
+    hint: "Half-alpha and opaque blue shadow colors share the same source and offset, making embedded color alpha measurable.",
+    project: DROP_SHADOW_ALPHA_COLOR_PROJECT,
+  },
+  {
+    id: "effect.drop-shadow.stroke-source",
+    label: "Effect / shadow stroke source",
+    group: "Task 11 / Effects",
+    hint: "The right source adds an opaque stroke over a translucent fill; its stronger offset silhouette proves source capture includes paint coverage.",
+    project: DROP_SHADOW_STROKE_PROJECT,
+  },
+  {
+    id: "effect.order",
+    label: "Effect / order",
+    group: "Task 11.5 / Effect program",
+    hint: "Contrast before blur and contrast after blur produce distinct projected surfaces; order is never normalized away.",
+    project: EFFECT_ORDER_PROJECT,
+  },
+  {
+    id: "effect.blur-chain",
+    label: "Effect / two blurs",
+    group: "Task 11.5 / Effect program",
+    hint: "The right rectangle runs two ordered 20 px Gaussian operators and spreads further than the single-pass reference.",
+    project: BLUR_CHAIN_PROJECT,
+  },
+  {
+    id: "effect.blur.radius-4",
+    label: "Effect / blur 4 px",
+    group: "Task 11.5 / Blur radii",
+    hint: "A 4 px Gaussian sigma stays crisp at the opaque center with a narrow antialiased edge.",
+    project: BLUR_RADIUS_4_PROJECT,
+  },
+  {
+    id: "effect.blur.radius-40",
+    label: "Effect / blur 40 px",
+    group: "Task 11.5 / Blur radii",
+    hint: "A 40 px Gaussian sigma uses the shared linear premultiplied blur plan.",
+    project: BLUR_RADIUS_40_PROJECT,
+  },
+  {
+    id: "effect.blur.radius-256",
+    label: "Effect / blur 256 px",
+    group: "Task 11.5 / Blur radii",
+    hint: "A 256 px Gaussian sigma exercises the blur pyramid while preserving a clean opaque core.",
+    project: BLUR_RADIUS_256_PROJECT,
   },
   {
     id: "path.closed-fill.perspective",

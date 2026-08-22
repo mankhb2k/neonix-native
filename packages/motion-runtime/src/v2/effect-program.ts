@@ -112,8 +112,8 @@ function validateOpFields(
       invalid(`Effect operator "${op.id}" color-adjust values must be finite`);
     }
   } else if (op.kind === "blur") {
-    if (!finite(op.radius) || op.radius <= 0 || op.radius > 256) {
-      invalid(`Effect operator "${op.id}" blur radius must be finite and within (0, 256]`);
+    if (!finite(op.radius) || op.radius < 0 || op.radius > 256) {
+      invalid(`Effect operator "${op.id}" blur radius must be finite and within [0, 256]`);
     }
   } else if (op.kind === "tint") {
     if (!hasText(op.color) || !finite(op.opacity) || op.opacity < 0 || op.opacity > 1) {

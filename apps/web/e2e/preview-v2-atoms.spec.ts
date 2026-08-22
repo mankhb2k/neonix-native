@@ -90,6 +90,170 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
+  test("blurs the composited rectangle fill and stroke from one isolated source", async ({ page }) => {
+    const caseId = "effect.blur.stroke";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const fillOnlyOutside = await readWebGLPixel(page, "preview-v2-canvas", 284, 540);
+    const blurredOutside = await readWebGLPixel(page, "preview-v2-canvas", 1244, 540);
+    const blurredCenter = await readWebGLPixel(page, "preview-v2-canvas", 1440, 540);
+    expect(fillOnlyOutside[0]).toBeGreaterThan(35);
+    expect(blurredOutside[0]).toBeGreaterThan(35);
+    expect(blurredOutside[0]).toBeGreaterThanOrEqual(fillOnlyOutside[0]! + 4);
+    expect(blurredOutside[1]).toBeLessThanOrEqual(fillOnlyOutside[1]! - 5);
+    expect(blurredOutside[2]).toBeLessThanOrEqual(fillOnlyOutside[2]! - 4);
+    expect(blurredCenter).toEqual([217, 217, 217, 255]);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 1244, 540);
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 1440, 540);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuOutside[index]! - blurredOutside[index]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuCenter[index]! - blurredCenter[index]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("renders a Runtime-lowered drop shadow behind its immutable rectangle source", async ({ page }) => {
+    const caseId = "effect.drop-shadow";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const sourceCenter = await readWebGLPixel(page, "preview-v2-canvas", 1440, 510);
+    const shadowSample = await readWebGLPixel(page, "preview-v2-canvas", 1640, 710);
+    expect(sourceCenter).toEqual([217, 217, 217, 255]);
+    expect(shadowSample[0]).toBeGreaterThan(50);
+    expect(shadowSample[0]).toBeGreaterThan(shadowSample[1]! + 20);
+    expect(shadowSample[0]).toBeGreaterThan(shadowSample[2]! + 15);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuShadow = await readPresentedPixel(page, "preview-v2-canvas", 1640, 710);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuShadow[index]! - shadowSample[index]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("certifies signed offsets, zero blur, embedded color alpha, and stroke source capture for drop shadows", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const samples: Array<{ caseId: string; points: Array<readonly [number, number]> }> = [
+      { caseId: "effect.drop-shadow.negative-offset", points: [[1220, 300]] },
+      { caseId: "effect.drop-shadow.zero-blur", points: [[1630, 700]] },
+      { caseId: "effect.drop-shadow.alpha-color", points: [[670, 700], [1630, 700]] },
+      { caseId: "effect.drop-shadow.stroke-source", points: [[680, 710], [1640, 710]] },
+    ];
+
+    const webglResults: number[][][] = [];
+    for (const fixture of samples) {
+      await page.goto(`/docs/preview?case=${fixture.caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+      webglResults.push(await Promise.all(
+        fixture.points.map(([x, y]) => readWebGLPixel(page, "preview-v2-canvas", x, y)),
+      ));
+    }
+
+    const [negative, zeroBlur, alphaColor, strokeSource] = webglResults;
+    expect(negative![0]![2]).toBeGreaterThan(negative![0]![0] + 15);
+    expect(negative![0]![2]).toBeGreaterThan(negative![0]![1] + 8);
+    expect(zeroBlur![0]![0]).toBeGreaterThan(zeroBlur![0]![1] + 50);
+    expect(zeroBlur![0]![0]).toBeGreaterThan(zeroBlur![0]![2] + 20);
+    expect(alphaColor![1]![2]).toBeGreaterThan(alphaColor![0]![2] + 50);
+    expect(strokeSource![1]![0]).toBeGreaterThan(strokeSource![0]![0] + 50);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    for (const [fixtureIndex, fixture] of samples.entries()) {
+      await page.goto(`/docs/preview?case=${fixture.caseId}&backend=webgpu`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      const webgpu = await Promise.all(
+        fixture.points.map(([x, y]) => readPresentedPixel(page, "preview-v2-canvas", x, y)),
+      );
+      for (const [pointIndex, pixel] of webgpu.entries()) {
+        for (let channel = 0; channel < 4; channel += 1) {
+          expect(Math.abs(pixel[channel]! - webglResults[fixtureIndex]![pointIndex]![channel]!)).toBeLessThanOrEqual(2);
+        }
+      }
+    }
+  });
+
+  test("preserves observable color-adjust and blur order", async ({ page }) => {
+    const caseId = "effect.order";
+    const samplePoints = [420, 450, 480, 510];
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const beforeBlur = await Promise.all(samplePoints.map((x) => readWebGLPixel(page, "preview-v2-canvas", x, 540)));
+    const afterBlur = await Promise.all(samplePoints.map((x) => readWebGLPixel(page, "preview-v2-canvas", x + 960, 540)));
+    expect(beforeBlur.some((pixel, index) => Math.abs(pixel[0] - afterBlur[index]![0]) >= 8)).toBe(true);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuBefore = await Promise.all(samplePoints.map((x) => readPresentedPixel(page, "preview-v2-canvas", x, 540)));
+    const webgpuAfter = await Promise.all(samplePoints.map((x) => readPresentedPixel(page, "preview-v2-canvas", x + 960, 540)));
+    for (let index = 0; index < samplePoints.length; index += 1) {
+      expect(Math.abs(webgpuBefore[index]![0] - beforeBlur[index]![0])).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuAfter[index]![0] - afterBlur[index]![0])).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("executes two consecutive blur operators in order", async ({ page }) => {
+    const caseId = "effect.blur-chain";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const singleOutside = await readWebGLPixel(page, "preview-v2-canvas", 280, 540);
+    const doubleOutside = await readWebGLPixel(page, "preview-v2-canvas", 1240, 540);
+    expect(doubleOutside[0]).toBeGreaterThan(singleOutside[0] + 5);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 1240, 540);
+    expect(Math.abs(webgpuOutside[0] - doubleOutside[0])).toBeLessThanOrEqual(2);
+  });
+
+  for (const radius of [4, 40, 256]) {
+    test(`certifies blur radius ${radius} with a clean monotonic edge`, async ({ page }) => {
+      const caseId = `effect.blur.radius-${radius}`;
+      const spread = Math.min(radius * 2, 220);
+      const profileX = Array.from({ length: 9 }, (_, index) =>
+        Math.round(360 - spread + (spread * 2 * index) / 8),
+      );
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      const canvas = page.getByTestId("preview-v2-canvas");
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+      const center = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+      const profile = await Promise.all(profileX.map((x) => readWebGLPixel(page, "preview-v2-canvas", x, 540)));
+      expect(center[0]).toBeGreaterThan(220);
+      expect(center[3]).toBe(255);
+      for (let index = 1; index < profile.length; index += 1) {
+        expect(profile[index]![0]).toBeGreaterThanOrEqual(profile[index - 1]![0] - 1);
+      }
+      for (const pixel of profile) {
+        expect(pixel[0]).toBeGreaterThanOrEqual(16);
+        expect(pixel[1]).toBeGreaterThanOrEqual(24);
+        expect(pixel[2]).toBeGreaterThanOrEqual(32);
+      }
+
+      test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+      expect(Math.abs(webgpuCenter[0] - center[0])).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuCenter[1] - center[1])).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuCenter[2] - center[2])).toBeLessThanOrEqual(2);
+    });
+  }
+
   test("renders Runtime-shaped exact-font text through both GPU backends", async ({ page }) => {
     const caseId = "text.single-line.alignment";
     const textPixels = async () => page.getByTestId("preview-v2-canvas").evaluate(async (node) => {

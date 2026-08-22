@@ -3,8 +3,20 @@ import {
   validateRuntimeEffectProgram,
   type RuntimeBlurEffectOp,
   type RuntimeColorAdjustEffectOp,
+  type RuntimeCompositeEffectOp,
   type RuntimeEffectProgram,
+  type RuntimeOffsetEffectOp,
+  type RuntimeAlphaMaskEffectOp,
+  type RuntimeTintEffectOp,
 } from "@motionvideo/motion-runtime";
+
+export type DropShadowPass = {
+  alphaMask: RuntimeAlphaMaskEffectOp;
+  blur: RuntimeBlurEffectOp;
+  tint: RuntimeTintEffectOp;
+  offset: RuntimeOffsetEffectOp;
+  composite: RuntimeCompositeEffectOp;
+};
 
 /** Backend-neutral physical plan for the effect subset certified today. */
 export type EffectPassPlan = {
@@ -12,11 +24,33 @@ export type EffectPassPlan = {
   output: string;
   requiresOffscreen: boolean;
   sourceColorAdjust: RuntimeColorAdjustEffectOp[];
-  blur?: RuntimeBlurEffectOp;
+  blurs: RuntimeBlurEffectOp[];
   outputColorAdjust: RuntimeColorAdjustEffectOp[];
+  shadow?: DropShadowPass;
   diagnostics: EffectPassPlanDiagnostic[];
   supported: boolean;
 };
+
+function matchDropShadowPass(program: RuntimeEffectProgram): DropShadowPass | undefined {
+  if (program.ops.length !== 5) return undefined;
+  const [alphaMask, blur, tint, offset, composite] = program.ops;
+  if (
+    alphaMask?.kind !== "alpha-mask" ||
+    blur?.kind !== "blur" ||
+    tint?.kind !== "tint" ||
+    offset?.kind !== "offset" ||
+    composite?.kind !== "composite" ||
+    alphaMask.input !== program.input ||
+    blur.input !== alphaMask.output ||
+    tint.input !== blur.output ||
+    offset.input !== tint.output ||
+    composite.backdrop !== offset.output ||
+    composite.source !== program.input ||
+    composite.output !== program.output ||
+    composite.mode !== "source-over"
+  ) return undefined;
+  return { alphaMask, blur, tint, offset, composite };
+}
 
 export type EffectPassPlanDiagnostic = {
   code: string;
@@ -39,13 +73,28 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
     });
   }
 
+  const shadow = matchDropShadowPass(program);
+  if (shadow) {
+    return {
+      source: program.input,
+      output: program.output,
+      requiresOffscreen: true,
+      sourceColorAdjust: [],
+      blurs: [],
+      outputColorAdjust: [],
+      shadow,
+      diagnostics,
+      supported: diagnostics.length === 0,
+    };
+  }
+
   let expectedInput: string = program.input;
-  let blur: RuntimeBlurEffectOp | undefined;
+  const blurs: RuntimeBlurEffectOp[] = [];
   let seenSpatial = false;
   const sourceColorAdjust: RuntimeColorAdjustEffectOp[] = [];
   const outputColorAdjust: RuntimeColorAdjustEffectOp[] = [];
 
-  for (const op of program.ops) {
+  for (const [index, op] of program.ops.entries()) {
     if (op.kind === "composite") {
       diagnostics.push({
         code: "effect_pass_operator_unsupported",
@@ -63,17 +112,23 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
     }
     expectedInput = op.output;
     if (op.kind === "color-adjust") {
-      (seenSpatial ? outputColorAdjust : sourceColorAdjust).push(op);
-    } else if (op.kind === "blur") {
-      if (blur) {
+      if (seenSpatial && program.ops.slice(index + 1).some((next) => next.kind === "blur")) {
         diagnostics.push({
-          code: "effect_pass_multiple_blur_unsupported",
-          message: "The initial pass planner supports one blur operator per effect program",
+          code: "effect_pass_interleaved_color_adjust_unsupported",
+          message: `Effect operator "${op.id}" appears between spatial operators and cannot be moved without changing order`,
           opId: op.id,
         });
-      } else {
-        blur = op;
       }
+      (seenSpatial ? outputColorAdjust : sourceColorAdjust).push(op);
+    } else if (op.kind === "blur") {
+      if (outputColorAdjust.length) {
+        diagnostics.push({
+          code: "effect_pass_interleaved_color_adjust_unsupported",
+          message: `Blur operator "${op.id}" follows a post-spatial color adjustment and cannot be reordered`,
+          opId: op.id,
+        });
+      }
+      blurs.push(op);
       seenSpatial = true;
     } else {
       diagnostics.push({
@@ -103,8 +158,9 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
     output: program.output,
     requiresOffscreen: program.requiresOffscreen,
     sourceColorAdjust,
-    ...(blur ? { blur } : {}),
+    blurs,
     outputColorAdjust,
+    ...(shadow ? { shadow } : {}),
     diagnostics,
     supported: diagnostics.length === 0,
   };

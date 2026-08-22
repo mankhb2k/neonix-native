@@ -22,4 +22,32 @@ describe("Remotion Protocol V2 parity", () => {
     const evaluated = evaluateRuntimeProjectV2(runtime, 0);
     expect(evaluated.commands.some((command) => command.op === "drawShape" && command.shape === "ellipse")).toBe(true);
   });
+
+  it("preserves Runtime Effect Operator IR for the shared native canvas export path", () => {
+    const project = createV2ShapeProject({ id: "remotion-effect-program" });
+    const layer = project.layers[0];
+    if (!layer || layer.type !== "shape") throw new Error("Expected shape fixture layer");
+    const runtime = compileProtocolV2({
+      ...project,
+      layers: [{
+        ...layer,
+        effects: [
+          { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.4, saturation: 0.7, hueRotate: 0 },
+          { id: "soften", type: "blur", radius: 24 },
+        ],
+      }],
+    });
+
+    const evaluated = evaluateRuntimeProjectV2(runtime, 0);
+    const commandScope = evaluated.commands.find((command) => command.op === "beginLayer");
+    if (!commandScope || commandScope.op !== "beginLayer") throw new Error("Expected effect layer scope");
+    const tree = buildRemotionPaintTree(evaluated);
+    const treeScope = tree.roots.find((node) => node.kind === "layer");
+    if (!treeScope || treeScope.kind !== "layer") throw new Error("Expected Remotion effect layer scope");
+
+    expect(commandScope.effectProgram).toBeDefined();
+    expect(treeScope.effectProgram).toBe(commandScope.effectProgram);
+    expect(treeScope.effectProgram?.ops.map((op) => op.kind)).toEqual(["color-adjust", "blur"]);
+    expect(treeScope.offscreen).toBe(true);
+  });
 });

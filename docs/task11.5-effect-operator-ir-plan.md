@@ -223,42 +223,63 @@ contains effect-specific lookup logic in drawable handlers.
 
 ## Phase 6: Rectangle E2E Certification
 
-- [ ] Certify `color-adjust -> blur`.
-- [ ] Certify `blur -> color-adjust` and prove it differs from the first case.
-- [ ] Certify two consecutive blur operations.
-- [ ] Certify `radius` values `4`, `40`, and `256`.
-- [ ] Assert an opaque center, a monotonic antialiased edge profile, and no
+- [x] Certify `color-adjust -> blur`.
+- [x] Certify `blur -> color-adjust` and prove it differs from the first case.
+- [x] Certify two consecutive blur operations.
+- [x] Certify `radius` values `4`, `40`, and `256`.
+- [x] Assert an opaque center, a monotonic antialiased edge profile, and no
   dark or colored alpha fringe.
-- [ ] Compare WebGPU and WebGL2 samples with the existing pixel tolerance.
-- [ ] Assert that a pixel-local-only program does not allocate an offscreen
+- [x] Compare WebGPU and WebGL2 samples with the existing pixel tolerance.
+- [x] Assert that a pixel-local-only program does not allocate an offscreen
   surface.
-- [ ] Assert no unclosed or nested-offscreen diagnostics.
+- [x] Assert no unclosed or nested-offscreen diagnostics.
 
 Acceptance: all cases pass in Chromium WebGPU and WebGL2 before a new effect
 atom is introduced.
 
+Certified by `apps/web/e2e/preview-v2-atoms.spec.ts`. WebGPU is compared
+against the WebGL2 samples within two 8-bit color values. The renderer unit
+fixture also proves that a color-only program does not allocate an HDR effect
+surface.
+
 ## Phase 7: Remotion Effect-Program Parity
 
-- [ ] Make `@motionvideo/remotion-renderer` consume the same
+- [x] Make `@motionvideo/remotion-renderer` consume the same
   `RuntimeEffectProgram` from Runtime.
-- [ ] Do not define a separate CSS-only interpretation of Atomic effects.
-- [ ] Add preview-versus-export pixel fixtures for the certified rectangle
+- [x] Do not define a separate CSS-only interpretation of Atomic effects.
+- [x] Add preview-versus-export pixel fixtures for the certified rectangle
   cases.
-- [ ] Use CSS or SVG filters only when they satisfy the agreed visual contract;
+- [x] Use CSS or SVG filters only when they satisfy the agreed visual contract;
   otherwise execute the shared offscreen plan for export.
 
 Acceptance: preview and export share semantic effect ordering and pass the
 agreed parity tolerance.
 
+`MotiClipVideo` evaluates Runtime V2 then passes its `RuntimeFrameV2` directly
+to `RemotionPreviewCanvas`, which owns the same `createPreviewRenderer` native
+WebGPU/WebGL2 path as preview. `buildRemotionPaintTree()` also retains the
+same `effectProgram` reference for structural consumers. The paired export
+pixel fixture is `pnpm --filter @motionvideo/remotion-site e2e:effects`; it
+renders the ordering, chained blur, and radius `4/40/256` cases through
+Remotion, decodes the resulting PNGs, and applies the same pixel assertions as
+the preview E2E suite. No CSS or SVG filter exists in the V2 export path.
+
 ## Phase 8: Drop Shadow Readiness Gate
 
 Do not add `drop-shadow` until all of the following are true:
 
-- [ ] Effect ordering is observable and certified end to end.
-- [ ] Captured sources remain immutable for branching programs.
-- [ ] Effects are owned by layer scopes, not individual draw commands.
-- [ ] WebGPU, WebGL2, and Remotion consume the same Runtime Effect Program.
-- [ ] Existing blur behavior remains certified.
+- [x] Effect ordering is observable and certified end to end.
+- [x] Captured sources remain immutable for branching programs.
+- [x] Effects are owned by layer scopes, not individual draw commands.
+- [x] WebGPU, WebGL2, and Remotion consume the same Runtime Effect Program.
+- [x] Existing blur behavior remains certified.
+
+The source capture is physically distinct from the effect pyramid in both GPU
+backends (`effectSourceTexture` / `effectSourceTarget`). It is written exactly
+once while the layer scope is captured and then used only as an input. The
+planner now executes the exact first branch graph for `drop-shadow`; mixed
+linear/branched graphs remain diagnosed until their pass topology is explicitly
+implemented.
 
 At that point, `drop-shadow` lowers to:
 

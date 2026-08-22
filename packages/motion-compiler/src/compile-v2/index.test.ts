@@ -125,7 +125,7 @@ describe("Protocol V2 Compiler B", () => {
     expect(runtime.view.worldToClipMatrix).toHaveLength(16);
   });
 
-  it("preserves ordered color-adjust effects from Protocol V2 through PaintCommand", () => {
+  it("preserves ordered color-adjust effects from Protocol V2 through the layer effect program", () => {
     const project = {
       ...base,
       id: "v2-color-adjust",
@@ -165,10 +165,15 @@ describe("Protocol V2 Compiler B", () => {
       kind: "shape",
       effects: project.layers[0].effects,
     });
-    const draw = compileProtocolV2ToPaintCommands(project).commands.find(
-      (command) => command.op === "drawShape",
-    );
-    expect(draw).toMatchObject({ effects: project.layers[0].effects });
+    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    const scope = commands.find((command) => command.op === "beginLayer");
+    expect(scope).toMatchObject({
+      effectProgram: {
+        ops: project.layers[0].effects.map((effect) => expect.objectContaining({ id: effect.id })),
+      },
+    });
+    const draw = commands.find((command) => command.op === "drawShape");
+    expect(draw).not.toHaveProperty("effects");
   });
 
   it("emits a valid empty frame", () => {

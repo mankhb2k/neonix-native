@@ -7,6 +7,8 @@
     "studio": "remotion studio src/index.ts",
     "render:smoke": "tsx src/smoke-render.ts",
     "e2e:matrix4": "tsx src/matrix4-parity-render.ts",
+    "e2e:effects": "tsx src/effect-parity-render.ts",
+    "e2e:v2-preview-parity": "tsx src/v2-preview-parity-render.ts",
     "e2e": "tsx src/smoke-render.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -26,6 +28,7 @@
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
+    "harfbuzzjs": "^1.6.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }

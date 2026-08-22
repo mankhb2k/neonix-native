@@ -381,7 +381,10 @@ ticket and retain authoring order.
   capture target plus RGBA16F working targets when supported; WebGPU uses
   RGBA16F working targets. The 40 px fixture asserts a monotonic edge profile,
   an opaque center, transparent-edge color correctness, and backend parity.
-- [ ] Shadow.
+- [x] Shadow. Certified V2 `drop-shadow` lowers to immutable-source
+  `alpha-mask -> blur -> tint -> offset -> composite`; preview WebGPU/WebGL2
+  and Remotion PNG export share the same Runtime Effect Program. Detailed
+  execution record: `docs/task11-drop-shadow-plan.md`.
 - [ ] Glow.
 - [ ] Noise.
 - [ ] Inner glow.

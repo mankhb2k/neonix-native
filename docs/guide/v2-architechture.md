@@ -247,7 +247,12 @@ Atomic V2 -> Compiler B -> RuntimeFrameV2
 
 Export must not introduce a CSS transform model, recalculate layer matrices, or
 accept a legacy project format. Pixel-level parity tests compare certified cases
-across WebGPU, WebGL2, and Remotion output.
+across WebGPU, WebGL2, and Remotion output. The canonical full export gate is
+`pnpm e2e:v2-remotion-parity`. It first renders every shared preview-lab fixture
+through `MotiClipVideo`, then opens the native web preview in Playwright and
+compares the complete RGBA PNG buffers. The gate serves the same media assets,
+prepares the same font layout, and therefore verifies the actual preview-to-PNG
+path rather than only checking that Remotion produced a non-empty file.
 
 ## 8. Certification and Delivery Order
 
@@ -258,16 +263,12 @@ Protocol schema -> Compiler B -> Runtime -> WebGPU -> WebGL2
 -> browser pixel E2E -> Remotion frame -> encoded-video smoke test
 ```
 
-The currently certified V2 visual surface is shape rendering plus the first
-static Path checkpoint. Rectangle covers
-fill, gradient, rounded corners, stroke, transform, timing, opacity, and
-ordering; ellipse covers its corresponding fill, gradient, stroke, transform,
-timing, opacity, and ordering behavior. Path covers closed and open contours,
-`nonzero`/`evenodd` holes, multiple contours, fixed-width stroke joins/caps/
-dashes, and topology-matched morph interpolation on a Matrix4 local plane.
-Text, image, video, effects,
-masks, groups, and high-level patterns remain future work until each has its
-own certification evidence.
+The current V2 visual surface includes rectangle and ellipse paint, image and
+video media, prepared text, path contours and morphing, group transforms,
+Matrix4 projection, and the certified effect operators. Each surface is
+compiled from the preview lab and rendered through WebGPU/WebGL2 in the web
+suite plus Remotion PNG export. High-level patterns, masks, and untested
+future operators still require their own certification evidence.
 
 ## 9. Non-negotiable Boundaries
 

@@ -31,6 +31,7 @@ export const V2_CERTIFIED_ATOMS = [
   "text.fill",
   "effect.color-adjust",
   "effect.blur",
+  "effect.drop-shadow",
   "shape.rectangle.fill",
   "shape.rectangle.gradient",
   "shape.rectangle.fillOpacity",

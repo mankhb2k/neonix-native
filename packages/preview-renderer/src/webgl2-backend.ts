@@ -151,6 +151,8 @@ const BLUR_FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_texture;
 uniform vec4 u_post_params;
+uniform vec4 u_shadow_color;
+uniform vec2 u_shadow_offset;
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
 in vec2 v_uv;
@@ -195,6 +197,11 @@ vec4 applyPostColorAdjust(vec4 source, vec4 effect) {
   return vec4(applyPostHueRotate(color, effect.w) * source.a, source.a);
 }
 void main() {
+  if (u_post_params.w > 1.5 && u_post_params.w < 2.5) {
+    float alpha = readColor(v_uv - u_shadow_offset).a * u_shadow_color.a;
+    outColor = vec4(srgbToLinear(u_shadow_color.rgb) * alpha, alpha);
+    return;
+  }
   float sigma = u_post_params.z;
   vec4 color = readColor(v_uv);
   if (sigma > 0.0) {
@@ -340,6 +347,8 @@ export function createWebGL2Backend(
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
   const blurPostParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_post_params");
+  const blurShadowColorLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_color");
+  const blurShadowOffsetLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_offset");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
   const setColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
@@ -725,14 +734,12 @@ export function createWebGL2Backend(
           activeEffectScope = null;
           continue;
         }
-        if (!effectSourceTarget || effectLevels.length === 0 || !scope.plan.blur) {
+        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && scope.plan.blurs.length === 0)) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           activeEffectScope = null;
           continue;
         }
-        const sigma = Math.min(scope.plan.blur.radius * dpr, 256);
-        const blurPlan = blurPyramidPlan(sigma, physicalWidth, physicalHeight);
         gl.useProgram(blurProgramHandle);
         gl.bindVertexArray(blurVao);
         gl.activeTexture(gl.TEXTURE0);
@@ -748,6 +755,7 @@ export function createWebGL2Backend(
           colorMode = 0,
           composite = false,
           adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
+          shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
         ) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           gl.viewport(0, 0, targetWidth, targetHeight);
@@ -755,60 +763,98 @@ export function createWebGL2Backend(
           else gl.disable(gl.BLEND);
           gl.bindTexture(gl.TEXTURE_2D, source);
           gl.uniform4f(blurPostParamsLocation, stepX, stepY, passSigma, colorMode);
+          gl.uniform4f(blurShadowColorLocation, ...(shadow?.color ?? [0, 0, 0, 0]));
+          gl.uniform2f(blurShadowOffsetLocation, shadow?.offsetX ?? 0, shadow?.offsetY ?? 0);
           setPostColorAdjust(adjustments);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
           drawCalls += 1;
         };
 
         const root = effectLevels[0]!;
+        const shadow = scope.plan.shadow;
+        const blurs = shadow ? [shadow.blur] : scope.plan.blurs;
         // The isolated source is premultiplied sRGB. Blur linear premultiplied
         // samples so transparent edges do not darken or form colored blocks.
         runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust);
         let activeTarget = root.a;
-        for (let levelIndex = 1; levelIndex <= blurPlan.levels; levelIndex += 1) {
-          const level = effectLevels[levelIndex]!;
-          runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
-          activeTarget = level.a;
+        for (const blur of blurs) {
+          const sigma = Math.min(blur.radius * dpr, 256);
+          const blurPlan = blurPyramidPlan(sigma, physicalWidth, physicalHeight);
+          for (let levelIndex = 1; levelIndex <= blurPlan.levels; levelIndex += 1) {
+            const level = effectLevels[levelIndex]!;
+            runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
+            activeTarget = level.a;
+          }
+
+          const blurLevel = effectLevels[blurPlan.levels]!;
+          const horizontalTarget = activeTarget === blurLevel.a ? blurLevel.b : blurLevel.a;
+          runPost(
+            activeTarget.texture,
+            horizontalTarget.framebuffer,
+            blurLevel.width,
+            blurLevel.height,
+            1 / blurLevel.width,
+            0,
+            blurPlan.levelSigma,
+          );
+          const verticalTarget = activeTarget;
+          runPost(
+            horizontalTarget.texture,
+            verticalTarget.framebuffer,
+            blurLevel.width,
+            blurLevel.height,
+            0,
+            1 / blurLevel.height,
+            blurPlan.levelSigma,
+          );
+          activeTarget = verticalTarget;
+
+          for (let levelIndex = blurPlan.levels - 1; levelIndex >= 0; levelIndex -= 1) {
+            const level = effectLevels[levelIndex]!;
+            runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
+            activeTarget = level.a;
+          }
         }
 
-        const blurLevel = effectLevels[blurPlan.levels]!;
-        const horizontalTarget = activeTarget === blurLevel.a ? blurLevel.b : blurLevel.a;
-        runPost(
-          activeTarget.texture,
-          horizontalTarget.framebuffer,
-          blurLevel.width,
-          blurLevel.height,
-          1 / blurLevel.width,
-          0,
-          blurPlan.levelSigma,
-        );
-        const verticalTarget = activeTarget;
-        runPost(
-          horizontalTarget.texture,
-          verticalTarget.framebuffer,
-          blurLevel.width,
-          blurLevel.height,
-          0,
-          1 / blurLevel.height,
-          blurPlan.levelSigma,
-        );
-        activeTarget = verticalTarget;
-
-        for (let levelIndex = blurPlan.levels - 1; levelIndex >= 0; levelIndex -= 1) {
-          const level = effectLevels[levelIndex]!;
-          runPost(activeTarget.texture, level.a.framebuffer, level.width, level.height, 0, 0, 0);
-          activeTarget = level.a;
-        }
-
-        if (scope.plan.outputColorAdjust.length) {
+        if (shadow) {
+          const shadowColor = cssColorToRgba(shadow.tint.color);
+          shadowColor[3] *= shadow.tint.opacity;
+          runPost(
+            activeTarget.texture,
+            root.b.framebuffer,
+            root.width,
+            root.height,
+            0,
+            0,
+            0,
+            2,
+            false,
+            undefined,
+            {
+              color: shadowColor,
+              offsetX: (shadow.offset.x * dpr) / physicalWidth,
+              // WebGL2 fullscreen UVs are bottom-left; Protocol coordinates
+              // remain composition top-left, so projected Y must be inverted.
+              offsetY: -(shadow.offset.y * dpr) / physicalHeight,
+            },
+          );
+          runPost(root.b.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+          // Re-decode the immutable source and place it over the shadow branch.
+          runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1);
+          runPost(root.a.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+        } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTarget = activeTarget === root.a ? root.b : root.a;
           runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust);
           activeTarget = adjustedTarget;
         }
+        if (!shadow && scope.plan.outputColorAdjust.length) {
+          runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+        } else if (!shadow) {
+          runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+        }
         if (scope.blend !== "normal") {
           pushDiagnostic({ severity: "info", code: "preview_blur_blend_normalized", message: "Blur currently composites with premultiplied normal blending", key: scope.key, layerId: scope.layerId });
         }
-        runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         gl.useProgram(programHandle);
         gl.bindVertexArray(vao);
         activeEffectScope = null;

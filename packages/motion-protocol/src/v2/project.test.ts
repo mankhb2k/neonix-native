@@ -115,6 +115,33 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
+  it("accepts a bounded projected drop-shadow without spread", () => {
+    const shadow = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{
+          id: "shadow",
+          type: "drop-shadow" as const,
+          x: 18,
+          y: 20,
+          blur: 24,
+          color: "#ff3366",
+          opacity: 0.25,
+        }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(shadow)).toEqual(shadow);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...shadow,
+      layers: [{ ...shadow.layers[0], effects: [{ ...shadow.layers[0].effects[0], blur: -1 }] }],
+    })).toThrow();
+    expect(() => MotionProtocolV2Schema.parse({
+      ...shadow,
+      layers: [{ ...shadow.layers[0], effects: [{ ...shadow.layers[0].effects[0], spread: 4 }] }],
+    })).toThrow();
+  });
+
   it("accepts an open stroke-only path with join, cap, and dash semantics", () => {
     const path = {
       ...RECTANGLE_PROJECT,

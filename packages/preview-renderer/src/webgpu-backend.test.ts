@@ -162,6 +162,7 @@ describe("WebGPU preview backend", () => {
         sampleCount: 4,
       }),
     );
+    expect(textureDescriptors.some((descriptor) => descriptor.format === "rgba16float")).toBe(false);
     expect(renderPasses[0]).toMatchObject({
       colorAttachments: [
         {

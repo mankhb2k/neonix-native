@@ -165,6 +165,8 @@ struct PostUniforms {
   colorAdjust1: vec4<f32>,
   colorAdjust2: vec4<f32>,
   colorAdjust3: vec4<f32>,
+  shadowColor: vec4<f32>,
+  shadowOffset: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: PostUniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
@@ -185,6 +187,10 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
   return output;
 }
 @fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  if (uniforms.step.w > 1.5 && uniforms.step.w < 2.5) {
+    let alpha = readColor(input.uv - uniforms.shadowOffset.xy).a * uniforms.shadowColor.a;
+    return vec4<f32>(srgbToLinear(uniforms.shadowColor.rgb) * alpha, alpha);
+  }
   var color = readColor(input.uv);
   let sigma = uniforms.step.z;
   if (sigma > 0.0) {
@@ -388,6 +394,8 @@ export function createWebGPUBackend(
   type EffectLevel = { width: number; height: number; a: WebGPUTextureLike; b: WebGPUTextureLike };
   let effectSourceTexture: WebGPUTextureLike | null = null;
   let effectLevels: EffectLevel[] = [];
+  let stageWidth = 0;
+  let stageHeight = 0;
   let effectWidth = 0;
   let effectHeight = 0;
   let lastStats: PreviewRenderStats = { backend: "webgpu", drawCalls: 0, skippedCommands: 0, frameTimeMs: 0, diagnostics };
@@ -441,37 +449,56 @@ export function createWebGPUBackend(
     return msaaTexture;
   };
 
-  const disposeEffectTargets = () => {
+  const disposeStageTargets = () => {
     stageTextures?.[0].destroy?.();
     stageTextures?.[1].destroy?.();
+    stageTextures = null;
+    stageWidth = 0;
+    stageHeight = 0;
+  };
+
+  const disposeEffectTargets = () => {
     effectSourceTexture?.destroy?.();
     for (const level of effectLevels) {
       level.a.destroy?.();
       level.b.destroy?.();
     }
-    stageTextures = null;
     effectSourceTexture = null;
     effectLevels = [];
     effectWidth = 0;
     effectHeight = 0;
   };
 
-  const ensureEffectTargets = (targetWidth: number, targetHeight: number) => {
+  const disposeRenderTargets = () => {
+    disposeStageTargets();
+    disposeEffectTargets();
+  };
+
+  const ensureStageTargets = (targetWidth: number, targetHeight: number) => {
     const nextWidth = Math.max(1, Math.round(targetWidth));
     const nextHeight = Math.max(1, Math.round(targetHeight));
-    if (stageTextures && effectSourceTexture && effectLevels.length > 0 && effectWidth === nextWidth && effectHeight === nextHeight) return;
-    disposeEffectTargets();
+    if (stageTextures && stageWidth === nextWidth && stageHeight === nextHeight) return;
+    disposeStageTargets();
     const createStageTexture = () => device.createTexture({
       size: { width: nextWidth, height: nextHeight },
       format,
       usage: TEXTURE_BINDING | TEXTURE_RENDER_ATTACHMENT,
     });
+    stageTextures = [createStageTexture(), createStageTexture()];
+    stageWidth = nextWidth;
+    stageHeight = nextHeight;
+  };
+
+  const ensureEffectTargets = (targetWidth: number, targetHeight: number) => {
+    const nextWidth = Math.max(1, Math.round(targetWidth));
+    const nextHeight = Math.max(1, Math.round(targetHeight));
+    if (effectSourceTexture && effectLevels.length > 0 && effectWidth === nextWidth && effectHeight === nextHeight) return;
+    disposeEffectTargets();
     const createEffectTexture = (levelWidth: number, levelHeight: number) => device.createTexture({
       size: { width: levelWidth, height: levelHeight },
       format: EFFECT_TEXTURE_FORMAT,
       usage: TEXTURE_BINDING | TEXTURE_RENDER_ATTACHMENT,
     });
-    stageTextures = [createStageTexture(), createStageTexture()];
     effectSourceTexture = createEffectTexture(nextWidth, nextHeight);
     let levelWidth = nextWidth;
     let levelHeight = nextHeight;
@@ -501,7 +528,7 @@ export function createWebGPUBackend(
     const target = context.getCurrentTexture().createView();
     const physicalWidth = Math.max(1, options.canvas.width);
     const physicalHeight = Math.max(1, options.canvas.height);
-    ensureEffectTargets(physicalWidth, physicalHeight);
+    ensureStageTargets(physicalWidth, physicalHeight);
     const stages = stageTextures!;
     const multisampleTarget = ensureMsaaTexture(physicalWidth, physicalHeight).createView();
     const post = (
@@ -510,12 +537,15 @@ export function createWebGPUBackend(
       params: readonly [number, number, number, number] = [0, 0, 0, 0],
       postPipeline = postObjects,
       adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
+      shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
     ) => {
-      const uniform = device.createBuffer({ size: 96, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      const uniform = device.createBuffer({ size: 128, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
       transientBuffers.add(uniform);
-      const data = new Float32Array(24);
+      const data = new Float32Array(32);
       data.set(params, 0);
       data.set(colorAdjustUniforms(adjustments), 4);
+      data.set(shadow?.color ?? [0, 0, 0, 0], 24);
+      data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, 0, 0], 28);
       device.queue.writeBuffer(uniform, 0, data);
       const bindGroup = device.createBindGroup({ layout: postPipeline.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: objects.sampler }] });
       nextPass.setPipeline(postPipeline.pipeline);
@@ -791,6 +821,7 @@ export function createWebGPUBackend(
         }
         activeEffectScope = { key: command.key, layerId: command.layerId, plan };
         if (!plan.requiresOffscreen || !plan.supported) continue;
+        ensureEffectTargets(physicalWidth, physicalHeight);
         closePass();
         pass = encoder.beginRenderPass({
           colorAttachments: [{ view: effectSourceTexture!.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
@@ -806,64 +837,99 @@ export function createWebGPUBackend(
           activeEffectScope = null;
           continue;
         }
-        if (!scope.plan.blur || !effectSourceTexture) {
+        if ((!scope.plan.shadow && scope.plan.blurs.length === 0) || !effectSourceTexture) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           activeEffectScope = null;
           continue;
         }
         closePass();
-        const sigma = Math.min(scope.plan.blur.radius * dpr, 256);
-        const blurPlan = blurPyramidPlan(sigma, physicalWidth, physicalHeight);
         const runEffectPost = (
           source: WebGPUTextureLike,
           targetTexture: WebGPUTextureLike,
           params: readonly [number, number, number, number],
           adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
+          shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
         ) => {
           const effectPass = encoder.beginRenderPass({
             colorAttachments: [{ view: targetTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
           });
-          post(effectPass, source, params, effectPostObjects, adjustments);
+          post(effectPass, source, params, effectPostObjects, adjustments, shadow);
           effectPass.end();
           drawCalls += 1;
         };
 
         const root = effectLevels[0]!;
+        const shadow = scope.plan.shadow;
+        const blurs = shadow ? [shadow.blur] : scope.plan.blurs;
         // Convert the isolated premultiplied sRGB source once. Pyramid and
         // Gaussian passes stay linear and premultiplied until composition.
         runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1], scope.plan.sourceColorAdjust);
         let activeTexture = root.a;
-        for (let levelIndex = 1; levelIndex <= blurPlan.levels; levelIndex += 1) {
-          const level = effectLevels[levelIndex]!;
-          runEffectPost(activeTexture, level.a, [0, 0, 0, 0]);
-          activeTexture = level.a;
+        for (const blur of blurs) {
+          const sigma = Math.min(blur.radius * dpr, 256);
+          const blurPlan = blurPyramidPlan(sigma, physicalWidth, physicalHeight);
+          for (let levelIndex = 1; levelIndex <= blurPlan.levels; levelIndex += 1) {
+            const level = effectLevels[levelIndex]!;
+            runEffectPost(activeTexture, level.a, [0, 0, 0, 0]);
+            activeTexture = level.a;
+          }
+
+          const blurLevel = effectLevels[blurPlan.levels]!;
+          const horizontalTexture = activeTexture === blurLevel.a ? blurLevel.b : blurLevel.a;
+          runEffectPost(activeTexture, horizontalTexture, [1 / blurLevel.width, 0, blurPlan.levelSigma, 0]);
+          const verticalTexture = activeTexture;
+          runEffectPost(horizontalTexture, verticalTexture, [0, 1 / blurLevel.height, blurPlan.levelSigma, 0]);
+          activeTexture = verticalTexture;
+
+          for (let levelIndex = blurPlan.levels - 1; levelIndex >= 0; levelIndex -= 1) {
+            const level = effectLevels[levelIndex]!;
+            runEffectPost(activeTexture, level.a, [0, 0, 0, 0]);
+            activeTexture = level.a;
+          }
         }
 
-        const blurLevel = effectLevels[blurPlan.levels]!;
-        const horizontalTexture = activeTexture === blurLevel.a ? blurLevel.b : blurLevel.a;
-        runEffectPost(activeTexture, horizontalTexture, [1 / blurLevel.width, 0, blurPlan.levelSigma, 0]);
-        const verticalTexture = activeTexture;
-        runEffectPost(horizontalTexture, verticalTexture, [0, 1 / blurLevel.height, blurPlan.levelSigma, 0]);
-        activeTexture = verticalTexture;
+        if (shadow) {
+          const shadowColor = cssColorToRgba(shadow.tint.color);
+          shadowColor[3] *= shadow.tint.opacity;
+          runEffectPost(
+            activeTexture,
+            root.b,
+            [0, 0, 0, 2],
+            undefined,
+            {
+              color: shadowColor,
+              offsetX: (shadow.offset.x * dpr) / physicalWidth,
+              offsetY: (shadow.offset.y * dpr) / physicalHeight,
+            },
+          );
+          stageIndex = stageIndex === 0 ? 1 : 0;
+          let previousStage = stages[stageIndex === 0 ? 1 : 0];
+          let compositePass = beginStagePass(stages[stageIndex], previousStage);
+          post(compositePass, root.b, [0, 0, 0, 1], postMsaaPremultipliedObjects);
+          compositePass.end();
+          drawCalls += 1;
 
-        for (let levelIndex = blurPlan.levels - 1; levelIndex >= 0; levelIndex -= 1) {
-          const level = effectLevels[levelIndex]!;
-          runEffectPost(activeTexture, level.a, [0, 0, 0, 0]);
-          activeTexture = level.a;
-        }
-
-        if (scope.plan.outputColorAdjust.length) {
+          runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1]);
+          stageIndex = stageIndex === 0 ? 1 : 0;
+          previousStage = stages[stageIndex === 0 ? 1 : 0];
+          compositePass = beginStagePass(stages[stageIndex], previousStage);
+          post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects);
+          compositePass.end();
+          drawCalls += 1;
+        } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTexture = activeTexture === root.a ? root.b : root.a;
           runEffectPost(activeTexture, adjustedTexture, [0, 0, 0, 0], scope.plan.outputColorAdjust);
           activeTexture = adjustedTexture;
         }
 
-        stageIndex = stageIndex === 0 ? 1 : 0;
-        const previousStage = stages[stageIndex === 0 ? 1 : 0];
-        const compositePass = beginStagePass(stages[stageIndex], previousStage);
-        post(compositePass, activeTexture, [0, 0, 0, 1], postMsaaPremultipliedObjects);
-        compositePass.end();
-        drawCalls += 1;
+        if (!shadow) {
+          stageIndex = stageIndex === 0 ? 1 : 0;
+          const previousStage = stages[stageIndex === 0 ? 1 : 0];
+          const compositePass = beginStagePass(stages[stageIndex], previousStage);
+          post(compositePass, activeTexture, [0, 0, 0, 1], postMsaaPremultipliedObjects);
+          compositePass.end();
+          drawCalls += 1;
+        }
         activeEffectScope = null;
         activeObjects = objects;
       } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
@@ -905,7 +971,7 @@ export function createWebGPUBackend(
       msaaTexture = null;
       msaaWidth = 0;
       msaaHeight = 0;
-      disposeEffectTargets();
+      disposeRenderTargets();
     },
     paint,
     stats: () => lastStats,
@@ -925,7 +991,7 @@ export function createWebGPUBackend(
       whiteTexture.destroy?.();
       msaaTexture?.destroy?.();
       msaaTexture = null;
-      disposeEffectTargets();
+      disposeRenderTargets();
       for (const buffer of transientBuffers) buffer.destroy?.();
       transientBuffers.clear();
       for (const texture of textures.values()) texture.destroy?.();

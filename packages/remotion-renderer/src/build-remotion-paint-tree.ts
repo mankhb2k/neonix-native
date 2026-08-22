@@ -10,6 +10,7 @@ import {
   type PaintDisplayNode,
   type PaintDrawCommand,
   type PaintTransformState,
+  type RuntimeEffectProgram,
 } from "@motionvideo/motion-runtime";
 
 export type RemotionPaintTreeNode =
@@ -18,6 +19,7 @@ export type RemotionPaintTreeNode =
       key: string;
       isolation: boolean;
       offscreen: boolean;
+      effectProgram?: RuntimeEffectProgram;
       mask?: {
         mode: string;
         sourceKey: string;
@@ -58,6 +60,7 @@ function mapNode(node: PaintDisplayNode): RemotionPaintTreeNode {
       key: node.key,
       isolation: node.isolation,
       offscreen: node.offscreen,
+      ...(node.effectProgram ? { effectProgram: node.effectProgram } : {}),
       ...(node.mask ? { mask: node.mask } : {}),
       children: node.children.map(mapNode),
     };
