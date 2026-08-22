@@ -8,6 +8,7 @@ import {
   type RuntimeOffsetEffectOp,
   type RuntimeNoiseEffectOp,
   type RuntimeAlphaMaskEffectOp,
+  type RuntimeInnerAlphaEffectOp,
   type RuntimeTintEffectOp,
 } from "@motionvideo/motion-runtime";
 
@@ -26,6 +27,14 @@ export type OuterGlowPass = {
   composite: RuntimeCompositeEffectOp;
 };
 
+export type InnerGlowPass = {
+  alphaMask: RuntimeAlphaMaskEffectOp;
+  blur: RuntimeBlurEffectOp;
+  innerAlpha: RuntimeInnerAlphaEffectOp;
+  tint: RuntimeTintEffectOp;
+  composite: RuntimeCompositeEffectOp;
+};
+
 /** Backend-neutral physical plan for the effect subset certified today. */
 export type EffectPassPlan = {
   source: typeof RUNTIME_EFFECT_SOURCE_SURFACE;
@@ -38,6 +47,7 @@ export type EffectPassPlan = {
   outputColorAdjust: RuntimeColorAdjustEffectOp[];
   shadow?: DropShadowPass;
   outerGlow?: OuterGlowPass;
+  innerGlow?: InnerGlowPass;
   diagnostics: EffectPassPlanDiagnostic[];
   supported: boolean;
 };
@@ -82,6 +92,28 @@ function matchOuterGlowPass(program: RuntimeEffectProgram): OuterGlowPass | unde
   return { alphaMask, blur, tint, composite };
 }
 
+function matchInnerGlowPass(program: RuntimeEffectProgram): InnerGlowPass | undefined {
+  if (program.ops.length !== 5) return undefined;
+  const [alphaMask, blur, innerAlpha, tint, composite] = program.ops;
+  if (
+    alphaMask?.kind !== "alpha-mask" ||
+    blur?.kind !== "blur" ||
+    innerAlpha?.kind !== "inner-alpha" ||
+    tint?.kind !== "tint" ||
+    composite?.kind !== "composite" ||
+    alphaMask.input !== program.input ||
+    blur.input !== alphaMask.output ||
+    innerAlpha.source !== alphaMask.output ||
+    innerAlpha.blurred !== blur.output ||
+    tint.input !== innerAlpha.output ||
+    composite.backdrop !== program.input ||
+    composite.source !== tint.output ||
+    composite.output !== program.output ||
+    composite.mode !== "source-over"
+  ) return undefined;
+  return { alphaMask, blur, innerAlpha, tint, composite };
+}
+
 export type EffectPassPlanDiagnostic = {
   code: string;
   message: string;
@@ -105,6 +137,7 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
 
   const shadow = matchDropShadowPass(program);
   const outerGlow = matchOuterGlowPass(program);
+  const innerGlow = matchInnerGlowPass(program);
   if (shadow) {
     return {
       source: program.input,
@@ -135,6 +168,21 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       supported: diagnostics.length === 0,
     };
   }
+  if (innerGlow) {
+    return {
+      source: program.input,
+      output: program.output,
+      requiresOffscreen: true,
+      sourceColorAdjust: [],
+      blurs: [],
+      sourceNoise: [],
+      outputNoise: [],
+      outputColorAdjust: [],
+      innerGlow,
+      diagnostics,
+      supported: diagnostics.length === 0,
+    };
+  }
 
   let expectedInput: string = program.input;
   const blurs: RuntimeBlurEffectOp[] = [];
@@ -149,6 +197,14 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       diagnostics.push({
         code: "effect_pass_operator_unsupported",
         message: `Effect operator "${op.id}" (${op.kind}) is not executable by the rectangle pass planner`,
+        opId: op.id,
+      });
+      continue;
+    }
+    if (op.kind === "inner-alpha") {
+      diagnostics.push({
+        code: "effect_pass_operator_unsupported",
+        message: `Effect operator "${op.id}" (${op.kind}) is not executable by the linear rectangle pass planner`,
         opId: op.id,
       });
       continue;

@@ -1585,6 +1585,30 @@ const OUTER_GLOW_PROJECT = project("preview-effect-outer-glow-v2", [
   }),
 ]);
 
+const INNER_GLOW_PROJECT = project("preview-effect-inner-glow-v2", [
+  rectangle({
+    id: "inner-glow-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+  }),
+  rectangle({
+    id: "inner-glow-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "cyan-inner-edge",
+      type: "inner-glow",
+      radius: 24,
+      color: "#00e5ff",
+      opacity: 0.85,
+    }],
+  }),
+]);
+
 const OUTER_GLOW_STROKE_PROJECT = project("preview-effect-outer-glow-stroke-v2", [
   rectangle({
     id: "fill-only-glow-source",
@@ -1921,6 +1945,13 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 11 / Effects",
     hint: "The right halo is stronger because its immutable source includes opaque stroke coverage over the same translucent fill.",
     project: OUTER_GLOW_STROKE_PROJECT,
+  },
+  {
+    id: "effect.inner-glow",
+    label: "Effect / inner glow",
+    group: "Task 11 / Effects",
+    hint: "The cyan edge is the positive difference between the final source alpha and its blurred alpha, composited inside the unchanged gray source.",
+    project: INNER_GLOW_PROJECT,
   },
   {
     id: "effect.outer-glow.perspective",

@@ -25,9 +25,10 @@ export function buildRuntimeEffectProgram(
   let input: SurfaceRef = RUNTIME_EFFECT_SOURCE_SURFACE;
   const ops: RuntimeEffectOp[] = [];
   for (const effect of effects) {
-    if (effect.type === "drop-shadow" || effect.type === "outer-glow") {
+    if (effect.type === "drop-shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
       const alpha = `effect:${effect.id}:alpha`;
       const blurred = `effect:${effect.id}:blur`;
+      const inner = `effect:${effect.id}:inner-alpha`;
       const tinted = `effect:${effect.id}:tint`;
       const output = outputSurfaceFor(effect.id);
       ops.push(
@@ -39,16 +40,21 @@ export function buildRuntimeEffectProgram(
           output: blurred,
           radius: effect.type === "drop-shadow" ? effect.blur : effect.radius,
         },
-        { id: `${effect.id}:tint`, kind: "tint", input: blurred, output: tinted, color: effect.color, opacity: effect.opacity },
       );
+      if (effect.type === "inner-glow") {
+        ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: alpha, blurred, output: inner });
+      }
+      ops.push({ id: `${effect.id}:tint`, kind: "tint", input: effect.type === "inner-glow" ? inner : blurred, output: tinted, color: effect.color, opacity: effect.opacity });
       if (effect.type === "drop-shadow") {
         const offset = `effect:${effect.id}:offset`;
         ops.push(
           { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.x, y: effect.y },
           { id: `${effect.id}:composite`, kind: "composite", backdrop: offset, source: input, output, mode: "source-over" },
         );
-      } else {
+      } else if (effect.type === "outer-glow") {
         ops.push({ id: `${effect.id}:composite`, kind: "composite", backdrop: tinted, source: input, output, mode: "source-over" });
+      } else {
+        ops.push({ id: `${effect.id}:composite`, kind: "composite", backdrop: input, source: tinted, output, mode: "source-over" });
       }
       input = output;
       continue;

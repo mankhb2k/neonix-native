@@ -103,6 +103,15 @@ export type RuntimeOuterGlowEffect = {
   opacity: number;
 };
 
+export type RuntimeInnerGlowEffect = {
+  id: string;
+  type: "inner-glow";
+  /** Gaussian sigma in projected composition/output pixels. */
+  radius: number;
+  color: string;
+  opacity: number;
+};
+
 export type RuntimeNoiseEffect = {
   id: string;
   type: "noise";
@@ -117,4 +126,5 @@ export type RuntimeEffect =
   | RuntimeColorAdjustEffect
   | RuntimeDropShadowEffect
   | RuntimeOuterGlowEffect
+  | RuntimeInnerGlowEffect
   | RuntimeNoiseEffect;

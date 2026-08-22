@@ -215,6 +215,28 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
+  test("renders inner glow inside the immutable source and keeps its center unchanged", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await page.goto("/docs/preview?case=effect.inner-glow&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const center = await readWebGLPixel(page, "preview-v2-canvas", 1440, 510);
+    const innerEdge = await readWebGLPixel(page, "preview-v2-canvas", 1270, 510);
+    expect(center).toEqual([217, 217, 217, 255]);
+    expect(innerEdge[1]).toBeGreaterThan(innerEdge[0] + 25);
+    expect(innerEdge[2]).toBeGreaterThan(innerEdge[0] + 35);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=effect.inner-glow&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 1440, 510);
+    const webgpuInnerEdge = await readPresentedPixel(page, "preview-v2-canvas", 1270, 510);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuCenter[index]! - center[index]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuInnerEdge[index]! - innerEdge[index]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
   test("preserves observable color-adjust and blur order", async ({ page }) => {
     const caseId = "effect.order";
     const samplePoints = [420, 450, 480, 510];

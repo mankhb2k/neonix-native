@@ -59,6 +59,18 @@ export const V2OuterGlowEffectSchema = z
   })
   .strict();
 
+/** Projected inside-only halo derived from the final layer alpha. */
+export const V2InnerGlowEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("inner-glow"),
+    /** Gaussian sigma in output pixels. */
+    radius: V2FiniteNumberSchema.positive().max(256),
+    color: V2ColorSchema,
+    opacity: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
 /** Deterministic grain applied to the already-rasterized layer surface. */
 export const V2NoiseEffectSchema = z
   .object({
@@ -79,6 +91,7 @@ export const V2EffectSchema = z.discriminatedUnion("type", [
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
   V2OuterGlowEffectSchema,
+  V2InnerGlowEffectSchema,
   V2NoiseEffectSchema,
 ]);
 
@@ -103,5 +116,6 @@ export type V2ColorAdjustEffect = z.infer<typeof V2ColorAdjustEffectSchema>;
 export type V2BlurEffect = z.infer<typeof V2BlurEffectSchema>;
 export type V2DropShadowEffect = z.infer<typeof V2DropShadowEffectSchema>;
 export type V2OuterGlowEffect = z.infer<typeof V2OuterGlowEffectSchema>;
+export type V2InnerGlowEffect = z.infer<typeof V2InnerGlowEffectSchema>;
 export type V2NoiseEffect = z.infer<typeof V2NoiseEffectSchema>;
 export type V2Effect = z.infer<typeof V2EffectListSchema>[number];

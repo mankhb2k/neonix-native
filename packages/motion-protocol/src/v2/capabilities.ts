@@ -41,6 +41,7 @@ export const V2_CERTIFIED_ATOMS = [
   "effect.blur",
   "effect.drop-shadow",
   "effect.outer-glow",
+  "effect.inner-glow",
   "effect.noise",
   "shape.rectangle.fill",
   "shape.rectangle.gradient",

@@ -312,6 +312,39 @@ describe("Protocol V2 Compiler B", () => {
     });
   });
 
+  it("lowers the certified inner-glow atom into a source-over alpha-difference branch", () => {
+    const project = {
+      ...base,
+      id: "v2-inner-glow",
+      layers: [{
+        id: "glowing-rectangle",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 80, height: 40 },
+        transform: identity,
+        opacity: 1,
+        timing: { start: 0, duration: 1 },
+        effects: [{ id: "glow", type: "inner-glow" as const, radius: 24, color: "#00e5ff", opacity: 0.7 }],
+        payload: { shape: "rectangle" as const },
+        style: { fill: "#d9d9d9" },
+      }],
+    };
+    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    expect(commands.find((command) => command.op === "beginLayer")).toMatchObject({
+      offscreen: true,
+      effectProgram: {
+        ops: [
+          { kind: "alpha-mask" },
+          { kind: "blur", radius: 24 },
+          { kind: "inner-alpha" },
+          { kind: "tint", color: "#00e5ff" },
+          { kind: "composite", backdrop: "source" },
+        ],
+      },
+    });
+  });
+
   it("emits a valid empty frame", () => {
     const buffer = compileProtocolV2ToPaintCommands({ ...base, layers: [] });
     expect(buffer.commands.map((command) => command.op)).toEqual([

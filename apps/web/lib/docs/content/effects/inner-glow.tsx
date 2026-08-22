@@ -16,7 +16,7 @@ const INNER_GLOW = {
   type: "inner-glow",
   radius: 18,
   color: "#A855FF",
-  opacity: 80,
+  opacity: 0.8,
 };
 
 export function innerGlowPage(): DocsPageView {
@@ -72,7 +72,7 @@ export function innerGlowPage(): DocsPageView {
             "Use type inner-glow with radius, color, and opacity.",
             "Do not emit intensity, spread, choke, or blend.",
             "Animate effects.fx-inner-glow-1.radius and effects.fx-inner-glow-1.opacity.",
-            "Do not put inner glow on the glow type. Outer halo is type glow.",
+            "Use outer-glow for an exterior halo; inner-glow paints only inside source alpha.",
           ]}
         />
       </article>

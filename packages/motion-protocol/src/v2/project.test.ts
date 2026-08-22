@@ -179,6 +179,27 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
+  it("accepts a bounded inner glow without offset or spread", () => {
+    const glow = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{
+          id: "glow",
+          type: "inner-glow" as const,
+          radius: 24,
+          color: "#00e5ff",
+          opacity: 0.7,
+        }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(glow)).toEqual(glow);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...glow,
+      layers: [{ ...glow.layers[0], effects: [{ ...glow.layers[0].effects[0], spread: 1 }] }],
+    })).toThrow();
+  });
+
   it("accepts deterministic noise with bounded controls", () => {
     const noise = {
       ...RECTANGLE_PROJECT,
@@ -602,6 +623,7 @@ describe("Motion Protocol V2 schema", () => {
     expect(isV2AtomCertified("path.strokeDash")).toBe(true);
     expect(isV2AtomCertified("path.morph")).toBe(true);
     expect(isV2AtomCertified("effect.outer-glow")).toBe(true);
+    expect(isV2AtomCertified("effect.inner-glow")).toBe(true);
     expect(isV2AtomCertified("group.transform")).toBe(true);
     expect(isV2AtomCertified("group.timing")).toBe(true);
     expect(isV2AtomCertified("group.opacity")).toBe(true);

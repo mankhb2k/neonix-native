@@ -72,7 +72,7 @@ const DEFAULT_PATH_STROKE_WIDTH = 1;
 function lowerEffects(
   effects: Array<{
     id: string;
-    type: "color-adjust" | "blur" | "drop-shadow" | "outer-glow" | "noise";
+    type: "color-adjust" | "blur" | "drop-shadow" | "outer-glow" | "inner-glow" | "noise";
     brightness?: number;
     contrast?: number;
     saturation?: number;
@@ -97,6 +97,8 @@ function lowerEffects(
         ? "effect.drop-shadow"
         : effect.type === "outer-glow"
           ? "effect.outer-glow"
+          : effect.type === "inner-glow"
+            ? "effect.inner-glow"
           : effect.type === "noise" ? "effect.noise" : "effect.color-adjust";
     if (!isV2AtomCertified(capability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${capability}`);

@@ -314,6 +314,32 @@ fn encodePremultiplied(color: vec4<f32>) -> vec4<f32> {
   return encodePremultiplied(content * coverage * uniforms.compositeAlpha.x);
 }`;
 
+const INNER_GLOW_POST_SHADER = `
+struct InnerGlowUniforms { tint: vec4<f32> };
+@group(0) @binding(0) var<uniform> uniforms: InnerGlowUniforms;
+@group(0) @binding(1) var sourceTexture: texture_2d<f32>;
+@group(0) @binding(2) var blurredTexture: texture_2d<f32>;
+@group(0) @binding(3) var imageSampler: sampler;
+struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
+struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
+@vertex fn vertexMain(input: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = vec4<f32>(input.position.x * 2.0 - 1.0, 1.0 - input.position.y * 2.0, 0.0, 1.0);
+  output.uv = input.uv;
+  return output;
+}
+fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
+  let low = color / 12.92;
+  let high = pow((color + vec3<f32>(0.055)) / 1.055, vec3<f32>(2.4));
+  return select(low, high, color >= vec3<f32>(0.04045));
+}
+@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  let sourceAlpha = textureSample(sourceTexture, imageSampler, input.uv).a;
+  let blurredAlpha = textureSample(blurredTexture, imageSampler, input.uv).a;
+  let coverage = max(sourceAlpha - blurredAlpha, 0.0) * uniforms.tint.a;
+  return vec4<f32>(srgbToLinear(uniforms.tint.rgb) * coverage, coverage);
+}`;
+
 function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {
   const context = (canvas as unknown as { getContext(contextId: string): unknown }).getContext("webgpu");
   if (!context || typeof context !== "object") return null;
@@ -465,6 +491,32 @@ function createClipMaskPostObjects(device: WebGPUDeviceLike, format: string, sam
   return { pipeline, layout };
 }
 
+function createInnerGlowPostObjects(device: WebGPUDeviceLike, format: string): {
+  pipeline: WebGPURenderPipelineLike;
+  layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
+} {
+  const shader = device.createShaderModule({ code: INNER_GLOW_POST_SHADER });
+  const layout = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: 3, buffer: { type: "uniform" } },
+      { binding: 1, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 2, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 3, visibility: 2, sampler: { type: "filtering" } },
+    ],
+  });
+  const pipeline = device.createRenderPipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+    vertex: {
+      module: shader,
+      entryPoint: "vertexMain",
+      buffers: [{ arrayStride: 16, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }, { shaderLocation: 1, offset: 8, format: "float32x2" }] }],
+    },
+    fragment: { module: shader, entryPoint: "fragmentMain", targets: [{ format }] },
+    primitive: { topology: "triangle-strip" },
+  });
+  return { pipeline, layout };
+}
+
 function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array): void {
   target.set(matrix, offset);
 }
@@ -499,6 +551,7 @@ export function createWebGPUBackend(
   const clipMaskPostMsaaObjects = createClipMaskPostObjects(device, format);
   const effectPostObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const effectPostPremultipliedObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true);
+  const innerGlowPostObjects = createInnerGlowPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const clipMaskPostEffectObjects = createClipMaskPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGPUTextureLike>();
@@ -1064,7 +1117,7 @@ export function createWebGPUBackend(
           activeEffectScope = null;
           continue;
         }
-        if ((!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0) || !effectSourceTexture) {
+        if ((!scope.plan.shadow && !scope.plan.outerGlow && !scope.plan.innerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0) || !effectSourceTexture) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           activeEffectScope = null;
           continue;
@@ -1085,10 +1138,39 @@ export function createWebGPUBackend(
           effectPass.end();
           drawCalls += 1;
         };
+        const runInnerGlowPost = (
+          source: WebGPUTextureLike,
+          blurred: WebGPUTextureLike,
+          targetTexture: WebGPUTextureLike,
+          tint: readonly [number, number, number, number],
+        ) => {
+          const uniform = device.createBuffer({ size: 16, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+          transientBuffers.add(uniform);
+          device.queue.writeBuffer(uniform, 0, new Float32Array(tint));
+          const effectPass = encoder.beginRenderPass({
+            colorAttachments: [{ view: targetTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          });
+          const bindGroup = device.createBindGroup({
+            layout: innerGlowPostObjects.layout,
+            entries: [
+              { binding: 0, resource: { buffer: uniform } },
+              { binding: 1, resource: source.createView() },
+              { binding: 2, resource: blurred.createView() },
+              { binding: 3, resource: objects.sampler },
+            ],
+          });
+          effectPass.setPipeline(innerGlowPostObjects.pipeline);
+          effectPass.setVertexBuffer(0, objects.vertexBuffer);
+          effectPass.setBindGroup(0, bindGroup);
+          effectPass.draw(4);
+          effectPass.end();
+          drawCalls += 1;
+        };
 
         const root = effectLevels[0]!;
         const alphaBranch = scope.plan.shadow ?? scope.plan.outerGlow;
-        const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
+        const innerGlow = scope.plan.innerGlow;
+        const blurs = alphaBranch ? [alphaBranch.blur] : innerGlow ? [innerGlow.blur] : scope.plan.blurs;
         // Convert the isolated premultiplied sRGB source once. Pyramid and
         // Gaussian passes stay linear and premultiplied until composition.
         runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1], scope.plan.sourceColorAdjust, undefined, scope.plan.sourceNoise[0]);
@@ -1144,6 +1226,26 @@ export function createWebGPUBackend(
           post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects);
           compositePass.end();
           drawCalls += 1;
+        } else if (innerGlow) {
+          const tint = cssColorToRgba(innerGlow.tint.color);
+          tint[3] *= innerGlow.tint.opacity;
+          runInnerGlowPost(effectSourceTexture, activeTexture, root.b, tint);
+
+          runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1]);
+
+          stageIndex = stageIndex === 0 ? 1 : 0;
+          let previousStage = stages[stageIndex === 0 ? 1 : 0];
+          let compositePass = beginStagePass(stages[stageIndex], previousStage);
+          post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects);
+          compositePass.end();
+          drawCalls += 1;
+
+          stageIndex = stageIndex === 0 ? 1 : 0;
+          previousStage = stages[stageIndex === 0 ? 1 : 0];
+          compositePass = beginStagePass(stages[stageIndex], previousStage);
+          post(compositePass, root.b, [0, 0, 0, 1], postMsaaPremultipliedObjects);
+          compositePass.end();
+          drawCalls += 1;
         } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTexture = activeTexture === root.a ? root.b : root.a;
           runEffectPost(activeTexture, adjustedTexture, [0, 0, 0, 0], scope.plan.outputColorAdjust, undefined, scope.plan.outputNoise[0]);
@@ -1154,7 +1256,7 @@ export function createWebGPUBackend(
           activeTexture = adjustedTexture;
         }
 
-        if (!alphaBranch) {
+        if (!alphaBranch && !innerGlow) {
           stageIndex = stageIndex === 0 ? 1 : 0;
           const previousStage = stages[stageIndex === 0 ? 1 : 0];
           const compositePass = beginStagePass(stages[stageIndex], previousStage);

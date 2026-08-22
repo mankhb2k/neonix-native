@@ -97,6 +97,29 @@ describe("Runtime V2 effect lowering", () => {
     expect(program?.ops.some((op) => op.kind === "offset")).toBe(false);
   });
 
+  it("lowers inner glow into an alpha-difference branch composited over its source", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "glow", type: "inner-glow", radius: 24, color: "#00e5ff", opacity: 0.7 },
+    ]);
+    expect(program).toMatchObject({
+      input: "source",
+      output: "effect:glow",
+      requiresOffscreen: true,
+      ops: [
+        { kind: "alpha-mask", input: "source", output: "effect:glow:alpha" },
+        { kind: "blur", input: "effect:glow:alpha", output: "effect:glow:blur", radius: 24 },
+        {
+          kind: "inner-alpha",
+          source: "effect:glow:alpha",
+          blurred: "effect:glow:blur",
+          output: "effect:glow:inner-alpha",
+        },
+        { kind: "tint", input: "effect:glow:inner-alpha", output: "effect:glow:tint", color: "#00e5ff", opacity: 0.7 },
+        { kind: "composite", backdrop: "source", source: "effect:glow:tint", output: "effect:glow" },
+      ],
+    });
+  });
+
   it("lowers deterministic noise into a surface operator with explicit seed", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grain", type: "noise", scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 },

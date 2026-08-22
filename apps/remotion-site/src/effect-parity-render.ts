@@ -67,6 +67,7 @@ function rectangle(options: {
     | { id: string; type: "blur"; radius: number }
     | { id: string; type: "color-adjust"; brightness: number; contrast: number; saturation: number; hueRotate: number }
     | { id: string; type: "drop-shadow"; x: number; y: number; blur: number; color: string; opacity: number }
+    | { id: string; type: "inner-glow"; radius: number; color: string; opacity: number }
     | { id: string; type: "noise"; scale: number; amount: number; opacity: number; seed: number }
   >;
 }): Extract<MotionProtocolV2["layers"][number], { type: "shape" }> {
@@ -174,6 +175,16 @@ const DROP_SHADOW_STROKE_PROJECT = project("remotion-effect-drop-shadow-stroke",
   rectangle({
     id: "fill-and-stroke-shadow-source", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2, stroke: "#d9d9d9", strokeWidth: 24,
     effects: [{ id: "fill-and-stroke-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#ff3366", opacity: 0.75 }],
+  }),
+]);
+
+const INNER_GLOW_PROJECT = project("remotion-effect-inner-glow", [
+  rectangle({
+    id: "inner-glow-reference", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+  }),
+  rectangle({
+    id: "inner-glow-rectangle", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    effects: [{ id: "cyan-inner-edge", type: "inner-glow", radius: 24, color: "#00e5ff", opacity: 0.85 }],
   }),
 ]);
 
@@ -348,6 +359,14 @@ async function main() {
   assert(
     fillAndStrokeShadowSample[0] > fillOnlyShadowSample[0] + 50,
     "Remotion did not capture opaque stroke coverage in the shadow source",
+  );
+
+  const innerGlow = await renderProject(serveUrl, INNER_GLOW_PROJECT, "inner-glow");
+  assert(pixel(innerGlow, 1440, 510).join(",") === "217,217,217,255", "Remotion inner glow changed the source center");
+  const innerEdge = pixel(innerGlow, 1270, 510);
+  assert(
+    innerEdge[1] > innerEdge[0] + 25 && innerEdge[2] > innerEdge[0] + 35,
+    "Remotion did not render the cyan inner glow edge",
   );
 
   const noise = await renderProject(serveUrl, NOISE_PROJECT, "noise");

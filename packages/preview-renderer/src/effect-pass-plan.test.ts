@@ -89,6 +89,23 @@ describe("EffectPassPlan", () => {
     });
   });
 
+  it("recognizes the alpha-difference branch for one inner glow", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "glow", type: "inner-glow", radius: 24, color: "#00e5ff", opacity: 0.7 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(true);
+    expect(plan.requiresOffscreen).toBe(true);
+    expect(plan.innerGlow).toMatchObject({
+      alphaMask: { input: "source", output: "effect:glow:alpha" },
+      blur: { radius: 24 },
+      innerAlpha: { source: "effect:glow:alpha", blurred: "effect:glow:blur" },
+      tint: { color: "#00e5ff", opacity: 0.7 },
+      composite: { backdrop: "source", source: "effect:glow:tint", mode: "source-over" },
+    });
+  });
+
   it("diagnoses a mixed linear and branching program until that graph is implemented", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },

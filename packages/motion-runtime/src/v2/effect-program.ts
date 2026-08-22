@@ -30,6 +30,15 @@ export type RuntimeAlphaMaskEffectOp = {
   output: SurfaceRef;
 };
 
+/** Inside-only coverage from original alpha minus its blurred alpha. */
+export type RuntimeInnerAlphaEffectOp = {
+  id: string;
+  kind: "inner-alpha";
+  source: SurfaceRef;
+  blurred: SurfaceRef;
+  output: SurfaceRef;
+};
+
 export type RuntimeTintEffectOp = {
   id: string;
   kind: "tint";
@@ -72,6 +81,7 @@ export type RuntimeEffectOp =
   | RuntimeColorAdjustEffectOp
   | RuntimeBlurEffectOp
   | RuntimeAlphaMaskEffectOp
+  | RuntimeInnerAlphaEffectOp
   | RuntimeTintEffectOp
   | RuntimeOffsetEffectOp
   | RuntimeNoiseEffectOp
@@ -104,7 +114,9 @@ function finite(value: unknown): value is number {
 }
 
 function inputsFor(op: RuntimeEffectOp): SurfaceRef[] {
-  return op.kind === "composite" ? [op.backdrop, op.source] : [op.input];
+  if (op.kind === "composite") return [op.backdrop, op.source];
+  if (op.kind === "inner-alpha") return [op.source, op.blurred];
+  return [op.input];
 }
 
 function isSpatial(op: RuntimeEffectOp): boolean {

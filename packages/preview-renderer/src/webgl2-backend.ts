@@ -246,6 +246,23 @@ void main() {
   outColor = u_post_params.w > 0.5 ? encodePremultiplied(color * u_composite_alpha) : color;
 }`;
 
+const INNER_GLOW_FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+uniform sampler2D u_source;
+uniform sampler2D u_blurred;
+uniform vec4 u_tint;
+in vec2 v_uv;
+out vec4 outColor;
+vec3 srgbToLinear(vec3 color) {
+  vec3 low = color / 12.92;
+  vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+  return mix(low, high, step(vec3(0.04045), color));
+}
+void main() {
+  float coverage = max(texture(u_source, v_uv).a - texture(u_blurred, v_uv).a, 0.0) * u_tint.a;
+  outColor = vec4(srgbToLinear(u_tint.rgb) * coverage, coverage);
+}`;
+
 const CLIP_MASK_FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D u_content;
@@ -353,14 +370,16 @@ export function createWebGL2Backend(
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
   const blurProgramHandle = program(gl, BLUR_VERTEX_SHADER, BLUR_FRAGMENT_SHADER);
+  const innerGlowProgramHandle = program(gl, BLUR_VERTEX_SHADER, INNER_GLOW_FRAGMENT_SHADER);
   const clipMaskProgramHandle = program(gl, BLUR_VERTEX_SHADER, CLIP_MASK_FRAGMENT_SHADER);
   const vao = gl.createVertexArray();
   const blurVao = gl.createVertexArray();
+  const innerGlowVao = gl.createVertexArray();
   const clipMaskVao = gl.createVertexArray();
   const quadBuffer = gl.createBuffer();
   const pathBuffer = gl.createBuffer();
   const pathIndexBuffer = gl.createBuffer();
-  if (!vao || !blurVao || !clipMaskVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
+  if (!vao || !blurVao || !innerGlowVao || !clipMaskVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(
@@ -378,6 +397,16 @@ export function createWebGL2Backend(
     gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
   };
   bindVertexBuffer(quadBuffer);
+  gl.bindVertexArray(null);
+
+  gl.bindVertexArray(innerGlowVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  const innerGlowPosition = gl.getAttribLocation(innerGlowProgramHandle, "a_position");
+  const innerGlowUv = gl.getAttribLocation(innerGlowProgramHandle, "a_uv");
+  gl.enableVertexAttribArray(innerGlowPosition);
+  gl.vertexAttribPointer(innerGlowPosition, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(innerGlowUv);
+  gl.vertexAttribPointer(innerGlowUv, 2, gl.FLOAT, false, 16, 8);
   gl.bindVertexArray(null);
 
   gl.bindVertexArray(clipMaskVao);
@@ -424,6 +453,9 @@ export function createWebGL2Backend(
   const blurCompositeAlphaLocation = gl.getUniformLocation(blurProgramHandle, "u_composite_alpha");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
+  const innerGlowSourceLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_source");
+  const innerGlowBlurredLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_blurred");
+  const innerGlowTintLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_tint");
   const clipMaskContentLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_content");
   const clipMaskCoverageLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_mask");
   const clipMaskCompositeAlphaLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_composite_alpha");
@@ -921,7 +953,7 @@ export function createWebGL2Backend(
           activeEffectScope = null;
           continue;
         }
-        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0)) {
+        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && !scope.plan.outerGlow && !scope.plan.innerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0)) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           activeEffectScope = null;
@@ -962,7 +994,8 @@ export function createWebGL2Backend(
 
         const root = effectLevels[0]!;
         const alphaBranch = scope.plan.shadow ?? scope.plan.outerGlow;
-        const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
+        const innerGlow = scope.plan.innerGlow;
+        const blurs = alphaBranch ? [alphaBranch.blur] : innerGlow ? [innerGlow.blur] : scope.plan.blurs;
         // The isolated source is premultiplied sRGB. Blur linear premultiplied
         // samples so transparent edges do not darken or form colored blocks.
         runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust, undefined, scope.plan.sourceNoise[0]);
@@ -1032,6 +1065,29 @@ export function createWebGL2Backend(
           // Re-decode the immutable source and place it over the alpha-derived branch.
           runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1);
           runPost(root.a.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+        } else if (innerGlow) {
+          const tint = cssColorToRgba(innerGlow.tint.color);
+          tint[3] *= innerGlow.tint.opacity;
+          gl.useProgram(innerGlowProgramHandle);
+          gl.bindVertexArray(innerGlowVao);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, root.b.framebuffer);
+          gl.viewport(0, 0, root.width, root.height);
+          gl.disable(gl.BLEND);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, effectSourceTarget.texture);
+          gl.uniform1i(innerGlowSourceLocation, 0);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, activeTarget.texture);
+          gl.uniform1i(innerGlowBlurredLocation, 1);
+          gl.uniform4f(innerGlowTintLocation, ...tint);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+          drawCalls += 1;
+          gl.activeTexture(gl.TEXTURE0);
+          gl.useProgram(blurProgramHandle);
+          gl.bindVertexArray(blurVao);
+          runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1);
+          runPost(root.a.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
+          runPost(root.b.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTarget = activeTarget === root.a ? root.b : root.a;
           runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust, undefined, scope.plan.outputNoise[0]);
@@ -1041,9 +1097,9 @@ export function createWebGL2Backend(
           runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, undefined, undefined, scope.plan.outputNoise[0]);
           activeTarget = adjustedTarget;
         }
-        if (!alphaBranch && scope.plan.outputColorAdjust.length) {
+        if (!alphaBranch && !innerGlow && scope.plan.outputColorAdjust.length) {
           runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
-        } else if (!alphaBranch) {
+        } else if (!alphaBranch && !innerGlow) {
           runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         }
         if (scope.blend !== "normal") {
@@ -1159,9 +1215,11 @@ export function createWebGL2Backend(
       gl.deleteBuffer(pathIndexBuffer);
       gl.deleteVertexArray(vao);
       gl.deleteVertexArray(blurVao);
+      gl.deleteVertexArray(innerGlowVao);
       gl.deleteVertexArray(clipMaskVao);
       gl.deleteProgram(programHandle);
       gl.deleteProgram(blurProgramHandle);
+      gl.deleteProgram(innerGlowProgramHandle);
       gl.deleteProgram(clipMaskProgramHandle);
       deleteEffectTargets();
     },

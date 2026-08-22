@@ -394,7 +394,11 @@ ticket and retain authoring order.
 - [x] Noise. Atomic `noise` lowers to a deterministic surface operator with
   explicit `scale`, `amount`, `opacity`, and `seed`; preview backends share the
   same hash and Remotion consumes the same Runtime Effect Program.
-- [ ] Inner glow.
+- [x] Inner glow. Certified V2 `inner-glow` lowers to immutable-source
+  `alpha-mask -> blur -> inner-alpha -> tint -> composite`, with the positive
+  `sourceAlpha - blurredAlpha` coverage composited over the source. Its cyan
+  edge stays inside the source frame; unit, preview backend, and Remotion PNG
+  fixtures certify the unchanged center and colored inner edge.
 
 Each effect requires offscreen-target behavior, input/output pixel fixtures, and
 effect-chain ordering tests. The offscreen input is the already-projected,

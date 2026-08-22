@@ -17,6 +17,7 @@ export {
   validateRuntimeEffectProgram,
   RUNTIME_EFFECT_SOURCE_SURFACE,
   type RuntimeAlphaMaskEffectOp,
+  type RuntimeInnerAlphaEffectOp,
   type RuntimeBlurEffectOp,
   type RuntimeColorAdjustEffectOp,
   type RuntimeCompositeEffectOp,
