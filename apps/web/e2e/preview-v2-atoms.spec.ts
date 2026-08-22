@@ -237,6 +237,29 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
+  test("renders deterministic noise only on the effected surface", async ({ page }) => {
+    const caseId = "effect.noise";
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    expect(await readWebGLPixel(page, "preview-v2-canvas", 430, 510)).toEqual([217, 217, 217, 255]);
+    const grainSamples = await Promise.all([
+      [1480, 480], [1496, 480], [1512, 480], [1480, 496], [1496, 496], [1512, 496],
+    ].map(([x, y]) => readWebGLPixel(page, "preview-v2-canvas", x, y)));
+    expect(new Set(grainSamples.map((pixel) => pixel.join(","))).size).toBeGreaterThan(1);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const webgpuGrain = await readPresentedPixel(page, "preview-v2-canvas", 1496, 496);
+    const webglGrain = grainSamples[4]!;
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuGrain[channel]! - webglGrain[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
   test("executes two consecutive blur operators in order", async ({ page }) => {
     const caseId = "effect.blur-chain";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);

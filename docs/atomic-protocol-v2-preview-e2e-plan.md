@@ -391,7 +391,9 @@ ticket and retain authoring order.
   world-space lighting behavior. Fixtures certify the unchanged source,
   captured stroke coverage, Matrix4 perspective silhouette, WebGPU/WebGL2
   samples, and Remotion PNG parity.
-- [ ] Noise.
+- [x] Noise. Atomic `noise` lowers to a deterministic surface operator with
+  explicit `scale`, `amount`, `opacity`, and `seed`; preview backends share the
+  same hash and Remotion consumes the same Runtime Effect Program.
 - [ ] Inner glow.
 
 Each effect requires offscreen-target behavior, input/output pixel fixtures, and

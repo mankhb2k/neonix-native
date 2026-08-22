@@ -97,6 +97,27 @@ describe("Runtime V2 effect lowering", () => {
     expect(program?.ops.some((op) => op.kind === "offset")).toBe(false);
   });
 
+  it("lowers deterministic noise into a surface operator with explicit seed", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "grain", type: "noise", scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 },
+    ]);
+    expect(program).toEqual({
+      input: "source",
+      output: "effect:grain",
+      requiresOffscreen: true,
+      ops: [{
+        id: "grain",
+        kind: "noise",
+        input: "source",
+        output: "effect:grain",
+        scale: 4,
+        amount: 0.45,
+        opacity: 0.85,
+        seed: 1337,
+      }],
+    });
+  });
+
   it("threads the current surface into a following drop-shadow branch", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },

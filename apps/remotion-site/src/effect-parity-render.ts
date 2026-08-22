@@ -67,6 +67,7 @@ function rectangle(options: {
     | { id: string; type: "blur"; radius: number }
     | { id: string; type: "color-adjust"; brightness: number; contrast: number; saturation: number; hueRotate: number }
     | { id: string; type: "drop-shadow"; x: number; y: number; blur: number; color: string; opacity: number }
+    | { id: string; type: "noise"; scale: number; amount: number; opacity: number; seed: number }
   >;
 }): Extract<MotionProtocolV2["layers"][number], { type: "shape" }> {
   return {
@@ -173,6 +174,16 @@ const DROP_SHADOW_STROKE_PROJECT = project("remotion-effect-drop-shadow-stroke",
   rectangle({
     id: "fill-and-stroke-shadow-source", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2, stroke: "#d9d9d9", strokeWidth: 24,
     effects: [{ id: "fill-and-stroke-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#ff3366", opacity: 0.75 }],
+  }),
+]);
+
+const NOISE_PROJECT = project("remotion-effect-noise", [
+  rectangle({
+    id: "noise-reference", zIndex: 0, x: 220, y: 300, width: 420, height: 420, fill: "#d9d9d9",
+  }),
+  rectangle({
+    id: "noise-rectangle", zIndex: 1, x: 1280, y: 300, width: 420, height: 420, fill: "#d9d9d9",
+    effects: [{ id: "grain", type: "noise", scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 }],
   }),
 ]);
 
@@ -338,6 +349,11 @@ async function main() {
     fillAndStrokeShadowSample[0] > fillOnlyShadowSample[0] + 50,
     "Remotion did not capture opaque stroke coverage in the shadow source",
   );
+
+  const noise = await renderProject(serveUrl, NOISE_PROJECT, "noise");
+  assert(pixel(noise, 430, 510).join(",") === "217,217,217,255", "Remotion noise changed the clean reference surface");
+  const noiseSamples = [pixel(noise, 1480, 480), pixel(noise, 1496, 480), pixel(noise, 1512, 480), pixel(noise, 1480, 496), pixel(noise, 1496, 496), pixel(noise, 1512, 496)];
+  assert(new Set(noiseSamples.map((sample) => sample.join(","))).size > 1, "Remotion did not render deterministic grain on the effected surface");
 
   for (const radius of [4, 40, 256]) {
     const image = await renderProject(serveUrl, blurRadiusProject(radius), `blur-radius-${radius}`);

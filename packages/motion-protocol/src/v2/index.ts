@@ -24,12 +24,14 @@ export {
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
   V2OuterGlowEffectSchema,
+  V2NoiseEffectSchema,
   V2EffectSchema,
   V2EffectListSchema,
   type V2ColorAdjustEffect,
   type V2BlurEffect,
   type V2DropShadowEffect,
   type V2OuterGlowEffect,
+  type V2NoiseEffect,
   type V2Effect,
 } from "./effects";
 export {

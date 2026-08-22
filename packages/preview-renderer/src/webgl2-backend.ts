@@ -155,6 +155,7 @@ uniform sampler2D u_texture;
 uniform vec4 u_post_params;
 uniform vec4 u_shadow_color;
 uniform vec2 u_shadow_offset;
+uniform vec4 u_noise_params;
 uniform float u_composite_alpha;
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
@@ -199,6 +200,22 @@ vec4 applyPostColorAdjust(vec4 source, vec4 effect) {
   color = mix(vec3(luma), color, effect.z);
   return vec4(applyPostHueRotate(color, effect.w) * source.a, source.a);
 }
+float noiseHash(vec2 point) {
+  vec3 value = fract(vec3(point.x, point.y, point.x + point.y) * 0.1031);
+  value += dot(value, value.yzx + 33.33);
+  return fract((value.x + value.y) * value.z);
+}
+vec4 applyPostNoise(vec4 source) {
+  if (source.a <= 0.000001 || u_noise_params.x <= 0.0) return source;
+  vec2 resolution = vec2(textureSize(u_texture, 0));
+  // WebGL fullscreen UVs run bottom-to-top; Protocol noise coordinates are top-to-bottom.
+  vec2 protocolUv = vec2(v_uv.x, 1.0 - v_uv.y);
+  vec2 cell = floor(protocolUv * resolution / max(u_noise_params.x, 0.25));
+  float noiseValue = noiseHash(cell + vec2(u_noise_params.w, u_noise_params.w * 1.37));
+  float delta = (noiseValue - 0.5) * 2.0 * u_noise_params.y * u_noise_params.z;
+  vec3 color = clamp(source.rgb / source.a + vec3(delta), 0.0, 1.0);
+  return vec4(color * source.a, source.a);
+}
 void main() {
   if (u_post_params.w > 1.5 && u_post_params.w < 2.5) {
     float alpha = readColor(v_uv - u_shadow_offset).a * u_shadow_color.a;
@@ -225,6 +242,7 @@ void main() {
   if (u_color_adjust_meta.x > 1.5) color = applyPostColorAdjust(color, u_color_adjust[1]);
   if (u_color_adjust_meta.x > 2.5) color = applyPostColorAdjust(color, u_color_adjust[2]);
   if (u_color_adjust_meta.x > 3.5) color = applyPostColorAdjust(color, u_color_adjust[3]);
+  color = applyPostNoise(color);
   outColor = u_post_params.w > 0.5 ? encodePremultiplied(color * u_composite_alpha) : color;
 }`;
 
@@ -402,6 +420,7 @@ export function createWebGL2Backend(
   const blurPostParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_post_params");
   const blurShadowColorLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_color");
   const blurShadowOffsetLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_offset");
+  const blurNoiseParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_noise_params");
   const blurCompositeAlphaLocation = gl.getUniformLocation(blurProgramHandle, "u_composite_alpha");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
@@ -902,7 +921,7 @@ export function createWebGL2Backend(
           activeEffectScope = null;
           continue;
         }
-        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0)) {
+        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0)) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           activeEffectScope = null;
@@ -924,6 +943,7 @@ export function createWebGL2Backend(
           composite = false,
           adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
           shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
+          noiseEffect?: { scale: number; amount: number; opacity: number; seed: number },
         ) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           gl.viewport(0, 0, targetWidth, targetHeight);
@@ -933,6 +953,7 @@ export function createWebGL2Backend(
           gl.uniform4f(blurPostParamsLocation, stepX, stepY, passSigma, colorMode);
           gl.uniform4f(blurShadowColorLocation, ...(shadow?.color ?? [0, 0, 0, 0]));
           gl.uniform2f(blurShadowOffsetLocation, shadow?.offsetX ?? 0, shadow?.offsetY ?? 0);
+          gl.uniform4f(blurNoiseParamsLocation, noiseEffect?.scale ?? 0, noiseEffect?.amount ?? 0, noiseEffect?.opacity ?? 0, noiseEffect?.seed ?? 0);
           gl.uniform1f(blurCompositeAlphaLocation, 1);
           setPostColorAdjust(adjustments);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
@@ -944,7 +965,7 @@ export function createWebGL2Backend(
         const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
         // The isolated source is premultiplied sRGB. Blur linear premultiplied
         // samples so transparent edges do not darken or form colored blocks.
-        runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust);
+        runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust, undefined, scope.plan.sourceNoise[0]);
         let activeTarget = root.a;
         for (const blur of blurs) {
           const sigma = Math.min(blur.radius * dpr, 256);
@@ -1013,7 +1034,11 @@ export function createWebGL2Backend(
           runPost(root.a.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTarget = activeTarget === root.a ? root.b : root.a;
-          runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust);
+          runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust, undefined, scope.plan.outputNoise[0]);
+          activeTarget = adjustedTarget;
+        } else if (scope.plan.outputNoise.length) {
+          const adjustedTarget = activeTarget === root.a ? root.b : root.a;
+          runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, undefined, undefined, scope.plan.outputNoise[0]);
           activeTarget = adjustedTarget;
         }
         if (!alphaBranch && scope.plan.outputColorAdjust.length) {

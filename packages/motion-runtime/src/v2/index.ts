@@ -25,6 +25,7 @@ export {
   type RuntimeEffectProgramDiagnostic,
   type RuntimeEffectProgramValidation,
   type RuntimeOffsetEffectOp,
+  type RuntimeNoiseEffectOp,
   type RuntimeTintEffectOp,
   type SurfaceRef,
 } from "./effect-program";

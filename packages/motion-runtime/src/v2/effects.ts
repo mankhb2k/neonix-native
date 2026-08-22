@@ -3,6 +3,7 @@ import {
   assertRuntimeEffectProgram,
   RUNTIME_EFFECT_SOURCE_SURFACE,
   type RuntimeEffectOp,
+  type RuntimeNoiseEffectOp,
   type RuntimeEffectProgram,
   type SurfaceRef,
 } from "./effect-program";
@@ -53,7 +54,18 @@ export function buildRuntimeEffectProgram(
       continue;
     }
     const output = outputSurfaceFor(effect.id);
-    const op: RuntimeEffectOp = effect.type === "blur"
+    const op: RuntimeEffectOp = effect.type === "noise"
+      ? {
+          id: effect.id,
+          kind: "noise",
+          input,
+          output,
+          scale: effect.scale,
+          amount: effect.amount,
+          opacity: effect.opacity,
+          seed: effect.seed,
+        }
+      : effect.type === "blur"
       ? {
           id: effect.id,
           kind: "blur",

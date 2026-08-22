@@ -59,11 +59,27 @@ export const V2OuterGlowEffectSchema = z
   })
   .strict();
 
+/** Deterministic grain applied to the already-rasterized layer surface. */
+export const V2NoiseEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("noise"),
+    /** Grain cell size in projected output pixels. */
+    scale: V2FiniteNumberSchema.positive().max(256),
+    /** Centered luminance variation before opacity is applied. */
+    amount: V2FiniteNumberSchema.min(0).max(1),
+    opacity: V2FiniteNumberSchema.min(0).max(1),
+    /** Stable hash seed. It is intentionally explicit for preview/export parity. */
+    seed: V2NonNegativeNumberSchema.int().max(0xffffffff),
+  })
+  .strict();
+
 export const V2EffectSchema = z.discriminatedUnion("type", [
   V2ColorAdjustEffectSchema,
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
   V2OuterGlowEffectSchema,
+  V2NoiseEffectSchema,
 ]);
 
 export const V2EffectListSchema = z
@@ -87,4 +103,5 @@ export type V2ColorAdjustEffect = z.infer<typeof V2ColorAdjustEffectSchema>;
 export type V2BlurEffect = z.infer<typeof V2BlurEffectSchema>;
 export type V2DropShadowEffect = z.infer<typeof V2DropShadowEffectSchema>;
 export type V2OuterGlowEffect = z.infer<typeof V2OuterGlowEffectSchema>;
+export type V2NoiseEffect = z.infer<typeof V2NoiseEffectSchema>;
 export type V2Effect = z.infer<typeof V2EffectListSchema>[number];

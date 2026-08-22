@@ -1634,6 +1634,31 @@ const OUTER_GLOW_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const NOISE_PROJECT = project("preview-effect-noise-v2", [
+  rectangle({
+    id: "noise-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 420, height: 420 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 220, y: 300, z: 0 } },
+  }),
+  rectangle({
+    id: "noise-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 420, height: 420 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1280, y: 300, z: 0 } },
+    effects: [{
+      id: "grain",
+      type: "noise",
+      scale: 4,
+      amount: 0.45,
+      opacity: 0.85,
+      seed: 1337,
+    }],
+  }),
+]);
+
 const EFFECT_ORDER_GRADIENT_FILL = {
   type: "linear-gradient" as const,
   angle: 0,
@@ -1903,6 +1928,13 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 11 / Effects",
     hint: "Matrix4 projection is captured before the cyan halo, so glow follows the final projected silhouette instead of world-space geometry.",
     project: OUTER_GLOW_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "effect.noise",
+    label: "Effect / deterministic noise",
+    group: "Task 11 / Effects",
+    hint: "The right rectangle receives deterministic grain on its already-rasterized alpha surface; the left rectangle is the clean reference.",
+    project: NOISE_PROJECT,
   },
   {
     id: "effect.order",

@@ -103,8 +103,18 @@ export type RuntimeOuterGlowEffect = {
   opacity: number;
 };
 
+export type RuntimeNoiseEffect = {
+  id: string;
+  type: "noise";
+  scale: number;
+  amount: number;
+  opacity: number;
+  seed: number;
+};
+
 export type RuntimeEffect =
   | RuntimeBlurEffect
   | RuntimeColorAdjustEffect
   | RuntimeDropShadowEffect
-  | RuntimeOuterGlowEffect;
+  | RuntimeOuterGlowEffect
+  | RuntimeNoiseEffect;

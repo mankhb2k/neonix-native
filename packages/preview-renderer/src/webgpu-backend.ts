@@ -168,6 +168,7 @@ struct PostUniforms {
   colorAdjust3: vec4<f32>,
   shadowColor: vec4<f32>,
   shadowOffset: vec4<f32>,
+  noiseParams: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: PostUniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
@@ -212,6 +213,14 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
   if (uniforms.colorAdjustMeta.x > 1.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust1); }
   if (uniforms.colorAdjustMeta.x > 2.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust2); }
   if (uniforms.colorAdjustMeta.x > 3.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust3); }
+  if (color.a > 0.000001 && uniforms.noiseParams.x > 0.0) {
+    let resolution = vec2<f32>(textureDimensions(imageTexture));
+    let cell = floor(input.uv * resolution / max(uniforms.noiseParams.x, 0.25));
+    let noiseValue = noiseHash(cell + vec2<f32>(uniforms.noiseParams.w, uniforms.noiseParams.w * 1.37));
+    let delta = (noiseValue - 0.5) * 2.0 * uniforms.noiseParams.y * uniforms.noiseParams.z;
+    let colorValue = clamp(color.rgb / color.a + vec3<f32>(delta), vec3<f32>(0.0), vec3<f32>(1.0));
+    color = vec4<f32>(colorValue * color.a, color.a);
+  }
   if (uniforms.step.w > 0.5) { return encodePremultiplied(color * uniforms.shadowOffset.z); }
   return color;
 }
@@ -254,6 +263,11 @@ fn applyPostColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
   let luma = dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
   color = mix(vec3<f32>(luma), color, effect.z);
   return vec4<f32>(applyPostHueRotate(color, effect.w) * source.a, source.a);
+}
+fn noiseHash(point: vec2<f32>) -> f32 {
+  var value = fract(vec3<f32>(point.x, point.y, point.x + point.y) * 0.1031);
+  value = value + dot(value, value.yzx + vec3<f32>(33.33));
+  return fract((value.x + value.y) * value.z);
 }`;
 
 const CLIP_MASK_POST_SHADER = `
@@ -658,14 +672,16 @@ export function createWebGPUBackend(
       postPipeline = postObjects,
       adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
       shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number; compositeAlpha?: number },
+      noiseEffect?: { scale: number; amount: number; opacity: number; seed: number },
     ) => {
-      const uniform = device.createBuffer({ size: 128, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      const uniform = device.createBuffer({ size: 144, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
       transientBuffers.add(uniform);
-      const data = new Float32Array(32);
+      const data = new Float32Array(36);
       data.set(params, 0);
       data.set(colorAdjustUniforms(adjustments), 4);
       data.set(shadow?.color ?? [0, 0, 0, 0], 24);
       data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, shadow?.compositeAlpha ?? 1, 0], 28);
+      data.set([noiseEffect?.scale ?? 0, noiseEffect?.amount ?? 0, noiseEffect?.opacity ?? 0, noiseEffect?.seed ?? 0], 32);
       device.queue.writeBuffer(uniform, 0, data);
       const bindGroup = device.createBindGroup({ layout: postPipeline.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: objects.sampler }] });
       nextPass.setPipeline(postPipeline.pipeline);
@@ -1048,7 +1064,7 @@ export function createWebGPUBackend(
           activeEffectScope = null;
           continue;
         }
-        if ((!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0) || !effectSourceTexture) {
+        if ((!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0 && scope.plan.sourceNoise.length === 0 && scope.plan.outputNoise.length === 0) || !effectSourceTexture) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           activeEffectScope = null;
           continue;
@@ -1060,11 +1076,12 @@ export function createWebGPUBackend(
           params: readonly [number, number, number, number],
           adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
           shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
+          noiseEffect?: { scale: number; amount: number; opacity: number; seed: number },
         ) => {
           const effectPass = encoder.beginRenderPass({
             colorAttachments: [{ view: targetTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
           });
-          post(effectPass, source, params, effectPostObjects, adjustments, shadow);
+          post(effectPass, source, params, effectPostObjects, adjustments, shadow, noiseEffect);
           effectPass.end();
           drawCalls += 1;
         };
@@ -1074,7 +1091,7 @@ export function createWebGPUBackend(
         const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
         // Convert the isolated premultiplied sRGB source once. Pyramid and
         // Gaussian passes stay linear and premultiplied until composition.
-        runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1], scope.plan.sourceColorAdjust);
+        runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1], scope.plan.sourceColorAdjust, undefined, scope.plan.sourceNoise[0]);
         let activeTexture = root.a;
         for (const blur of blurs) {
           const sigma = Math.min(blur.radius * dpr, 256);
@@ -1129,7 +1146,11 @@ export function createWebGPUBackend(
           drawCalls += 1;
         } else if (scope.plan.outputColorAdjust.length) {
           const adjustedTexture = activeTexture === root.a ? root.b : root.a;
-          runEffectPost(activeTexture, adjustedTexture, [0, 0, 0, 0], scope.plan.outputColorAdjust);
+          runEffectPost(activeTexture, adjustedTexture, [0, 0, 0, 0], scope.plan.outputColorAdjust, undefined, scope.plan.outputNoise[0]);
+          activeTexture = adjustedTexture;
+        } else if (scope.plan.outputNoise.length) {
+          const adjustedTexture = activeTexture === root.a ? root.b : root.a;
+          runEffectPost(activeTexture, adjustedTexture, [0, 0, 0, 0], undefined, undefined, scope.plan.outputNoise[0]);
           activeTexture = adjustedTexture;
         }
 

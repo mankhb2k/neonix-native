@@ -48,6 +48,17 @@ export type RuntimeOffsetEffectOp = {
   y: number;
 };
 
+export type RuntimeNoiseEffectOp = {
+  id: string;
+  kind: "noise";
+  input: SurfaceRef;
+  output: SurfaceRef;
+  scale: number;
+  amount: number;
+  opacity: number;
+  seed: number;
+};
+
 export type RuntimeCompositeEffectOp = {
   id: string;
   kind: "composite";
@@ -63,6 +74,7 @@ export type RuntimeEffectOp =
   | RuntimeAlphaMaskEffectOp
   | RuntimeTintEffectOp
   | RuntimeOffsetEffectOp
+  | RuntimeNoiseEffectOp
   | RuntimeCompositeEffectOp;
 
 export type RuntimeEffectProgram = {
@@ -122,6 +134,10 @@ function validateOpFields(
   } else if (op.kind === "offset") {
     if (!finite(op.x) || !finite(op.y)) {
       invalid(`Effect operator "${op.id}" offset values must be finite`);
+    }
+  } else if (op.kind === "noise") {
+    if (!finite(op.scale) || op.scale <= 0 || op.scale > 256 || !finite(op.amount) || op.amount < 0 || op.amount > 1 || !finite(op.opacity) || op.opacity < 0 || op.opacity > 1 || !finite(op.seed) || op.seed < 0 || op.seed > 0xffffffff || !Number.isInteger(op.seed)) {
+      invalid(`Effect operator "${op.id}" noise requires scale > 0, amount/opacity within 0..1, and an integer seed within 0..2^32-1`);
     }
   } else if (op.kind === "composite" && op.mode !== "source-over") {
     invalid(`Effect operator "${op.id}" has an unsupported composite mode`);

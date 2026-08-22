@@ -29,6 +29,18 @@ describe("EffectPassPlan", () => {
     expect(plan.blurs).toEqual([]);
   });
 
+  it("plans noise as a deterministic offscreen operator", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "grain", type: "noise", scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(true);
+    expect(plan.requiresOffscreen).toBe(true);
+    expect(plan.sourceNoise).toMatchObject([{ scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 }]);
+    expect(plan.outputNoise).toEqual([]);
+  });
+
   it("keeps consecutive blur operators in their original order", () => {
     const program = buildRuntimeEffectProgram([
       { id: "soften-a", type: "blur", radius: 4 },

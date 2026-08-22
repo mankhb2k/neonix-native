@@ -6,6 +6,7 @@ import {
   type RuntimeCompositeEffectOp,
   type RuntimeEffectProgram,
   type RuntimeOffsetEffectOp,
+  type RuntimeNoiseEffectOp,
   type RuntimeAlphaMaskEffectOp,
   type RuntimeTintEffectOp,
 } from "@motionvideo/motion-runtime";
@@ -32,6 +33,8 @@ export type EffectPassPlan = {
   requiresOffscreen: boolean;
   sourceColorAdjust: RuntimeColorAdjustEffectOp[];
   blurs: RuntimeBlurEffectOp[];
+  sourceNoise: RuntimeNoiseEffectOp[];
+  outputNoise: RuntimeNoiseEffectOp[];
   outputColorAdjust: RuntimeColorAdjustEffectOp[];
   shadow?: DropShadowPass;
   outerGlow?: OuterGlowPass;
@@ -109,6 +112,8 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       requiresOffscreen: true,
       sourceColorAdjust: [],
       blurs: [],
+      sourceNoise: [],
+      outputNoise: [],
       outputColorAdjust: [],
       shadow,
       diagnostics,
@@ -122,6 +127,8 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       requiresOffscreen: true,
       sourceColorAdjust: [],
       blurs: [],
+      sourceNoise: [],
+      outputNoise: [],
       outputColorAdjust: [],
       outerGlow,
       diagnostics,
@@ -131,6 +138,8 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
 
   let expectedInput: string = program.input;
   const blurs: RuntimeBlurEffectOp[] = [];
+  const sourceNoise: RuntimeNoiseEffectOp[] = [];
+  const outputNoise: RuntimeNoiseEffectOp[] = [];
   let seenSpatial = false;
   const sourceColorAdjust: RuntimeColorAdjustEffectOp[] = [];
   const outputColorAdjust: RuntimeColorAdjustEffectOp[] = [];
@@ -171,6 +180,9 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       }
       blurs.push(op);
       seenSpatial = true;
+    } else if (op.kind === "noise") {
+      (seenSpatial ? outputNoise : sourceNoise).push(op);
+      seenSpatial = true;
     } else {
       diagnostics.push({
         code: "effect_pass_operator_unsupported",
@@ -193,6 +205,12 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       message: "The current GPU source/post shader supports at most four ordered color-adjust operators per pass",
     });
   }
+  if (sourceNoise.length > 1 || outputNoise.length > 1) {
+    diagnostics.push({
+      code: "effect_pass_noise_limit",
+      message: "The current GPU post shader supports at most one noise operator before and after spatial operators",
+    });
+  }
 
   return {
     source: program.input,
@@ -200,6 +218,8 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
     requiresOffscreen: program.requiresOffscreen,
     sourceColorAdjust,
     blurs,
+    sourceNoise,
+    outputNoise,
     outputColorAdjust,
     ...(shadow ? { shadow } : {}),
     diagnostics,

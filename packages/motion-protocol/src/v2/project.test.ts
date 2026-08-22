@@ -179,6 +179,25 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
+  it("accepts deterministic noise with bounded controls", () => {
+    const noise = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{ id: "grain", type: "noise" as const, scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(noise)).toEqual(noise);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...noise,
+      layers: [{ ...noise.layers[0], effects: [{ ...noise.layers[0].effects[0], scale: 0 }] }],
+    })).toThrow();
+    expect(() => MotionProtocolV2Schema.parse({
+      ...noise,
+      layers: [{ ...noise.layers[0], effects: [{ ...noise.layers[0].effects[0], seed: 1.5 }] }],
+    })).toThrow();
+  });
+
   it("accepts an open stroke-only path with join, cap, and dash semantics", () => {
     const path = {
       ...RECTANGLE_PROJECT,
