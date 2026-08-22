@@ -734,7 +734,7 @@ export function createWebGL2Backend(
           activeEffectScope = null;
           continue;
         }
-        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && scope.plan.blurs.length === 0)) {
+        if (!effectSourceTarget || effectLevels.length === 0 || (!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0)) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           activeEffectScope = null;
@@ -771,8 +771,8 @@ export function createWebGL2Backend(
         };
 
         const root = effectLevels[0]!;
-        const shadow = scope.plan.shadow;
-        const blurs = shadow ? [shadow.blur] : scope.plan.blurs;
+        const alphaBranch = scope.plan.shadow ?? scope.plan.outerGlow;
+        const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
         // The isolated source is premultiplied sRGB. Blur linear premultiplied
         // samples so transparent edges do not darken or form colored blocks.
         runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1, false, scope.plan.sourceColorAdjust);
@@ -816,9 +816,9 @@ export function createWebGL2Backend(
           }
         }
 
-        if (shadow) {
-          const shadowColor = cssColorToRgba(shadow.tint.color);
-          shadowColor[3] *= shadow.tint.opacity;
+        if (alphaBranch) {
+          const branchColor = cssColorToRgba(alphaBranch.tint.color);
+          branchColor[3] *= alphaBranch.tint.opacity;
           runPost(
             activeTarget.texture,
             root.b.framebuffer,
@@ -831,15 +831,15 @@ export function createWebGL2Backend(
             false,
             undefined,
             {
-              color: shadowColor,
-              offsetX: (shadow.offset.x * dpr) / physicalWidth,
+              color: branchColor,
+              offsetX: scope.plan.shadow ? (scope.plan.shadow.offset.x * dpr) / physicalWidth : 0,
               // WebGL2 fullscreen UVs are bottom-left; Protocol coordinates
               // remain composition top-left, so projected Y must be inverted.
-              offsetY: -(shadow.offset.y * dpr) / physicalHeight,
+              offsetY: scope.plan.shadow ? -(scope.plan.shadow.offset.y * dpr) / physicalHeight : 0,
             },
           );
           runPost(root.b.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
-          // Re-decode the immutable source and place it over the shadow branch.
+          // Re-decode the immutable source and place it over the alpha-derived branch.
           runPost(effectSourceTarget.texture, root.a.framebuffer, root.width, root.height, 0, 0, 0, -1);
           runPost(root.a.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         } else if (scope.plan.outputColorAdjust.length) {
@@ -847,9 +847,9 @@ export function createWebGL2Backend(
           runPost(activeTarget.texture, adjustedTarget.framebuffer, root.width, root.height, 0, 0, 0, 0, false, scope.plan.outputColorAdjust);
           activeTarget = adjustedTarget;
         }
-        if (!shadow && scope.plan.outputColorAdjust.length) {
+        if (!alphaBranch && scope.plan.outputColorAdjust.length) {
           runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
-        } else if (!shadow) {
+        } else if (!alphaBranch) {
           runPost(activeTarget.texture, null, physicalWidth, physicalHeight, 0, 0, 0, 1, true);
         }
         if (scope.blend !== "normal") {

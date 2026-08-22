@@ -142,6 +142,31 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
+  it("accepts a bounded outer glow without offset or spread", () => {
+    const glow = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        effects: [{
+          id: "glow",
+          type: "outer-glow" as const,
+          radius: 24,
+          color: "#00e5ff",
+          opacity: 0.7,
+        }],
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(glow)).toEqual(glow);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...glow,
+      layers: [{ ...glow.layers[0], effects: [{ ...glow.layers[0].effects[0], radius: 0 }] }],
+    })).toThrow();
+    expect(() => MotionProtocolV2Schema.parse({
+      ...glow,
+      layers: [{ ...glow.layers[0], effects: [{ ...glow.layers[0].effects[0], x: 8 }] }],
+    })).toThrow();
+  });
+
   it("accepts an open stroke-only path with join, cap, and dash semantics", () => {
     const path = {
       ...RECTANGLE_PROJECT,
@@ -473,6 +498,7 @@ describe("Motion Protocol V2 schema", () => {
     expect(isV2AtomCertified("path.fill")).toBe(true);
     expect(isV2AtomCertified("path.strokeDash")).toBe(true);
     expect(isV2AtomCertified("path.morph")).toBe(true);
+    expect(isV2AtomCertified("effect.outer-glow")).toBe(true);
     expect(isV2AtomCertified("group.transform")).toBe(true);
     expect(isV2AtomCertified("group.timing")).toBe(true);
     expect(isV2AtomCertified("group.opacity")).toBe(true);

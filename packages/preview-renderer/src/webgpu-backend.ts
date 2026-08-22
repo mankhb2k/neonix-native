@@ -837,7 +837,7 @@ export function createWebGPUBackend(
           activeEffectScope = null;
           continue;
         }
-        if ((!scope.plan.shadow && scope.plan.blurs.length === 0) || !effectSourceTexture) {
+        if ((!scope.plan.shadow && !scope.plan.outerGlow && scope.plan.blurs.length === 0) || !effectSourceTexture) {
           pushDiagnostic({ severity: "error", code: "preview_offscreen_scope_invalid", message: "Offscreen effect scope has no supported blur surface", key: command.key, layerId: scope.layerId });
           activeEffectScope = null;
           continue;
@@ -859,8 +859,8 @@ export function createWebGPUBackend(
         };
 
         const root = effectLevels[0]!;
-        const shadow = scope.plan.shadow;
-        const blurs = shadow ? [shadow.blur] : scope.plan.blurs;
+        const alphaBranch = scope.plan.shadow ?? scope.plan.outerGlow;
+        const blurs = alphaBranch ? [alphaBranch.blur] : scope.plan.blurs;
         // Convert the isolated premultiplied sRGB source once. Pyramid and
         // Gaussian passes stay linear and premultiplied until composition.
         runEffectPost(effectSourceTexture, root.a, [0, 0, 0, -1], scope.plan.sourceColorAdjust);
@@ -888,18 +888,18 @@ export function createWebGPUBackend(
           }
         }
 
-        if (shadow) {
-          const shadowColor = cssColorToRgba(shadow.tint.color);
-          shadowColor[3] *= shadow.tint.opacity;
+        if (alphaBranch) {
+          const branchColor = cssColorToRgba(alphaBranch.tint.color);
+          branchColor[3] *= alphaBranch.tint.opacity;
           runEffectPost(
             activeTexture,
             root.b,
             [0, 0, 0, 2],
             undefined,
             {
-              color: shadowColor,
-              offsetX: (shadow.offset.x * dpr) / physicalWidth,
-              offsetY: (shadow.offset.y * dpr) / physicalHeight,
+              color: branchColor,
+              offsetX: scope.plan.shadow ? (scope.plan.shadow.offset.x * dpr) / physicalWidth : 0,
+              offsetY: scope.plan.shadow ? (scope.plan.shadow.offset.y * dpr) / physicalHeight : 0,
             },
           );
           stageIndex = stageIndex === 0 ? 1 : 0;
@@ -922,7 +922,7 @@ export function createWebGPUBackend(
           activeTexture = adjustedTexture;
         }
 
-        if (!shadow) {
+        if (!alphaBranch) {
           stageIndex = stageIndex === 0 ? 1 : 0;
           const previousStage = stages[stageIndex === 0 ? 1 : 0];
           const compositePass = beginStagePass(stages[stageIndex], previousStage);

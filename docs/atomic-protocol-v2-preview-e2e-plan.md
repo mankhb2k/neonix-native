@@ -385,7 +385,11 @@ ticket and retain authoring order.
   `alpha-mask -> blur -> tint -> offset -> composite`; preview WebGPU/WebGL2
   and Remotion PNG export share the same Runtime Effect Program. Detailed
   execution record: `docs/task11-drop-shadow-plan.md`.
-- [ ] Glow.
+- [x] Outer glow. Certified V2 `outer-glow` lowers to immutable-source
+  `alpha-mask -> blur -> tint -> composite`; it has no offset, spread, or
+  world-space lighting behavior. Fixtures certify the unchanged source,
+  captured stroke coverage, Matrix4 perspective silhouette, WebGPU/WebGL2
+  samples, and Remotion PNG parity.
 - [ ] Noise.
 - [ ] Inner glow.
 

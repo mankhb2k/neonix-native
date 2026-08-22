@@ -25,6 +25,7 @@ export type {
   RuntimeEffect,
   RuntimeColorAdjustEffect,
   RuntimeBlurEffect,
+  RuntimeOuterGlowEffect,
 } from "./paint-types";
 export {
   type PaintDisplayList,

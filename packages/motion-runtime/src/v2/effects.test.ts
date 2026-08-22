@@ -79,6 +79,24 @@ describe("Runtime V2 effect lowering", () => {
     expect(program?.ops[1]).toMatchObject({ kind: "blur", radius: 0 });
   });
 
+  it("lowers outer glow into an alpha-derived branch without a semantic offset", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "glow", type: "outer-glow", radius: 24, color: "#00e5ff", opacity: 0.7 },
+    ]);
+    expect(program).toMatchObject({
+      input: "source",
+      output: "effect:glow",
+      requiresOffscreen: true,
+      ops: [
+        { kind: "alpha-mask", input: "source", output: "effect:glow:alpha" },
+        { kind: "blur", input: "effect:glow:alpha", output: "effect:glow:blur", radius: 24 },
+        { kind: "tint", input: "effect:glow:blur", output: "effect:glow:tint", color: "#00e5ff", opacity: 0.7 },
+        { kind: "composite", backdrop: "effect:glow:tint", source: "source", output: "effect:glow" },
+      ],
+    });
+    expect(program?.ops.some((op) => op.kind === "offset")).toBe(false);
+  });
+
   it("threads the current surface into a following drop-shadow branch", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },

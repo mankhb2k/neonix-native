@@ -94,7 +94,17 @@ export type RuntimeDropShadowEffect = {
   opacity: number;
 };
 
+export type RuntimeOuterGlowEffect = {
+  id: string;
+  type: "outer-glow";
+  /** Gaussian sigma in projected composition/output pixels. */
+  radius: number;
+  color: string;
+  opacity: number;
+};
+
 export type RuntimeEffect =
   | RuntimeBlurEffect
   | RuntimeColorAdjustEffect
-  | RuntimeDropShadowEffect;
+  | RuntimeDropShadowEffect
+  | RuntimeOuterGlowEffect;

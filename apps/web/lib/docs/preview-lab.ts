@@ -1132,6 +1132,79 @@ const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2
   }),
 ]);
 
+const OUTER_GLOW_PROJECT = project("preview-effect-outer-glow-v2", [
+  rectangle({
+    id: "glow-reference",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+  }),
+  rectangle({
+    id: "outer-glow-rectangle",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{
+      id: "cyan-halo",
+      type: "outer-glow",
+      radius: 24,
+      color: "#00e5ff",
+      opacity: 0.7,
+    }],
+  }),
+]);
+
+const OUTER_GLOW_STROKE_PROJECT = project("preview-effect-outer-glow-stroke-v2", [
+  rectangle({
+    id: "fill-only-glow-source",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    fillOpacity: 0.2,
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
+    effects: [{ id: "fill-only-halo", type: "outer-glow", radius: 24, color: "#ff3366", opacity: 0.75 }],
+  }),
+  rectangle({
+    id: "fill-and-stroke-glow-source",
+    zIndex: 1,
+    fill: "#d9d9d9",
+    fillOpacity: 0.2,
+    stroke: "#d9d9d9",
+    strokeWidth: 24,
+    frame: { width: 360, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
+    effects: [{ id: "fill-and-stroke-halo", type: "outer-glow", radius: 24, color: "#ff3366", opacity: 0.75 }],
+  }),
+]);
+
+const OUTER_GLOW_PERSPECTIVE_PROJECT = project(
+  "preview-effect-outer-glow-perspective-v2",
+  [rectangle({
+    id: "outer-glow-perspective-rectangle",
+    zIndex: 0,
+    fill: "#d9d9d9",
+    stroke: "#ffffff",
+    strokeWidth: 16,
+    frame: { width: 440, height: 280 },
+    transform: {
+      ...IDENTITY_TRANSFORM,
+      translate: { x: 740, y: 400, z: 180 },
+      rotate: { x: 18, y: -24, z: 0 },
+      anchor: { x: 220, y: 140, z: 0 },
+    },
+    effects: [{ id: "cyan-perspective-halo", type: "outer-glow", radius: 24, color: "#00e5ff", opacity: 0.7 }],
+  })],
+  {
+    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
 const EFFECT_ORDER_GRADIENT_FILL = {
   type: "linear-gradient" as const,
   angle: 0,
@@ -1324,6 +1397,27 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 11 / Effects",
     hint: "The right source adds an opaque stroke over a translucent fill; its stronger offset silhouette proves source capture includes paint coverage.",
     project: DROP_SHADOW_STROKE_PROJECT,
+  },
+  {
+    id: "effect.outer-glow",
+    label: "Effect / outer glow",
+    group: "Task 11 / Effects",
+    hint: "The cyan halo is derived from the immutable final alpha, blurred in screen pixels, then placed behind the unchanged gray source.",
+    project: OUTER_GLOW_PROJECT,
+  },
+  {
+    id: "effect.outer-glow.stroke-source",
+    label: "Effect / outer glow stroke source",
+    group: "Task 11 / Effects",
+    hint: "The right halo is stronger because its immutable source includes opaque stroke coverage over the same translucent fill.",
+    project: OUTER_GLOW_STROKE_PROJECT,
+  },
+  {
+    id: "effect.outer-glow.perspective",
+    label: "Effect / outer glow perspective",
+    group: "Task 11 / Effects",
+    hint: "Matrix4 projection is captured before the cyan halo, so glow follows the final projected silhouette instead of world-space geometry.",
+    project: OUTER_GLOW_PERSPECTIVE_PROJECT,
   },
   {
     id: "effect.order",

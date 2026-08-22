@@ -563,6 +563,39 @@
                             "opacity"
                           ],
                           "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "outer-glow"
+                            },
+                            "radius": {
+                              "type": "number",
+                              "exclusiveMinimum": 0,
+                              "maximum": 256
+                            },
+                            "color": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                            },
+                            "opacity": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "radius",
+                            "color",
+                            "opacity"
+                          ],
+                          "additionalProperties": false
                         }
                       ]
                     },

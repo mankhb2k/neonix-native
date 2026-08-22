@@ -47,10 +47,23 @@ export const V2DropShadowEffectSchema = z
   })
   .strict();
 
+/** Projected screen-space halo derived from the final layer alpha. */
+export const V2OuterGlowEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("outer-glow"),
+    /** Gaussian sigma in output pixels. */
+    radius: V2FiniteNumberSchema.positive().max(256),
+    color: V2ColorSchema,
+    opacity: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
 export const V2EffectSchema = z.discriminatedUnion("type", [
   V2ColorAdjustEffectSchema,
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
+  V2OuterGlowEffectSchema,
 ]);
 
 export const V2EffectListSchema = z
@@ -73,4 +86,5 @@ export const V2EffectListSchema = z
 export type V2ColorAdjustEffect = z.infer<typeof V2ColorAdjustEffectSchema>;
 export type V2BlurEffect = z.infer<typeof V2BlurEffectSchema>;
 export type V2DropShadowEffect = z.infer<typeof V2DropShadowEffectSchema>;
+export type V2OuterGlowEffect = z.infer<typeof V2OuterGlowEffectSchema>;
 export type V2Effect = z.infer<typeof V2EffectListSchema>[number];

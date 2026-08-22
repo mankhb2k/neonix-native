@@ -60,6 +60,23 @@ describe("EffectPassPlan", () => {
     });
   });
 
+  it("recognizes the zero-offset alpha branch for one outer glow", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "glow", type: "outer-glow", radius: 24, color: "#00e5ff", opacity: 0.7 },
+    ]);
+    const plan = buildEffectPassPlan(program!);
+
+    expect(plan.supported).toBe(true);
+    expect(plan.requiresOffscreen).toBe(true);
+    expect(plan.shadow).toBeUndefined();
+    expect(plan.outerGlow).toMatchObject({
+      alphaMask: { input: "source", output: "effect:glow:alpha" },
+      blur: { radius: 24 },
+      tint: { color: "#00e5ff", opacity: 0.7 },
+      composite: { backdrop: "effect:glow:tint", source: "source", mode: "source-over" },
+    });
+  });
+
   it("diagnoses a mixed linear and branching program until that graph is implemented", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },

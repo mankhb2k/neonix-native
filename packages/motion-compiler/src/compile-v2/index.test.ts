@@ -176,6 +176,38 @@ describe("Protocol V2 Compiler B", () => {
     expect(draw).not.toHaveProperty("effects");
   });
 
+  it("lowers the certified outer-glow atom into a branch owned by the layer scope", () => {
+    const project = {
+      ...base,
+      id: "v2-outer-glow",
+      layers: [{
+        id: "glowing-rectangle",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 80, height: 40 },
+        transform: identity,
+        opacity: 100,
+        timing: { start: 0, duration: 1 },
+        effects: [{ id: "glow", type: "outer-glow" as const, radius: 24, color: "#00e5ff", opacity: 0.7 }],
+        payload: { shape: "rectangle" as const },
+        style: { fill: "#d9d9d9" },
+      }],
+    };
+    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    expect(commands.find((command) => command.op === "beginLayer")).toMatchObject({
+      offscreen: true,
+      effectProgram: {
+        ops: [
+          { kind: "alpha-mask" },
+          { kind: "blur", radius: 24 },
+          { kind: "tint", color: "#00e5ff" },
+          { kind: "composite", source: "source" },
+        ],
+      },
+    });
+  });
+
   it("emits a valid empty frame", () => {
     const buffer = compileProtocolV2ToPaintCommands({ ...base, layers: [] });
     expect(buffer.commands.map((command) => command.op)).toEqual([

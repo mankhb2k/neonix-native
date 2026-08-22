@@ -24,19 +24,31 @@ export function buildRuntimeEffectProgram(
   let input: SurfaceRef = RUNTIME_EFFECT_SOURCE_SURFACE;
   const ops: RuntimeEffectOp[] = [];
   for (const effect of effects) {
-    if (effect.type === "drop-shadow") {
+    if (effect.type === "drop-shadow" || effect.type === "outer-glow") {
       const alpha = `effect:${effect.id}:alpha`;
       const blurred = `effect:${effect.id}:blur`;
       const tinted = `effect:${effect.id}:tint`;
-      const offset = `effect:${effect.id}:offset`;
       const output = outputSurfaceFor(effect.id);
       ops.push(
         { id: `${effect.id}:alpha`, kind: "alpha-mask", input, output: alpha },
-        { id: `${effect.id}:blur`, kind: "blur", input: alpha, output: blurred, radius: effect.blur },
+        {
+          id: `${effect.id}:blur`,
+          kind: "blur",
+          input: alpha,
+          output: blurred,
+          radius: effect.type === "drop-shadow" ? effect.blur : effect.radius,
+        },
         { id: `${effect.id}:tint`, kind: "tint", input: blurred, output: tinted, color: effect.color, opacity: effect.opacity },
-        { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.x, y: effect.y },
-        { id: `${effect.id}:composite`, kind: "composite", backdrop: offset, source: input, output, mode: "source-over" },
       );
+      if (effect.type === "drop-shadow") {
+        const offset = `effect:${effect.id}:offset`;
+        ops.push(
+          { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.x, y: effect.y },
+          { id: `${effect.id}:composite`, kind: "composite", backdrop: offset, source: input, output, mode: "source-over" },
+        );
+      } else {
+        ops.push({ id: `${effect.id}:composite`, kind: "composite", backdrop: tinted, source: input, output, mode: "source-over" });
+      }
       input = output;
       continue;
     }

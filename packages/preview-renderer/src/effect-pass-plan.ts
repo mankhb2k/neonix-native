@@ -18,6 +18,13 @@ export type DropShadowPass = {
   composite: RuntimeCompositeEffectOp;
 };
 
+export type OuterGlowPass = {
+  alphaMask: RuntimeAlphaMaskEffectOp;
+  blur: RuntimeBlurEffectOp;
+  tint: RuntimeTintEffectOp;
+  composite: RuntimeCompositeEffectOp;
+};
+
 /** Backend-neutral physical plan for the effect subset certified today. */
 export type EffectPassPlan = {
   source: typeof RUNTIME_EFFECT_SOURCE_SURFACE;
@@ -27,6 +34,7 @@ export type EffectPassPlan = {
   blurs: RuntimeBlurEffectOp[];
   outputColorAdjust: RuntimeColorAdjustEffectOp[];
   shadow?: DropShadowPass;
+  outerGlow?: OuterGlowPass;
   diagnostics: EffectPassPlanDiagnostic[];
   supported: boolean;
 };
@@ -52,6 +60,25 @@ function matchDropShadowPass(program: RuntimeEffectProgram): DropShadowPass | un
   return { alphaMask, blur, tint, offset, composite };
 }
 
+function matchOuterGlowPass(program: RuntimeEffectProgram): OuterGlowPass | undefined {
+  if (program.ops.length !== 4) return undefined;
+  const [alphaMask, blur, tint, composite] = program.ops;
+  if (
+    alphaMask?.kind !== "alpha-mask" ||
+    blur?.kind !== "blur" ||
+    tint?.kind !== "tint" ||
+    composite?.kind !== "composite" ||
+    alphaMask.input !== program.input ||
+    blur.input !== alphaMask.output ||
+    tint.input !== blur.output ||
+    composite.backdrop !== tint.output ||
+    composite.source !== program.input ||
+    composite.output !== program.output ||
+    composite.mode !== "source-over"
+  ) return undefined;
+  return { alphaMask, blur, tint, composite };
+}
+
 export type EffectPassPlanDiagnostic = {
   code: string;
   message: string;
@@ -74,6 +101,7 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
   }
 
   const shadow = matchDropShadowPass(program);
+  const outerGlow = matchOuterGlowPass(program);
   if (shadow) {
     return {
       source: program.input,
@@ -83,6 +111,19 @@ export function buildEffectPassPlan(program: RuntimeEffectProgram): EffectPassPl
       blurs: [],
       outputColorAdjust: [],
       shadow,
+      diagnostics,
+      supported: diagnostics.length === 0,
+    };
+  }
+  if (outerGlow) {
+    return {
+      source: program.input,
+      output: program.output,
+      requiresOffscreen: true,
+      sourceColorAdjust: [],
+      blurs: [],
+      outputColorAdjust: [],
+      outerGlow,
       diagnostics,
       supported: diagnostics.length === 0,
     };

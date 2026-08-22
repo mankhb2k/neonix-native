@@ -181,6 +181,40 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
+  test("renders outer glow behind the immutable source and includes source stroke coverage", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await page.goto("/docs/preview?case=effect.outer-glow&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const sourceCenter = await readWebGLPixel(page, "preview-v2-canvas", 1440, 510);
+    const halo = await readWebGLPixel(page, "preview-v2-canvas", 1630, 510);
+    expect(sourceCenter).toEqual([217, 217, 217, 255]);
+    expect(halo[1]).toBeGreaterThan(halo[0] + 30);
+    expect(halo[2]).toBeGreaterThan(halo[0] + 40);
+
+    await page.goto("/docs/preview?case=effect.outer-glow.stroke-source&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /effect|offscreen/);
+    const fillOnlyHalo = await readWebGLPixel(page, "preview-v2-canvas", 670, 510);
+    const strokeHalo = await readWebGLPixel(page, "preview-v2-canvas", 1630, 510);
+    expect(strokeHalo[0]).toBeGreaterThan(fillOnlyHalo[0] + 15);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=effect.outer-glow&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuHalo = await readPresentedPixel(page, "preview-v2-canvas", 1630, 510);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuHalo[index]! - halo[index]!)).toBeLessThanOrEqual(2);
+    }
+
+    await page.goto("/docs/preview?case=effect.outer-glow.stroke-source&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    const webgpuStrokeHalo = await readPresentedPixel(page, "preview-v2-canvas", 1630, 510);
+    for (let index = 0; index < 4; index += 1) {
+      expect(Math.abs(webgpuStrokeHalo[index]! - strokeHalo[index]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
   test("preserves observable color-adjust and blur order", async ({ page }) => {
     const caseId = "effect.order";
     const samplePoints = [420, 450, 480, 510];
