@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { orthographicProjectionMatrix } from "@motionvideo/motion-runtime";
 import {
-  cssColorToRgba,
   matrix4ForQuad,
   packMatrix4F32,
   worldToClipMatrixForPaint,
   webglClipSpaceProjection,
 } from "./math";
+import { cssColorToRgba } from "./shared/color";
 import { mediaLayout } from "./media";
 
 describe("preview-renderer primitives", () => {

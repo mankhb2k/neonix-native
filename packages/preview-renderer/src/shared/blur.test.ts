@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blurPyramidPlan } from "./blur-quality";
+import { blurPyramidPlan } from "./blur";
 
 describe("blurPyramidPlan", () => {
   it("keeps small blur at native resolution", () => {

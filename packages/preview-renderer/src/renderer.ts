@@ -7,7 +7,7 @@ import {
 import { createWebGL2Backend } from "./webgl2";
 import { createWebGPUBackend } from "./webgpu";
 import type { PreviewBackend } from "./backend";
-import type { PreviewDiagnostic, PreviewRenderer, PreviewRendererOptions } from "./types";
+import type { PreviewDiagnostic, PreviewRenderer, PreviewRendererOptions } from "./shared/types";
 
 function reportDiagnostic(
   options: PreviewRendererOptions,

@@ -1,4 +1,4 @@
-export { createPreviewRenderer } from "./preview-renderer";
+export { createPreviewRenderer } from "./renderer";
 export type {
   PreviewAsset,
   PreviewAssetKind,
@@ -13,18 +13,18 @@ export type {
   WebGPUContextLike,
   WebGPUDeviceLike,
   WebGPUInitOptions,
-} from "./types";
+} from "./shared/types";
 export {
-  cssColorToRgba,
   fitMode,
   matrix4ForQuad,
   packMatrix4F32,
   worldToClipMatrixForPaint,
   webglClipSpaceProjection,
 } from "./math";
+export { cssColorToRgba } from "./shared/color";
 export { mediaLayout, type MediaLayout } from "./media";
 export {
   buildEffectPassPlan,
   type EffectPassPlan,
   type EffectPassPlanDiagnostic,
-} from "./effect-pass-plan";
+} from "./shared/effects";

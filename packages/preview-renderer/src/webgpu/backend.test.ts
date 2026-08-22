@@ -4,7 +4,7 @@ import type {
   PreviewRendererOptions,
   WebGPUBufferLike,
   WebGPUDeviceLike,
-} from "../types";
+} from "../shared/types";
 
 describe("WebGPU preview backend", () => {
   it("submits rectangle and ellipse geometry before releasing GPU resources", async () => {

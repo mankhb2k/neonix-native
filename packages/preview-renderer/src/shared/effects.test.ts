@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildRuntimeEffectProgram } from "@motionvideo/motion-runtime";
-import { buildEffectPassPlan } from "./effect-pass-plan";
+import { buildEffectPassPlan } from "./effects";
 
 describe("EffectPassPlan", () => {
   it("preserves color-adjust -> blur -> color-adjust order", () => {

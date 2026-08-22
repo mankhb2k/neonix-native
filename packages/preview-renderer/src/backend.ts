@@ -4,7 +4,7 @@ import type {
   PreviewDiagnostic,
   PreviewRenderStats,
   PreviewRendererOptions,
-} from "./types";
+} from "./shared/types";
 
 export type PreviewBackend = {
   readonly kind: "webgl2" | "webgpu";

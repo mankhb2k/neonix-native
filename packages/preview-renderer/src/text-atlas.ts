@@ -1,5 +1,5 @@
 import type { PaintCommand } from "@motionvideo/motion-runtime";
-import type { PreviewAsset } from "./types";
+import type { PreviewAsset } from "./shared/types";
 
 type TextCommand = Extract<PaintCommand, { op: "drawText" }>;
 
