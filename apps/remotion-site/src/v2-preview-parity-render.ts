@@ -74,6 +74,31 @@ function assertVisibleOutput(caseId: string, image: ReturnType<typeof decodeRgba
   if (caseId === "primitive.shape.rectangle" && pixel(image, 48, 32).join(",") !== "0,170,136,255") throw new Error(`${caseId}: rectangle pixel mismatch`);
   if (caseId === "primitive.shape.ellipse" && pixel(image, 112, 72).join(",") !== "0,170,136,255") throw new Error(`${caseId}: ellipse pixel mismatch`);
   if (caseId === "text.single-line.alignment" && countPixels(image, (value) => value[0] > 210 && value[1] > 210 && value[2] > 210) < 1_000) throw new Error(`${caseId}: glyph output is too small`);
+  if (caseId === "composite.mask.clip") {
+    if (pixel(image, 960, 540).join(",") === "16,24,32,255") throw new Error(`${caseId}: covered image pixel is missing`);
+    if (pixel(image, 500, 220).join(",") !== "16,24,32,255") throw new Error(`${caseId}: uncovered image pixel escaped the clip`);
+  }
+  if (caseId === "composite.mask.alpha") {
+    if (pixel(image, 960, 540).join(",") === "16,24,32,255") throw new Error(`${caseId}: alpha-covered image pixel is missing`);
+    if (pixel(image, 500, 220).join(",") !== "16,24,32,255") throw new Error(`${caseId}: uncovered image pixel escaped the alpha mask`);
+  }
+  if (caseId === "composite.mask.inverse-alpha") {
+    if (pixel(image, 960, 540).join(",") !== "16,24,32,255") throw new Error(`${caseId}: opaque inverse-mask center did not clear content`);
+    if (pixel(image, 500, 220).join(",") === "16,24,32,255") throw new Error(`${caseId}: inverse-mask outside image pixel is missing`);
+  }
+  if (caseId === "composite.mask.luma") {
+    if (pixel(image, 960, 540).join(",") === "16,24,32,255") throw new Error(`${caseId}: luma-covered image pixel is missing`);
+    if (pixel(image, 500, 220).join(",") !== "16,24,32,255") throw new Error(`${caseId}: uncovered image pixel escaped the luma mask`);
+  }
+  if (caseId === "group.isolation.nested") {
+    const overlap = pixel(image, 800, 540);
+    const frontOnly = pixel(image, 1100, 540);
+    if (overlap.some((value, index) => Math.abs(value - frontOnly[index]!) > 2)) throw new Error(`${caseId}: nested opacity was applied per child`);
+  }
+  if (caseId === "composite.mask.nested") {
+    if (pixel(image, 960, 540).join(",") === "16,24,32,255") throw new Error(`${caseId}: nested masked content is missing`);
+    if (pixel(image, 500, 220).join(",") !== "16,24,32,255") throw new Error(`${caseId}: nested mask escaped its group`);
+  }
   if (caseId === "image.missing-asset") return;
   const backgroundPixels = countPixels(image, (value) => value[0] === BACKGROUND[0] && value[1] === BACKGROUND[1] && value[2] === BACKGROUND[2]);
   if (backgroundPixels === image.width * image.height && caseId !== "matrix4.camera-plane") throw new Error(`${caseId}: output is only the background`);

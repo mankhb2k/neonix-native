@@ -65,6 +65,40 @@ export const MotionProtocolV2Schema = z
         });
       }
       zIndexes.add(layer.zIndex);
+      const mask = layer.composite?.mask;
+      if (mask) {
+        if (layer.type !== "group") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Clip mask is currently supported only on group layers",
+            path: ["layers", index, "composite", "mask"],
+          });
+        }
+        if (mask.sourceLayerId === layer.id) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Clip mask source cannot be the masked group itself",
+            path: ["layers", index, "composite", "mask", "sourceLayerId"],
+          });
+        }
+        const source = layerById.get(mask.sourceLayerId);
+        const requiresShapeSource = mask.mode === "clip";
+        if (!source || source.parentLayerId !== layer.id || source.type === "group" || (requiresShapeSource && source.type !== "shape")) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: requiresShapeSource
+              ? "Clip mask source must be a direct child shape of the masked group"
+              : "Alpha mask source must be a direct drawable child of the masked group",
+            path: ["layers", index, "composite", "mask", "sourceLayerId"],
+          });
+        } else if (source.effects?.length || (source.composite?.blendMode ?? "normal") !== "normal") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Mask source cannot have effects or a non-normal blend mode",
+            path: ["layers", index, "composite", "mask", "sourceLayerId"],
+          });
+        }
+      }
       if (layer.type === "text") {
         const assetIndex = (project.assets ?? []).findIndex(
           (asset) => asset.id === layer.payload.fontAssetId,

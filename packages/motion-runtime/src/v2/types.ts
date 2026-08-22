@@ -33,6 +33,14 @@ export type RuntimeTimingV2 = {
   duration: number;
 };
 
+export type RuntimeBlendModeV2 = "normal" | "multiply" | "screen" | "add";
+
+/** Runtime-normalized group mask relation. */
+export type RuntimeMaskV2 = {
+  mode: "clip" | "alpha" | "inverse-alpha" | "luma";
+  sourceId: string;
+};
+
 export type RuntimeShapeV2 = {
   kind: "shape";
   shape: "rectangle" | "ellipse";
@@ -126,16 +134,36 @@ export type RuntimeTextV2 = {
   effects?: RuntimeEffect[];
 };
 
+/**
+ * Runtime-only hierarchy marker. It never becomes a GPU draw, but preserves
+ * the point at which a subtree must be flattened before one group opacity is
+ * composited back into its parent.
+ */
+export type RuntimeGroupV2 = {
+  kind: "group";
+  width: number;
+  height: number;
+};
+
 export type RuntimeNodeV2 = {
   id: string;
   parentId: string | null;
   zIndex: number;
   timing: RuntimeTimingV2;
   opacity: number;
+  /** Omitted only for older in-memory Runtime test fixtures; Compiler V2 emits it. */
+  blendMode?: RuntimeBlendModeV2;
+  mask?: RuntimeMaskV2;
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
-  content: RuntimeShapeV2 | RuntimePathV2 | RuntimeImageV2 | RuntimeVideoV2 | RuntimeTextV2;
+  content:
+    | RuntimeGroupV2
+    | RuntimeShapeV2
+    | RuntimePathV2
+    | RuntimeImageV2
+    | RuntimeVideoV2
+    | RuntimeTextV2;
 };
 
 export type RuntimeProjectV2 = {

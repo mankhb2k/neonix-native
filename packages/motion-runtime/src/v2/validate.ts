@@ -158,6 +158,7 @@ export function validateRuntimeProjectV2(
   }
 
   const ids = new Set<string>();
+  const nodeById = new Map(project.nodes.map((node) => [node.id, node]));
   for (const node of project.nodes) {
     if (ids.has(node.id)) {
       diagnostics.push({
@@ -169,12 +170,30 @@ export function validateRuntimeProjectV2(
     }
     ids.add(node.id);
     if (node.parentId !== null) {
-      diagnostics.push({
-        severity: "error",
-        code: "runtime_v2_parent_pending",
-        message: "Runtime V2 shape slice only supports root nodes",
-        nodeId: node.id,
-      });
+      const parent = nodeById.get(node.parentId);
+      if (!parent || parent.content.kind !== "group") {
+        diagnostics.push({
+          severity: "error",
+          code: "runtime_v2_parent_group",
+          message: `Runtime V2 node ${node.id} must reference an existing Runtime group parent`,
+          nodeId: node.id,
+        });
+      }
+      const ancestry = new Set<string>([node.id]);
+      let current: string | null = node.parentId;
+      while (current !== null) {
+        if (ancestry.has(current)) {
+          diagnostics.push({
+            severity: "error",
+            code: "runtime_v2_parent_cycle",
+            message: `Runtime V2 node ${node.id} is in a parent cycle`,
+            nodeId: node.id,
+          });
+          break;
+        }
+        ancestry.add(current);
+        current = nodeById.get(current)?.parentId ?? null;
+      }
     }
     if (!matrixIs4x4(node.localMatrix) || !matrixIs4x4(node.worldMatrix)) {
       diagnostics.push({
@@ -315,6 +334,32 @@ export function validateRuntimeProjectV2(
         message: "Runtime V2 node opacity must be within 0..1",
         nodeId: node.id,
       });
+    }
+    if (node.blendMode !== undefined && !["normal", "multiply", "screen", "add"].includes(node.blendMode)) {
+      diagnostics.push({
+        severity: "error",
+        code: "runtime_v2_blend_mode",
+        message: "Runtime V2 blendMode must be normal, multiply, screen, or add",
+        nodeId: node.id,
+      });
+    }
+    if (node.mask !== undefined) {
+      const source = nodeById.get(node.mask.sourceId);
+      if (
+        node.content.kind !== "group" ||
+        !["clip", "alpha", "inverse-alpha", "luma"].includes(node.mask.mode) ||
+        !source ||
+        source.parentId !== node.id ||
+        source.content.kind === "group" ||
+        (node.mask.mode === "clip" && source.content.kind !== "shape")
+      ) {
+        diagnostics.push({
+          severity: "error",
+          code: "runtime_v2_mask",
+          message: "Runtime V2 mask must reference a valid direct child of a group",
+          nodeId: node.id,
+        });
+      }
     }
     if (
       !Number.isFinite(node.content.width) ||

@@ -46,6 +46,8 @@ export type PaintCommand =
       layerId?: string;
       isolation?: boolean;
       offscreen?: boolean;
+      /** Apply once when an isolated subtree is composited back to its parent. */
+      compositeAlpha?: number;
       /** Runtime-only ordered effect graph for this compositing scope. */
       effectProgram?: RuntimeEffectProgram;
       mask?: {
@@ -66,10 +68,7 @@ export type PaintCommand =
         | "normal"
         | "multiply"
         | "screen"
-        | "add"
-        | "darken"
-        | "lighten"
-        | "overlay";
+        | "add";
       /** 4×4 world matrix for perspective-3d projection (Phase 11). */
     }
   | {

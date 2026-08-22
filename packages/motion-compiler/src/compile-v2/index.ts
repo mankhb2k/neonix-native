@@ -14,6 +14,7 @@ import {
   type RuntimeNodeV2,
   type RuntimeProjectV2,
   type RuntimeEffect,
+  type RuntimeMaskV2,
   identityMatrix4,
   interpolatePathContours,
   tessellateClosedPath,
@@ -65,15 +66,6 @@ function viewProjectionMatrix4(project: MotionProtocolV2): {
   };
 }
 
-function stableLayerOrder(
-  project: MotionProtocolV2,
-): MotionProtocolV2["layers"] {
-  return [...project.layers].sort(
-    (left, right) =>
-      left.zIndex - right.zIndex || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
-  );
-}
-
 const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
 const DEFAULT_PATH_STROKE_WIDTH = 1;
 
@@ -106,6 +98,35 @@ function lowerEffects(
     }
     return { ...effect } as RuntimeEffect;
   });
+}
+
+function lowerBlendMode(layer: MotionProtocolV2["layers"][number]): "normal" | "multiply" | "screen" | "add" {
+  const blendMode = layer.composite?.blendMode ?? "normal";
+  const capability = `composite.blend.${blendMode}`;
+  if (!isV2AtomCertified(capability)) {
+    throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+  }
+  return blendMode;
+}
+
+function lowerMask(
+  layer: MotionProtocolV2["layers"][number],
+  layersById: ReadonlyMap<string, MotionProtocolV2["layers"][number]>,
+): RuntimeMaskV2 | undefined {
+  const mask = layer.composite?.mask;
+  if (!mask) return undefined;
+  if (layer.type !== "group") {
+    throw new Error(`Protocol V2 mask must target a group: ${layer.id}`);
+  }
+  const capability = `mask.${mask.mode}`;
+  if (!isV2AtomCertified(capability)) {
+    throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+  }
+  const source = layersById.get(mask.sourceLayerId);
+  if (!source || source.parentLayerId !== layer.id || source.type === "group" || (mask.mode === "clip" && source.type !== "shape")) {
+    throw new Error(`Protocol V2 ${mask.mode} mask source is invalid: ${layer.id}`);
+  }
+  return { mode: mask.mode, sourceId: source.id };
 }
 
 type LayerContext = {
@@ -150,7 +171,10 @@ export function compileProtocolV2(
     const context: LayerContext = {
       localMatrix,
       worldMatrix: multiplyMatrix4(parentContext.worldMatrix, localMatrix),
-      opacity: parentContext.opacity * (layer.opacity / 100),
+      // Group opacity is deliberately not folded into child alpha. Runtime
+      // preserves group nodes so it can flatten their subtree and apply that
+      // alpha exactly once at the compositing boundary.
+      opacity: layer.opacity,
       visible: parentContext.visible && layer.opacity > 0 && end > start,
       timing: { start, duration: Math.max(0, end - start) },
     };
@@ -158,8 +182,9 @@ export function compileProtocolV2(
     return context;
   };
 
-  const nodes = stableLayerOrder(project).map((layer): RuntimeNodeV2 | null => {
+  const nodes = project.layers.map((layer): RuntimeNodeV2 | null => {
     const context = resolveLayerContext(layer);
+    const blendMode = lowerBlendMode(layer);
     if (layer.type === "group") {
       for (const capability of [
         "group.transform",
@@ -171,7 +196,25 @@ export function compileProtocolV2(
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
       }
-      return null;
+      if (context.timing.duration <= 0) return null;
+      const mask = lowerMask(layer, layerById);
+      return {
+        id: layer.id,
+        parentId: layer.parentLayerId,
+        zIndex: layer.zIndex,
+        timing: context.timing,
+        opacity: context.opacity,
+        blendMode,
+        ...(mask ? { mask } : {}),
+        visible: context.visible,
+        localMatrix: context.localMatrix,
+        worldMatrix: context.worldMatrix,
+        content: {
+          kind: "group",
+          width: layer.frame.width,
+          height: layer.frame.height,
+        },
+      };
     }
     if (context.timing.duration <= 0) return null;
     if (layer.type === "image") {
@@ -192,10 +235,11 @@ export function compileProtocolV2(
       const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
-        parentId: null,
+        parentId: layer.parentLayerId,
         zIndex: layer.zIndex,
         timing: context.timing,
         opacity: context.opacity,
+        blendMode,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -238,10 +282,11 @@ export function compileProtocolV2(
       const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
-        parentId: null,
+        parentId: layer.parentLayerId,
         zIndex: layer.zIndex,
         timing: context.timing,
         opacity: context.opacity,
+        blendMode,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -292,10 +337,11 @@ export function compileProtocolV2(
       const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
-        parentId: null,
+        parentId: layer.parentLayerId,
         zIndex: layer.zIndex,
         timing: context.timing,
         opacity: context.opacity,
+        blendMode,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -390,12 +436,11 @@ export function compileProtocolV2(
       const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
-        // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
-        // receives paintable leaves only, so no unresolved parent remains.
-        parentId: null,
+        parentId: layer.parentLayerId,
         zIndex: layer.zIndex,
         timing: context.timing,
         opacity: context.opacity,
+        blendMode,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -490,12 +535,11 @@ export function compileProtocolV2(
     const effects = lowerEffects(layer.effects);
     return {
       id: layer.id,
-      // Group hierarchy is lowered into worldMatrix before Runtime. Runtime
-      // receives paintable leaves only, so no unresolved parent remains.
-      parentId: null,
+        parentId: layer.parentLayerId,
       zIndex: layer.zIndex,
       timing: context.timing,
       opacity: context.opacity,
+      blendMode,
       visible: context.visible,
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,

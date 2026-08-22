@@ -118,7 +118,7 @@ specific pixels and background pixels deterministically.
   `frame`.
 - [x] Define the V2 semantic transform contract: Vec3 `translate`, `scale`,
   `rotate`, local-unit Vec3 `anchor`, and XY `skew`.
-- [x] Define `opacity` and its canonical range.
+- [x] Define layer `opacity` as normalized `0..1`, defaulting to `1`.
 - [x] Reject legacy root `bone`, `camera`, `depth`, `space`,
   `activeCameraLayerId`, raw matrix fields, and all other non-V2 fields with
   strict schemas. Accept only the normalized V2 composition-level view/
@@ -306,15 +306,16 @@ fixtures pass the shared Runtime, WebGPU, WebGL2, and preview E2E gates above.
 - [x] Add `group` after shape and path behavior is stable.
 - [x] Implement parent-to-child world mat4 inheritance using the one shared
   documented multiplication order.
-- [x] Implement inherited opacity.
+- [x] Preserve group-local opacity in Runtime V2; Task 12 owns the explicit
+  flattening boundary required to composite it once over overlapping children.
 - [x] Implement nested timing.
 - [x] Test nested rotation, parent translation, parent/child opacity, sibling
   ordering, child z-index, parent rotate X/Y, and parent/child Z translation.
 
 The V2 Group is a hierarchy-only Protocol atom. Compiler B resolves its local
-Matrix4 into each drawable leaf's `worldMatrix`, multiplies parent opacity, and
-intersects parent and child active windows. Runtime V2 receives paintable leaves
-only, with `parentId: null`; the Group itself never becomes a GPU draw call.
+Matrix4 into each drawable leaf's `worldMatrix` and intersects parent and child
+active windows. Runtime V2 retains a non-drawing group marker so Task 12 can
+flatten a subtree when its group opacity, blend, or mask semantics require it.
 
 The preview fixture `group.parent-transform` covers a rotated and translated
 perspective parent, two overlapping rectangle children, inherited opacity, Z
@@ -407,13 +408,44 @@ content is rendered to an offscreen target, where the target is placed in the
 parent's 3D transform chain, and whether the mask is evaluated before or after
 that projection. This policy must be shared by WebGPU, WebGL2, and export.
 
-- [ ] Normal alpha compositing.
-- [ ] Blend modes.
-- [ ] Clip mask.
-- [ ] Alpha mask.
-- [ ] Inverse alpha mask.
-- [ ] Luma mask.
-- [ ] Nested masks and isolation.
+- [x] Subtask 1: Normal alpha compositing and group isolation. Define a full
+  composition offscreen target after child Matrix4 projection; render the group
+  subtree there with local child alpha, then composite that target once with the
+  group opacity. Certify overlapping opaque children, WebGPU/WebGL2 parity, and
+  Remotion PNG parity. Nested isolation and masks are certified by Subtask 7;
+  effects inside an isolated group remain fail-closed until their own subtask.
+- [x] Subtask 2: Portable leaf blend modes. Atomic `composite.blendMode`
+  certifies `normal`, `multiply`, `screen`, and `add` across WebGPU, WebGL2,
+  and export. Each has an `example1-1.jpg` fixture over the same gradient
+  backdrop. Group blends, blend-plus-effect chains, and destination-sampling
+  modes remain fail-closed until a dedicated compositing pass is certified.
+- [x] Clip mask. The first certified slice is `group.composite.mask` with
+  `mode: "clip"`, a direct `shape` child source, and enforced
+  `sourceVisibility: "mask-only"`. Runtime renders the group content and mask
+  coverage to separate post-projection offscreen surfaces, then WebGPU/WebGL2
+  composite `content * maskAlpha * groupOpacity` exactly once. The
+  `composite.mask.clip` fixture asserts both the covered and uncovered pixels
+  on both native backends. Effects, nested isolation, non-normal source blend,
+  and non-shape sources are fail-closed for this slice.
+- [x] Alpha mask. `mode: "alpha"` uses the source's rendered alpha rather
+  than geometric coverage. It shares the group offscreen boundary with clip;
+  the first fixture uses a `fillOpacity: 0.45` ellipse to prove partial
+  coverage in WebGL2 and WebGPU. Alpha sources may be any direct drawable
+  child, while effects and non-normal source blending remain fail-closed.
+- [x] Inverse alpha mask. `mode: "inverse-alpha"` reuses the same isolated
+  content and source surfaces as alpha, but composites
+  `content * (1 - sourceAlpha) * groupOpacity`. Its opaque ellipse fixture
+  proves that the projected center clears to the composition background while
+  image pixels outside the ellipse remain visible across WebGL2, WebGPU, and
+  Remotion PNG export.
+- [x] Luma mask. `mode: "luma"` derives coverage from the source's
+  post-projection linear luminance multiplied by source alpha. The opaque gray
+  ellipse fixture proves that source color changes content coverage while the
+  source remains `mask-only`, with WebGL2/WebGPU and Remotion parity.
+- [x] Nested masks and isolation. Runtime emits balanced nested layer scopes;
+  WebGPU and WebGL2 composite child surfaces into the active parent surface,
+  and shared Remotion parity covers nested isolation and nested alpha-mask
+  fixtures.
 
 Every mask case must assert both masked and unmasked pixels. Visual screenshots
 alone are insufficient.

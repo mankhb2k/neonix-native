@@ -34,6 +34,7 @@ const TEXTURE_BINDING = 0x04;
 const TEXTURE_COPY_DST = 0x02;
 const TEXTURE_RENDER_ATTACHMENT = 0x10;
 const MSAA_SAMPLE_COUNT = 4;
+type BlendMode = "normal" | "multiply" | "screen" | "add";
 const EFFECT_TEXTURE_FORMAT = "rgba16float";
 const UNIFORM_FLOATS = 84;
 const UNIFORM_BYTES = UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
@@ -211,7 +212,7 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
   if (uniforms.colorAdjustMeta.x > 1.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust1); }
   if (uniforms.colorAdjustMeta.x > 2.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust2); }
   if (uniforms.colorAdjustMeta.x > 3.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust3); }
-  if (uniforms.step.w > 0.5) { return encodePremultiplied(color); }
+  if (uniforms.step.w > 0.5) { return encodePremultiplied(color * uniforms.shadowOffset.z); }
   return color;
 }
 fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
@@ -255,13 +256,62 @@ fn applyPostColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
   return vec4<f32>(applyPostHueRotate(color, effect.w) * source.a, source.a);
 }`;
 
+const CLIP_MASK_POST_SHADER = `
+struct ClipMaskUniforms { compositeAlpha: vec4<f32> };
+@group(0) @binding(0) var<uniform> uniforms: ClipMaskUniforms;
+@group(0) @binding(1) var contentTexture: texture_2d<f32>;
+@group(0) @binding(2) var coverageTexture: texture_2d<f32>;
+@group(0) @binding(3) var imageSampler: sampler;
+struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
+struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
+@vertex fn vertexMain(input: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = vec4<f32>(input.position.x * 2.0 - 1.0, 1.0 - input.position.y * 2.0, 0.0, 1.0);
+  output.uv = input.uv;
+  return output;
+}
+fn linearToSrgb(color: vec3<f32>) -> vec3<f32> {
+  let positive = max(color, vec3<f32>(0.0));
+  let low = positive * 12.92;
+  let high = 1.055 * pow(positive, vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+  return select(low, high, positive >= vec3<f32>(0.0031308));
+}
+fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
+  let low = color / 12.92;
+  let high = pow((color + vec3<f32>(0.055)) / 1.055, vec3<f32>(2.4));
+  return select(low, high, color >= vec3<f32>(0.04045));
+}
+fn decodePremultiplied(color: vec4<f32>) -> vec4<f32> {
+  if (color.a <= 0.000001) { return vec4<f32>(0.0); }
+  return vec4<f32>(srgbToLinear(clamp(color.rgb / color.a, vec3<f32>(0.0), vec3<f32>(1.0))) * color.a, color.a);
+}
+fn encodePremultiplied(color: vec4<f32>) -> vec4<f32> {
+  if (color.a <= 0.000001) { return vec4<f32>(0.0); }
+  return vec4<f32>(linearToSrgb(color.rgb / color.a) * color.a, color.a);
+}
+@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  let content = textureSample(contentTexture, imageSampler, input.uv);
+  let mask = decodePremultiplied(textureSample(coverageTexture, imageSampler, input.uv));
+  var coverage = mask.a;
+  if (uniforms.compositeAlpha.z > 0.5 && mask.a > 0.000001) {
+    coverage = dot(mask.rgb / mask.a, vec3<f32>(0.2126, 0.7152, 0.0722)) * mask.a;
+  }
+  if (uniforms.compositeAlpha.y > 0.5) { coverage = 1.0 - coverage; }
+  return encodePremultiplied(content * coverage * uniforms.compositeAlpha.x);
+}`;
+
 function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {
   const context = (canvas as unknown as { getContext(contextId: string): unknown }).getContext("webgpu");
   if (!context || typeof context !== "object") return null;
   return context as WebGPUContextLike;
 }
 
-function createBackendObjects(device: WebGPUDeviceLike, format: string, sampleCount = MSAA_SAMPLE_COUNT): {
+function createBackendObjects(
+  device: WebGPUDeviceLike,
+  format: string,
+  sampleCount = MSAA_SAMPLE_COUNT,
+  blendMode: BlendMode = "normal",
+): {
   pipeline: WebGPURenderPipelineLike;
   pathPipeline: WebGPURenderPipelineLike;
   layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
@@ -276,6 +326,25 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string, sampleCo
       { binding: 2, visibility: 2, sampler: { type: "filtering" } },
     ],
   });
+  const blend = blendMode === "add"
+    ? {
+        color: { srcFactor: "src-alpha", dstFactor: "one" },
+        alpha: { srcFactor: "one", dstFactor: "one" },
+      }
+    : blendMode === "multiply"
+      ? {
+          color: { srcFactor: "dst", dstFactor: "one-minus-src-alpha" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+        }
+      : blendMode === "screen"
+        ? {
+            color: { srcFactor: "one", dstFactor: "one-minus-src" },
+            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+          }
+        : {
+            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+          };
   const pipelineOptions = {
     layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
     vertex: {
@@ -288,10 +357,7 @@ function createBackendObjects(device: WebGPUDeviceLike, format: string, sampleCo
       entryPoint: "fragmentMain",
       targets: [{
         format,
-        blend: {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-        },
+        blend,
       }],
     },
     multisample: { count: sampleCount },
@@ -348,6 +414,43 @@ function createPostObjects(device: WebGPUDeviceLike, format: string, sampleCount
   return { pipeline, layout };
 }
 
+function createClipMaskPostObjects(device: WebGPUDeviceLike, format: string, sampleCount = MSAA_SAMPLE_COUNT): {
+  pipeline: WebGPURenderPipelineLike;
+  layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
+} {
+  const shader = device.createShaderModule({ code: CLIP_MASK_POST_SHADER });
+  const layout = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: 3, buffer: { type: "uniform" } },
+      { binding: 1, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 2, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 3, visibility: 2, sampler: { type: "filtering" } },
+    ],
+  });
+  const pipeline = device.createRenderPipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layout] }),
+    vertex: {
+      module: shader,
+      entryPoint: "vertexMain",
+      buffers: [{ arrayStride: 16, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }, { shaderLocation: 1, offset: 8, format: "float32x2" }] }],
+    },
+    fragment: {
+      module: shader,
+      entryPoint: "fragmentMain",
+      targets: [{
+        format,
+        blend: {
+          color: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+        },
+      }],
+    },
+    primitive: { topology: "triangle-strip" },
+    multisample: { count: sampleCount },
+  });
+  return { pipeline, layout };
+}
+
 function writeMatrix4(target: Float32Array, offset: number, matrix: Float32Array): void {
   target.set(matrix, offset);
 }
@@ -364,10 +467,25 @@ export function createWebGPUBackend(
   context.configure({ device, format, alphaMode: "premultiplied" });
   const objects = createBackendObjects(device, format);
   const singleSampleObjects = createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1);
+  const blendObjects = new Map<BlendMode, ReturnType<typeof createBackendObjects>>([
+    ["normal", objects],
+    ["multiply", createBackendObjects(device, format, MSAA_SAMPLE_COUNT, "multiply")],
+    ["screen", createBackendObjects(device, format, MSAA_SAMPLE_COUNT, "screen")],
+    ["add", createBackendObjects(device, format, MSAA_SAMPLE_COUNT, "add")],
+  ]);
+  const singleSampleBlendObjects = new Map<BlendMode, ReturnType<typeof createBackendObjects>>([
+    ["normal", singleSampleObjects],
+    ["multiply", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1, "multiply")],
+    ["screen", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1, "screen")],
+    ["add", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1, "add")],
+  ]);
   const postObjects = createPostObjects(device, format);
   const postMsaaObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT);
   const postMsaaPremultipliedObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT, true);
+  const clipMaskPostMsaaObjects = createClipMaskPostObjects(device, format);
   const effectPostObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT);
+  const effectPostPremultipliedObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true);
+  const clipMaskPostEffectObjects = createClipMaskPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGPUTextureLike>();
   const textAtlases = new Map<string, TextAtlas>();
@@ -394,6 +512,7 @@ export function createWebGPUBackend(
   type EffectLevel = { width: number; height: number; a: WebGPUTextureLike; b: WebGPUTextureLike };
   let effectSourceTexture: WebGPUTextureLike | null = null;
   let effectLevels: EffectLevel[] = [];
+  let createLayerTexture: ((targetWidth: number, targetHeight: number) => WebGPUTextureLike) | null = null;
   let stageWidth = 0;
   let stageHeight = 0;
   let effectWidth = 0;
@@ -499,6 +618,7 @@ export function createWebGPUBackend(
       format: EFFECT_TEXTURE_FORMAT,
       usage: TEXTURE_BINDING | TEXTURE_RENDER_ATTACHMENT,
     });
+    createLayerTexture = (layerWidth, layerHeight) => createEffectTexture(layerWidth, layerHeight);
     effectSourceTexture = createEffectTexture(nextWidth, nextHeight);
     let levelWidth = nextWidth;
     let levelHeight = nextHeight;
@@ -537,7 +657,7 @@ export function createWebGPUBackend(
       params: readonly [number, number, number, number] = [0, 0, 0, 0],
       postPipeline = postObjects,
       adjustments: EffectPassPlan["sourceColorAdjust"] | undefined = undefined,
-      shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number },
+      shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number; compositeAlpha?: number },
     ) => {
       const uniform = device.createBuffer({ size: 128, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
       transientBuffers.add(uniform);
@@ -545,10 +665,35 @@ export function createWebGPUBackend(
       data.set(params, 0);
       data.set(colorAdjustUniforms(adjustments), 4);
       data.set(shadow?.color ?? [0, 0, 0, 0], 24);
-      data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, 0, 0], 28);
+      data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, shadow?.compositeAlpha ?? 1, 0], 28);
       device.queue.writeBuffer(uniform, 0, data);
       const bindGroup = device.createBindGroup({ layout: postPipeline.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: objects.sampler }] });
       nextPass.setPipeline(postPipeline.pipeline);
+      nextPass.setVertexBuffer(0, objects.vertexBuffer);
+      nextPass.setBindGroup(0, bindGroup);
+      nextPass.draw(4);
+    };
+    const postClipMask = (
+      nextPass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]>,
+      content: WebGPUTextureLike,
+      coverage: WebGPUTextureLike,
+      compositeAlpha: number,
+      mode: "clip" | "alpha" | "inverse-alpha" | "luma",
+      pipelineObjects = clipMaskPostMsaaObjects,
+    ) => {
+      const uniform = device.createBuffer({ size: 16, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      transientBuffers.add(uniform);
+      device.queue.writeBuffer(uniform, 0, new Float32Array([compositeAlpha, mode === "inverse-alpha" ? 1 : 0, mode === "luma" ? 1 : 0, 0]));
+      const bindGroup = device.createBindGroup({
+        layout: pipelineObjects.layout,
+        entries: [
+          { binding: 0, resource: { buffer: uniform } },
+          { binding: 1, resource: content.createView() },
+          { binding: 2, resource: coverage.createView() },
+          { binding: 3, resource: objects.sampler },
+        ],
+      });
+      nextPass.setPipeline(pipelineObjects.pipeline);
       nextPass.setVertexBuffer(0, objects.vertexBuffer);
       nextPass.setBindGroup(0, bindGroup);
       nextPass.draw(4);
@@ -564,6 +709,20 @@ export function createWebGPUBackend(
     let pass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]> | null = beginStagePass(stages[stageIndex]);
     let activeObjects = objects;
     let activeEffectScope: { key: string; layerId?: string; plan: EffectPassPlan } | null = null;
+    type LayerSurface = { content: WebGPUTextureLike; mask?: WebGPUTextureLike };
+    type LayerScope = {
+      key: string;
+      layerId?: string;
+      surface: LayerSurface;
+      parentTarget: WebGPUTextureLike | null;
+      target: "content" | "mask";
+      mode?: "clip" | "alpha" | "inverse-alpha" | "luma";
+      sourceKey?: string;
+      compositeAlpha: number;
+    };
+    const isLayerMaskMode = (mode: string): mode is NonNullable<LayerScope["mode"]> =>
+      mode === "clip" || mode === "alpha" || mode === "inverse-alpha" || mode === "luma";
+    const layerScopes: LayerScope[] = [];
     const sourceColorAdjust = () =>
       activeEffectScope?.plan.requiresOffscreen
         ? undefined
@@ -578,6 +737,32 @@ export function createWebGPUBackend(
       pass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
       activeObjects = objects;
     };
+    const ensureClipMaskPass = (sourceKey: string) => {
+      const scope = layerScopes.at(-1);
+      if (!scope) return null;
+      const target = scope.sourceKey === sourceKey && scope.surface.mask ? "mask" : "content";
+      if (scope.target === target && pass) return target === "mask" ? scope.mode ?? null : null;
+      closePass();
+      const targetTexture = target === "mask" ? scope.surface.mask! : scope.surface.content;
+      pass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: targetTexture.createView(),
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          loadOp: target === "mask" ? "clear" : "load",
+          storeOp: "store",
+        }],
+      });
+      scope.target = target;
+      activeObjects = singleSampleObjects;
+      return target === "mask" ? scope.mode ?? null : null;
+    };
+    const objectsForTransform = (nextTransform: Extract<PaintCommand, { op: "setTransform" }>) => {
+      const mode = nextTransform.blendMode ?? "normal";
+      const table = activeObjects === singleSampleObjects
+        ? singleSampleBlendObjects
+        : blendObjects;
+      return table.get(mode) ?? table.get("normal")!;
+    };
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
     const firstCommand = buffer.commands[0];
     if (!firstCommand || firstCommand.op !== "beginFrame") {
@@ -586,13 +771,14 @@ export function createWebGPUBackend(
     let projection = worldToClipMatrixForPaint(firstCommand);
     let drawCalls = 0;
     let skippedCommands = 0;
+    const transientLayerTextures: WebGPUTextureLike[] = [];
     for (const command of buffer.commands) {
       if (command.op === "beginFrame") {
         projection = worldToClipMatrixForPaint(command);
       } else if (command.op === "setTransform") {
         transform = command;
       } else if (command.op === "drawSolid" || command.op === "drawShape") {
-        if (!activeEffectScope?.plan.requiresOffscreen) ensureStagePass();
+        if (!activeEffectScope?.plan.requiresOffscreen && layerScopes.length === 0) ensureStagePass();
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -606,8 +792,12 @@ export function createWebGPUBackend(
           pushDiagnostic({ severity: "info", code: "preview_op_pending", message: "polygon shape is pending in the native preview backend", key: command.key, layerId: command.layerId });
           continue;
         }
-        const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
+        const maskMode = ensureClipMaskPass(command.key);
+        const isMaskSource = maskMode !== null;
+        const isClipMaskSource = maskMode === "clip";
+        const drawObjects = isMaskSource ? singleSampleObjects : objectsForTransform(transform);
+        const color = isClipMaskSource ? [1, 1, 1, transform.alpha] : cssColorToRgba(command.fill);
+        if (!isClipMaskSource) color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
         const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
         const data = new Float32Array(UNIFORM_FLOATS);
@@ -619,11 +809,11 @@ export function createWebGPUBackend(
           ? command.shape === "ellipse" ? 1 : command.cornerRadius && command.cornerRadius > 0 ? 2 : 0
           : 0;
         data[37] = 0;
-        const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
+        const stroke = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
-        stroke[3] *= transform.alpha * (command.op === "drawShape" ? command.strokeOpacity ?? 1 : 1);
-        const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
+        if (!isClipMaskSource) stroke[3] *= transform.alpha * (command.op === "drawShape" ? command.strokeOpacity ?? 1 : 1);
+        const strokeWidth = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;
         data[38] = strokeWidth / command.width;
@@ -635,7 +825,7 @@ export function createWebGPUBackend(
           command.height,
           0,
         ], 44);
-        const gradients = gradientUniforms(
+        const gradients = isClipMaskSource ? gradientUniforms(undefined, 1) : gradientUniforms(
           command.op === "drawShape" ? command.fillPaint : undefined,
           transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
         );
@@ -643,16 +833,22 @@ export function createWebGPUBackend(
         data.set(gradients.end, 52);
         data.set(gradients.params, 56);
         data.set(gradients.radius, 60);
-        data.set(colorAdjustUniforms(sourceColorAdjust()), 64);
+        data.set(colorAdjustUniforms(isMaskSource ? undefined : sourceColorAdjust()), 64);
         device.queue.writeBuffer(uniform, 0, data);
-        const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
-        pass!.setPipeline(activeObjects.pipeline);
-        pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+        pass!.setPipeline(drawObjects.pipeline);
+        pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
         pass!.setBindGroup(0, bindGroup);
         pass!.draw(4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
-        if (!activeEffectScope?.plan.requiresOffscreen) ensureStagePass();
+        const maskMode = ensureClipMaskPass(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        if (!activeEffectScope?.plan.requiresOffscreen && layerScopes.length === 0) ensureStagePass();
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -674,6 +870,7 @@ export function createWebGPUBackend(
           pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
           continue;
         }
+        const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
         for (const pathDraw of meshes) {
           const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
           for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
@@ -701,10 +898,10 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 52);
           data.set([0, 0, 0, 0], 56);
           data.set([0, 0, 0, 0], 60);
-          data.set(colorAdjustUniforms(sourceColorAdjust()), 64);
+          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 64);
           device.queue.writeBuffer(uniform, 0, data);
-          const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: objects.sampler }] });
-          pass!.setPipeline(activeObjects.pathPipeline);
+          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+          pass!.setPipeline(drawObjects.pathPipeline);
           pass!.setVertexBuffer(0, vertexBuffer);
           pass!.setIndexBuffer(indexBuffer, "uint32");
           pass!.setBindGroup(0, bindGroup);
@@ -712,7 +909,13 @@ export function createWebGPUBackend(
           drawCalls += 1;
         }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
-        if (!activeEffectScope?.plan.requiresOffscreen) ensureStagePass();
+        const maskMode = ensureClipMaskPass(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        if (!activeEffectScope?.plan.requiresOffscreen && layerScopes.length === 0) ensureStagePass();
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -732,6 +935,7 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
+        const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
         const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
         const data = new Float32Array(UNIFORM_FLOATS);
@@ -750,16 +954,22 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 52);
         data.set([0, 0, 0, 0], 56);
         data.set([0, 0, 0, 0], 60);
-        data.set(colorAdjustUniforms(sourceColorAdjust()), 64);
+        data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 64);
         device.queue.writeBuffer(uniform, 0, data);
-        const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
-        pass!.setPipeline(activeObjects.pipeline);
-        pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+        pass!.setPipeline(drawObjects.pipeline);
+        pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
         pass!.setBindGroup(0, bindGroup);
         pass!.draw(4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
-        if (!activeEffectScope?.plan.requiresOffscreen) ensureStagePass();
+        const maskMode = ensureClipMaskPass(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        if (!activeEffectScope?.plan.requiresOffscreen && layerScopes.length === 0) ensureStagePass();
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -781,6 +991,7 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
+        const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha;
         const baseMatrix = packMatrix4F32(transform.matrix4);
@@ -798,11 +1009,11 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 52);
           data.set([0, 0, 0, 0], 56);
           data.set([0, 0, 0, 0], 60);
-          data.set(colorAdjustUniforms(sourceColorAdjust()), 64);
+          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 64);
           device.queue.writeBuffer(uniform, 0, data);
-          const bindGroup = device.createBindGroup({ layout: objects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: objects.sampler }] });
-          pass!.setPipeline(activeObjects.pipeline);
-          pass!.setVertexBuffer(0, activeObjects.vertexBuffer);
+          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+          pass!.setPipeline(drawObjects.pipeline);
+          pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
           pass!.setBindGroup(0, bindGroup);
           pass!.draw(4);
           drawCalls += 1;
@@ -827,7 +1038,7 @@ export function createWebGPUBackend(
           colorAttachments: [{ view: effectSourceTexture!.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
         });
         activeObjects = singleSampleObjects;
-      } else if (command.op === "endLayer") {
+      } else if (command.op === "endLayer" && activeEffectScope) {
         const scope = activeEffectScope;
         if (!scope || scope.key !== command.key) {
           pushDiagnostic({ severity: "error", code: "preview_effect_scope_invalid", message: "endLayer has no matching effect scope", key: command.key });
@@ -932,12 +1143,104 @@ export function createWebGPUBackend(
         }
         activeEffectScope = null;
         activeObjects = objects;
+      } else if (command.op === "beginLayer" && command.isolation && command.offscreen && command.compositeAlpha !== undefined && (!command.mask || isLayerMaskMode(command.mask.mode))) {
+        if (activeEffectScope) {
+          pushDiagnostic({ severity: "error", code: "preview_nested_layer_unsupported", message: "Nested effect scopes are not supported by the layer surface path", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        ensureEffectTargets(physicalWidth, physicalHeight);
+        if (!createLayerTexture) {
+          pushDiagnostic({ severity: "error", code: "preview_layer_surface_unavailable", message: "Layer surface factory is unavailable", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        const parent = layerScopes.at(-1);
+        const parentTarget = parent
+          ? parent.target === "mask" ? parent.surface.mask! : parent.surface.content
+          : null;
+        const surface: LayerSurface = {
+          content: createLayerTexture(physicalWidth, physicalHeight),
+          ...(command.mask ? { mask: createLayerTexture(physicalWidth, physicalHeight) } : {}),
+        };
+        closePass();
+        pass = encoder.beginRenderPass({
+          colorAttachments: [{ view: surface.content.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+        });
+        activeObjects = singleSampleObjects;
+        layerScopes.push({
+          key: command.key,
+          layerId: command.layerId,
+          surface,
+          parentTarget,
+          target: "content",
+          mode: command.mask && isLayerMaskMode(command.mask.mode) ? command.mask.mode : undefined,
+          sourceKey: command.mask?.sourceKey,
+          compositeAlpha: command.compositeAlpha,
+        });
+      } else if (command.op === "endLayer") {
+        const scope = layerScopes.at(-1);
+        if (!scope || scope.key !== command.key || !effectLevels[0]) {
+          if (scope) {
+            pushDiagnostic({ severity: "error", code: "preview_layer_scope_invalid", message: "endLayer has no matching layer scope", key: command.key });
+          }
+          continue;
+        }
+        layerScopes.pop();
+        closePass();
+        const root = effectLevels[0]!;
+        const beginTargetPass = (targetTexture: WebGPUTextureLike) => encoder.beginRenderPass({
+          colorAttachments: [{ view: targetTexture.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "load", storeOp: "store" }],
+        });
+        if (scope.surface.mask && scope.mode && scope.sourceKey) {
+          const decodePass = encoder.beginRenderPass({
+            colorAttachments: [{ view: root.b.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          });
+          post(decodePass, scope.surface.content, [0, 0, 0, -1], effectPostObjects);
+          decodePass.end();
+          drawCalls += 1;
+          if (scope.parentTarget) {
+            const compositePass = beginTargetPass(scope.parentTarget);
+            postClipMask(compositePass, root.b, scope.surface.mask, scope.compositeAlpha, scope.mode, clipMaskPostEffectObjects);
+            compositePass.end();
+          } else {
+            stageIndex = stageIndex === 0 ? 1 : 0;
+            const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
+            postClipMask(compositePass, root.b, scope.surface.mask, scope.compositeAlpha, scope.mode);
+            compositePass.end();
+          }
+          drawCalls += 1;
+        } else {
+          const decodePass = encoder.beginRenderPass({
+            colorAttachments: [{ view: root.a.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          });
+          post(decodePass, scope.surface.content, [0, 0, 0, -1], effectPostObjects);
+          decodePass.end();
+          drawCalls += 1;
+          if (scope.parentTarget) {
+            const compositePass = beginTargetPass(scope.parentTarget);
+            post(compositePass, root.a, [0, 0, 0, 1], effectPostPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            compositePass.end();
+          } else {
+            stageIndex = stageIndex === 0 ? 1 : 0;
+            const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
+            post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            compositePass.end();
+          }
+          drawCalls += 1;
+        }
+        transientLayerTextures.push(scope.surface.content);
+        if (scope.surface.mask) transientLayerTextures.push(scope.surface.mask);
+        activeObjects = layerScopes.length === 0 ? objects : singleSampleObjects;
       } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       }
     }
     if (activeEffectScope) {
       pushDiagnostic({ severity: "error", code: "preview_effect_scope_unclosed", message: "Effect scope was not closed", key: activeEffectScope.key, layerId: activeEffectScope.layerId });
+    }
+    if (layerScopes.length > 0) {
+      for (const scope of layerScopes) {
+        pushDiagnostic({ severity: "error", code: "preview_layer_scope_unclosed", message: "Layer scope was not closed", key: scope.key, layerId: scope.layerId });
+      }
     }
     closePass();
     const presentPass = encoder.beginRenderPass({
@@ -946,13 +1249,16 @@ export function createWebGPUBackend(
     post(presentPass, stages[stageIndex]);
     presentPass.end();
     device.queue.submit([encoder.finish()]);
+    const submittedLayerTextures = [...transientLayerTextures];
     const submittedBuffers = [...transientBuffers];
     transientBuffers.clear();
     if (device.queue.onSubmittedWorkDone) {
       void device.queue.onSubmittedWorkDone().then(() => {
+        for (const texture of submittedLayerTextures) texture.destroy?.();
         for (const buffer of submittedBuffers) buffer.destroy?.();
       });
     } else {
+      for (const texture of submittedLayerTextures) texture.destroy?.();
       for (const buffer of submittedBuffers) transientBuffers.add(buffer);
     }
     lastStats = { backend: "webgpu", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, diagnostics: [...diagnostics] };

@@ -153,6 +153,17 @@ export function validatePaintCommandBuffer(
       }
       case "beginLayer": {
         layerStack.push(cmd.key);
+        if (
+          cmd.compositeAlpha !== undefined &&
+          (!cmd.isolation || !cmd.offscreen || !isFiniteNumber(cmd.compositeAlpha) || cmd.compositeAlpha < 0 || cmd.compositeAlpha > 1)
+        ) {
+          issues.push({
+            severity: "error",
+            code: "invalid_isolation_composite_alpha",
+            message: `Isolation layer "${cmd.key}" compositeAlpha must be finite, within 0..1, and use an offscreen isolation target`,
+            key: cmd.key,
+          });
+        }
         if (cmd.effectProgram) {
           const effectValidation = validateRuntimeEffectProgram(cmd.effectProgram);
           if (!effectValidation.ok) {

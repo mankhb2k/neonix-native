@@ -35,7 +35,7 @@ const RECTANGLE_PROJECT = {
         skew: { x: 0, y: 0 },
         anchor: { x: 0, y: 0, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 1 },
       payload: { shape: "rectangle" },
       style: { fill: "#00aa88" },
@@ -48,6 +48,18 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(RECTANGLE_PROJECT)).toEqual(
       RECTANGLE_PROJECT,
     );
+  });
+
+  it("normalizes omitted layer opacity to one and rejects the legacy percent range", () => {
+    const withoutOpacity = {
+      ...RECTANGLE_PROJECT,
+      layers: [(({ opacity: _opacity, ...layer }) => layer)(RECTANGLE_PROJECT.layers[0])],
+    };
+    expect(MotionProtocolV2Schema.parse(withoutOpacity).layers[0]).toMatchObject({ opacity: 1 });
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [{ ...RECTANGLE_PROJECT.layers[0], opacity: 100 }],
+    })).toThrow();
   });
 
   it("accepts ellipse as the second certified shape primitive", () => {
@@ -216,7 +228,7 @@ describe("Motion Protocol V2 schema", () => {
         zIndex: 0,
         frame: { width: 320, height: 240 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         payload: {
           assetId: "photo",
@@ -253,7 +265,7 @@ describe("Motion Protocol V2 schema", () => {
         zIndex: 0,
         frame: { width: 960, height: 540 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 3 },
         payload: {
           assetId: "clip",
@@ -294,7 +306,7 @@ describe("Motion Protocol V2 schema", () => {
         zIndex: 0,
         frame: { width: 320, height: 100 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         payload: {
           text: "NeonVideo",
@@ -419,7 +431,7 @@ describe("Motion Protocol V2 schema", () => {
       zIndex: 0,
       frame: RECTANGLE_PROJECT.layers[0].frame,
       transform: RECTANGLE_PROJECT.layers[0].transform,
-      opacity: 100,
+      opacity: 1,
       timing: RECTANGLE_PROJECT.layers[0].timing,
     };
     const child = {
@@ -453,6 +465,78 @@ describe("Motion Protocol V2 schema", () => {
         { ...RECTANGLE_PROJECT.layers[0], id: "child", parentLayerId: "parent", zIndex: 1 },
       ],
     })).toThrow(/Only group layers/);
+  });
+
+  it("accepts only a direct shape child as the first clip-mask source", () => {
+    const group = {
+      id: "masked-group",
+      type: "group" as const,
+      parentLayerId: null,
+      zIndex: 0,
+      frame: RECTANGLE_PROJECT.layers[0].frame,
+      transform: RECTANGLE_PROJECT.layers[0].transform,
+      opacity: 1,
+      composite: {
+        blendMode: "normal" as const,
+        mask: {
+          mode: "clip" as const,
+          sourceLayerId: "clip-shape",
+          sourceVisibility: "mask-only" as const,
+        },
+      },
+      timing: RECTANGLE_PROJECT.layers[0].timing,
+    };
+    const source = {
+      ...RECTANGLE_PROJECT.layers[0],
+      id: "clip-shape",
+      parentLayerId: "masked-group",
+      zIndex: 1,
+    };
+    const parsed = MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [group, source],
+    });
+    expect(parsed.layers[0]).toMatchObject({
+      composite: { mask: { mode: "clip", sourceLayerId: "clip-shape", sourceVisibility: "mask-only" } },
+    });
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [{ ...group, composite: { ...group.composite, mask: { ...group.composite.mask, sourceLayerId: "missing" } } }, source],
+    })).toThrow(/direct child shape/);
+  });
+
+  it("accepts inverse alpha from a direct drawable child", () => {
+    const group = {
+      id: "inverse-masked-group",
+      type: "group" as const,
+      parentLayerId: null,
+      zIndex: 0,
+      frame: RECTANGLE_PROJECT.layers[0].frame,
+      transform: RECTANGLE_PROJECT.layers[0].transform,
+      opacity: 1,
+      composite: {
+        blendMode: "normal" as const,
+        mask: {
+          mode: "inverse-alpha" as const,
+          sourceLayerId: "inverse-source",
+          sourceVisibility: "mask-only" as const,
+        },
+      },
+      timing: RECTANGLE_PROJECT.layers[0].timing,
+    };
+    const source = {
+      ...RECTANGLE_PROJECT.layers[0],
+      id: "inverse-source",
+      parentLayerId: "inverse-masked-group",
+      zIndex: 1,
+    };
+    const parsed = MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [group, source],
+    });
+    expect(parsed.layers[0]).toMatchObject({
+      composite: { mask: { mode: "inverse-alpha", sourceLayerId: "inverse-source" } },
+    });
   });
 
   it("rejects duplicate ids and duplicate z-indexes", () => {

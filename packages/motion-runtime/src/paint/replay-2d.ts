@@ -197,17 +197,11 @@ function blendOp(
     | "multiply"
     | "screen"
     | "add"
-    | "darken"
-    | "lighten"
-    | "overlay"
     | undefined,
 ): string {
   if (mode === "multiply") return "multiply";
   if (mode === "screen") return "screen";
   if (mode === "add") return "lighter";
-  if (mode === "darken") return "darken";
-  if (mode === "lighten") return "lighten";
-  if (mode === "overlay") return "overlay";
   return "source-over";
 }
 

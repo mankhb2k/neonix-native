@@ -35,7 +35,7 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     zIndex: options.zIndex,
     frame: options.frame ?? { width: 96, height: 64 },
     transform: options.transform ?? IDENTITY_TRANSFORM,
-    opacity: options.opacity ?? 100,
+    opacity: options.opacity ?? 1,
     timing: options.timing ?? { start: 0, duration: 3 },
     ...(options.effects ? { effects: options.effects } : {}),
     payload: {
@@ -103,6 +103,15 @@ const PREVIEW_IMAGE_ASSET = {
   height: 1920,
 };
 
+const PREVIEW_SNOW_ASSET = {
+  id: "preview-snow-v2",
+  kind: "image" as const,
+  uri: "/docs/tuyet-roi.jpg",
+  mimeType: "image/jpeg",
+  width: 430,
+  height: 296,
+};
+
 function imageProject(
   id: string,
   payload: { assetId: string; fit?: "contain" | "cover" | "fill" | "none"; crop?: { x: number; y: number; width: number; height: number } },
@@ -119,7 +128,7 @@ function imageProject(
       zIndex: 0,
       frame,
       transform: { ...IDENTITY_TRANSFORM, translate: { ...translate, z: 0 } },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload,
     }],
@@ -157,6 +166,273 @@ const IMAGE_MISSING_ASSET_PROJECT = imageProject(
   [],
 );
 
+function imageBlendProject(
+  blendMode: "normal" | "multiply" | "screen" | "add",
+): MotionProtocolV2 {
+  return project(
+    `preview-image-blend-${blendMode}-v2`,
+    [
+      {
+        id: "blend-backdrop",
+        type: "shape",
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 860, height: 700 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 530, y: 190, z: 0 } },
+        opacity: 1,
+        timing: { start: 0, duration: 3 },
+        payload: { shape: "rectangle" },
+        style: {
+          fill: {
+            type: "linear-gradient",
+            angle: 32,
+            stops: [{ offset: 0, color: "#ff3366" }, { offset: 1, color: "#1b72ff" }],
+          },
+        },
+      },
+      {
+        id: `blend-image-${blendMode}`,
+        type: "image",
+        parentLayerId: null,
+        zIndex: 1,
+        frame: { width: 640, height: 640 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 670, y: 220, z: 0 } },
+        opacity: 1,
+        composite: { blendMode },
+        timing: { start: 0, duration: 3 },
+        payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      },
+    ],
+    ORTHOGRAPHIC_VIEW,
+    [PREVIEW_IMAGE_ASSET],
+  );
+}
+
+const IMAGE_BLEND_NORMAL_PROJECT = imageBlendProject("normal");
+const IMAGE_BLEND_MULTIPLY_PROJECT = imageBlendProject("multiply");
+const IMAGE_BLEND_SCREEN_PROJECT = imageBlendProject("screen");
+const IMAGE_BLEND_ADD_PROJECT = imageBlendProject("add");
+
+function imageStackBlendProject(
+  blendMode: "normal" | "multiply" | "screen" | "add",
+): MotionProtocolV2 {
+  return project(
+    `preview-image-stack-blend-${blendMode}-v2`,
+    [
+      {
+        id: "blend-stack-base-image",
+        type: "image",
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 880, height: 880 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 520, y: 100, z: 0 } },
+        opacity: 1,
+        timing: { start: 0, duration: 3 },
+        payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      },
+      {
+        id: `blend-stack-snow-${blendMode}`,
+        type: "image",
+        parentLayerId: null,
+        zIndex: 1,
+        frame: { width: 880, height: 880 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 520, y: 100, z: 0 } },
+        opacity: 1,
+        composite: { blendMode },
+        timing: { start: 0, duration: 3 },
+        payload: { assetId: PREVIEW_SNOW_ASSET.id, fit: "cover" },
+      },
+    ],
+    ORTHOGRAPHIC_VIEW,
+    [PREVIEW_IMAGE_ASSET, PREVIEW_SNOW_ASSET],
+  );
+}
+
+const IMAGE_STACK_BLEND_NORMAL_PROJECT = imageStackBlendProject("normal");
+const IMAGE_STACK_BLEND_MULTIPLY_PROJECT = imageStackBlendProject("multiply");
+const IMAGE_STACK_BLEND_SCREEN_PROJECT = imageStackBlendProject("screen");
+const IMAGE_STACK_BLEND_ADD_PROJECT = imageStackBlendProject("add");
+
+const CLIP_MASK_PROJECT = project(
+  "preview-clip-mask-v2",
+  [
+    {
+      id: "clip-mask-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: {
+        blendMode: "normal",
+        mask: { mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only" },
+      },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "clip-mask-ellipse",
+      type: "shape",
+      parentLayerId: "clip-mask-group",
+      zIndex: 1,
+      frame: { width: 660, height: 560 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "ellipse" },
+      style: { fill: "#ffffff" },
+    },
+    {
+      id: "clip-mask-content",
+      type: "image",
+      parentLayerId: "clip-mask-group",
+      zIndex: 2,
+      frame: { width: 960, height: 740 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_IMAGE_ASSET],
+);
+
+const ALPHA_MASK_PROJECT = project(
+  "preview-alpha-mask-v2",
+  [
+    {
+      id: "alpha-mask-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: {
+        blendMode: "normal",
+        mask: { mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only" },
+      },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "alpha-mask-ellipse",
+      type: "shape",
+      parentLayerId: "alpha-mask-group",
+      zIndex: 1,
+      frame: { width: 660, height: 560 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "ellipse" },
+      style: { fill: "#ffffff", fillOpacity: 0.45 },
+    },
+    {
+      id: "alpha-mask-content",
+      type: "image",
+      parentLayerId: "alpha-mask-group",
+      zIndex: 2,
+      frame: { width: 960, height: 740 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_IMAGE_ASSET],
+);
+
+const INVERSE_ALPHA_MASK_PROJECT = project(
+  "preview-inverse-alpha-mask-v2",
+  [
+    {
+      id: "inverse-alpha-mask-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: {
+        blendMode: "normal",
+        mask: { mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only" },
+      },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "inverse-alpha-mask-ellipse",
+      type: "shape",
+      parentLayerId: "inverse-alpha-mask-group",
+      zIndex: 1,
+      frame: { width: 660, height: 560 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "ellipse" },
+      style: { fill: "#ffffff" },
+    },
+    {
+      id: "inverse-alpha-mask-content",
+      type: "image",
+      parentLayerId: "inverse-alpha-mask-group",
+      zIndex: 2,
+      frame: { width: 960, height: 740 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_IMAGE_ASSET],
+);
+
+const LUMA_MASK_PROJECT = project(
+  "preview-luma-mask-v2",
+  [
+    {
+      id: "luma-mask-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: {
+        blendMode: "normal",
+        mask: { mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only" },
+      },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "luma-mask-ellipse",
+      type: "shape",
+      parentLayerId: "luma-mask-group",
+      zIndex: 1,
+      frame: { width: 660, height: 560 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "ellipse" },
+      style: { fill: "#808080" },
+    },
+    {
+      id: "luma-mask-content",
+      type: "image",
+      parentLayerId: "luma-mask-group",
+      zIndex: 2,
+      frame: { width: 960, height: 740 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_IMAGE_ASSET],
+);
+
 const PREVIEW_VIDEO_ASSET = {
   id: "preview-video-v2",
   kind: "video" as const,
@@ -177,7 +453,7 @@ const VIDEO_PROJECT = project(
     zIndex: 0,
     frame: { width: 960, height: 540 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 270, z: 0 } },
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
       assetId: PREVIEW_VIDEO_ASSET.id,
@@ -222,7 +498,7 @@ const PATH_PENTAGON_PERSPECTIVE_PROJECT = project(
         rotate: { x: 0, y: -24, z: 0 },
         anchor: { x: 160, y: 120, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         contours: [{
@@ -284,7 +560,7 @@ const PATH_OPEN_STROKE_PROJECT = project(
         ...IDENTITY_TRANSFORM,
         translate: { x: 400, y: 360, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         contours: [{
@@ -327,7 +603,7 @@ const PATH_MORPH_PROJECT = project(
         rotate: { x: 0, y: -12, z: 0 },
         anchor: { x: 210, y: 160, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         contours: [{
@@ -384,7 +660,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
         rotate: { x: 12, y: -18, z: 0 },
         anchor: { x: 500, y: 350, z: 0 },
       },
-      opacity: 70,
+      opacity: 0.7,
       timing: { start: 0, duration: 3 },
     },
     {
@@ -397,7 +673,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
         ...IDENTITY_TRANSFORM,
         translate: { x: 140, y: 140, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: { shape: "rectangle" },
       style: { fill: "#00aa88" },
@@ -414,7 +690,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
         rotate: { x: 0, y: 0, z: 12 },
         anchor: { x: 200, y: 140, z: 0 },
       },
-      opacity: 80,
+      opacity: 0.8,
       timing: { start: 0, duration: 3 },
       payload: { shape: "rectangle" },
       style: { fill: "#ff3366" },
@@ -427,6 +703,159 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
       rotate: { x: 0, y: 0, z: 0 },
     },
   },
+);
+
+const GROUP_ISOLATION_OPACITY_PROJECT = project(
+  "preview-group-isolation-opacity-v2",
+  [
+    {
+      id: "isolation-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 0.5,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "isolation-back",
+      type: "shape",
+      parentLayerId: "isolation-group",
+      zIndex: 1,
+      frame: { width: 520, height: 340 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 460, y: 370, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#00aa88" },
+    },
+    {
+      id: "isolation-front",
+      type: "shape",
+      parentLayerId: "isolation-group",
+      zIndex: 2,
+      frame: { width: 520, height: 340 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 720, y: 370, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#ff3366" },
+    },
+  ],
+  {
+    projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
+    transform: {
+      translate: { x: 0, y: 0, z: 0 },
+      rotate: { x: 0, y: 0, z: 0 },
+    },
+  },
+);
+
+const NESTED_ISOLATION_PROJECT = project(
+  "preview-group-nested-isolation-v2",
+  [
+    {
+      id: "nested-outer-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 0.75,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "nested-inner-group",
+      type: "group",
+      parentLayerId: "nested-outer-group",
+      zIndex: 1,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 0.5,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "nested-isolation-back",
+      type: "shape",
+      parentLayerId: "nested-inner-group",
+      zIndex: 2,
+      frame: { width: 520, height: 340 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 460, y: 370, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#00aa88" },
+    },
+    {
+      id: "nested-isolation-front",
+      type: "shape",
+      parentLayerId: "nested-inner-group",
+      zIndex: 3,
+      frame: { width: 520, height: 340 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 720, y: 370, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "rectangle" },
+      style: { fill: "#ff3366" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+);
+
+const NESTED_MASK_ISOLATION_PROJECT = project(
+  "preview-nested-mask-isolation-v2",
+  [
+    {
+      id: "nested-mask-outer-group",
+      type: "group",
+      parentLayerId: null,
+      zIndex: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 0.75,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "nested-mask-inner-group",
+      type: "group",
+      parentLayerId: "nested-mask-outer-group",
+      zIndex: 1,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: {
+        blendMode: "normal",
+        mask: { mode: "alpha", sourceLayerId: "nested-mask-ellipse", sourceVisibility: "mask-only" },
+      },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "nested-mask-ellipse",
+      type: "shape",
+      parentLayerId: "nested-mask-inner-group",
+      zIndex: 2,
+      frame: { width: 660, height: 560 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { shape: "ellipse" },
+      style: { fill: "#ffffff" },
+    },
+    {
+      id: "nested-mask-content",
+      type: "image",
+      parentLayerId: "nested-mask-inner-group",
+      zIndex: 3,
+      frame: { width: 960, height: 740 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_IMAGE_ASSET],
 );
 
 const PATH_DONUT_OUTER = {
@@ -482,7 +911,7 @@ function pathDonutProject(
         ...IDENTITY_TRANSFORM,
         translate: { x: 650, y: 300, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         contours: [PATH_DONUT_OUTER, inner],
@@ -556,7 +985,7 @@ function pathStarProject(
         ...IDENTITY_TRANSFORM,
         translate: { x: 650, y: 300, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         contours: [contour],
@@ -881,7 +1310,7 @@ function textLayer(options: {
     zIndex: options.zIndex,
     frame: { width: 1140, height: 220 },
     transform: options.transform,
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
       text: options.text,
@@ -1329,6 +1758,62 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: IMAGE_MISSING_ASSET_PROJECT,
   },
   {
+    id: "composite.blend.normal",
+    label: "Blend / normal",
+    group: "Task 12 / Blend modes",
+    hint: "The local example image uses ordinary source-over composition over a colored backdrop.",
+    project: IMAGE_BLEND_NORMAL_PROJECT,
+  },
+  {
+    id: "composite.blend.multiply",
+    label: "Blend / multiply",
+    group: "Task 12 / Blend modes",
+    hint: "The local example image darkens against the same backdrop through portable GPU multiply blending.",
+    project: IMAGE_BLEND_MULTIPLY_PROJECT,
+  },
+  {
+    id: "composite.blend.screen",
+    label: "Blend / screen",
+    group: "Task 12 / Blend modes",
+    hint: "The local example image lightens against the same backdrop through portable GPU screen blending.",
+    project: IMAGE_BLEND_SCREEN_PROJECT,
+  },
+  {
+    id: "composite.blend.add",
+    label: "Blend / add",
+    group: "Task 12 / Blend modes",
+    hint: "The local example image adds its light to the same backdrop with clamped additive GPU compositing.",
+    project: IMAGE_BLEND_ADD_PROJECT,
+  },
+  {
+    id: "composite.blend.stack.normal",
+    label: "Blend stack / normal",
+    group: "Task 12 / Blend modes",
+    hint: "The upper snow image is source-over at zIndex 1; its opaque black pixels cover the lower example image.",
+    project: IMAGE_STACK_BLEND_NORMAL_PROJECT,
+  },
+  {
+    id: "composite.blend.stack.multiply",
+    label: "Blend stack / multiply",
+    group: "Task 12 / Blend modes",
+    hint: "Only the upper snow image owns multiply; it darkens the lower example image already rendered at zIndex 0.",
+    project: IMAGE_STACK_BLEND_MULTIPLY_PROJECT,
+  },
+  {
+    id: "composite.blend.stack.screen",
+    label: "Blend stack / screen",
+    group: "Task 12 / Blend modes",
+    hint: "Only the upper snow image owns screen, so its black background is neutral and the bright snow remains over the lower image.",
+    project: IMAGE_STACK_BLEND_SCREEN_PROJECT,
+  },
+  {
+    id: "composite.blend.stack.add",
+    label: "Blend stack / add",
+    group: "Task 12 / Blend modes",
+    hint: "Only the upper snow image owns add and contributes light over the lower image without changing layer ownership.",
+    project: IMAGE_STACK_BLEND_ADD_PROJECT,
+  },
+  {
     id: "video.frame-seek",
     label: "Video / deterministic frame seek",
     group: "Task 9 / Video",
@@ -1509,6 +1994,55 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 7 / Group and Parent Transform",
     hint: "A non-rendering Group inherits Matrix4 translation, X/Y rotation, opacity, timing, and child ordering into two rectangle leaves.",
     project: GROUP_PARENT_TRANSFORM_PROJECT,
+  },
+  {
+    id: "group.isolation.opacity",
+    label: "Group / isolated opacity",
+    group: "Task 12 / Isolation boundary",
+    hint: "Two opaque children are flattened after Matrix4 projection; the front-only and overlap pixels receive the group opacity exactly once.",
+    project: GROUP_ISOLATION_OPACITY_PROJECT,
+  },
+  {
+    id: "group.isolation.nested",
+    label: "Group / nested isolation",
+    group: "Task 12 / Nested masks and isolation",
+    hint: "Two isolated group surfaces are composited from the inner opacity boundary to the outer opacity boundary.",
+    project: NESTED_ISOLATION_PROJECT,
+  },
+  {
+    id: "composite.mask.nested",
+    label: "Composite / nested mask",
+    group: "Task 12 / Nested masks and isolation",
+    hint: "An alpha-masked inner group is composited into an isolated outer group before the result reaches the stage.",
+    project: NESTED_MASK_ISOLATION_PROJECT,
+  },
+  {
+    id: "composite.mask.clip",
+    label: "Composite / ellipse clip mask",
+    group: "Task 12 / Clip mask",
+    hint: "A mask-only ellipse contributes alpha coverage to its direct group sibling; the image remains visible only inside that projected shape.",
+    project: CLIP_MASK_PROJECT,
+  },
+  {
+    id: "composite.mask.alpha",
+    label: "Composite / alpha mask",
+    group: "Task 12 / Alpha mask",
+    hint: "The mask-only ellipse preserves 45% source alpha, so the same image is partially composited instead of binary-clipped.",
+    project: ALPHA_MASK_PROJECT,
+  },
+  {
+    id: "composite.mask.inverse-alpha",
+    label: "Composite / inverse alpha mask",
+    group: "Task 12 / Inverse alpha mask",
+    hint: "The opaque mask-only ellipse removes image coverage at its projected center while leaving the image visible outside the ellipse.",
+    project: INVERSE_ALPHA_MASK_PROJECT,
+  },
+  {
+    id: "composite.mask.luma",
+    label: "Composite / luma mask",
+    group: "Task 12 / Luma mask",
+    hint: "An opaque gray ellipse contributes linear luminance as coverage, proving that the mask color affects image opacity.",
+    project: LUMA_MASK_PROJECT,
   },
   {
     id: "rectangle.paint.stroke",
@@ -1858,7 +2392,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
         id: "rectangle",
         zIndex: 0,
         fill: "#00aa88",
-        opacity: 50,
+        opacity: 0.5,
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
       }),
     ]),

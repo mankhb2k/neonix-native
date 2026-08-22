@@ -61,7 +61,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 320, height: 100 },
         transform: identity,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         payload: {
           text: "NeonVideo",
@@ -99,7 +99,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 2,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 75,
+          opacity: 0.75,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88" },
@@ -125,6 +125,83 @@ describe("Protocol V2 Compiler B", () => {
     expect(runtime.view.worldToClipMatrix).toHaveLength(16);
   });
 
+  it("uses normalized default opacity when Atomic V2 omits it", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      id: "v2-default-opacity",
+      layers: [{
+        id: "default-opacity-rectangle",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 80, height: 40 },
+        transform: identity,
+        timing: { start: 0, duration: 1 },
+        payload: { shape: "rectangle" },
+        style: { fill: "#00aa88" },
+      }],
+    });
+
+    expect(runtime.nodes[0]).toMatchObject({ opacity: 1 });
+  });
+
+  it("retains a group boundary so Runtime can composite its opacity once", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      id: "v2-group-isolation",
+      layers: [
+        {
+          id: "group",
+          type: "group" as const,
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 320, height: 180 },
+          transform: identity,
+          opacity: 0.5,
+          timing: { start: 0, duration: 1 },
+        },
+        {
+          id: "child",
+          type: "shape" as const,
+          parentLayerId: "group",
+          zIndex: 1,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 1,
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: { fill: "#00aa88" },
+        },
+      ],
+    });
+    expect(runtime.nodes).toHaveLength(2);
+    expect(runtime.nodes[0]).toMatchObject({
+      id: "group",
+      parentId: null,
+      opacity: 0.5,
+      content: { kind: "group" },
+    });
+    expect(runtime.nodes[1]).toMatchObject({ id: "child", parentId: "group", opacity: 1 });
+    const commands = compileProtocolV2ToPaintCommands({
+      ...base,
+      id: "v2-group-isolation",
+      layers: [
+        {
+          id: "group", type: "group" as const, parentLayerId: null, zIndex: 0,
+          frame: { width: 320, height: 180 }, transform: identity, opacity: 0.5, timing: { start: 0, duration: 1 },
+        },
+        {
+          id: "child", type: "shape" as const, parentLayerId: "group", zIndex: 1,
+          frame: { width: 80, height: 40 }, transform: identity, opacity: 1, timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" }, style: { fill: "#00aa88" },
+        },
+      ],
+    }).commands;
+    expect(commands.find((command) => command.op === "beginLayer")).toMatchObject({
+      key: "group", isolation: true, offscreen: true, compositeAlpha: 0.5,
+    });
+  });
+
   it("preserves ordered color-adjust effects from Protocol V2 through the layer effect program", () => {
     const project = {
       ...base,
@@ -136,7 +213,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 80, height: 40 },
         transform: identity,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         effects: [
           {
@@ -176,6 +253,33 @@ describe("Protocol V2 Compiler B", () => {
     expect(draw).not.toHaveProperty("effects");
   });
 
+  it.each(["normal", "multiply", "screen", "add"] as const)(
+    "lowers the certified %s blend mode into the paint transform",
+    (blendMode) => {
+      const commands = compileProtocolV2ToPaintCommands({
+        ...base,
+        id: `v2-blend-${blendMode}`,
+        layers: [{
+          id: "blend-rectangle",
+          type: "shape" as const,
+          parentLayerId: null,
+          zIndex: 0,
+          frame: { width: 80, height: 40 },
+          transform: identity,
+          opacity: 1,
+          composite: { blendMode },
+          timing: { start: 0, duration: 1 },
+          payload: { shape: "rectangle" },
+          style: { fill: "#00aa88" },
+        }],
+      }).commands;
+      expect(commands.find((command) => command.op === "setTransform")).toMatchObject({
+        key: "blend-rectangle",
+        blendMode,
+      });
+    },
+  );
+
   it("lowers the certified outer-glow atom into a branch owned by the layer scope", () => {
     const project = {
       ...base,
@@ -187,7 +291,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 80, height: 40 },
         transform: identity,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         effects: [{ id: "glow", type: "outer-glow" as const, radius: 24, color: "#00e5ff", opacity: 0.7 }],
         payload: { shape: "rectangle" as const },
@@ -227,7 +331,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88" },
@@ -260,7 +364,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "ellipse" },
           style: { fill: "#00aa88" },
@@ -303,7 +407,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 320, height: 240 },
         transform: { ...identity, translate: { x: 20, y: 30, z: 0 } },
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 1 },
         payload: {
           assetId: "photo",
@@ -344,7 +448,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 960, height: 540 },
         transform: identity,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 3 },
         payload: {
           assetId: "clip",
@@ -382,7 +486,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 220, height: 180 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: {
             fillRule: "nonzero",
@@ -428,7 +532,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 220, height: 180 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: {
             fillRule: "nonzero",
@@ -473,7 +577,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88", stroke: "#ff3366" },
@@ -501,7 +605,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "ellipse" },
           style: { fill: "#00aa88", stroke: "#ff3366" },
@@ -529,7 +633,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 16 },
@@ -557,7 +661,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 80, height: 40 },
             transform: identity,
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "rectangle" },
             style: { fill: "#00aa88", strokeWidth: 16 },
@@ -578,7 +682,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: {
@@ -611,7 +715,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 80, height: 40 },
             transform: identity,
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "rectangle" },
             style: { fill: "#00aa88", strokeOpacity: 0.25 },
@@ -632,7 +736,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle", cornerRadius: 30 },
           style: { fill: "#00aa88" },
@@ -660,7 +764,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 80, height: 40 },
             transform: identity,
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "ellipse", cornerRadius: 8 },
             style: { fill: "#00aa88" },
@@ -681,7 +785,7 @@ describe("Protocol V2 Compiler B", () => {
           zIndex: 0,
           frame: { width: 80, height: 40 },
           transform: identity,
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: {
@@ -795,7 +899,7 @@ describe("Protocol V2 Compiler B", () => {
             scale: { x: 2, y: 3, z: 1 },
             anchor: { x: 20, y: 10, z: 0 },
           },
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88" },
@@ -825,7 +929,7 @@ describe("Protocol V2 Compiler B", () => {
             skew: { x: 45, y: 0 },
             anchor: { x: 20, y: 10, z: 0 },
           },
-          opacity: 100,
+          opacity: 1,
           timing: { start: 0, duration: 1 },
           payload: { shape: "rectangle" },
           style: { fill: "#00aa88" },
@@ -843,7 +947,7 @@ describe("Protocol V2 Compiler B", () => {
     expect(transform.matrix4).toHaveLength(16);
   });
 
-  it("lowers group transforms, opacity, and nested timing into the child leaf", () => {
+  it("lowers group transforms and timing into the child while preserving its opacity boundary", () => {
     const buffer = compileProtocolV2ToPaintCommands(
       {
         ...base,
@@ -858,7 +962,7 @@ describe("Protocol V2 Compiler B", () => {
               ...identity,
               translate: { x: 100, y: 50, z: 30 },
             },
-            opacity: 50,
+            opacity: 0.5,
             timing: { start: 0.5, duration: 2 },
           },
           {
@@ -871,7 +975,7 @@ describe("Protocol V2 Compiler B", () => {
               ...identity,
               translate: { x: 20, y: 10, z: 5 },
             },
-            opacity: 80,
+            opacity: 0.8,
             timing: { start: 0.25, duration: 1.5 },
             payload: { shape: "rectangle" as const },
             style: { fill: "#00aa88" },
@@ -884,7 +988,7 @@ describe("Protocol V2 Compiler B", () => {
     expect(transforms).toHaveLength(1);
     expect(transforms[0]).toMatchObject({
       key: "child",
-      alpha: 0.4,
+      alpha: 0.8,
       zIndex: 1,
     });
     if (transforms[0]?.op !== "setTransform") throw new Error("Missing child transform");
@@ -892,6 +996,12 @@ describe("Protocol V2 Compiler B", () => {
     expect(transforms[0].matrix4[13]).toBeCloseTo(60, 8);
     expect(transforms[0].matrix4[14]).toBeCloseTo(35, 8);
     expect(buffer.commands.some((command) => command.op === "drawShape" && command.key === "group")).toBe(false);
+    expect(buffer.commands.find((command) => command.op === "beginLayer")).toMatchObject({
+      key: "group",
+      isolation: true,
+      offscreen: true,
+      compositeAlpha: 0.5,
+    });
 
     expect(
       compileProtocolV2ToPaintCommands(
@@ -905,7 +1015,7 @@ describe("Protocol V2 Compiler B", () => {
               zIndex: 0,
               frame: { width: 200, height: 120 },
               transform: identity,
-              opacity: 50,
+              opacity: 0.5,
               timing: { start: 0.5, duration: 2 },
             },
             {
@@ -915,7 +1025,7 @@ describe("Protocol V2 Compiler B", () => {
               zIndex: 1,
               frame: { width: 80, height: 40 },
               transform: identity,
-              opacity: 80,
+              opacity: 0.8,
               timing: { start: 0.25, duration: 1.5 },
               payload: { shape: "rectangle" as const },
               style: { fill: "#00aa88" },
@@ -936,7 +1046,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 0,
         frame: { width: 80, height: 40 },
         transform: identity,
-        opacity: 50,
+        opacity: 0.5,
         timing: { start: 1, duration: 1 },
         payload: { shape: "rectangle" as const },
         style: { fill: "#00aa88" },
@@ -948,7 +1058,7 @@ describe("Protocol V2 Compiler B", () => {
         zIndex: 1,
         frame: { width: 80, height: 40 },
         transform: identity,
-        opacity: 100,
+        opacity: 1,
         timing: { start: 1, duration: 1 },
         payload: { shape: "rectangle" as const },
         style: { fill: "#ff3366" },
@@ -1004,7 +1114,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 40, height: 20 },
             transform: { ...identity, origin: { x: 0.5, y: 0.5 } },
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "rectangle" },
             style: { fill: "#00aa88" },
@@ -1026,7 +1136,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 40, height: 20 },
             transform: identity,
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "polygon" },
             style: { fill: "#00aa88" },
@@ -1046,7 +1156,7 @@ describe("Protocol V2 Compiler B", () => {
             zIndex: 0,
             frame: { width: 40, height: 20 },
             transform: { ...identity, depth: 100 },
-            opacity: 100,
+            opacity: 1,
             timing: { start: 0, duration: 1 },
             payload: { shape: "rectangle" },
             style: { fill: "#00aa88" },

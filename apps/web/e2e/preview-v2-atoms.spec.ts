@@ -608,7 +608,7 @@ test.describe("Protocol V2 atom preview", () => {
     expect(webgpu.fillPixels).toBeGreaterThan(5_000);
   });
 
-  test("renders Group parent transforms as two ordered leaf draws", async ({ page }) => {
+  test("renders Group parent transforms as one isolated subtree", async ({ page }) => {
     const caseId = "group.parent-transform";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
     await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
@@ -625,10 +625,10 @@ test.describe("Protocol V2 atom preview", () => {
       "data-backend",
       "webgpu",
     );
-    // The Group is hierarchy-only. Only its two shape children reach the GPU.
+    // Two child draws, then decode and composite the isolated subtree.
     await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
       "data-draw-calls",
-      "2",
+      "4",
     );
     const webgpu = await analyzePresentedCanvas(page, "preview-v2-canvas");
     expect(webgpu.bounds).not.toBeNull();
@@ -637,6 +637,257 @@ test.describe("Protocol V2 atom preview", () => {
     expect(Math.abs(webgpu.bounds!.top - webgl.bounds!.top)).toBeLessThanOrEqual(1);
     expect(Math.abs(webgpu.bounds!.right - webgl.bounds!.right)).toBeLessThanOrEqual(1);
     expect(Math.abs(webgpu.bounds!.bottom - webgl.bounds!.bottom)).toBeLessThanOrEqual(1);
+  });
+
+  test("composites group opacity once after opaque children overlap", async ({ page }) => {
+    const caseId = "group.isolation.opacity";
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /isolation|offscreen|pending/);
+    const overlap = await readWebGLPixel(page, "preview-v2-canvas", 800, 540);
+    const frontOnly = await readWebGLPixel(page, "preview-v2-canvas", 1100, 540);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(overlap[channel]! - frontOnly[channel]!)).toBeLessThanOrEqual(1);
+    }
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /isolation|offscreen|pending/);
+    const webgpuOverlap = await readPresentedPixel(page, "preview-v2-canvas", 800, 540);
+    const webgpuFrontOnly = await readPresentedPixel(page, "preview-v2-canvas", 1100, 540);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuOverlap[channel]! - webgpuFrontOnly[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOverlap[channel]! - overlap[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("composites nested isolation scopes from inner to outer", async ({ page }) => {
+    const caseId = "group.isolation.nested";
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /isolation|layer|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "6");
+    const webglOverlap = await readWebGLPixel(page, "preview-v2-canvas", 800, 540);
+    const webglFrontOnly = await readWebGLPixel(page, "preview-v2-canvas", 1100, 540);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webglOverlap[channel]! - webglFrontOnly[channel]!)).toBeLessThanOrEqual(1);
+    }
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /isolation|layer|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "6");
+    const webgpuOverlap = await readPresentedPixel(page, "preview-v2-canvas", 800, 540);
+    const webgpuFrontOnly = await readPresentedPixel(page, "preview-v2-canvas", 1100, 540);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuOverlap[channel]! - webgpuFrontOnly[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOverlap[channel]! - webglOverlap[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("composites a nested alpha mask inside an isolated group", async ({ page }) => {
+    const caseId = "composite.mask.nested";
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const background = [16, 24, 32, 255];
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /mask|isolation|layer|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "5");
+    const webglInside = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
+    expect(webglInside).not.toEqual(background);
+    expect(webglOutside).toEqual(background);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /mask|isolation|layer|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "6");
+    const webgpuInside = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuInside[channel]! - webglInside[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOutside[channel]! - webglOutside[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("clips a group through a mask-only ellipse in both native backends", async ({ page }) => {
+    const caseId = "composite.mask.clip";
+    const canvas = page.getByTestId("preview-v2-canvas");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /clip|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "3");
+    const webglInside = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
+    expect(webglInside).not.toEqual([16, 24, 32, 255]);
+    expect(webglOutside).toEqual([16, 24, 32, 255]);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /clip|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "4");
+    const webgpuInside = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuInside[channel]! - webglInside[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOutside[channel]! - webglOutside[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("preserves an alpha-mask source's partial coverage in both native backends", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const background = [16, 24, 32, 255];
+    const distanceFromBackground = (pixel: number[]) => pixel.reduce(
+      (total, channel, index) => total + Math.abs(channel - background[index]!),
+      0,
+    );
+    await page.goto("/docs/preview?case=composite.mask.clip&backend=webgl2");
+    const clipCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /alpha|mask|pending/);
+    const alphaCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    const alphaOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
+    expect(alphaOutside).toEqual(background);
+    expect(distanceFromBackground(alphaCenter)).toBeGreaterThan(5);
+    expect(distanceFromBackground(alphaCenter)).toBeLessThan(distanceFromBackground(clipCenter));
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /alpha|mask|pending/);
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuCenter[channel]! - alphaCenter[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOutside[channel]! - alphaOutside[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("inverts an alpha-mask source in both native backends", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const background = [16, 24, 32, 255];
+    await page.goto("/docs/preview?case=composite.mask.inverse-alpha&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /inverse|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "3");
+    const webglCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
+    expect(webglCenter).toEqual(background);
+    expect(webglOutside).not.toEqual(background);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=composite.mask.inverse-alpha&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /inverse|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "4");
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuCenter[channel]! - webglCenter[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOutside[channel]! - webglOutside[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("uses source luminance as mask coverage in both native backends", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const background = [16, 24, 32, 255];
+    const distanceFromBackground = (pixel: number[]) => pixel.reduce(
+      (total, channel, index) => total + Math.abs(channel - background[index]!),
+      0,
+    );
+    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    const alphaCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    await page.goto("/docs/preview?case=composite.mask.luma&backend=webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /luma|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "3");
+    const lumaCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
+    const lumaOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
+    expect(lumaOutside).toEqual(background);
+    expect(distanceFromBackground(lumaCenter)).toBeGreaterThan(5);
+    expect(distanceFromBackground(lumaCenter)).toBeLessThan(distanceFromBackground(alphaCenter));
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=composite.mask.luma&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).not.toHaveAttribute("data-diagnostics", /luma|mask|pending/);
+    await expect(canvas).toHaveAttribute("data-draw-calls", "4");
+    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
+    for (let channel = 0; channel < 4; channel += 1) {
+      expect(Math.abs(webgpuCenter[channel]! - lumaCenter[channel]!)).toBeLessThanOrEqual(2);
+      expect(Math.abs(webgpuOutside[channel]! - lumaOutside[channel]!)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  test("renders every certified image blend mode with WebGPU/WebGL2 parity", async ({ page }) => {
+    const cases = [
+      "composite.blend.normal",
+      "composite.blend.multiply",
+      "composite.blend.screen",
+      "composite.blend.add",
+    ] as const;
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const webglSamples: number[][] = [];
+    for (const caseId of cases) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await page.waitForTimeout(120);
+      webglSamples.push(await readWebGLPixel(page, "preview-v2-canvas", 960, 540));
+    }
+    expect(webglSamples.every((sample) => sample.join(",") !== "16,24,32,255")).toBe(true);
+    expect(new Set(webglSamples.map((sample) => sample.join(","))).size).toBe(cases.length);
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    for (const [index, caseId] of cases.entries()) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      await page.waitForTimeout(120);
+      const webgpu = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
+      for (let channel = 0; channel < 4; channel += 1) {
+        expect(Math.abs(webgpu[channel]! - webglSamples[index]![channel]!)).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
+  test("applies image-stack blend mode from the upper snow layer onto the lower image", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    const samplePoints = [[960, 540], [1200, 500], [780, 680]] as const;
+    const samplesByCase: Record<string, number[][]> = {};
+    for (const caseId of ["composite.blend.stack.normal", "composite.blend.stack.screen"] as const) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).toHaveAttribute("data-draw-calls", "2");
+      await page.waitForTimeout(160);
+      samplesByCase[caseId] = await Promise.all(
+        samplePoints.map(([x, y]) => readWebGLPixel(page, "preview-v2-canvas", x, y)),
+      );
+    }
+    expect(samplesByCase["composite.blend.stack.normal"]).not.toEqual(
+      samplesByCase["composite.blend.stack.screen"],
+    );
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    await page.goto("/docs/preview?case=composite.blend.stack.screen&backend=webgpu");
+    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+    await expect(canvas).toHaveAttribute("data-draw-calls", "2");
+    await page.waitForTimeout(160);
+    const webgpu = await Promise.all(
+      samplePoints.map(([x, y]) => readPresentedPixel(page, "preview-v2-canvas", x, y)),
+    );
+    for (const [index, sample] of webgpu.entries()) {
+      for (let channel = 0; channel < 4; channel += 1) {
+        expect(Math.abs(sample[channel]! - samplesByCase["composite.blend.stack.screen"]![index]![channel]!)).toBeLessThanOrEqual(2);
+      }
+    }
   });
 
   test("renders Image Atom contain, cover, and crop through both backends", async ({ page }) => {

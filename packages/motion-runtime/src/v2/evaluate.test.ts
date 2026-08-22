@@ -110,6 +110,61 @@ describe("Runtime IR V2", () => {
     expect(draw).not.toHaveProperty("effects");
   });
 
+  it("flattens an overlapping group before applying its opacity once", () => {
+    const groupProject: RuntimeProjectV2 = {
+      ...project,
+      id: "runtime-v2-group-isolation",
+      nodes: [
+        {
+          id: "group",
+          parentId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 3 },
+          opacity: 0.5,
+          visible: true,
+          localMatrix: identityMatrix4(),
+          worldMatrix: identityMatrix4(),
+          content: { kind: "group", width: 320, height: 180 },
+        },
+        {
+          ...project.nodes[0]!,
+          id: "back",
+          parentId: "group",
+          zIndex: 1,
+          content: { kind: "shape", shape: "rectangle", width: 120, height: 100, fill: "#00aa88" },
+        },
+        {
+          ...project.nodes[0]!,
+          id: "front",
+          parentId: "group",
+          zIndex: 2,
+          content: { kind: "shape", shape: "rectangle", width: 120, height: 100, fill: "#ff3366" },
+        },
+      ],
+    };
+    const frame = evaluateRuntimeProjectV2(groupProject, 0);
+    expect(frame.commands.map((command) => command.op)).toEqual([
+      "beginFrame",
+      "beginLayer",
+      "setTransform",
+      "drawShape",
+      "setTransform",
+      "drawShape",
+      "endLayer",
+      "endFrame",
+    ]);
+    expect(frame.commands[1]).toMatchObject({
+      op: "beginLayer",
+      key: "group",
+      isolation: true,
+      offscreen: true,
+      compositeAlpha: 0.5,
+    });
+    const childTransforms = frame.commands.filter((command) => command.op === "setTransform");
+    expect(childTransforms).toHaveLength(2);
+    expect(childTransforms.every((command) => command.alpha === 1)).toBe(true);
+  });
+
   it("uses frame-grid timing and stable z-index/id ordering", () => {
     const active = evaluateRuntimeProjectV2(
       {

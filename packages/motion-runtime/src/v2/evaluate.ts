@@ -8,7 +8,7 @@ import {
 import type { PaintCommand } from "../paint";
 import { validateRuntimeProjectV2 } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
-import type { RuntimeFrameV2, RuntimeProjectV2, RuntimeVideoV2 } from "./types";
+import type { RuntimeFrameV2, RuntimeNodeV2, RuntimeProjectV2, RuntimeVideoV2 } from "./types";
 
 function assertFrame(frame: number): void {
   if (!Number.isSafeInteger(frame) || frame < 0) {
@@ -16,11 +16,20 @@ function assertFrame(frame: number): void {
   }
 }
 
-function stableNodeOrder(project: RuntimeProjectV2): RuntimeProjectV2["nodes"] {
-  return [...project.nodes].sort(
+function stableNodeOrder(nodes: RuntimeNodeV2[]): RuntimeNodeV2[] {
+  return [...nodes].sort(
     (left, right) =>
       left.zIndex - right.zIndex ||
       (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+  );
+}
+
+function nodeIsActive(node: RuntimeNodeV2, time: number): boolean {
+  return (
+    node.visible &&
+    node.opacity > 0 &&
+    time >= node.timing.start &&
+    time < node.timing.start + node.timing.duration
   );
 }
 
@@ -107,21 +116,35 @@ export function evaluateRuntimeProjectV2(
   ];
   const diagnostics = [] as NonNullable<RuntimeFrameV2["diagnostics"]>;
 
-  for (const node of stableNodeOrder(project)) {
-    const active =
-      node.visible &&
-      node.opacity > 0 &&
-      time >= node.timing.start &&
-      time < node.timing.start + node.timing.duration;
-    if (!active) continue;
+  const childrenByParent = new Map<string | null, RuntimeNodeV2[]>();
+  for (const node of project.nodes) {
+    const siblings = childrenByParent.get(node.parentId) ?? [];
+    siblings.push(node);
+    childrenByParent.set(node.parentId, siblings);
+  }
+  const childrenOf = (parentId: string | null) =>
+    stableNodeOrder(childrenByParent.get(parentId) ?? []);
+  const subtreeHasEffects = (node: RuntimeNodeV2): boolean => {
+    if (node.content.kind !== "group") return (node.content.effects?.length ?? 0) > 0;
+    return childrenOf(node.id).some(subtreeHasEffects);
+  };
+  const subtreeHasActiveDrawable = (node: RuntimeNodeV2): boolean => {
+    if (!nodeIsActive(node, time)) return false;
+    if (node.content.kind === "group") return childrenOf(node.id).some(subtreeHasActiveDrawable);
+    return node.content.kind !== "text" || node.content.layout !== undefined;
+  };
+
+  const emitDrawable = (node: RuntimeNodeV2) => {
+    if (node.content.kind === "group") return;
+    const content = node.content;
 
     const nodeViewProjection = multiplyMatrix4(
       project.view.worldToClipMatrix,
       node.worldMatrix,
     );
-    const localBounds = node.content.kind === "path"
+    const localBounds = content.kind === "path"
       ? (() => {
-          const bounds = [node.content.mesh?.bounds, node.content.strokeMesh?.bounds].filter(
+          const bounds = [content.mesh?.bounds, content.strokeMesh?.bounds].filter(
             (value): value is NonNullable<typeof value> => value !== undefined,
           );
           const left = Math.min(...bounds.map((value) => value.x));
@@ -155,9 +178,13 @@ export function evaluateRuntimeProjectV2(
       });
     }
 
-    const effectProgram = node.content.kind === "text" && !node.content.layout
+    const effectProgram = content.kind === "text" && !content.layout
       ? undefined
-      : buildRuntimeEffectProgram(node.content.effects);
+      : buildRuntimeEffectProgram(content.effects);
+    const blendMode = node.blendMode ?? "normal";
+    if (effectProgram && blendMode !== "normal") {
+      throw new Error(`Runtime V2 blend modes on an effected layer are not certified yet: ${node.id}`);
+    }
     if (effectProgram) {
       commands.push({
         op: "beginLayer",
@@ -175,33 +202,34 @@ export function evaluateRuntimeProjectV2(
       alpha: node.opacity,
       visible: true,
       zIndex: node.zIndex,
+      blendMode,
     });
-    if (node.content.kind === "path") {
+    if (content.kind === "path") {
       commands.push({
         op: "drawPath",
         key: node.id,
         layerId: node.id,
-        contours: node.content.contours,
-        mesh: node.content.mesh,
-        ...(node.content.strokeMesh ? { strokeMesh: node.content.strokeMesh } : {}),
-        fillRule: node.content.fillRule,
-        ...(node.content.fill ? { fill: node.content.fill } : {}),
-        ...(node.content.fillOpacity != null
-          ? { fillOpacity: node.content.fillOpacity }
+        contours: content.contours,
+        mesh: content.mesh,
+        ...(content.strokeMesh ? { strokeMesh: content.strokeMesh } : {}),
+        fillRule: content.fillRule,
+        ...(content.fill ? { fill: content.fill } : {}),
+        ...(content.fillOpacity != null
+          ? { fillOpacity: content.fillOpacity }
           : {}),
-        ...(node.content.stroke ? { stroke: node.content.stroke } : {}),
-        ...(node.content.strokeWidth != null
-          ? { strokeWidth: node.content.strokeWidth }
+        ...(content.stroke ? { stroke: content.stroke } : {}),
+        ...(content.strokeWidth != null
+          ? { strokeWidth: content.strokeWidth }
           : {}),
-        ...(node.content.strokeOpacity != null
-          ? { strokeOpacity: node.content.strokeOpacity }
+        ...(content.strokeOpacity != null
+          ? { strokeOpacity: content.strokeOpacity }
           : {}),
-        ...(node.content.strokeJoin ? { strokeJoin: node.content.strokeJoin } : {}),
-        ...(node.content.strokeCap ? { strokeCap: node.content.strokeCap } : {}),
-        ...(node.content.strokeDash ? { strokeDash: node.content.strokeDash } : {}),
+        ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
+        ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
+        ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
       });
-    } else if (node.content.kind === "text") {
-      if (!node.content.layout) {
+    } else if (content.kind === "text") {
+      if (!content.layout) {
         diagnostics.push({
           severity: "warning",
           code: "runtime_v2_text_unprepared",
@@ -209,85 +237,130 @@ export function evaluateRuntimeProjectV2(
           layerId: node.id,
           key: node.id,
         });
-        continue;
+        return;
       }
       commands.push({
         op: "drawText",
         key: node.id,
         layerId: node.id,
-        text: node.content.text,
-        fontSize: node.content.fontSize,
-        fontAssetId: node.content.fontAssetId,
-        align: node.content.align,
-        verticalAlign: node.content.verticalAlign,
-        wrap: node.content.wrap,
-        overflow: node.content.overflow,
-        direction: node.content.direction,
-        language: node.content.language,
-        lineHeight: node.content.lineHeight,
-        letterSpacing: node.content.letterSpacing,
-        fill: node.content.fill,
-        width: node.content.width,
-        height: node.content.height,
-        glyphs: node.content.layout.glyphs,
-        lines: node.content.layout.lines,
+        text: content.text,
+        fontSize: content.fontSize,
+        fontAssetId: content.fontAssetId,
+        align: content.align,
+        verticalAlign: content.verticalAlign,
+        wrap: content.wrap,
+        overflow: content.overflow,
+        direction: content.direction,
+        language: content.language,
+        lineHeight: content.lineHeight,
+        letterSpacing: content.letterSpacing,
+        fill: content.fill,
+        width: content.width,
+        height: content.height,
+        glyphs: content.layout.glyphs,
+        lines: content.layout.lines,
       });
-    } else if (node.content.kind === "image") {
+    } else if (content.kind === "image") {
       commands.push({
         op: "drawImage",
         key: node.id,
         layerId: node.id,
-        assetId: node.content.assetId,
-        ...(node.content.uri ? { uri: node.content.uri } : {}),
-        width: node.content.width,
-        height: node.content.height,
-        ...(node.content.fit ? { fit: node.content.fit } : {}),
-        ...(node.content.crop ? { crop: node.content.crop } : {}),
+        assetId: content.assetId,
+        ...(content.uri ? { uri: content.uri } : {}),
+        width: content.width,
+        height: content.height,
+        ...(content.fit ? { fit: content.fit } : {}),
+        ...(content.crop ? { crop: content.crop } : {}),
       });
-    } else if (node.content.kind === "video") {
-      const media = resolveVideoMedia(node.content, Math.max(0, time - node.timing.start));
+    } else if (content.kind === "video") {
+      const media = resolveVideoMedia(content, Math.max(0, time - node.timing.start));
       commands.push({
         op: "drawVideo",
         key: node.id,
         layerId: node.id,
-        assetId: node.content.assetId,
-        ...(node.content.uri ? { uri: node.content.uri } : {}),
-        width: node.content.width,
-        height: node.content.height,
-        ...(node.content.fit ? { fit: node.content.fit } : {}),
+        assetId: content.assetId,
+        ...(content.uri ? { uri: content.uri } : {}),
+        width: content.width,
+        height: content.height,
+        ...(content.fit ? { fit: content.fit } : {}),
         mediaTime: media.mediaTime,
         mediaVisible: media.visible,
-        muted: node.content.muted,
+        muted: content.muted,
       });
     } else {
       commands.push({
         op: "drawShape",
         key: node.id,
         layerId: node.id,
-        shape: node.content.shape,
-        fill: node.content.fill,
-        width: node.content.width,
-        height: node.content.height,
-        ...(node.content.fillPaint ? { fillPaint: node.content.fillPaint } : {}),
-        ...(node.content.fillOpacity != null
-          ? { fillOpacity: node.content.fillOpacity }
+        shape: content.shape,
+        fill: content.fill,
+        width: content.width,
+        height: content.height,
+        ...(content.fillPaint ? { fillPaint: content.fillPaint } : {}),
+        ...(content.fillOpacity != null
+          ? { fillOpacity: content.fillOpacity }
           : {}),
-        ...(node.content.cornerRadius != null
-          ? { cornerRadius: node.content.cornerRadius }
+        ...(content.cornerRadius != null
+          ? { cornerRadius: content.cornerRadius }
           : {}),
-        ...(node.content.stroke ? { stroke: node.content.stroke } : {}),
-        ...(node.content.strokeWidth != null
-          ? { strokeWidth: node.content.strokeWidth }
+        ...(content.stroke ? { stroke: content.stroke } : {}),
+        ...(content.strokeWidth != null
+          ? { strokeWidth: content.strokeWidth }
           : {}),
-        ...(node.content.strokeOpacity != null
-          ? { strokeOpacity: node.content.strokeOpacity }
+        ...(content.strokeOpacity != null
+          ? { strokeOpacity: content.strokeOpacity }
           : {}),
       });
     }
     if (effectProgram) {
       commands.push({ op: "endLayer", key: node.id });
     }
-  }
+  };
+
+  const emitNode = (node: RuntimeNodeV2): void => {
+    if (!nodeIsActive(node, time)) return;
+    if (node.content.kind !== "group") {
+      emitDrawable(node);
+      return;
+    }
+    if (!subtreeHasActiveDrawable(node)) return;
+    const needsIsolation = node.opacity < 1 || node.mask !== undefined;
+    if ((node.blendMode ?? "normal") !== "normal") {
+      throw new Error(`Runtime V2 group blend modes are not certified yet: ${node.id}`);
+    }
+    if (needsIsolation && subtreeHasEffects(node)) {
+      throw new Error(`Runtime V2 cannot place effects inside an isolated group yet: ${node.id}`);
+    }
+    if (needsIsolation) {
+      commands.push({
+        op: "beginLayer",
+        key: node.id,
+        layerId: node.id,
+        isolation: true,
+        offscreen: true,
+        compositeAlpha: node.opacity,
+        ...(node.mask
+          ? {
+              mask: {
+                mode: node.mask.mode,
+                sourceKey: node.mask.sourceId,
+                sourceVisibility: "mask-only" as const,
+              },
+            }
+          : {}),
+      });
+    } else {
+      commands.push({ op: "beginGroup", key: node.id, layerId: node.id });
+    }
+    for (const child of childrenOf(node.id)) {
+      emitNode(child);
+    }
+    commands.push(needsIsolation
+      ? { op: "endLayer", key: node.id }
+      : { op: "endGroup", key: node.id });
+  };
+
+  for (const node of childrenOf(null)) emitNode(node);
 
   commands.push({ op: "endFrame" });
   return {

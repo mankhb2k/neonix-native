@@ -30,6 +30,7 @@ export {
 } from "./effect-program";
 export type {
   RuntimeCompositionV2,
+  RuntimeMaskV2,
   RuntimeFrameV2,
   RuntimeNodeV2,
   RuntimePathV2,

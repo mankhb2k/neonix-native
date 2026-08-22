@@ -85,9 +85,11 @@ void main() {
     shapeAlpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToEdge);
     if (shapeAlpha <= 0.0) discard;
   }
-  vec4 sampled = texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
-  vec4 source = u_mode == 0 ? u_color : sampled;
-  if (u_mode == 2) source = vec4(u_color.rgb, u_color.a * sampled.a);
+  vec4 source = u_color;
+  if (u_mode > 0) {
+    vec4 sampled = texture(u_texture, u_uv_rect.xy + v_uv * u_uv_rect.zw);
+    source = u_mode == 2 ? vec4(u_color.rgb, u_color.a * sampled.a) : sampled;
+  }
   if (u_mode == 0 && u_gradient_params.x > 0.5) {
     float gradientT;
     if (u_gradient_params.x < 1.5) {
@@ -153,6 +155,7 @@ uniform sampler2D u_texture;
 uniform vec4 u_post_params;
 uniform vec4 u_shadow_color;
 uniform vec2 u_shadow_offset;
+uniform float u_composite_alpha;
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
 in vec2 v_uv;
@@ -222,11 +225,49 @@ void main() {
   if (u_color_adjust_meta.x > 1.5) color = applyPostColorAdjust(color, u_color_adjust[1]);
   if (u_color_adjust_meta.x > 2.5) color = applyPostColorAdjust(color, u_color_adjust[2]);
   if (u_color_adjust_meta.x > 3.5) color = applyPostColorAdjust(color, u_color_adjust[3]);
-  outColor = u_post_params.w > 0.5 ? encodePremultiplied(color) : color;
+  outColor = u_post_params.w > 0.5 ? encodePremultiplied(color * u_composite_alpha) : color;
+}`;
+
+const CLIP_MASK_FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+uniform sampler2D u_content;
+uniform sampler2D u_mask;
+uniform float u_composite_alpha;
+uniform float u_invert_mask;
+uniform float u_luma_mask;
+in vec2 v_uv;
+out vec4 outColor;
+vec3 srgbToLinear(vec3 color) {
+  vec3 low = color / 12.92;
+  vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+  return mix(low, high, step(vec3(0.04045), color));
+}
+vec3 linearToSrgb(vec3 color) {
+  vec3 low = color * 12.92;
+  vec3 high = 1.055 * pow(max(color, vec3(0.0)), vec3(1.0 / 2.4)) - vec3(0.055);
+  return mix(low, high, step(vec3(0.0031308), color));
+}
+vec4 decodePremultiplied(vec4 color) {
+  if (color.a <= 0.000001) return vec4(0.0);
+  return vec4(srgbToLinear(clamp(color.rgb / color.a, 0.0, 1.0)) * color.a, color.a);
+}
+vec4 encodePremultiplied(vec4 color) {
+  if (color.a <= 0.000001) return vec4(0.0);
+  return vec4(linearToSrgb(max(color.rgb / color.a, vec3(0.0))) * color.a, color.a);
+}
+void main() {
+  vec4 content = decodePremultiplied(texture(u_content, v_uv));
+  vec4 mask = decodePremultiplied(texture(u_mask, v_uv));
+  float coverage = mask.a;
+  if (u_luma_mask > 0.5 && mask.a > 0.000001) {
+    coverage = dot(mask.rgb / mask.a, vec3(0.2126, 0.7152, 0.0722)) * mask.a;
+  }
+  if (u_invert_mask > 0.5) coverage = 1.0 - coverage;
+  outColor = encodePremultiplied(content * coverage * u_composite_alpha);
 }`;
 
 type GL = WebGL2RenderingContext;
-type BlendMode = "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
+type BlendMode = "normal" | "multiply" | "screen" | "add";
 
 function shader(gl: GL, type: number, source: string): WebGLShader {
   const result = gl.createShader(type);
@@ -294,12 +335,14 @@ export function createWebGL2Backend(
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
   const blurProgramHandle = program(gl, BLUR_VERTEX_SHADER, BLUR_FRAGMENT_SHADER);
+  const clipMaskProgramHandle = program(gl, BLUR_VERTEX_SHADER, CLIP_MASK_FRAGMENT_SHADER);
   const vao = gl.createVertexArray();
   const blurVao = gl.createVertexArray();
+  const clipMaskVao = gl.createVertexArray();
   const quadBuffer = gl.createBuffer();
   const pathBuffer = gl.createBuffer();
   const pathIndexBuffer = gl.createBuffer();
-  if (!vao || !blurVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
+  if (!vao || !blurVao || !clipMaskVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(
@@ -317,6 +360,16 @@ export function createWebGL2Backend(
     gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
   };
   bindVertexBuffer(quadBuffer);
+  gl.bindVertexArray(null);
+
+  gl.bindVertexArray(clipMaskVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  const clipMaskPosition = gl.getAttribLocation(clipMaskProgramHandle, "a_position");
+  const clipMaskUv = gl.getAttribLocation(clipMaskProgramHandle, "a_uv");
+  gl.enableVertexAttribArray(clipMaskPosition);
+  gl.vertexAttribPointer(clipMaskPosition, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(clipMaskUv);
+  gl.vertexAttribPointer(clipMaskUv, 2, gl.FLOAT, false, 16, 8);
   gl.bindVertexArray(null);
 
   gl.bindVertexArray(blurVao);
@@ -349,8 +402,14 @@ export function createWebGL2Backend(
   const blurPostParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_post_params");
   const blurShadowColorLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_color");
   const blurShadowOffsetLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_offset");
+  const blurCompositeAlphaLocation = gl.getUniformLocation(blurProgramHandle, "u_composite_alpha");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
+  const clipMaskContentLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_content");
+  const clipMaskCoverageLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_mask");
+  const clipMaskCompositeAlphaLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_composite_alpha");
+  const clipMaskInvertLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_invert_mask");
+  const clipMaskLumaLocation = gl.getUniformLocation(clipMaskProgramHandle, "u_luma_mask");
   const setColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
     const uniforms = colorAdjustUniforms(adjustments);
     gl.uniform4fv(colorAdjustMetaLocation, uniforms.subarray(0, 4));
@@ -370,6 +429,7 @@ export function createWebGL2Backend(
   type EffectLevel = { width: number; height: number; a: EffectTarget; b: EffectTarget };
   let effectSourceTarget: EffectTarget | null = null;
   let effectLevels: EffectLevel[] = [];
+  let createLayerTarget: ((targetWidth: number, targetHeight: number) => EffectTarget) | null = null;
   let lastStats: PreviewRenderStats = {
     backend: "webgl2",
     drawCalls: 0,
@@ -455,6 +515,7 @@ export function createWebGL2Backend(
       }
       return { texture, framebuffer };
     };
+    createLayerTarget = (targetWidth, targetHeight) => createTarget(targetWidth, targetHeight, false);
     effectSourceTarget = createTarget(targetWidth, targetHeight, false);
     let levelWidth = targetWidth;
     let levelHeight = targetHeight;
@@ -498,6 +559,92 @@ export function createWebGL2Backend(
     let projection = webglClipSpaceProjection(worldToClipMatrixForPaint(firstCommand));
     const physicalWidth = Math.max(1, Math.round(width * dpr));
     const physicalHeight = Math.max(1, Math.round(height * dpr));
+    const compositeIsolation = (source: WebGLTexture, target: EffectTarget | null, compositeAlpha: number) => {
+      const root = effectLevels[0];
+      if (!root) throw new Error("preview-renderer: isolation target is unavailable");
+      gl.useProgram(blurProgramHandle);
+      gl.bindVertexArray(blurVao);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, source);
+      gl.uniform1i(blurTextureLocation, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, root.a.framebuffer);
+      gl.viewport(0, 0, root.width, root.height);
+      gl.disable(gl.BLEND);
+      gl.uniform4f(blurPostParamsLocation, 0, 0, 0, -1);
+      gl.uniform4f(blurShadowColorLocation, 0, 0, 0, 0);
+      gl.uniform2f(blurShadowOffsetLocation, 0, 0);
+      gl.uniform1f(blurCompositeAlphaLocation, 1);
+      setPostColorAdjust(undefined);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      drawCalls += 1;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
+      gl.viewport(0, 0, physicalWidth, physicalHeight);
+      blendPremultiplied(gl);
+      gl.bindTexture(gl.TEXTURE_2D, root.a.texture);
+      gl.uniform4f(blurPostParamsLocation, 0, 0, 0, 1);
+      gl.uniform1f(blurCompositeAlphaLocation, compositeAlpha);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      drawCalls += 1;
+      gl.useProgram(programHandle);
+      gl.bindVertexArray(vao);
+    };
+    type LayerSurface = { content: EffectTarget; mask?: EffectTarget };
+    type LayerScope = {
+      key: string;
+      layerId?: string;
+      surface: LayerSurface;
+      parentTarget: EffectTarget | null;
+      target: "content" | "mask";
+      mode?: "clip" | "alpha" | "inverse-alpha" | "luma";
+      sourceKey?: string;
+      compositeAlpha: number;
+    };
+    const isLayerMaskMode = (mode: string): mode is NonNullable<LayerScope["mode"]> =>
+      mode === "clip" || mode === "alpha" || mode === "inverse-alpha" || mode === "luma";
+    const layerScopes: LayerScope[] = [];
+    const bindClipMaskTarget = (sourceKey: string) => {
+      const scope = layerScopes.at(-1);
+      if (!scope) return null;
+      const isMaskSource = scope.sourceKey === sourceKey && scope.surface.mask;
+      const target = isMaskSource ? scope.surface.mask! : scope.surface.content;
+      scope.target = isMaskSource ? "mask" : "content";
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+      gl.viewport(0, 0, physicalWidth, physicalHeight);
+      // A layer surface can still be bound on texture unit 0 after allocation.
+      // Unbind it before drawing into the same framebuffer to avoid a WebGL
+      // read/write feedback loop; image and text branches bind their source
+      // texture again before issuing the draw.
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      return isMaskSource ? scope.mode ?? null : null;
+    };
+    const compositeClipMask = (
+      content: WebGLTexture,
+      coverage: WebGLTexture,
+      target: EffectTarget | null,
+      compositeAlpha: number,
+      mode: "clip" | "alpha" | "inverse-alpha" | "luma",
+    ) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
+      gl.viewport(0, 0, physicalWidth, physicalHeight);
+      gl.useProgram(clipMaskProgramHandle);
+      gl.bindVertexArray(clipMaskVao);
+      blendPremultiplied(gl);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, content);
+      gl.uniform1i(clipMaskContentLocation, 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, coverage);
+      gl.uniform1i(clipMaskCoverageLocation, 1);
+      gl.uniform1f(clipMaskCompositeAlphaLocation, compositeAlpha);
+      gl.uniform1f(clipMaskInvertLocation, mode === "inverse-alpha" ? 1 : 0);
+      gl.uniform1f(clipMaskLumaLocation, mode === "luma" ? 1 : 0);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      drawCalls += 1;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.useProgram(programHandle);
+      gl.bindVertexArray(vao);
+    };
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, physicalWidth, physicalHeight);
     gl.clearColor(...cssColorToRgba(bufferToPaint.commands[0]?.op === "beginFrame" ? bufferToPaint.commands[0].background : options.background));
@@ -526,13 +673,16 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "info", code: "preview_op_pending", message: "polygon shape is pending in the native preview backend", key: command.key, layerId: command.layerId });
           continue;
         }
-        blend(gl, currentBlend);
+        const maskMode = bindClipMaskTarget(command.key);
+        const isMaskSource = maskMode !== null;
+        const isClipMaskSource = maskMode === "clip";
+        blend(gl, isMaskSource ? "normal" : currentBlend);
         bindVertexBuffer(quadBuffer);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, 0, 0, command.width, command.height));
-        const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
+        const color = isClipMaskSource ? [1, 1, 1, transform.alpha] : cssColorToRgba(command.fill);
+        if (!isClipMaskSource) color[3] *= transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1);
         gl.uniform4fv(colorLocation, color);
         gl.uniform1i(modeLocation, 0);
         gl.uniform1i(shapeLocation, command.op === "drawShape" && command.shape === "ellipse" ? 1 : 0);
@@ -542,7 +692,7 @@ export function createWebGL2Backend(
           command.width,
           command.height,
         );
-        const gradients = gradientUniforms(
+        const gradients = isClipMaskSource ? gradientUniforms(undefined, 1) : gradientUniforms(
           command.op === "drawShape" ? command.fillPaint : undefined,
           transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
         );
@@ -550,20 +700,26 @@ export function createWebGL2Backend(
         gl.uniform4fv(gradientEndLocation, gradients.end);
         gl.uniform4fv(gradientParamsLocation, gradients.params);
         gl.uniform4fv(gradientRadiusLocation, gradients.radius);
-        const stroke = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
+        const stroke = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
         stroke[3] *= transform.alpha * (command.op === "drawShape" ? command.strokeOpacity ?? 1 : 1);
-        const strokeWidth = command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
+        const strokeWidth = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? command.strokeWidth ?? 4
           : 0;
         gl.uniform4fv(strokeColorLocation, stroke);
         gl.uniform2f(strokeExtentLocation, strokeWidth / command.width, strokeWidth / command.height);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
-        setColorAdjust(sourceColorAdjust());
+        setColorAdjust(isMaskSource ? undefined : sourceColorAdjust());
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
+        const maskMode = bindClipMaskTarget(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -585,7 +741,7 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
           continue;
         }
-        blend(gl, currentBlend);
+        blend(gl, maskMode ? "normal" : currentBlend);
         bindVertexBuffer(pathBuffer);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, packMatrix4F32(transform.matrix4));
@@ -615,6 +771,12 @@ export function createWebGL2Backend(
           drawCalls += 1;
         }
       } else if (command.op === "drawImage" || command.op === "drawVideo") {
+        const maskMode = bindClipMaskTarget(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -637,7 +799,7 @@ export function createWebGL2Backend(
           skippedCommands += 1;
           continue;
         }
-        blend(gl, currentBlend);
+        blend(gl, maskMode ? "normal" : currentBlend);
         bindVertexBuffer(quadBuffer);
         const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
         const baseMatrix = packMatrix4F32(transform.matrix4);
@@ -661,6 +823,12 @@ export function createWebGL2Backend(
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawText") {
+        const maskMode = bindClipMaskTarget(command.key);
+        if (maskMode === "clip") {
+          skippedCommands += 1;
+          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
+          continue;
+        }
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -682,7 +850,7 @@ export function createWebGL2Backend(
           skippedCommands += 1;
           continue;
         }
-        blend(gl, currentBlend);
+        blend(gl, maskMode ? "normal" : currentBlend);
         bindVertexBuffer(quadBuffer);
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha;
@@ -724,7 +892,7 @@ export function createWebGL2Backend(
         gl.viewport(0, 0, physicalWidth, physicalHeight);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-      } else if (command.op === "endLayer") {
+      } else if (command.op === "endLayer" && activeEffectScope) {
         const scope = activeEffectScope;
         if (!scope || scope.key !== command.key) {
           pushDiagnostic({ severity: "error", code: "preview_effect_scope_invalid", message: "endLayer has no matching effect scope", key: command.key });
@@ -765,6 +933,7 @@ export function createWebGL2Backend(
           gl.uniform4f(blurPostParamsLocation, stepX, stepY, passSigma, colorMode);
           gl.uniform4f(blurShadowColorLocation, ...(shadow?.color ?? [0, 0, 0, 0]));
           gl.uniform2f(blurShadowOffsetLocation, shadow?.offsetX ?? 0, shadow?.offsetY ?? 0);
+          gl.uniform1f(blurCompositeAlphaLocation, 1);
           setPostColorAdjust(adjustments);
           gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
           drawCalls += 1;
@@ -858,6 +1027,61 @@ export function createWebGL2Backend(
         gl.useProgram(programHandle);
         gl.bindVertexArray(vao);
         activeEffectScope = null;
+      } else if (command.op === "beginLayer" && command.isolation && command.offscreen && command.compositeAlpha !== undefined && (!command.mask || isLayerMaskMode(command.mask.mode))) {
+        if (activeEffectScope) {
+          pushDiagnostic({ severity: "error", code: "preview_nested_layer_unsupported", message: "Nested effect scopes are not implemented yet", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        ensureEffectTargets(physicalWidth, physicalHeight);
+        if (!createLayerTarget) {
+          pushDiagnostic({ severity: "error", code: "preview_layer_surface_unavailable", message: "Layer surface factory is unavailable", key: command.key, layerId: command.layerId });
+          continue;
+        }
+        const surface: LayerSurface = {
+          content: createLayerTarget(physicalWidth, physicalHeight),
+          ...(command.mask ? { mask: createLayerTarget(physicalWidth, physicalHeight) } : {}),
+        };
+        const parent = layerScopes.at(-1);
+        const parentTarget = parent ? (parent.target === "mask" ? parent.surface.mask! : parent.surface.content) : null;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, surface.content.framebuffer);
+        gl.viewport(0, 0, physicalWidth, physicalHeight);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        if (surface.mask) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, surface.mask.framebuffer);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, surface.content.framebuffer);
+        }
+        layerScopes.push({
+          key: command.key,
+          layerId: command.layerId,
+          surface,
+          parentTarget,
+          target: "content",
+          ...(command.mask && isLayerMaskMode(command.mask.mode) ? { mode: command.mask.mode, sourceKey: command.mask.sourceKey } : {}),
+          compositeAlpha: command.compositeAlpha,
+        });
+      } else if (command.op === "endLayer") {
+        const scope = layerScopes.pop();
+        if (!scope || scope.key !== command.key) {
+          pushDiagnostic({ severity: "error", code: "preview_layer_scope_invalid", message: "endLayer has no matching layer scope", key: command.key });
+          continue;
+        }
+        if (scope.surface.mask && scope.mode && scope.sourceKey) {
+          compositeClipMask(scope.surface.content.texture, scope.surface.mask.texture, scope.parentTarget, scope.compositeAlpha, scope.mode);
+        } else {
+          compositeIsolation(scope.surface.content.texture, scope.parentTarget, scope.compositeAlpha);
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, scope.parentTarget?.framebuffer ?? null);
+        gl.viewport(0, 0, physicalWidth, physicalHeight);
+        gl.useProgram(programHandle);
+        gl.bindVertexArray(vao);
+        gl.deleteTexture(scope.surface.content.texture);
+        gl.deleteFramebuffer(scope.surface.content.framebuffer);
+        if (scope.surface.mask) {
+          gl.deleteTexture(scope.surface.mask.texture);
+          gl.deleteFramebuffer(scope.surface.mask.framebuffer);
+        }
       } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       } else if (command.op === "unsupported") {
@@ -867,6 +1091,10 @@ export function createWebGL2Backend(
     }
     if (activeEffectScope) {
       pushDiagnostic({ severity: "error", code: "preview_effect_scope_unclosed", message: "Effect scope was not closed", key: activeEffectScope.key, layerId: activeEffectScope.layerId });
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+    if (layerScopes.length > 0) {
+      pushDiagnostic({ severity: "error", code: "preview_layer_scope_unclosed", message: "Layer scope was not closed", key: layerScopes.at(-1)!.key, layerId: layerScopes.at(-1)!.layerId });
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     gl.bindVertexArray(null);
@@ -906,8 +1134,10 @@ export function createWebGL2Backend(
       gl.deleteBuffer(pathIndexBuffer);
       gl.deleteVertexArray(vao);
       gl.deleteVertexArray(blurVao);
+      gl.deleteVertexArray(clipMaskVao);
       gl.deleteProgram(programHandle);
       gl.deleteProgram(blurProgramHandle);
+      gl.deleteProgram(clipMaskProgramHandle);
       deleteEffectTargets();
     },
   };
