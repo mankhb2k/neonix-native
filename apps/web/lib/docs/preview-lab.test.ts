@@ -5,6 +5,7 @@ import {
   PREVIEW_LAB_CASES,
   PREVIEW_LAB_DEFAULT_CASE,
   previewLabCaseById,
+  previewLabGroups,
 } from "./preview-lab";
 
 describe("Protocol V2 preview lab fixtures", () => {
@@ -110,6 +111,29 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect(buffer.commands[0]?.op).toBe("beginFrame");
       expect(buffer.commands.at(-1)?.op).toBe("endFrame");
     }
+  });
+
+  it("organizes the sidebar by render concept instead of implementation task", () => {
+    const groups = previewLabGroups();
+    expect(groups.map((group) => group.label)).toEqual([
+      "Primitives",
+      "Primitives / rounded",
+      "Transforms & 3D",
+      "Groups",
+      "Paths",
+      "Paint / strokes",
+      "Paint / gradients",
+      "Paint / opacity",
+      "Images",
+      "Video",
+      "Text",
+      "Timing",
+      "Effects",
+      "Compositing / blend modes",
+      "Compositing / masks & isolation",
+      "Compositing",
+    ]);
+    expect(groups.every((group) => !group.label.toLowerCase().includes("task"))).toBe(true);
   });
 
   it("assigns image-stack blend ownership only to the upper snow layer", () => {

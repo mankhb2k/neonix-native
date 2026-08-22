@@ -2594,6 +2594,68 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
 
 export const PREVIEW_LAB_DEFAULT_CASE = "primitive.shape.rectangle";
 
+const PREVIEW_LAB_GROUP_ORDER = [
+  "Primitives",
+  "Primitives / rounded",
+  "Transforms & 3D",
+  "Groups",
+  "Paths",
+  "Paint / strokes",
+  "Paint / gradients",
+  "Paint / opacity",
+  "Images",
+  "Video",
+  "Text",
+  "Timing",
+  "Effects",
+  "Compositing / blend modes",
+  "Compositing / masks & isolation",
+  "Compositing",
+] as const;
+
+type PreviewLabGroupLabel = (typeof PREVIEW_LAB_GROUP_ORDER)[number];
+
+function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
+  if (item.id.startsWith("primitive.shape.")) return "Primitives";
+  if (item.id.startsWith("rectangle.rounded")) return "Primitives / rounded";
+  if (
+    item.id.startsWith("rectangle.transform.") ||
+    item.id.startsWith("rectangle.mat4.") ||
+    item.id.startsWith("matrix4.")
+  ) {
+    return "Transforms & 3D";
+  }
+  if (item.id.startsWith("group.isolation.")) {
+    return "Compositing / masks & isolation";
+  }
+  if (item.id.startsWith("group.")) return "Groups";
+  if (item.id.startsWith("path.")) return "Paths";
+  if (
+    item.id.startsWith("rectangle.paint.stroke") ||
+    item.id.startsWith("ellipse.paint.stroke") ||
+    item.id.startsWith("rectangle.paint.stroke-width")
+  ) {
+    return "Paint / strokes";
+  }
+  if (item.id.startsWith("rectangle.gradient") || item.id.startsWith("ellipse.gradient")) {
+    return "Paint / gradients";
+  }
+  if (item.id.startsWith("rectangle.paint.opacity")) return "Paint / opacity";
+  if (item.id.startsWith("image.")) return "Images";
+  if (item.id.startsWith("video.")) return "Video";
+  if (item.id.startsWith("text.")) return "Text";
+  if (item.id.startsWith("rectangle.timing")) return "Timing";
+  if (item.id.startsWith("effect.")) return "Effects";
+  if (item.id.startsWith("composite.blend.")) return "Compositing / blend modes";
+  if (item.id.startsWith("composite.mask.")) {
+    return "Compositing / masks & isolation";
+  }
+  if (item.id === "rectangle.opacity" || item.id === "rectangle.z-index") {
+    return "Compositing";
+  }
+  return "Compositing";
+}
+
 export function previewLabCaseById(
   id: string | null | undefined,
 ): PreviewLabCase {
@@ -2610,9 +2672,12 @@ export function previewLabGroups(): Array<{
 }> {
   const map = new Map<string, PreviewLabCase[]>();
   for (const item of PREVIEW_LAB_CASES) {
-    const cases = map.get(item.group) ?? [];
+    const group = previewLabGroupLabel(item);
+    const cases = map.get(group) ?? [];
     cases.push(item);
-    map.set(item.group, cases);
+    map.set(group, cases);
   }
-  return [...map.entries()].map(([label, cases]) => ({ label, cases }));
+  return PREVIEW_LAB_GROUP_ORDER
+    .filter((label) => map.has(label))
+    .map((label) => ({ label, cases: map.get(label)! }));
 }
