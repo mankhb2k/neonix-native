@@ -3,9 +3,9 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "V2 architecture - NeonVideo",
+  title: "NeonVideo documentation",
   description:
-    "NeonVideo V2 pipeline from high-level authoring through Atomic Protocol, runtime, preview, and export.",
+    "Learn NeonVideo authoring, layers, animation, compositing, effects, and examples.",
 };
 
 export default function DocsIndexPage() {
