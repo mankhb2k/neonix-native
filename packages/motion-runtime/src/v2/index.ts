@@ -32,6 +32,12 @@ export {
 } from "./effect-program";
 export type {
   RuntimeCompositionV2,
+  RuntimeAudioClipV2,
+  RuntimeAudioFadeCurveV2,
+  RuntimeAudioFadeV2,
+  RuntimeAudioProjectV2,
+  RuntimeAudioSourceV2,
+  RuntimeAudioTrackV2,
   RuntimeMaskV2,
   RuntimeFrameV2,
   RuntimeNodeV2,

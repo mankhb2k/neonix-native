@@ -10,6 +10,9 @@ This guide describes the ownership and review rules for
 | `src/index.ts` | V2 public root API and parse/serialize helpers |
 | `src/v2/common.ts` | V2 identifiers, finite numbers and colors |
 | `src/v2/composition.ts` | Composition dimensions, frame rate and view state |
+| `src/v2/audio.ts` | Audio tracks, clips, timing and mix intent |
+| `src/v2/audio-capabilities.ts` | Fixture-only audio capability ledger until runtime/export parity |
+| `src/v2/audio-fixtures.ts` | Named V2 audio contract fixtures used by docs and tests |
 | `src/v2/layers/` | Atomic layer schemas |
 | `src/v2/transform.ts` | 3D transform values including anchor |
 | `src/v2/timing.ts` | Active time window |
@@ -33,7 +36,18 @@ Protocol owns the JSON contract. Compiler lowering belongs to
 - `composition.view` is required. Its projection is either
   `orthographic` (`zoom`, `near`, `far`) or `perspective` (`fov`, `near`,
   `far`), and its transform always uses `translate` and `rotate` Vec3 values.
-- A capability must be certified before compiler lowering can use it.
+- `assets` and `audio` are required root domains. A silent project uses
+  `audio: { sampleRate: 48000, tracks: [] }`.
+- Audio is parallel to visual layers, not part of the Matrix4 scene graph.
+  `AudioClipV2.assetId` may reference only an `audio` or `video` asset.
+- Audio timing is expressed in composition seconds. Clip `trim` is source
+  time, while `timing.duration` is the duration on the composition timeline.
+- Audio clip and track IDs are unique within the project. Track pan is in the
+  range `-1..1`, and audio sample rate is fixed at `48000` in V2.
+- Audio capabilities promoted by Phase 3 are `runtime-ready` after protocol and
+  Runtime Audio IR coverage. Full preview scheduling and export parity remain
+  separate certification gates.
+- A capability must be `runtime-ready` before compiler lowering can use it.
 - High-level patterns, presets, templates and components are future authoring
   layers and do not belong in this atomic contract.
 
@@ -41,10 +55,11 @@ Protocol owns the JSON contract. Compiler lowering belongs to
 
 1. Parse with `MotionProtocolV2Schema`.
 2. Check strict unknown-key behavior.
-3. Check layer/frame/transform/timing invariants.
+3. Check layer/frame/transform/timing/audio invariants.
 4. Check capability certification.
 5. Check compiler output separately as Runtime IR V2.
-6. Verify preview and Remotion consume the same runtime paint commands.
+6. Verify preview and Remotion consume the same visual paint commands and the
+   same future audio mix plan.
 
 ## Schema artifact
 

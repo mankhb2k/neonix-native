@@ -5,11 +5,32 @@ export {
   V2ImageAssetSchema,
   V2FontAssetSchema,
   V2VideoAssetSchema,
+  V2AudioAssetSchema,
   type V2Asset,
   type V2ImageAsset,
   type V2FontAsset,
   type V2VideoAsset,
+  type V2AudioAsset,
 } from "./assets";
+export {
+  V2AudioClipSchema,
+  V2AudioDomainSchema,
+  V2AudioFadeCurveSchema,
+  V2AudioFadeSchema,
+  V2AudioTrackSchema,
+  type V2AudioClip,
+  type V2AudioDomain,
+  type V2AudioFade,
+  type V2AudioFadeCurve,
+  type V2AudioTrack,
+} from "./audio";
+export {
+  V2_AUDIO_CAPABILITY_LEDGER,
+  isV2AudioCapabilityRuntimeReady,
+  type V2AudioCapability,
+  type V2AudioCapabilityStatus,
+} from "./audio-capabilities";
+export { V2_AUDIO_FIXTURES, type V2AudioFixture } from "./audio-fixtures";
 export {
   V2ColorSchema,
   V2FiniteNumberSchema,

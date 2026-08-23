@@ -33,6 +33,46 @@ describe("Runtime V2 consumer boundaries", () => {
     expect(assertRuntimeProjectV2(project)).toBe(project);
   });
 
+  it("validates Runtime Audio IR without requiring decoded media", () => {
+    const withAudio: RuntimeProjectV2 = {
+      ...project,
+      composition: { ...project.composition, duration: 20 },
+      audio: {
+        sampleRate: 48000,
+        tracks: [{
+          id: "music-track",
+          gainDb: -3,
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "music-clip",
+            assetId: "music",
+            source: {
+              assetId: "music",
+              kind: "audio",
+              uri: "/assets/music.mp3",
+              mimeType: "audio/mpeg",
+              integrity: "sha256:music",
+            },
+            timing: { start: 0, duration: 20 },
+            trim: { start: 52, end: 72 },
+            playbackRate: 1,
+            loop: false,
+            gainDb: -6,
+            fadeIn: { duration: 4, curve: "linear" },
+            fadeOut: { duration: 4, curve: "equal-power" },
+          }],
+        }],
+      },
+    };
+
+    expect(assertRuntimeProjectV2(withAudio)).toBe(withAudio);
+    expect(() => assertRuntimeProjectV2({
+      ...withAudio,
+      audio: { ...withAudio.audio!, sampleRate: 44100 },
+    })).toThrow(/sampleRate/);
+  });
+
   it("rejects a V1 or malformed runtime project", () => {
     expect(() =>
       assertRuntimeProjectV2({ ...project, formatVersion: 1 }),

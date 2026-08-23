@@ -12,6 +12,10 @@ import {
   type Matrix4,
   type PaintCommandBuffer,
   type RuntimeNodeV2,
+  type RuntimeAudioClipV2,
+  type RuntimeAudioProjectV2,
+  type RuntimeAudioSourceV2,
+  type RuntimeAudioTrackV2,
   type RuntimeProjectV2,
   type RuntimeEffect,
   type RuntimeMaskV2,
@@ -22,6 +26,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import {
   isV2AtomCertified,
+  isV2AudioCapabilityRuntimeReady,
   parseMotionProtocol,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
@@ -114,6 +119,91 @@ function lowerBlendMode(layer: MotionProtocolV2["layers"][number]): "normal" | "
     throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
   }
   return blendMode;
+}
+
+function requireRuntimeAudioCapability(capability: string): void {
+  if (!isV2AudioCapabilityRuntimeReady(capability)) {
+    throw new Error(`Uncertified Protocol V2 audio capability: ${capability}`);
+  }
+}
+
+function lowerAudioSource(
+  asset: Extract<MotionProtocolV2["assets"][number], { kind: "audio" | "video" }>,
+): RuntimeAudioSourceV2 {
+  return {
+    assetId: asset.id,
+    kind: asset.kind,
+    uri: asset.uri,
+    ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
+    ...(asset.duration !== undefined ? { duration: asset.duration } : {}),
+    ...(asset.kind === "audio" && asset.sampleRate !== undefined
+      ? { sampleRate: asset.sampleRate }
+      : {}),
+    ...(asset.kind === "audio" && asset.channels !== undefined
+      ? { channels: asset.channels }
+      : {}),
+    ...(asset.integrity ? { integrity: asset.integrity } : {}),
+  };
+}
+
+function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
+  const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
+  const tracks: RuntimeAudioTrackV2[] = project.audio.tracks.map((track) => {
+    requireRuntimeAudioCapability("audio.timing");
+    requireRuntimeAudioCapability("audio.gain");
+    requireRuntimeAudioCapability("audio.pan");
+    if (track.muted) requireRuntimeAudioCapability("audio.track.mute");
+
+    const clips: RuntimeAudioClipV2[] = track.clips.map((clip) => {
+      requireRuntimeAudioCapability("audio.asset");
+      requireRuntimeAudioCapability("audio.timing");
+      requireRuntimeAudioCapability("audio.trim");
+      requireRuntimeAudioCapability("audio.loop");
+      requireRuntimeAudioCapability("audio.gain");
+      if (clip.fadeIn || clip.fadeOut) requireRuntimeAudioCapability("audio.fade");
+
+      const asset = assetsById.get(clip.assetId);
+      if (!asset || (asset.kind !== "audio" && asset.kind !== "video")) {
+        throw new Error(`Protocol V2 audio clip ${clip.id} references an invalid source asset`);
+      }
+      if (asset.kind === "video") requireRuntimeAudioCapability("audio.video-source");
+      return {
+        id: clip.id,
+        assetId: clip.assetId,
+        source: lowerAudioSource(asset),
+        timing: { ...clip.timing },
+        trim: { ...clip.trim },
+        playbackRate: clip.playbackRate,
+        loop: clip.loop,
+        gainDb: clip.gainDb,
+        ...(clip.fadeIn ? { fadeIn: { ...clip.fadeIn } } : {}),
+        ...(clip.fadeOut ? { fadeOut: { ...clip.fadeOut } } : {}),
+      };
+    });
+
+    for (let left = 0; left < clips.length; left += 1) {
+      for (let right = left + 1; right < clips.length; right += 1) {
+        const first = clips[left]!;
+        const second = clips[right]!;
+        const overlaps = first.timing.start < second.timing.start + second.timing.duration &&
+          second.timing.start < first.timing.start + first.timing.duration;
+        if (overlaps) requireRuntimeAudioCapability("audio.track.overlap");
+      }
+    }
+
+    return {
+      id: track.id,
+      gainDb: track.gainDb,
+      pan: track.pan,
+      muted: track.muted,
+      clips,
+    };
+  });
+
+  return {
+    sampleRate: project.audio.sampleRate,
+    tracks,
+  };
 }
 
 function lowerMask(
@@ -585,6 +675,19 @@ export function compileProtocolV2(
     };
   }).filter((node): node is RuntimeNodeV2 => node !== null);
 
+  const audio = lowerAudio(project);
+  const visualDuration = nodes.reduce(
+    (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),
+    0,
+  );
+  const audioDuration = audio.tracks.reduce(
+    (duration, track) => track.clips.reduce(
+      (trackDuration, clip) => Math.max(trackDuration, clip.timing.start + clip.timing.duration),
+      duration,
+    ),
+    0,
+  );
+
   return {
     format: "motion-runtime",
     formatVersion: 2,
@@ -593,11 +696,13 @@ export function compileProtocolV2(
       width: project.composition.width,
       height: project.composition.height,
       fps: project.composition.fps,
+      duration: Math.max(visualDuration, audioDuration),
       background: project.composition.background,
       graphId: project.id,
     },
     view: projection,
     nodes,
+    audio,
   };
 }
 

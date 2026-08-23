@@ -149,12 +149,67 @@ export function validateRuntimeProjectV2(
       message: "Runtime V2 composition fps must be finite and positive",
     });
   }
+  if (
+    project.composition.duration !== undefined &&
+    (!Number.isFinite(project.composition.duration) || project.composition.duration < 0)
+  ) {
+    diagnostics.push({
+      severity: "error",
+      code: "runtime_v2_duration",
+      message: "Runtime V2 composition duration must be finite and non-negative",
+    });
+  }
   if (!matrixIs4x4(project.view.worldToClipMatrix)) {
     diagnostics.push({
       severity: "error",
       code: "runtime_v2_view_matrix",
       message: "Runtime V2 view.worldToClipMatrix must be a finite 4x4 matrix",
     });
+  }
+
+  if (project.audio) {
+    if (project.audio.sampleRate !== 48000) {
+      diagnostics.push({
+        severity: "error",
+        code: "runtime_v2_audio_sample_rate",
+        message: "Runtime V2 audio sampleRate must be 48000",
+      });
+    }
+    const trackIds = new Set<string>();
+    const clipIds = new Set<string>();
+    for (const track of project.audio.tracks) {
+      if (trackIds.has(track.id)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_audio_track_id", message: `Duplicate Runtime V2 audio track id: ${track.id}` });
+      }
+      trackIds.add(track.id);
+      if (!Number.isFinite(track.gainDb) || !Number.isFinite(track.pan) || track.pan < -1 || track.pan > 1) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_audio_track_mix", message: `Runtime V2 audio track ${track.id} has invalid gain or pan` });
+      }
+      for (const clip of track.clips) {
+        if (clipIds.has(clip.id)) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_audio_clip_id", message: `Duplicate Runtime V2 audio clip id: ${clip.id}` });
+        }
+        clipIds.add(clip.id);
+        const source = clip.source;
+        if (clip.assetId !== source.assetId || !source.uri.trim() || (source.kind !== "audio" && source.kind !== "video")) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_audio_source", message: `Runtime V2 audio clip ${clip.id} has invalid source metadata` });
+        }
+        if (!Number.isFinite(clip.timing.start) || clip.timing.start < 0 || !Number.isFinite(clip.timing.duration) || clip.timing.duration <= 0) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_audio_timing", message: `Runtime V2 audio clip ${clip.id} has invalid timing` });
+        }
+        if (!Number.isFinite(clip.trim.start) || clip.trim.start < 0 || (clip.trim.end !== undefined && (!Number.isFinite(clip.trim.end) || clip.trim.end <= clip.trim.start))) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_audio_trim", message: `Runtime V2 audio clip ${clip.id} has invalid trim` });
+        }
+        if (!Number.isFinite(clip.playbackRate) || clip.playbackRate <= 0 || !Number.isFinite(clip.gainDb)) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_audio_playback", message: `Runtime V2 audio clip ${clip.id} has invalid playback or gain` });
+        }
+        for (const fade of [clip.fadeIn, clip.fadeOut]) {
+          if (fade && (!Number.isFinite(fade.duration) || fade.duration <= 0 || fade.duration > clip.timing.duration || !["linear", "equal-power"].includes(fade.curve))) {
+            diagnostics.push({ severity: "error", code: "runtime_v2_audio_fade", message: `Runtime V2 audio clip ${clip.id} has invalid fade data` });
+          }
+        }
+      }
+    }
   }
 
   const ids = new Set<string>();

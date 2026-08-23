@@ -38,10 +38,6 @@
               "type": "string",
               "const": "srgb"
             },
-            "audioSampleRate": {
-              "type": "integer",
-              "exclusiveMinimum": 0
-            },
             "view": {
               "type": "object",
               "properties": {
@@ -148,7 +144,6 @@
             "fps",
             "background",
             "colorSpace",
-            "audioSampleRate",
             "view"
           ],
           "additionalProperties": false
@@ -230,6 +225,50 @@
                   "id",
                   "uri",
                   "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "audio"
+                  },
+                  "uri": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "duration": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "sampleRate": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "channels": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 32
+                  },
+                  "integrity": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "uri",
+                  "mimeType"
                 ],
                 "additionalProperties": false
               },
@@ -640,6 +679,80 @@
                             "radius",
                             "color",
                             "opacity"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "inner-glow"
+                            },
+                            "radius": {
+                              "type": "number",
+                              "exclusiveMinimum": 0,
+                              "maximum": 256
+                            },
+                            "color": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                            },
+                            "opacity": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "radius",
+                            "color",
+                            "opacity"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "noise"
+                            },
+                            "scale": {
+                              "type": "number",
+                              "exclusiveMinimum": 0,
+                              "maximum": 256
+                            },
+                            "amount": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "opacity": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "seed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4294967295
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "scale",
+                            "amount",
+                            "opacity",
+                            "seed"
                           ],
                           "additionalProperties": false
                         }
@@ -1345,6 +1458,137 @@
               }
             ]
           }
+        },
+        "audio": {
+          "type": "object",
+          "properties": {
+            "sampleRate": {
+              "type": "number",
+              "const": 48000
+            },
+            "tracks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "gainDb": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "pan": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 1
+                  },
+                  "muted": {
+                    "type": "boolean"
+                  },
+                  "clips": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "assetId": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "timing": {
+                          "type": "object",
+                          "properties": {
+                            "start": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing/properties/start"
+                            },
+                            "duration": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                            }
+                          },
+                          "required": [
+                            "start",
+                            "duration"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "trim": {
+                          "type": "object",
+                          "properties": {
+                            "start": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing/properties/start"
+                            },
+                            "end": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                            }
+                          },
+                          "required": [
+                            "start"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "playbackRate": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                        },
+                        "loop": {
+                          "type": "boolean"
+                        },
+                        "gainDb": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "fadeIn": {
+                          "type": "object",
+                          "properties": {
+                            "duration": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                            },
+                            "curve": {
+                              "type": "string",
+                              "enum": [
+                                "linear",
+                                "equal-power"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "duration",
+                            "curve"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "fadeOut": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/audio/properties/tracks/items/properties/clips/items/properties/fadeIn"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "assetId",
+                        "timing",
+                        "trim",
+                        "playbackRate",
+                        "loop",
+                        "gainDb"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "gainDb",
+                  "pan",
+                  "muted",
+                  "clips"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "sampleRate",
+            "tracks"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1352,7 +1596,9 @@
         "formatVersion",
         "id",
         "composition",
-        "layers"
+        "assets",
+        "layers",
+        "audio"
       ],
       "additionalProperties": false
     }

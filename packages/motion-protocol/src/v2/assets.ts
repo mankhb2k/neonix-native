@@ -24,6 +24,19 @@ export const V2VideoAssetSchema = z
   })
   .strict();
 
+export const V2AudioAssetSchema = z
+  .object({
+    id: V2IdSchema,
+    kind: z.literal("audio"),
+    uri: z.string().trim().min(1),
+    mimeType: z.string().trim().min(1),
+    duration: z.number().finite().nonnegative().optional(),
+    sampleRate: V2PositiveNumberSchema.int().optional(),
+    channels: V2PositiveNumberSchema.int().max(32).optional(),
+    integrity: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 /** An exact font face. Family names are display metadata; the binary hash is identity. */
 export const V2FontAssetSchema = z
   .object({
@@ -41,11 +54,13 @@ export const V2FontAssetSchema = z
 export const V2AssetSchema = z.discriminatedUnion("kind", [
   V2ImageAssetSchema,
   V2VideoAssetSchema,
+  V2AudioAssetSchema,
   V2FontAssetSchema,
 ]);
 export const V2AssetListSchema = z.array(V2AssetSchema);
 
 export type V2ImageAsset = z.infer<typeof V2ImageAssetSchema>;
 export type V2VideoAsset = z.infer<typeof V2VideoAssetSchema>;
+export type V2AudioAsset = z.infer<typeof V2AudioAssetSchema>;
 export type V2FontAsset = z.infer<typeof V2FontAssetSchema>;
 export type V2Asset = z.infer<typeof V2AssetSchema>;

@@ -14,7 +14,6 @@ const validProject = {
     fps: 30,
     background: "#101820",
     colorSpace: "srgb" as const,
-    audioSampleRate: 48000,
     view: {
       projection: { kind: "orthographic" as const, zoom: 1, near: 1, far: 4000 },
       transform: {
@@ -23,7 +22,9 @@ const validProject = {
       },
     },
   },
+  assets: [],
   layers: [],
+  audio: { sampleRate: 48000, tracks: [] },
 };
 
 describe("Protocol root API V2", () => {

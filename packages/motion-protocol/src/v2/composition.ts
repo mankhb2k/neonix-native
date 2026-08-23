@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  V2FiniteNumberSchema,
   V2PositiveNumberSchema,
   V2ColorSchema,
 } from "./common";
@@ -13,7 +12,6 @@ export const V2CompositionSchema = z
     fps: V2PositiveNumberSchema,
     background: V2ColorSchema,
     colorSpace: z.literal("srgb"),
-    audioSampleRate: V2FiniteNumberSchema.int().positive(),
     view: V2ViewSchema,
   })
   .strict();

@@ -12,7 +12,6 @@ const RECTANGLE_PROJECT = {
     fps: 30,
     background: "#101820",
     colorSpace: "srgb",
-    audioSampleRate: 48000,
     view: {
       projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
       transform: {
@@ -21,6 +20,7 @@ const RECTANGLE_PROJECT = {
       },
     },
   },
+  assets: [],
   layers: [
     {
       type: "shape",
@@ -41,6 +41,10 @@ const RECTANGLE_PROJECT = {
       style: { fill: "#00aa88" },
     },
   ],
+  audio: {
+    sampleRate: 48000,
+    tracks: [],
+  },
 };
 
 describe("Motion Protocol V2 schema", () => {
@@ -48,6 +52,103 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(RECTANGLE_PROJECT)).toEqual(
       RECTANGLE_PROJECT,
     );
+  });
+
+  it("accepts an explicit audio domain with trim, gain, pan, and fades", () => {
+    const audio = {
+      ...RECTANGLE_PROJECT,
+      assets: [{
+        id: "voice",
+        kind: "audio" as const,
+        uri: "/audio/voice.wav",
+        mimeType: "audio/wav",
+        duration: 4,
+        sampleRate: 48000,
+        channels: 2,
+      }],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "voice-track",
+          gainDb: 0,
+          pan: -0.25,
+          muted: false,
+          clips: [{
+            id: "voice-clip",
+            assetId: "voice",
+            timing: { start: 1, duration: 2 },
+            trim: { start: 0.5, end: 2.5 },
+            playbackRate: 1,
+            loop: false,
+            gainDb: -3,
+            fadeIn: { duration: 0.25, curve: "linear" as const },
+            fadeOut: { duration: 0.25, curve: "equal-power" as const },
+          }],
+        }],
+      },
+    };
+    expect(MotionProtocolV2Schema.parse(audio)).toEqual(audio);
+  });
+
+  it("rejects invalid audio references and duplicate audio identities", () => {
+    const audio = {
+      ...RECTANGLE_PROJECT,
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "track",
+          gainDb: 0,
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "clip",
+            assetId: "missing",
+            timing: { start: 0, duration: 1 },
+            trim: { start: 0 },
+            playbackRate: 1,
+            loop: false,
+            gainDb: 0,
+          }],
+        }],
+      },
+    };
+    expect(() => MotionProtocolV2Schema.parse(audio)).toThrow(/Unknown audio asset/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...audio,
+      assets: [{
+        id: "image",
+        kind: "image" as const,
+        uri: "/image.png",
+        mimeType: "image/png",
+      }],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          ...audio.audio.tracks[0],
+          clips: [{ ...audio.audio.tracks[0].clips[0], assetId: "image" }],
+        }],
+      },
+    })).toThrow(/audio or video asset/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [
+          { id: "track", gainDb: 0, pan: 0, muted: false, clips: [] },
+          { id: "track", gainDb: 0, pan: 0, muted: false, clips: [] },
+        ],
+      },
+    })).toThrow(/Duplicate audio track id/);
+  });
+
+  it("rejects the legacy composition audioSampleRate location", () => {
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      composition: {
+        ...RECTANGLE_PROJECT.composition,
+        audioSampleRate: 48000,
+      },
+    })).toThrow(/audioSampleRate/);
   });
 
   it("normalizes omitted layer opacity to one and rejects the legacy percent range", () => {

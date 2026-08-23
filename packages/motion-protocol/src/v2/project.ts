@@ -2,6 +2,7 @@ import { z } from "zod";
 import { V2CompositionSchema } from "./composition";
 import { V2IdSchema } from "./common";
 import { V2AssetListSchema } from "./assets";
+import { V2AudioDomainSchema } from "./audio";
 import { V2LayerListSchema } from "./layers";
 import type { MotionProtocolV2 } from "./types";
 
@@ -11,8 +12,9 @@ export const MotionProtocolV2Schema = z
     formatVersion: z.literal(2),
     id: V2IdSchema,
     composition: V2CompositionSchema,
-    assets: V2AssetListSchema.optional(),
+    assets: V2AssetListSchema,
     layers: V2LayerListSchema,
+    audio: V2AudioDomainSchema,
   })
   .strict()
   .superRefine((project, ctx) => {
@@ -20,7 +22,7 @@ export const MotionProtocolV2Schema = z
     const zIndexes = new Set<number>();
     const assetIds = new Set<string>();
     const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
-    for (const [index, asset] of (project.assets ?? []).entries()) {
+    for (const [index, asset] of project.assets.entries()) {
       if (assetIds.has(asset.id)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -29,6 +31,42 @@ export const MotionProtocolV2Schema = z
         });
       }
       assetIds.add(asset.id);
+    }
+    const trackIds = new Set<string>();
+    const audioClipIds = new Set<string>();
+    for (const [trackIndex, track] of project.audio.tracks.entries()) {
+      if (trackIds.has(track.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate audio track id: ${track.id}`,
+          path: ["audio", "tracks", trackIndex, "id"],
+        });
+      }
+      trackIds.add(track.id);
+      for (const [clipIndex, clip] of track.clips.entries()) {
+        if (audioClipIds.has(clip.id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Duplicate audio clip id: ${clip.id}`,
+            path: ["audio", "tracks", trackIndex, "clips", clipIndex, "id"],
+          });
+        }
+        audioClipIds.add(clip.id);
+        const source = project.assets.find((asset) => asset.id === clip.assetId);
+        if (!source) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Unknown audio asset: ${clip.assetId}`,
+            path: ["audio", "tracks", trackIndex, "clips", clipIndex, "assetId"],
+          });
+        } else if (source.kind !== "audio" && source.kind !== "video") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Audio clip must reference an audio or video asset: ${clip.assetId}`,
+            path: ["audio", "tracks", trackIndex, "clips", clipIndex, "assetId"],
+          });
+        }
+      }
     }
     for (const [index, layer] of project.layers.entries()) {
       if (ids.has(layer.id)) {

@@ -19,8 +19,58 @@ export type RuntimeCompositionV2 = {
   width: number;
   height: number;
   fps: number;
+  /** Compiler V2 emits the max visual/audio end time. */
+  duration?: number;
   background?: string;
   graphId: string;
+};
+
+export type RuntimeAudioFadeCurveV2 = "linear" | "equal-power";
+
+export type RuntimeAudioFadeV2 = {
+  duration: number;
+  curve: RuntimeAudioFadeCurveV2;
+};
+
+/** Immutable source metadata resolved from an Atomic Protocol V2 asset. */
+export type RuntimeAudioSourceV2 = {
+  assetId: string;
+  kind: "audio" | "video";
+  uri: string;
+  mimeType?: string;
+  duration?: number;
+  sampleRate?: number;
+  channels?: number;
+  integrity?: string;
+};
+
+export type RuntimeAudioClipV2 = {
+  id: string;
+  assetId: string;
+  source: RuntimeAudioSourceV2;
+  timing: RuntimeTimingV2;
+  trim: {
+    start: number;
+    end?: number;
+  };
+  playbackRate: number;
+  loop: boolean;
+  gainDb: number;
+  fadeIn?: RuntimeAudioFadeV2;
+  fadeOut?: RuntimeAudioFadeV2;
+};
+
+export type RuntimeAudioTrackV2 = {
+  id: string;
+  gainDb: number;
+  pan: number;
+  muted: boolean;
+  clips: RuntimeAudioClipV2[];
+};
+
+export type RuntimeAudioProjectV2 = {
+  sampleRate: 48000;
+  tracks: RuntimeAudioTrackV2[];
 };
 
 export type RuntimeViewV2 = {
@@ -173,6 +223,8 @@ export type RuntimeProjectV2 = {
   composition: RuntimeCompositionV2;
   view: RuntimeViewV2;
   nodes: RuntimeNodeV2[];
+  /** Compiler V2 always emits this; older in-memory fixtures may omit it. */
+  audio?: RuntimeAudioProjectV2;
 };
 
 export type RuntimeDiagnosticV2 = {

@@ -8,6 +8,7 @@ import {
   translationMatrix3D,
   transformPoint4,
 } from "@motionvideo/motion-runtime";
+import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
 import { compileProtocolV2, compileProtocolV2ToPaintCommands } from "./index";
 
 const identity = {
@@ -28,7 +29,6 @@ const base = {
     fps: 30,
     background: "#101820",
     colorSpace: "srgb" as const,
-    audioSampleRate: 48000,
     view: {
       projection: { kind: "orthographic" as const, zoom: 1, near: 1, far: 4000 },
       transform: {
@@ -37,6 +37,8 @@ const base = {
       },
     },
   },
+  assets: [],
+  audio: { sampleRate: 48000, tracks: [] },
 };
 
 describe("Protocol V2 Compiler B", () => {
@@ -123,6 +125,66 @@ describe("Protocol V2 Compiler B", () => {
     expect(runtime.nodes[0]?.localMatrix).toHaveLength(16);
     expect(runtime.nodes[0]?.worldMatrix).toHaveLength(16);
     expect(runtime.view.worldToClipMatrix).toHaveLength(16);
+  });
+
+  it("lowers a silent project into an empty Runtime Audio IR", () => {
+    const runtime = compileProtocolV2({ ...base, layers: [] });
+
+    expect(runtime.audio).toEqual({ sampleRate: 48000, tracks: [] });
+    expect(runtime.composition.duration).toBe(0);
+  });
+
+  it("resolves audio source metadata and extends duration for audio-only projects", () => {
+    const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.fade");
+    expect(fixture).toBeDefined();
+    const runtime = compileProtocolV2(fixture!.project);
+    const clip = runtime.audio?.tracks[0]?.clips[0];
+
+    expect(runtime.nodes).toEqual([]);
+    expect(runtime.composition.duration).toBe(20);
+    expect(clip).toMatchObject({
+      id: "fade-clip",
+      assetId: "music-mbb-island-tropical",
+      source: {
+        assetId: "music-mbb-island-tropical",
+        kind: "audio",
+        uri: "/api/docs/audio",
+        mimeType: "audio/mpeg",
+      },
+      timing: { start: 0, duration: 20 },
+      trim: { start: 52, end: 72 },
+      fadeIn: { duration: 4, curve: "linear" },
+      fadeOut: { duration: 4, curve: "equal-power" },
+    });
+  });
+
+  it("keeps visual Runtime nodes unchanged when audio is added", () => {
+    const visual = {
+      ...base,
+      layers: [{
+        id: "visual-rectangle",
+        type: "shape" as const,
+        parentLayerId: null,
+        zIndex: 0,
+        frame: { width: 80, height: 40 },
+        transform: identity,
+        opacity: 1,
+        timing: { start: 0, duration: 2 },
+        payload: { shape: "rectangle" as const },
+        style: { fill: "#00aa88" },
+      }],
+    };
+    const withoutAudio = compileProtocolV2(visual);
+    const audioProject = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.timing")!.project;
+    const withAudio = compileProtocolV2({
+      ...visual,
+      assets: audioProject.assets,
+      audio: audioProject.audio,
+    });
+
+    expect(withAudio.nodes).toEqual(withoutAudio.nodes);
+    expect(withAudio.audio?.tracks).toHaveLength(1);
+    expect(withAudio.composition.duration).toBe(4.5);
   });
 
   it("uses normalized default opacity when Atomic V2 omits it", () => {
