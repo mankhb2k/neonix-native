@@ -1,6 +1,6 @@
 # Audio Domain V2 Completion Plan
 
-> Status: Phase 0 through Phase 4 implemented; Phase 5 planned
+> Status: Phase 0 through Phase 5 implemented; Phase 6 planned
 >
 > Scope: complete the audio domain of Atomic Protocol V2 across protocol,
 > compiler, runtime, playback preview, and Remotion export.
@@ -284,6 +284,10 @@ Acceptance:
 
 ### Phase 5 - Shared transport and playback engine
 
+Status: complete. Playback Engine V2 now coordinates visual frame evaluation
+and audio sample-range plans from one monotonic composition clock. It does not
+decode media or create WebAudio nodes.
+
 - Extend `packages/playback-engine` into a coordinator for visual frame
   evaluation and audio sample-range scheduling from one monotonic composition
   clock.
@@ -300,6 +304,10 @@ Acceptance:
 - Visual and audio consumers receive the same composition time after play,
   pause, seek, and resume.
 - Audio-only projects can play and seek without requiring a visual node.
+- Audio scheduling exposes a deterministic block window and seek preroll while
+  keeping `RuntimeFrameV2` and `RuntimeAudioMixPlanV2` as separate outputs.
+- Playback duration is the maximum of declared composition, visual node, and
+  audio clip duration.
 
 ### Phase 6 - Web preview audio adapter
 

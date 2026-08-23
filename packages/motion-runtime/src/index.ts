@@ -24,6 +24,8 @@ export {
   frameToTime,
   numericThenId,
   roundTimeToFrame,
+  samplesToSeconds,
+  secondsToSamples,
 } from "./determinism";
 export * from "./media-timing";
 export * from "./capability-ledger";

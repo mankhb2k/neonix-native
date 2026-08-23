@@ -1,13 +1,24 @@
 import {
+  evaluateRuntimeAudioMixV2,
   evaluateRuntimeProjectV2,
   frameIndexAtTime,
+  secondsToSamples,
+  type RuntimeAudioMixPlanV2,
   type RuntimeFrameV2,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import { createPlaybackClock } from "./playback-clock";
 
 export type PlaybackV2Consumer = {
-  paintCompositionFrame(frame: RuntimeFrameV2): void;
+  paintCompositionFrame?(frame: RuntimeFrameV2): void;
+  consumeAudioMixPlan?(plan: RuntimeAudioMixPlanV2, context: PlaybackAudioPlanContextV2): void;
+};
+
+export type PlaybackAudioPlanContextV2 = {
+  /** The shared composition time represented by the visual frame. */
+  time: number;
+  /** True when the range includes seek restart preroll. */
+  preroll: boolean;
 };
 
 export type PlaybackV2Scheduler = {
@@ -18,6 +29,20 @@ export type PlaybackV2Scheduler = {
 
 export type PlaybackEngineV2Options = {
   scheduler?: PlaybackV2Scheduler;
+  audio?: PlaybackAudioSchedulingPolicyV2;
+};
+
+export type PlaybackAudioSchedulingPolicyV2 = {
+  /** Number of composition seconds exposed to the next audio scheduling pass. */
+  blockDuration?: number;
+  /** Seconds scheduled before a seek position so an adapter can restart cleanly. */
+  seekPreroll?: number;
+};
+
+export type PlaybackV2Output = {
+  time: number;
+  frame: RuntimeFrameV2;
+  audioPlan: RuntimeAudioMixPlanV2;
 };
 
 export type PlaybackEngineV2 = {
@@ -25,6 +50,7 @@ export type PlaybackEngineV2 = {
   play(): void;
   pause(): void;
   seek(time: number): void;
+  renderAt(time: number): PlaybackV2Output | null;
   renderFrameAt(time: number): RuntimeFrameV2 | null;
   readonly playing: boolean;
   readonly currentTime: number;
@@ -34,10 +60,29 @@ export type PlaybackEngineV2 = {
 };
 
 function runtimeDuration(runtime: RuntimeProjectV2): number {
-  return runtime.nodes.reduce(
+  const visualDuration = runtime.nodes.reduce(
     (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),
     0,
   );
+  const audioDuration = runtime.audio?.tracks.reduce(
+    (duration, track) => track.clips.reduce(
+      (trackDuration, clip) => Math.max(
+        trackDuration,
+        clip.timing.start + clip.timing.duration,
+      ),
+      duration,
+    ),
+    0,
+  ) ?? 0;
+  return Math.max(runtime.composition.duration ?? 0, visualDuration, audioDuration);
+}
+
+function positivePolicyValue(value: number | undefined, fallback: number, name: string): number {
+  if (value === undefined) return fallback;
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Playback ${name} must be finite and positive`);
+  }
+  return value;
 }
 
 /**
@@ -50,6 +95,8 @@ export function createPlaybackEngineV2(
   options: PlaybackEngineV2Options = {},
 ): PlaybackEngineV2 {
   const scheduler = options.scheduler ?? defaultScheduler();
+  const audioBlockDuration = positivePolicyValue(options.audio?.blockDuration, 0.1, "audio block duration");
+  const seekPreroll = positivePolicyValue(options.audio?.seekPreroll, 0.05, "audio seek preroll");
   let runtime: RuntimeProjectV2 | null = null;
   let duration = 0;
   let clock = createPlaybackClock({
@@ -60,13 +107,23 @@ export function createPlaybackEngineV2(
   let scheduleHandle: unknown = null;
   let disposed = false;
 
-  const render = (nextTime: number): RuntimeFrameV2 | null => {
+  const render = (nextTime: number, preroll = false): PlaybackV2Output | null => {
     if (!runtime) return null;
     const clamped = Math.min(duration, Math.max(0, nextTime));
     const frame = frameIndexAtTime(clamped, runtime.composition.fps);
     const evaluated = evaluateRuntimeProjectV2(runtime, frame, { time: clamped });
-    consumer.paintCompositionFrame(evaluated);
-    return evaluated;
+    const sampleRate = runtime.audio?.sampleRate ?? 48000;
+    const startTime = Math.max(0, clamped - (preroll ? seekPreroll : 0));
+    const endTime = Math.max(clamped, Math.min(duration, clamped + audioBlockDuration));
+    const startSample = secondsToSamples(startTime, sampleRate);
+    const endSample = Math.max(
+      startSample + 1,
+      secondsToSamples(endTime, sampleRate),
+    );
+    const audioPlan = evaluateRuntimeAudioMixV2(runtime, { startSample, endSample });
+    consumer.paintCompositionFrame?.(evaluated);
+    consumer.consumeAudioMixPlan?.(audioPlan, { time: clamped, preroll });
+    return { time: clamped, frame: evaluated, audioPlan };
   };
 
   const cancelScheduledFrame = () => {
@@ -116,11 +173,15 @@ export function createPlaybackEngineV2(
     },
     seek(nextTime) {
       clock.seek(Math.min(duration, Math.max(0, nextTime)));
-      if (runtime) render(clock.currentTime());
+      if (runtime) render(clock.currentTime(), true);
+    },
+    renderAt(nextTime) {
+      clock.seek(Math.min(duration, Math.max(0, nextTime)));
+      return render(clock.currentTime());
     },
     renderFrameAt(nextTime) {
       clock.seek(Math.min(duration, Math.max(0, nextTime)));
-      return render(clock.currentTime());
+      return render(clock.currentTime())?.frame ?? null;
     },
     get playing() {
       return clock.isRunning();

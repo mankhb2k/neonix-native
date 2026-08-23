@@ -57,7 +57,10 @@ export {
   createPlaybackEngineV2,
   type PlaybackEngineV2,
   type PlaybackV2Consumer,
+  type PlaybackAudioPlanContextV2,
+  type PlaybackAudioSchedulingPolicyV2,
   type PlaybackEngineV2Options,
+  type PlaybackV2Output,
   type PlaybackV2Scheduler,
 } from "./playback-engine-v2";
 
