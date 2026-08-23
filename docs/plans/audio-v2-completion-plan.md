@@ -1,6 +1,6 @@
 # Audio Domain V2 Completion Plan
 
-> Status: Phase 0 through Phase 5 implemented; Phase 6 planned
+> Status: Phase 0 through Phase 6 implemented; Phase 7 planned
 >
 > Scope: complete the audio domain of Atomic Protocol V2 across protocol,
 > compiler, runtime, playback preview, and Remotion export.
@@ -311,6 +311,11 @@ Acceptance:
 
 ### Phase 6 - Web preview audio adapter
 
+Status: complete. The browser preview now consumes `AudioMixPlanV2` through a
+renderer-independent WebAudio adapter. The adapter owns browser decode,
+resampling, node scheduling, cache, and diagnostics; protocol meaning remains
+in Runtime V2.
+
 - Add a browser-only WebAudio adapter behind the preview surface, not inside
   `preview-renderer`.
 - Resolve audio/video asset sources, decode, resample to 48 kHz, cache decoded
@@ -330,6 +335,10 @@ Acceptance:
   visual transport time.
 - Preview tests verify mix-plan scheduling; browser tests verify audible graph
   construction without relying on human listening.
+- Track fixtures in `/docs/preview` use the WebAudio adapter; asset-only
+  audition remains an explicit native fallback because it has no atomic clip.
+- Decode failures, unavailable sources, closed contexts, and blocked autoplay
+  produce stable adapter diagnostics instead of silent fallback.
 
 ### Phase 7 - Remotion export adapter
 

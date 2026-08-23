@@ -62,8 +62,37 @@ engine.play();           // realtime clock; video element is already playing
 ```
 
 Clock, quality, metrics, frame buffering, media texture transport, and worker
-ports remain backend-neutral utilities. Audio scheduling is intentionally not
-part of this package until its V2 protocol contract is certified.
+ports remain backend-neutral utilities. The optional browser-only WebAudio
+adapter is separate from the pure runtime and can consume the same engine
+output without entering `preview-renderer`:
+
+```ts
+import {
+  createPlaybackEngineV2,
+  createWebAudioAdapterV2,
+} from "@motionvideo/playback-engine";
+
+const audio = createWebAudioAdapterV2();
+const engine = createPlaybackEngineV2({
+  paintCompositionFrame(frame) {
+    painter.paint(frame);
+  },
+  consumeAudioMixPlan(plan, context) {
+    audio.consumeAudioMixPlan(plan, context);
+  },
+});
+
+engine.load(runtime);
+await audio.resume(); // call from a user gesture in the browser
+engine.play();
+// On host pause/seek: engine.pause(); audio.pause(); / engine.seek(t)
+```
+
+The adapter resolves immutable V2 asset sources, caches decoded buffers,
+resamples them to 48 kHz, and schedules source -> gain -> stereo-pan graphs
+from `RuntimeAudioMixPlanV2`. It reports autoplay, source, decode, resampling,
+and context failures through diagnostics. It does not parse protocol JSON,
+evaluate timing, or create GPU resources.
 
 ## Scripts
 

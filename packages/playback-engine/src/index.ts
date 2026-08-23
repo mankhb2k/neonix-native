@@ -65,6 +65,22 @@ export {
 } from "./playback-engine-v2";
 
 export {
+  createWebAudioAdapterV2,
+  type WebAudioAdapterV2,
+  type WebAudioAdapterV2Options,
+  type WebAudioBufferSourceV2,
+  type WebAudioBufferV2,
+  type WebAudioContextV2,
+  type WebAudioDiagnosticCodeV2,
+  type WebAudioDiagnosticV2,
+  type WebAudioGainNodeV2,
+  type WebAudioNodeV2,
+  type WebAudioOfflineContextV2,
+  type WebAudioPannerNodeV2,
+  type WebAudioParamV2,
+} from "./web-audio-adapter-v2";
+
+export {
   type ClockDrive,
   type PresentMode,
   type PreviewWorkerPort,

@@ -14,10 +14,12 @@ import type {
   PreviewBackendKind,
   PreviewBackendPreference,
 } from "@motionvideo/preview-renderer";
+import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import { compileProtocolV2 } from "@motionvideo/motion-compiler";
 import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
 import {
   createPlaybackEngineV2,
+  createWebAudioAdapterV2,
   type PlaybackEngineV2,
 } from "@motionvideo/playback-engine";
 
@@ -124,13 +126,17 @@ export function PreviewLab() {
         </header>
 
         <div className="flex min-w-0 flex-col items-start gap-4 xl:flex-row">
-          <PreviewPlayback
-            key={selected.id}
-            project={selected.project}
-            backend={backend}
-            initialTime={time}
-            onBackendChange={selectBackend}
-          />
+          {selected.audioFixture ? (
+            <AudioFixturePreview fixture={selected.audioFixture} />
+          ) : (
+            <PreviewPlayback
+              key={selected.id}
+              project={selected.project}
+              backend={backend}
+              initialTime={time}
+              onBackendChange={selectBackend}
+            />
+          )}
 
           <aside className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0c0e14]">
             <p className="shrink-0 border-b border-white/10 px-3 py-2 text-[12px] font-medium text-slate-300">
@@ -144,6 +150,337 @@ export function PreviewLab() {
       </section>
     </div>
   );
+}
+
+function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
+  const asset = fixture.project.assets.find((item) =>
+    fixture.project.audio.tracks.some((track) =>
+      track.clips.some((clip) => clip.assetId === item.id),
+    ) || item.kind === "audio",
+  );
+  const tracks = fixture.project.audio.tracks;
+  const firstClip = tracks.flatMap((track) => track.clips)[0];
+  const firstTrack = tracks[0];
+  const assetDuration = asset && "duration" in asset ? asset.duration : undefined;
+  const auditionClip = firstClip ?? (
+    asset?.kind === "audio" && assetDuration != null
+      ? {
+          id: `${asset.id}-audition`,
+          assetId: asset.id,
+          timing: { start: 0, duration: assetDuration },
+          trim: { start: 0, end: assetDuration },
+          playbackRate: 1,
+          loop: false,
+          gainDb: 0,
+        }
+      : undefined
+  );
+
+  return (
+    <div
+      className="w-full max-w-[960px] shrink-0 overflow-hidden rounded-lg border border-cyan-300/20 bg-[#0c1118]"
+      data-testid="audio-fixture-preview"
+    >
+      <div className="border-b border-white/10 px-4 py-3">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">
+          Audio contract preview
+        </p>
+        <p className="mt-1 text-[13px] text-slate-300">
+          V2 track fixtures schedule AudioMixPlanV2 through the browser WebAudio
+          adapter. Asset-only audition remains a native fallback because it has
+          no atomic clip to schedule.
+        </p>
+      </div>
+      <div className="space-y-4 p-4">
+        {asset && auditionClip ? (
+          <AudioClipTransport
+            assetUri={asset.uri}
+            assetDuration={assetDuration}
+            clip={auditionClip}
+            muted={firstTrack?.muted ?? false}
+            project={fixture.project}
+          />
+        ) : (
+          <audio
+            controls
+            preload="metadata"
+            src={asset?.uri}
+            className="w-full"
+            data-testid="audio-fixture-element"
+          />
+        )}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <AudioMetric label="Sample rate" value={`${fixture.project.audio.sampleRate} Hz`} />
+          <AudioMetric label="Tracks" value={String(tracks.length)} />
+          <AudioMetric label="Asset" value={asset?.kind ?? "none"} />
+        </div>
+        <div className="space-y-2" data-testid="audio-fixture-tracks">
+          {tracks.length === 0 ? (
+            <p className="text-[12px] text-slate-500">Asset-only fixture; no track is scheduled.</p>
+          ) : tracks.map((track) => (
+            <div key={track.id} className="border border-white/10 bg-[#101721] p-3 text-[12px]">
+              <div className="flex flex-wrap justify-between gap-2 text-slate-200">
+                <span>{track.id}</span>
+                <span className="font-mono text-slate-400">
+                  gain {track.gainDb} dB / pan {track.pan} / {track.muted ? "muted" : "active"}
+                </span>
+              </div>
+              <div className="mt-2 space-y-1 text-slate-400">
+                {track.clips.map((clip) => (
+                  <p key={clip.id} className="font-mono">
+                    {clip.id}: t={clip.timing.start}s +{clip.timing.duration}s, trim {clip.trim.start}
+                    {clip.trim.end != null ? `-${clip.trim.end}` : "+"}, rate {clip.playbackRate}
+                    {`, gain ${clip.gainDb} dB, total ${track.gainDb + clip.gainDb} dB`}
+                    {clip.loop ? ", loop" : ""}
+                    {clip.fadeIn || clip.fadeOut
+                      ? `, fade in ${clip.fadeIn?.duration ?? 0}s / out ${clip.fadeOut?.duration ?? 0}s`
+                      : ""}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AudioMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-white/10 bg-[#101721] px-3 py-2">
+      <p className="text-[10px] tracking-[0.12em] text-slate-500 uppercase">{label}</p>
+      <p className="mt-1 font-mono text-[12px] text-cyan-100">{value}</p>
+    </div>
+  );
+}
+
+function AudioClipTransport({
+  assetUri,
+  assetDuration,
+  clip,
+  muted,
+  project,
+}: {
+  assetUri: string;
+  assetDuration?: number;
+  clip: V2AudioFixture["project"]["audio"]["tracks"][number]["clips"][number];
+  muted: boolean;
+  project: V2AudioFixture["project"];
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const engineRef = useRef<PlaybackEngineV2 | null>(null);
+  const audioAdapterRef = useRef<ReturnType<typeof createWebAudioAdapterV2> | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const runtime = useMemo(() => compileProtocolV2(project), [project]);
+  const usesRuntimeAudio = useMemo(
+    () => runtime.audio?.tracks.some((track) => track.clips.some((item) => item.id === clip.id)) ?? false,
+    [clip.id, runtime],
+  );
+  const trimStart = clip.trim.start;
+  const trimEnd = clip.trim.end ?? trimStart + clip.timing.duration * clip.playbackRate;
+  const sourceSpan = Math.max(0.01, trimEnd - trimStart);
+
+  useEffect(() => {
+    if (!usesRuntimeAudio) return;
+    const adapter = createWebAudioAdapterV2();
+    const engine = createPlaybackEngineV2({
+      paintCompositionFrame(frame) {
+        const nextElapsed = Math.min(
+          clip.timing.duration,
+          Math.max(0, frame.time - clip.timing.start),
+        );
+        setElapsed(nextElapsed);
+        if (audioRef.current) audioRef.current.volume = fadeGainAt(clip, nextElapsed);
+        if (frame.time >= clip.timing.start + clip.timing.duration) {
+          engine.pause();
+          adapter.pause();
+          setIsPlaying(false);
+        }
+      },
+      consumeAudioMixPlan(plan, context) {
+        adapter.consumeAudioMixPlan(plan, context);
+      },
+    });
+    engine.load(runtime);
+    engineRef.current = engine;
+    audioAdapterRef.current = adapter;
+    engine.renderFrameAt(clip.timing.start);
+    return () => {
+      engine.dispose();
+      adapter.dispose();
+      if (engineRef.current === engine) engineRef.current = null;
+      if (audioAdapterRef.current === adapter) audioAdapterRef.current = null;
+    };
+  }, [clip, runtime, usesRuntimeAudio]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    engineRef.current?.pause();
+    audioAdapterRef.current?.pause();
+    audio.pause();
+    setIsPlaying(false);
+    setElapsed(0);
+    if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      audio.currentTime = trimStart;
+    }
+  }, [assetUri, clip.id, trimStart]);
+
+  function seek(nextElapsed: number) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const next = Math.min(Math.max(0, nextElapsed), clip.timing.duration);
+    if (usesRuntimeAudio && engineRef.current) {
+      engineRef.current.pause();
+      audioAdapterRef.current?.pause();
+      engineRef.current.seek(clip.timing.start + next);
+      audio.volume = fadeGainAt(clip, next);
+      setElapsed(next);
+      setIsPlaying(false);
+      return;
+    }
+    const sourceOffset = next * clip.playbackRate;
+    audio.currentTime = clip.loop
+      ? trimStart + (sourceOffset % sourceSpan)
+      : Math.min(trimStart + sourceOffset, trimEnd);
+    audio.volume = fadeGainAt(clip, next);
+    setElapsed(next);
+  }
+
+  async function togglePlayback() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (usesRuntimeAudio && engineRef.current && audioAdapterRef.current) {
+      if (engineRef.current.playing) {
+        engineRef.current.pause();
+        audioAdapterRef.current.pause();
+        setIsPlaying(false);
+        return;
+      }
+      if (elapsed >= clip.timing.duration) seek(0);
+      const resumed = await audioAdapterRef.current.resume();
+      if (!resumed) {
+        setIsPlaying(false);
+        return;
+      }
+      engineRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
+    if (audio.paused) {
+      if (elapsed >= clip.timing.duration) seek(0);
+      audio.volume = fadeGainAt(clip, elapsed);
+      void audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2 border border-white/10 bg-[#101721] p-3" data-testid="audio-clip-transport">
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        src={assetUri}
+        muted={muted}
+        className="hidden"
+        data-testid="audio-fixture-element"
+        data-audio-backend={usesRuntimeAudio ? "web-audio-v2" : "native-fallback"}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = trimStart;
+            audioRef.current.volume = fadeGainAt(clip, 0);
+          }
+        }}
+        onTimeUpdate={() => {
+          const audio = audioRef.current;
+          if (!audio) return;
+          if (audio.currentTime >= trimEnd - 0.02) {
+            if (clip.loop) {
+              audio.currentTime = trimStart;
+              setElapsed(0);
+            } else {
+              audio.pause();
+              audio.volume = 0;
+              setIsPlaying(false);
+              setElapsed(clip.timing.duration);
+            }
+            return;
+          }
+          const nextElapsed = Math.min(
+            clip.timing.duration,
+            Math.max(0, (audio.currentTime - trimStart) / clip.playbackRate),
+          );
+          audio.volume = fadeGainAt(clip, nextElapsed);
+          setElapsed(nextElapsed);
+        }}
+        onEnded={() => setIsPlaying(false)}
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-100 hover:bg-white/10"
+          aria-label={isPlaying ? "Pause audio clip" : "Play audio clip"}
+          data-testid="audio-clip-play-toggle"
+          onClick={togglePlayback}
+        >
+          {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+        </button>
+        <input
+          type="range"
+          min="0"
+          max={clip.timing.duration}
+          step="0.01"
+          value={elapsed}
+          aria-label="Trimmed audio clip time"
+          data-testid="audio-clip-time-slider"
+          className="h-1.5 min-w-0 flex-1 accent-cyan-400"
+          onChange={(event) => seek(Number(event.target.value))}
+        />
+        <span className="shrink-0 font-mono text-[11px] tabular-nums text-slate-300">
+          {formatAudioTime(elapsed)} / {formatAudioTime(clip.timing.duration)}
+        </span>
+      </div>
+      <p className="font-mono text-[11px] text-slate-500">
+        {muted ? "Track output: muted. " : ""}
+        Source range: {formatAudioTime(trimStart)} - {formatAudioTime(trimEnd)}
+        {assetDuration != null ? ` of ${formatAudioTime(assetDuration)}` : ""}
+        {clip.loop ? " / loop" : ""}
+      </p>
+    </div>
+  );
+}
+
+function fadeGainAt(
+  clip: V2AudioFixture["project"]["audio"]["tracks"][number]["clips"][number],
+  elapsed: number,
+): number {
+  let gain = 1;
+  if (clip.fadeIn && clip.fadeIn.duration > 0 && elapsed < clip.fadeIn.duration) {
+    const progress = Math.min(1, elapsed / clip.fadeIn.duration);
+    gain *= clip.fadeIn.curve === "equal-power"
+      ? Math.sin(progress * Math.PI / 2)
+      : progress;
+  }
+  const fadeOutStart = clip.timing.duration - (clip.fadeOut?.duration ?? 0);
+  if (clip.fadeOut && elapsed > fadeOutStart) {
+    const progress = Math.min(1, Math.max(0, (elapsed - fadeOutStart) / clip.fadeOut.duration));
+    gain *= clip.fadeOut.curve === "equal-power"
+      ? Math.cos(progress * Math.PI / 2)
+      : 1 - progress;
+  }
+  const normalized = Math.min(1, Math.max(0, gain));
+  return normalized < 1e-9 ? 0 : normalized;
+}
+
+function formatAudioTime(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = String(safeSeconds % 60).padStart(2, "0");
+  return `${minutes}:${remainder}`;
 }
 
 function PreviewPlayback({
@@ -160,6 +497,10 @@ function PreviewPlayback({
   const runtime = useMemo(() => compileProtocolV2(project), [project]);
   const duration = Math.max(
     1,
+    runtime.composition.duration ?? 0,
+    ...(runtime.audio?.tracks.flatMap((track) =>
+      track.clips.map((clip) => clip.timing.start + clip.timing.duration),
+    ) ?? []),
     ...runtime.nodes.map(
       (node) => node.timing.start + node.timing.duration,
     ),
