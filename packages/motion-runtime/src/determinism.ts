@@ -84,6 +84,32 @@ export function frameToTime(frame: number, fps: number): number {
   return frame / fps;
 }
 
+/** Convert seconds to a deterministic half-open sample boundary. */
+export function secondsToSamples(seconds: number, sampleRate: number): number {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    throw new Error("Seconds must be finite and non-negative");
+  }
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0) {
+    throw new Error("Sample rate must be finite and positive");
+  }
+  const samples = Math.floor(seconds * sampleRate + TIME_CLAMP_EPSILON);
+  if (!Number.isSafeInteger(samples)) {
+    throw new Error("Sample boundary exceeds safe integer range");
+  }
+  return samples;
+}
+
+/** Convert a non-negative sample boundary back to composition seconds. */
+export function samplesToSeconds(sample: number, sampleRate: number): number {
+  if (!Number.isSafeInteger(sample) || sample < 0) {
+    throw new Error("Sample must be a non-negative safe integer");
+  }
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0) {
+    throw new Error("Sample rate must be finite and positive");
+  }
+  return sample / sampleRate;
+}
+
 /**
  * Clamp a local time into the half-open segment window `[0, duration)`.
  * Never returns `duration` itself (backed off by `TIME_CLAMP_EPSILON`), so

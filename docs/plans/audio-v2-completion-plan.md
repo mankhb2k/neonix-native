@@ -1,6 +1,6 @@
 # Audio Domain V2 Completion Plan
 
-> Status: Phase 0, Phase 1, Phase 2, and Phase 3 implemented; Phase 4 planned
+> Status: Phase 0 through Phase 4 implemented; Phase 5 planned
 >
 > Scope: complete the audio domain of Atomic Protocol V2 across protocol,
 > compiler, runtime, playback preview, and Remotion export.
@@ -259,6 +259,12 @@ Acceptance:
 - A project with only audio has a non-zero runtime duration.
 
 ### Phase 4 - Sample-accurate audio evaluation
+
+Status: complete. Runtime V2 now exposes deterministic seconds/sample helpers
+and a pure `evaluateRuntimeAudioMixV2()` evaluator. It emits stable ordered
+mix inputs with trim ranges, loop segments, gain envelopes, pan, mute state,
+and source metadata. It does not access clocks, decoders, WebAudio, or video
+frames.
 
 - Add deterministic seconds-to-sample helpers in `motion-runtime`.
 - Implement `evaluateRuntimeAudioMixV2()` as a pure evaluator of sample

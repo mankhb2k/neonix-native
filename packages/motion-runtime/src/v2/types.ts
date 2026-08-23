@@ -73,6 +73,47 @@ export type RuntimeAudioProjectV2 = {
   tracks: RuntimeAudioTrackV2[];
 };
 
+export type RuntimeAudioFadeProgressV2 = {
+  curve: RuntimeAudioFadeCurveV2;
+  start: number;
+  end: number;
+};
+
+export type RuntimeAudioGainEnvelopeV2 = {
+  baseGain: number;
+  fadeIn?: RuntimeAudioFadeProgressV2;
+  fadeOut?: RuntimeAudioFadeProgressV2;
+};
+
+export type RuntimeAudioMixSegmentV2 = {
+  compositionStartSample: number;
+  compositionEndSample: number;
+  sourceStartSample: number;
+  sourceEndSample: number;
+  loopIndex: number;
+  gainEnvelope: RuntimeAudioGainEnvelopeV2;
+};
+
+export type RuntimeAudioMixInputV2 = {
+  trackId: string;
+  clipId: string;
+  assetId: string;
+  source: RuntimeAudioSourceV2;
+  sourceSampleRate: number;
+  pan: number;
+  muted: boolean;
+  compositionStartSample: number;
+  compositionEndSample: number;
+  segments: RuntimeAudioMixSegmentV2[];
+};
+
+export type RuntimeAudioMixPlanV2 = {
+  sampleRate: 48000;
+  startSample: number;
+  endSample: number;
+  inputs: RuntimeAudioMixInputV2[];
+};
+
 export type RuntimeViewV2 = {
   /** The only view value Runtime V2 exposes to painters: world space to clip space. */
   worldToClipMatrix: Matrix4;

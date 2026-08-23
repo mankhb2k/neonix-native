@@ -1,5 +1,10 @@
 export { evaluateRuntimeProjectV2 } from "./evaluate";
 export {
+  evaluateRuntimeAudioMixV2,
+  gainDbToLinearV2,
+  type RuntimeAudioMixRangeV2,
+} from "./audio-mix";
+export {
   prepareRuntimeProjectV2Text,
   type PrepareRuntimeTextResultV2,
   type RuntimeTextFontResolverV2,
@@ -35,6 +40,11 @@ export type {
   RuntimeAudioClipV2,
   RuntimeAudioFadeCurveV2,
   RuntimeAudioFadeV2,
+  RuntimeAudioFadeProgressV2,
+  RuntimeAudioGainEnvelopeV2,
+  RuntimeAudioMixInputV2,
+  RuntimeAudioMixPlanV2,
+  RuntimeAudioMixSegmentV2,
   RuntimeAudioProjectV2,
   RuntimeAudioSourceV2,
   RuntimeAudioTrackV2,
