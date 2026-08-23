@@ -13,7 +13,7 @@ describe("Protocol V2 audio fixture catalog", () => {
       expect(fixtureIds.has(entry.fixtureId)).toBe(true);
       const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === entry.fixtureId);
       expect(fixture?.capability).toBe(entry.id);
-      expect(entry.status).toBe("runtime-ready");
+      expect(entry.status).toBe("certified");
       expect(isV2AtomCertified(entry.id)).toBe(false);
       expect(MotionProtocolV2Schema.parse(fixture?.project)).toEqual(fixture?.project);
     }

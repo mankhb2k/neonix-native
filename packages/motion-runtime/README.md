@@ -2,7 +2,7 @@
 
 Runtime IR V2 evaluator. Runtime does not parse authoring JSON; it receives
 `RuntimeProjectV2`, resolves timing and stable order, and returns
-`RuntimeFrameV2` with a backend-neutral `PaintCommandBuffer`.
+  `RuntimeFrameV2` with a backend-neutral `PaintCommandBuffer`.
 
 ```text
 Atomic Protocol V2
@@ -24,6 +24,7 @@ Atomic Protocol V2
 | `matrix4` | Backend-neutral 3D transforms and projection |
 | `paint` | PaintCommandBuffer contract |
 | `clock` | Frame/time quantization |
+| `audio-mix` | Sample-accurate RuntimeAudioMixPlanV2 evaluation |
 
 ## Matrix4 hard-lock
 
@@ -35,7 +36,13 @@ optional fallback.
 
 Those adapters may exist temporarily for the deferred editor migration, but
 they are editor-local implementation details and never Runtime IR. Preview and
-Remotion consume only `RuntimeFrameV2` / `PaintCommandBuffer`.
+Remotion consume only `RuntimeFrameV2` / `PaintCommandBuffer` for visual
+output.
+
+Audio is a parallel runtime output. `evaluateRuntimeAudioMixV2()` returns a
+`RuntimeAudioMixPlanV2` from a sample range; it never decodes media or creates
+WebAudio nodes. The playback WebAudio adapter and Remotion export adapter are
+the only owners of browser/media scheduling.
 
 ```ts
 import {

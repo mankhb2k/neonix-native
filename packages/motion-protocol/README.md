@@ -43,6 +43,11 @@ MotionProtocolV2
         └── shape payload + paint style
 ```
 
+The root also contains required `assets[]` and `audio` domains. Silent
+projects use `audio: { sampleRate: 48000, tracks: [] }`. Audio is parallel to
+`layers[]`, not part of the Matrix4 scene graph; its clips reference `audio`
+or `video` assets and lower to `RuntimeAudioMixPlanV2`.
+
 Every schema is strict. Unknown fields are rejected. A Protocol V1 envelope,
 legacy origin/depth fields, bones, high-level patterns, and runtime-only fields
 are not accepted by this package.

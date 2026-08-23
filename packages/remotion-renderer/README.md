@@ -13,11 +13,11 @@ Atomic Protocol V2
         |
   motion-runtime
         |
-  RuntimeFrameV2 / PaintCommandBuffer
-        |
-  RemotionPreviewCanvas
-        |
-  Remotion encode
+  RuntimeFrameV2 / PaintCommandBuffer       RuntimeAudioMixPlanV2
+        |                                          |
+  RemotionPreviewCanvas                     RemotionAudioTrack
+        \                                          /
+                 Remotion encode
 ```
 
 ## Public API
@@ -35,7 +35,10 @@ import {
 transforms from Runtime V2. They do not create semantic transforms, convert to
 CSS `matrix(...)`, or maintain a separate export transform model. The native
 preview package owns WebGPU/WebGL2 backend selection; Remotion schedules the
-same runtime frame for encoding.
+same runtime frame for encoding. `RemotionAudioTrack` consumes the separate
+`RuntimeAudioMixPlanV2` output, renders its deterministic stereo mix in an
+offline audio context, and passes the result to Remotion without re-parsing
+Protocol JSON.
 
 ## Boundaries
 

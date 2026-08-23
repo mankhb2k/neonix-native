@@ -239,20 +239,20 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
   },
   {
     id: "audio.render-plan",
-    label: "AudioRenderPlan (trim/offset/gain/fade/rate)",
+    label: "RuntimeAudioMixPlanV2 (trim/gain/pan/fade/rate)",
     columns: {
       schema: "yes",
-      command: "partial",
+      command: "no",
       compiler: "yes",
       evaluator: "yes",
-      pixi: "planned",
-      remotion: "partial",
-      worker: "partial",
-      parity: "planned",
+      pixi: "no",
+      remotion: "yes",
+      worker: "no",
+      parity: "yes",
       editor: "partial",
     },
     notes:
-      "Shared AudioRenderPlan in motion-runtime; Remotion adapter + Web Audio planned",
+      "Audio is parallel to visual paint; WebAudio preview and Remotion export consume the same sample plan",
   },
 ] as const;
 

@@ -1,6 +1,6 @@
 # Audio Domain V2 Completion Plan
 
-> Status: Phase 0 through Phase 6 implemented; Phase 7 planned
+> Status: Phase 0 through Phase 9 complete
 >
 > Scope: complete the audio domain of Atomic Protocol V2 across protocol,
 > compiler, runtime, playback preview, and Remotion export.
@@ -212,9 +212,8 @@ Acceptance:
 
 ### Phase 2 - Audio atomic fixture catalog and certification ledger
 
-Status: complete. These capabilities begin as fixture-only and are promoted to
-`runtime-ready` by Phase 3. Preview scheduling and export parity remain later
-certification gates.
+Status: complete. These capabilities are certified only after protocol,
+compiler, runtime, preview, and export coverage pass.
 
 - Add concise V2 fixtures for silence, one audio asset, one video-audio
   source, trim, loop, gain, pan, fade-in, fade-out, overlapping clips, and
@@ -398,21 +397,27 @@ Acceptance:
 
 ### Phase 9 - Hard lock and documentation
 
-- Remove remaining V2 uses of `composition.audioSampleRate`.
-- Ensure compiler, runtime, playback, preview, and Remotion import V2 audio
+Status: complete. The audio path is V2-only and hard-locked from Protocol JSON
+through compiler lowering, Runtime Audio IR, playback preview, and Remotion
+export. The capability ledger now marks the Phase 8-covered audio atoms as
+`certified`, and the validator rejects legacy audio fields or V1 imports in
+the protocol-to-export production path.
+
+- Removed remaining V2 uses of `composition.audioSampleRate` from the
+  protocol-to-export path.
+- Ensured compiler, runtime, playback, preview, and Remotion import V2 audio
   types only.
-- Do not import editor timeline audio models into the protocol or runtime.
-- Update the static V2 docs with conceptual audio material only; keep real
+- Kept editor timeline audio models outside the protocol and runtime.
+- Updated the static V2 docs with conceptual audio material only; real
   audio fixtures in `/docs/preview`.
-- Update package READMEs and the capability ledger with certified versus
-  planned fields.
+- Updated package READMEs and the capability ledger with certified fields.
 
 Acceptance:
 
-- Search confirms one V2 audio schema, one compiler lowering path, one runtime
-  mix evaluator, and adapter-only decode/mix code.
+- `validate:v2-audio-hard-lock` confirms one V2 audio schema, one compiler
+  lowering path, one runtime mix evaluator, and adapter-only decode/mix code.
 - No V1 parser, V1 audio migration, or editor-specific audio object appears in
-  the protocol-to-export path.
+  the protocol-to-export production path.
 
 ## 6. Required Test Matrix
 

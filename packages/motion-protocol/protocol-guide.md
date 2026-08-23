@@ -11,7 +11,7 @@ This guide describes the ownership and review rules for
 | `src/v2/common.ts` | V2 identifiers, finite numbers and colors |
 | `src/v2/composition.ts` | Composition dimensions, frame rate and view state |
 | `src/v2/audio.ts` | Audio tracks, clips, timing and mix intent |
-| `src/v2/audio-capabilities.ts` | Fixture-only audio capability ledger until runtime/export parity |
+| `src/v2/audio-capabilities.ts` | Certified audio capability ledger |
 | `src/v2/audio-fixtures.ts` | Named V2 audio contract fixtures used by docs and tests |
 | `src/v2/layers/` | Atomic layer schemas |
 | `src/v2/transform.ts` | 3D transform values including anchor |
@@ -44,10 +44,9 @@ Protocol owns the JSON contract. Compiler lowering belongs to
   time, while `timing.duration` is the duration on the composition timeline.
 - Audio clip and track IDs are unique within the project. Track pan is in the
   range `-1..1`, and audio sample rate is fixed at `48000` in V2.
-- Audio capabilities promoted by Phase 3 are `runtime-ready` after protocol and
-  Runtime Audio IR coverage. Full preview scheduling and export parity remain
-  separate certification gates.
-- A capability must be `runtime-ready` before compiler lowering can use it.
+- Audio capabilities are `certified` only after protocol, compiler, runtime,
+  preview, and export coverage pass.
+- The compiler lowers only capabilities marked `certified`.
 - High-level patterns, presets, templates and components are future authoring
   layers and do not belong in this atomic contract.
 
@@ -59,7 +58,7 @@ Protocol owns the JSON contract. Compiler lowering belongs to
 4. Check capability certification.
 5. Check compiler output separately as Runtime IR V2.
 6. Verify preview and Remotion consume the same visual paint commands and the
-   same future audio mix plan.
+   same Runtime Audio Mix Plan.
 
 ## Schema artifact
 

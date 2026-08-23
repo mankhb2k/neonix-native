@@ -26,6 +26,7 @@ export {
 } from "./audio";
 export {
   V2_AUDIO_CAPABILITY_LEDGER,
+  isV2AudioCapabilityCertified,
   isV2AudioCapabilityRuntimeReady,
   type V2AudioCapability,
   type V2AudioCapabilityStatus,

@@ -26,7 +26,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import {
   isV2AtomCertified,
-  isV2AudioCapabilityRuntimeReady,
+  isV2AudioCapabilityCertified,
   parseMotionProtocol,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
@@ -121,8 +121,8 @@ function lowerBlendMode(layer: MotionProtocolV2["layers"][number]): "normal" | "
   return blendMode;
 }
 
-function requireRuntimeAudioCapability(capability: string): void {
-  if (!isV2AudioCapabilityRuntimeReady(capability)) {
+function requireCertifiedAudioCapability(capability: string): void {
+  if (!isV2AudioCapabilityCertified(capability)) {
     throw new Error(`Uncertified Protocol V2 audio capability: ${capability}`);
   }
 }
@@ -149,24 +149,24 @@ function lowerAudioSource(
 function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
   const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
   const tracks: RuntimeAudioTrackV2[] = project.audio.tracks.map((track) => {
-    requireRuntimeAudioCapability("audio.timing");
-    requireRuntimeAudioCapability("audio.gain");
-    requireRuntimeAudioCapability("audio.pan");
-    if (track.muted) requireRuntimeAudioCapability("audio.track.mute");
+    requireCertifiedAudioCapability("audio.timing");
+    requireCertifiedAudioCapability("audio.gain");
+    requireCertifiedAudioCapability("audio.pan");
+    if (track.muted) requireCertifiedAudioCapability("audio.track.mute");
 
     const clips: RuntimeAudioClipV2[] = track.clips.map((clip) => {
-      requireRuntimeAudioCapability("audio.asset");
-      requireRuntimeAudioCapability("audio.timing");
-      requireRuntimeAudioCapability("audio.trim");
-      requireRuntimeAudioCapability("audio.loop");
-      requireRuntimeAudioCapability("audio.gain");
-      if (clip.fadeIn || clip.fadeOut) requireRuntimeAudioCapability("audio.fade");
+      requireCertifiedAudioCapability("audio.asset");
+      requireCertifiedAudioCapability("audio.timing");
+      requireCertifiedAudioCapability("audio.trim");
+      requireCertifiedAudioCapability("audio.loop");
+      requireCertifiedAudioCapability("audio.gain");
+      if (clip.fadeIn || clip.fadeOut) requireCertifiedAudioCapability("audio.fade");
 
       const asset = assetsById.get(clip.assetId);
       if (!asset || (asset.kind !== "audio" && asset.kind !== "video")) {
         throw new Error(`Protocol V2 audio clip ${clip.id} references an invalid source asset`);
       }
-      if (asset.kind === "video") requireRuntimeAudioCapability("audio.video-source");
+      if (asset.kind === "video") requireCertifiedAudioCapability("audio.video-source");
       return {
         id: clip.id,
         assetId: clip.assetId,
@@ -187,7 +187,7 @@ function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
         const second = clips[right]!;
         const overlaps = first.timing.start < second.timing.start + second.timing.duration &&
           second.timing.start < first.timing.start + first.timing.duration;
-        if (overlaps) requireRuntimeAudioCapability("audio.track.overlap");
+        if (overlaps) requireCertifiedAudioCapability("audio.track.overlap");
       }
     }
 
