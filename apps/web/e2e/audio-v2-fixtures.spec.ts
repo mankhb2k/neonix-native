@@ -77,4 +77,21 @@ test.describe("Protocol V2 audio fixture preview", () => {
     await expect(page.getByTestId("audio-clip-transport")).toContainText("Track output: muted");
     await expect(page.getByTestId("audio-fixture-element")).toHaveJSProperty("muted", true);
   });
+
+  test("keeps the V2 transport aligned through play, pause, and seek", async ({ page }) => {
+    await page.goto("/docs/preview?case=audio.loop");
+    const toggle = page.getByTestId("audio-clip-play-toggle");
+    const slider = page.getByTestId("audio-clip-time-slider");
+
+    await expect(toggle).toHaveAttribute("aria-label", "Play audio clip");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", "Pause audio clip");
+
+    await slider.fill("6");
+    await expect(slider).toHaveValue("6");
+    await expect(page.getByTestId("audio-clip-transport")).toContainText("0:06 / 0:12");
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", "Play audio clip");
+  });
 });

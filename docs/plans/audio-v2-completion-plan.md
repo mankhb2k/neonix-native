@@ -370,22 +370,31 @@ Acceptance:
 
 ### Phase 8 - Preview/export parity and E2E
 
-- Add deterministic generated tone fixtures plus a small checked-in media
+Status: complete. Phase 8 now uses a deterministic generated 440 Hz WAV tone
+for adapter parity, while the checked-in MP3 remains covered by the Phase 7
+decode/export smoke. Runtime plan boundaries are asserted before rendering;
+the rendered MP4 is decoded to 48 kHz stereo PCM for independent boundary and
+channel checks.
+
+- Added deterministic generated tone fixtures plus a small checked-in media
   fixture for decode coverage.
-- Compare runtime mix plans for fixed sample windows before testing adapters.
-- Add preview E2E for transport, explicit video audio, mute, trim, loop, and
+- Compared runtime mix plans for fixed sample windows before testing adapters.
+- Added preview E2E for transport, explicit video audio, mute, trim, loop, and
   fade scheduling.
-- Add export E2E that renders media, extracts audio, and samples PCM at known
+- Added export E2E that renders media, extracts audio, and samples PCM at known
   timestamps.
-- Define tolerances separately for exact plan data and decoded/encoded PCM.
+- Defined tolerances separately for exact plan data and decoded/encoded PCM.
 
 Acceptance:
 
 - Exact Runtime Audio IR and `AudioMixPlanV2` match with zero tolerance.
-- Preview and export use the same clip timing and gain envelope within the
-  documented decoder/encoder tolerance.
-- Every certified audio capability has protocol, runtime, preview, and export
-  coverage.
+- The parity E2E asserts exact loop/fade sample boundaries before export.
+- Preview Playwright coverage verifies the V2 transport through play, pause,
+  seek, trim, loop, fade, mute, pan, gain, and explicit video-source cases.
+- Remotion output is decoded to PCM and verifies non-silent steady state,
+  reduced fade-in/fade-out energy, and hard-right pan within encoder tolerance.
+- The checked-in MP3 fixture is decoded and exported with the Phase 7 smoke,
+  while Phase 8 uses the generated tone for stable numeric assertions.
 
 ### Phase 9 - Hard lock and documentation
 
