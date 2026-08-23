@@ -1,10 +1,12 @@
 import { useCurrentFrame } from "remotion";
+import { useMemo } from "react";
 import {
   assertRuntimeProjectV2,
   evaluateRuntimeProjectV2,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
+import { RemotionAudioTrack } from "./RemotionAudioTrack";
 import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotiClipVideoProps = {
@@ -17,17 +19,23 @@ export type MotiClipVideoProps = {
  * frame through the shared V2 runtime and paints the resulting command buffer.
  */
 export function MotiClipVideo({ runtime: runtimeProp }: MotiClipVideoProps) {
-  const runtime = assertRemotionTextPrepared(assertRuntimeProjectV2(runtimeProp));
+  const runtime = useMemo(
+    () => assertRemotionTextPrepared(assertRuntimeProjectV2(runtimeProp)),
+    [runtimeProp],
+  );
   const frame = useCurrentFrame();
   const { background } = runtime.composition;
   const evaluated = evaluateRuntimeProjectV2(runtime, frame);
 
   return (
-    <RemotionPreviewCanvas
-      frame={evaluated}
-      width={runtime.composition.width}
-      height={runtime.composition.height}
-      background={background}
-    />
+    <>
+      <RemotionPreviewCanvas
+        frame={evaluated}
+        width={runtime.composition.width}
+        height={runtime.composition.height}
+        background={background}
+      />
+      <RemotionAudioTrack runtime={runtime} />
+    </>
   );
 }

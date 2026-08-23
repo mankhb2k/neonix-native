@@ -5,6 +5,7 @@ import {
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
 import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
+import { RemotionAudioTrack } from "./RemotionAudioTrack";
 import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotionCompositionProps = {
@@ -33,5 +34,10 @@ export function MotionComposition({
     assertRemotionTextPrepared(assertRuntimeProjectV2(runtime)),
     frame,
   );
-  return <RemotionPaintRenderer paint={evaluated} />;
+  return (
+    <>
+      <RemotionPaintRenderer paint={evaluated} />
+      <RemotionAudioTrack runtime={runtime} />
+    </>
+  );
 }

@@ -17,8 +17,11 @@ const calculateMetadata: CalculateMetadataFunction<
   MotiClipCompositionProps
 > = async ({ props }) => {
   const composition = props.runtime.composition;
+  const durationInFrames = composition.duration === undefined
+    ? DEFAULT_DURATION_IN_FRAMES
+    : Math.max(1, Math.ceil(composition.duration * composition.fps));
   return {
-    durationInFrames: DEFAULT_DURATION_IN_FRAMES,
+    durationInFrames,
     fps: composition.fps,
     width: composition.width,
     height: composition.height,
@@ -48,7 +51,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="MotiClipVideo"
         component={MotiClipVideo}
-        durationInFrames={90}
+        durationInFrames={DEFAULT_DURATION_IN_FRAMES}
         fps={30}
         width={1080}
         height={1920}

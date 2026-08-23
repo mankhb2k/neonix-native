@@ -10,6 +10,12 @@ export {
 } from "./RemotionFramePainter";
 export type { RemotionFramePainterProps } from "./RemotionFramePainter";
 export { assertRemotionTextPrepared } from "./text-runtime";
+export { RemotionAudioTrack } from "./RemotionAudioTrack";
+export type { RemotionAudioTrackProps } from "./RemotionAudioTrack";
+export {
+  buildRemotionAudioPlanV2,
+  runtimeAudioDurationV2,
+} from "./remotion-audio-plan";
 export {
   buildRemotionPaintTree,
   flattenRemotionDrawables,

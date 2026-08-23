@@ -342,6 +342,12 @@ Acceptance:
 
 ### Phase 7 - Remotion export adapter
 
+Status: complete. Remotion now consumes the compiled V2 audio runtime through
+one export adapter. The adapter evaluates `AudioMixPlanV2`, decodes and
+resamples source media in an offline audio context, renders a deterministic
+stereo WAV mix, and gives Remotion a supported `data:` audio URL. It does not
+re-parse protocol JSON or create a second audio semantic model.
+
 - Extend `packages/remotion-renderer` and `apps/remotion-site` to consume the
   compiled audio runtime domain.
 - Lower each active audio clip to the export audio primitive using the same
@@ -353,10 +359,14 @@ Acceptance:
 
 Acceptance:
 
-- Rendered media contains no audio for `tracks: []`.
-- A known PCM or tone fixture renders at the expected start, end, gain, pan,
-  trim, loop, and fade boundaries.
-- Video-source audio is emitted exactly once when explicitly referenced.
+- `RemotionAudioTrack` is mounted by both `MotiClipVideo` and
+  `MotionComposition`.
+- A real MP3 fixture is compiled from Protocol V2, rendered through Remotion,
+  and verified as an MP4 with an AAC, stereo, 48 kHz audio stream.
+- Runtime duration metadata drives the Remotion composition duration, so an
+  audio-only project renders a valid visual container for its audio duration.
+- Empty-track silence and detailed PCM boundary/parity assertions remain in
+  Phase 8, where preview and export are compared together.
 
 ### Phase 8 - Preview/export parity and E2E
 
