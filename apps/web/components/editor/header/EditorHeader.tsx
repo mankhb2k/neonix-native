@@ -57,7 +57,7 @@ export function EditorHeader() {
         scale: { x: 1, y: 1, z: 1 },
         rotate: { x: 0, y: 0, z: 0 },
         skew: { x: 0, y: 0 },
-        anchor: { x: 0, y: 0, z: 0 },
+        anchor: { x: width / 2, y: height / 2, z: 0 },
       },
       opacity: 1,
       timing: { start: currentTime, duration: 5 },

@@ -14,13 +14,18 @@ export const DEFAULT_FONT_ASSET: V2Asset = {
   integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
 };
 
-function transform(x: number, y: number): MotionProtocolV2["layers"][number]["transform"] {
+function transform(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): MotionProtocolV2["layers"][number]["transform"] {
   return {
     translate: { x, y, z: 0 },
     scale: { x: 1, y: 1, z: 1 },
     rotate: { x: 0, y: 0, z: 0 },
     skew: { x: 0, y: 0 },
-    anchor: { x: 0, y: 0, z: 0 },
+    anchor: { x: width / 2, y: height / 2, z: 0 },
   };
 }
 
@@ -65,10 +70,10 @@ function layerForPayload(
   const id = uniqueId(document, payload.kind === "asset" ? `asset-${payload.asset.id}` : payload.id);
   const base = {
     id,
-    parentLayerId: null as null,
+    parentLayerId: null,
     order,
     frame: { width, height },
-    transform: transform((document.composition.width - width) / 2, (document.composition.height - height) / 2),
+    transform: transform((document.composition.width - width) / 2, (document.composition.height - height) / 2, width, height),
     opacity: 1,
     timing: { start: Math.max(0, startTime), duration },
   };
@@ -86,7 +91,7 @@ function layerForPayload(
       ...base,
       type: "text",
       frame: { width: Math.min(1440, document.composition.width - 80), height: 180 },
-      transform: transform(40, (document.composition.height - 180) / 2),
+      transform: transform(40, (document.composition.height - 180) / 2, Math.min(1440, document.composition.width - 80), 180),
       payload: {
         text: payload.text.normalize("NFC"),
         fontAssetId: DEFAULT_FONT_ASSET.id,

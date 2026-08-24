@@ -34,6 +34,21 @@ describe("V2 stage transform geometry", () => {
     });
   });
 
+  it("creates V2 visual layers with a centered default anchor", () => {
+    const shape = createV2EditorProject("shape").layers[0]!;
+    expect(shape.transform.anchor).toMatchObject({
+      x: shape.frame.width / 2,
+      y: shape.frame.height / 2,
+    });
+    const history = createV2EditorProject("three-kingdoms");
+    for (const layer of history.layers) {
+      expect(layer.transform.anchor).toMatchObject({
+        x: layer.frame.width / 2,
+        y: layer.frame.height / 2,
+      });
+    }
+  });
+
   it("keeps an anchored rotated frame around the same pivot", () => {
     const project = createV2EditorProject("shape");
     const layer = {
@@ -147,6 +162,7 @@ describe("V2 stage transform geometry", () => {
       transform: {
         ...project.layers[0]!.transform,
         translate: { x: 200, y: 100, z: 0 },
+        anchor: { x: 0, y: 0, z: 0 },
       },
     };
     expect(getV2RotationCompensatedTranslate(layer, 90)).toMatchObject({
