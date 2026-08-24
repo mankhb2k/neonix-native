@@ -4,6 +4,7 @@ import {
   applyResizeDelta,
   applyRotateDelta,
   applyMoveConstraints,
+  applyRotateConstraints,
   clientToComposition,
   compositionToClient,
   createStageSession,
@@ -78,6 +79,21 @@ describe("stage transform math", () => {
   it("rotates around center", () => {
     const next = applyRotateDelta(base, { x: 110, y: 45 }, { x: 10, y: 45 });
     expect(next.rotation).toBeCloseTo(180, 0);
+  });
+
+  it("rotates around an explicit anchor pivot without wrapping", () => {
+    const next = applyRotateDelta(
+      { ...base, rotation: 350, pivotX: 60, pivotY: 45 },
+      { x: 60, y: 15 },
+      { x: 90, y: 45 },
+    );
+    expect(next.rotation).toBeCloseTo(440, 0);
+  });
+
+  it("snaps rotation to 45 degree increments only when enabled", () => {
+    const value = { ...base, rotation: 43 };
+    expect(applyRotateConstraints(value, { snapAngle: true, snapThreshold: 6 }).values.rotation).toBe(45);
+    expect(applyRotateConstraints(value, { snapAngle: false, snapThreshold: 6 }).values.rotation).toBe(43);
   });
 });
 
@@ -202,6 +218,33 @@ describe("createStageSession", () => {
       width: 120,
       height: 60,
     });
+  });
+
+  it("snaps a rotate session to 45 degrees with Shift", () => {
+    const session = createStageSession();
+    const rotateBase = {
+      rootLayerId: "scene",
+      layerId: "node",
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
+      rotation: 0,
+    };
+    session.beginRotate(
+      {
+        interactionId: "rotate-1",
+        base: rotateBase,
+        worldBounds: { x: 10, y: 20, width: 100, height: 50 },
+        pointer: { x: 60, y: 15 },
+        constraints: { snapThreshold: 6 },
+      },
+      { onPreview: () => undefined },
+    );
+    session.updatePointer({ x: 80, y: 23 }, { shift: true });
+    const commit = session.commit("pointerup");
+    expect(commit?.patches[0]?.values.rotation).toBe(45);
+    expect(commit?.command).toMatchObject({ patch: { rotation: 45 } });
   });
 
   it("cancels without command", () => {

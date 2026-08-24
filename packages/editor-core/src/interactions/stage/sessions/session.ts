@@ -163,6 +163,7 @@ export function createStageSession(): StageSession {
       const constraints: StageConstraintInput = {
         ...active.constraints,
         lockAspect,
+        snapAngle: Boolean(modifiers?.shift) || Boolean(active.constraints.snapAngle),
       };
 
       let next: StageTransformValues;

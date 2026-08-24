@@ -6,6 +6,7 @@ import {
   getSelectionBounds,
   buildV2MovePatches,
   buildV2ResizePatch,
+  buildV2RotatePatch,
   getV2LayerBounds,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
@@ -85,6 +86,8 @@ function layerTransformValues(layer: V2Layer): StageTransformValues {
     width: layer.frame.width,
     height: layer.frame.height,
     rotation: layer.transform.rotate.z,
+    pivotX: layer.transform.translate.x + layer.transform.anchor.x,
+    pivotY: layer.transform.translate.y + layer.transform.anchor.y,
   };
 }
 
@@ -111,8 +114,13 @@ export function StageTransformOverlay({
     layerId: string;
     base: StageTransformValues;
   } | null>(null);
+  const activeRotateRef = useRef<{
+    layerId: string;
+    base: StageTransformValues;
+  } | null>(null);
   const [moveDelta, setMoveDelta] = useState<{ x: number; y: number } | null>(null);
   const [resizePreview, setResizePreview] = useState<StageTransformValues | null>(null);
+  const [rotatePreview, setRotatePreview] = useState<StageTransformValues | null>(null);
 
   const selectedLayers = useMemo(
     () =>
@@ -154,13 +162,21 @@ export function StageTransformOverlay({
         resizePreview,
       );
     }
+    if (rotatePreview && selectedLayers.length === 1) {
+      const base = layerTransformValues(selectedLayers[0]);
+      return selectionBoxFromWorldAndDelta(
+        selectedDocumentBounds,
+        base,
+        rotatePreview,
+      );
+    }
     if (!moveDelta) return selectedDocumentBounds;
     return {
       ...selectedDocumentBounds,
       x: selectedDocumentBounds.x + moveDelta.x,
       y: selectedDocumentBounds.y + moveDelta.y,
     };
-  }, [moveDelta, resizePreview, selectedDocumentBounds, selectedLayers]);
+  }, [moveDelta, resizePreview, rotatePreview, selectedDocumentBounds, selectedLayers]);
 
   const toCompositionPoint = useCallback((clientX: number, clientY: number) => {
     const overlay = overlayRef.current;
@@ -217,12 +233,30 @@ export function StageTransformOverlay({
     });
   }, [applyCommand]);
 
+  const finishRotate = useCallback(() => {
+    const active = activeRotateRef.current;
+    const session = sessionRef.current;
+    if (!active || !session) return;
+    const result = session.commit("pointerup");
+    const preview = result?.patches[0]?.values;
+    activeRotateRef.current = null;
+    setRotatePreview(null);
+    if (!preview || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
+    applyCommand({
+      type: "patch-layer",
+      layerId: active.layerId,
+      patch: buildV2RotatePatch(preview.rotation),
+    });
+  }, [applyCommand]);
+
   const cancelMove = useCallback(() => {
     sessionRef.current?.cancel();
     activeMoveRef.current = null;
     activeResizeRef.current = null;
+    activeRotateRef.current = null;
     setMoveDelta(null);
     setResizePreview(null);
+    setRotatePreview(null);
   }, []);
 
   const onMovePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -337,9 +371,38 @@ export function StageTransformOverlay({
     [selectedLayers, toCompositionPoint],
   );
 
+  const onRotatePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLSpanElement>) => {
+      if (event.button !== 0 || selectedLayers.length !== 1) return;
+      const pointer = toCompositionPoint(event.clientX, event.clientY);
+      const layer = selectedLayers[0];
+      if (!pointer || !layer) return;
+      const base = layerTransformValues(layer);
+      event.preventDefault();
+      event.stopPropagation();
+      event.currentTarget.parentElement?.setPointerCapture(event.pointerId);
+      activeRotateRef.current = { layerId: layer.id, base };
+      sessionRef.current?.beginRotate(
+        {
+          interactionId: `v2-stage-rotate-${layer.id}-${Date.now()}`,
+          base,
+          worldBounds: getV2LayerBounds(layer),
+          pointer,
+          constraints: { snapThreshold: 6 },
+        },
+        {
+          onPreview: (payload) => {
+            setRotatePreview(payload.patches[0] ?? null);
+          },
+        },
+      );
+    },
+    [selectedLayers, toCompositionPoint],
+  );
+
   const onTransformPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (
-      (!activeMoveRef.current && !activeResizeRef.current) ||
+      (!activeMoveRef.current && !activeResizeRef.current && !activeRotateRef.current) ||
       !sessionRef.current?.interactionId
     ) return;
     const pointer = toCompositionPoint(event.clientX, event.clientY);
@@ -354,14 +417,15 @@ export function StageTransformOverlay({
   }, [toCompositionPoint]);
 
   const onTransformPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!activeMoveRef.current && !activeResizeRef.current) return;
+    if (!activeMoveRef.current && !activeResizeRef.current && !activeRotateRef.current) return;
     event.preventDefault();
     if (activeResizeRef.current) finishResize();
+    else if (activeRotateRef.current) finishRotate();
     else finishMove();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-  }, [finishMove, finishResize]);
+  }, [finishMove, finishResize, finishRotate]);
 
   const onStageLayerPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>, layerId: string) => {
@@ -401,6 +465,8 @@ export function StageTransformOverlay({
             boxShadow: "0 0 0 1px color-mix(in srgb, var(--bg-site) 70%, transparent)",
             pointerEvents: "auto",
             touchAction: "none",
+            transform: selectedBounds.rotation ? `rotate(${selectedBounds.rotation}deg)` : undefined,
+            transformOrigin: "center center",
           }}
           onPointerDown={onMovePointerDown}
           onPointerMove={onTransformPointerMove}
@@ -431,8 +497,9 @@ export function StageTransformOverlay({
               borderRadius: 999,
               border: "1px solid var(--bg-site)",
               background: "var(--fg-primary)",
-              pointerEvents: "none",
+              pointerEvents: "auto",
             }}
+            onPointerDown={onRotatePointerDown}
           />
           <span
             aria-hidden="true"

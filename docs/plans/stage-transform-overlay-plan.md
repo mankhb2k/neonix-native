@@ -162,19 +162,19 @@ dụng selection, command dispatcher, history và coordinate system của editor
 
 ## Phase 4 — Rotate
 
-- [ ] **T4.1 — Rotate interaction:** kéo rotate handle và tính góc quanh anchor/pivot
+  - [x] **T4.1 — Rotate interaction:** kéo rotate handle và tính góc quanh anchor/pivot
   của layer trong composition space.
-- [ ] **T4.2 — Rotate preview:** hiển thị góc tạm thời trong lúc kéo, overlay quay
+  - [x] **T4.2 — Rotate preview:** hiển thị góc tạm thời trong lúc kéo, overlay quay
   đồng bộ với object.
-- [ ] **T4.3 — Angle snap:** Shift snap 0°, 45°, 90°... với threshold rõ ràng.
-- [ ] **T4.4 — Commit/history:** patch `transform.rotate.z` trong một transaction;
+  - [x] **T4.3 — Angle snap:** Shift snap 0°, 45°, 90°... với threshold rõ ràng.
+  - [x] **T4.4 — Commit/history:** patch `transform.rotate.z` trong một transaction;
   Escape/cancel restore state.
-- [ ] **T4.5 — Tests:** góc qua 0°/360°, layer có anchor khác tâm, snap và undo/redo.
+  - [x] **T4.5 — Tests:** góc qua 0°/360°, layer có anchor khác tâm, snap và undo/redo.
 
 **Nghiệm thu Phase 4**
 
-- [ ] Rotate handle thao tác chính xác ở mọi zoom và không nhảy góc khi qua 360°.
-- [ ] Inspector rotation và preview luôn đồng bộ.
+  - [x] Rotate handle thao tác chính xác ở mọi zoom và không nhảy góc khi qua 360°.
+  - [x] Inspector rotation và preview luôn đồng bộ.
 
 **Commit sau Phase 4**
 

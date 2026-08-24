@@ -4,6 +4,7 @@ import {
   getSelectionBounds,
   buildV2MovePatches,
   buildV2ResizePatch,
+  buildV2RotatePatch,
   getV2LayerBounds,
   getV2LayerWorldQuad,
   isV2LayerActiveAtTime,
@@ -106,5 +107,9 @@ describe("V2 stage transform geometry", () => {
       frame: { width: 0.001, height: 0.001 },
       transform: { translate: { x: 0, y: 0 } },
     });
+  });
+
+  it("maps a rotation preview to the V2 rotate field", () => {
+    expect(buildV2RotatePatch(45)).toEqual({ transform: { rotate: { z: 45 } } });
   });
 });

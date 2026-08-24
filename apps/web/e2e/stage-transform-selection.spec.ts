@@ -60,4 +60,30 @@ test.describe("V2 preview layer hit testing", () => {
       /border-\[var\(--accent\)\]/,
     );
   });
+
+  test("rotates a selected shape from the rotate handle", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+    await page.locator('[data-layer-hit="shape"]').click();
+
+    const rotationInput = page.getByRole("spinbutton", { name: "Rotation Z", exact: true });
+    await expect(rotationInput).toHaveValue("0");
+    const selection = page.getByTestId("stage-selection-bounds");
+    const selectionBox = await selection.boundingBox();
+    const rotateHandle = page.locator('[data-handle="rotate"]');
+    const handleBox = await rotateHandle.boundingBox();
+    if (!selectionBox || !handleBox) throw new Error("rotate handle is not visible");
+
+    const startX = handleBox.x + handleBox.width / 2;
+    const startY = handleBox.y + handleBox.height / 2;
+    const centerX = selectionBox.x + selectionBox.width / 2;
+    const centerY = selectionBox.y + selectionBox.height / 2;
+    const radius = Math.max(24, Math.hypot(startX - centerX, startY - centerY));
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(centerX + radius * 0.707, centerY - radius * 0.707);
+    await page.mouse.up();
+
+    await expect(rotationInput).not.toHaveValue("0");
+  });
 });

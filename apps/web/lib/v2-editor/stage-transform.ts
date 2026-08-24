@@ -149,3 +149,13 @@ export function buildV2ResizePatch(next: {
     },
   };
 }
+
+export function buildV2RotatePatch(rotation: number): {
+  transform: { rotate: { z: number } };
+} {
+  return {
+    transform: {
+      rotate: { z: Number.isFinite(rotation) ? rotation : 0 },
+    },
+  };
+}

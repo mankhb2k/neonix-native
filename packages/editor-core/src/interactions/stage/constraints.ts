@@ -13,6 +13,7 @@ export type StageConstraintInput = {
   minSize?: number;
   lockAspect?: boolean;
   resizeFromCenter?: boolean;
+  snapAngle?: boolean;
   snapEdgesX?: number[];
   snapEdgesY?: number[];
   snapThreshold?: number;
@@ -100,10 +101,10 @@ export function applyRotateConstraints(
 ): { values: StageTransformValues; guides: StageGuide[] } {
   const guides: StageGuide[] = [];
   let rotation = next.rotation;
-  // Snap theo bước 15° khi threshold được cung cấp qua snapThreshold.
-  const step = 15;
+  // Chỉ snap khi Shift được giữ; Phase 4 dùng các góc chuẩn 45°.
+  const step = 45;
   const threshold = ctx.snapThreshold ?? 0;
-  if (threshold > 0) {
+  if (ctx.snapAngle && threshold > 0) {
     const snapped = Math.round(rotation / step) * step;
     if (Math.abs(snapped - rotation) <= threshold) {
       rotation = snapped;

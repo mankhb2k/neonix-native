@@ -16,6 +16,9 @@ export type StageTransformValues = {
   width: number;
   height: number;
   rotation: number;
+  /** Composition-space rotation pivot; falls back to the frame center. */
+  pivotX?: number;
+  pivotY?: number;
 };
 
 export type StageBounds = {

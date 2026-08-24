@@ -64,8 +64,8 @@ export function applyRotateDelta(
   pointerStart: StagePoint,
   pointer: StagePoint,
 ): StageTransformValues {
-  const cx = base.x + base.width / 2;
-  const cy = base.y + base.height / 2;
+  const cx = base.pivotX ?? base.x + base.width / 2;
+  const cy = base.pivotY ?? base.y + base.height / 2;
   const startAngle = Math.atan2(pointerStart.y - cy, pointerStart.x - cx);
   const angle = Math.atan2(pointer.y - cy, pointer.x - cx);
   const deltaDeg = ((angle - startAngle) * 180) / Math.PI;
