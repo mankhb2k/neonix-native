@@ -113,7 +113,9 @@ export function StageTransformOverlay({
           (layer) =>
             isV2VisualLayer(layer) && isV2LayerActiveAtTime(layer, currentTime),
         )
-        .sort((left, right) => right.order - left.order),
+        // Paint/hit-test order follows the DOM: higher order must be later so
+        // its transparent hitbox sits above lower layers in overlapping areas.
+        .sort((left, right) => left.order - right.order),
     [currentTime, document.layers],
   );
 
