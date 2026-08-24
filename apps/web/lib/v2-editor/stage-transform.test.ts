@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createV2EditorProject } from "./projects";
 import {
   getSelectionBounds,
+  buildV2MovePatches,
   getV2LayerBounds,
   getV2LayerWorldQuad,
   isV2LayerActiveAtTime,
@@ -78,5 +79,15 @@ describe("V2 stage transform geometry", () => {
     expect(isV2VisualLayer(layer)).toBe(true);
     expect(isV2LayerActiveAtTime(layer, 0)).toBe(true);
     expect(isV2LayerActiveAtTime(layer, 3.001)).toBe(false);
+  });
+
+  it("builds one atomic translate patch per selected layer", () => {
+    const project = createV2EditorProject("shape");
+    const first = project.layers[0]!;
+    const second = { ...first, id: "second" };
+    expect(buildV2MovePatches([first, second], { x: 12, y: -8 })).toEqual({
+      shape: { transform: { translate: { x: 492, y: 262 } } },
+      second: { transform: { translate: { x: 492, y: 262 } } },
+    });
   });
 });

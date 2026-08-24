@@ -112,24 +112,24 @@ dụng selection, command dispatcher, history và coordinate system của editor
 
 ## Phase 2 — Move trực tiếp trên stage
 
-- [ ] **T2.1 — Pointer session:** kéo thân overlay qua pointer host hiện có, có
+- [x] **T2.1 — Pointer session:** kéo thân overlay qua pointer host hiện có, có
   pointer capture và cancellation an toàn.
-- [ ] **T2.2 — Local preview:** cập nhật vị trí overlay/layer trong lúc kéo mà không
+- [x] **T2.2 — Local preview:** cập nhật vị trí overlay/layer trong lúc kéo mà không
   tạo history entry liên tục.
-- [ ] **T2.3 — Commit move:** khi pointer up, tạo một transaction patch
+- [x] **T2.3 — Commit move:** khi pointer up, tạo một transaction patch
   `transform.translate.x/y`; Escape hoặc pointer cancel trả về document cũ.
-- [ ] **T2.4 — Snap cơ bản:** snap vào tâm stage, cạnh stage và cạnh/tâm layer khác;
+- [x] **T2.4 — Snap cơ bản:** snap vào tâm stage, cạnh stage và cạnh/tâm layer khác;
   có ngưỡng pixel đã quy đổi theo zoom.
-- [ ] **T2.5 — Multi move:** selected visual layers nhận chung delta trong một
+- [x] **T2.5 — Multi move:** selected visual layers nhận chung delta trong một
   transaction; không thay đổi order hoặc track UI.
-- [ ] **T2.6 — History + tests:** verify undo/redo, snap, move dưới zoom và move
+- [x] **T2.6 — History + tests:** verify undo/redo, snap, move dưới zoom và move
   nhiều layer.
 
 **Nghiệm thu Phase 2**
 
-- [ ] Kéo object thay đổi stage, inspector, sidebar và document V2 đồng bộ.
-- [ ] Một lần kéo tương ứng đúng một Undo/Redo entry.
-- [ ] Kéo nhiều layer không làm lệch khoảng cách tương đối giữa chúng.
+- [x] Kéo object thay đổi stage, inspector, sidebar và document V2 đồng bộ.
+- [x] Một lần kéo tương ứng đúng một Undo/Redo entry.
+- [x] Kéo nhiều layer không làm lệch khoảng cách tương đối giữa chúng.
 
 **Commit sau Phase 2**
 

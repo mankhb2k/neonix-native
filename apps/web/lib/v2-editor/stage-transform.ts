@@ -106,3 +106,21 @@ export function getSelectionBounds(
   };
 }
 
+export function buildV2MovePatches(
+  layers: readonly V2Layer[],
+  delta: StagePoint,
+): Record<string, { transform: { translate: { x: number; y: number } } }> {
+  return Object.fromEntries(
+    layers.map((layer) => [
+      layer.id,
+      {
+        transform: {
+          translate: {
+            x: layer.transform.translate.x + delta.x,
+            y: layer.transform.translate.y + delta.y,
+          },
+        },
+      },
+    ]),
+  );
+}
