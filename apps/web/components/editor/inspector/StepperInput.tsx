@@ -13,6 +13,7 @@ export type StepperInputProps = {
   suffix?: string;
   widthClass?: string;
   live?: boolean;
+  mixed?: boolean;
   onChange: (value: number) => void;
   onGestureStart?: () => void;
 };
@@ -28,6 +29,7 @@ export function StepperInput({
   suffix,
   widthClass = "w-[7rem] min-w-[7rem] flex-none",
   live = false,
+  mixed = false,
   onChange,
   onGestureStart,
 }: StepperInputProps) {
@@ -38,8 +40,8 @@ export function StepperInput({
   valueRef.current = value;
 
   useEffect(() => {
-    setDraft(Number.isFinite(value) ? String(value) : "0");
-  }, [value]);
+    setDraft(mixed ? "" : Number.isFinite(value) ? String(value) : "0");
+  }, [mixed, value]);
 
   const bound = (next: number) => {
     const normalized = integer ? Math.round(next) : next;
@@ -47,6 +49,7 @@ export function StepperInput({
   };
 
   const commit = () => {
+    if (mixed && draft.trim() === "") return;
     const next = Number(draft);
     if (Number.isFinite(next)) {
       const bounded = bound(next);
@@ -102,6 +105,7 @@ export function StepperInput({
         step={step}
         className="min-w-[4rem] flex-1 bg-transparent px-2 text-[12px] text-[var(--fg-primary)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         value={draft}
+        placeholder={mixed ? "Mixed" : undefined}
         onPointerDown={onGestureStart}
         onChange={(event) => {
           setDraft(event.target.value);

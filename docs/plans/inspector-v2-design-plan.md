@@ -192,10 +192,10 @@ tạo một weight number không có nơi lưu hợp lệ.
 
 ## Phase 5 — Multi-select, polish và accessibility
 
-- [ ] **I5.1 — Multi-edit:** transform/opacity/timing hợp lệ cho selection cùng capability; `Mixed`
+- [x] **I5.1 — Multi-edit:** transform/opacity/timing hợp lệ cho selection cùng capability; `Mixed`
   cho giá trị khác nhau.
-- [ ] **I5.2 — Keyboard:** Tab order, Enter commit, Escape revert draft, label/aria cho icon controls.
-- [ ] **I5.3 — Responsive:** khi inspector bị ẩn ở breakpoint hiện tại, selection/edit vẫn không mất;
+- [x] **I5.2 — Keyboard:** Tab order, Enter commit, Escape revert draft, label/aria cho icon controls.
+- [x] **I5.3 — Responsive:** khi inspector bị ẩn ở breakpoint hiện tại, selection/edit vẫn không mất;
   mở lại khôi phục section state.
 - [ ] **I5.4 — Tests:** unit conversion %, command/history, integration stage/timeline sync, visual regression.
 

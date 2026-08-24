@@ -63,6 +63,7 @@ function NumberField({
   value,
   step = 0.01,
   integer = false,
+  mixed = false,
   suffix,
   onChange,
 }: {
@@ -70,13 +71,14 @@ function NumberField({
   value: number;
   step?: number;
   integer?: boolean;
+  mixed?: boolean;
   suffix?: string;
   onChange: (value: number) => void;
 }) {
   return (
     <label className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <StepperInput label={label} value={value} step={step} integer={integer} suffix={suffix} onChange={onChange} />
+      <StepperInput label={label} value={value} step={step} integer={integer} mixed={mixed} suffix={suffix} onChange={onChange} />
     </label>
   );
 }
@@ -84,10 +86,12 @@ function NumberField({
 function RangeField({
   label,
   value,
+  mixed = false,
   onChange,
 }: {
   label: string;
   value: number;
+  mixed?: boolean;
   onChange: (value: number, gestureId: number) => void;
 }) {
   const gestureRef = useRef(0);
@@ -102,6 +106,7 @@ function RangeField({
         max={100}
         step={1}
         suffix="%"
+        mixed={mixed}
         live
         onGestureStart={() => {
           gestureRef.current += 1;
@@ -330,6 +335,16 @@ export function SchemaInspector() {
     effects: true,
   });
   const selected = useMemo(() => document.layers.find((layer) => layer.id === selectedLayerIds[0]), [document.layers, selectedLayerIds]);
+  const selectedLayers = useMemo(
+    () => selectedLayerIds.map((id) => document.layers.find((layer) => layer.id === id)).filter((layer): layer is (typeof document.layers)[number] => Boolean(layer)),
+    [document, selectedLayerIds],
+  );
+  const isMultiLayerSelection = selectedLayers.length > 1 && selectedLayers.length === selectedLayerIds.length;
+  const commonLayerNumber = (read: (layer: (typeof selectedLayers)[number]) => number) => {
+    const values = selectedLayers.map(read);
+    const first = values[0] ?? 0;
+    return { value: first, mixed: values.some((value) => value !== first) };
+  };
   const selectedAudio = useMemo(() => {
     const selectedId = selectedLayerIds[0];
     if (!selectedId?.startsWith("audio.")) return null;
@@ -339,7 +354,7 @@ export function SchemaInspector() {
       if (clip) return { track, clip };
     }
     return null;
-  }, [document.audio.tracks, selectedLayerIds]);
+  }, [document, selectedLayerIds]);
   const fontOptions = useMemo(() => {
     const fonts = document.assets
       .filter((asset) => asset.kind === "font")
@@ -360,6 +375,16 @@ export function SchemaInspector() {
   const patchLayer = (patch: V2LayerPatch) => {
     if (selected) applyCommand({ type: "patch-layer", layerId: selected.id, patch });
   };
+  const patchSelectedLayers = (patch: V2LayerPatch) => {
+    if (isMultiLayerSelection) {
+      applyCommand({
+        type: "patch-layers",
+        patches: Object.fromEntries(selectedLayers.map((layer) => [layer.id, patch])),
+      });
+      return;
+    }
+    patchLayer(patch);
+  };
   const patchAudioClip = (patch: V2AudioClipPatch) => {
     if (selectedAudio) {
       applyCommand({
@@ -376,13 +401,11 @@ export function SchemaInspector() {
     }
   };
   const patchLayerCoalesced = (historyKey: string, gestureId: number, patch: V2LayerPatch) => {
-    if (selected) {
-      applyCoalescedCommand(`inspector:${selected.id}:${historyKey}:${gestureId}`, {
-        type: "patch-layer",
-        layerId: selected.id,
-        patch,
-      });
-    }
+    if (!selected) return;
+    const command = isMultiLayerSelection
+      ? { type: "patch-layers" as const, patches: Object.fromEntries(selectedLayers.map((layer) => [layer.id, patch])) }
+      : { type: "patch-layer" as const, layerId: selected.id, patch };
+    applyCoalescedCommand(`inspector:${selected.id}:${historyKey}:${gestureId}`, command);
   };
   const toggle = (id: string) => setOpenSections((state) => ({ ...state, [id]: !(state[id] ?? false) }));
 
@@ -437,6 +460,17 @@ export function SchemaInspector() {
     });
   };
 
+  const commonStart = commonLayerNumber((layer) => layer.timing.start);
+  const commonDuration = commonLayerNumber((layer) => layer.timing.duration);
+  const commonTranslateX = commonLayerNumber((layer) => layer.transform.translate.x);
+  const commonTranslateY = commonLayerNumber((layer) => layer.transform.translate.y);
+  const commonWidth = commonLayerNumber((layer) => layer.frame.width);
+  const commonHeight = commonLayerNumber((layer) => layer.frame.height);
+  const commonScaleX = commonLayerNumber((layer) => layer.transform.scale.x);
+  const commonScaleY = commonLayerNumber((layer) => layer.transform.scale.y);
+  const commonRotation = commonLayerNumber((layer) => layer.transform.rotate.z);
+  const commonOpacity = commonLayerNumber((layer) => layer.opacity);
+
   const properties = selected ? (
     <div className="min-h-full w-full" data-testid="inspector-properties">
       {diagnostics.length > 0 ? (
@@ -446,29 +480,31 @@ export function SchemaInspector() {
       ) : null}
       <InspectorSection label="Timing" open={openSections.timing ?? false} onToggle={() => toggle("timing")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="Start" value={selected.timing.start} onChange={(value) => patchLayer({ timing: { start: Math.max(0, value) } })} />
-          <NumberField label="Duration" value={selected.timing.duration} onChange={(value) => patchLayer({ timing: { duration: Math.max(0.001, value) } })} />
+          <NumberField label="Start" value={commonStart.value} mixed={isMultiLayerSelection && commonStart.mixed} onChange={(value) => patchSelectedLayers({ timing: { start: Math.max(0, value) } })} />
+          <NumberField label="Duration" value={commonDuration.value} mixed={isMultiLayerSelection && commonDuration.mixed} onChange={(value) => patchSelectedLayers({ timing: { duration: Math.max(0.001, value) } })} />
         </div>
-        <ReadonlyField label="End" value={(selected.timing.start + selected.timing.duration).toFixed(2)} />
+        <ReadonlyField label="End" value={isMultiLayerSelection && (commonStart.mixed || commonDuration.mixed) ? "Mixed" : (commonStart.value + commonDuration.value).toFixed(2)} />
       </InspectorSection>
 
       <InspectorSection label="Transform" open={openSections.transform ?? false} onToggle={() => toggle("transform")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="X" step={1} integer suffix="px" value={selected.transform.translate.x} onChange={(value) => patchLayer({ transform: { translate: { x: value } } })} />
-          <NumberField label="Y" step={1} integer suffix="px" value={selected.transform.translate.y} onChange={(value) => patchLayer({ transform: { translate: { y: value } } })} />
-          <NumberField label="Width" step={1} integer suffix="px" value={selected.frame.width} onChange={(value) => patchLayer({ frame: { width: Math.max(1, value) } })} />
-          <NumberField label="Height" step={1} integer suffix="px" value={selected.frame.height} onChange={(value) => patchLayer({ frame: { height: Math.max(1, value) } })} />
-          <NumberField label="Scale X" step={0.01} value={selected.transform.scale.x} onChange={(value) => patchLayer({ transform: { scale: { x: Math.max(0.001, value) } } })} />
-          <NumberField label="Scale Y" step={0.01} value={selected.transform.scale.y} onChange={(value) => patchLayer({ transform: { scale: { y: Math.max(0.001, value) } } })} />
-          <NumberField label="Rotation Z" value={selected.transform.rotate.z} onChange={(value) => patchLayer({ transform: { rotate: { z: value } } })} />
+          <NumberField label="X" step={1} integer suffix="px" value={commonTranslateX.value} mixed={isMultiLayerSelection && commonTranslateX.mixed} onChange={(value) => patchSelectedLayers({ transform: { translate: { x: value } } })} />
+          <NumberField label="Y" step={1} integer suffix="px" value={commonTranslateY.value} mixed={isMultiLayerSelection && commonTranslateY.mixed} onChange={(value) => patchSelectedLayers({ transform: { translate: { y: value } } })} />
+          <NumberField label="Width" step={1} integer suffix="px" value={commonWidth.value} mixed={isMultiLayerSelection && commonWidth.mixed} onChange={(value) => patchSelectedLayers({ frame: { width: Math.max(1, value) } })} />
+          <NumberField label="Height" step={1} integer suffix="px" value={commonHeight.value} mixed={isMultiLayerSelection && commonHeight.mixed} onChange={(value) => patchSelectedLayers({ frame: { height: Math.max(1, value) } })} />
+          <NumberField label="Scale X" step={0.01} value={commonScaleX.value} mixed={isMultiLayerSelection && commonScaleX.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { x: Math.max(0.001, value) } } })} />
+          <NumberField label="Scale Y" step={0.01} value={commonScaleY.value} mixed={isMultiLayerSelection && commonScaleY.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { y: Math.max(0.001, value) } } })} />
+          <NumberField label="Rotation Z" value={commonRotation.value} mixed={isMultiLayerSelection && commonRotation.mixed} onChange={(value) => patchSelectedLayers({ transform: { rotate: { z: value } } })} />
           <RangeField
             label="Opacity"
-            value={selected.opacity}
+            value={commonOpacity.value}
+            mixed={isMultiLayerSelection && commonOpacity.mixed}
             onChange={(value, gestureId) => patchLayerCoalesced("opacity", gestureId, { opacity: Math.max(0, Math.min(1, value)) })}
           />
         </div>
       </InspectorSection>
 
+      <div className={isMultiLayerSelection ? "hidden" : "contents"}>
       <InspectorSection label="Alignment" open={openSections.alignment ?? false} onToggle={() => toggle("alignment")}>
         <div className="grid grid-cols-3 gap-1">
           <IconActionButton label="Align left" icon={<AlignStartHorizontal size={14} />} onClick={() => alignHorizontal("left")} />
@@ -607,6 +643,7 @@ export function SchemaInspector() {
           )}
         </InspectorSection>
       ) : null}
+      </div>
     </div>
   ) : selectedAudio ? (
     <AudioInspector
