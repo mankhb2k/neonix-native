@@ -7,7 +7,6 @@ import {
   buildV2RotatePatch,
   getV2LayerBounds,
   getV2LayerSelectionBox,
-  getV2RotationCompensatedTranslate,
   getV2LayerWorldQuad,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
@@ -154,7 +153,7 @@ describe("V2 stage transform geometry", () => {
     expect(buildV2RotatePatch({ rotation: 45 })).toEqual({ transform: { rotate: { z: 45 } } });
   });
 
-  it("compensates translation so rotation keeps the visual center", () => {
+  it("uses a changed anchor as the visible rotation origin", () => {
     const project = createV2EditorProject("shape");
     const layer = {
       ...project.layers[0]!,
@@ -163,11 +162,14 @@ describe("V2 stage transform geometry", () => {
         ...project.layers[0]!.transform,
         translate: { x: 200, y: 100, z: 0 },
         anchor: { x: 0, y: 0, z: 0 },
+        rotate: { x: 0, y: 0, z: 30 },
       },
     };
-    expect(getV2RotationCompensatedTranslate(layer, 90)).toMatchObject({
-      x: 280,
-      y: 80,
+    expect(getV2LayerSelectionBox(layer)).toMatchObject({
+      x: 200,
+      y: 100,
+      transformOriginX: 0,
+      transformOriginY: 0,
     });
   });
 });

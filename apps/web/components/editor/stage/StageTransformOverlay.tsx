@@ -9,8 +9,6 @@ import {
   buildV2RotatePatch,
   getV2LayerBounds,
   getV2LayerSelectionBox,
-  getV2LayerWorldQuad,
-  getV2RotationCompensatedTranslate,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
   type StageLayerBounds,
@@ -81,10 +79,6 @@ function boundsStyle(
 }
 
 function layerTransformValues(layer: V2Layer): StageTransformValues {
-  const center = getV2LayerWorldQuad(layer).reduce(
-    (sum, point) => ({ x: sum.x + point.x / 4, y: sum.y + point.y / 4 }),
-    { x: 0, y: 0 },
-  );
   return {
     rootLayerId: layer.parentLayerId ?? layer.id,
     layerId: layer.id,
@@ -93,8 +87,8 @@ function layerTransformValues(layer: V2Layer): StageTransformValues {
     width: layer.frame.width,
     height: layer.frame.height,
     rotation: layer.transform.rotate.z,
-    pivotX: center.x,
-    pivotY: center.y,
+    pivotX: layer.transform.translate.x + layer.transform.anchor.x,
+    pivotY: layer.transform.translate.y + layer.transform.anchor.y,
   };
 }
 
@@ -256,15 +250,13 @@ export function StageTransformOverlay({
     const preview = result?.patches[0]?.values;
     activeRotateRef.current = null;
     setRotatePreview(null);
-    const layer = document.layers.find((item) => item.id === active.layerId);
-    if (!preview || !layer || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
-    const translate = getV2RotationCompensatedTranslate(layer, preview.rotation);
+    if (!preview || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
     applyCommand({
       type: "patch-layer",
       layerId: active.layerId,
-      patch: buildV2RotatePatch({ rotation: preview.rotation, translate }),
+      patch: buildV2RotatePatch({ rotation: preview.rotation }),
     });
-  }, [applyCommand, document.layers]);
+  }, [applyCommand]);
 
   const cancelMove = useCallback(() => {
     sessionRef.current?.cancel();
