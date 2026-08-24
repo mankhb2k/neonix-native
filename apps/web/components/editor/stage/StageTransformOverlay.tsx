@@ -9,6 +9,8 @@ import {
   buildV2RotatePatch,
   getV2LayerBounds,
   getV2LayerSelectionBox,
+  getV2LayerWorldQuad,
+  isPointInsideV2Layer,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
   type StageLayerBounds,
@@ -75,6 +77,19 @@ function boundsStyle(
     width: percent(Math.max(1, bounds.width), compositionWidth),
     height: percent(Math.max(1, bounds.height), compositionHeight),
     boxSizing: "border-box",
+  };
+}
+
+function hitboxStyle(layer: V2Layer, compositionWidth: number, compositionHeight: number): CSSProperties {
+  const bounds = getV2LayerBounds(layer);
+  const width = Math.max(1, bounds.width);
+  const height = Math.max(1, bounds.height);
+  const clipPath = getV2LayerWorldQuad(layer)
+    .map((point) => `${percent(point.x - bounds.x, width)} ${percent(point.y - bounds.y, height)}`)
+    .join(", ");
+  return {
+    ...boundsStyle(bounds, compositionWidth, compositionHeight),
+    clipPath: `polygon(${clipPath})`,
   };
 }
 
@@ -277,13 +292,7 @@ export function StageTransformOverlay({
     // to the highest-order layer under the pointer instead of moving the
     // currently selected full-canvas media layer.
     const hitLayer = [...activeVisualLayers].reverse().find((layer) => {
-      const bounds = getV2LayerBounds(layer);
-      return (
-        pointer.x >= bounds.x &&
-        pointer.x <= bounds.x + bounds.width &&
-        pointer.y >= bounds.y &&
-        pointer.y <= bounds.y + bounds.height
-      );
+      return isPointInsideV2Layer(layer, pointer);
     });
     if (hitLayer && !selectedLayers.some((layer) => layer.id === hitLayer.id)) {
       event.preventDefault();
@@ -458,7 +467,7 @@ export function StageTransformOverlay({
           aria-label={`Select ${layer.id}`}
           data-layer-hit={layer.id}
           style={{
-            ...boundsStyle(getV2LayerBounds(layer), compositionWidth, compositionHeight),
+            ...hitboxStyle(layer, compositionWidth, compositionHeight),
             pointerEvents: "auto",
             background: "transparent",
           }}

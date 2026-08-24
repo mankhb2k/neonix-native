@@ -2,6 +2,7 @@
 
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
+import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
 import { Button, Panel, Tabs } from "@/components/ui";
 import type { MotionProtocolV2, V2Asset } from "@motionvideo/motion-protocol/v2";
 import { File as FileIcon, FileAudio, FileVideo, Image as ImageIcon, Upload } from "lucide-react";
@@ -137,7 +138,7 @@ export function Sidebar() {
                 <div className="mb-2 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-muted)]"><span>Protocol V2</span><span>{displayLayers.length}</span></div>
                 <ul className="space-y-1">{displayLayers.map(({ layer, depth }) => {
                   const selected = selectedLayerIds.includes(layer.id);
-                  return <li key={layer.id}><button type="button" onClick={() => setSelectedLayerIds([layer.id])} className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors ${selected ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"}`} style={{ paddingLeft: `${10 + depth * 14}px` }} data-layer-id={layer.id} data-layer-order={layer.order}><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{layer.id}</span><span className="mt-0.5 block truncate text-[10px] opacity-70">{layerKindLabel(layer)} · {layer.timing.start.toFixed(2)}s–{(layer.timing.start + layer.timing.duration).toFixed(2)}s</span></span><span className="shrink-0 font-mono text-[10px] opacity-70">z{layer.order}</span></button></li>;
+                  return <li key={layer.id}><button type="button" onClick={(event) => setSelectedLayerIds((previous) => updateKeyboardSelection(displayLayers.map((entry) => entry.layer.id), previous, layer.id, { shiftKey: event.shiftKey, additiveKey: event.metaKey || event.ctrlKey }))} className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors ${selected ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"}`} style={{ paddingLeft: `${10 + depth * 14}px` }} data-layer-id={layer.id} data-layer-order={layer.order}><span className="min-w-0 flex-1"><span className="block truncate text-[12px] font-medium">{layer.id}</span><span className="mt-0.5 block truncate text-[10px] opacity-70">{layerKindLabel(layer)} · {layer.timing.start.toFixed(2)}s–{(layer.timing.start + layer.timing.duration).toFixed(2)}s</span></span><span className="shrink-0 font-mono text-[10px] opacity-70">z{layer.order}</span></button></li>;
                 })}</ul>
               </div>
             ),

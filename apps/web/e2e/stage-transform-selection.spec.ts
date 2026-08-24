@@ -86,4 +86,28 @@ test.describe("V2 preview layer hit testing", () => {
 
     await expect.poll(async () => Number(await rotationInput.inputValue())).toBeLessThan(0);
   });
+
+  test("lets a lower layer receive clicks outside a rotated upper quad", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+    await page.locator('[data-layer-hit="chapter-1-title"]').click();
+
+    const rotationInput = page.getByRole("spinbutton", { name: "Rotation Z", exact: true });
+    await rotationInput.fill("30");
+    await rotationInput.press("Enter");
+    await expect(rotationInput).toHaveValue("30");
+
+    const stage = page.getByTestId("preview-v2-stage");
+    const stageBox = await stage.boundingBox();
+    if (!stageBox) throw new Error("preview stage is not measurable");
+    // This point is inside the rotated title's axis-aligned bounds but above
+    // its actual quad; the card underneath must receive the click.
+    await page.mouse.click(
+      stageBox.x + (960 / 1920) * stageBox.width,
+      stageBox.y + (370 / 1080) * stageBox.height,
+    );
+    await expect(page.locator('[data-layer-id="chapter-1-card"]')).toHaveClass(
+      /border-\[var\(--accent\)\]/,
+    );
+  });
 });

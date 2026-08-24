@@ -27,6 +27,7 @@ import {
   type MarqueeRect,
 } from "@motionvideo/editor-core/timeline-runtime";
 import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
+import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
 import {
   useCallback,
   useEffect,
@@ -197,6 +198,10 @@ export function TimelineViewport({
     TIMELINE_START_GUTTER_PX + trackWidth,
   );
   const surfaceDuration = Math.max(duration, layout.extentSeconds);
+  // Keep every seek entry point (ruler click, empty-track click and marquee)
+  // on the same bound as playhead dragging. The surface can be wider than the
+  // playable clock when its layout extent is larger than the longest layer.
+  const scrubMax = resolvePlayheadScrubMax(surfaceDuration, duration);
 
   const selectedClipIds = useMemo(
     () => new Set(selectedClipIdsFrom(selection)),
@@ -253,7 +258,7 @@ export function TimelineViewport({
   const seekToClientX = useTimelineSeek({
     tracksScrollRef: scrollRef,
     pixelsPerSecond: pps,
-    maxTime: surfaceDuration,
+    maxTime: scrubMax,
     onSeek,
   });
 
@@ -284,18 +289,16 @@ export function TimelineViewport({
   const onClipSelectPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>, clip: TimelineClip) => {
       const selected = selectedClipIdsFrom(selection);
-      const additive = event.metaKey || event.ctrlKey;
-      const already = selected.includes(clip.id);
-      if (additive) {
-        const next = already
-          ? selected.filter((id) => id !== clip.id)
-          : [...selected, clip.id];
-        onSelect(selectionClips(next));
-        return;
-      }
-      if (!already) onSelect(selectionClips([clip.id]));
+      const orderedClipIds = rows
+        .flatMap((row) => clipsByLaneMap.get(row.id) ?? [])
+        .map((candidate) => candidate.id);
+      const next = updateKeyboardSelection(orderedClipIds, selected, clip.id, {
+        shiftKey: event.shiftKey,
+        additiveKey: event.metaKey || event.ctrlKey,
+      });
+      onSelect(selectionClips(next));
     },
-    [onSelect, selection],
+    [clipsByLaneMap, onSelect, rows, selection],
   );
 
   const playheadLeft = timelineTimeToViewportLeft(
@@ -306,7 +309,7 @@ export function TimelineViewport({
   );
 
   ppsRef.current = pps;
-  scrubMaxRef.current = resolvePlayheadScrubMax(surfaceDuration, duration);
+  scrubMaxRef.current = scrubMax;
 
   /** During playback, scroll the board so the playhead stays in view. */
   useEffect(() => {

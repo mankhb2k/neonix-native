@@ -73,6 +73,24 @@ export function getV2LayerWorldQuad(layer: V2Layer): StagePoint[] {
   });
 }
 
+/** Point-in-quad test used by the stage overlay hit regions. */
+export function isPointInsideV2Layer(layer: V2Layer, point: StagePoint): boolean {
+  const polygon = getV2LayerWorldQuad(layer);
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const current = polygon[index]!;
+    const prior = polygon[previous]!;
+    const crosses =
+      (current.y > point.y) !== (prior.y > point.y) &&
+      point.x <
+        ((prior.x - current.x) * (point.y - current.y)) /
+          (prior.y - current.y || Number.EPSILON) +
+          current.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
 /** Return the axis-aligned composition bounds used by the selection overlay. */
 export function getV2LayerBounds(layer: V2Layer): StageLayerBounds {
   const points = getV2LayerWorldQuad(layer);

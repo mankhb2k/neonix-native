@@ -8,6 +8,7 @@ import {
   getV2LayerBounds,
   getV2LayerSelectionBox,
   getV2LayerWorldQuad,
+  isPointInsideV2Layer,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
 } from "./stage-transform";
@@ -93,6 +94,23 @@ describe("V2 stage transform geometry", () => {
       transformOriginX: 50,
       transformOriginY: 30,
     });
+  });
+
+  it("does not treat the transparent corners of a rotated layer AABB as hits", () => {
+    const project = createV2EditorProject("shape");
+    const layer = {
+      ...project.layers[0]!,
+      frame: { width: 100, height: 60 },
+      transform: {
+        ...project.layers[0]!.transform,
+        translate: { x: 200, y: 100, z: 0 },
+        anchor: { x: 50, y: 30, z: 0 },
+        rotate: { x: 0, y: 0, z: 30 },
+      },
+    };
+    const bounds = getV2LayerBounds(layer);
+    expect(isPointInsideV2Layer(layer, { x: bounds.x + 1, y: bounds.y + 1 })).toBe(false);
+    expect(isPointInsideV2Layer(layer, { x: 250, y: 130 })).toBe(true);
   });
 
   it("combines active visual layer bounds for a multi-selection", () => {

@@ -81,34 +81,34 @@ fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
     source = mix(uniforms.gradientStart, uniforms.gradientEnd, clamp(gradientT, 0.0, 1.0));
   }
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
-    var strokeCoverage = 0.0;
+    // Keep the complete stroke inside the layer frame. This avoids clipping
+    // half of a thin stroke at the rotated quad boundary.
+    var strokeMix = 0.0;
     if (uniforms.params.x > 0.5 && uniforms.params.x < 1.5) {
       let p = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
-      let innerRadii = max(vec2<f32>(0.0001, 0.0001), vec2<f32>(1.0, 1.0) - uniforms.params.zw);
+      let innerRadii = max(vec2<f32>(0.0001, 0.0001), vec2<f32>(1.0, 1.0) - 2.0 * uniforms.params.zw);
       let innerDistance = length(p / innerRadii);
       let edgeWidth = max(fwidth(innerDistance), 0.0001);
       let innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
-      strokeCoverage = shapeAlpha * innerCoverage;
+      strokeMix = innerCoverage;
     } else if (uniforms.geometry.x > 0.0) {
       let halfSize = uniforms.geometry.yz * 0.5;
       let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
       let strokeWidth = max(uniforms.params.z * uniforms.geometry.y, uniforms.params.w * uniforms.geometry.z);
-      let halfStroke = strokeWidth * 0.5;
       let innerDistance = roundedBoxDistance(
         point,
-        max(halfSize - vec2<f32>(halfStroke, halfStroke), vec2<f32>(0.0001, 0.0001)),
-        max(uniforms.geometry.x - halfStroke, 0.0),
+        max(halfSize - vec2<f32>(strokeWidth, strokeWidth), vec2<f32>(0.0001, 0.0001)),
+        max(uniforms.geometry.x - strokeWidth, 0.0),
       );
       let edgeWidth = max(fwidth(innerDistance), 0.0001);
-      strokeCoverage = shapeAlpha * smoothstep(-edgeWidth, edgeWidth, innerDistance);
+      strokeMix = smoothstep(-edgeWidth, edgeWidth, innerDistance);
     } else {
       let edge = min(input.uv, vec2<f32>(1.0, 1.0) - input.uv);
-      let halfStroke = uniforms.params.zw * 0.5;
-      let distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
+      let distanceToInnerEdge = min(edge.x - uniforms.params.z, edge.y - uniforms.params.w);
       let edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
-      strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+      strokeMix = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
     }
-    source = mix(source, uniforms.media, strokeCoverage);
+    source = mix(source, uniforms.media, clamp(strokeMix, 0.0, 1.0));
   }
   if (uniforms.colorAdjustMeta.x > 0.5) { source = applyColorAdjust(source, uniforms.colorAdjust0); }
   if (uniforms.colorAdjustMeta.x > 1.5) { source = applyColorAdjust(source, uniforms.colorAdjust1); }

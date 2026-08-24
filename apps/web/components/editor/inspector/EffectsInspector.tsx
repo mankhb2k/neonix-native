@@ -79,7 +79,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
       <input
         type="color"
-        className="h-7 w-12 rounded border border-[var(--border-strong)] bg-transparent p-0.5"
+        className="h-7 w-12 appearance-none rounded border-2 border-[var(--border-strong)] bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:border-0"
         value={value.slice(0, 7)}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}

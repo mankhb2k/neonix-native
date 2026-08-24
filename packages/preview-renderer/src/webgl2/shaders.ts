@@ -10,7 +10,9 @@ void main() {
 }`;
 
 export const FRAGMENT_SHADER = `#version 300 es
-precision mediump float;
+// Shape distance fields are evaluated in composition pixels. High precision
+// keeps a thin rotated stroke stable on large canvases (for example 1920px).
+precision highp float;
 uniform vec4 u_color;
 uniform sampler2D u_texture;
 uniform vec4 u_uv_rect;
@@ -82,34 +84,37 @@ void main() {
     source = mix(u_gradient_start, u_gradient_end, clamp(gradientT, 0.0, 1.0));
   }
   if (u_mode == 0 && u_stroke_extent.x > 0.0 && u_stroke_extent.y > 0.0) {
-    float strokeCoverage;
+    // Strokes are deliberately painted *inside* the layer frame. The old
+    // implementation inset by half the requested width, then clipped the
+    // other half at the quad boundary. That made a 3px stroke visibly thinner
+    // and uneven when the quad was rotated. Keep the full width inside the
+    // frame and use a separate AA transition for its inner boundary.
+    float strokeMix;
     if (u_shape == 1) {
       vec2 p = v_uv * 2.0 - 1.0;
-      vec2 innerRadii = max(vec2(0.0001), vec2(1.0) - u_stroke_extent);
+      vec2 innerRadii = max(vec2(0.0001), vec2(1.0) - 2.0 * u_stroke_extent);
       float innerDistance = length(p / innerRadii);
       float edgeWidth = max(fwidth(innerDistance), 0.0001);
       float innerCoverage = smoothstep(1.0 - edgeWidth, 1.0 + edgeWidth, innerDistance);
-      strokeCoverage = shapeAlpha * innerCoverage;
+      strokeMix = innerCoverage;
     } else if (u_geometry.x > 0.0) {
       vec2 halfSize = u_geometry.yz * 0.5;
       vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
       float strokeWidth = max(u_stroke_extent.x * u_geometry.y, u_stroke_extent.y * u_geometry.z);
-      float halfStroke = strokeWidth * 0.5;
       float innerDistance = roundedBoxDistance(
         point,
-        max(halfSize - vec2(halfStroke), vec2(0.0001)),
-        max(u_geometry.x - halfStroke, 0.0)
+        max(halfSize - vec2(strokeWidth), vec2(0.0001)),
+        max(u_geometry.x - strokeWidth, 0.0)
       );
       float edgeWidth = max(fwidth(innerDistance), 0.0001);
-      strokeCoverage = shapeAlpha * smoothstep(-edgeWidth, edgeWidth, innerDistance);
+      strokeMix = smoothstep(-edgeWidth, edgeWidth, innerDistance);
     } else {
       vec2 edge = min(v_uv, vec2(1.0) - v_uv);
-      vec2 halfStroke = u_stroke_extent * 0.5;
-      float distanceToInnerEdge = min(edge.x - halfStroke.x, edge.y - halfStroke.y);
+      float distanceToInnerEdge = min(edge.x - u_stroke_extent.x, edge.y - u_stroke_extent.y);
       float edgeWidth = max(fwidth(distanceToInnerEdge), 0.0001);
-      strokeCoverage = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
+      strokeMix = 1.0 - smoothstep(-edgeWidth, edgeWidth, distanceToInnerEdge);
     }
-    source = mix(source, u_stroke_color, strokeCoverage);
+    source = mix(source, u_stroke_color, clamp(strokeMix, 0.0, 1.0));
   }
   if (u_color_adjust_meta.x > 0.5) source = applyColorAdjust(source, u_color_adjust[0]);
   if (u_color_adjust_meta.x > 1.5) source = applyColorAdjust(source, u_color_adjust[1]);

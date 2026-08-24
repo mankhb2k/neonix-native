@@ -143,7 +143,11 @@ export function ClipStrip({
       return;
     }
     onSelectPointerDown?.(event, clip);
-    onBeginMove?.(event, clip);
+    // Modifier clicks are selection gestures; do not let the move hook
+    // overwrite the range/toggle selection immediately afterwards.
+    if (!event.shiftKey && !event.metaKey && !event.ctrlKey) {
+      onBeginMove?.(event, clip);
+    }
   };
 
   const handleTrimPointerDown = (

@@ -18,6 +18,18 @@ export type StepperInputProps = {
   onGestureStart?: () => void;
 };
 
+/** Format only the inspector display; the V2 document keeps its float value. */
+export function formatStepperValue(value: number, integer = false): string {
+  if (!Number.isFinite(value)) return "0";
+  return integer ? String(Math.round(value)) : String(value);
+}
+
+export function getStepperNextValue(value: number, direction: 1 | -1, step: number, integer = false): number {
+  const baseValue = integer ? Math.round(value) : value;
+  const precision = step < 1 ? 6 : 0;
+  return Number((baseValue + direction * step).toFixed(precision));
+}
+
 /** Shared inspector numeric input with unit suffix and vertical step buttons. */
 export function StepperInput({
   label,
@@ -33,15 +45,15 @@ export function StepperInput({
   onChange,
   onGestureStart,
 }: StepperInputProps) {
-  const [draft, setDraft] = useState(Number.isFinite(value) ? String(value) : "0");
+  const [draft, setDraft] = useState(formatStepperValue(value, integer));
   const valueRef = useRef(value);
   const repeatTimeoutRef = useRef<number | null>(null);
   const repeatIntervalRef = useRef<number | null>(null);
   valueRef.current = value;
 
   useEffect(() => {
-    setDraft(mixed ? "" : Number.isFinite(value) ? String(value) : "0");
-  }, [mixed, value]);
+    setDraft(mixed ? "" : formatStepperValue(value, integer));
+  }, [integer, mixed, value]);
 
   const bound = (next: number) => {
     const normalized = integer ? Math.round(next) : next;
@@ -56,14 +68,13 @@ export function StepperInput({
       onChange(bounded);
       setDraft(String(bounded));
     } else {
-      setDraft(Number.isFinite(value) ? String(value) : "0");
+      setDraft(formatStepperValue(value, integer));
     }
   };
 
   const bump = (direction: 1 | -1, beginGesture = true) => {
     if (beginGesture) onGestureStart?.();
-    const precision = step < 1 ? 6 : 0;
-    const next = Number((valueRef.current + direction * step).toFixed(precision));
+    const next = getStepperNextValue(valueRef.current, direction, step, integer);
     const bounded = bound(next);
     valueRef.current = bounded;
     setDraft(String(bounded));
@@ -120,7 +131,7 @@ export function StepperInput({
             event.currentTarget.blur();
           }
           if (event.key === "Escape") {
-            setDraft(Number.isFinite(value) ? String(value) : "0");
+            setDraft(formatStepperValue(value, integer));
             event.currentTarget.blur();
           }
         }}

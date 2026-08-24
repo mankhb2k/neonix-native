@@ -4,7 +4,7 @@ import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
 import type { V2AudioClipPatch, V2AudioTrackPatch, V2LayerPatch } from "@motionvideo/editor-core/v2";
 import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
-import { compensateAnchor } from "@/lib/v2-editor/inspector-transform";
+import { buildAlignmentPatches, compensateAnchor } from "@/lib/v2-editor/inspector-transform";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
 import { StepperInput } from "./StepperInput";
@@ -16,6 +16,7 @@ import {
   AlignStartHorizontal,
   AlignStartVertical,
   ChevronDown,
+  Dot,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -36,14 +37,16 @@ function InspectorSection({
   open,
   onToggle,
   children,
+  className,
 }: {
   label: string;
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="border-b border-[var(--border-subtle)] last:border-b-0">
+    <section className={`border-b border-[var(--border-subtle)] last:border-b-0 ${className ?? ""}`}>
       <button
         type="button"
         className="flex min-h-9 w-full items-center justify-between px-0 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)]"
@@ -193,7 +196,7 @@ function ColorField({
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
       <input
         type="color"
-        className="h-7 w-12 rounded border border-[var(--border-strong)] bg-transparent p-0.5"
+        className="h-7 w-12 appearance-none rounded border-2 border-[var(--border-strong)] bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-0 [&::-moz-color-swatch]:border-0"
         value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
         onChange={(event) => onChange(event.target.value)}
         aria-label={label}
@@ -325,8 +328,10 @@ export function SchemaInspector() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     timing: true,
     transform: true,
+    layout: true,
     alignment: true,
     anchor: false,
+    appearance: true,
     compositing: true,
     text: true,
     style: true,
@@ -410,23 +415,13 @@ export function SchemaInspector() {
   const toggle = (id: string) => setOpenSections((state) => ({ ...state, [id]: !(state[id] ?? false) }));
 
   const alignHorizontal = (mode: "left" | "center" | "right") => {
-    if (!selected) return;
-    const x = mode === "left"
-      ? 0
-      : mode === "center"
-        ? (document.composition.width - selected.frame.width) / 2
-        : document.composition.width - selected.frame.width;
-    patchLayer({ transform: { translate: { x } } });
+    if (!isMultiLayerSelection) return;
+    applyCommand({ type: "patch-layers", patches: buildAlignmentPatches(selectedLayers, "horizontal", mode) });
   };
 
   const alignVertical = (mode: "top" | "middle" | "bottom") => {
-    if (!selected) return;
-    const y = mode === "top"
-      ? 0
-      : mode === "middle"
-        ? (document.composition.height - selected.frame.height) / 2
-        : document.composition.height - selected.frame.height;
-    patchLayer({ transform: { translate: { y } } });
+    if (!isMultiLayerSelection) return;
+    applyCommand({ type: "patch-layers", patches: buildAlignmentPatches(selectedLayers, "vertical", mode) });
   };
 
   const setAnchor = (x: number, y: number) => {
@@ -472,13 +467,13 @@ export function SchemaInspector() {
   const commonOpacity = commonLayerNumber((layer) => layer.opacity);
 
   const properties = selected ? (
-    <div className="min-h-full w-full" data-testid="inspector-properties">
+    <div className="flex min-h-full w-full flex-col" data-testid="inspector-properties">
       {diagnostics.length > 0 ? (
-        <div role="alert" className="border-b border-[var(--danger)]/40 bg-[var(--danger)]/10 py-2 text-[11px] text-[var(--danger)]">
+        <div role="alert" className="order-[-2] border-b border-[var(--danger)]/40 bg-[var(--danger)]/10 py-2 text-[11px] text-[var(--danger)]">
           {diagnostics[0]?.message}
         </div>
       ) : null}
-      <InspectorSection label="Timing" open={openSections.timing ?? false} onToggle={() => toggle("timing")}>
+      <InspectorSection label="Timing" className="order-4" open={openSections.timing ?? false} onToggle={() => toggle("timing")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
           <NumberField label="Start" value={commonStart.value} mixed={isMultiLayerSelection && commonStart.mixed} onChange={(value) => patchSelectedLayers({ timing: { start: Math.max(0, value) } })} />
           <NumberField label="Duration" value={commonDuration.value} mixed={isMultiLayerSelection && commonDuration.mixed} onChange={(value) => patchSelectedLayers({ timing: { duration: Math.max(0.001, value) } })} />
@@ -486,61 +481,88 @@ export function SchemaInspector() {
         <ReadonlyField label="End" value={isMultiLayerSelection && (commonStart.mixed || commonDuration.mixed) ? "Mixed" : (commonStart.value + commonDuration.value).toFixed(2)} />
       </InspectorSection>
 
-      <InspectorSection label="Transform" open={openSections.transform ?? false} onToggle={() => toggle("transform")}>
+      <InspectorSection label="Position" className="order-0" open={openSections.transform ?? false} onToggle={() => toggle("transform")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
           <NumberField label="X" step={1} integer suffix="px" value={commonTranslateX.value} mixed={isMultiLayerSelection && commonTranslateX.mixed} onChange={(value) => patchSelectedLayers({ transform: { translate: { x: value } } })} />
           <NumberField label="Y" step={1} integer suffix="px" value={commonTranslateY.value} mixed={isMultiLayerSelection && commonTranslateY.mixed} onChange={(value) => patchSelectedLayers({ transform: { translate: { y: value } } })} />
+          <NumberField label="Rotation Z" step={1} integer value={commonRotation.value} mixed={isMultiLayerSelection && commonRotation.mixed} onChange={(value) => patchSelectedLayers({ transform: { rotate: { z: value } } })} />
+        </div>
+      </InspectorSection>
+
+      <InspectorSection label="Layout" className="order-2" open={openSections.layout ?? false} onToggle={() => toggle("layout")}>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
           <NumberField label="Width" step={1} integer suffix="px" value={commonWidth.value} mixed={isMultiLayerSelection && commonWidth.mixed} onChange={(value) => patchSelectedLayers({ frame: { width: Math.max(1, value) } })} />
           <NumberField label="Height" step={1} integer suffix="px" value={commonHeight.value} mixed={isMultiLayerSelection && commonHeight.mixed} onChange={(value) => patchSelectedLayers({ frame: { height: Math.max(1, value) } })} />
-          <NumberField label="Scale X" step={0.01} value={commonScaleX.value} mixed={isMultiLayerSelection && commonScaleX.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { x: Math.max(0.001, value) } } })} />
-          <NumberField label="Scale Y" step={0.01} value={commonScaleY.value} mixed={isMultiLayerSelection && commonScaleY.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { y: Math.max(0.001, value) } } })} />
-          <NumberField label="Rotation Z" value={commonRotation.value} mixed={isMultiLayerSelection && commonRotation.mixed} onChange={(value) => patchSelectedLayers({ transform: { rotate: { z: value } } })} />
+          <NumberField label="Scale X" step={1} integer value={commonScaleX.value} mixed={isMultiLayerSelection && commonScaleX.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { x: Math.max(0.001, value) } } })} />
+          <NumberField label="Scale Y" step={1} integer value={commonScaleY.value} mixed={isMultiLayerSelection && commonScaleY.mixed} onChange={(value) => patchSelectedLayers({ transform: { scale: { y: Math.max(0.001, value) } } })} />
+        </div>
+      </InspectorSection>
+
+      {isMultiLayerSelection ? (
+        <InspectorSection label="Appearance" className="order-5" open={openSections.appearance ?? false} onToggle={() => toggle("appearance")}>
           <RangeField
             label="Opacity"
             value={commonOpacity.value}
-            mixed={isMultiLayerSelection && commonOpacity.mixed}
+            mixed={commonOpacity.mixed}
             onChange={(value, gestureId) => patchLayerCoalesced("opacity", gestureId, { opacity: Math.max(0, Math.min(1, value)) })}
           />
+        </InspectorSection>
+      ) : null}
+
+      <div className={isMultiLayerSelection ? "contents" : "hidden"}>
+        <div className="order-1">
+          <InspectorSection label="Alignment" open={openSections.alignment ?? false} onToggle={() => toggle("alignment")}>
+            <div className="grid grid-cols-3 gap-1">
+              <IconActionButton label="Align left" icon={<AlignStartVertical size={14} />} onClick={() => alignHorizontal("left")} />
+              <IconActionButton label="Align center" icon={<AlignCenterVertical size={14} />} onClick={() => alignHorizontal("center")} />
+              <IconActionButton label="Align right" icon={<AlignEndVertical size={14} />} onClick={() => alignHorizontal("right")} />
+              <IconActionButton label="Align top" icon={<AlignStartHorizontal size={14} />} onClick={() => alignVertical("top")} />
+              <IconActionButton label="Align middle" icon={<AlignCenterHorizontal size={14} />} onClick={() => alignVertical("middle")} />
+              <IconActionButton label="Align bottom" icon={<AlignEndHorizontal size={14} />} onClick={() => alignVertical("bottom")} />
+            </div>
+          </InspectorSection>
         </div>
-      </InspectorSection>
+      </div>
 
       <div className={isMultiLayerSelection ? "hidden" : "contents"}>
-      <InspectorSection label="Alignment" open={openSections.alignment ?? false} onToggle={() => toggle("alignment")}>
-        <div className="grid grid-cols-3 gap-1">
-          <IconActionButton label="Align left" icon={<AlignStartHorizontal size={14} />} onClick={() => alignHorizontal("left")} />
-          <IconActionButton label="Align center" icon={<AlignCenterHorizontal size={14} />} onClick={() => alignHorizontal("center")} />
-          <IconActionButton label="Align right" icon={<AlignEndHorizontal size={14} />} onClick={() => alignHorizontal("right")} />
-          <IconActionButton label="Align top" icon={<AlignStartVertical size={14} />} onClick={() => alignVertical("top")} />
-          <IconActionButton label="Align middle" icon={<AlignCenterVertical size={14} />} onClick={() => alignVertical("middle")} />
-          <IconActionButton label="Align bottom" icon={<AlignEndVertical size={14} />} onClick={() => alignVertical("bottom")} />
-        </div>
-      </InspectorSection>
 
-      <InspectorSection label="Anchor" open={openSections.anchor ?? false} onToggle={() => toggle("anchor")}>
+      <InspectorSection label="Anchor" className="order-3" open={openSections.anchor ?? false} onToggle={() => toggle("anchor")}>
         <div className="mx-auto grid w-fit grid-cols-3 gap-1" aria-label="Anchor presets">
           {[0, 0.5, 1].flatMap((y) => [0, 0.5, 1].map((x) => ({ x, y }))).map((preset) => (
             <button
               key={`${preset.x}-${preset.y}`}
               type="button"
               aria-label={`Anchor ${preset.x}, ${preset.y}`}
-              className="h-6 w-6 rounded border border-[var(--border-strong)] text-[10px] text-[var(--fg-muted)] data-[active=true]:border-[var(--accent)] data-[active=true]:text-[var(--accent)]"
+              className="flex h-8 w-8 items-center justify-center rounded border border-[var(--border-strong)] text-[var(--fg-muted)] data-[active=true]:border-[var(--accent)] data-[active=true]:text-[var(--accent)]"
               data-active={
                 selected.transform.anchor.x === selected.frame.width * preset.x &&
                 selected.transform.anchor.y === selected.frame.height * preset.y
               }
               onClick={() => setAnchor(selected.frame.width * preset.x, selected.frame.height * preset.y)}
             >
-              •
+              <Dot size={22} strokeWidth={4} fill="currentColor" aria-hidden="true" />
             </button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="Anchor X" suffix="px" value={selected.transform.anchor.x} onChange={(value) => setAnchor(value, selected.transform.anchor.y)} />
-          <NumberField label="Anchor Y" suffix="px" value={selected.transform.anchor.y} onChange={(value) => setAnchor(selected.transform.anchor.x, value)} />
+          <NumberField label="Anchor X" step={1} integer suffix="px" value={selected.transform.anchor.x} onChange={(value) => setAnchor(value, selected.transform.anchor.y)} />
+          <NumberField label="Anchor Y" step={1} integer suffix="px" value={selected.transform.anchor.y} onChange={(value) => setAnchor(selected.transform.anchor.x, value)} />
         </div>
       </InspectorSection>
 
-      <InspectorSection label="Compositing" open={openSections.compositing ?? false} onToggle={() => toggle("compositing")}>
+      <InspectorSection label="Appearance" className="order-5" open={openSections.appearance ?? false} onToggle={() => toggle("appearance")}>
+        <RangeField
+          label="Opacity"
+          value={commonOpacity.value}
+          mixed={isMultiLayerSelection && commonOpacity.mixed}
+          onChange={(value, gestureId) => patchLayerCoalesced("opacity", gestureId, { opacity: Math.max(0, Math.min(1, value)) })}
+        />
+        {selected.type === "shape" ? (
+          <NumberField label="Corner radius" step={1} integer suffix="px" value={selected.payload.cornerRadius ?? 0} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
+        ) : null}
+      </InspectorSection>
+
+      <InspectorSection label="Compositing" className="order-7" open={openSections.compositing ?? false} onToggle={() => toggle("compositing")}>
         <InspectorSelect
           label="Blend"
           value={selected.composite?.blendMode ?? "normal"}
@@ -563,22 +585,25 @@ export function SchemaInspector() {
         </div>
       </InspectorSection>
 
-      {selected.type === "text" || selected.type === "shape" || selected.type === "image" || selected.type === "video" || selected.type === "path" ? (
-        <EffectsInspector
-          effects={selected.effects ?? []}
-          open={openSections.effects ?? false}
-          onToggle={() => toggle("effects")}
-          onChange={(effects) => patchLayer({ effects })}
-        />
-      ) : null}
+      <div className="order-8">
+        {selected.type === "text" || selected.type === "shape" || selected.type === "image" || selected.type === "video" || selected.type === "path" ? (
+          <EffectsInspector
+            effects={selected.effects ?? []}
+            open={openSections.effects ?? false}
+            onToggle={() => toggle("effects")}
+            onChange={(effects) => patchLayer({ effects })}
+          />
+        ) : null}
+      </div>
 
+      <div className="order-6">
       {selected.type === "text" ? (
         <InspectorSection label="Text" open={openSections.text ?? false} onToggle={() => toggle("text")}>
           <TextAreaField label="Content" value={selected.payload.text} onCommit={(value) => patchLayer({ payload: { text: value } })} />
           <InspectorSelect label="Font" value={selected.payload.fontAssetId} options={fontOptions} onChange={(value) => patchLayer({ payload: { fontAssetId: value } })} />
           <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Font size" suffix="px" value={selected.payload.fontSize} onChange={(value) => patchLayer({ payload: { fontSize: Math.max(0.001, value) } })} />
-            <NumberField label="Line height" suffix="px" value={selected.payload.lineHeight} onChange={(value) => patchLayer({ payload: { lineHeight: Math.max(0.001, value) } })} />
+            <NumberField label="Font size" step={1} integer suffix="px" value={selected.payload.fontSize} onChange={(value) => patchLayer({ payload: { fontSize: Math.max(0.001, value) } })} />
+            <NumberField label="Line height" step={1} integer suffix="px" value={selected.payload.lineHeight} onChange={(value) => patchLayer({ payload: { lineHeight: Math.max(0.001, value) } })} />
           </div>
           <NumberField label="Letter spacing" suffix="px" value={selected.payload.letterSpacing} onChange={(value) => patchLayer({ payload: { letterSpacing: value } })} />
           <div className="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -596,9 +621,8 @@ export function SchemaInspector() {
             <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
           ) : null}
           {selected.style.stroke ? <ColorField label="Stroke" value={selected.style.stroke} onChange={(value) => patchLayer({ style: { stroke: value } })} /> : null}
-          {selected.style.stroke ? <NumberField label="Stroke width" suffix="px" value={selected.style.strokeWidth ?? 1} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
+          {selected.style.stroke ? <NumberField label="Stroke width" step={1} integer suffix="px" value={selected.style.strokeWidth ?? 1} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
           {!selected.style.stroke ? <ActionButton label="Add stroke" onClick={() => patchLayer({ style: { stroke: "#ffffff", strokeWidth: 1 } })} /> : null}
-          <NumberField label="Corner radius" suffix="px" value={selected.payload.cornerRadius ?? 0} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
         </InspectorSection>
       ) : null}
 
@@ -622,9 +646,10 @@ export function SchemaInspector() {
           <InspectorSelect label="Frame policy" value={selected.payload.framePolicy ?? "floor"} options={[{ value: "floor", label: "Floor" }, { value: "round", label: "Round" }, { value: "ceil", label: "Ceil" }]} onChange={(value) => patchLayer({ payload: { framePolicy: value as "floor" | "round" | "ceil" } })} />
         </InspectorSection>
       ) : null}
+      </div>
 
       {selected.type === "group" ? (
-        <InspectorSection label="Group" open={openSections.group ?? false} onToggle={() => toggle("group")}>
+        <InspectorSection label="Group" className="order-9" open={openSections.group ?? false} onToggle={() => toggle("group")}>
           <ReadonlyField label="Parent" value={selected.parentLayerId ?? "Root"} />
           {selected.composite?.mask ? (
             <>
