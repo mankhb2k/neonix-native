@@ -8,6 +8,8 @@ export type StageLayerBounds = {
   width: number;
   height: number;
   rotation: number;
+  transformOriginX?: number;
+  transformOriginY?: number;
 };
 
 const VISUAL_LAYER_TYPES = new Set<V2Layer["type"]>([
@@ -89,6 +91,52 @@ export function getV2LayerBounds(layer: V2Layer): StageLayerBounds {
   };
 }
 
+/**
+ * Return the oriented frame used by the single-layer selection chrome.
+ * Hit-testing still uses getV2LayerBounds (an AABB), but the visible box must
+ * not rotate an already-rotated AABB or it will grow on every angle.
+ */
+export function getV2LayerSelectionBox(layer: V2Layer): StageLayerBounds {
+  const { frame, transform } = layer;
+  const scaleX = Math.abs(transform.scale.x);
+  const scaleY = Math.abs(transform.scale.y);
+  const skewX = Math.tan((transform.skew.x * Math.PI) / 180);
+  const skewY = Math.tan((transform.skew.y * Math.PI) / 180);
+  const localCenterX = frame.width / 2 - transform.anchor.x;
+  const localCenterY = frame.height / 2 - transform.anchor.y;
+  const skewedCenterX = localCenterX + skewX * localCenterY;
+  const skewedCenterY = skewY * localCenterX + localCenterY;
+  const radians = (transform.rotate.z * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const center = {
+    x:
+      transform.translate.x +
+      transform.anchor.x +
+      (skewedCenterX * transform.scale.x) * cos -
+      (skewedCenterY * transform.scale.y) * sin,
+    y:
+      transform.translate.y +
+      transform.anchor.y +
+      (skewedCenterX * transform.scale.x) * sin +
+      (skewedCenterY * transform.scale.y) * cos,
+  };
+  const width = Math.max(0, frame.width * scaleX);
+  const height = Math.max(0, frame.height * scaleY);
+  return {
+    x: center.x - width / 2,
+    y: center.y - height / 2,
+    width,
+    height,
+    rotation: transform.rotate.z,
+    // The editor rotates a visual layer around its frame center. The
+    // translate compensation in buildV2RotatePatch keeps that center fixed
+    // in Protocol V2 even when the protocol anchor is top-left (0, 0).
+    transformOriginX: (frame.width * scaleX) / 2,
+    transformOriginY: (frame.height * scaleY) / 2,
+  };
+}
+
 export function getSelectionBounds(
   bounds: readonly StageLayerBounds[],
 ): StageLayerBounds | null {
@@ -150,12 +198,51 @@ export function buildV2ResizePatch(next: {
   };
 }
 
-export function buildV2RotatePatch(rotation: number): {
-  transform: { rotate: { z: number } };
+export function buildV2RotatePatch(input: {
+  rotation: number;
+  translate?: { x: number; y: number };
+}): {
+  transform: {
+    rotate: { z: number };
+    translate?: { x: number; y: number };
+  };
 } {
-  return {
+  const patch: {
     transform: {
-      rotate: { z: Number.isFinite(rotation) ? rotation : 0 },
+      rotate: { z: number };
+      translate?: { x: number; y: number };
+    };
+  } = {
+    transform: {
+      rotate: { z: Number.isFinite(input.rotation) ? input.rotation : 0 },
     },
+  };
+  if (input.translate) {
+    patch.transform.translate = {
+      x: Number.isFinite(input.translate.x) ? input.translate.x : 0,
+      y: Number.isFinite(input.translate.y) ? input.translate.y : 0,
+    };
+  }
+  return patch;
+}
+
+/** Keep the layer's visual center fixed while rotating around the frame center. */
+export function getV2RotationCompensatedTranslate(
+  layer: V2Layer,
+  rotation: number,
+): { x: number; y: number } {
+  const center = getV2LayerWorldQuad(layer).reduce(
+    (sum, point) => ({ x: sum.x + point.x / 4, y: sum.y + point.y / 4 }),
+    { x: 0, y: 0 },
+  );
+  const { frame, transform } = layer;
+  const localX = (frame.width / 2 - transform.anchor.x) * transform.scale.x;
+  const localY = (frame.height / 2 - transform.anchor.y) * transform.scale.y;
+  const radians = (rotation * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return {
+    x: center.x - transform.anchor.x - (localX * cos - localY * sin),
+    y: center.y - transform.anchor.y - (localX * sin + localY * cos),
   };
 }

@@ -90,6 +90,11 @@ describe("stage transform math", () => {
     expect(next.rotation).toBeCloseTo(440, 0);
   });
 
+  it("supports counter-clockwise rotation", () => {
+    const next = applyRotateDelta(base, { x: 60, y: 15 }, { x: 30, y: 45 });
+    expect(next.rotation).toBeCloseTo(-90, 0);
+  });
+
   it("snaps rotation to 45 degree increments only when enabled", () => {
     const value = { ...base, rotation: 43 };
     expect(applyRotateConstraints(value, { snapAngle: true, snapThreshold: 6 }).values.rotation).toBe(45);

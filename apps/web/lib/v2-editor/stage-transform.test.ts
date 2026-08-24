@@ -6,6 +6,8 @@ import {
   buildV2ResizePatch,
   buildV2RotatePatch,
   getV2LayerBounds,
+  getV2LayerSelectionBox,
+  getV2RotationCompensatedTranslate,
   getV2LayerWorldQuad,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
@@ -52,6 +54,30 @@ describe("V2 stage transform geometry", () => {
       width: 60,
       height: 100,
       rotation: 90,
+    });
+  });
+
+  it("keeps the visible selection frame at frame size after rotation", () => {
+    const project = createV2EditorProject("shape");
+    const layer = {
+      ...project.layers[0]!,
+      frame: { width: 100, height: 60 },
+      transform: {
+        ...project.layers[0]!.transform,
+        translate: { x: 200, y: 100, z: 0 },
+        anchor: { x: 50, y: 30, z: 0 },
+        rotate: { x: 0, y: 0, z: 30 },
+      },
+    };
+    expect(getV2LayerBounds(layer).width).toBeGreaterThan(100);
+    expect(getV2LayerSelectionBox(layer)).toMatchObject({
+      x: 200,
+      y: 100,
+      width: 100,
+      height: 60,
+      rotation: 30,
+      transformOriginX: 50,
+      transformOriginY: 30,
     });
   });
 
@@ -110,6 +136,22 @@ describe("V2 stage transform geometry", () => {
   });
 
   it("maps a rotation preview to the V2 rotate field", () => {
-    expect(buildV2RotatePatch(45)).toEqual({ transform: { rotate: { z: 45 } } });
+    expect(buildV2RotatePatch({ rotation: 45 })).toEqual({ transform: { rotate: { z: 45 } } });
+  });
+
+  it("compensates translation so rotation keeps the visual center", () => {
+    const project = createV2EditorProject("shape");
+    const layer = {
+      ...project.layers[0]!,
+      frame: { width: 100, height: 60 },
+      transform: {
+        ...project.layers[0]!.transform,
+        translate: { x: 200, y: 100, z: 0 },
+      },
+    };
+    expect(getV2RotationCompensatedTranslate(layer, 90)).toMatchObject({
+      x: 280,
+      y: 80,
+    });
   });
 });

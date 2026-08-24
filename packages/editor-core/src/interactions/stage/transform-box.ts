@@ -26,6 +26,8 @@ export type StageBounds = {
   y: number;
   width: number;
   height: number;
+  transformOriginX?: number;
+  transformOriginY?: number;
 };
 
 export type SelectionBox = StageBounds & { rotation: number };
@@ -42,6 +44,8 @@ export function selectionBoxFromWorldAndDelta(
     width: Math.max(0, worldBase.width + (preview.width - base.width)),
     height: Math.max(0, worldBase.height + (preview.height - base.height)),
     rotation: preview.rotation,
+    transformOriginX: worldBase.transformOriginX,
+    transformOriginY: worldBase.transformOriginY,
   };
 }
 

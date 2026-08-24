@@ -8,6 +8,9 @@ import {
   buildV2ResizePatch,
   buildV2RotatePatch,
   getV2LayerBounds,
+  getV2LayerSelectionBox,
+  getV2LayerWorldQuad,
+  getV2RotationCompensatedTranslate,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
   type StageLayerBounds,
@@ -78,6 +81,10 @@ function boundsStyle(
 }
 
 function layerTransformValues(layer: V2Layer): StageTransformValues {
+  const center = getV2LayerWorldQuad(layer).reduce(
+    (sum, point) => ({ x: sum.x + point.x / 4, y: sum.y + point.y / 4 }),
+    { x: 0, y: 0 },
+  );
   return {
     rootLayerId: layer.parentLayerId ?? layer.id,
     layerId: layer.id,
@@ -86,8 +93,8 @@ function layerTransformValues(layer: V2Layer): StageTransformValues {
     width: layer.frame.width,
     height: layer.frame.height,
     rotation: layer.transform.rotate.z,
-    pivotX: layer.transform.translate.x + layer.transform.anchor.x,
-    pivotY: layer.transform.translate.y + layer.transform.anchor.y,
+    pivotX: center.x,
+    pivotY: center.y,
   };
 }
 
@@ -152,12 +159,20 @@ export function StageTransformOverlay({
     [selectedLayers],
   );
 
+  const selectedBaseBounds = useMemo(
+    () =>
+      selectedLayers.length === 1
+        ? getV2LayerSelectionBox(selectedLayers[0])
+        : selectedDocumentBounds,
+    [selectedDocumentBounds, selectedLayers],
+  );
+
   const selectedBounds = useMemo(() => {
-    if (!selectedDocumentBounds) return null;
+    if (!selectedBaseBounds) return null;
     if (resizePreview && selectedLayers.length === 1) {
       const base = layerTransformValues(selectedLayers[0]);
       return selectionBoxFromWorldAndDelta(
-        selectedDocumentBounds,
+        selectedBaseBounds,
         base,
         resizePreview,
       );
@@ -165,18 +180,18 @@ export function StageTransformOverlay({
     if (rotatePreview && selectedLayers.length === 1) {
       const base = layerTransformValues(selectedLayers[0]);
       return selectionBoxFromWorldAndDelta(
-        selectedDocumentBounds,
+        selectedBaseBounds,
         base,
         rotatePreview,
       );
     }
-    if (!moveDelta) return selectedDocumentBounds;
+    if (!moveDelta) return selectedBaseBounds;
     return {
-      ...selectedDocumentBounds,
-      x: selectedDocumentBounds.x + moveDelta.x,
-      y: selectedDocumentBounds.y + moveDelta.y,
+      ...selectedBaseBounds,
+      x: selectedBaseBounds.x + moveDelta.x,
+      y: selectedBaseBounds.y + moveDelta.y,
     };
-  }, [moveDelta, resizePreview, rotatePreview, selectedDocumentBounds, selectedLayers]);
+  }, [moveDelta, resizePreview, rotatePreview, selectedBaseBounds, selectedLayers]);
 
   const toCompositionPoint = useCallback((clientX: number, clientY: number) => {
     const overlay = overlayRef.current;
@@ -241,13 +256,15 @@ export function StageTransformOverlay({
     const preview = result?.patches[0]?.values;
     activeRotateRef.current = null;
     setRotatePreview(null);
-    if (!preview || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
+    const layer = document.layers.find((item) => item.id === active.layerId);
+    if (!preview || !layer || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
+    const translate = getV2RotationCompensatedTranslate(layer, preview.rotation);
     applyCommand({
       type: "patch-layer",
       layerId: active.layerId,
-      patch: buildV2RotatePatch(preview.rotation),
+      patch: buildV2RotatePatch({ rotation: preview.rotation, translate }),
     });
-  }, [applyCommand]);
+  }, [applyCommand, document.layers]);
 
   const cancelMove = useCallback(() => {
     sessionRef.current?.cancel();
@@ -466,7 +483,7 @@ export function StageTransformOverlay({
             pointerEvents: "auto",
             touchAction: "none",
             transform: selectedBounds.rotation ? `rotate(${selectedBounds.rotation}deg)` : undefined,
-            transformOrigin: "center center",
+            transformOrigin: `${percent(selectedBounds.transformOriginX ?? selectedBounds.width / 2, selectedBounds.width)} ${percent(selectedBounds.transformOriginY ?? selectedBounds.height / 2, selectedBounds.height)}`,
           }}
           onPointerDown={onMovePointerDown}
           onPointerMove={onTransformPointerMove}

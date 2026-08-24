@@ -68,7 +68,10 @@ export function applyRotateDelta(
   const cy = base.pivotY ?? base.y + base.height / 2;
   const startAngle = Math.atan2(pointerStart.y - cy, pointerStart.x - cx);
   const angle = Math.atan2(pointer.y - cy, pointer.x - cx);
-  const deltaDeg = ((angle - startAngle) * 180) / Math.PI;
+  let deltaAngle = angle - startAngle;
+  if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
+  if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+  const deltaDeg = (deltaAngle * 180) / Math.PI;
   return {
     ...base,
     rotation: base.rotation + deltaDeg,

@@ -81,9 +81,9 @@ test.describe("V2 preview layer hit testing", () => {
     const radius = Math.max(24, Math.hypot(startX - centerX, startY - centerY));
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(centerX + radius * 0.707, centerY - radius * 0.707);
+    await page.mouse.move(centerX - radius * 0.707, centerY - radius * 0.707);
     await page.mouse.up();
 
-    await expect(rotationInput).not.toHaveValue("0");
+    await expect.poll(async () => Number(await rotationInput.inputValue())).toBeLessThan(0);
   });
 });
