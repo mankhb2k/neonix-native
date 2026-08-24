@@ -88,23 +88,23 @@ dụng selection, command dispatcher, history và coordinate system của editor
 
 ## Phase 1 — Transform overlay read-only
 
-- [ ] **T1.1 — Giữ folder stage cũ:** thêm component overlay vào folder stage hiện
+- [x] **T1.1 — Giữ folder stage cũ:** thêm component overlay vào folder stage hiện
   có; không tạo `V2Stage` hoặc một EditorShell khác.
-- [ ] **T1.2 — Single-selection frame:** render border mảnh, 4 corner handles, 4
+- [x] **T1.2 — Single-selection frame:** render border mảnh, 4 corner handles, 4
   side handles và rotate handle theo design tham chiếu.
-- [ ] **T1.3 — Positioning:** overlay bám chính xác rendered bounds, kể cả shape có
+- [x] **T1.3 — Positioning:** overlay bám chính xác rendered bounds, kể cả shape có
   rotation và text có kích thước nội dung khác frame.
-- [ ] **T1.4 — Visibility:** ẩn khi selection trống, layer bị hidden, layer không có
+- [x] **T1.4 — Visibility:** ẩn khi selection trống, layer bị hidden, layer không có
   mặt tại current time, hoặc type không hỗ trợ visual transform.
-- [ ] **T1.5 — Accessibility:** handles có `aria-label`, focus state và không chặn
+- [x] **T1.5 — Accessibility:** handles có `aria-label`, focus state và không chặn
   interaction của preview ngoài vùng selection.
-- [ ] **T1.6 — Visual regression:** fixture cho rectangle, ellipse và text ở zoom
+- [x] **T1.6 — Visual regression:** fixture cho rectangle, ellipse và text ở zoom
   50%, 100%, 200%.
 
 **Nghiệm thu Phase 1**
 
-- [ ] Chọn shape/text trên sidebar, timeline hoặc stage đều cho cùng một overlay.
-- [ ] Khung và handles không gây flicker preview, không lệch khi scroll/resize cửa sổ.
+- [x] Chọn shape/text trên sidebar, timeline hoặc stage đều cho cùng một overlay.
+- [x] Khung và handles không gây flicker preview, không lệch khi scroll/resize cửa sổ.
 
 **Commit sau Phase 1**
 

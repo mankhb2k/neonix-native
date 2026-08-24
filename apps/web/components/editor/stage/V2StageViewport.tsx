@@ -2,6 +2,7 @@
 
 import { PreviewStage } from "@/components/docs/PreviewStage";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { StageTransformOverlay } from "./StageTransformOverlay";
 
 /** Existing editor stage chrome backed by the Protocol V2 preview pipeline. */
 export function V2StageViewport() {
@@ -21,6 +22,10 @@ export function V2StageViewport() {
             project={document}
             time={currentTime}
             isPlaying={isPlaying}
+          />
+          <StageTransformOverlay
+            compositionWidth={document.composition.width}
+            compositionHeight={document.composition.height}
           />
         </div>
       </div>
