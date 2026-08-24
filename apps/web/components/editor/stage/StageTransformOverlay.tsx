@@ -229,6 +229,25 @@ export function StageTransformOverlay({
     if (event.button !== 0 || selectedLayers.length === 0) return;
     const pointer = toCompositionPoint(event.clientX, event.clientY);
     if (!pointer) return;
+    // The selected bounds sits above transparent hitboxes so it can receive
+    // move/resize gestures. Route a click that lands on another visible layer
+    // to the highest-order layer under the pointer instead of moving the
+    // currently selected full-canvas media layer.
+    const hitLayer = [...activeVisualLayers].reverse().find((layer) => {
+      const bounds = getV2LayerBounds(layer);
+      return (
+        pointer.x >= bounds.x &&
+        pointer.x <= bounds.x + bounds.width &&
+        pointer.y >= bounds.y &&
+        pointer.y <= bounds.y + bounds.height
+      );
+    });
+    if (hitLayer && !selectedLayers.some((layer) => layer.id === hitLayer.id)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setSelectedLayerIds([hitLayer.id]);
+      return;
+    }
     const primary = selectedLayers[0];
     const bases = new Map(selectedLayers.map((layer) => [layer.id, layerTransformValues(layer)]));
     const primaryBase = bases.get(primary.id);
@@ -286,7 +305,7 @@ export function StageTransformOverlay({
         },
       },
     );
-  }, [compositionHeight, compositionWidth, currentTime, document.layers, selectedLayers, toCompositionPoint]);
+  }, [activeVisualLayers, compositionHeight, compositionWidth, currentTime, document.layers, selectedLayers, setSelectedLayerIds, toCompositionPoint]);
 
   const onResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLSpanElement>, handle: ResizeHandle) => {

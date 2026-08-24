@@ -37,4 +37,27 @@ test.describe("V2 preview layer hit testing", () => {
 
     await expect(widthInput).not.toHaveValue("960");
   });
+
+  test("routes clicks through a selected full-canvas media layer", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    await page.locator('[data-layer-id="historical-atmosphere"]').click();
+    await expect(page.locator('[data-layer-id="historical-atmosphere"]')).toHaveClass(
+      /border-\[var\(--accent\)\]/,
+    );
+
+    // The title is above the full-canvas media layer. Its hitbox coordinate
+    // is intentionally clicked while the media selection bounds is active.
+    const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
+    const titleBox = await titleHitbox.boundingBox();
+    if (!titleBox) throw new Error("chapter title hitbox is not visible");
+    await page.mouse.click(
+      titleBox.x + titleBox.width / 2,
+      titleBox.y + titleBox.height / 2,
+    );
+    await expect(page.locator('[data-layer-id="chapter-1-title"]')).toHaveClass(
+      /border-\[var\(--accent\)\]/,
+    );
+  });
 });
