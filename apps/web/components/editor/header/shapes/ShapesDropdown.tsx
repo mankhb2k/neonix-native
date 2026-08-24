@@ -1,11 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
 import { ChevronDown, Circle, PenTool, Shapes, Square } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
 const menuBtn =
-  "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-[14px] font-medium text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]";
+  "inline-flex h-8 items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[13px] font-medium text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]";
 
 export type ShapeTool = "rectangle" | "ellipse" | "path";
 
@@ -21,6 +22,32 @@ const SHAPE_OPTIONS: ShapeOption[] = [
   { id: "ellipse", label: "Ellipse", hint: "Hình elip", icon: Circle },
   { id: "path", label: "Path", hint: "Đường path tự do", icon: PenTool },
 ];
+
+function ShapeMenuItem({ option, onSelect }: { option: ShapeOption; onSelect?: (shape: ShapeTool) => void }) {
+  const { onPointerDown, onKeyDown } = useLibraryPointerGesture({
+    kind: "shape",
+    id: `shape-${option.id}`,
+    label: option.label,
+    shape: option.id === "path" ? "polygon" : option.id,
+    duration: 5,
+  });
+  const Icon = option.icon;
+  const isPath = option.id === "path";
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+      data-shape={option.id}
+      onClick={isPath ? () => onSelect?.(option.id) : undefined}
+      onPointerDown={isPath ? undefined : onPointerDown}
+      onKeyDown={isPath ? undefined : onKeyDown}
+    >
+      <Icon size={17} strokeWidth={1.75} aria-hidden />
+      <span className="flex flex-col"><span className="font-medium">{option.label}</span><span className="text-[11px] text-[var(--fg-muted)]">{option.hint}</span></span>
+    </button>
+  );
+}
 
 type Props = {
   className?: string;
@@ -61,10 +88,10 @@ export function ShapesDropdown({ className, onSelect }: Props) {
         onClick={() => setOpen((value) => !value)}
         data-testid="editor-shapes-menu"
       >
-        <Shapes size={16} strokeWidth={1.75} />
+        <Shapes size={14} strokeWidth={1.75} />
         Shape
         <ChevronDown
-          size={14}
+          size={12}
           className={cn("opacity-70 transition-transform", open && "rotate-180")}
         />
       </button>
@@ -76,25 +103,7 @@ export function ShapesDropdown({ className, onSelect }: Props) {
           aria-label="Shape tools"
           className="absolute top-[calc(100%+6px)] left-0 z-50 min-w-[220px] rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1.5 shadow-lg"
         >
-          {SHAPE_OPTIONS.map(({ id, label, hint, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
-              data-shape={id}
-              onClick={() => {
-                onSelect?.(id);
-                setOpen(false);
-              }}
-            >
-              <Icon size={17} strokeWidth={1.75} aria-hidden />
-              <span className="flex flex-col">
-                <span className="font-medium">{label}</span>
-                <span className="text-[11px] text-[var(--fg-muted)]">{hint}</span>
-              </span>
-            </button>
-          ))}
+          {SHAPE_OPTIONS.map((option) => <ShapeMenuItem key={option.id} option={option} onSelect={(shape) => { onSelect?.(shape); setOpen(false); }} />)}
         </div>
       ) : null}
     </div>

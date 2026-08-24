@@ -140,4 +140,50 @@ describe("V2 editor command contract", () => {
       ["layer-1", 2],
     ]);
   });
+
+  it("commits ordered effects as one reversible layer patch", () => {
+    const project = createV2EditorProject("shape");
+    const effects = [
+      { id: "blur-1", type: "blur", radius: 8 },
+      { id: "glow-1", type: "outer-glow", radius: 12, color: "#ffffff", opacity: 0.5 },
+    ] as const;
+    const result = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: { effects },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.layers[0]?.effects?.map((effect) => effect.id)).toEqual(["blur-1", "glow-1"]);
+    const undone = applyV2EditorCommand(result.document, result.inverse);
+    expect(undone.ok).toBe(true);
+    if (undone.ok) expect(undone.document).toEqual(project);
+  });
+
+  it("rejects duplicate and over-limit effect ids atomically", () => {
+    const project = createV2EditorProject("shape");
+    const duplicate = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: {
+        effects: [
+          { id: "same", type: "blur", radius: 8 },
+          { id: "same", type: "blur", radius: 16 },
+        ],
+      },
+    });
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.document).toEqual(project);
+
+    const overLimit = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: {
+        effects: Array.from({ length: 9 }, (_, index) => ({ id: `blur-${index}`, type: "blur" as const, radius: 8 })),
+      },
+    });
+    expect(overLimit.ok).toBe(false);
+    expect(overLimit.document).toEqual(project);
+  });
 });

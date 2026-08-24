@@ -104,7 +104,7 @@ describe("Protocol V2 layer timeline projection", () => {
     });
   });
 
-  it("packs non-overlapping root layers into one timeline row", () => {
+  it("keeps every non-main root order on its own overlay lane", () => {
     const project = fixture();
     project.layers = [
       {
@@ -137,9 +137,9 @@ describe("Protocol V2 layer timeline projection", () => {
       projection.clips.find((clip) => clip.id === id)?.laneId;
 
     expect(laneFor("layer-0")).toBe("lane.main");
-    expect(laneFor("layer-1")).toBe("lane.main");
-    expect(laneFor("layer-2")).toBe("lane.main");
-    expect(laneFor("layer-3")).not.toBe("lane.main");
+    expect(laneFor("layer-1")).toBe("lane.visual.layer-1");
+    expect(laneFor("layer-2")).toBe("lane.visual.layer-2");
+    expect(laneFor("layer-3")).toBe("lane.visual.layer-3");
   });
 
   it("derives clips and duration without mutating the V2 document", () => {

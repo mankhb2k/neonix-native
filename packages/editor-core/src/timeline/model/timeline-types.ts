@@ -57,9 +57,13 @@ type TimelineClipBase = {
   name: string;
 };
 
+export type VisualMediaType = "shape" | "image" | "video" | "text";
+
 export type SceneTimelineClip = TimelineClipBase & {
   kind: "scene";
   sceneId: string;
+  /** V2 layer type used for media-aware timeline chrome. */
+  mediaType?: VisualMediaType;
 };
 
 export type AudioTimelineClip = TimelineClipBase & {

@@ -15,7 +15,7 @@ type Props = {
 };
 
 const MIN_THUMB_PX = 28;
-const TRACK_HEIGHT_PX = 10;
+const TRACK_HEIGHT_PX = 12;
 /** CapCut: tiny dead zone so the thumb never flush-closes — bar always visible. */
 const END_INSET_PX = 4;
 
@@ -107,7 +107,7 @@ export function TimelineHScrollBar({
   return (
     <div
       ref={trackRef}
-      className="relative w-full min-w-0 shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+      className="relative w-full min-w-0 shrink-0 bg-[var(--bg-surface)]"
       style={{ height: TRACK_HEIGHT_PX }}
       data-testid="timeline-hscroll"
       aria-label="Timeline horizontal scroll"
@@ -121,7 +121,7 @@ export function TimelineHScrollBar({
       {trackWidth > 0 && thumbWidth > 0 ? (
         <div
           data-timeline-h-thumb="true"
-          className={`absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-[var(--fg-muted)]/45 ${
+          className={`absolute bottom-0 h-1.5 rounded-full bg-[var(--fg-muted)]/45 ${
             canScroll
               ? "cursor-pointer hover:bg-[var(--fg-muted)]/70 active:bg-[var(--fg-secondary)]"
               : "pointer-events-none"

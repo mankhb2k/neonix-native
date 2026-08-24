@@ -12,13 +12,13 @@ import {
   type TimelineCommand,
   type TimelineLane,
   type TimelineTrackKind,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   collectClipEdgeSnapPoints,
   resolveClipMoveDrag,
   type ClipMoveDropTarget,
   type ClipMovePreview,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 import type {
@@ -289,19 +289,12 @@ export function useClipMove({
             }
             wasInsert = policyTarget.isInsert;
 
-            const drop = isGroup
-              ? {
-                  laneId: originLaneId,
-                  track: originTrack,
-                  contentTop:
-                    policyTarget.indicatorTop + scrollEl.scrollTop,
-                }
-              : dropTargetFromPolicy(
-                  policyTarget,
-                  hostLanes,
-                  originLaneId,
-                  scrollEl,
-                );
+            const drop = dropTargetFromPolicy(
+              policyTarget,
+              hostLanes,
+              originLaneId,
+              scrollEl,
+            );
 
             const resolved = resolveClipMoveDrag({
               clipId: clip.id,
@@ -377,9 +370,9 @@ export function useClipMove({
             const preview: ClipMovePreview = {
               ...resolved.preview,
               startTime: primaryStart,
-              laneId: isGroup ? originLaneId : resolved.preview.laneId,
+              laneId: resolved.preview.laneId,
               valid: isGroup ? groupValid : resolved.commit.valid,
-              trackKind: isGroup ? originTrack : resolved.preview.trackKind,
+              trackKind: resolved.preview.trackKind,
               label: clip.name || clip.id,
               clientX: pos.x,
               clientY: pos.y,
@@ -391,20 +384,14 @@ export function useClipMove({
             onMovePreview(preview);
             return {
               startTime: primaryStart,
-              laneId: isGroup ? originLaneId : resolved.commit.laneId,
-              track: isGroup ? originTrack : resolved.commit.track,
+              laneId: resolved.commit.laneId,
+              track: resolved.commit.track,
               moved: true,
               valid: isGroup ? groupValid : resolved.commit.valid,
               groupDelta,
-              insertNewLane: isGroup
-                ? false
-                : Boolean(resolved.commit.insertNewLane),
-              insertOrder: isGroup
-                ? null
-                : (resolved.commit.insertOrder ?? null),
-              swapClipId: isGroup
-                ? null
-                : (resolved.commit.swapClipId ?? null),
+              insertNewLane: Boolean(resolved.commit.insertNewLane),
+              insertOrder: resolved.commit.insertOrder ?? null,
+              swapClipId: resolved.commit.swapClipId ?? null,
             };
           },
           onCommit: (state) => {
@@ -436,6 +423,12 @@ export function useClipMove({
                 type: "move-clips",
                 clipIds: groupIds,
                 deltaTime: state.groupDelta,
+                targetLaneId: state.laneId,
+                targetTrack: state.track,
+                targetInsertNewLane: state.insertNewLane || undefined,
+                targetInsertOrder: state.insertNewLane
+                  ? (state.insertOrder ?? 0)
+                  : undefined,
               },
               "Move clips",
             );

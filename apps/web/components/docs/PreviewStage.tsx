@@ -440,11 +440,22 @@ async function paintFrame(
   runtimeOverride: RuntimeProjectV2 | null,
   preparationDiagnostics: readonly string[],
 ): Promise<void> {
-  const frameIndex = frameIndexAtTime(Math.max(0, time), project.composition.fps);
+  // The editor intentionally keeps the playhead at the exact timeline end.
+  // Runtime activity windows are half-open ([start, end)), so sampling that
+  // exact value would clear every layer. Resolve the final displayed sample
+  // to the last real composition frame while leaving the playhead position
+  // unchanged in the timeline UI.
+  const renderTime = previewSampleTimeAtEnd(project, time);
+  const frameIndex = frameIndexAtTime(renderTime, project.composition.fps);
+  const usableFrameOverride =
+    frameOverride != null && Math.abs(frameOverride.time - renderTime) < 1e-6
+      ? frameOverride
+      : null;
   const evaluated =
     runtimeOverride
-      ? evaluateRuntimeProjectV2(runtimeOverride, frameIndex, { time })
-      : frameOverride ?? evaluateRuntimeProjectV2(compileProtocolV2(project), frameIndex, { time });
+      ? evaluateRuntimeProjectV2(runtimeOverride, frameIndex, { time: renderTime })
+      : usableFrameOverride ??
+        evaluateRuntimeProjectV2(compileProtocolV2(project), frameIndex, { time: renderTime });
   if (!realtime) await seekPreviewVideos(evaluated, assets);
   if (requestId !== requestRef.current) return;
   renderer.paintFrame(evaluated);
@@ -463,6 +474,24 @@ async function paintFrame(
       .map((diagnostic) => diagnostic.code)
       .join(",");
   }
+}
+
+function previewSampleTimeAtEnd(
+  project: ReturnType<typeof MotionProtocolV2Schema.parse>,
+  time: number,
+): number {
+  const safeTime = Math.max(0, Number.isFinite(time) ? time : 0);
+  const duration = project.layers.reduce(
+    (end, layer) => Math.max(end, layer.timing.start + layer.timing.duration),
+    0,
+  );
+  if (duration <= 0 || safeTime < duration) return safeTime;
+
+  const lastFrame = Math.max(
+    0,
+    Math.ceil(duration * project.composition.fps) - 1,
+  );
+  return lastFrame / project.composition.fps;
 }
 
 function applyCanvasLayout(

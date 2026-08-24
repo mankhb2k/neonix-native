@@ -18,10 +18,11 @@ import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-ho
 import { useCallback, useState, type RefObject } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
-function visualKindForLane(row: LaneRow): ClipStripVisualKind {
-  if (row.kind === "audio") return "audio";
-  if (row.role === "overlay") return "overlay";
-  return "main";
+function visualKindForClip(clip: TimelineClip): ClipStripVisualKind {
+  if (clip.kind === "audio") return "audio";
+  if (clip.mediaType === "text") return "text";
+  if (clip.mediaType === "shape") return "shape";
+  return "media";
 }
 
 type Props = {
@@ -53,6 +54,7 @@ type Props = {
   onClipDoubleClick?: (clip: TimelineClip) => void;
   /** Group surface: one child per row (swap / insert, never pack). */
   exclusiveRows?: boolean;
+  autoSnapping?: boolean;
   /** Replace lane rows with the dashed Main drop hint. */
   timelineEmpty?: boolean;
   movePreview?: ClipMovePreview | null;
@@ -81,6 +83,7 @@ type LaneRowClipsProps = {
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
   exclusiveRows?: boolean;
+  autoSnapping?: boolean;
   /** Clip currently being dragged — dim its source strip. */
   movingClipId?: string | null;
   movePreview?: ClipMovePreview | null;
@@ -103,10 +106,10 @@ function LaneRowClips({
   onClipSelectPointerDown,
   onClipDoubleClick,
   exclusiveRows = false,
+  autoSnapping = true,
   movingClipId,
   movePreview,
 }: LaneRowClipsProps) {
-  const visualKind = visualKindForLane(row);
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
   const onLocalPreview = useCallback((preview: ClipTrimPreview | null) => {
     setTrimPreview(preview);
@@ -125,6 +128,7 @@ function LaneRowClips({
     onMovePreview,
     scrollRef,
     exclusiveRows,
+    autoSnapping,
   });
 
   const { beginTrim } = useClipTrim({
@@ -153,7 +157,7 @@ function LaneRowClips({
           <ClipStrip
             key={clip.id}
             clip={{ ...clip, startTime: start, duration }}
-            visualKind={visualKind}
+            visualKind={visualKindForClip(clip)}
             pixelsPerSecond={pixelsPerSecond}
             selected={selected}
             showTrimHandles
@@ -173,7 +177,7 @@ function LaneRowClips({
       !movePreview.isInsert &&
       movePreview.laneId === row.id ? (
         <div
-          className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[88%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
+          className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
           aria-hidden
           data-testid="timeline-clip-move-ghost"
           style={{
@@ -189,7 +193,7 @@ function LaneRowClips({
         .map((member) => (
           <div
             key={`ghost-${member.clipId}`}
-            className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[88%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md will-change-[left]"
+            className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md will-change-[left]"
             aria-hidden
             style={{
               left: member.startTime * pixelsPerSecond,
@@ -227,6 +231,7 @@ export function TimelineTrackCanvas({
   onClipSelectPointerDown,
   onClipDoubleClick,
   exclusiveRows = false,
+  autoSnapping = true,
   timelineEmpty = false,
   movePreview = null,
   onMovePreview,
@@ -338,6 +343,7 @@ export function TimelineTrackCanvas({
                 onClipSelectPointerDown={onClipSelectPointerDown}
                 onClipDoubleClick={onClipDoubleClick}
                 exclusiveRows={exclusiveRows}
+                autoSnapping={autoSnapping}
                 movingClipId={movePreview?.clipId}
                 movePreview={movePreview}
               />

@@ -14,63 +14,48 @@ export type LayerTimelineProjection = {
 const MAIN_LANE_ID = "lane.main";
 
 type RootLayer = MotionProtocolV2["layers"][number];
-type VisualPackLane = {
+type VisualLane = {
   id: string;
   layers: RootLayer[];
 };
 
-function overlaps(left: RootLayer, right: RootLayer): boolean {
-  const leftEnd = left.timing.start + left.timing.duration;
-  const rightEnd = right.timing.start + right.timing.duration;
-  return left.timing.start < rightEnd && right.timing.start < leftEnd;
-}
-
 /**
- * Timeline rows are editorial packing only, not the V2 paint stack. Root
- * layers that do not overlap in time share a row; every layer keeps its own
- * `order` in the protocol for deterministic composition rendering.
+ * At the V2 root, order is the persistent lane contract: order 0 is Main and
+ * every non-zero sibling is shown on its own overlay lane. We must not pack
+ * non-overlapping clips back into Main, because that would erase the user's
+ * vertical drag intent after the document has correctly updated its order.
  */
-function packRootLayers(rootLayers: RootLayer[]): VisualPackLane[] {
-  const packed: VisualPackLane[] = [];
-  for (const layer of [...rootLayers].sort((left, right) => left.order - right.order)) {
-    const target = packed.find((lane) =>
-      lane.layers.every((existing) => !overlaps(existing, layer)),
-    );
-    if (target) {
-      target.layers.push(layer);
-      continue;
-    }
-    packed.push({
+function lanesFromRootOrder(rootLayers: RootLayer[]): VisualLane[] {
+  return [...rootLayers]
+    .sort((left, right) => left.order - right.order)
+    .map((layer) => ({
       id: layer.order === 0 ? MAIN_LANE_ID : `lane.visual.${layer.id}`,
       layers: [layer],
-    });
-  }
-  return packed;
+    }));
 }
 
-function laneOrder(lane: VisualPackLane): number {
+function laneOrder(lane: VisualLane): number {
   return Math.max(...lane.layers.map((layer) => layer.order));
 }
 
 /**
  * Project Protocol V2 into the existing timeline view-model.
  *
- * Visual clips are packed into the fewest timeline rows that keep temporal
- * intervals disjoint. This is independent from `layer.order`: order continues
- * to control the stage paint stack. Audio tracks always follow visual rows and
- * use negative lane orders (-1, -2, ...) for the root timeline contract.
+ * Root order controls both V2 paint order and the visible lane stack: Main is
+ * order 0, visual overlays are above it, and audio tracks are below it with
+ * negative lane orders (-1, -2, ...). Audio tracks always follow visual rows.
  */
 export function projectLayersToTimeline(
   project: MotionProtocolV2,
 ): LayerTimelineProjection {
   const rootLayers = project.layers.filter((layer) => layer.parentLayerId === null);
-  const packedVisualLanes = packRootLayers(rootLayers);
+  const visualLanesByOrder = lanesFromRootOrder(rootLayers);
   const laneIdByLayerId = new Map<string, string>();
-  for (const lane of packedVisualLanes) {
+  for (const lane of visualLanesByOrder) {
     for (const layer of lane.layers) laneIdByLayerId.set(layer.id, lane.id);
   }
 
-  const visualLanes: TimelineLane[] = packedVisualLanes
+  const visualLanes: TimelineLane[] = visualLanesByOrder
     .map((lane) => {
       const order = laneOrder(lane);
       const includesMain = lane.layers.some((layer) => layer.order === 0);
@@ -100,6 +85,13 @@ export function projectLayersToTimeline(
     id: layer.id,
     kind: "scene",
     sceneId: layer.id,
+    mediaType:
+      layer.type === "image" ||
+      layer.type === "video" ||
+      layer.type === "shape" ||
+      layer.type === "text"
+        ? layer.type
+        : undefined,
     laneId: laneIdByLayerId.get(layer.id) ?? MAIN_LANE_ID,
     startTime: layer.timing.start,
     duration: layer.timing.duration,

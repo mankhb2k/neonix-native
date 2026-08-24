@@ -87,7 +87,7 @@ export function Playhead({
 
   return (
     <div
-      className="pointer-events-none absolute top-0 bottom-2 z-[45]"
+      className="pointer-events-none absolute inset-y-0 z-[45]"
       style={{ left: leftPx }}
       data-testid="timeline-playhead"
       data-muted={muted ? "true" : undefined}

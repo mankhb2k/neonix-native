@@ -13,11 +13,11 @@ import {
   type TimelineClip,
   type TimelineCommand,
   type TimelineLane,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   computeAutoScrollNearEdge,
   type ClipMovePreview,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   getTimelineLibraryDropHost,
   resolveClipMoveDropAtY,
@@ -38,6 +38,7 @@ export type UseClipMoveArgs = {
   disabled?: boolean;
   /** Group surface: one child per row (swap / insert, never pack). */
   exclusiveRows?: boolean;
+  autoSnapping?: boolean;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
@@ -45,10 +46,16 @@ export type UseClipMoveArgs = {
   scrollRef: RefObject<HTMLElement | null>;
 };
 
-function laneRowHeightPx(lane: TimelineLane): number {
+function laneRowHeightPx(
+  lane: TimelineLane,
+  clips: readonly TimelineClip[],
+): number {
   if (lane.kind === "audio") return SECONDARY_LANE_HEIGHT_PX;
-  if (lane.role === "base") return BASE_LANE_HEIGHT_PX;
-  return SECONDARY_LANE_HEIGHT_PX;
+  const clip = clips.find((candidate) => candidate.laneId === lane.id);
+  return clip?.kind === "scene" &&
+    (clip.mediaType === "image" || clip.mediaType === "video")
+    ? BASE_LANE_HEIGHT_PX
+    : SECONDARY_LANE_HEIGHT_PX;
 }
 
 export function useClipMove({
@@ -60,6 +67,7 @@ export function useClipMove({
   selection,
   disabled,
   exclusiveRows = false,
+  autoSnapping = true,
   beginGesture,
   onSelect,
   onExecute,
@@ -123,7 +131,7 @@ export function useClipMove({
         family,
         wasInsert,
         dropLanes,
-        _layout,
+        layout,
       ) => {
         const hit = resolveClipMoveDropAtY(
           scrollEl,
@@ -131,7 +139,7 @@ export function useClipMove({
           family,
           wasInsert,
           dropLanes,
-          null,
+          layout,
         );
         if (hit) return hit;
         if (family === "audio") return null;
@@ -150,9 +158,10 @@ export function useClipMove({
 
       trackForLane: resolveLaneTrackKind,
 
-      laneRowHeightPx,
+      laneRowHeightPx: (targetLane) =>
+        laneRowHeightPx(targetLane, allClips ?? clips),
     }),
-    [scrollRef, lanes, exclusiveRows],
+    [allClips, clips, scrollRef, lanes, exclusiveRows],
   );
 
   return useClipMoveShared({
@@ -163,6 +172,7 @@ export function useClipMove({
     pixelsPerSecond,
     selection,
     disabled,
+    autoSnapping,
     beginGesture,
     onSelect,
     onCommand: onExecute,

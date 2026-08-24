@@ -15,7 +15,7 @@ import {
   type TimelineClip,
   type TimelineCommand,
   type TimelineLane,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   computePlayheadFollowScroll,
   resolvePlayheadScrubMax,
@@ -25,7 +25,7 @@ import {
   PLAYHEAD_FOLLOW_MARGIN_PX,
   type ClipMovePreview,
   type MarqueeRect,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   useCallback,
@@ -62,6 +62,10 @@ type Props = {
   duration: number;
   fps: number;
   zoom: number;
+  /** Stable Fit anchor; only changes on project open or explicit Fit. */
+  timelineFitAnchorSeconds: number | null;
+  /** Reset horizontal scroll after an explicit Fit action. */
+  fitRevision: number;
   currentTime: number;
   isPlaying?: boolean;
   selection: EditorSelection;
@@ -71,6 +75,10 @@ type Props = {
   onBeginScrub?: () => void;
   onEndScrub?: () => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
+  /** AE/V2 mode: one root layer occupies one visual row. */
+  exclusiveRows?: boolean;
+  /** Enables edge/playhead snapping while dragging clips. */
+  autoSnapping?: boolean;
 };
 
 export function TimelineViewport({
@@ -80,6 +88,8 @@ export function TimelineViewport({
   duration,
   fps,
   zoom,
+  timelineFitAnchorSeconds,
+  fitRevision,
   currentTime,
   isPlaying = false,
   selection,
@@ -89,6 +99,8 @@ export function TimelineViewport({
   onBeginScrub,
   onEndScrub,
   onClipDoubleClick,
+  exclusiveRows = false,
+  autoSnapping = true,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const draggingPlayheadRef = useRef(false);
@@ -113,10 +125,11 @@ export function TimelineViewport({
   } = useTimelineViewportMetrics({
     boardRef: scrollRef,
     tracksScrollRef: scrollRef,
-    resetKey: 0,
+    resetKey: fitRevision,
     contentMeasureKey: 0,
   });
-  const viewWidth = rawViewWidth || 800;
+  const layoutReady = rawViewWidth > 0 && trackViewHeight > 0;
+  const viewWidth = Math.max(1, rawViewWidth);
   const tracksViewportHeight = Math.max(
     0,
     trackViewHeight - TIMELINE_RULER_HEIGHT_PX,
@@ -131,14 +144,17 @@ export function TimelineViewport({
         clips,
         trackViewWidth: Math.max(1, viewWidth - TIMELINE_START_GUTTER_PX),
         timelineZoomScale: sliderValueToZoomScale(zoom),
+        timelineFitAnchorSeconds,
       }),
-    [clips, viewWidth, zoom],
+    [clips, timelineFitAnchorSeconds, viewWidth, zoom],
   );
 
   const pps = layout.pixelsPerSecond;
   const rows = useMemo(() => {
     const built =
-      mode === "layer" ? buildLayerLaneRows(lanes) : buildTrackLaneRows(lanes);
+      mode === "layer"
+        ? buildLayerLaneRows(lanes)
+        : buildTrackLaneRows(lanes, clips);
     return mode === "layer" ? built : visibleTrackLaneRows(built, clips);
   }, [clips, lanes, mode]);
 
@@ -209,7 +225,7 @@ export function TimelineViewport({
 
   useEffect(() => {
     const scrollEl = scrollRef.current;
-    if (!scrollEl) return undefined;
+    if (!scrollEl || !layoutReady) return undefined;
     return registerTimelineLibraryDropHost({
       scrollEl,
       pixelsPerSecond: pps,
@@ -231,6 +247,7 @@ export function TimelineViewport({
     verticalInsets.top,
     laneHeightPrefix,
     laneContentHeights,
+    layoutReady,
   ]);
 
   const seekToClientX = useTimelineSeek({
@@ -402,10 +419,11 @@ export function TimelineViewport({
           data-timeline-drop-zone="true"
           onScroll={onScroll}
         >
-          <div
-            className="relative"
-            style={{ width: contentWidth, height: scrollContentHeight }}
-          >
+          {layoutReady ? (
+            <div
+              className="relative"
+              style={{ width: contentWidth, height: scrollContentHeight }}
+            >
             <div className="sticky top-0 z-20 bg-[var(--bg-surface)]">
               <TimeRuler
                 duration={surfaceDuration}
@@ -445,7 +463,8 @@ export function TimelineViewport({
                   onMarqueePointerDown={beginMarquee}
                   onClipSelectPointerDown={onClipSelectPointerDown}
                   onClipDoubleClick={onClipDoubleClick}
-                  exclusiveRows={mode === "layer"}
+                  exclusiveRows={exclusiveRows || mode === "layer"}
+                  autoSnapping={autoSnapping}
                   timelineEmpty={timelineEmpty}
                   movePreview={movePreview}
                   onMovePreview={setMovePreview}
@@ -475,16 +494,19 @@ export function TimelineViewport({
               scrollLeft={scrollLeft}
             />
 
-            <LibraryDropGhostOverlay contentWidth={contentWidth} />
-          </div>
+              <LibraryDropGhostOverlay contentWidth={contentWidth} />
+            </div>
+          ) : null}
         </div>
-        <Playhead
-          leftPx={playheadLeft}
-          muted={timelineEmpty || surfaceDuration <= 0}
-          onScrubStart={onPlayheadScrubStart}
-          onScrubMove={onPlayheadScrubMove}
-          onScrubEnd={onPlayheadScrubEnd}
-        />
+        {layoutReady ? (
+          <Playhead
+            leftPx={playheadLeft}
+            muted={timelineEmpty || surfaceDuration <= 0}
+            onScrubStart={onPlayheadScrubStart}
+            onScrubMove={onPlayheadScrubMove}
+            onScrubEnd={onPlayheadScrubEnd}
+          />
+        ) : null}
       </div>
 
       <TimelineHScrollBar

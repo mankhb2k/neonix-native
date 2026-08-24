@@ -137,58 +137,58 @@ tạo một weight number không có nơi lưu hợp lệ.
 
 ## Phase 3 — Type-specific properties
 
-- [ ] **I3.1 — Text:** content textarea, font asset selector, size, line height, tracking, horizontal/
-  vertical align, language; normalize NFC trước commit.
-- [ ] **I3.2 — Shape:** fill/stroke, stroke width, corner radius; control chỉ hiện khi shape hỗ trợ.
-- [ ] **I3.3 — Image:** asset source read-only/link, fit, crop UI; không thêm image field ngoài schema.
-- [ ] **I3.4 — Video:** asset, fit, trim start/end, loop, muted, frame policy.
-- [ ] **I3.5 — Group:** parent/mask controls đúng ràng buộc direct child và blend mode.
-- [ ] **I3.6 — Audio:** inspector selection adapter cho audio clips; gain, pan, loop, trim, fade in/out.
+- [x] **I3.1 — Text:** content textarea, font asset selector, size, line height, tracking, horizontal/
+  vertical align, shipped-language dropdown; normalize NFC trước commit.
+- [x] **I3.2 — Shape:** fill/stroke, stroke width, corner radius; control chỉ hiện khi shape hỗ trợ.
+- [x] **I3.3 — Image:** asset source read-only/link và fit; crop giữ trong Protocol V2 nhưng dành cho công cụ chỉnh ảnh riêng.
+- [x] **I3.4 — Video:** asset, fit, trim start/end, loop, muted, frame policy.
+- [x] **I3.5 — Group:** parent/mask controls đúng ràng buộc direct child và blend mode.
+- [x] **I3.6 — Audio:** inspector selection adapter cho audio clips; gain, pan, loop, trim, fade in/out.
 
 **Nghiệm thu Phase 3**
 
-- [ ] Mỗi control chỉ xuất hiện cho layer/clip hợp lệ.
-- [ ] Command invalid hiện inline error, document và preview không commit partial state.
+- [x] Mỗi control chỉ xuất hiện cho layer/clip hợp lệ.
+- [x] Command invalid hiện inline error, document và preview không commit partial state.
 
 ## Phase 4 — Effects inspector hoàn chỉnh
 
-- [ ] **I4.1 — Capability boundary:** Effects chỉ hiện cho `text`, `shape`, `image`, `video` và
+- [x] **I4.1 — Capability boundary:** Effects chỉ hiện cho `text`, `shape`, `image`, `video` và
   `path`; không hiện cho `group` hoặc audio vì Protocol V2 không cho các type này có `effects`.
-- [ ] **I4.2 — Effects section:** thêm accordion **Effects** theo bố cục compact: số effect ở title,
-  nút `+ Add effect`, danh sách ordered và empty state “Chưa có effect”. Không dùng tab riêng.
-- [ ] **I4.3 — Add menu + defaults:** menu chỉ liệt kê sáu effect hiện có trong schema với default
+- [x] **I4.2 — Effects section:** thêm accordion **Effects** theo bố cục compact: số effect ở title,
+  nút `+ Add effect` và danh sách ordered. Khi chưa có effect chỉ hiển thị nút thêm; không dùng tab riêng.
+- [x] **I4.3 — Add menu + defaults:** menu chỉ liệt kê sáu effect hiện có trong schema với default
   deterministic:
   - `Color adjust`: brightness `0`, contrast `1`, saturation `1`, hue `0`.
   - `Blur`: radius `8`.
   - `Drop shadow`: x `0`, y `8`, blur `12`, `#000000`, opacity `0.35`.
   - `Outer glow` / `Inner glow`: radius `12`, `#ffffff`, opacity `0.5`.
   - `Noise`: scale `4`, amount `0.1`, opacity `0.2`, seed stable do generator cấp.
-- [ ] **I4.4 — Effect card:** mỗi effect là một row/card mảnh có drag handle, type icon, label,
+- [x] **I4.4 — Effect card:** mỗi effect là một row/card mảnh có drag handle, type icon, label,
   collapse caret và nút remove. Không thêm toggle enable/bypass vì field đó chưa tồn tại trong
   Protocol V2.
-- [ ] **I4.5 — Typed controls:** controls chỉ theo schema của effect:
+- [x] **I4.5 — Typed controls:** controls chỉ theo schema của effect:
   - Color adjust: brightness, contrast, saturation, hue rotate.
   - Blur: radius.
   - Drop shadow: X/Y, blur, color, opacity.
   - Outer/inner glow: radius, color, opacity.
   - Noise: scale, amount, opacity, seed.
-- [ ] **I4.6 — Order UI:** kéo row hoặc dùng Move up/Move down trên keyboard; thứ tự array là thứ tự
+- [x] **I4.6 — Order UI:** kéo row hoặc dùng Move up/Move down trên keyboard; thứ tự array là thứ tự
   render nên UI không được sort theo label/type.
-- [ ] **I4.7 — Command + history:** add, patch, remove và reorder thay toàn bộ `effects` array qua
+- [x] **I4.7 — Command + history:** add, patch, remove và reorder thay toàn bộ `effects` array qua
   một `patch-layer` transaction; mỗi action có inverse/history duy nhất và không commit partial
   array khi validation fail.
-- [ ] **I4.8 — Guardrails:** ID effect unique, tối đa 8 effects/layer, color/number range theo
+- [x] **I4.8 — Guardrails:** ID effect unique, tối đa 8 effects/layer, color/number range theo
   `V2EffectListSchema`; ẩn/disable menu khi đạt limit, inline error khi document bị reject.
-- [ ] **I4.9 — Preview parity:** render preview ngay sau commit; blur/shadow/glow/noise phải có
+- [x] **I4.9 — Preview parity:** render preview ngay sau commit; blur/shadow/glow/noise phải có
   cùng thứ tự và pixel semantics với `compileProtocolV2`/export.
-- [ ] **I4.10 — Tests:** defaults, every typed field, max-eight, duplicate ID rejection, reorder,
+- [x] **I4.10 — Tests:** defaults, every typed field, max-eight, duplicate ID rejection, reorder,
   remove, undo/redo, visual golden một effect và stacked effects.
 
 **Nghiệm thu Phase 4**
 
-- [ ] Có thể thêm, chỉnh, sắp xếp và xóa toàn bộ sáu effect type từ inspector.
-- [ ] Preview/timeline/history đồng bộ; export compile output hợp lệ với effect array ordered.
-- [ ] Group và audio không hiển thị controls effects không hợp lệ.
+- [x] Có thể thêm, chỉnh, sắp xếp và xóa toàn bộ sáu effect type từ inspector.
+- [x] Preview/timeline/history đồng bộ; export compile output hợp lệ với effect array ordered.
+- [x] Group và audio không hiển thị controls effects không hợp lệ.
 
 ## Phase 5 — Multi-select, polish và accessibility
 

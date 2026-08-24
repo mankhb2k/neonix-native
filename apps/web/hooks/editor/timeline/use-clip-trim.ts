@@ -9,11 +9,11 @@ import {
   type EditorSelection,
   type TimelineClip,
   type TimelineCommand,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   resolveClipTrimUpdate,
   type ClipTrimPreview,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 

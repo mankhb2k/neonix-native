@@ -100,7 +100,7 @@ export function ClipMoveOverlays({
       {floatLeft != null && floatTop != null ? (
         <>
           <TimelineClipFloat
-            visualKind={visualKindFromTrack(preview.trackKind)}
+            visualKind={visualKindFromTrack(preview.trackKind, preview.mediaType)}
             label={preview.label || preview.clipId}
             left={floatLeft}
             top={floatTop}

@@ -7,7 +7,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 
-export type ClipStripVisualKind = "main" | "overlay" | "audio";
+export type ClipStripVisualKind = "shape" | "text" | "media" | "audio";
 
 /** Fill/label chrome for a clip strip — reuse on the drag **float**. */
 export function clipVisualClass(
@@ -18,20 +18,27 @@ export function clipVisualClass(
 
   if (kind === "audio") {
     return cn(
-      "flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium",
+      "flex items-start overflow-hidden rounded-sm px-2 text-left text-[10px] font-medium",
       "bg-[var(--timeline-clip-audio)] text-[var(--timeline-clip-audio-fg)]",
       selectedCls,
     );
   }
-  if (kind === "overlay") {
+  if (kind === "text") {
     return cn(
-      "flex items-center overflow-hidden rounded-md px-2 text-[10px] font-medium",
+      "flex items-start overflow-hidden rounded-sm px-2 text-left text-[10px] font-medium",
+      "bg-[var(--timeline-clip-text)] text-[var(--timeline-clip-text-fg)]",
+      selectedCls,
+    );
+  }
+  if (kind === "shape") {
+    return cn(
+      "flex items-start overflow-hidden rounded-sm px-2 text-left text-[10px] font-medium",
       "bg-[var(--timeline-clip-overlay)] text-[var(--timeline-clip-overlay-fg)]",
       selectedCls,
     );
   }
   return cn(
-    "flex flex-col justify-center overflow-hidden rounded-md px-2 text-left text-[11px] font-medium",
+    "flex flex-col justify-center overflow-hidden rounded-sm px-2 text-left text-[11px] font-medium",
     "bg-[var(--timeline-clip-frame)] text-[var(--timeline-clip-frame-fg)]",
     selectedCls,
   );
@@ -55,7 +62,7 @@ export function ClipStripTrimHandles({
     <>
       <span
         className={cn(
-          "absolute top-0 bottom-0 left-0 w-1 rounded-l-md bg-white",
+          "absolute top-0 bottom-0 left-0 w-1 rounded-l-sm bg-white",
           edgeCls,
         )}
         data-testid={interactive ? "timeline-clip-trim-left" : undefined}
@@ -63,7 +70,7 @@ export function ClipStripTrimHandles({
       />
       <span
         className={cn(
-          "absolute top-0 bottom-0 right-0 w-1 rounded-r-md bg-white",
+          "absolute top-0 bottom-0 right-0 w-1 rounded-r-sm bg-white",
           edgeCls,
         )}
         data-testid={interactive ? "timeline-clip-trim-right" : undefined}
@@ -152,7 +159,7 @@ export function ClipStrip({
   return (
     <div
       className={cn(
-        "absolute top-0 bottom-0 my-auto h-[88%] select-none",
+        "absolute top-0 bottom-0 my-auto h-[90%] select-none",
         interactive ? "cursor-pointer" : null,
         selected && "z-10",
         isMovingSource && "invisible pointer-events-none",

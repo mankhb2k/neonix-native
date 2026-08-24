@@ -6,7 +6,7 @@
 import {
   clientPointToTimelineTime,
   TIMELINE_PLAYHEAD_GUTTER_PX,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   audioDropPolicy,
@@ -21,7 +21,7 @@ import {
   type TimelineDropTarget,
   type TimelineLane,
   type VideoLaneHit,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import type { LibraryPayload } from "./library-payload";
 
 export type LaneHitLayout = {
@@ -353,11 +353,11 @@ function ghostHeightFor(
   if (isInsert) return 32;
   if (target.laneId) {
     const hit = hits.find((x) => x.laneId === target.laneId);
-    if (hit) return Math.max(20, (hit.bottom - hit.top) * 0.88);
+    if (hit) return Math.max(20, (hit.bottom - hit.top) * 0.9);
   }
   if (target.overBaseBody) {
     const base = hits.find((x) => x.type === "main");
-    if (base) return Math.max(20, (base.bottom - base.top) * 0.88);
+    if (base) return Math.max(20, (base.bottom - base.top) * 0.9);
   }
   return 28;
 }

@@ -11,7 +11,7 @@ import {
   type PointerPos,
   type PointerSessionConfig,
   type PointerSessionEndReason,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import { browserScheduler } from "@/lib/editor/interaction-host/browser-scheduler";
 
 export type ActivePointerGesture = {

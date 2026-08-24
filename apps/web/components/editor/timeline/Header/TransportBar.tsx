@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Pause, Play, Scaling, ZoomIn, ZoomOut } from "lucide-react";
 import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
 import { EditActions } from "./EditActions";
 import { TimelineModeToggles } from "./TimelineModeToggles";
@@ -24,12 +24,15 @@ type Props = {
   onTogglePlay: () => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
+  onFit?: () => void;
   snapOn: boolean;
   onToggleSnap: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  canDelete?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  onDelete?: () => void;
 };
 
 export function TransportBar({
@@ -43,12 +46,15 @@ export function TransportBar({
   onTogglePlay,
   zoom,
   onZoomChange,
+  onFit,
   snapOn,
   onToggleSnap,
   canUndo,
   canRedo,
+  canDelete,
   onUndo,
   onRedo,
+  onDelete,
 }: Props) {
   return (
     <div
@@ -107,11 +113,24 @@ export function TransportBar({
         <EditActions
           canUndo={canUndo}
           canRedo={canRedo}
+          canDelete={canDelete}
           onUndo={onUndo}
           onRedo={onRedo}
+          onDelete={onDelete}
         />
         <div className="h-4 w-px shrink-0 bg-[var(--border-subtle)]" aria-hidden />
         <div className="flex items-center gap-1">
+          {onFit ? (
+            <button
+              type="button"
+              aria-label="Fit timeline"
+              title="Fit timeline"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border-0 bg-transparent hover:bg-[var(--bg-hover)]"
+              onClick={onFit}
+            >
+              <Scaling size={14} />
+            </button>
+          ) : null}
           <button
             type="button"
             aria-label="Zoom out"

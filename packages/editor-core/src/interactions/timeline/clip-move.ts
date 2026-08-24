@@ -12,6 +12,7 @@ import type {
   TimelineClip,
   TimelineLane,
   TimelineTrackKind,
+  VisualMediaType,
 } from "../../timeline/model/timeline-types";
 
 export type ClipMovePreviewMember = {
@@ -33,6 +34,7 @@ export type ClipMovePreview = {
   duration: number;
   valid: boolean;
   trackKind: TimelineTrackKind;
+  mediaType?: VisualMediaType;
   /** CapCut insert giữa các lane (lane overlay/audio mới). */
   isInsert?: boolean;
   insertOrder?: number | null;
@@ -66,7 +68,10 @@ export type ClipMoveDropTarget = {
 
 export type ClipMoveDragInput = {
   clipId: string;
-  clip: Pick<TimelineClip, "kind">;
+  clip: {
+    kind: TimelineClip["kind"];
+    mediaType?: VisualMediaType;
+  };
   originStartTime: number;
   originLaneId: string;
   originTrack: TimelineTrackKind;
@@ -352,6 +357,7 @@ export function resolveClipMoveDrag(
     duration: input.duration,
     valid,
     trackKind: commitTrack,
+    mediaType: input.clip.kind === "scene" ? input.clip.mediaType : undefined,
     isInsert: insertNewLane,
     insertOrder,
     contentTop,

@@ -80,6 +80,11 @@ export type TimelineCommand =
       /** Primary là clipIds[0]; time delta chung áp trên home lane. */
       clipIds: string[];
       deltaTime: number;
+      /** Optional AE row target for a vertical group move. */
+      targetLaneId?: string | null;
+      targetTrack?: "main" | "overlay" | "audio";
+      targetInsertNewLane?: boolean;
+      targetInsertOrder?: number | null;
     }
   | {
       type: "clip/trim";

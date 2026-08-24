@@ -102,4 +102,46 @@ describe("computeViewportLayout", () => {
     expect(withAnchor.pixelsPerSecond).toBeGreaterThan(0);
     expect(withoutAnchor.pixelsPerSecond).toBeGreaterThan(0);
   });
+
+  it("keeps an explicitly empty project window when its first clip is added", () => {
+    const emptyProjectWindow = computeViewportLayout({
+      clips: [clip("first", 0, 8)],
+      trackViewWidth: 800,
+      timelineZoomScale: 1,
+      timelineFitAnchorSeconds: null,
+    });
+    const clipDerivedWindow = computeViewportLayout({
+      clips: [clip("first", 0, 8)],
+      trackViewWidth: 800,
+      timelineZoomScale: 1,
+    });
+
+    // `null` is an intentional initial-fit snapshot, not a request to infer
+    // the new clip duration. This prevents the ruler jumping on first insert.
+    expect(emptyProjectWindow.pixelsPerSecond).toBeCloseTo(800 / 15, 6);
+    expect(emptyProjectWindow.pixelsPerSecond).not.toBeCloseTo(
+      clipDerivedWindow.pixelsPerSecond,
+      6,
+    );
+  });
+
+  it("keeps pixels-per-second stable as clips change under a saved fit anchor", () => {
+    const initial = computeViewportLayout({
+      clips: [clip("first", 0, 5)],
+      trackViewWidth: 800,
+      timelineZoomScale: 1,
+      timelineFitAnchorSeconds: 5,
+    });
+    const afterInsert = computeViewportLayout({
+      clips: [clip("first", 0, 5), clip("later", 6, 12)],
+      trackViewWidth: 800,
+      timelineZoomScale: 1,
+      timelineFitAnchorSeconds: 5,
+    });
+
+    expect(afterInsert.pixelsPerSecond).toBeCloseTo(
+      initial.pixelsPerSecond,
+      6,
+    );
+  });
 });

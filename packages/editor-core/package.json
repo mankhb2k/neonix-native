@@ -10,7 +10,8 @@
     "./v2": "./src/v2/index.ts",
     "./mock": "./src/mock/index.ts",
     "./model": "./src/model/index.ts",
-    "./timeline-projection": "./src/timeline/selectors/layer-timeline-projection.ts"
+    "./timeline-projection": "./src/timeline/selectors/layer-timeline-projection.ts",
+    "./timeline-runtime": "./src/timeline-runtime.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.build.json --noEmit",

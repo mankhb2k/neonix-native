@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { PlacementTarget } from "@motionvideo/editor-core";
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   attachLibraryDragWindowListeners,
   beginLibraryPress,
@@ -24,12 +25,8 @@ import {
   isOverTimelineDropZone,
   resolveLibraryDropPlacement,
 } from "@/lib/editor/library/timeline-library-drop";
-import {
-  libraryPayloadToDraft,
-  type LibraryCommitPoint,
-} from "@/lib/editor/library/commit-library-payload";
-import { useEditorStore } from "@/lib/editor/editor-store";
 import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
+import { commandsForLibraryPayload } from "@/lib/v2-editor/library";
 
 /**
  * Pointer gesture for library tiles (Text / Shape).
@@ -44,21 +41,14 @@ export function useLibraryPointerGesture(payload: LibraryPayload): {
   payloadRef.current = payload;
   const disposeRef = useRef<(() => void) | null>(null);
   const ownerIdRef = useRef(createLibraryDragOwnerId());
-  const addClipFromDraft = useEditorStore((s) => s.addClipFromDraft);
+  const { document, currentTime, applyCommands, setSelectedLayerIds } = useEditorSurface();
 
-  const commit = (item: LibraryPayload, point: LibraryCommitPoint) => {
-    const draft = libraryPayloadToDraft(item);
-    if (point.mode === "drag") {
-      addClipFromDraft(draft, {
-        track: point.placement.track,
-        laneId: point.placement.laneId,
-        startTime: point.placement.startTime,
-        insertNewLane: point.placement.insertNewLane,
-        insertOrder: point.placement.insertOrder,
-      });
-      return;
+  const commit = (item: LibraryPayload, placement?: PlacementTarget) => {
+    const commands = commandsForLibraryPayload(document, item, placement);
+    const layer = commands.find((command) => command.type === "add-layer");
+    if (applyCommands(commands) && layer?.type === "add-layer") {
+      setSelectedLayerIds([layer.layer.id]);
     }
-    addClipFromDraft(draft, { track: "main" });
   };
 
   useEffect(() => {
@@ -122,16 +112,16 @@ export function useLibraryPointerGesture(payload: LibraryPayload): {
 
       if (result.mode === "drag") {
         if (placement) {
-          commit(result.item, { mode: "drag", placement });
+          commit(result.item, placement);
           return;
         }
         // Over timeline but placement failed — do not silently append to main.
         if (isOverTimelineDropZone(ev.clientX, ev.clientY)) return;
         // Stage drop — same as click placement on main.
-        commit(result.item, { mode: "click" });
+        commit(result.item, { track: "main", startTime: currentTime });
         return;
       }
-      commit(result.item, { mode: "click" });
+      commit(result.item, { track: "main", startTime: currentTime });
     };
 
     const onCancel = (ev: PointerEvent) => {
@@ -157,7 +147,7 @@ export function useLibraryPointerGesture(payload: LibraryPayload): {
   const onKeyDown = (event: ReactKeyboardEvent) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    commit(payloadRef.current, { mode: "click" });
+    commit(payloadRef.current, { track: "main", startTime: currentTime });
   };
 
   return { onPointerDown, onKeyDown };

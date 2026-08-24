@@ -6,6 +6,7 @@ import {
   ClipStripTrimHandles,
   type ClipStripVisualKind,
 } from "../clips/ClipStrip";
+import type { VisualMediaType } from "@motionvideo/editor-core/timeline-runtime";
 
 type Props = {
   visualKind: ClipStripVisualKind;
@@ -56,8 +57,10 @@ export function TimelineClipFloat({
 
 export function visualKindFromTrack(
   track: "main" | "overlay" | "audio",
+  mediaType?: VisualMediaType,
 ): ClipStripVisualKind {
   if (track === "audio") return "audio";
-  if (track === "overlay") return "overlay";
-  return "main";
+  if (mediaType === "text") return "text";
+  if (mediaType === "shape") return "shape";
+  return "media";
 }

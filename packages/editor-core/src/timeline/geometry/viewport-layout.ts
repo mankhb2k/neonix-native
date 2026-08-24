@@ -33,8 +33,13 @@ export function computeViewportLayout(
   input: ViewportLayoutInput,
 ): ViewportLayout {
   const contentEnd = clipsContentEndSeconds(input.clips);
+  // `undefined` means this caller delegates to the legacy clip-derived fit
+  // policy. `null` is deliberate: it locks an initially empty project to the
+  // default time window while new clips are added.
   const anchorSeconds =
-    input.timelineFitAnchorSeconds ?? resolveFitAnchorSeconds(input.clips);
+    input.timelineFitAnchorSeconds === undefined
+      ? resolveFitAnchorSeconds(input.clips)
+      : input.timelineFitAnchorSeconds;
   const fitSpan = timelineFitSpanSeconds(anchorSeconds);
   const fitPps = fitPixelsPerSecond(input.trackViewWidth, fitSpan);
   const pixelsPerSecond = fitPps * input.timelineZoomScale;

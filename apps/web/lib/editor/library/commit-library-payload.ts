@@ -1,8 +1,4 @@
-import {
-  DEFAULT_FRAME_DURATION,
-  type FrameDraft,
-  type PlacementTarget,
-} from "@motionvideo/editor-core";
+import type { FrameDraft, PlacementTarget } from "@motionvideo/editor-core";
 import type { LibraryPayload } from "./library-payload";
 
 export type LibraryCommitPoint =
@@ -10,7 +6,7 @@ export type LibraryCommitPoint =
   | { mode: "drag"; placement: PlacementTarget };
 
 export function libraryPayloadToDraft(payload: LibraryPayload): FrameDraft {
-  const duration = payload.duration ?? DEFAULT_FRAME_DURATION;
+  const duration = payload.duration ?? 5;
   if (payload.kind === "shape") {
     return {
       id: payload.id,
@@ -20,6 +16,17 @@ export function libraryPayloadToDraft(payload: LibraryPayload): FrameDraft {
       shape: payload.shape,
       duration,
       text: payload.label,
+    };
+  }
+  if (payload.kind === "asset") {
+    return {
+      id: payload.id,
+      name: payload.label,
+      role: payload.asset.kind,
+      kind: payload.asset.kind === "audio" ? "video" : payload.asset.kind,
+      duration,
+      text: payload.label,
+      assetId: payload.asset.id,
     };
   }
   return {

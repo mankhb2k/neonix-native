@@ -2,8 +2,12 @@
 
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
-import type { V2LayerPatch } from "@motionvideo/editor-core/v2";
+import type { V2AudioClipPatch, V2AudioTrackPatch, V2LayerPatch } from "@motionvideo/editor-core/v2";
+import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
 import { compensateAnchor } from "@/lib/v2-editor/inspector-transform";
+import { EffectsInspector } from "./EffectsInspector";
+import { InspectorSelect } from "./InspectorSelect";
+import { StepperInput } from "./StepperInput";
 import {
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -12,12 +16,20 @@ import {
   AlignStartHorizontal,
   AlignStartVertical,
   ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 const inputClass =
   "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
+
+/** Languages currently shipped by the web editor for text layers. */
+const SHIPPED_TEXT_LANGUAGES = [
+  { value: "vi", label: "Tiếng Việt" },
+  { value: "en", label: "English" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "zh-CN", label: "简体中文" },
+] as const;
 
 function InspectorSection({
   label,
@@ -50,68 +62,21 @@ function NumberField({
   label,
   value,
   step = 0.01,
+  integer = false,
+  suffix,
   onChange,
 }: {
   label: string;
   value: number;
   step?: number;
+  integer?: boolean;
+  suffix?: string;
   onChange: (value: number) => void;
 }) {
-  const [draft, setDraft] = useState(Number.isFinite(value) ? String(value) : "0");
-
-  useEffect(() => {
-    setDraft(Number.isFinite(value) ? String(value) : "0");
-  }, [value]);
-
-  const commit = () => {
-    const next = Number(draft);
-    if (Number.isFinite(next)) {
-      onChange(next);
-      setDraft(String(next));
-    } else {
-      setDraft(Number.isFinite(value) ? String(value) : "0");
-    }
-  };
-
-  const bump = (direction: 1 | -1) => {
-    const precision = step < 1 ? 6 : 0;
-    const next = Number((value + direction * step).toFixed(precision));
-    setDraft(String(next));
-    onChange(next);
-  };
-
   return (
     <label className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <span className="flex h-7 max-w-[7rem] overflow-hidden rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] focus-within:border-[var(--border-focus)]">
-        <input
-          type="number"
-          step={step}
-          className="min-w-0 flex-1 bg-transparent px-2 text-[12px] text-[var(--fg-primary)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              commit();
-              event.currentTarget.blur();
-            }
-            if (event.key === "Escape") {
-              setDraft(Number.isFinite(value) ? String(value) : "0");
-              event.currentTarget.blur();
-            }
-          }}
-        />
-        <span className="flex w-5 shrink-0 flex-col border-l border-[var(--border-strong)]">
-          <button type="button" aria-label={`Increase ${label}`} className="flex min-h-0 flex-1 items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]" onClick={() => bump(1)}>
-            <ChevronUp size={10} strokeWidth={2} />
-          </button>
-          <button type="button" aria-label={`Decrease ${label}`} className="flex min-h-0 flex-1 items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]" onClick={() => bump(-1)}>
-            <ChevronDown size={10} strokeWidth={2} />
-          </button>
-        </span>
-      </span>
+      <StepperInput label={label} value={value} step={step} integer={integer} suffix={suffix} onChange={onChange} />
     </label>
   );
 }
@@ -126,27 +91,23 @@ function RangeField({
   onChange: (value: number, gestureId: number) => void;
 }) {
   const gestureRef = useRef(0);
+  const percentage = Math.round(value * 100);
   return (
     <label className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          className="h-4 min-w-0 flex-1 accent-[var(--accent)]"
-          value={value}
-          onPointerDown={() => {
-            gestureRef.current += 1;
-          }}
-          onChange={(event) => onChange(Number(event.target.value), gestureRef.current)}
-          aria-label={label}
-        />
-        <span className="w-10 text-right font-mono text-[11px] text-[var(--fg-secondary)]">
-          {Math.round(value * 100)}%
-        </span>
-      </span>
+      <StepperInput
+        label={`${label} percent`}
+        value={percentage}
+        min={0}
+        max={100}
+        step={1}
+        suffix="%"
+        live
+        onGestureStart={() => {
+          gestureRef.current += 1;
+        }}
+        onChange={(next) => onChange(next / 100, gestureRef.current)}
+      />
     </label>
   );
 }
@@ -160,48 +121,78 @@ function ReadonlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TextField({
+function TextAreaField({
   label,
   value,
-  onChange,
+  onCommit,
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onCommit: (value: string) => void;
 }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = () => onCommit(draft.normalize("NFC"));
   return (
     <label className="flex flex-col gap-1">
       <span className="text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <input type="text" className={inputClass} value={value} onChange={(event) => onChange(event.target.value)} />
+      <textarea
+        className={`${inputClass} min-h-16 resize-y py-1.5`}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setDraft(value);
+            event.currentTarget.blur();
+          }
+        }}
+      />
     </label>
   );
 }
 
-function SelectField({
+function ToggleField({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex h-7 items-center justify-between gap-2 text-[11px] text-[var(--fg-muted)]">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-[var(--accent)]"
+      />
+    </label>
+  );
+}
+
+function ColorField({
   label,
   value,
-  options,
   onChange,
 }: {
   label: string;
   value: string;
-  options: readonly { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
   return (
     <label className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <select
-        className={`${inputClass} max-w-[7rem]`}
-        value={value}
+      <input
+        type="color"
+        className="h-7 w-12 rounded border border-[var(--border-strong)] bg-transparent p-0.5"
+        value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
         onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        aria-label={label}
+      />
     </label>
   );
 }
@@ -274,6 +265,55 @@ function EmptyInspector({
   );
 }
 
+function AudioInspector({
+  clip,
+  track,
+  assetLabel,
+  open,
+  onToggle,
+  onClipPatch,
+  onTrackPatch,
+}: {
+  clip: V2AudioClip;
+  track: V2AudioTrack;
+  assetLabel: string;
+  open: boolean;
+  onToggle: () => void;
+  onClipPatch: (patch: V2AudioClipPatch) => void;
+  onTrackPatch: (patch: V2AudioTrackPatch) => void;
+}) {
+  return (
+    <div className="min-h-full w-full" data-testid="inspector-audio-properties">
+      <InspectorSection label="Media" open={open} onToggle={onToggle}>
+        <ReadonlyField label="Asset" value={assetLabel} />
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <NumberField label="Start" step={0.01} suffix="s" value={clip.timing.start} onChange={(value) => onClipPatch({ timing: { start: Math.max(0, value) } })} />
+          <NumberField label="Duration" step={0.01} suffix="s" value={clip.timing.duration} onChange={(value) => onClipPatch({ timing: { duration: Math.max(0.001, value) } })} />
+          <NumberField label="Trim start" step={0.01} suffix="s" value={clip.trim.start} onChange={(value) => onClipPatch({ trim: { start: Math.max(0, value) } })} />
+          <NumberField label="Trim end" step={0.01} suffix="s" value={clip.trim.end ?? clip.trim.start + clip.timing.duration} onChange={(value) => onClipPatch({ trim: { end: Math.max(clip.trim.start + 0.001, value) } })} />
+        </div>
+        <NumberField label="Playback rate" step={0.01} value={clip.playbackRate} onChange={(value) => onClipPatch({ playbackRate: Math.max(0.001, value) })} />
+        <NumberField label="Gain" step={0.1} suffix="dB" value={clip.gainDb} onChange={(value) => onClipPatch({ gainDb: value })} />
+        <ToggleField label="Loop" checked={clip.loop} onChange={(checked) => onClipPatch({ loop: checked })} />
+        <NumberField label="Pan" step={0.01} value={track.pan} onChange={(value) => onTrackPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
+        <ToggleField label="Track muted" checked={track.muted} onChange={(checked) => onTrackPatch({ muted: checked })} />
+        {clip.fadeIn ? (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <NumberField label="Fade in" step={0.01} suffix="s" value={clip.fadeIn.duration} onChange={(value) => onClipPatch({ fadeIn: { duration: Math.max(0.001, Math.min(clip.timing.duration, value)) } })} />
+            <InspectorSelect label="Curve" value={clip.fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeIn: { curve: value as "linear" | "equal-power" } })} />
+          </div>
+        ) : <ActionButton label="Add fade in" onClick={() => onClipPatch({ fadeIn: { duration: 0.1, curve: "linear" } })} />}
+        {clip.fadeOut ? (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <NumberField label="Fade out" step={0.01} suffix="s" value={clip.fadeOut.duration} onChange={(value) => onClipPatch({ fadeOut: { duration: Math.max(0.001, Math.min(clip.timing.duration, value)) } })} />
+            <InspectorSelect label="Curve" value={clip.fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeOut: { curve: value as "linear" | "equal-power" } })} />
+          </div>
+        ) : <ActionButton label="Add fade out" onClick={() => onClipPatch({ fadeOut: { duration: 0.1, curve: "linear" } })} />}
+      </InspectorSection>
+    </div>
+  );
+}
+
 /** Inspector shell for Protocol V2; common/type-specific controls remain on the existing surface. */
 export function SchemaInspector() {
   const { document, selectedLayerIds, applyCommand, applyCoalescedCommand, diagnostics } = useEditorSurface();
@@ -285,11 +325,55 @@ export function SchemaInspector() {
     compositing: true,
     text: true,
     style: true,
+    media: true,
+    group: true,
+    effects: true,
   });
   const selected = useMemo(() => document.layers.find((layer) => layer.id === selectedLayerIds[0]), [document.layers, selectedLayerIds]);
+  const selectedAudio = useMemo(() => {
+    const selectedId = selectedLayerIds[0];
+    if (!selectedId?.startsWith("audio.")) return null;
+    const clipId = selectedId.slice("audio.".length);
+    for (const track of document.audio.tracks) {
+      const clip = track.clips.find((candidate) => candidate.id === clipId);
+      if (clip) return { track, clip };
+    }
+    return null;
+  }, [document.audio.tracks, selectedLayerIds]);
+  const fontOptions = useMemo(() => {
+    const fonts = document.assets
+      .filter((asset) => asset.kind === "font")
+      .map((asset) => ({ value: asset.id, label: asset.family }));
+    if (selected?.type === "text" && !fonts.some((option) => option.value === selected.payload.fontAssetId)) {
+      fonts.unshift({ value: selected.payload.fontAssetId, label: selected.payload.fontAssetId });
+    }
+    return fonts;
+  }, [document.assets, selected]);
+  const languageOptions = useMemo(() => {
+    if (selected?.type !== "text" || SHIPPED_TEXT_LANGUAGES.some((option) => option.value === selected.payload.language)) {
+      return SHIPPED_TEXT_LANGUAGES;
+    }
+    // Keep imported/custom protocol documents editable without silently rewriting their language.
+    return [{ value: selected.payload.language, label: `${selected.payload.language} (custom)` }, ...SHIPPED_TEXT_LANGUAGES];
+  }, [selected]);
 
   const patchLayer = (patch: V2LayerPatch) => {
     if (selected) applyCommand({ type: "patch-layer", layerId: selected.id, patch });
+  };
+  const patchAudioClip = (patch: V2AudioClipPatch) => {
+    if (selectedAudio) {
+      applyCommand({
+        type: "patch-audio-clip",
+        trackId: selectedAudio.track.id,
+        clipId: selectedAudio.clip.id,
+        patch,
+      });
+    }
+  };
+  const patchAudioTrack = (patch: V2AudioTrackPatch) => {
+    if (selectedAudio) {
+      applyCommand({ type: "patch-audio-track", trackId: selectedAudio.track.id, patch });
+    }
   };
   const patchLayerCoalesced = (historyKey: string, gestureId: number, patch: V2LayerPatch) => {
     if (selected) {
@@ -345,7 +429,7 @@ export function SchemaInspector() {
     if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.length) return;
     const orderedLayerIds = siblings.map((layer) => layer.id);
     const [moved] = orderedLayerIds.splice(currentIndex, 1);
-    orderedLayerIds.splice(targetIndex, 0, moved!);
+    orderedLayerIds.splice(targetIndex, 0, moved);
     applyCommand({
       type: "reorder-layers",
       parentLayerId: selected.parentLayerId,
@@ -370,10 +454,10 @@ export function SchemaInspector() {
 
       <InspectorSection label="Transform" open={openSections.transform ?? false} onToggle={() => toggle("transform")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="X" value={selected.transform.translate.x} onChange={(value) => patchLayer({ transform: { translate: { x: value } } })} />
-          <NumberField label="Y" value={selected.transform.translate.y} onChange={(value) => patchLayer({ transform: { translate: { y: value } } })} />
-          <NumberField label="Width" value={selected.frame.width} onChange={(value) => patchLayer({ frame: { width: Math.max(0.001, value) } })} />
-          <NumberField label="Height" value={selected.frame.height} onChange={(value) => patchLayer({ frame: { height: Math.max(0.001, value) } })} />
+          <NumberField label="X" step={1} integer suffix="px" value={selected.transform.translate.x} onChange={(value) => patchLayer({ transform: { translate: { x: value } } })} />
+          <NumberField label="Y" step={1} integer suffix="px" value={selected.transform.translate.y} onChange={(value) => patchLayer({ transform: { translate: { y: value } } })} />
+          <NumberField label="Width" step={1} integer suffix="px" value={selected.frame.width} onChange={(value) => patchLayer({ frame: { width: Math.max(1, value) } })} />
+          <NumberField label="Height" step={1} integer suffix="px" value={selected.frame.height} onChange={(value) => patchLayer({ frame: { height: Math.max(1, value) } })} />
           <NumberField label="Scale X" step={0.01} value={selected.transform.scale.x} onChange={(value) => patchLayer({ transform: { scale: { x: Math.max(0.001, value) } } })} />
           <NumberField label="Scale Y" step={0.01} value={selected.transform.scale.y} onChange={(value) => patchLayer({ transform: { scale: { y: Math.max(0.001, value) } } })} />
           <NumberField label="Rotation Z" value={selected.transform.rotate.z} onChange={(value) => patchLayer({ transform: { rotate: { z: value } } })} />
@@ -415,13 +499,13 @@ export function SchemaInspector() {
           ))}
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="Anchor X" value={selected.transform.anchor.x} onChange={(value) => setAnchor(value, selected.transform.anchor.y)} />
-          <NumberField label="Anchor Y" value={selected.transform.anchor.y} onChange={(value) => setAnchor(selected.transform.anchor.x, value)} />
+          <NumberField label="Anchor X" suffix="px" value={selected.transform.anchor.x} onChange={(value) => setAnchor(value, selected.transform.anchor.y)} />
+          <NumberField label="Anchor Y" suffix="px" value={selected.transform.anchor.y} onChange={(value) => setAnchor(selected.transform.anchor.x, value)} />
         </div>
       </InspectorSection>
 
       <InspectorSection label="Compositing" open={openSections.compositing ?? false} onToggle={() => toggle("compositing")}>
-        <SelectField
+        <InspectorSelect
           label="Blend"
           value={selected.composite?.blendMode ?? "normal"}
           options={[
@@ -443,26 +527,97 @@ export function SchemaInspector() {
         </div>
       </InspectorSection>
 
+      {selected.type === "text" || selected.type === "shape" || selected.type === "image" || selected.type === "video" || selected.type === "path" ? (
+        <EffectsInspector
+          effects={selected.effects ?? []}
+          open={openSections.effects ?? false}
+          onToggle={() => toggle("effects")}
+          onChange={(effects) => patchLayer({ effects })}
+        />
+      ) : null}
+
       {selected.type === "text" ? (
         <InspectorSection label="Text" open={openSections.text ?? false} onToggle={() => toggle("text")}>
-          <TextField label="Content" value={selected.payload.text} onChange={(value) => patchLayer({ payload: { text: value.normalize("NFC") } })} />
-          <NumberField label="Font size" value={selected.payload.fontSize} onChange={(value) => patchLayer({ payload: { fontSize: Math.max(0.001, value) } })} />
-          <NumberField label="Letter spacing" value={selected.payload.letterSpacing} onChange={(value) => patchLayer({ payload: { letterSpacing: value } })} />
+          <TextAreaField label="Content" value={selected.payload.text} onCommit={(value) => patchLayer({ payload: { text: value } })} />
+          <InspectorSelect label="Font" value={selected.payload.fontAssetId} options={fontOptions} onChange={(value) => patchLayer({ payload: { fontAssetId: value } })} />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <NumberField label="Font size" suffix="px" value={selected.payload.fontSize} onChange={(value) => patchLayer({ payload: { fontSize: Math.max(0.001, value) } })} />
+            <NumberField label="Line height" suffix="px" value={selected.payload.lineHeight} onChange={(value) => patchLayer({ payload: { lineHeight: Math.max(0.001, value) } })} />
+          </div>
+          <NumberField label="Letter spacing" suffix="px" value={selected.payload.letterSpacing} onChange={(value) => patchLayer({ payload: { letterSpacing: value } })} />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <InspectorSelect label="Align" value={selected.payload.align} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }]} onChange={(value) => patchLayer({ payload: { align: value as "left" | "center" | "right" } })} />
+            <InspectorSelect label="Vertical" value={selected.payload.verticalAlign} options={[{ value: "top", label: "Top" }, { value: "middle", label: "Middle" }, { value: "bottom", label: "Bottom" }]} onChange={(value) => patchLayer({ payload: { verticalAlign: value as "top" | "middle" | "bottom" } })} />
+          </div>
+          <InspectorSelect label="Language" value={selected.payload.language} options={languageOptions} onChange={(value) => patchLayer({ payload: { language: value } })} />
+          <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
         </InspectorSection>
       ) : null}
 
       {selected.type === "shape" ? (
         <InspectorSection label="Style" open={openSections.style ?? false} onToggle={() => toggle("style")}>
           {typeof selected.style.fill === "string" ? (
-            <label className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-[var(--fg-muted)]">Fill</span>
-              <input type="color" className="h-7 w-12 border-0 bg-transparent" value={selected.style.fill.startsWith("#") ? selected.style.fill : "#ffffff"} onChange={(event) => patchLayer({ style: { fill: event.target.value } })} />
-            </label>
+            <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
           ) : null}
-          <NumberField label="Corner radius" value={selected.payload.cornerRadius ?? 0} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
+          {selected.style.stroke ? <ColorField label="Stroke" value={selected.style.stroke} onChange={(value) => patchLayer({ style: { stroke: value } })} /> : null}
+          {selected.style.stroke ? <NumberField label="Stroke width" suffix="px" value={selected.style.strokeWidth ?? 1} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
+          {!selected.style.stroke ? <ActionButton label="Add stroke" onClick={() => patchLayer({ style: { stroke: "#ffffff", strokeWidth: 1 } })} /> : null}
+          <NumberField label="Corner radius" suffix="px" value={selected.payload.cornerRadius ?? 0} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
+        </InspectorSection>
+      ) : null}
+
+      {selected.type === "image" ? (
+        <InspectorSection label="Media" open={openSections.media ?? false} onToggle={() => toggle("media")}>
+          <ReadonlyField label="Asset" value={document.assets.find((asset) => asset.id === selected.payload.assetId)?.uri ?? selected.payload.assetId} />
+          <InspectorSelect label="Fit" value={selected.payload.fit ?? "contain"} options={[{ value: "contain", label: "Contain" }, { value: "cover", label: "Cover" }, { value: "fill", label: "Fill" }, { value: "none", label: "None" }]} onChange={(value) => patchLayer({ payload: { fit: value as "contain" | "cover" | "fill" | "none" } })} />
+        </InspectorSection>
+      ) : null}
+
+      {selected.type === "video" ? (
+        <InspectorSection label="Media" open={openSections.media ?? false} onToggle={() => toggle("media")}>
+          <ReadonlyField label="Asset" value={document.assets.find((asset) => asset.id === selected.payload.assetId)?.uri ?? selected.payload.assetId} />
+          <InspectorSelect label="Fit" value={selected.payload.fit ?? "contain"} options={[{ value: "contain", label: "Contain" }, { value: "cover", label: "Cover" }, { value: "fill", label: "Fill" }, { value: "none", label: "None" }]} onChange={(value) => patchLayer({ payload: { fit: value as "contain" | "cover" | "fill" | "none" } })} />
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <NumberField label="Trim start" step={0.01} suffix="s" value={selected.payload.trimStart ?? 0} onChange={(value) => patchLayer({ payload: { trimStart: Math.max(0, value) } })} />
+            <NumberField label="Trim end" step={0.01} suffix="s" value={selected.payload.trimEnd ?? selected.timing.duration} onChange={(value) => patchLayer({ payload: { trimEnd: Math.max(0.001, value) } })} />
+          </div>
+          <ToggleField label="Loop" checked={selected.payload.loop ?? false} onChange={(checked) => patchLayer({ payload: { loop: checked } })} />
+          <ToggleField label="Muted" checked={selected.payload.muted ?? false} onChange={(checked) => patchLayer({ payload: { muted: checked } })} />
+          <InspectorSelect label="Frame policy" value={selected.payload.framePolicy ?? "floor"} options={[{ value: "floor", label: "Floor" }, { value: "round", label: "Round" }, { value: "ceil", label: "Ceil" }]} onChange={(value) => patchLayer({ payload: { framePolicy: value as "floor" | "round" | "ceil" } })} />
+        </InspectorSection>
+      ) : null}
+
+      {selected.type === "group" ? (
+        <InspectorSection label="Group" open={openSections.group ?? false} onToggle={() => toggle("group")}>
+          <ReadonlyField label="Parent" value={selected.parentLayerId ?? "Root"} />
+          {selected.composite?.mask ? (
+            <>
+              <InspectorSelect label="Mask mode" value={selected.composite.mask.mode} options={[{ value: "clip", label: "Clip" }, { value: "alpha", label: "Alpha" }, { value: "inverse-alpha", label: "Inverse alpha" }, { value: "luma", label: "Luma" }]} onChange={(value) => patchLayer({ composite: { mask: { mode: value as "clip" | "alpha" | "inverse-alpha" | "luma" } } })} />
+              <InspectorSelect label="Mask source" value={selected.composite.mask.sourceLayerId} options={document.layers.filter((layer) => layer.parentLayerId === selected.id).map((layer) => ({ value: layer.id, label: layer.id }))} onChange={(value) => patchLayer({ composite: { mask: { sourceLayerId: value } } })} />
+            </>
+          ) : (
+            <ActionButton
+              label="Add mask"
+              disabled={!document.layers.some((layer) => layer.parentLayerId === selected.id)}
+              onClick={() => {
+                const child = document.layers.find((layer) => layer.parentLayerId === selected.id);
+                if (child) patchLayer({ composite: { mask: { mode: "alpha", sourceLayerId: child.id, sourceVisibility: "mask-only" } } });
+              }}
+            />
+          )}
         </InspectorSection>
       ) : null}
     </div>
+  ) : selectedAudio ? (
+    <AudioInspector
+      clip={selectedAudio.clip}
+      track={selectedAudio.track}
+      assetLabel={document.assets.find((asset) => asset.id === selectedAudio.clip.assetId)?.uri ?? selectedAudio.clip.assetId}
+      open={openSections.media ?? false}
+      onToggle={() => toggle("media")}
+      onClipPatch={patchAudioClip}
+      onTrackPatch={patchAudioTrack}
+    />
   ) : (
     <EmptyInspector width={document.composition.width} height={document.composition.height} fps={document.composition.fps} background={document.composition.background} />
   );

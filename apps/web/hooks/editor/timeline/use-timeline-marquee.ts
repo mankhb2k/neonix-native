@@ -11,7 +11,7 @@ import {
   type EditorSelection,
   type TimelineClip,
   type TimelineLane,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   TIMELINE_PLAYHEAD_GUTTER_PX,
   clipIdsInMarqueeIndexed,
@@ -21,7 +21,7 @@ import {
   resolveMarqueeSelectionIds,
   shouldPublishMarqueeIds,
   type MarqueeRect,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 

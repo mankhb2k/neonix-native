@@ -34,12 +34,12 @@ export const SECONDARY_LANE_HEIGHT_PX = 28;
 export const LAYER_LANE_HEIGHT_PX = 22;
 export const LAYER_VIDEO_LANE_HEIGHT_PX = 28;
 
-export const LANE_GAP_PX = 4;
+export const LANE_GAP_PX = 2;
 /** CapCut: overlay drop zone above Main, audio drop zone below. Not lanes. */
 export const TIMELINE_TOP_PADDING_PX = 40;
 export const TIMELINE_BOTTOM_PADDING_PX = 40;
 
-/** Visible strip height inside a lane (matches ClipStrip `h-[88%]`). */
+/** Visible strip height inside a lane (matches ClipStrip `h-[90%]`). */
 export function clipStripHeightPx(laneHeightPx: number): number {
-  return Math.max(1, laneHeightPx * 0.88);
+  return Math.max(1, laneHeightPx * 0.9);
 }

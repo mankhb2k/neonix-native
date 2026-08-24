@@ -1,10 +1,13 @@
-import type { TimelineLane } from "@motionvideo/editor-core";
+import type {
+  TimelineClip,
+  TimelineLane,
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   buildLaneRows,
   timelineLanesStackHeightWithGap as timelineLanesStackHeightCore,
   type GenericLaneRow,
   type LaneRowConfig,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 import {
   BASE_LANE_HEIGHT_PX,
   LAYER_LANE_HEIGHT_PX,
@@ -52,18 +55,26 @@ export function visibleTrackLaneRows(
 }
 
 /** CapCut order: overlays (desc) → base → audios (asc). */
-export function buildTrackLaneRows(lanes: TimelineLane[]): LaneRow[] {
+export function buildTrackLaneRows(
+  lanes: TimelineLane[],
+  clips: readonly TimelineClip[] = [],
+): LaneRow[] {
   const rows = buildLaneRows(lanes, webLaneRowConfig);
-  return rows.map(
-    (r) =>
-      ({
-        ...r.lane,
-        height: r.height,
-        kind: r.kind,
-        role: r.role,
-        order: r.order,
-      }) as LaneRow,
-  );
+  return rows.map((r) => {
+    const clip = clips.find((candidate) => candidate.laneId === r.lane.id);
+    const mediaHeight =
+      clip?.kind === "scene" &&
+      (clip.mediaType === "image" || clip.mediaType === "video")
+        ? BASE_LANE_HEIGHT_PX
+        : SECONDARY_LANE_HEIGHT_PX;
+    return {
+      ...r.lane,
+      height: r.kind === "audio" ? SECONDARY_LANE_HEIGHT_PX : mediaHeight,
+      kind: r.kind,
+      role: r.role,
+      order: r.order,
+    } as LaneRow;
+  });
 }
 
 /** Layer mode: compact rows (first = video-ish) — web-specific. */
@@ -144,4 +155,4 @@ export {
   timelineLanesContentHeight,
   laneContentOffsetTop,
   laneHeightsWithGaps,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";

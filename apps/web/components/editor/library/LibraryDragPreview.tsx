@@ -14,6 +14,12 @@ const CARD_ANCHOR_X = 34;
 const CARD_ANCHOR_Y = 34;
 
 function renderDragItemPreview(item: LibraryPayload) {
+  if (item.kind === "asset") {
+    if (item.asset.kind === "image" || item.asset.kind === "video") {
+      return <img src={item.asset.uri} alt="" className="h-full w-full object-cover" />;
+    }
+    return <span className="text-2xl">♪</span>;
+  }
   if (item.kind === "shape") {
     if (item.shape === "ellipse") {
       return (

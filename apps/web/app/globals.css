@@ -51,7 +51,7 @@
   --fs-body: 13px;
 
   /* Layout editor — 4 panel floating (VS Code gutters) */
-  --editor-chrome-h: 56px;
+  --editor-chrome-h: 44px;
   --editor-timeline-h: 240px;
   --editor-left-w: 380px;
   --editor-right-w: 420px;
@@ -64,6 +64,8 @@
   --timeline-clip-frame: #0f766e;
   --timeline-clip-frame-hover: #14b8a6;
   --timeline-clip-frame-fg: #ecfeff;
+  --timeline-clip-text: #a84f3c;
+  --timeline-clip-text-fg: #fff1ed;
   --timeline-clip-audio: #164e63;
   --timeline-clip-audio-hover: #0891b2;
   --timeline-clip-audio-fg: #ecfeff;

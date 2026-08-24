@@ -2,15 +2,16 @@
 
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
 import { cn } from "@/lib/utils";
-import { DEFAULT_FRAME_DURATION } from "@motionvideo/editor-core";
 import { ChevronDown, Type } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { TEXT_CATEGORIES } from "./catalog";
 import type { TextPreset } from "./types";
 import { getLibraryDragSession } from "@/lib/editor/library/library-drag-session";
 
+const DEFAULT_FRAME_DURATION = 5;
+
 const menuBtn =
-  "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent px-2.5 text-[14px] font-medium text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]";
+  "inline-flex h-8 items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[13px] font-medium text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]";
 
 function TextTile({ item }: { item: TextPreset }) {
   const { onPointerDown, onKeyDown } = useLibraryPointerGesture({
@@ -27,7 +28,7 @@ function TextTile({ item }: { item: TextPreset }) {
       title={`${item.label} — kéo vào board/timeline hoặc click để thêm`}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
-      className="inline-flex h-12 w-12 cursor-grab items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)] active:cursor-grabbing"
+      className="inline-flex h-12 w-12 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
     >
       {item.preview}
     </button>
@@ -75,10 +76,10 @@ export function TextDropdown({ className }: Props) {
         onClick={() => setOpen((v) => !v)}
         data-testid="editor-text-menu"
       >
-        <Type size={16} strokeWidth={1.75} />
+        <Type size={14} strokeWidth={1.75} />
         Text
         <ChevronDown
-          size={14}
+          size={12}
           className={cn("opacity-70 transition-transform", open && "rotate-180")}
         />
       </button>

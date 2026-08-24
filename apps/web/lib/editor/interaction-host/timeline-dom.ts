@@ -7,7 +7,7 @@ import {
   ensurePlayheadScrubScrollMetrics,
   type AutoScrollNearEdgeOptions,
   type TimelineViewportMetrics,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline-runtime";
 
 export function metricsFromScrollElement(
   scrollContainer: HTMLElement,
