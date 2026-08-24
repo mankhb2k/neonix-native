@@ -63,6 +63,18 @@ describe("stage transform math", () => {
     ).toMatchObject({ width: 80, x: 30 });
   });
 
+  it("resizes from the center when Alt is held", () => {
+    expect(
+      applyResizeDelta(base, "e", { x: 0, y: 0 }, { x: 20, y: 0 }, 8, true),
+    ).toMatchObject({ width: 140, x: -10 });
+  });
+
+  it("keeps resize values finite", () => {
+    expect(
+      applyResizeDelta(base, "se", { x: 0, y: 0 }, { x: Number.NaN, y: Number.POSITIVE_INFINITY }),
+    ).toMatchObject({ x: 10, y: 20, width: 100, height: 50 });
+  });
+
   it("rotates around center", () => {
     const next = applyRotateDelta(base, { x: 110, y: 45 }, { x: 10, y: 45 });
     expect(next.rotation).toBeCloseTo(180, 0);
@@ -132,6 +144,64 @@ describe("createStageSession", () => {
     });
     expect(session.mode).toBe("idle");
     expect(previews.length).toBeGreaterThan(1);
+  });
+
+  it("previews resize and preserves the opposite edge", () => {
+    const session = createStageSession();
+    const base = {
+      rootLayerId: "scene",
+      layerId: "node",
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
+      rotation: 0,
+    };
+    session.beginResize(
+      {
+        interactionId: "resize-1",
+        base,
+        worldBounds: { x: 10, y: 20, width: 100, height: 50 },
+        pointer: { x: 0, y: 0 },
+        handle: "w",
+      },
+      { onPreview: () => undefined },
+    );
+    session.updatePointer({ x: 20, y: 0 });
+    const commit = session.commit("pointerup");
+    expect(commit?.patches[0]?.values).toMatchObject({ x: 30, width: 80 });
+    expect(commit?.patches[0]?.sizePatch).toEqual({ width: 80, height: 50 });
+  });
+
+  it("keeps aspect ratio and center when Shift+Alt are held", () => {
+    const session = createStageSession();
+    const base = {
+      rootLayerId: "scene",
+      layerId: "node",
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
+      rotation: 0,
+    };
+    session.beginResize(
+      {
+        interactionId: "resize-2",
+        base,
+        worldBounds: { x: 10, y: 20, width: 100, height: 50 },
+        pointer: { x: 0, y: 0 },
+        handle: "e",
+      },
+      { onPreview: () => undefined },
+    );
+    session.updatePointer({ x: 10, y: 0 }, { shift: true, alt: true });
+    const commit = session.commit("pointerup");
+    expect(commit?.patches[0]?.values).toMatchObject({
+      x: 0,
+      y: 15,
+      width: 120,
+      height: 60,
+    });
   });
 
   it("cancels without command", () => {

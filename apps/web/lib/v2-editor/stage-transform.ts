@@ -102,7 +102,7 @@ export function getSelectionBounds(
     y: top,
     width: Math.max(0, right - left),
     height: Math.max(0, bottom - top),
-    rotation: bounds.length === 1 ? bounds[0]!.rotation : 0,
+    rotation: bounds.length === 1 ? bounds[0].rotation : 0,
   };
 }
 
@@ -123,4 +123,29 @@ export function buildV2MovePatches(
       },
     ]),
   );
+}
+
+export function buildV2ResizePatch(next: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): {
+  frame: { width: number; height: number };
+  transform: { translate: { x: number; y: number } };
+} {
+  const finiteOr = (value: number, fallback: number) =>
+    Number.isFinite(value) ? value : fallback;
+  return {
+    frame: {
+      width: Math.max(0.001, finiteOr(next.width, 0.001)),
+      height: Math.max(0.001, finiteOr(next.height, 0.001)),
+    },
+    transform: {
+      translate: {
+        x: finiteOr(next.x, 0),
+        y: finiteOr(next.y, 0),
+      },
+    },
+  };
 }

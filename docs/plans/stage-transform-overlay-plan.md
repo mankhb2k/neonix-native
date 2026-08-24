@@ -137,21 +137,24 @@ dụng selection, command dispatcher, history và coordinate system của editor
 
 ## Phase 3 — Resize
 
-- [ ] **T3.1 — Resize math:** chuyển delta của 8 handles sang frame/scale patch,
+- [x] **T3.1 — Resize math:** chuyển delta của 8 handles sang frame/scale patch,
   giữ anchor phía đối diện cố định trong composition space.
-- [ ] **T3.2 — Type policy:** shape/image/video resize theo frame khi hợp lệ; text
-  dùng policy đã chốt ở Phase 0, không tự reflow ngoài ý muốn.
-- [ ] **T3.3 — Modifiers:** Shift giữ tỉ lệ, Alt resize từ tâm.
-- [ ] **T3.4 — Guardrails:** min size, finite number validation, không scale âm và
-  không lật object trong phase này.
-- [ ] **T3.5 — Preview/commit:** preview cục bộ khi drag và một transaction khi thả.
-- [ ] **T3.6 — Tests:** từng handle, rotated layer, anchor compensation, modifier,
-  min-size và undo/redo.
+- [x] **T3.2 — Type policy:** shape/image/video/text/path đều resize bằng `frame`
+  và `transform.translate`; text content/layout không bị reflow ngoài ý muốn.
+- [x] **T3.3 — Modifiers:** Shift giữ tỉ lệ, Alt resize từ tâm; khi dùng chung, hai
+  modifier vẫn giữ đúng tâm và aspect ratio.
+- [x] **T3.4 — Guardrails:** min size 8 composition px, finite number validation,
+  không scale âm và không lật object trong phase này.
+- [x] **T3.5 — Preview/commit:** preview cục bộ khi drag và một patch command khi
+  thả; hủy pointer không ghi document.
+- [x] **T3.6 — Tests:** unit test east/west resize, center/aspect modifier,
+  opposite-edge compensation, rotated bounds và finite patch; E2E test drag handle
+  trên shape và kiểm tra inspector đồng bộ.
 
 **Nghiệm thu Phase 3**
 
-- [ ] Resize không làm object trôi khỏi cạnh/anchor đối diện.
-- [ ] Shift/Alt hoạt động đúng, document V2 vẫn parse/compile hợp lệ.
+  - [x] Resize không làm object trôi khỏi cạnh/anchor đối diện.
+  - [x] Shift/Alt hoạt động đúng, document V2 vẫn parse/compile hợp lệ.
 
 **Commit sau Phase 3**
 

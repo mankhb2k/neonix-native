@@ -12,6 +12,7 @@ export type StageGuide =
 export type StageConstraintInput = {
   minSize?: number;
   lockAspect?: boolean;
+  resizeFromCenter?: boolean;
   snapEdgesX?: number[];
   snapEdgesY?: number[];
   snapThreshold?: number;
@@ -73,11 +74,15 @@ export function applyResizeConstraints(
     } else {
       width = Math.max(minSize, height * aspect);
     }
-    // Giữ góc đối diện khi cạnh west/north phát triển từ base.
-    if (Math.abs(x - base.x) > 1e-6) {
+    // Alt giữ tâm; nếu không thì giữ cạnh đối diện khi west/north phát triển.
+    if (ctx.resizeFromCenter) {
+      x = base.x - (width - base.width) / 2;
+    } else if (Math.abs(x - base.x) > 1e-6) {
       x = base.x + base.width - width;
     }
-    if (Math.abs(y - base.y) > 1e-6) {
+    if (ctx.resizeFromCenter) {
+      y = base.y - (height - base.height) / 2;
+    } else if (Math.abs(y - base.y) > 1e-6) {
       y = base.y + base.height - height;
     }
   }

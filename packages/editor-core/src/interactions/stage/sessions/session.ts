@@ -174,17 +174,19 @@ export function createStageSession(): StageSession {
         next = constrained.values;
         guides = constrained.guides;
       } else if (active.mode === "resize" && active.handle) {
+        const resizeFromCenter = Boolean(modifiers?.alt);
         next = applyResizeDelta(
           active.base,
           active.handle,
           active.pointerStart,
           pointer,
           constraints.minSize ?? 8,
+          resizeFromCenter,
         );
         const constrained = applyResizeConstraints(
           next,
           active.base,
-          constraints,
+          { ...constraints, resizeFromCenter },
         );
         next = constrained.values;
         guides = constrained.guides;

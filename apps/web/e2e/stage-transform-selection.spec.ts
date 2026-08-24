@@ -16,5 +16,25 @@ test.describe("V2 preview layer hit testing", () => {
     );
     await expect(page.getByTestId("stage-selection-bounds")).toBeVisible();
   });
-});
 
+  test("resizes a selected shape from the east handle", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    await page.locator('[data-layer-hit="shape"]').click();
+    const widthInput = page.getByRole("spinbutton", { name: "Width", exact: true });
+    await expect(widthInput).toHaveValue("960");
+
+    const handle = page.locator('[data-testid="stage-selection-bounds"] [data-handle="e"]');
+    const box = await handle.boundingBox();
+    if (!box) throw new Error("east resize handle is not visible");
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down();
+    await page.mouse.move(centerX + 12, centerY);
+    await page.mouse.up();
+
+    await expect(widthInput).not.toHaveValue("960");
+  });
+});

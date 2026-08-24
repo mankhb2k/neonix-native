@@ -5,6 +5,7 @@ import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   getSelectionBounds,
   buildV2MovePatches,
+  buildV2ResizePatch,
   getV2LayerBounds,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
@@ -13,6 +14,8 @@ import {
 import {
   clientToComposition,
   createStageSession,
+  selectionBoxFromWorldAndDelta,
+  type ResizeHandle,
   type StageSession,
   type StageTransformValues,
 } from "@motionvideo/editor-core/interactions/stage";
@@ -73,6 +76,18 @@ function boundsStyle(
   };
 }
 
+function layerTransformValues(layer: V2Layer): StageTransformValues {
+  return {
+    rootLayerId: layer.parentLayerId ?? layer.id,
+    layerId: layer.id,
+    x: layer.transform.translate.x,
+    y: layer.transform.translate.y,
+    width: layer.frame.width,
+    height: layer.frame.height,
+    rotation: layer.transform.rotate.z,
+  };
+}
+
 /** Selection chrome and move interaction positioned over the existing V2 canvas. */
 export function StageTransformOverlay({
   compositionWidth,
@@ -92,7 +107,12 @@ export function StageTransformOverlay({
     primaryId: string;
     bases: Map<string, StageTransformValues>;
   } | null>(null);
+  const activeResizeRef = useRef<{
+    layerId: string;
+    base: StageTransformValues;
+  } | null>(null);
   const [moveDelta, setMoveDelta] = useState<{ x: number; y: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<StageTransformValues | null>(null);
 
   const selectedLayers = useMemo(
     () =>
@@ -125,13 +145,22 @@ export function StageTransformOverlay({
   );
 
   const selectedBounds = useMemo(() => {
-    if (!selectedDocumentBounds || !moveDelta) return selectedDocumentBounds;
+    if (!selectedDocumentBounds) return null;
+    if (resizePreview && selectedLayers.length === 1) {
+      const base = layerTransformValues(selectedLayers[0]);
+      return selectionBoxFromWorldAndDelta(
+        selectedDocumentBounds,
+        base,
+        resizePreview,
+      );
+    }
+    if (!moveDelta) return selectedDocumentBounds;
     return {
       ...selectedDocumentBounds,
       x: selectedDocumentBounds.x + moveDelta.x,
       y: selectedDocumentBounds.y + moveDelta.y,
     };
-  }, [moveDelta, selectedDocumentBounds]);
+  }, [moveDelta, resizePreview, selectedDocumentBounds, selectedLayers]);
 
   const toCompositionPoint = useCallback((clientX: number, clientY: number) => {
     const overlay = overlayRef.current;
@@ -149,16 +178,6 @@ export function StageTransformOverlay({
       },
     );
   }, [compositionHeight, compositionWidth]);
-
-  const layerTransformValues = useCallback((layer: V2Layer): StageTransformValues => ({
-    rootLayerId: layer.parentLayerId ?? layer.id,
-    layerId: layer.id,
-    x: layer.transform.translate.x,
-    y: layer.transform.translate.y,
-    width: layer.frame.width,
-    height: layer.frame.height,
-    rotation: layer.transform.rotate.z,
-  }), []);
 
   const finishMove = useCallback(() => {
     const active = activeMoveRef.current;
@@ -182,10 +201,28 @@ export function StageTransformOverlay({
     applyCommand({ type: "patch-layers", patches });
   }, [applyCommand, document.layers]);
 
+  const finishResize = useCallback(() => {
+    const active = activeResizeRef.current;
+    const session = sessionRef.current;
+    if (!active || !session) return;
+    const result = session.commit("pointerup");
+    const preview = result?.patches[0]?.values;
+    activeResizeRef.current = null;
+    setResizePreview(null);
+    if (!preview) return;
+    applyCommand({
+      type: "patch-layer",
+      layerId: active.layerId,
+      patch: buildV2ResizePatch(preview),
+    });
+  }, [applyCommand]);
+
   const cancelMove = useCallback(() => {
     sessionRef.current?.cancel();
     activeMoveRef.current = null;
+    activeResizeRef.current = null;
     setMoveDelta(null);
+    setResizePreview(null);
   }, []);
 
   const onMovePointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -249,10 +286,43 @@ export function StageTransformOverlay({
         },
       },
     );
-  }, [compositionHeight, compositionWidth, currentTime, document.layers, layerTransformValues, selectedLayers, toCompositionPoint]);
+  }, [compositionHeight, compositionWidth, currentTime, document.layers, selectedLayers, toCompositionPoint]);
 
-  const onMovePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!activeMoveRef.current || !sessionRef.current?.interactionId) return;
+  const onResizePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLSpanElement>, handle: ResizeHandle) => {
+      if (event.button !== 0 || selectedLayers.length !== 1) return;
+      const pointer = toCompositionPoint(event.clientX, event.clientY);
+      const layer = selectedLayers[0];
+      if (!pointer || !layer) return;
+      const base = layerTransformValues(layer);
+      event.preventDefault();
+      event.stopPropagation();
+      event.currentTarget.parentElement?.setPointerCapture(event.pointerId);
+      activeResizeRef.current = { layerId: layer.id, base };
+      sessionRef.current?.beginResize(
+        {
+          interactionId: `v2-stage-resize-${layer.id}-${Date.now()}`,
+          base,
+          worldBounds: getV2LayerBounds(layer),
+          pointer,
+          handle,
+          constraints: { minSize: 8 },
+        },
+        {
+          onPreview: (payload) => {
+            setResizePreview(payload.patches[0] ?? null);
+          },
+        },
+      );
+    },
+    [selectedLayers, toCompositionPoint],
+  );
+
+  const onTransformPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (
+      (!activeMoveRef.current && !activeResizeRef.current) ||
+      !sessionRef.current?.interactionId
+    ) return;
     const pointer = toCompositionPoint(event.clientX, event.clientY);
     if (!pointer) return;
     event.preventDefault();
@@ -264,14 +334,15 @@ export function StageTransformOverlay({
     });
   }, [toCompositionPoint]);
 
-  const onMovePointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!activeMoveRef.current) return;
+  const onTransformPointerUp = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!activeMoveRef.current && !activeResizeRef.current) return;
     event.preventDefault();
-    finishMove();
+    if (activeResizeRef.current) finishResize();
+    else finishMove();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-  }, [finishMove]);
+  }, [finishMove, finishResize]);
 
   const onStageLayerPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>, layerId: string) => {
@@ -313,8 +384,8 @@ export function StageTransformOverlay({
             touchAction: "none",
           }}
           onPointerDown={onMovePointerDown}
-          onPointerMove={onMovePointerMove}
-          onPointerUp={onMovePointerUp}
+          onPointerMove={onTransformPointerMove}
+          onPointerUp={onTransformPointerUp}
           onPointerCancel={cancelMove}
         >
           {HANDLES.map((handle) => (
@@ -322,7 +393,11 @@ export function StageTransformOverlay({
               key={handle}
               aria-hidden="true"
               data-handle={handle}
-              style={handleStyle(handle)}
+              style={{
+                ...handleStyle(handle),
+                pointerEvents: selectedLayers.length === 1 ? "auto" : "none",
+              }}
+              onPointerDown={(event) => onResizePointerDown(event, handle)}
             />
           ))}
           <span
@@ -337,6 +412,7 @@ export function StageTransformOverlay({
               borderRadius: 999,
               border: "1px solid var(--bg-site)",
               background: "var(--fg-primary)",
+              pointerEvents: "none",
             }}
           />
           <span
@@ -348,6 +424,7 @@ export function StageTransformOverlay({
               width: 1,
               height: 12,
               background: "var(--accent)",
+              pointerEvents: "none",
             }}
           />
         </div>

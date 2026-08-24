@@ -3,6 +3,7 @@ import { createV2EditorProject } from "./projects";
 import {
   getSelectionBounds,
   buildV2MovePatches,
+  buildV2ResizePatch,
   getV2LayerBounds,
   getV2LayerWorldQuad,
   isV2LayerActiveAtTime,
@@ -88,6 +89,22 @@ describe("V2 stage transform geometry", () => {
     expect(buildV2MovePatches([first, second], { x: 12, y: -8 })).toEqual({
       shape: { transform: { translate: { x: 492, y: 262 } } },
       second: { transform: { translate: { x: 492, y: 262 } } },
+    });
+  });
+
+  it("maps a resize preview to frame and translate fields", () => {
+    expect(buildV2ResizePatch({ x: 120, y: 80, width: 640, height: 360 })).toEqual({
+      frame: { width: 640, height: 360 },
+      transform: { translate: { x: 120, y: 80 } },
+    });
+  });
+
+  it("clamps invalid resize values before creating a protocol patch", () => {
+    expect(
+      buildV2ResizePatch({ x: Number.NaN, y: Number.POSITIVE_INFINITY, width: -4, height: Number.NaN }),
+    ).toEqual({
+      frame: { width: 0.001, height: 0.001 },
+      transform: { translate: { x: 0, y: 0 } },
     });
   });
 });
