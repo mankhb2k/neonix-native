@@ -15,7 +15,7 @@ import {
   createStageSession,
   type StageSession,
   type StageTransformValues,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/interactions/stage";
 import type { V2Layer } from "@motionvideo/motion-protocol/v2";
 
 type Props = {

@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./v2": "./src/v2/index.ts",
+    "./interactions/stage": "./src/interactions/stage/index.ts",
     "./mock": "./src/mock/index.ts",
     "./model": "./src/model/index.ts",
     "./timeline-projection": "./src/timeline/selectors/layer-timeline-projection.ts",
