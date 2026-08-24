@@ -117,23 +117,23 @@ tạo một weight number không có nơi lưu hợp lệ.
 
 ## Phase 2 — Common visual controls
 
-- [ ] **I2.1 — Timing:** start, duration, derived end; validation non-negative/positive ngay tại field.
-- [ ] **I2.2 — Transform:** x/y, width/height, scale x/y, rotation Z, opacity percent UI ↔ normalized
+- [x] **I2.1 — Timing:** start, duration, derived end; validation non-negative/positive ngay tại field.
+- [x] **I2.2 — Transform:** x/y, width/height, scale x/y, rotation Z, opacity percent UI ↔ normalized
   `0..1` Protocol V2.
-- [ ] **I2.3 — Alignment actions:** left/center/right + top/middle/bottom, hạ xuống transform numeric
+- [x] **I2.3 — Alignment actions:** left/center/right + top/middle/bottom, hạ xuống transform numeric
   theo composition frame.
-- [ ] **I2.4 — Anchor/pivot:** thêm 3×3 preset (top-left → center → bottom-right) cùng field
+- [x] **I2.4 — Anchor/pivot:** thêm 3×3 preset (top-left → center → bottom-right) cùng field
   `anchor.x/y`; preset quy đổi sang local frame units (`0`, `width / 2`, `width` và tương tự
   cho height). `anchor.z` chỉ hiện trong Advanced khi có 3D transform.
-- [ ] **I2.5 — Compositing:** blend mode và deterministic stack actions, bảo toàn sibling uniqueness.
-- [ ] **I2.6 — History behavior:** drag/slider coalesce thành một history step; Enter/blur là một step.
+- [x] **I2.5 — Compositing:** blend mode và deterministic stack actions, bảo toàn sibling uniqueness.
+- [x] **I2.6 — History behavior:** drag/slider coalesce thành một history step; Enter/blur là một step.
 
 **Nghiệm thu Phase 2**
 
-- [ ] Sửa Transform/Timing cập nhật stage, timeline và sidebar trong cùng transaction.
-- [ ] Đổi anchor không làm layer nhảy vị trí trên stage: command bù `translate` để giữ vị trí visual;
+- [x] Sửa Transform/Timing cập nhật stage, timeline và sidebar trong cùng transaction.
+- [x] Đổi anchor không làm layer nhảy vị trí trên stage: command bù `translate` để giữ vị trí visual;
   có test cho scale/rotation cơ bản.
-- [ ] Undo/redo trả lại chính xác giá trị trước khi sửa.
+- [x] Undo/redo trả lại chính xác giá trị trước khi sửa.
 
 ## Phase 3 — Type-specific properties
 

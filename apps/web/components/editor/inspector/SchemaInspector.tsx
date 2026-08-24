@@ -3,26 +3,21 @@
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
 import type { V2LayerPatch } from "@motionvideo/editor-core/v2";
-import { ChevronDown, Circle, FileText, Image, Music2, PlaySquare, Square } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { compensateAnchor } from "@/lib/v2-editor/inspector-transform";
+import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 const inputClass =
   "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
-
-type V2Layer = ReturnType<typeof useEditorSurface>["document"]["layers"][number];
-
-function layerIcon(layer: V2Layer) {
-  if (layer.type === "text") return FileText;
-  if (layer.type === "image") return Image;
-  if (layer.type === "video") return PlaySquare;
-  if (layer.type === "shape") return layer.payload.shape === "ellipse" ? Circle : Square;
-  if (layer.type === "group") return Square;
-  return Music2;
-}
-
-function layerLabel(layer: V2Layer): string {
-  return layer.type === "shape" ? layer.payload.shape : layer.type;
-}
 
 function InspectorSection({
   label,
@@ -39,14 +34,14 @@ function InspectorSection({
     <section className="border-b border-[var(--border-subtle)] last:border-b-0">
       <button
         type="button"
-        className="flex min-h-9 w-full items-center justify-between px-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+        className="flex min-h-9 w-full items-center justify-between px-0 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)]"
         aria-expanded={open}
         onClick={onToggle}
       >
         {label}
         <ChevronDown size={13} className={`transition-transform ${open ? "" : "-rotate-90"}`} />
       </button>
-      {open ? <div className="space-y-2 px-3 pb-3">{children}</div> : null}
+      {open ? <div className="space-y-2 px-0 pb-3">{children}</div> : null}
     </section>
   );
 }
@@ -62,19 +57,96 @@ function NumberField({
   step?: number;
   onChange: (value: number) => void;
 }) {
+  const [draft, setDraft] = useState(Number.isFinite(value) ? String(value) : "0");
+
+  useEffect(() => {
+    setDraft(Number.isFinite(value) ? String(value) : "0");
+  }, [value]);
+
+  const commit = () => {
+    const next = Number(draft);
+    if (Number.isFinite(next)) {
+      onChange(next);
+      setDraft(String(next));
+    } else {
+      setDraft(Number.isFinite(value) ? String(value) : "0");
+    }
+  };
+
+  const bump = (direction: 1 | -1) => {
+    const precision = step < 1 ? 6 : 0;
+    const next = Number((value + direction * step).toFixed(precision));
+    setDraft(String(next));
+    onChange(next);
+  };
+
   return (
     <label className="flex items-center justify-between gap-2">
       <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
-      <input
-        type="number"
-        step={step}
-        className={`${inputClass} max-w-[7rem]`}
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(event) => {
-          const next = Number(event.target.value);
-          if (Number.isFinite(next)) onChange(next);
-        }}
-      />
+      <span className="flex h-7 max-w-[7rem] overflow-hidden rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] focus-within:border-[var(--border-focus)]">
+        <input
+          type="number"
+          step={step}
+          className="min-w-0 flex-1 bg-transparent px-2 text-[12px] text-[var(--fg-primary)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit();
+              event.currentTarget.blur();
+            }
+            if (event.key === "Escape") {
+              setDraft(Number.isFinite(value) ? String(value) : "0");
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <span className="flex w-5 shrink-0 flex-col border-l border-[var(--border-strong)]">
+          <button type="button" aria-label={`Increase ${label}`} className="flex min-h-0 flex-1 items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]" onClick={() => bump(1)}>
+            <ChevronUp size={10} strokeWidth={2} />
+          </button>
+          <button type="button" aria-label={`Decrease ${label}`} className="flex min-h-0 flex-1 items-center justify-center text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]" onClick={() => bump(-1)}>
+            <ChevronDown size={10} strokeWidth={2} />
+          </button>
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number, gestureId: number) => void;
+}) {
+  const gestureRef = useRef(0);
+  return (
+    <label className="flex items-center justify-between gap-2">
+      <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          className="h-4 min-w-0 flex-1 accent-[var(--accent)]"
+          value={value}
+          onPointerDown={() => {
+            gestureRef.current += 1;
+          }}
+          onChange={(event) => onChange(Number(event.target.value), gestureRef.current)}
+          aria-label={label}
+        />
+        <span className="w-10 text-right font-mono text-[11px] text-[var(--fg-secondary)]">
+          {Math.round(value * 100)}%
+        </span>
+      </span>
     </label>
   );
 }
@@ -105,6 +177,78 @@ function TextField({
   );
 }
 
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-2">
+      <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
+      <select
+        className={`${inputClass} max-w-[7rem]`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ActionButton({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className="h-7 flex-1 rounded-md border border-[var(--border-strong)] px-2 text-[11px] text-[var(--fg-secondary)] disabled:opacity-40"
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+function IconActionButton({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className="flex h-7 items-center justify-center rounded-md border border-[var(--border-strong)] text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+      onClick={onClick}
+    >
+      {icon}
+    </button>
+  );
+}
+
 function EmptyInspector({
   width,
   height,
@@ -117,7 +261,7 @@ function EmptyInspector({
   background: string;
 }) {
   return (
-    <div className="space-y-3 p-3" data-testid="inspector-empty">
+    <div className="space-y-3" data-testid="inspector-empty">
       <div className="rounded-md border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
         Chọn một layer trên sidebar hoặc timeline để xem thuộc tính.
       </div>
@@ -130,57 +274,173 @@ function EmptyInspector({
   );
 }
 
-function SelectionHeader({ layer }: { layer: V2Layer }) {
-  const Icon = layerIcon(layer);
-  return (
-    <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2.5">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--accent-soft)] text-[var(--accent)]">
-        <Icon size={14} strokeWidth={1.8} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-semibold text-[var(--fg-primary)]">{layer.id}</p>
-        <p className="mt-0.5 truncate text-[10px] uppercase tracking-wide text-[var(--fg-muted)]">
-          {layerLabel(layer)} · {layer.timing.start.toFixed(2)}–{(layer.timing.start + layer.timing.duration).toFixed(2)}s
-        </p>
-      </div>
-      <span className="rounded border border-[var(--border-subtle)] px-1.5 py-1 text-[10px] text-[var(--fg-muted)]">V2</span>
-    </div>
-  );
-}
-
 /** Inspector shell for Protocol V2; common/type-specific controls remain on the existing surface. */
 export function SchemaInspector() {
-  const { document, selectedLayerIds, applyCommand, diagnostics } = useEditorSurface();
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ timing: true, transform: true, text: true, style: true });
+  const { document, selectedLayerIds, applyCommand, applyCoalescedCommand, diagnostics } = useEditorSurface();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    timing: true,
+    transform: true,
+    alignment: true,
+    anchor: false,
+    compositing: true,
+    text: true,
+    style: true,
+  });
   const selected = useMemo(() => document.layers.find((layer) => layer.id === selectedLayerIds[0]), [document.layers, selectedLayerIds]);
 
   const patchLayer = (patch: V2LayerPatch) => {
     if (selected) applyCommand({ type: "patch-layer", layerId: selected.id, patch });
   };
+  const patchLayerCoalesced = (historyKey: string, gestureId: number, patch: V2LayerPatch) => {
+    if (selected) {
+      applyCoalescedCommand(`inspector:${selected.id}:${historyKey}:${gestureId}`, {
+        type: "patch-layer",
+        layerId: selected.id,
+        patch,
+      });
+    }
+  };
   const toggle = (id: string) => setOpenSections((state) => ({ ...state, [id]: !(state[id] ?? false) }));
 
+  const alignHorizontal = (mode: "left" | "center" | "right") => {
+    if (!selected) return;
+    const x = mode === "left"
+      ? 0
+      : mode === "center"
+        ? (document.composition.width - selected.frame.width) / 2
+        : document.composition.width - selected.frame.width;
+    patchLayer({ transform: { translate: { x } } });
+  };
+
+  const alignVertical = (mode: "top" | "middle" | "bottom") => {
+    if (!selected) return;
+    const y = mode === "top"
+      ? 0
+      : mode === "middle"
+        ? (document.composition.height - selected.frame.height) / 2
+        : document.composition.height - selected.frame.height;
+    patchLayer({ transform: { translate: { y } } });
+  };
+
+  const setAnchor = (x: number, y: number) => {
+    if (!selected) return;
+    const previous = selected.transform.anchor;
+    const next = { x, y, z: previous.z };
+    const translate = compensateAnchor(selected.transform, next);
+    patchLayer({
+      transform: {
+        anchor: next,
+        translate,
+      },
+    });
+  };
+
+  const moveStack = (direction: "forward" | "backward") => {
+    if (!selected) return;
+    const siblings = document.layers
+      .filter((layer) => layer.parentLayerId === selected.parentLayerId)
+      .sort((left, right) => left.order - right.order);
+    const currentIndex = siblings.findIndex((layer) => layer.id === selected.id);
+    const targetIndex = direction === "forward" ? currentIndex + 1 : currentIndex - 1;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.length) return;
+    const orderedLayerIds = siblings.map((layer) => layer.id);
+    const [moved] = orderedLayerIds.splice(currentIndex, 1);
+    orderedLayerIds.splice(targetIndex, 0, moved!);
+    applyCommand({
+      type: "reorder-layers",
+      parentLayerId: selected.parentLayerId,
+      orderedLayerIds,
+    });
+  };
+
   const properties = selected ? (
-    <div className="min-h-full" data-testid="inspector-properties">
-      <SelectionHeader layer={selected} />
+    <div className="min-h-full w-full" data-testid="inspector-properties">
       {diagnostics.length > 0 ? (
-        <div role="alert" className="border-b border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2 text-[11px] text-[var(--danger)]">
+        <div role="alert" className="border-b border-[var(--danger)]/40 bg-[var(--danger)]/10 py-2 text-[11px] text-[var(--danger)]">
           {diagnostics[0]?.message}
         </div>
       ) : null}
       <InspectorSection label="Timing" open={openSections.timing ?? false} onToggle={() => toggle("timing")}>
-        <NumberField label="Start" value={selected.timing.start} onChange={(value) => patchLayer({ timing: { start: Math.max(0, value) } })} />
-        <NumberField label="Duration" value={selected.timing.duration} onChange={(value) => patchLayer({ timing: { duration: Math.max(0.001, value) } })} />
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <NumberField label="Start" value={selected.timing.start} onChange={(value) => patchLayer({ timing: { start: Math.max(0, value) } })} />
+          <NumberField label="Duration" value={selected.timing.duration} onChange={(value) => patchLayer({ timing: { duration: Math.max(0.001, value) } })} />
+        </div>
         <ReadonlyField label="End" value={(selected.timing.start + selected.timing.duration).toFixed(2)} />
-        <ReadonlyField label="Stack" value={`z${selected.order}`} />
       </InspectorSection>
 
       <InspectorSection label="Transform" open={openSections.transform ?? false} onToggle={() => toggle("transform")}>
-        <NumberField label="X" value={selected.transform.translate.x} onChange={(value) => patchLayer({ transform: { translate: { x: value } } })} />
-        <NumberField label="Y" value={selected.transform.translate.y} onChange={(value) => patchLayer({ transform: { translate: { y: value } } })} />
-        <NumberField label="Width" value={selected.frame.width} onChange={(value) => patchLayer({ frame: { width: Math.max(0.001, value) } })} />
-        <NumberField label="Height" value={selected.frame.height} onChange={(value) => patchLayer({ frame: { height: Math.max(0.001, value) } })} />
-        <NumberField label="Rotation Z" value={selected.transform.rotate.z} onChange={(value) => patchLayer({ transform: { rotate: { z: value } } })} />
-        <NumberField label="Opacity" step={0.01} value={selected.opacity} onChange={(value) => patchLayer({ opacity: Math.max(0, Math.min(1, value)) })} />
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <NumberField label="X" value={selected.transform.translate.x} onChange={(value) => patchLayer({ transform: { translate: { x: value } } })} />
+          <NumberField label="Y" value={selected.transform.translate.y} onChange={(value) => patchLayer({ transform: { translate: { y: value } } })} />
+          <NumberField label="Width" value={selected.frame.width} onChange={(value) => patchLayer({ frame: { width: Math.max(0.001, value) } })} />
+          <NumberField label="Height" value={selected.frame.height} onChange={(value) => patchLayer({ frame: { height: Math.max(0.001, value) } })} />
+          <NumberField label="Scale X" step={0.01} value={selected.transform.scale.x} onChange={(value) => patchLayer({ transform: { scale: { x: Math.max(0.001, value) } } })} />
+          <NumberField label="Scale Y" step={0.01} value={selected.transform.scale.y} onChange={(value) => patchLayer({ transform: { scale: { y: Math.max(0.001, value) } } })} />
+          <NumberField label="Rotation Z" value={selected.transform.rotate.z} onChange={(value) => patchLayer({ transform: { rotate: { z: value } } })} />
+          <RangeField
+            label="Opacity"
+            value={selected.opacity}
+            onChange={(value, gestureId) => patchLayerCoalesced("opacity", gestureId, { opacity: Math.max(0, Math.min(1, value)) })}
+          />
+        </div>
+      </InspectorSection>
+
+      <InspectorSection label="Alignment" open={openSections.alignment ?? false} onToggle={() => toggle("alignment")}>
+        <div className="grid grid-cols-3 gap-1">
+          <IconActionButton label="Align left" icon={<AlignStartHorizontal size={14} />} onClick={() => alignHorizontal("left")} />
+          <IconActionButton label="Align center" icon={<AlignCenterHorizontal size={14} />} onClick={() => alignHorizontal("center")} />
+          <IconActionButton label="Align right" icon={<AlignEndHorizontal size={14} />} onClick={() => alignHorizontal("right")} />
+          <IconActionButton label="Align top" icon={<AlignStartVertical size={14} />} onClick={() => alignVertical("top")} />
+          <IconActionButton label="Align middle" icon={<AlignCenterVertical size={14} />} onClick={() => alignVertical("middle")} />
+          <IconActionButton label="Align bottom" icon={<AlignEndVertical size={14} />} onClick={() => alignVertical("bottom")} />
+        </div>
+      </InspectorSection>
+
+      <InspectorSection label="Anchor" open={openSections.anchor ?? false} onToggle={() => toggle("anchor")}>
+        <div className="mx-auto grid w-fit grid-cols-3 gap-1" aria-label="Anchor presets">
+          {[0, 0.5, 1].flatMap((y) => [0, 0.5, 1].map((x) => ({ x, y }))).map((preset) => (
+            <button
+              key={`${preset.x}-${preset.y}`}
+              type="button"
+              aria-label={`Anchor ${preset.x}, ${preset.y}`}
+              className="h-6 w-6 rounded border border-[var(--border-strong)] text-[10px] text-[var(--fg-muted)] data-[active=true]:border-[var(--accent)] data-[active=true]:text-[var(--accent)]"
+              data-active={
+                selected.transform.anchor.x === selected.frame.width * preset.x &&
+                selected.transform.anchor.y === selected.frame.height * preset.y
+              }
+              onClick={() => setAnchor(selected.frame.width * preset.x, selected.frame.height * preset.y)}
+            >
+              •
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+          <NumberField label="Anchor X" value={selected.transform.anchor.x} onChange={(value) => setAnchor(value, selected.transform.anchor.y)} />
+          <NumberField label="Anchor Y" value={selected.transform.anchor.y} onChange={(value) => setAnchor(selected.transform.anchor.x, value)} />
+        </div>
+      </InspectorSection>
+
+      <InspectorSection label="Compositing" open={openSections.compositing ?? false} onToggle={() => toggle("compositing")}>
+        <SelectField
+          label="Blend"
+          value={selected.composite?.blendMode ?? "normal"}
+          options={[
+            { value: "normal", label: "Normal" },
+            { value: "multiply", label: "Multiply" },
+            { value: "screen", label: "Screen" },
+            { value: "add", label: "Add" },
+          ]}
+          onChange={(value) => patchLayer({ composite: { blendMode: value as "normal" | "multiply" | "screen" | "add" } })}
+        />
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">Stack</span>
+          <ActionButton label="Back" onClick={() => moveStack("backward")} disabled={selected.order === 0} />
+          <ActionButton
+            label="Forward"
+            onClick={() => moveStack("forward")}
+            disabled={!document.layers.some((layer) => layer.parentLayerId === selected.parentLayerId && layer.order > selected.order)}
+          />
+        </div>
       </InspectorSection>
 
       {selected.type === "text" ? (
@@ -210,7 +470,18 @@ export function SchemaInspector() {
   return (
     <aside className="editor-panel overflow-hidden [grid-area:inspector]">
       <Panel bodyClassName="!p-0" className="h-full rounded-none border-0 bg-transparent shadow-none">
-        <Tabs defaultValue="properties" items={[{ id: "properties", label: "Properties", content: <div className="h-full overflow-auto">{properties}</div> }]} />
+        <Tabs
+          defaultValue="properties"
+          items={[
+            {
+              id: "properties",
+              label: "Properties",
+              content: (
+                <div className="h-full w-full overflow-auto p-3">{properties}</div>
+              ),
+            },
+          ]}
+        />
       </Panel>
     </aside>
   );

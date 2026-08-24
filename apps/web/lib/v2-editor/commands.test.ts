@@ -21,6 +21,25 @@ describe("V2 editor command contract", () => {
     expect(result.inverse.type).toBe("replace-layer");
   });
 
+  it("restores the exact prior document through the inverse command", () => {
+    const project = createV2EditorProject("shape");
+    const result = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: {
+        timing: { start: 2, duration: 4 },
+        transform: { scale: { x: 1.5, y: 0.75 } },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const undone = applyV2EditorCommand(result.document, result.inverse);
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) return;
+    expect(undone.document).toEqual(project);
+  });
+
   it("keeps the last valid document when a command fails schema validation", () => {
     const project = createV2EditorProject("shape");
     const result = applyV2EditorCommand(project, {
@@ -65,5 +84,60 @@ describe("V2 editor command contract", () => {
     expect(result.document.layers).toHaveLength(2);
     expect(result.document.layers[1]?.payload).toEqual({ shape: "ellipse" });
     expect(result.inverse).toEqual({ type: "remove-layer", layerId: "ellipse-1" });
+  });
+
+  it("commits a multi-layer timing patch atomically", () => {
+    const project = createV2EditorProject("shape");
+    const source = project.layers[0];
+    const withSecond = {
+      ...project,
+      layers: [
+        source,
+        { ...source, id: "shape-2", order: 1, timing: { start: 2, duration: 3 } },
+      ],
+    };
+    const result = applyV2EditorCommand(withSecond, {
+      type: "patch-layers",
+      patches: {
+        shape: { timing: { start: 1 } },
+        "shape-2": { timing: { start: 3 } },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.layers.map((layer) => layer.timing.start)).toEqual([1, 3]);
+    expect(result.inverse.type).toBe("replace-layers");
+  });
+
+  it("normalizes sibling order for a reorder command", () => {
+    const project = createV2EditorProject("shape");
+    const source = project.layers[0];
+    const withSiblings = {
+      ...project,
+      layers: [
+        { ...source, id: "layer-0", order: 0 },
+        { ...source, id: "layer-1", order: 1 },
+        { ...source, id: "layer-2", order: 2 },
+      ],
+    };
+    const result = applyV2EditorCommand(withSiblings, {
+      type: "reorder-layers",
+      parentLayerId: null,
+      orderedLayerIds: ["layer-0", "layer-2", "layer-1"],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.document.layers
+        .slice()
+        .sort((left, right) => left.order - right.order)
+        .map((layer) => [layer.id, layer.order]),
+    ).toEqual([
+      ["layer-0", 0],
+      ["layer-2", 1],
+      ["layer-1", 2],
+    ]);
   });
 });
