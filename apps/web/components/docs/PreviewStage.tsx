@@ -46,11 +46,13 @@ export function PreviewStage({
   const assetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
   const runtimeRef = useRef<RuntimeProjectV2 | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
+  const onBackendReadyRef = useRef(onBackendReady);
   const paintRequestRef = useRef(0);
   const timeRef = useRef(time);
   const frameRef = useRef<RuntimeFrameV2 | null>(frame ?? null);
   const isPlayingRef = useRef(isPlaying);
   const [rendererError, setRendererError] = useState<string | null>(null);
+  onBackendReadyRef.current = onBackendReady;
   const parsedResult = useMemo(
     () => MotionProtocolV2Schema.safeParse(project),
     [project],
@@ -84,11 +86,14 @@ export function PreviewStage({
     syncPreviewVideoPlayback(assetsRef.current, isPlaying);
   }, [isPlaying]);
 
+  // The canvas and GPU renderer live for the lifetime of the backend. Keeping
+  // them mounted while the document changes prevents a visible blank frame
+  // when a layer is added from the editor header.
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !parsedProject) return undefined;
+    if (!host) return undefined;
 
-    onBackendReady?.(null);
+    onBackendReadyRef.current?.(null);
     const canvas = document.createElement("canvas");
     canvas.dataset.testid = "preview-v2-canvas";
     canvas.style.position = "absolute";
@@ -98,10 +103,36 @@ export function PreviewStage({
     host.replaceChildren(canvas);
     host.style.position = "relative";
     canvasRef.current = canvas;
-    projectRef.current = parsedProject;
 
+    return () => {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+      onBackendReadyRef.current?.(null);
+      projectRef.current = null;
+      assetsRef.current = new Map();
+      runtimeRef.current = null;
+      preparationDiagnosticsRef.current = [];
+      canvasRef.current = null;
+      canvas.remove();
+    };
+  }, [backend]);
+
+  // Recompile and repaint the existing renderer for document edits. Resource
+  // loading may be asynchronous, so the previous frame remains visible until
+  // the new frame is ready instead of replacing the canvas with a blank one.
+  useEffect(() => {
+    if (!parsedProject) {
+      projectRef.current = null;
+      return undefined;
+    }
+
+    const host = hostRef.current;
+    const canvas = canvasRef.current;
+    if (!host || !canvas) return undefined;
+    projectRef.current = parsedProject;
     let cancelled = false;
     const devicePixelRatio = window.devicePixelRatio || 1;
+
     void (async () => {
       const resources = await loadPreviewResources(parsedProject);
       if (cancelled) return;
@@ -114,28 +145,33 @@ export function PreviewStage({
             loadBrowserHarfBuzz,
           )
         : null;
+      if (cancelled) return;
       runtimeRef.current = prepared?.project ?? null;
       preparationDiagnosticsRef.current = [
         ...resources.diagnostics,
         ...(prepared?.diagnostics.map((diagnostic) => diagnostic.code) ?? []),
       ];
       syncPreviewVideoPlayback(resources.assets, isPlayingRef.current);
-      const renderer = await createPreviewRenderer({
-        canvas,
-        backend,
-        width: parsedProject.composition.width,
-        height: parsedProject.composition.height,
-        devicePixelRatio,
-        preserveDrawingBuffer: true,
-        assets: resources.assets,
-      });
-      if (cancelled) {
-        renderer.dispose();
-        return;
+
+      let renderer = rendererRef.current;
+      if (!renderer) {
+        renderer = await createPreviewRenderer({
+          canvas,
+          backend,
+          width: parsedProject.composition.width,
+          height: parsedProject.composition.height,
+          devicePixelRatio,
+          preserveDrawingBuffer: true,
+          assets: resources.assets,
+        });
+        if (cancelled) {
+          renderer.dispose();
+          return;
+        }
+        rendererRef.current = renderer;
+        canvas.dataset.backend = renderer.backend;
+        onBackendReadyRef.current?.(renderer.backend);
       }
-      rendererRef.current = renderer;
-      canvas.dataset.backend = renderer.backend;
-      onBackendReady?.(renderer.backend);
       setRendererError(null);
       const requestId = ++paintRequestRef.current;
       void paintFrame(
@@ -165,17 +201,8 @@ export function PreviewStage({
 
     return () => {
       cancelled = true;
-      rendererRef.current?.dispose();
-      rendererRef.current = null;
-      onBackendReady?.(null);
-      projectRef.current = null;
-      assetsRef.current = new Map();
-      runtimeRef.current = null;
-      preparationDiagnosticsRef.current = [];
-      canvasRef.current = null;
-      canvas.remove();
     };
-  }, [backend, onBackendReady, parsedProject]);
+  }, [backend, parsedProject]);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -258,6 +285,7 @@ async function loadPreviewResources(
   const diagnostics: string[] = [];
   for (const asset of project.assets ?? []) {
     try {
+      if (asset.kind === "audio") continue;
       if (asset.kind === "font") {
         const response = await fetch(asset.uri);
         if (!response.ok) throw new Error(`Unable to load font asset ${asset.id}`);

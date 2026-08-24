@@ -129,7 +129,7 @@ export function clampSegmentLocalTime(
 
 /**
  * Stable tie-break comparator for deterministic ordering.
- * After sorting by a numeric key (z-index, time, etc.), use this
+ * After sorting by a numeric key (order, time, etc.), use this
  * to break ties by entity id so the same input always produces
  * the same layer order.
  */
@@ -142,7 +142,7 @@ export function deterministicTieBreak(a: string, b: string): number {
 
 /**
  * Compare two numbers, then tie-break by id.
- * Usage: layers.sort((a, b) => numericThenId(a.zIndex, b.zIndex, a.id, b.id))
+ * Usage: layers.sort((a, b) => numericThenId(a.order, b.order, a.id, b.id))
  */
 export function numericThenId(
   aValue: number,

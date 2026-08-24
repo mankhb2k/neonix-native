@@ -20,7 +20,7 @@ const runtime = {
     {
       id: "rect",
       parentId: null,
-      zIndex: 0,
+      order: 0,
       timing: { start: 0, duration: 2 },
       opacity: 1,
       visible: true,

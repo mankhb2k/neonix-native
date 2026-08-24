@@ -39,7 +39,7 @@ MotionProtocolV2
         ├── frame
         ├── transform (3D translate / scale / rotate / skew / anchor)
         ├── timing
-        ├── opacity / zIndex
+        ├── opacity / order (unique among siblings; higher paints later)
         └── shape payload + paint style
 ```
 

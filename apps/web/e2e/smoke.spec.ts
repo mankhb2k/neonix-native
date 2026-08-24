@@ -25,5 +25,13 @@ test.describe("web V2 smoke", () => {
       page.getByRole("slider", { name: "Editor time" }),
     ).toBeVisible();
     await expect(page.getByText("Atomic Protocol V2")).toBeVisible();
+    await expect(page.getByTestId("timeline-v2-shell")).toBeVisible();
+    await expect(page.getByTestId("timeline-v2-clip-shape")).toBeVisible();
+
+    const currentTime = page.getByTestId("timeline-v2-current-time");
+    await page.getByRole("button", { name: "Play" }).click();
+    await expect(currentTime).not.toHaveText("00:00:00", { timeout: 1000 });
+    await page.getByTestId("timeline-v2-clip-shape").click();
+    await expect(page.getByTestId("timeline-v2-clip-shape")).toHaveClass(/ring-1/);
   });
 });

@@ -26,7 +26,7 @@ const RECTANGLE_PROJECT = {
       type: "shape",
       id: "rectangle",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 96, height: 64 },
       transform: {
         translate: { x: 0, y: 0, z: 0 },
@@ -366,7 +366,7 @@ describe("Motion Protocol V2 schema", () => {
         id: "image",
         type: "image" as const,
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 320, height: 240 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
@@ -403,7 +403,7 @@ describe("Motion Protocol V2 schema", () => {
         id: "video",
         type: "video" as const,
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 960, height: 540 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
@@ -444,7 +444,7 @@ describe("Motion Protocol V2 schema", () => {
         id: "headline",
         type: "text" as const,
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 320, height: 100 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
@@ -569,7 +569,7 @@ describe("Motion Protocol V2 schema", () => {
       id: "group",
       type: "group" as const,
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: RECTANGLE_PROJECT.layers[0].frame,
       transform: RECTANGLE_PROJECT.layers[0].transform,
       opacity: 1,
@@ -579,7 +579,7 @@ describe("Motion Protocol V2 schema", () => {
       ...RECTANGLE_PROJECT.layers[0],
       id: "child",
       parentLayerId: "group",
-      zIndex: 1,
+      order: 1,
     };
     expect(MotionProtocolV2Schema.parse({
       ...RECTANGLE_PROJECT,
@@ -603,7 +603,7 @@ describe("Motion Protocol V2 schema", () => {
       ...RECTANGLE_PROJECT,
       layers: [
         { ...RECTANGLE_PROJECT.layers[0], id: "parent", type: "shape" as const },
-        { ...RECTANGLE_PROJECT.layers[0], id: "child", parentLayerId: "parent", zIndex: 1 },
+        { ...RECTANGLE_PROJECT.layers[0], id: "child", parentLayerId: "parent", order: 1 },
       ],
     })).toThrow(/Only group layers/);
   });
@@ -613,7 +613,7 @@ describe("Motion Protocol V2 schema", () => {
       id: "masked-group",
       type: "group" as const,
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: RECTANGLE_PROJECT.layers[0].frame,
       transform: RECTANGLE_PROJECT.layers[0].transform,
       opacity: 1,
@@ -631,7 +631,7 @@ describe("Motion Protocol V2 schema", () => {
       ...RECTANGLE_PROJECT.layers[0],
       id: "clip-shape",
       parentLayerId: "masked-group",
-      zIndex: 1,
+      order: 1,
     };
     const parsed = MotionProtocolV2Schema.parse({
       ...RECTANGLE_PROJECT,
@@ -651,7 +651,7 @@ describe("Motion Protocol V2 schema", () => {
       id: "inverse-masked-group",
       type: "group" as const,
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: RECTANGLE_PROJECT.layers[0].frame,
       transform: RECTANGLE_PROJECT.layers[0].transform,
       opacity: 1,
@@ -669,7 +669,7 @@ describe("Motion Protocol V2 schema", () => {
       ...RECTANGLE_PROJECT.layers[0],
       id: "inverse-source",
       parentLayerId: "inverse-masked-group",
-      zIndex: 1,
+      order: 1,
     };
     const parsed = MotionProtocolV2Schema.parse({
       ...RECTANGLE_PROJECT,
@@ -680,13 +680,13 @@ describe("Motion Protocol V2 schema", () => {
     });
   });
 
-  it("rejects duplicate ids and duplicate z-indexes", () => {
+  it("rejects duplicate ids and duplicate sibling orders", () => {
     expect(() =>
       MotionProtocolV2Schema.parse({
         ...RECTANGLE_PROJECT,
         layers: [
           RECTANGLE_PROJECT.layers[0],
-          { ...RECTANGLE_PROJECT.layers[0], zIndex: 1 },
+          { ...RECTANGLE_PROJECT.layers[0], order: 1 },
         ],
       }),
     ).toThrow(/Duplicate layer id/);
@@ -696,10 +696,41 @@ describe("Motion Protocol V2 schema", () => {
         ...RECTANGLE_PROJECT,
         layers: [
           RECTANGLE_PROJECT.layers[0],
-          { ...RECTANGLE_PROJECT.layers[0], id: "second", zIndex: 0 },
+          { ...RECTANGLE_PROJECT.layers[0], id: "second", order: 0 },
         ],
       }),
-    ).toThrow(/Duplicate zIndex/);
+    ).toThrow(/Duplicate order/);
+
+    const group = {
+      id: "order-group",
+      type: "group" as const,
+      parentLayerId: null,
+      order: 1,
+      frame: RECTANGLE_PROJECT.layers[0].frame,
+      transform: RECTANGLE_PROJECT.layers[0].transform,
+      opacity: 1,
+      timing: RECTANGLE_PROJECT.layers[0].timing,
+    };
+    const child = {
+      ...RECTANGLE_PROJECT.layers[0],
+      id: "order-child",
+      parentLayerId: "order-group",
+      order: 0,
+    };
+    expect(MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [RECTANGLE_PROJECT.layers[0], group, child],
+    }).layers).toHaveLength(3);
+
+    expect(() => MotionProtocolV2Schema.parse({
+      ...RECTANGLE_PROJECT,
+      layers: [
+        RECTANGLE_PROJECT.layers[0],
+        group,
+        child,
+        { ...child, id: "order-child-duplicate" },
+      ],
+    })).toThrow(/Duplicate order/);
 
     expect(() =>
       MotionProtocolV2Schema.parse({

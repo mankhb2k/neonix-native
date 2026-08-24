@@ -19,7 +19,7 @@ export const MotionProtocolV2Schema = z
   .strict()
   .superRefine((project, ctx) => {
     const ids = new Set<string>();
-    const zIndexes = new Set<number>();
+    const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
     const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
     for (const [index, asset] of project.assets.entries()) {
@@ -95,14 +95,16 @@ export const MotionProtocolV2Schema = z
           current = layerById.get(current)?.parentLayerId ?? null;
         }
       }
-      if (zIndexes.has(layer.zIndex)) {
+      const siblingOrders = ordersByParent.get(layer.parentLayerId) ?? new Set<number>();
+      if (siblingOrders.has(layer.order)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Duplicate zIndex: ${layer.zIndex}`,
-          path: ["layers", index, "zIndex"],
+          message: `Duplicate order in sibling scope: ${layer.order}`,
+          path: ["layers", index, "order"],
         });
       }
-      zIndexes.add(layer.zIndex);
+      siblingOrders.add(layer.order);
+      ordersByParent.set(layer.parentLayerId, siblingOrders);
       const mask = layer.composite?.mask;
       if (mask) {
         if (layer.type !== "group") {

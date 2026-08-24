@@ -58,7 +58,7 @@ Protocol V2 atoms and returns a source map back to its author node.
   runtime needs them; high-level camera intent is lowered by Compiler A.
 - Transform is 3D-capable from day one: semantic Vec3 translate/scale/rotate
   and anchor, plus XY skew. Runtime owns the resulting column-major mat4.
-- During the MVP, `zIndex` is the deterministic painter/compositing order.
+- During the MVP, `order` is the deterministic painter/compositing order.
   `translate.z` affects perspective placement only; it does not silently
   enable depth-buffer occlusion. A future depth-test policy requires its own
   atomic contract and certification task.
@@ -114,7 +114,7 @@ specific pixels and background pixels deterministically.
 - [x] Add `packages/motion-protocol/src/v2` with a separate format/version.
 - [x] Define composition: `width`, `height`, `fps`, `background`, color space,
   and audio sample rate.
-- [x] Define common layer base: `id`, `parentLayerId`, `zIndex`, `timing`, and
+- [x] Define common layer base: `id`, `parentLayerId`, `order`, `timing`, and
   `frame`.
 - [x] Define the V2 semantic transform contract: Vec3 `translate`, `scale`,
   `rotate`, local-unit Vec3 `anchor`, and XY `skew`.
@@ -157,7 +157,7 @@ primitive.
 - [x] `transform.skew`
 - [x] `timing.start` and `timing.duration`
 - [x] `opacity`
-- [x] `zIndex`
+- [x] `order`
 
 Each property has a separate Protocol V2 fixture, command golden, and pixel E2E
 test. Timing must be tested before, during, and after a layer is active.
@@ -194,7 +194,7 @@ No ellipse, path, text, image, video, effect, or mask work belongs to this task.
 Status: implemented and waiting for acceptance.
 
 - [x] Add `payload.shape: "ellipse"` to the strict V2 shape schema.
-- [x] Reuse the certified rectangle mat4, anchor, timing, opacity, and z-index
+- [x] Reuse the certified rectangle mat4, anchor, timing, opacity, and order
   path without introducing ellipse-specific transform semantics.
 - [x] Implement ellipse coverage in WebGL2 and WebGPU using analytic fragment
   coverage with derivative-based antialiasing.
@@ -231,7 +231,7 @@ semantics.
   sample patterns and drivers differ.
 - [x] Classify a dark/multi-pixel fringe as an alpha/compositing regression;
   classify a one-pixel partial-coverage edge as normal antialiasing.
-- [x] Document that `zIndex` remains paint order and `translate.z` remains a
+- [x] Document that `order` remains paint order and `translate.z` remains a
   perspective value until a later explicit depth-buffer task is accepted.
 
 Done when preview quality is evaluated at physical canvas resolution and the
@@ -296,7 +296,7 @@ E2E fixtures include a triangle, a donut/hole with two contours, a stroked
 closed path, an open capped/dashed path, and a topology-matched morph path. Each
 static geometry case also has one rotate X or Y perspective fixture.
 Tests assert fill, hole, edge, outside pixels, projected bounds, and consistent
-ordering relative to another `zIndex` layer.
+ordering relative to another `order` layer.
 
 Task 6 is complete when the static Path geometry, paint, stroke, and morph
 fixtures pass the shared Runtime, WebGPU, WebGL2, and preview E2E gates above.
@@ -310,7 +310,7 @@ fixtures pass the shared Runtime, WebGPU, WebGL2, and preview E2E gates above.
   flattening boundary required to composite it once over overlapping children.
 - [x] Implement nested timing.
 - [x] Test nested rotation, parent translation, parent/child opacity, sibling
-  ordering, child z-index, parent rotate X/Y, and parent/child Z translation.
+  ordering, child order, parent rotate X/Y, and parent/child Z translation.
 
 The V2 Group is a hierarchy-only Protocol atom. Compiler B resolves its local
 Matrix4 into each drawable leaf's `worldMatrix` and intersects parent and child
@@ -462,7 +462,7 @@ alone are insufficient.
 Do not begin patterns, presets, templates, or component lowering until all of
 the following are certified:
 
-- [ ] Rectangle fill, transform, timing, opacity, and z-index.
+- [ ] Rectangle fill, transform, timing, opacity, and order.
 - [ ] Ellipse.
 - [ ] Task 4.5 3D preview quality and backend parity.
 - [ ] Static path fill and stroke.

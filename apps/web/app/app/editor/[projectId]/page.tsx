@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { V2Editor } from "@/components/editor-v2/V2Editor";
+import { EditorShell } from "@/components/editor/EditorShell";
 import {
   createV2EditorProject,
   isV2EditorProjectId,
@@ -12,5 +12,5 @@ export default async function V2EditorPage({
 }) {
   const { projectId } = await params;
   if (!isV2EditorProjectId(projectId)) notFound();
-  return <V2Editor project={createV2EditorProject(projectId)} />;
+  return <EditorShell v2Document={createV2EditorProject(projectId)} />;
 }

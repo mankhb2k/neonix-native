@@ -163,6 +163,26 @@ body:has([data-surface="editor"]) {
   background: var(--bg-surface);
 }
 
+/* At xl and below the stage needs the full working width. Keep the existing
+   editor chrome, stage, and timeline while collapsing the two side panels. */
+@media (max-width: 1279px) {
+  [data-surface="editor"].editor-shell-grid {
+    grid-template-areas:
+      "header"
+      "stage"
+      "timeline";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+      var(--editor-chrome-h)
+      minmax(0, 1fr)
+      minmax(160px, var(--editor-timeline-h));
+  }
+
+  [data-surface="editor"].editor-shell-grid > aside.editor-panel {
+    display: none;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

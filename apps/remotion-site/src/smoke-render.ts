@@ -77,7 +77,6 @@ async function main() {
       fps: 30,
       background: "#0d9488",
       colorSpace: "srgb",
-      audioSampleRate: 48000,
       view: {
         projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
         transform: {
@@ -86,12 +85,13 @@ async function main() {
         },
       },
     },
+    assets: [],
     layers: [
       {
         id: "smoke-rectangle",
         type: "shape",
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 720, height: 420 },
         transform: {
           translate: { x: 600, y: 330, z: 180 },
@@ -100,12 +100,13 @@ async function main() {
           skew: { x: 0, y: 0 },
           anchor: { x: 360, y: 210, z: 120 },
         },
-        opacity: 100,
+        opacity: 1,
         timing: { start: 0, duration: 3 },
         payload: { shape: "rectangle", cornerRadius: 24 },
         style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 8 },
       },
     ],
+    audio: { sampleRate: 48000, tracks: [] },
   };
   const runtime = compileProtocolV2(project);
   const fps = runtime.composition.fps;

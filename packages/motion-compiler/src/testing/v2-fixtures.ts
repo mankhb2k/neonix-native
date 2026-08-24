@@ -32,7 +32,7 @@ export function createV2ShapeProject(options: {
   frameWidth?: number;
   frameHeight?: number;
   fill?: string;
-  zIndex?: number;
+  order?: number;
   timing?: { start: number; duration: number };
   transform?: MotionProtocolV2["layers"][number]["transform"];
 } = {}): MotionProtocolV2 {
@@ -48,23 +48,24 @@ export function createV2ShapeProject(options: {
       fps: 30,
       background: options.background ?? "#101820",
       colorSpace: "srgb",
-      audioSampleRate: 48000,
       view: V2_DEFAULT_ORTHOGRAPHIC_VIEW,
     },
+    assets: [],
     layers: [
       {
         id: "shape",
         type: "shape",
         parentLayerId: null,
-        zIndex: options.zIndex ?? 0,
+        order: options.order ?? 0,
         frame: { width: frameWidth, height: frameHeight },
         transform: options.transform ?? v2Transform(),
-        opacity: 100,
+        opacity: 1,
         timing: options.timing ?? { start: 0, duration: 3 },
         payload: { shape: options.shape ?? "rectangle" },
         style: { fill: options.fill ?? "#00B894" },
       },
     ],
+    audio: { sampleRate: 48000, tracks: [] },
   };
 }
 
@@ -78,14 +79,14 @@ export function createV2OverlapProject(id = "fixture-overlap"): MotionProtocolV2
       {
         ...baseShape,
         id: "back",
-        zIndex: 0,
+        order: 0,
         transform: v2Transform({ translate: { x: 360, y: 190, z: 0 } }),
         style: { fill: "#00B894" },
       },
       {
         ...baseShape,
         id: "front",
-        zIndex: 1,
+        order: 1,
         frame: { width: 760, height: 460 },
         transform: v2Transform({ translate: { x: 600, y: 340, z: 0 } }),
         style: { fill: "#FF3366" },

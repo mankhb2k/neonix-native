@@ -122,7 +122,7 @@ describe("WebGPU preview backend", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 11, 0, 1],
           alpha: 1,
           visible: true,
-          zIndex: 0,
+          order: 0,
         },
         {
           op: "drawShape",
@@ -140,7 +140,7 @@ describe("WebGPU preview backend", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 140, 40, 0, 1],
           alpha: 1,
           visible: true,
-          zIndex: 1,
+          order: 1,
         },
         {
           op: "drawShape",

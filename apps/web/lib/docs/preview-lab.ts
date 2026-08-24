@@ -1,11 +1,15 @@
 import { MATRIX4_PARITY_CASES } from "@motionvideo/motion-compiler/testing";
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import {
+  V2_AUDIO_FIXTURES,
+  type MotionProtocolV2,
+  type V2AudioFixture,
+} from "@motionvideo/motion-protocol/v2";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 type RectangleLayer = Extract<V2Layer, { type: "shape" }>;
 type ShapeOptions = {
   id: string;
-  zIndex: number;
+  order: number;
   fill: RectangleLayer["style"]["fill"];
   fillOpacity?: number;
   cornerRadius?: number;
@@ -32,7 +36,7 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     id: options.id,
     type: "shape",
     parentLayerId: null,
-    zIndex: options.zIndex,
+    order: options.order,
     frame: options.frame ?? { width: 96, height: 64 },
     transform: options.transform ?? IDENTITY_TRANSFORM,
     opacity: options.opacity ?? 1,
@@ -74,7 +78,7 @@ function project(
   id: string,
   layers: V2Layer[],
   view: MotionProtocolV2["composition"]["view"] = ORTHOGRAPHIC_VIEW,
-  assets?: NonNullable<MotionProtocolV2["assets"]>,
+  assets: MotionProtocolV2["assets"] = [],
 ): MotionProtocolV2 {
   return {
     format: "motion-protocol",
@@ -86,11 +90,11 @@ function project(
       fps: 30,
       background: "#101820",
       colorSpace: "srgb",
-      audioSampleRate: 48000,
       view,
     },
-    ...(assets ? { assets } : {}),
+    assets,
     layers,
+    audio: { sampleRate: 48000, tracks: [] },
   };
 }
 
@@ -125,7 +129,7 @@ function imageProject(
       id: "image",
       type: "image",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame,
       transform: { ...IDENTITY_TRANSFORM, translate: { ...translate, z: 0 } },
       opacity: 1,
@@ -176,7 +180,7 @@ function imageBlendProject(
         id: "blend-backdrop",
         type: "shape",
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 860, height: 700 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 530, y: 190, z: 0 } },
         opacity: 1,
@@ -194,7 +198,7 @@ function imageBlendProject(
         id: `blend-image-${blendMode}`,
         type: "image",
         parentLayerId: null,
-        zIndex: 1,
+        order: 1,
         frame: { width: 640, height: 640 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 670, y: 220, z: 0 } },
         opacity: 1,
@@ -223,7 +227,7 @@ function imageStackBlendProject(
         id: "blend-stack-base-image",
         type: "image",
         parentLayerId: null,
-        zIndex: 0,
+        order: 0,
         frame: { width: 880, height: 880 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 520, y: 100, z: 0 } },
         opacity: 1,
@@ -234,7 +238,7 @@ function imageStackBlendProject(
         id: `blend-stack-snow-${blendMode}`,
         type: "image",
         parentLayerId: null,
-        zIndex: 1,
+        order: 1,
         frame: { width: 880, height: 880 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 520, y: 100, z: 0 } },
         opacity: 1,
@@ -260,7 +264,7 @@ const CLIP_MASK_PROJECT = project(
       id: "clip-mask-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 1,
@@ -274,7 +278,7 @@ const CLIP_MASK_PROJECT = project(
       id: "clip-mask-ellipse",
       type: "shape",
       parentLayerId: "clip-mask-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 660, height: 560 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
       opacity: 1,
@@ -286,7 +290,7 @@ const CLIP_MASK_PROJECT = project(
       id: "clip-mask-content",
       type: "image",
       parentLayerId: "clip-mask-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 960, height: 740 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
@@ -305,7 +309,7 @@ const ALPHA_MASK_PROJECT = project(
       id: "alpha-mask-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 1,
@@ -319,7 +323,7 @@ const ALPHA_MASK_PROJECT = project(
       id: "alpha-mask-ellipse",
       type: "shape",
       parentLayerId: "alpha-mask-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 660, height: 560 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
       opacity: 1,
@@ -331,7 +335,7 @@ const ALPHA_MASK_PROJECT = project(
       id: "alpha-mask-content",
       type: "image",
       parentLayerId: "alpha-mask-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 960, height: 740 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
@@ -350,7 +354,7 @@ const INVERSE_ALPHA_MASK_PROJECT = project(
       id: "inverse-alpha-mask-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 1,
@@ -364,7 +368,7 @@ const INVERSE_ALPHA_MASK_PROJECT = project(
       id: "inverse-alpha-mask-ellipse",
       type: "shape",
       parentLayerId: "inverse-alpha-mask-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 660, height: 560 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
       opacity: 1,
@@ -376,7 +380,7 @@ const INVERSE_ALPHA_MASK_PROJECT = project(
       id: "inverse-alpha-mask-content",
       type: "image",
       parentLayerId: "inverse-alpha-mask-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 960, height: 740 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
@@ -395,7 +399,7 @@ const LUMA_MASK_PROJECT = project(
       id: "luma-mask-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 1,
@@ -409,7 +413,7 @@ const LUMA_MASK_PROJECT = project(
       id: "luma-mask-ellipse",
       type: "shape",
       parentLayerId: "luma-mask-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 660, height: 560 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
       opacity: 1,
@@ -421,7 +425,7 @@ const LUMA_MASK_PROJECT = project(
       id: "luma-mask-content",
       type: "image",
       parentLayerId: "luma-mask-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 960, height: 740 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
@@ -450,7 +454,7 @@ const VIDEO_PROJECT = project(
     id: "video",
     type: "video",
     parentLayerId: null,
-    zIndex: 0,
+    order: 0,
     frame: { width: 960, height: 540 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 270, z: 0 } },
     opacity: 1,
@@ -470,13 +474,13 @@ const VIDEO_PROJECT = project(
 );
 
 const RECTANGLE_PROJECT = project("preview-rectangle-v2", [
-  rectangle({ id: "rectangle", zIndex: 0, fill: "#00aa88" }),
+  rectangle({ id: "rectangle", order: 0, fill: "#00aa88" }),
 ]);
 
 const ELLIPSE_PROJECT = project("preview-ellipse-v2", [
   ellipse({
     id: "ellipse",
-    zIndex: 0,
+    order: 0,
     fill: "#00aa88",
     frame: { width: 128, height: 80 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
@@ -490,7 +494,7 @@ const PATH_PENTAGON_PERSPECTIVE_PROJECT = project(
       id: "pentagon",
       type: "path",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 320, height: 240 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -554,7 +558,7 @@ const PATH_OPEN_STROKE_PROJECT = project(
       id: "open-stroke",
       type: "path",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1120, height: 320 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -595,7 +599,7 @@ const PATH_MORPH_PROJECT = project(
       id: "morph-path",
       type: "path",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 420, height: 320 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -652,7 +656,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
       id: "group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1000, height: 700 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -667,7 +671,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
       id: "group-back",
       type: "shape",
       parentLayerId: "group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 620, height: 420 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -682,7 +686,7 @@ const GROUP_PARENT_TRANSFORM_PROJECT = project(
       id: "group-front",
       type: "shape",
       parentLayerId: "group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 400, height: 280 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -712,7 +716,7 @@ const GROUP_ISOLATION_OPACITY_PROJECT = project(
       id: "isolation-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 0.5,
@@ -722,7 +726,7 @@ const GROUP_ISOLATION_OPACITY_PROJECT = project(
       id: "isolation-back",
       type: "shape",
       parentLayerId: "isolation-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 520, height: 340 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 460, y: 370, z: 0 } },
       opacity: 1,
@@ -734,7 +738,7 @@ const GROUP_ISOLATION_OPACITY_PROJECT = project(
       id: "isolation-front",
       type: "shape",
       parentLayerId: "isolation-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 520, height: 340 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 720, y: 370, z: 0 } },
       opacity: 1,
@@ -759,7 +763,7 @@ const NESTED_ISOLATION_PROJECT = project(
       id: "nested-outer-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 0.75,
@@ -769,7 +773,7 @@ const NESTED_ISOLATION_PROJECT = project(
       id: "nested-inner-group",
       type: "group",
       parentLayerId: "nested-outer-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 0.5,
@@ -779,7 +783,7 @@ const NESTED_ISOLATION_PROJECT = project(
       id: "nested-isolation-back",
       type: "shape",
       parentLayerId: "nested-inner-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 520, height: 340 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 460, y: 370, z: 0 } },
       opacity: 1,
@@ -791,7 +795,7 @@ const NESTED_ISOLATION_PROJECT = project(
       id: "nested-isolation-front",
       type: "shape",
       parentLayerId: "nested-inner-group",
-      zIndex: 3,
+      order: 3,
       frame: { width: 520, height: 340 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 720, y: 370, z: 0 } },
       opacity: 1,
@@ -810,7 +814,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       id: "nested-mask-outer-group",
       type: "group",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 0.75,
@@ -820,7 +824,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       id: "nested-mask-inner-group",
       type: "group",
       parentLayerId: "nested-mask-outer-group",
-      zIndex: 1,
+      order: 1,
       frame: { width: 1920, height: 1080 },
       transform: IDENTITY_TRANSFORM,
       opacity: 1,
@@ -834,7 +838,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       id: "nested-mask-ellipse",
       type: "shape",
       parentLayerId: "nested-mask-inner-group",
-      zIndex: 2,
+      order: 2,
       frame: { width: 660, height: 560 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
       opacity: 1,
@@ -846,7 +850,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       id: "nested-mask-content",
       type: "image",
       parentLayerId: "nested-mask-inner-group",
-      zIndex: 3,
+      order: 3,
       frame: { width: 960, height: 740 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
@@ -905,7 +909,7 @@ function pathDonutProject(
       id: `donut-${fillRule}`,
       type: "path",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 600, height: 400 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -979,7 +983,7 @@ function pathStarProject(
       id: `star-${fillRule}`,
       type: "path",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 600, height: 400 },
       transform: {
         ...IDENTITY_TRANSFORM,
@@ -1017,7 +1021,7 @@ const PATH_EVENODD_STAR_PROJECT = pathStarProject(
 const RECTANGLE_STROKE_PROJECT = project("preview-rectangle-stroke-v2", [
   rectangle({
     id: "rectangle-stroke",
-    zIndex: 0,
+    order: 0,
     fill: "#00aa88",
     stroke: "#ff3366",
     frame: { width: 320, height: 180 },
@@ -1030,7 +1034,7 @@ const RECTANGLE_STROKE_PERSPECTIVE_PROJECT = project(
   [
     rectangle({
       id: "rectangle-stroke-perspective",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       stroke: "#ff3366",
       frame: { width: 320, height: 180 },
@@ -1054,7 +1058,7 @@ const RECTANGLE_STROKE_PERSPECTIVE_PROJECT = project(
 const ELLIPSE_STROKE_PROJECT = project("preview-ellipse-stroke-v2", [
   ellipse({
     id: "ellipse-stroke",
-    zIndex: 0,
+    order: 0,
     fill: "#00aa88",
     stroke: "#ff3366",
     frame: { width: 320, height: 180 },
@@ -1067,7 +1071,7 @@ const ELLIPSE_STROKE_PERSPECTIVE_PROJECT = project(
   [
     ellipse({
       id: "ellipse-stroke-perspective",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       stroke: "#ff3366",
       frame: { width: 320, height: 180 },
@@ -1093,7 +1097,7 @@ const RECTANGLE_STROKE_WIDTH_PROJECT = project(
   [
     rectangle({
       id: "rectangle-stroke-width",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       stroke: "#ff3366",
       strokeWidth: 16,
@@ -1108,7 +1112,7 @@ const RECTANGLE_STROKE_WIDTH_PERSPECTIVE_PROJECT = project(
   [
     rectangle({
       id: "rectangle-stroke-width-perspective",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       stroke: "#ff3366",
       strokeWidth: 16,
@@ -1135,7 +1139,7 @@ const RECTANGLE_PAINT_OPACITY_PROJECT = project(
   [
     rectangle({
       id: "rectangle-paint-opacity",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       fillOpacity: 0.5,
       stroke: "#ff3366",
@@ -1152,7 +1156,7 @@ const RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT = project(
   [
     rectangle({
       id: "rectangle-paint-opacity-perspective",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       fillOpacity: 0.5,
       stroke: "#ff3366",
@@ -1179,7 +1183,7 @@ const RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT = project(
 const ROUNDED_RECTANGLE_PROJECT = project("preview-rounded-rectangle-v2", [
   rectangle({
     id: "rounded-rectangle",
-    zIndex: 0,
+    order: 0,
     fill: "#00aa88",
     cornerRadius: 48,
     stroke: "#ff3366",
@@ -1194,7 +1198,7 @@ const ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
   [
     rectangle({
       id: "rounded-rectangle-perspective",
-      zIndex: 0,
+      order: 0,
       fill: "#00aa88",
       cornerRadius: 48,
       stroke: "#ff3366",
@@ -1240,7 +1244,7 @@ const RADIAL_GRADIENT_FILL = {
 const LINEAR_GRADIENT_PROJECT = project("preview-linear-gradient-v2", [
   rectangle({
     id: "linear-gradient",
-    zIndex: 0,
+    order: 0,
     fill: LINEAR_GRADIENT_FILL,
     frame: { width: 320, height: 180 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
@@ -1250,7 +1254,7 @@ const LINEAR_GRADIENT_PROJECT = project("preview-linear-gradient-v2", [
 const RADIAL_GRADIENT_PROJECT = project("preview-radial-gradient-v2", [
   ellipse({
     id: "radial-gradient",
-    zIndex: 0,
+    order: 0,
     fill: RADIAL_GRADIENT_FILL,
     frame: { width: 320, height: 180 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
@@ -1262,7 +1266,7 @@ const GRADIENT_PERSPECTIVE_PROJECT = project(
   [
     rectangle({
       id: "gradient-perspective",
-      zIndex: 0,
+      order: 0,
       fill: LINEAR_GRADIENT_FILL,
       frame: { width: 320, height: 180 },
       transform: {
@@ -1297,7 +1301,7 @@ const PREVIEW_ROBOTO_REGULAR_FONT = {
 
 function textLayer(options: {
   id: string;
-  zIndex: number;
+  order: number;
   text: string;
   align: TextLayer["payload"]["align"];
   verticalAlign: TextLayer["payload"]["verticalAlign"];
@@ -1310,7 +1314,7 @@ function textLayer(options: {
     id: options.id,
     type: "text",
     parentLayerId: null,
-    zIndex: options.zIndex,
+    order: options.order,
     frame: options.frame ?? { width: 1140, height: 220 },
     transform: options.transform,
     opacity: 1,
@@ -1337,14 +1341,14 @@ const TEXT_ALIGNMENT_PROJECT = project(
   [
     rectangle({
       id: "text-frame",
-      zIndex: 0,
+      order: 0,
       fill: "#173247",
       frame: { width: 1140, height: 220 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 390, y: 430, z: 0 } },
     }),
     textLayer({
       id: "text-center-middle",
-      zIndex: 1,
+      order: 1,
       text: "NeonVideo V2 - Xin chao",
       align: "center",
       verticalAlign: "middle",
@@ -1360,14 +1364,14 @@ const TEXT_LEFT_PROJECT = project(
   [
     rectangle({
       id: "text-left-frame",
-      zIndex: 0,
+      order: 0,
       fill: "#173247",
       frame: { width: 1280, height: 220 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
     }),
     textLayer({
       id: "text-left",
-      zIndex: 1,
+      order: 1,
       text: "Left aligned text",
       align: "left",
       verticalAlign: "middle",
@@ -1384,14 +1388,14 @@ const TEXT_RIGHT_PROJECT = project(
   [
     rectangle({
       id: "text-right-frame",
-      zIndex: 0,
+      order: 0,
       fill: "#173247",
       frame: { width: 1280, height: 220 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 430, z: 0 } },
     }),
     textLayer({
       id: "text-right",
-      zIndex: 1,
+      order: 1,
       text: "Right aligned text",
       align: "right",
       verticalAlign: "middle",
@@ -1408,14 +1412,14 @@ const TEXT_PARAGRAPH_PROJECT = project(
   [
     rectangle({
       id: "text-paragraph-frame",
-      zIndex: 0,
+      order: 0,
       fill: "#173247",
       frame: { width: 1280, height: 420 },
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 330, z: 0 } },
     }),
     textLayer({
       id: "text-paragraph",
-      zIndex: 1,
+      order: 1,
       text: "Paragraph line one\nParagraph line two\nParagraph line three",
       align: "left",
       verticalAlign: "middle",
@@ -1432,14 +1436,14 @@ const TEXT_PARAGRAPH_PROJECT = project(
 const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
   rectangle({
     id: "source-red",
-    zIndex: 0,
+    order: 0,
     fill: "#ff0000",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
   }),
   rectangle({
     id: "desaturated-red",
-    zIndex: 1,
+    order: 1,
     fill: "#ff0000",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
@@ -1457,14 +1461,14 @@ const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
 const BLUR_PROJECT = project("preview-effect-blur-v2", [
   rectangle({
     id: "crisp-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#ff3366",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
   }),
   rectangle({
     id: "blurred-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#ff3366",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
@@ -1475,7 +1479,7 @@ const BLUR_PROJECT = project("preview-effect-blur-v2", [
 const BLUR_STROKE_PROJECT = project("preview-effect-blur-stroke-v2", [
   rectangle({
     id: "blurred-fill-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
@@ -1483,7 +1487,7 @@ const BLUR_STROKE_PROJECT = project("preview-effect-blur-stroke-v2", [
   }),
   rectangle({
     id: "blurred-stroke-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     stroke: "#ff3366",
     strokeWidth: 18,
@@ -1496,14 +1500,14 @@ const BLUR_STROKE_PROJECT = project("preview-effect-blur-stroke-v2", [
 const DROP_SHADOW_PROJECT = project("preview-effect-drop-shadow-v2", [
   rectangle({
     id: "shadow-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
   }),
   rectangle({
     id: "drop-shadow-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1522,14 +1526,14 @@ const DROP_SHADOW_PROJECT = project("preview-effect-drop-shadow-v2", [
 const DROP_SHADOW_NEGATIVE_PROJECT = project("preview-effect-drop-shadow-negative-v2", [
   rectangle({
     id: "negative-shadow-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
   }),
   rectangle({
     id: "negative-shadow-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1548,7 +1552,7 @@ const DROP_SHADOW_NEGATIVE_PROJECT = project("preview-effect-drop-shadow-negativ
 const DROP_SHADOW_ZERO_BLUR_PROJECT = project("preview-effect-drop-shadow-zero-blur-v2", [
   rectangle({
     id: "zero-blur-shadow-rectangle",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1567,7 +1571,7 @@ const DROP_SHADOW_ZERO_BLUR_PROJECT = project("preview-effect-drop-shadow-zero-b
 const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alpha-color-v2", [
   rectangle({
     id: "alpha-color-shadow",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
@@ -1583,7 +1587,7 @@ const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alph
   }),
   rectangle({
     id: "opaque-color-shadow",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1602,7 +1606,7 @@ const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alph
 const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2", [
   rectangle({
     id: "fill-only-shadow-source",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     fillOpacity: 0.2,
     frame: { width: 360, height: 360 },
@@ -1619,7 +1623,7 @@ const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2
   }),
   rectangle({
     id: "fill-and-stroke-shadow-source",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     fillOpacity: 0.2,
     stroke: "#d9d9d9",
@@ -1641,14 +1645,14 @@ const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2
 const OUTER_GLOW_PROJECT = project("preview-effect-outer-glow-v2", [
   rectangle({
     id: "glow-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
   }),
   rectangle({
     id: "outer-glow-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1665,14 +1669,14 @@ const OUTER_GLOW_PROJECT = project("preview-effect-outer-glow-v2", [
 const INNER_GLOW_PROJECT = project("preview-effect-inner-glow-v2", [
   rectangle({
     id: "inner-glow-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
   }),
   rectangle({
     id: "inner-glow-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
@@ -1689,7 +1693,7 @@ const INNER_GLOW_PROJECT = project("preview-effect-inner-glow-v2", [
 const OUTER_GLOW_STROKE_PROJECT = project("preview-effect-outer-glow-stroke-v2", [
   rectangle({
     id: "fill-only-glow-source",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     fillOpacity: 0.2,
     frame: { width: 360, height: 360 },
@@ -1698,7 +1702,7 @@ const OUTER_GLOW_STROKE_PROJECT = project("preview-effect-outer-glow-stroke-v2",
   }),
   rectangle({
     id: "fill-and-stroke-glow-source",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     fillOpacity: 0.2,
     stroke: "#d9d9d9",
@@ -1713,7 +1717,7 @@ const OUTER_GLOW_PERSPECTIVE_PROJECT = project(
   "preview-effect-outer-glow-perspective-v2",
   [rectangle({
     id: "outer-glow-perspective-rectangle",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     stroke: "#ffffff",
     strokeWidth: 16,
@@ -1738,14 +1742,14 @@ const OUTER_GLOW_PERSPECTIVE_PROJECT = project(
 const NOISE_PROJECT = project("preview-effect-noise-v2", [
   rectangle({
     id: "noise-reference",
-    zIndex: 0,
+    order: 0,
     fill: "#d9d9d9",
     frame: { width: 420, height: 420 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 220, y: 300, z: 0 } },
   }),
   rectangle({
     id: "noise-rectangle",
-    zIndex: 1,
+    order: 1,
     fill: "#d9d9d9",
     frame: { width: 420, height: 420 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1280, y: 300, z: 0 } },
@@ -1772,7 +1776,7 @@ const EFFECT_ORDER_GRADIENT_FILL = {
 const EFFECT_ORDER_PROJECT = project("preview-effect-order-v2", [
   rectangle({
     id: "color-then-blur",
-    zIndex: 0,
+    order: 0,
     fill: EFFECT_ORDER_GRADIENT_FILL,
     frame: { width: 600, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 180, y: 360, z: 0 } },
@@ -1783,7 +1787,7 @@ const EFFECT_ORDER_PROJECT = project("preview-effect-order-v2", [
   }),
   rectangle({
     id: "blur-then-color",
-    zIndex: 1,
+    order: 1,
     fill: EFFECT_ORDER_GRADIENT_FILL,
     frame: { width: 600, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1140, y: 360, z: 0 } },
@@ -1797,7 +1801,7 @@ const EFFECT_ORDER_PROJECT = project("preview-effect-order-v2", [
 const BLUR_CHAIN_PROJECT = project("preview-effect-blur-chain-v2", [
   rectangle({
     id: "single-blur",
-    zIndex: 0,
+    order: 0,
     fill: "#ff3366",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 360, z: 0 } },
@@ -1805,7 +1809,7 @@ const BLUR_CHAIN_PROJECT = project("preview-effect-blur-chain-v2", [
   }),
   rectangle({
     id: "double-blur",
-    zIndex: 1,
+    order: 1,
     fill: "#ff3366",
     frame: { width: 360, height: 360 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 360, z: 0 } },
@@ -1819,7 +1823,7 @@ const BLUR_CHAIN_PROJECT = project("preview-effect-blur-chain-v2", [
 function blurRadiusProject(id: string, radius: number): MotionProtocolV2 {
   return project(id, [rectangle({
     id: `blur-${radius}`,
-    zIndex: 0,
+    order: 0,
     fill: "#ff3366",
     frame: { width: 1200, height: 900 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 360, y: 90, z: 0 } },
@@ -1838,6 +1842,7 @@ export type PreviewLabCase = {
   hint: string;
   project: MotionProtocolV2;
   previewTime?: number;
+  audioFixture?: V2AudioFixture;
 };
 
 export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
@@ -1915,14 +1920,14 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     id: "composite.blend.stack.normal",
     label: "Blend stack / normal",
     group: "Task 12 / Blend modes",
-    hint: "The upper snow image is source-over at zIndex 1; its opaque black pixels cover the lower example image.",
+    hint: "The upper snow image is source-over at order 1; its opaque black pixels cover the lower example image.",
     project: IMAGE_STACK_BLEND_NORMAL_PROJECT,
   },
   {
     id: "composite.blend.stack.multiply",
     label: "Blend stack / multiply",
     group: "Task 12 / Blend modes",
-    hint: "Only the upper snow image owns multiply; it darkens the lower example image already rendered at zIndex 0.",
+    hint: "Only the upper snow image owns multiply; it darkens the lower example image already rendered at order 0.",
     project: IMAGE_STACK_BLEND_MULTIPLY_PROJECT,
   },
   {
@@ -2304,7 +2309,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-translate-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
       }),
@@ -2318,7 +2323,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-scale-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 64, height: 48 },
         transform: {
@@ -2337,7 +2342,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-anchor-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 64, height: 48 },
         transform: {
@@ -2357,7 +2362,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-rotate-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 80, height: 40 },
         transform: {
@@ -2377,7 +2382,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-anchor-outside-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 160, height: 96 },
         transform: {
@@ -2399,7 +2404,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
       [
         rectangle({
           id: "rectangle",
-          zIndex: 0,
+          order: 0,
           fill: "#00aa88",
           frame: { width: 320, height: 180 },
           transform: {
@@ -2427,7 +2432,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-skew-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 80, height: 40 },
         transform: {
@@ -2448,7 +2453,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
       [
         rectangle({
           id: "rectangle",
-          zIndex: 0,
+          order: 0,
           fill: "#00aa88",
           frame: { width: 320, height: 180 },
           transform: {
@@ -2478,7 +2483,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
       [
         rectangle({
           id: "rectangle",
-          zIndex: 0,
+          order: 0,
           fill: "#00aa88",
           frame: { width: 320, height: 180 },
           transform: {
@@ -2508,7 +2513,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
       [
         rectangle({
           id: "rectangle",
-          zIndex: 0,
+          order: 0,
           fill: "#00aa88",
           frame: { width: 320, height: 180 },
           transform: {
@@ -2536,7 +2541,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-timing-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
         timing: { start: 1, duration: 1 },
@@ -2551,7 +2556,7 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: project("preview-rectangle-opacity-v2", [
       rectangle({
         id: "rectangle",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         opacity: 0.5,
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
@@ -2559,27 +2564,36 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     ]),
   },
   {
-    id: "rectangle.z-index",
-    label: "Order / z-index",
+    id: "rectangle.order",
+    label: "Order",
     group: "Rectangle properties (Task 3)",
-    hint: "The higher z-index paints last and covers the lower rectangle.",
-    project: project("preview-rectangle-z-index-v2", [
+    hint: "The higher order paints last and covers the lower rectangle.",
+    project: project("preview-rectangle-order-v2", [
       rectangle({
         id: "back",
-        zIndex: 0,
+        order: 0,
         fill: "#00aa88",
         frame: { width: 1200, height: 700 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 360, y: 190, z: 0 } },
       }),
       rectangle({
         id: "front",
-        zIndex: 1,
+        order: 1,
         fill: "#ff3366",
         frame: { width: 760, height: 420 },
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 580, y: 330, z: 0 } },
       }),
     ]),
   },
+  ...V2_AUDIO_FIXTURES.map((fixture) => ({
+    id: fixture.id,
+    label: fixture.label,
+    group: "Audio",
+    hint: fixture.hint,
+    project: fixture.project,
+    previewTime: fixture.previewTime,
+    audioFixture: fixture,
+  })),
   ...MATRIX4_PARITY_CASES.map((item) => ({
     id: item.id,
     label: item.id.replace("matrix4.", "Matrix4 / ").replaceAll("-", " "),
@@ -2605,6 +2619,7 @@ const PREVIEW_LAB_GROUP_ORDER = [
   "Paint / opacity",
   "Images",
   "Video",
+  "Audio",
   "Text",
   "Timing",
   "Effects",
@@ -2643,6 +2658,7 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("rectangle.paint.opacity")) return "Paint / opacity";
   if (item.id.startsWith("image.")) return "Images";
   if (item.id.startsWith("video.")) return "Video";
+  if (item.id.startsWith("audio.")) return "Audio";
   if (item.id.startsWith("text.")) return "Text";
   if (item.id.startsWith("rectangle.timing")) return "Timing";
   if (item.id.startsWith("effect.")) return "Effects";
@@ -2650,7 +2666,7 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("composite.mask.")) {
     return "Compositing / masks & isolation";
   }
-  if (item.id === "rectangle.opacity" || item.id === "rectangle.z-index") {
+  if (item.id === "rectangle.opacity" || item.id === "rectangle.order") {
     return "Compositing";
   }
   return "Compositing";

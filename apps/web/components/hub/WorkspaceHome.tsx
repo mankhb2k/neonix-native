@@ -55,6 +55,17 @@ export function WorkspaceHome() {
               Hai root atoms, zIndex deterministic và Matrix4 compositing.
             </p>
           </Link>
+          <Link
+            href={appHref("/editor/three-kingdoms")}
+            className="rounded-lg border border-amber-300/20 bg-amber-300/[0.06] p-5 no-underline transition hover:border-amber-300/60"
+          >
+            <p className="text-sm font-semibold text-amber-100">
+              Tam Quốc · lịch sử 60 giây
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Project V2 nhiều layer theo order, main lane và nhạc nền.
+            </p>
+          </Link>
         </div>
 
         <Link

@@ -42,7 +42,7 @@ export const SINGLE_ROOT = {
         translate: { x: 960, y: 540 },
       },
       frame: { width: 800, height: 120 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 5 },
       payload: {
         text: "Hello NeonVideo" ,
@@ -66,7 +66,7 @@ export const DEPTH_DEMO = {
       zIndex: 0,
       transform: { ...transform, depth: -200 },
       frame: { width: 1920, height: 1080 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 6 },
       payload: { color: "#e8eef5" },
     },
@@ -81,7 +81,7 @@ export const DEPTH_DEMO = {
         depth: 120,
       },
       frame: { width: 640, height: 360 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 1, duration: 4 },
       payload: { color: "#0d9488" },
     },
@@ -95,7 +95,7 @@ export const DEPTH_DEMO = {
         translate: { x: 960, y: 200 },
       },
       frame: { width: 900, height: 80 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 1, duration: 3 },
       payload: {
         text: "Parallax title" ,
@@ -135,7 +135,7 @@ export const AUDIO_FADE = {
         translate: { x: 960, y: 540 },
       },
       frame: { width: 800, height: 120 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 6 },
       payload: {
         text: "With music" ,
@@ -207,7 +207,7 @@ export const INVALID_DUPLICATE_ID = {
       zIndex: 0,
       transform,
       frame: { width: 200, height: 80 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         text: "A" ,
@@ -225,7 +225,7 @@ export const INVALID_DUPLICATE_ID = {
       zIndex: 1,
       transform,
       frame: { width: 200, height: 80 },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: {
         text: "B" ,

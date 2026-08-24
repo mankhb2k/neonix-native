@@ -1,432 +1,221 @@
 "use client";
 
-import {
-  isMixedValue,
-  propertiesByGroup,
-  resolvePropertyTargets,
-  findNode,
-  rootLayerIdOf,
-  type PropertyContext,
-  type PropertyDefinition,
-} from "@motionvideo/editor-core";
-import { motionPropertyCapability, V1 } from "@motionvideo/motion-protocol";
-import type { MotionProject } from "@motionvideo/motion-protocol";
-import { AskAIBar } from "@/components/editor/inspector/ai/AskAIBar";
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
-import {
-  isPropertyLocked,
-  nodeElementKey,
-} from "@/lib/editor/authoring/web-project-envelope";
-import { useEditorStore } from "@/lib/editor/editor-store";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import { Diamond, Lock, Unlock } from "lucide-react";
-import { useMemo, useRef, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import type { V2LayerPatch } from "@motionvideo/editor-core/v2";
+import { useMemo, type ReactNode } from "react";
 
-/** Map inspector prop id → Motion track property path. */
-const TRACK_PROPERTY_BY_PROP_ID: Record<string, string> = {
-  "transform.translate.x": "transform.translate.x",
-  "transform.translate.y": "transform.translate.y",
-  "transform.rotate.z": "transform.rotate.z",
-  "transform.scale.x": "transform.scale.x",
-  "transform.scale.y": "transform.scale.y",
-  "opacity": "opacity",
-  "metadata.visible": "opacity",
-  "style.fill": "style.fill",
-  "style.stroke": "style.stroke",
-  "style.strokeWidth": "style.strokeWidth",
-  "text.content": "payload.text",
-  "text.fontSize": "payload.fontSize",
-  "text.align": "payload.align",
-};
+const inputClass =
+  "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
 
-function trackPropertyForProp(propId: string): string | null {
-  return TRACK_PROPERTY_BY_PROP_ID[propId] ?? null;
-}
-
-function isAnimatableProp(
-  propId: string,
-  nodeType: string | undefined,
-): boolean {
-  const track = trackPropertyForProp(propId);
-  if (!track) return false;
-  return Boolean(
-    motionPropertyCapability(nodeType ?? "text", track)?.animatable,
-  );
-}
-
-function findKeyframeAtTime(
-  project: MotionProject,
-  _sceneId: string,
-  layerId: string,
-  property: string,
-  t: number,
-): boolean {
-  const layer = V1.flattenLayerTree(project.layers).find(
-    (item) => item.id === layerId,
-  );
-  if (!layer) return false;
-  for (const animation of V1.getLayerAnimations(layer)) {
-    if (animation.property !== property) continue;
-    if (animation.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
-  }
-  return false;
-}
-
-function LockToggle({
-  rootLayerId,
-  layerId,
-}: {
-  rootLayerId: string;
-  layerId: string;
-}) {
-  const envelope = useEditorStore((s) => s.envelope);
-  const setElementLocked = useEditorStore((s) => s.setElementLocked);
-  const meta =
-    envelope?.authoring.elementMeta[nodeElementKey(rootLayerId, layerId)];
-  const locked = Boolean(meta?.locked);
+function Group({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      data-testid="lock-element"
-      className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-      onClick={() => setElementLocked(rootLayerId, layerId, !locked)}
-      title={locked ? "Unlock element" : "Lock element"}
-    >
-      {locked ? <Lock size={12} /> : <Unlock size={12} />}
-      {locked ? "Locked" : "Lock"}
-    </button>
+    <section className="space-y-2">
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)]">
+        {label}
+      </h3>
+      <div className="space-y-2">{children}</div>
+    </section>
   );
 }
 
-function KeyframeToggle({
-  active,
-  disabled,
-  onToggle,
+function NumberField({
+  label,
+  value,
+  step = 0.01,
+  onChange,
 }: {
-  active: boolean;
-  disabled?: boolean;
-  onToggle: () => void;
+  label: string;
+  value: number;
+  step?: number;
+  onChange: (value: number) => void;
 }) {
   return (
-    <button
-      type="button"
-      data-testid="keyframe-toggle"
-      disabled={disabled}
-      title={
-        active ? "Xóa keyframe tại playhead" : "Thêm keyframe tại playhead"
-      }
-      className={cn(
-        "inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-30",
-        active
-          ? "text-[var(--accent)]"
-          : "text-[var(--fg-disabled)] hover:text-[var(--fg-muted)]",
-      )}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onToggle();
-      }}
-    >
-      <Diamond
-        size={12}
-        strokeWidth={active ? 0 : 2}
-        fill={active ? "currentColor" : "none"}
+    <label className="flex items-center justify-between gap-2">
+      <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">{label}</span>
+      <input
+        type="number"
+        step={step}
+        className={`${inputClass} max-w-[7rem]`}
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(event) => {
+          const next = Number(event.target.value);
+          if (Number.isFinite(next)) onChange(next);
+        }}
       />
-    </button>
+    </label>
   );
 }
 
-function PropertyControl({
-  prop,
-  context,
+function TextField({
+  label,
+  value,
+  onChange,
 }: {
-  prop: PropertyDefinition;
-  context: PropertyContext;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
 }) {
-  const dispatch = useEditorStore((s) => s.dispatchPropertyCommand);
-  const envelope = useEditorStore((s) => s.envelope);
-  const setPropertyLocked = useEditorStore((s) => s.setPropertyLocked);
-  const currentTime = usePlaybackClock((s) => s.currentTime);
-  const scrubKey = useRef<string | null>(null);
-  const raw = prop.read(context);
-  const mixed = isMixedValue(raw);
-  const target = context.targets[0];
-  const locked = target
-    ? isPropertyLocked(envelope, target.rootLayerId, target.layerId, prop.id)
-    : false;
-
-  const nodeType = target
-    ? findNode(context.project, target.rootLayerId, target.layerId)?.type
-    : undefined;
-
-  const trackProperty = trackPropertyForProp(prop.id);
-  const animatable = isAnimatableProp(prop.id, nodeType);
-  const hasKeyframe =
-    Boolean(target && trackProperty) &&
-    findKeyframeAtTime(
-      context.project,
-      target!.rootLayerId,
-      target!.layerId,
-      trackProperty!,
-      currentTime,
-    );
-
-  const commit = (value: unknown, coalesce = false) => {
-    if (locked) return;
-    const validated = prop.validate
-      ? prop.validate(value as never, context)
-      : { ok: true as const, value };
-    if (!validated.ok) return;
-    if (!coalesce) scrubKey.current = null;
-    else if (!scrubKey.current) {
-      scrubKey.current = `${prop.id}:${Date.now()}`;
-    }
-    const command = prop.createCommand(validated.value as never, context);
-    dispatch(command, {
-      coalesceKey: coalesce ? (scrubKey.current ?? undefined) : undefined,
-    });
-  };
-
-  const toggleKeyframe = () => {
-    if (!target || !trackProperty || locked || mixed) return;
-    const value = raw;
-    if (
-      typeof value !== "number" &&
-      typeof value !== "string" &&
-      typeof value !== "boolean"
-    ) {
-      return;
-    }
-    if (hasKeyframe) {
-      dispatch({
-        type: "delete-property-keyframe",
-        targets: context.targets,
-        property: trackProperty,
-        t: currentTime,
-      });
-      return;
-    }
-    dispatch({
-      type: "set-property-keyframe",
-      targets: context.targets,
-      property: trackProperty,
-      t: currentTime,
-      v: value,
-      easing: "easeOut",
-    });
-  };
-
-  const keyframeBtn =
-    animatable && target ? (
-      <KeyframeToggle
-        active={hasKeyframe}
-        disabled={locked || mixed}
-        onToggle={toggleKeyframe}
-      />
-    ) : null;
-
-  const inputClass =
-    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
-
-  const lockBtn =
-    target != null ? (
-      <button
-        type="button"
-        className="cursor-pointer border-0 bg-transparent p-0 text-[var(--fg-muted)] hover:text-[var(--accent-text)]"
-        title={locked ? "Unlock property" : "Lock property"}
-        onClick={() =>
-          setPropertyLocked(
-            target.rootLayerId,
-            target.layerId,
-            prop.id,
-            !locked,
-          )
-        }
-      >
-        {locked ? <Lock size={11} /> : <Unlock size={11} />}
-      </button>
-    ) : null;
-
-  const labelRow = (
-    <span className="flex shrink-0 items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-      {prop.label}
-      {lockBtn}
-    </span>
-  );
-
-  const withKeyframe = (control: ReactNode) => (
-    <span className="flex items-center gap-1.5">
-      {control}
-      {keyframeBtn}
-    </span>
-  );
-
-  if (prop.editor === "number") {
-    const value = mixed ? "" : String(raw as number);
-    return (
-      <label className="flex items-center justify-between gap-2">
-        {labelRow}
-        {withKeyframe(
-          <input
-            type="number"
-            className={`${inputClass} max-w-[7rem]`}
-            value={value}
-            disabled={locked}
-            placeholder={mixed ? "Mixed" : undefined}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (!Number.isFinite(n)) return;
-              commit(n, true);
-            }}
-            onBlur={() => {
-              scrubKey.current = null;
-            }}
-          />,
-        )}
-      </label>
-    );
-  }
-
-  if (prop.editor === "string") {
-    const value = mixed ? "" : String(raw ?? "");
-    return (
-      <label className="flex flex-col gap-1">
-        <span className="flex items-center justify-between gap-2">
-          {labelRow}
-          {keyframeBtn}
-        </span>
-        <textarea
-          className={`${inputClass} min-h-[56px] py-1.5`}
-          value={value}
-          disabled={locked}
-          placeholder={mixed ? "Mixed" : undefined}
-          onChange={(e) => commit(e.target.value, true)}
-          onBlur={() => {
-            scrubKey.current = null;
-          }}
-        />
-      </label>
-    );
-  }
-
-  if (prop.editor === "color") {
-    const value = mixed ? "#888888" : String(raw ?? "#ffffff");
-    return (
-      <label className="flex items-center justify-between gap-2">
-        {labelRow}
-        {withKeyframe(
-          <input
-            type="color"
-            disabled={locked}
-            className="h-7 w-12 cursor-pointer border-0 bg-transparent disabled:opacity-40"
-            value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
-            onChange={(e) => commit(e.target.value, true)}
-            onBlur={() => {
-              scrubKey.current = null;
-            }}
-          />,
-        )}
-      </label>
-    );
-  }
-
-  if (prop.editor === "boolean") {
-    const checked = mixed ? false : Boolean(raw);
-    return (
-      <label className="flex items-center justify-between gap-2">
-        {labelRow}
-        {withKeyframe(
-          <input
-            type="checkbox"
-            checked={checked}
-            disabled={locked}
-            onChange={(e) => commit(e.target.checked)}
-          />,
-        )}
-      </label>
-    );
-  }
-
-  if (prop.editor === "enum" && prop.options) {
-    const value = mixed ? "" : String(raw ?? "");
-    return (
-      <label className="flex items-center justify-between gap-2">
-        {labelRow}
-        {withKeyframe(
-          <select
-            className={`${inputClass} max-w-[9rem]`}
-            value={value}
-            disabled={locked}
-            onChange={(e) => commit(e.target.value)}
-          >
-            {mixed ? <option value="">Mixed</option> : null}
-            {prop.options.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>,
-        )}
-      </label>
-    );
-  }
-
   return (
-    <p className="text-[11px] text-[var(--fg-muted)]">
-      {prop.label}: unsupported editor ({prop.editor})
-    </p>
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] text-[var(--fg-muted)]">{label}</span>
+      <input
+        type="text"
+        className={inputClass}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }
 
+function EmptyInspector() {
+  return (
+    <div className="rounded-md border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
+      Chọn một layer trên sidebar hoặc timeline để xem thuộc tính.
+    </div>
+  );
+}
+
+/** Existing V1 inspector shell, migrated in-place to Protocol V2 commands. */
 export function SchemaInspector() {
-  const project = useEditorStore((s) => s.project);
-  const selection = useEditorStore((s) => s.selection);
-  const clips = useEditorStore((s) => s.timelineClips);
-  const lanes = useEditorStore((s) => s.timelineLanes);
-
-  const preview = useMemo(
-    () => (project ? resolvePreviewProject(project) : null),
-    [project],
+  const {
+    document,
+    selectedLayerIds,
+    applyCommand,
+  } = useEditorSurface();
+  const selected = useMemo(
+    () => document.layers.find((layer) => layer.id === selectedLayerIds[0]),
+    [document.layers, selectedLayerIds],
   );
-  const activeProject = preview?.project ?? null;
 
-  const context: PropertyContext | null = useMemo(() => {
-    if (!activeProject) return null;
-    const targets = resolvePropertyTargets(
-      selection,
-      activeProject,
-      clips,
-      lanes,
-    );
-    return {
-      project: activeProject,
-      clips,
-      lanes,
-      selection,
-      targets,
-    };
-  }, [activeProject, selection, clips, lanes]);
+  const patchLayer = (patch: V2LayerPatch) => {
+    if (!selected) return;
+    applyCommand({ type: "patch-layer", layerId: selected.id, patch });
+  };
 
-  const groups = useMemo(() => {
-    if (!context || context.targets.length === 0) return [];
-    return [...propertiesByGroup(context).entries()];
-  }, [context]);
+  const properties = selected ? (
+    <div className="space-y-4 p-3" data-testid="inspector-properties">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-[12px] font-semibold text-[var(--fg-primary)]">
+            {selected.id}
+          </p>
+          <p className="mt-0.5 text-[10px] uppercase text-[var(--fg-muted)]">
+            {selected.type} · order {selected.order}
+          </p>
+        </div>
+        <span className="rounded border border-[var(--border-subtle)] px-1.5 py-1 text-[10px] text-[var(--fg-muted)]">
+          V2
+        </span>
+      </div>
 
-  const selectedNode = useMemo(() => {
-    if (!activeProject || selection.kind !== "node") return null;
-    const rootLayerId =
-      rootLayerIdOf(activeProject, selection.layerId) ?? selection.layerId;
-    return findNode(activeProject, rootLayerId, selection.layerId);
-  }, [activeProject, selection]);
+      <Group label="Timing">
+        <NumberField
+          label="Start"
+          value={selected.timing.start}
+          onChange={(value) => patchLayer({ timing: { start: value } })}
+        />
+        <NumberField
+          label="Duration"
+          value={selected.timing.duration}
+          onChange={(value) =>
+            patchLayer({ timing: { duration: Math.max(0.001, value) } })
+          }
+        />
+        <NumberField
+          label="Order"
+          step={1}
+          value={selected.order}
+          onChange={(value) =>
+            patchLayer({ order: Math.max(0, Math.round(value)) })
+          }
+        />
+      </Group>
 
-  const selectedSceneId = useMemo(
-    () =>
-      selection.kind === "node"
-        ? (rootLayerIdOf(activeProject, selection.layerId) ?? selection.layerId)
-        : null,
-    [activeProject, selection],
+      <Group label="Transform">
+        <NumberField
+          label="X"
+          value={selected.transform.translate.x}
+          onChange={(value) =>
+            patchLayer({ transform: { translate: { x: value } } })
+          }
+        />
+        <NumberField
+          label="Y"
+          value={selected.transform.translate.y}
+          onChange={(value) =>
+            patchLayer({ transform: { translate: { y: value } } })
+          }
+        />
+        <NumberField
+          label="Rotation Z"
+          value={selected.transform.rotate.z}
+          onChange={(value) =>
+            patchLayer({ transform: { rotate: { z: value } } })
+          }
+        />
+        <NumberField
+          label="Opacity"
+          value={selected.opacity}
+          step={0.01}
+          onChange={(value) =>
+            patchLayer({ opacity: Math.max(0, Math.min(1, value)) })
+          }
+        />
+      </Group>
+
+      {selected.type === "text" ? (
+        <Group label="Text">
+          <TextField
+            label="Content"
+            value={selected.payload.text}
+            onChange={(value) => patchLayer({ payload: { text: value } })}
+          />
+          <NumberField
+            label="Font size"
+            value={selected.payload.fontSize}
+            onChange={(value) =>
+              patchLayer({ payload: { fontSize: Math.max(0.001, value) } })
+            }
+          />
+          <NumberField
+            label="Letter spacing"
+            value={selected.payload.letterSpacing}
+            onChange={(value) => patchLayer({ payload: { letterSpacing: value } })}
+          />
+        </Group>
+      ) : null}
+
+      {selected.type === "shape" ? (
+        <Group label="Style">
+          {typeof selected.style.fill === "string" ? (
+            <label className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[var(--fg-muted)]">Fill</span>
+              <input
+                type="color"
+                className="h-7 w-12 cursor-pointer border-0 bg-transparent"
+                value={selected.style.fill.startsWith("#") ? selected.style.fill : "#ffffff"}
+                onChange={(event) =>
+                  patchLayer({ style: { fill: event.target.value } })
+                }
+              />
+            </label>
+          ) : null}
+          <NumberField
+            label="Corner radius"
+            value={selected.payload.cornerRadius ?? 0}
+            onChange={(value) =>
+              patchLayer({ payload: { cornerRadius: Math.max(0, value) } })
+            }
+          />
+        </Group>
+      ) : null}
+    </div>
+  ) : (
+    <div className="space-y-4 p-3">
+      <EmptyInspector />
+    </div>
   );
 
   return (
@@ -436,60 +225,12 @@ export function SchemaInspector() {
         className="h-full rounded-none border-0 bg-transparent shadow-none"
       >
         <Tabs
-          defaultValue="ai"
+          defaultValue="properties"
           items={[
-            {
-              id: "ai",
-              label: "AI",
-              content: <AskAIBar />,
-            },
             {
               id: "properties",
               label: "Properties",
-              content: (
-                <div
-                  className="space-y-4 p-3"
-                  data-testid="inspector-properties"
-                >
-                  {selectedNode && selection.kind === "node" ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[12px] font-semibold text-[var(--fg-primary)]">
-                        {selectedNode.name ?? selectedNode.id}
-                        <span className="ml-2 text-[10px] font-normal uppercase text-[var(--fg-muted)]">
-                          {selectedNode.type}
-                        </span>
-                      </p>
-                      <LockToggle
-                        rootLayerId={selectedSceneId ?? selection.layerId}
-                        layerId={selection.layerId}
-                      />
-                    </div>
-                  ) : null}
-
-                  {!context || context.targets.length === 0 ? (
-                    <div className="rounded-md border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
-                      Chưa có selection — click stage hoặc Layer tree.
-                    </div>
-                  ) : (
-                    groups.map(([group, props]) => (
-                      <section key={group} className="space-y-2">
-                        <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)]">
-                          {group}
-                        </h3>
-                        <div className="space-y-2">
-                          {props.map((prop) => (
-                            <PropertyControl
-                              key={prop.id}
-                              prop={prop}
-                              context={context}
-                            />
-                          ))}
-                        </div>
-                      </section>
-                    ))
-                  )}
-                </div>
-              ),
+              content: properties,
             },
           ]}
         />

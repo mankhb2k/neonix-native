@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { TimelineClip } from "@motionvideo/editor-core";
+import type { TimelineClip } from "@motionvideo/editor-core/v2";
 import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,

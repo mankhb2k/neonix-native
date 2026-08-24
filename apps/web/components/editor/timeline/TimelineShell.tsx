@@ -1,167 +1,246 @@
 "use client";
 
-import { usePlaybackDriver } from "@/hooks/editor/use-playback-driver";
-import { useEditorStore } from "@/lib/editor/editor-store";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import type {
-  EditorSelection,
-  TimelineClip,
-  TimelineCommand,
-} from "@motionvideo/editor-core";
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
-  groupPathToTimelineClips,
-  resolveGroupPath,
-  canDrillIntoGroup,
-} from "@motionvideo/editor-core";
-import { useCallback, useMemo, useState } from "react";
+  projectLayersToTimeline,
+  v2SelectionClips,
+  v2SelectedClipIds,
+} from "@motionvideo/editor-core/v2";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
-import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
-import { TimelineViewport } from "./viewport/TimelineViewport";
-import { useTimelineHotkeys } from "./interactions/use-timeline-hotkeys";
-import { compositionFps } from "@/lib/runtime/project-composition";
+import { ClipStrip } from "./clips/ClipStrip";
+import { TimeRuler } from "./TimeRuler/TimeRuler";
+import { TimelineHScrollBar } from "./viewport/TimelineHScrollBar";
+import {
+  TIMELINE_RULER_HEIGHT_PX,
+  TIMELINE_START_GUTTER_PX,
+  TIMELINE_ZOOM_DEFAULT,
+} from "./timeline-scale";
+import { Playhead } from "./viewport/Playhead";
 
-/**
- * CapCut/Canva-style timeline shell.
- * Main (`groupPath = []`) shows packed root clips from the store.
- * Inside a group, the surface is derived 1-child-1-row from `project.layers`.
- */
+const LANE_HEIGHT = 32;
+const LANE_GAP = 4;
+const TIMELINE_END_SPACER_PX = 56;
+
+/** Existing timeline chrome, projected directly from MotionProtocolV2. */
 export function TimelineShell() {
-  usePlaybackDriver();
-
-  const undo = useEditorStore((s) => s.undo);
-  const redo = useEditorStore((s) => s.redo);
-  const canUndo = useEditorStore((s) => s.canUndo);
-  const canRedo = useEditorStore((s) => s.canRedo);
-  const storeClips = useEditorStore((s) => s.timelineClips);
-  const storeLanes = useEditorStore((s) => s.timelineLanes);
-  const project = useEditorStore((s) => s.project);
-  const groupPath = useEditorStore((s) => s.groupPath);
-  const selection = useEditorStore((s) => s.selection);
-  const setSelectedClipIds = useEditorStore((s) => s.setSelectedClipIds);
-  const clearTimelineSelection = useEditorStore(
-    (s) => s.clearTimelineSelection,
-  );
-  const selectNode = useEditorStore((s) => s.selectNode);
-  const enterGroup = useEditorStore((s) => s.enterGroup);
-  const navigateGroupDepth = useEditorStore((s) => s.navigateGroupDepth);
-
-  const currentTime = usePlaybackClock((s) => s.currentTime);
-  const clockDuration = usePlaybackClock((s) => s.duration);
-  const mode = usePlaybackClock((s) => s.mode);
-  const togglePlayback = usePlaybackClock((s) => s.togglePlayback);
-  const seek = usePlaybackClock((s) => s.seek);
-  const beginScrub = usePlaybackClock((s) => s.beginScrub);
-  const endScrub = usePlaybackClock((s) => s.endScrub);
-
+  const {
+    document,
+    currentTime,
+    isPlaying,
+    setCurrentTime,
+    setIsPlaying,
+    selectedLayerIds,
+    setSelectedLayerIds,
+  } = useEditorSurface();
   const [zoom, setZoom] = useState(TIMELINE_ZOOM_DEFAULT);
   const [snapOn, setSnapOn] = useState(true);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [viewWidth, setViewWidth] = useState(800);
+  const [viewHeight, setViewHeight] = useState(320);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
-  const inGroup = groupPath.length > 0;
-  const groupSurface = useMemo(() => {
-    if (!project || !inGroup) return null;
-    return groupPathToTimelineClips(project, groupPath);
-  }, [project, groupPath, inGroup]);
-
-  const crumbs = useMemo(() => {
-    if (!project || !inGroup) return [];
-    return resolveGroupPath(project.layers, groupPath).crumbs;
-  }, [project, groupPath, inGroup]);
-
-  const clips = groupSurface?.clips ?? storeClips;
-  const lanes = groupSurface?.lanes ?? storeLanes;
-  const groupName = crumbs.at(-1)?.name ?? crumbs.at(-1)?.id ?? "";
-
-  const fps = project ? compositionFps(project) : 30;
-  const duration = Math.max(clockDuration || 0, 0);
-
-  const onSelect = useCallback(
-    (next: EditorSelection) => {
-      if (next.kind === "none") {
-        clearTimelineSelection();
-        return;
-      }
-      if (next.kind === "clips") {
-        setSelectedClipIds(next.ids);
-        return;
-      }
-      if (next.kind === "node") {
-        selectNode(next.layerId);
-        return;
-      }
-      clearTimelineSelection();
-    },
-    [clearTimelineSelection, selectNode, setSelectedClipIds],
+  const projection = useMemo(
+    () => projectLayersToTimeline(document),
+    [document],
+  );
+  const fps = document.composition.fps;
+  const duration = Math.max(projection.duration, 0.001);
+  const pixelsPerSecond = Math.max(24, 52 + zoom * 2.4);
+  const naturalTimelineWidth =
+    TIMELINE_START_GUTTER_PX + duration * pixelsPerSecond + 160;
+  const needsHorizontalScroll = naturalTimelineWidth > viewWidth;
+  const timelineWidth = Math.max(viewWidth, naturalTimelineWidth);
+  const contentWidth = needsHorizontalScroll
+    ? timelineWidth + TIMELINE_END_SPACER_PX
+    : timelineWidth;
+  const clipsByLane = useMemo(() => {
+    const map = new Map<string, typeof projection.clips>();
+    for (const clip of projection.clips) {
+      const clips = map.get(clip.laneId) ?? [];
+      clips.push(clip);
+      map.set(clip.laneId, clips);
+    }
+    return map;
+  }, [projection.clips]);
+  const selection = useMemo(
+    () => v2SelectionClips(selectedLayerIds),
+    [selectedLayerIds],
+  );
+  const selectedClipIds = useMemo(
+    () => new Set(v2SelectedClipIds(selection)),
+    [selection],
   );
 
-  useTimelineHotkeys({
-    enabled: true,
-    zoom,
-    onZoomChange: setZoom,
-    isLayerMode: () => useEditorStore.getState().groupPath.length > 0,
-    onExitLayerMode: () =>
-      useEditorStore.getState().navigateGroupDepth(0),
-  });
-
-  const onExecute = useCallback((command: TimelineCommand, _label: string) => {
-    useEditorStore.getState().executeTimelineCommand(command);
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return undefined;
+    const updateSize = () => {
+      setViewWidth(element.clientWidth || 800);
+      setViewHeight(element.clientHeight || 320);
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
-  const onClipDoubleClick = useCallback(
-    (clip: TimelineClip) => {
-      if (clip.kind !== "scene" || !project) return;
-      const scoped = resolveGroupPath(project.layers, groupPath).layers;
-      const layer = scoped.find((item) => item.id === clip.sceneId);
-      if (!canDrillIntoGroup(layer)) return;
-      enterGroup(clip.sceneId);
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    let frame = 0;
+    let previous = performance.now();
+    const tick = (now: number) => {
+      const elapsed = (now - previous) / 1000;
+      previous = now;
+      setCurrentTime((time) => {
+        const next = time + elapsed;
+        if (next >= duration) {
+          setIsPlaying(false);
+          return duration;
+        }
+        return next;
+      });
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [duration, isPlaying, setCurrentTime, setIsPlaying]);
+
+  const seekFromClientX = useCallback(
+    (clientX: number) => {
+      const element = viewportRef.current;
+      if (!element) return;
+      const relative =
+        clientX - element.getBoundingClientRect().left + element.scrollLeft;
+      const seconds = (relative - TIMELINE_START_GUTTER_PX) / pixelsPerSecond;
+      setCurrentTime(Math.max(0, Math.min(duration, seconds)));
     },
-    [enterGroup, groupPath, project],
+    [duration, pixelsPerSecond, setCurrentTime],
   );
+  const onHScrollLeft = useCallback((left: number) => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth);
+    element.scrollLeft = Math.min(maxScroll, Math.max(0, left));
+  }, []);
+  const playheadLeft =
+    TIMELINE_START_GUTTER_PX + currentTime * pixelsPerSecond - scrollLeft;
+  const laneStackHeight = projection.lanes.length * (LANE_HEIGHT + LANE_GAP);
+  const laneViewportHeight = Math.max(
+    laneStackHeight + 48,
+    viewHeight - TIMELINE_RULER_HEIGHT_PX,
+  );
+  const laneTopPadding =
+    projection.lanes.length === 1
+      ? Math.max(0, (laneViewportHeight - laneStackHeight) / 2)
+      : 0;
 
   return (
-    <div
+    <section
       className="editor-panel flex h-full min-h-0 flex-col overflow-hidden [grid-area:timeline]"
       data-testid="editor-timeline"
-      data-timeline-scope={inGroup ? "group" : "main"}
+      data-timeline-source="motion-protocol-v2"
     >
       <TransportBar
-        mode={inGroup ? "layer" : "track"}
-        onModeChange={(next) => {
-          if (next === "track") {
-            navigateGroupDepth(Math.max(0, groupPath.length - 1));
-          }
-        }}
-        layerClipName={groupName}
+        mode="track"
+        onModeChange={() => undefined}
         currentTime={currentTime}
         duration={duration}
         fps={fps}
-        isPlaying={mode === "playing"}
-        onTogglePlay={() => togglePlayback()}
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying((playing) => !playing)}
         zoom={zoom}
         onZoomChange={setZoom}
         snapOn={snapOn}
-        onToggleSnap={() => setSnapOn((v) => !v)}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={() => undo()}
-        onRedo={() => redo()}
+        onToggleSnap={() => setSnapOn((value) => !value)}
       />
-      <TimelineViewport
-        mode={inGroup ? "layer" : "track"}
-        clips={clips}
-        lanes={lanes}
-        duration={duration}
-        fps={fps}
-        zoom={zoom}
-        currentTime={currentTime}
-        isPlaying={mode === "playing"}
-        selection={selection}
-        onSelect={onSelect}
-        onSeek={seek}
-        onExecute={onExecute}
-        onBeginScrub={beginScrub}
-        onEndScrub={endScrub}
-        onClipDoubleClick={onClipDoubleClick}
-      />
-    </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-surface)]">
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div
+            ref={viewportRef}
+            className="relative h-full overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}
+          >
+            <div className="relative" style={{ width: contentWidth }}>
+              <div className="sticky top-0 z-20 bg-[var(--bg-surface)]">
+                <TimeRuler
+                  duration={duration}
+                  fps={fps}
+                  pixelsPerSecond={pixelsPerSecond}
+                  scrollLeft={scrollLeft}
+                  originOffsetPx={TIMELINE_START_GUTTER_PX}
+                  viewWidth={viewWidth}
+                  onSeekClick={seekFromClientX}
+                />
+              </div>
+              <div
+                className="relative"
+                style={{
+                  minHeight: laneViewportHeight,
+                }}
+              >
+                <div
+                  style={{
+                    marginLeft: TIMELINE_START_GUTTER_PX,
+                    paddingTop: laneTopPadding,
+                  }}
+                >
+                  {projection.lanes.map((lane) => (
+                    <div
+                      key={lane.id}
+                      className="relative bg-[var(--timeline-track-lane)]"
+                      style={{ height: LANE_HEIGHT, marginBottom: LANE_GAP }}
+                      data-lane-id={lane.id}
+                      data-track-role={lane.role}
+                    >
+                      {clipsByLane.get(lane.id)?.map((clip) => (
+                        <ClipStrip
+                          key={clip.id}
+                          clip={clip}
+                          visualKind={
+                            lane.kind === "audio"
+                              ? "audio"
+                              : lane.role === "overlay"
+                                ? "overlay"
+                                : "main"
+                          }
+                          pixelsPerSecond={pixelsPerSecond}
+                          selected={selectedClipIds.has(clip.id)}
+                          showTrimHandles={selectedClipIds.has(clip.id)}
+                          onBeginTrim={() => undefined}
+                          onSelectPointerDown={() =>
+                            setSelectedLayerIds([clip.id])
+                          }
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {needsHorizontalScroll ? (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute top-0 right-0 h-px"
+                    style={{ width: TIMELINE_END_SPACER_PX }}
+                    data-testid="timeline-scroll-end-spacer"
+                  />
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <Playhead
+            leftPx={playheadLeft}
+            muted={duration <= 0}
+            onScrubStart={seekFromClientX}
+            onScrubMove={seekFromClientX}
+          />
+        </div>
+        <TimelineHScrollBar
+          scrollLeft={scrollLeft}
+          contentWidth={contentWidth}
+          viewportWidth={viewWidth}
+          onScrollLeft={onHScrollLeft}
+        />
+      </div>
+    </section>
   );
 }

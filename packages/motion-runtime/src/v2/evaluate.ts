@@ -19,7 +19,7 @@ function assertFrame(frame: number): void {
 function stableNodeOrder(nodes: RuntimeNodeV2[]): RuntimeNodeV2[] {
   return [...nodes].sort(
     (left, right) =>
-      left.zIndex - right.zIndex ||
+      left.order - right.order ||
       (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
   );
 }
@@ -201,7 +201,7 @@ export function evaluateRuntimeProjectV2(
       matrix4: matrix4ToArray(node.worldMatrix),
       alpha: node.opacity,
       visible: true,
-      zIndex: node.zIndex,
+      order: node.order,
       blendMode,
     });
     if (content.kind === "path") {

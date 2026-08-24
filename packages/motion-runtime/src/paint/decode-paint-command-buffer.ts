@@ -86,7 +86,7 @@ export function decodePaintCommandBuffer(
           matrix4: cmd.matrix4,
           alpha: cmd.alpha,
           visible: cmd.visible,
-          zIndex: cmd.zIndex,
+          order: cmd.order,
           ...(cmd.blendMode ? { blendMode: cmd.blendMode } : {}),
         });
         break;

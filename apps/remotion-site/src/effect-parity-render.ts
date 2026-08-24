@@ -42,19 +42,20 @@ function project(id: string, layers: MotionProtocolV2["layers"]): MotionProtocol
       fps: 30,
       background: BACKGROUND,
       colorSpace: "srgb",
-      audioSampleRate: 48000,
       view: {
         projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
         transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
       },
     },
+    assets: [],
     layers,
+    audio: { sampleRate: 48000, tracks: [] },
   };
 }
 
 function rectangle(options: {
   id: string;
-  zIndex: number;
+  order: number;
   x: number;
   y: number;
   width: number;
@@ -75,10 +76,10 @@ function rectangle(options: {
     id: options.id,
     type: "shape",
     parentLayerId: null,
-    zIndex: options.zIndex,
+    order: options.order,
     frame: { width: options.width, height: options.height },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: options.x, y: options.y, z: 0 } },
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: { shape: "rectangle" },
     style: {
@@ -102,14 +103,14 @@ const gradient = {
 
 const EFFECT_ORDER_PROJECT = project("remotion-effect-order", [
   rectangle({
-    id: "color-then-blur", zIndex: 0, x: 180, y: 360, width: 600, height: 360, fill: gradient,
+    id: "color-then-blur", order: 0, x: 180, y: 360, width: 600, height: 360, fill: gradient,
     effects: [
       { id: "contrast-first", type: "color-adjust", brightness: 0, contrast: 4, saturation: 1, hueRotate: 0 },
       { id: "blur-second", type: "blur", radius: 40 },
     ],
   }),
   rectangle({
-    id: "blur-then-color", zIndex: 1, x: 1140, y: 360, width: 600, height: 360, fill: gradient,
+    id: "blur-then-color", order: 1, x: 1140, y: 360, width: 600, height: 360, fill: gradient,
     effects: [
       { id: "blur-first", type: "blur", radius: 40 },
       { id: "contrast-second", type: "color-adjust", brightness: 0, contrast: 4, saturation: 1, hueRotate: 0 },
@@ -119,11 +120,11 @@ const EFFECT_ORDER_PROJECT = project("remotion-effect-order", [
 
 const BLUR_CHAIN_PROJECT = project("remotion-effect-blur-chain", [
   rectangle({
-    id: "single-blur", zIndex: 0, x: 300, y: 360, width: 360, height: 360, fill: "#ff3366",
+    id: "single-blur", order: 0, x: 300, y: 360, width: 360, height: 360, fill: "#ff3366",
     effects: [{ id: "single-soften", type: "blur", radius: 20 }],
   }),
   rectangle({
-    id: "double-blur", zIndex: 1, x: 1260, y: 360, width: 360, height: 360, fill: "#ff3366",
+    id: "double-blur", order: 1, x: 1260, y: 360, width: 360, height: 360, fill: "#ff3366",
     effects: [
       { id: "first-soften", type: "blur", radius: 20 },
       { id: "second-soften", type: "blur", radius: 20 },
@@ -133,67 +134,67 @@ const BLUR_CHAIN_PROJECT = project("remotion-effect-blur-chain", [
 
 const DROP_SHADOW_PROJECT = project("remotion-effect-drop-shadow", [
   rectangle({
-    id: "shadow-reference", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "shadow-reference", order: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
   }),
   rectangle({
-    id: "drop-shadow-rectangle", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "drop-shadow-rectangle", order: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "pink-shadow", type: "drop-shadow", x: 24, y: 28, blur: 24, color: "#ff3366", opacity: 0.65 }],
   }),
 ]);
 
 const DROP_SHADOW_NEGATIVE_PROJECT = project("remotion-effect-drop-shadow-negative", [
-  rectangle({ id: "negative-shadow-reference", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9" }),
+  rectangle({ id: "negative-shadow-reference", order: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9" }),
   rectangle({
-    id: "negative-shadow-rectangle", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "negative-shadow-rectangle", order: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "blue-shadow-up-left", type: "drop-shadow", x: -24, y: -28, blur: 24, color: "#3366ff", opacity: 0.65 }],
   }),
 ]);
 
 const DROP_SHADOW_ZERO_BLUR_PROJECT = project("remotion-effect-drop-shadow-zero-blur", [
   rectangle({
-    id: "zero-blur-shadow-rectangle", zIndex: 0, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "zero-blur-shadow-rectangle", order: 0, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "crisp-pink-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#ff3366", opacity: 0.65 }],
   }),
 ]);
 
 const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("remotion-effect-drop-shadow-alpha-color", [
   rectangle({
-    id: "alpha-color-shadow", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "alpha-color-shadow", order: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "half-alpha-blue-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#3366ff80", opacity: 1 }],
   }),
   rectangle({
-    id: "opaque-color-shadow", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "opaque-color-shadow", order: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "opaque-blue-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#3366ff", opacity: 1 }],
   }),
 ]);
 
 const DROP_SHADOW_STROKE_PROJECT = project("remotion-effect-drop-shadow-stroke", [
   rectangle({
-    id: "fill-only-shadow-source", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2,
+    id: "fill-only-shadow-source", order: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2,
     effects: [{ id: "fill-only-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#ff3366", opacity: 0.75 }],
   }),
   rectangle({
-    id: "fill-and-stroke-shadow-source", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2, stroke: "#d9d9d9", strokeWidth: 24,
+    id: "fill-and-stroke-shadow-source", order: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9", fillOpacity: 0.2, stroke: "#d9d9d9", strokeWidth: 24,
     effects: [{ id: "fill-and-stroke-shadow", type: "drop-shadow", x: 24, y: 28, blur: 0, color: "#ff3366", opacity: 0.75 }],
   }),
 ]);
 
 const INNER_GLOW_PROJECT = project("remotion-effect-inner-glow", [
   rectangle({
-    id: "inner-glow-reference", zIndex: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "inner-glow-reference", order: 0, x: 300, y: 330, width: 360, height: 360, fill: "#d9d9d9",
   }),
   rectangle({
-    id: "inner-glow-rectangle", zIndex: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
+    id: "inner-glow-rectangle", order: 1, x: 1260, y: 330, width: 360, height: 360, fill: "#d9d9d9",
     effects: [{ id: "cyan-inner-edge", type: "inner-glow", radius: 24, color: "#00e5ff", opacity: 0.85 }],
   }),
 ]);
 
 const NOISE_PROJECT = project("remotion-effect-noise", [
   rectangle({
-    id: "noise-reference", zIndex: 0, x: 220, y: 300, width: 420, height: 420, fill: "#d9d9d9",
+    id: "noise-reference", order: 0, x: 220, y: 300, width: 420, height: 420, fill: "#d9d9d9",
   }),
   rectangle({
-    id: "noise-rectangle", zIndex: 1, x: 1280, y: 300, width: 420, height: 420, fill: "#d9d9d9",
+    id: "noise-rectangle", order: 1, x: 1280, y: 300, width: 420, height: 420, fill: "#d9d9d9",
     effects: [{ id: "grain", type: "noise", scale: 4, amount: 0.45, opacity: 0.85, seed: 1337 }],
   }),
 ]);
@@ -201,7 +202,7 @@ const NOISE_PROJECT = project("remotion-effect-noise", [
 function blurRadiusProject(radius: number): MotionProtocolV2 {
   return project(`remotion-effect-blur-radius-${radius}`, [
     rectangle({
-      id: `blur-${radius}`, zIndex: 0, x: 360, y: 90, width: 1200, height: 900, fill: "#ff3366",
+      id: `blur-${radius}`, order: 0, x: 360, y: 90, width: 1200, height: 900, fill: "#ff3366",
       effects: [{ id: `soften-${radius}`, type: "blur", radius }],
     }),
   ]);

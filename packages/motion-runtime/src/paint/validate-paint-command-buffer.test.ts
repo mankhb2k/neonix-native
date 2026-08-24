@@ -46,7 +46,7 @@ describe("Paint Matrix4 boundary", () => {
         matrix4: identity,
         alpha: 1,
         visible: true,
-        zIndex: 0,
+        order: 0,
       }),
     );
     expect(result.ok).toBe(true);
@@ -54,14 +54,14 @@ describe("Paint Matrix4 boundary", () => {
 
   it("rejects missing, legacy Matrix2D, and invalid Matrix4 transforms", () => {
     for (const transform of [
-      { op: "setTransform", key: "rect", alpha: 1, visible: true, zIndex: 0 },
+      { op: "setTransform", key: "rect", alpha: 1, visible: true, order: 0 },
       {
         op: "setTransform",
         key: "rect",
         matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
         alpha: 1,
         visible: true,
-        zIndex: 0,
+        order: 0,
       },
       {
         op: "setTransform",
@@ -69,7 +69,7 @@ describe("Paint Matrix4 boundary", () => {
         matrix4: [...identity, 0],
         alpha: 1,
         visible: true,
-        zIndex: 0,
+        order: 0,
       },
     ]) {
       const result = validatePaintCommandBuffer(bufferWithTransform(transform));
@@ -92,7 +92,7 @@ describe("Paint Matrix4 boundary", () => {
           time: 0,
           projection: { worldToClipMatrix: identity },
         },
-        { op: "setTransform", key: "path", matrix4: identity, alpha: 1, visible: true, zIndex: 0 },
+        { op: "setTransform", key: "path", matrix4: identity, alpha: 1, visible: true, order: 0 },
         {
           op: "drawPath",
           key: "path",

@@ -27,7 +27,7 @@ const project: RuntimeProjectV2 = {
     {
       id: "ellipse",
       parentId: null,
-      zIndex: 1,
+      order: 1,
       timing: { start: 0, duration: 3 },
       opacity: 1,
       visible: true,
@@ -44,7 +44,7 @@ const project: RuntimeProjectV2 = {
     {
       id: "inactive",
       parentId: null,
-      zIndex: 0,
+      order: 0,
       timing: { start: 1, duration: 1 },
       opacity: 1,
       visible: true,
@@ -118,7 +118,7 @@ describe("Runtime IR V2", () => {
         {
           id: "group",
           parentId: null,
-          zIndex: 0,
+          order: 0,
           timing: { start: 0, duration: 3 },
           opacity: 0.5,
           visible: true,
@@ -130,14 +130,14 @@ describe("Runtime IR V2", () => {
           ...project.nodes[0]!,
           id: "back",
           parentId: "group",
-          zIndex: 1,
+          order: 1,
           content: { kind: "shape", shape: "rectangle", width: 120, height: 100, fill: "#00aa88" },
         },
         {
           ...project.nodes[0]!,
           id: "front",
           parentId: "group",
-          zIndex: 2,
+          order: 2,
           content: { kind: "shape", shape: "rectangle", width: 120, height: 100, fill: "#ff3366" },
         },
       ],
@@ -165,7 +165,7 @@ describe("Runtime IR V2", () => {
     expect(childTransforms.every((command) => command.alpha === 1)).toBe(true);
   });
 
-  it("uses frame-grid timing and stable z-index/id ordering", () => {
+  it("uses frame-grid timing and stable order/id ordering", () => {
     const active = evaluateRuntimeProjectV2(
       {
         ...project,
@@ -196,7 +196,7 @@ describe("Runtime IR V2", () => {
       nodes: [{
         id: "video",
         parentId: null,
-        zIndex: 0,
+        order: 0,
         timing: { start: 0, duration: 6 },
         opacity: 1,
         visible: true,

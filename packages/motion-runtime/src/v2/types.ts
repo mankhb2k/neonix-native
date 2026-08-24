@@ -239,7 +239,8 @@ export type RuntimeGroupV2 = {
 export type RuntimeNodeV2 = {
   id: string;
   parentId: string | null;
-  zIndex: number;
+  /** Paint order within this node's sibling scope. */
+  order: number;
   timing: RuntimeTimingV2;
   opacity: number;
   /** Omitted only for older in-memory Runtime test fixtures; Compiler V2 emits it. */

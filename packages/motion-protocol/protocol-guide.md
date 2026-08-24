@@ -32,7 +32,23 @@ Protocol owns the JSON contract. Compiler lowering belongs to
 - Matrix4 values are compiler/runtime data, not Protocol JSON fields.
 - `anchor` is the transform pivot; `origin` is not a Protocol V2 field.
 - `translate.z` is the 3D position component; legacy `depth` is not used.
-- `zIndex` controls ordering; it is not a camera depth substitute.
+- `order` controls ordering; it is not a camera depth substitute.
+- `order` is a non-negative integer unique among layers with the same
+  `parentLayerId`; higher values paint later. A root layer and a child layer
+  may reuse the same number because they belong to different sibling scopes.
+
+For example, the root scope and the group scope can both start at `9`:
+
+```json
+[
+  { "id": "background", "parentLayerId": null, "order": 9 },
+  { "id": "group", "parentLayerId": null, "order": 10 },
+  { "id": "title", "parentLayerId": null, "order": 11 },
+  { "id": "child-a", "parentLayerId": "group", "order": 9 },
+  { "id": "child-b", "parentLayerId": "group", "order": 10 },
+  { "id": "child-c", "parentLayerId": "group", "order": 11 }
+]
+```
 - `composition.view` is required. Its projection is either
   `orthographic` (`zoom`, `near`, `far`) or `perspective` (`fov`, `near`,
   `far`), and its transform always uses `translate` and `rotate` Vec3 values.

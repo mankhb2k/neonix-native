@@ -79,7 +79,7 @@ describe("replayPaintCommands2D", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 0, 1],
           alpha: 1,
           visible: true,
-          zIndex: 0,
+          order: 0,
         },
         {
           op: "drawShape",
@@ -96,7 +96,7 @@ describe("replayPaintCommands2D", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 1,
           visible: true,
-          zIndex: 1,
+          order: 1,
         },
         {
           op: "drawText",
@@ -138,7 +138,7 @@ describe("replayPaintCommands2D", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 0,
           visible: false,
-          zIndex: 0,
+          order: 0,
         },
         {
           op: "drawShape",

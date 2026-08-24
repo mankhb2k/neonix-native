@@ -36,6 +36,14 @@ const nextConfig: NextConfig = {
     },
   },
   webpack: (config, { isServer, webpack }) => {
+    // Webpack's persistent filesystem cache can become unreadable on Windows
+    // ("invalid stored block lengths"), leaving `next dev` stuck at Starting.
+    // Keep the development server deterministic; production builds retain the
+    // default cache behavior.
+    if (process.env.NODE_ENV === "development") {
+      config.cache = false;
+    }
+
     if (isServer) return config;
 
     const previous = config.externals;

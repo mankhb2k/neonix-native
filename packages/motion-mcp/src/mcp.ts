@@ -2,6 +2,8 @@ import { z } from "zod";
 import {
   MotionProtocolV2Schema,
   V2CompositionSchema,
+  V2AssetListSchema,
+  V2AudioDomainSchema,
   V2IdSchema,
   V2LayerSchema,
   type MotionProtocolV2,
@@ -28,7 +30,9 @@ export interface MCPBaseResult {
 export const MCPCreateProjectInputSchema = z.object({
   id: V2IdSchema,
   composition: V2CompositionSchema,
+  assets: V2AssetListSchema.default([]),
   layers: z.array(V2LayerSchema).default([]),
+  audio: V2AudioDomainSchema.default({ sampleRate: 48000, tracks: [] }),
   skillId: z.string().optional(),
 }).strict();
 export type MCPCreateProjectInput = z.infer<typeof MCPCreateProjectInputSchema>;

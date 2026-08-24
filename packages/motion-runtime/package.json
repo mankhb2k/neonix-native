@@ -13,11 +13,9 @@
     "test": "vitest run",
     "lint": "eslint src --max-warnings 0"
   },
-  "dependencies": {
-    "harfbuzzjs": "^1.6.0"
-  },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "harfbuzzjs": "^1.6.0",
     "typescript": "^5.8.2",
     "vitest": "^4.1.10"
   }

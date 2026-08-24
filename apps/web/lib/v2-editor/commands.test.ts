@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { createV2EditorProject } from "./projects";
+import { applyV2EditorCommand } from "./commands";
+
+describe("V2 editor command contract", () => {
+  it("commits a typed layer patch and returns an inverse command", () => {
+    const project = createV2EditorProject("shape");
+    const result = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: {
+        opacity: 0.5,
+        transform: { translate: { x: 640 } },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.layers[0].opacity).toBe(0.5);
+    expect(result.document.layers[0].transform.translate.x).toBe(640);
+    expect(result.inverse.type).toBe("replace-layer");
+  });
+
+  it("keeps the last valid document when a command fails schema validation", () => {
+    const project = createV2EditorProject("shape");
+    const result = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "shape",
+      patch: { opacity: 2 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.document.layers[0].opacity).toBe(1);
+    expect(result.diagnostics[0]?.code).toBe("document_invalid");
+  });
+
+  it("returns a diagnostic for a missing layer without mutating the project", () => {
+    const project = createV2EditorProject("shape");
+    const result = applyV2EditorCommand(project, {
+      type: "patch-layer",
+      layerId: "missing",
+      patch: { opacity: 0.5 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics[0]?.code).toBe("layer_not_found");
+    expect(result.document).toEqual(project);
+  });
+
+  it("adds a new top-level shape with a reversible command", () => {
+    const project = createV2EditorProject("shape");
+    const source = project.layers[0];
+    const result = applyV2EditorCommand(project, {
+      type: "add-layer",
+      layer: {
+        ...source,
+        id: "ellipse-1",
+        order: 1,
+        payload: { shape: "ellipse" },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.document.layers).toHaveLength(2);
+    expect(result.document.layers[1]?.payload).toEqual({ shape: "ellipse" });
+    expect(result.inverse).toEqual({ type: "remove-layer", layerId: "ellipse-1" });
+  });
+});

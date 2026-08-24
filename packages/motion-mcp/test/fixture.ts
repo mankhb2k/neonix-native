@@ -11,7 +11,6 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
       fps: 30,
       background: "#101820",
       colorSpace: "srgb",
-      audioSampleRate: 48000,
       view: {
         projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
         transform: {
@@ -20,6 +19,7 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
         },
       },
     },
+    assets: [],
     layers: [{
       id: "shape",
       type: "shape",
@@ -33,10 +33,11 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
         skew: { x: 0, y: 0 },
         anchor: { x: 0, y: 0, z: 0 },
       },
-      opacity: 100,
+      opacity: 1,
       timing: { start: 0, duration: 3 },
       payload: { shape: "rectangle" },
       style: { fill: "#00B894" },
     }],
+    audio: { sampleRate: 48000, tracks: [] },
   };
 }

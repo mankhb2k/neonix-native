@@ -45,7 +45,8 @@ export const V2LayerBaseSchema = z
   .object({
     id: V2IdSchema,
     parentLayerId: V2IdSchema.nullable(),
-    zIndex: V2NonNegativeNumberSchema.int(),
+    /** Paint order within the layer's sibling scope. Higher values paint later. */
+    order: V2NonNegativeNumberSchema.int(),
     frame: V2FrameSchema,
     transform: V2TransformSchema,
     /** Source alpha shared by normal and non-normal blend modes. */

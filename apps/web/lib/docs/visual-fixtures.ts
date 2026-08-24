@@ -111,7 +111,7 @@ function treeLayer(opts: {
       rotate: { z: opts.rotateZ ?? 0 },
     },
     frame: { width: 360, height: 360 },
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_TREE.id, fit: "contain" as const },
     ...(opts.animations ? { animations: opts.animations } : {}),
@@ -134,7 +134,7 @@ function photoSquareLayer(opts: {
       scale: opts.scale ?? { x: 1, y: 1 },
     },
     frame: opts.frame ?? { width: 400, height: 400 },
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_PHOTO_SQUARE.id, fit: "cover" as const },
   };
@@ -151,7 +151,7 @@ function photoWideLayer(frame: { width: number; height: number }) {
       translate: { x: 960, y: 540 },
     },
     frame,
-    opacity: 100,
+    opacity: 1,
     timing: { start: 0, duration: 4 },
     payload: { assetId: DOCS_ASSET_PHOTO_WIDE.id, fit: "cover" as const },
   };

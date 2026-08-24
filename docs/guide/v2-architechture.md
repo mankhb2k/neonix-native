@@ -3,7 +3,7 @@
 > Status: active architecture for the V2 render core.
 >
 > Scope: MCP, editor, AI, and CLI intent through authoring, compilation,
-> runtime evaluation, preview, export, and final encoded output.
+> visual/audio runtime evaluation, preview, export, and final encoded output.
 
 ## 1. One Intent, One Render Meaning
 
@@ -27,27 +27,33 @@ MCP tools       Editor UI       AI agent       Templates / CLI
                 Compiler B: resolve and compile
                              |
                              v
-                     RuntimeProjectV2 / Matrix4
-                             |
-                    Runtime frame evaluation
-                             |
-                             v
-                RuntimeFrameV2 / PaintCommandBuffer
-                       |                         |
-                       v                         v
-        Native preview renderer            Remotion renderer
-        WebGPU default / WebGL2            frame scheduling / encode
-                       |                         |
-                       +-----------+-------------+
-                                   |
-                                   v
-                           Rendered frames / MP4
+                    Atomic Protocol V2 JSON
+                       /                 \
+                      /                   \
+             Visual domain             Audio domain
+                    |                       |
+          Compiler B visual        Compiler B audio
+                    |                       |
+             RuntimeFrameV2            AudioMixPlanV2
+                    |                       |
+          PaintCommandBuffer       WebAudio / audio render
+                    |                       |
+        Native preview renderer            |
+        WebGPU default / WebGL2            |
+                    \                       /
+                     \                     /
+                      +---------+---------+
+                                |
+                                v
+                         Remotion encoder
+                         frames + audio -> MP4
 ```
 
 The invariant is simple: a given Atomic Protocol V2 document and frame time
 must have one backend-neutral runtime meaning. Preview and export may use
 different platform adapters, but they must not reinterpret transforms, timing,
-ordering, or visual semantics.
+ordering, visual semantics, or audio timing/mix semantics. Visual and audio
+remain separate until the final media encoder.
 
 ## 2. Authoring Surfaces
 
@@ -127,6 +133,16 @@ Atomic Protocol V2
 └── layers[]
 ```
 
+The complete root also contains two non-visual domains:
+
+```text
+Atomic Protocol V2
+├── composition
+├── assets[]
+├── layers[]       -> visual scene graph and atomic paint content
+└── audio          -> tracks[] -> clips[] -> media timing and mix intent
+```
+
 This is the current schema shape. `composition.view` is required, so every V2
 document has one explicit projection contract. Orthographic `zoom` is centered
 on the composition: `1` preserves the full composition framing and `2` halves
@@ -136,7 +152,8 @@ high-level; this V2 field is the explicit, renderer-neutral result the runtime
 needs.
 
 `layers[]` is a flat, deterministic array whose entries carry `id`,
-`parentLayerId`, `zIndex`, `frame`, semantic 3D `transform`, `opacity`, and
+`parentLayerId`, `order`, `frame`, semantic 3D `transform`, normalized
+`opacity` (`0..1`, default `1`), and
 `timing`. A `group` entry may parent other layers. Group hierarchy is local
 space structure in Protocol; it is not an implicit camera, clipping surface, or
 depth-buffer feature.
@@ -153,20 +170,64 @@ Its vocabulary is intentionally narrow:
 | Transform | Semantic translate, scale, rotate, skew, and 3D anchor |
 | Timing / animation | Active window and keyframes targeting atomic properties |
 | Effects / mask / composite | Certified visual and compositing relationships |
+| Audio | Separate tracks, clips, source trim, gain, pan, fades, and explicit media references |
 
 Atomic V2 never contains a precomputed `mat4`, GPU buffer, shader, texture
 handle, bind group, or backend-specific draw call. Those values belong to later
 stages. The protocol is currently hard-locked to `formatVersion: 2`; V1 input
 is not accepted by the compiler, runtime, preview, or export core.
 
-### 4.2 Layer and operator delivery plan
+### 4.2 Audio domain
+
+Audio is a required root domain, including for silent projects. Silence is
+represented by `audio: { sampleRate: 48000, tracks: [] }`.
+
+```ts
+type AudioDomainV2 = {
+  sampleRate: 48000;
+  tracks: AudioTrackV2[];
+};
+
+type AudioTrackV2 = {
+  id: string;
+  gainDb: number;
+  pan: number; // -1..1
+  muted: boolean;
+  clips: AudioClipV2[];
+};
+
+type AudioClipV2 = {
+  id: string;
+  assetId: string;
+  timing: { start: number; duration: number };
+  trim: { start: number; end?: number };
+  playbackRate: number;
+  loop: boolean;
+  gainDb: number;
+  fadeIn?: AudioFadeV2;
+  fadeOut?: AudioFadeV2;
+};
+```
+
+Audio is not a visual atom and does not enter the scene graph. It has no frame,
+transform, camera, order, Matrix4, or paint command. An audio clip may
+reference an `audio` asset or explicitly reference the audio stream of a
+`video` asset. A visual video layer does not implicitly create an audio clip.
+
+All audio timing is expressed in composition seconds. `trim` is source-media
+time, `timing.duration` is composition time, and the fixed V2 sample rate is
+48 kHz. Track and clip gain, pan, looping, and fades are protocol intent;
+decoded PCM, browser nodes, GPU resources, and encoder command strings belong
+to later runtime adapters.
+
+### 4.3 Layer and operator delivery plan
 
 The final Atomic V2 surface will grow through certified tickets, not by adding
 all node types to the schema in advance:
 
 | Atomic surface | Plan task | State and ownership |
 | --- | --- | --- |
-| `shape.rectangle`, `shape.ellipse` | Tasks 2-5 | Certified. Frame, 3D transform, timing, opacity, zIndex, fill, gradient, and supported stroke behavior are live. |
+| `shape.rectangle`, `shape.ellipse` | Tasks 2-5 | Certified. Frame, 3D transform, timing, opacity, order, fill, gradient, and supported stroke behavior are live. |
 | `path` | Task 6: Path Embedded in 3D | Certified for the current static surface. Closed/open local-plane contours, `nonzero`/`evenodd` fill rules, holes, fixed-width stroke joins/caps/dashes, and topology-matched morph interpolation are resolved by Runtime before the shared Matrix4 transform. |
 | `group` | Task 7: Group and Parent Transform | Certified. Compiler B lowers parent-to-child world Matrix4 inheritance, inherited opacity, nested timing, and deterministic child ordering. Runtime receives drawable leaves only. |
 | `image` | Task 8: Image | Certified. Protocol stores `assets[]` metadata plus `payload.assetId`; Compiler emits backend-neutral `drawImage`, and preview backends own texture upload/cache, fit/crop, and alpha handling. |
@@ -183,23 +244,43 @@ for the acceptance gates and exact test order.
 
 ## 5. Compiler B and Runtime IR
 
-Compiler B accepts validated Atomic Protocol V2 and produces `RuntimeProjectV2`.
-It is the sole owner of render math and lowering:
+Compiler B accepts validated Atomic Protocol V2 and produces `RuntimeProjectV2`
+with separate visual and audio runtime branches. It is the sole owner of
+render math and protocol-to-runtime lowering:
 
 ```text
 Atomic V2
-  -> validate atom capability and asset/reference rules
-  -> resolve timing, hierarchy, and stable zIndex ordering
-  -> compose local and world Matrix4 transforms
-  -> resolve view and projection into one Runtime `worldToClipMatrix`
-  -> lower semantic paint into backend-neutral runtime commands
+  +-> validate visual capability and asset/reference rules
+  |   -> resolve visual timing, hierarchy, and stable sibling order
+  |   -> compose local and world Matrix4 transforms
+  |   -> resolve view and projection into `worldToClipMatrix`
+  |   -> lower semantic paint into `PaintCommandBuffer`
+  |
+  +-> validate audio asset references and mix rules
+      -> resolve source trim, playback rate, loop, fades, gain, and pan
+      -> lower audio intent into `AudioMixPlanV2`
 ```
 
-At a requested frame, `evaluateRuntimeProjectV2()` produces `RuntimeFrameV2`
-and a `PaintCommandBuffer`. Each drawable has a required Matrix4, opacity,
-visibility, and deterministic `zIndex` order. Group nodes are lowered before
-Runtime evaluation, so renderers consume leaves and never recompute semantic
-transform properties or parent hierarchy.
+At a requested video frame, `evaluateRuntimeProjectV2()` produces
+`RuntimeFrameV2` and a `PaintCommandBuffer`. Each drawable has a required
+Matrix4, opacity, visibility, and deterministic sibling `order`. Group nodes are
+lowered before Runtime evaluation, so renderers consume leaves and never
+recompute semantic transform properties or parent hierarchy.
+
+For an audio sample range, the same runtime project produces an
+`AudioMixPlanV2`:
+
+```ts
+evaluateRuntimeAudioMixV2(runtime, {
+  startSample,
+  sampleCount,
+}): AudioMixPlanV2;
+```
+
+`AudioMixPlanV2` describes active source ranges, loop segments, gain envelopes,
+pan, fades, and deterministic clip order. It does not contain decoded PCM or
+browser/encoder implementation objects. Runtime therefore owns both branches,
+but never merges audio into the visual frame IR.
 
 ### 3D from the beginning
 
@@ -211,7 +292,7 @@ needs depth.
 Atomic JSON keeps transforms semantic. Runtime IR owns the computed column-major
 `worldToClipMatrix`; WebGL2 adapts its clip Z only at the preview backend.
 During the
-MVP, `zIndex` remains the sole deterministic compositing order; `translate.z`
+MVP, `order` remains the sole deterministic compositing order; `translate.z`
 does not silently enable depth-buffer ordering.
 
 ## 6. Preview Rendering
@@ -224,6 +305,8 @@ consumes `RuntimeFrameV2` or `PaintCommandBuffer` only.
 - Both upload the same resolved Matrix4 and paint the same runtime commands.
 - Both report unsupported commands as diagnostics instead of silently using a
   different render contract.
+- Preview audio uses a separate WebAudio adapter driven by `AudioMixPlanV2`.
+- WebGPU/WebGL2 never render audio and never own audio clock state.
 
 The preview renderer owns device/context setup, GPU resource upload, draw
 submission, presentation, and diagnostics. It does not parse authoring JSON,
@@ -231,23 +314,29 @@ expand a preset, calculate a layer transform, or depend on PixiJS.
 
 ## 7. Export and Final Output
 
-`@motionvideo/remotion-renderer` receives the same Runtime V2 frame meaning as
-preview. Remotion schedules frames and encodes output, while the V2 paint
-contract remains the source of visual truth.
+`@motionvideo/remotion-renderer` receives the same Runtime V2 visual frame
+meaning and audio mix meaning as preview. Remotion schedules visual frames,
+renders/mixes audio, and encodes output; it does not recalculate visual
+transforms or reinterpret audio timing.
 
 ```text
-Atomic V2 -> Compiler B -> RuntimeFrameV2
-                              |             |
-                           Preview        Remotion
-                           WebGPU         frame render
-                           WebGL2              |
-                              |                v
-                              +--------> encoded video
+Atomic V2
+   |
+Compiler B
+   +--> RuntimeFrameV2 -> WebGPU/WebGL2 preview -> visual frames
+   |
+   +--> AudioMixPlanV2 -> WebAudio preview / Remotion audio render
+                                     |
+                                     v
+                              final media encoder
 ```
 
 Export must not introduce a CSS transform model, recalculate layer matrices, or
-accept a legacy project format. Pixel-level parity tests compare certified cases
-across WebGPU, WebGL2, and Remotion output. The canonical full export gate is
+accept a legacy project format. Audio export must consume the same sample-rate,
+trim, loop, gain, pan, and fade semantics as preview. Pixel-level visual parity
+tests compare certified cases across WebGPU, WebGL2, and Remotion output, while
+audio parity tests compare deterministic sample ranges and mix plans. The
+canonical full export gate is
 `pnpm e2e:v2-remotion-parity`. It first renders every shared preview-lab fixture
 through `MotiClipVideo`, then opens the native web preview in Playwright and
 compares the complete RGBA PNG buffers. The gate serves the same media assets,
@@ -259,8 +348,11 @@ path rather than only checking that Remotion produced a non-empty file.
 An atom is complete only after its full path is proven:
 
 ```text
-Protocol schema -> Compiler B -> Runtime -> WebGPU -> WebGL2
--> browser pixel E2E -> Remotion frame -> encoded-video smoke test
+Protocol schema -> Compiler B -> Runtime visual -> WebGPU/WebGL2
+-> browser pixel E2E -> Remotion frame
+
+Protocol schema -> Compiler B -> Runtime audio -> WebAudio
+-> deterministic audio E2E -> Remotion audio -> encoded-media smoke test
 ```
 
 The current V2 visual surface includes rectangle and ellipse paint, image and
@@ -279,6 +371,9 @@ future operators still require their own certification evidence.
 - No raw Matrix4 in Atomic Protocol V2.
 - No GPU handles in Runtime IR.
 - No semantic transform composition in preview or export renderers.
+- No audio clip, track, or mix state in the visual scene graph.
+- No Matrix4, camera, order, or GPU resource in the audio runtime branch.
+- Preview and export must consume the same `AudioMixPlanV2` semantics.
 - No PixiJS dependency in native preview.
 - No untested atom is exposed as a supported high-level feature.
 

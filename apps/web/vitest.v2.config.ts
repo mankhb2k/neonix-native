@@ -5,7 +5,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "happy-dom",
-    include: ["lib/docs/preview-lab.test.ts", "lib/docs/docs-v2.test.ts"],
+    include: [
+      "lib/docs/preview-lab.test.ts",
+      "lib/docs/docs-v2.test.ts",
+      "lib/v2-editor/**/*.test.ts",
+    ],
     globals: false,
     clearMocks: true,
     restoreMocks: true,

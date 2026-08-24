@@ -12,7 +12,7 @@ export type PaintTransformState = {
   matrix4: number[];
   alpha: number;
   visible: boolean;
-  zIndex: number;
+  order: number;
   blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
 };
 

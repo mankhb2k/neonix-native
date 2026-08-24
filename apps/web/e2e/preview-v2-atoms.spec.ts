@@ -1696,10 +1696,10 @@ test.describe("Protocol V2 atom preview", () => {
     await expect(pixel("rectangle.opacity", 50, 35)).resolves.toEqual([
       8, 97, 84, 255,
     ]);
-    await expect(pixel("rectangle.z-index", 960, 540)).resolves.toEqual([
+    await expect(pixel("rectangle.order", 960, 540)).resolves.toEqual([
       255, 51, 102, 255,
     ]);
-    await expect(pixel("rectangle.z-index", 400, 250)).resolves.toEqual([
+    await expect(pixel("rectangle.order", 400, 250)).resolves.toEqual([
       0, 170, 136, 255,
     ]);
   });

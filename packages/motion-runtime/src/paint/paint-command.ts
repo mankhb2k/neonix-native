@@ -63,7 +63,7 @@ export type PaintCommand =
       matrix4: number[];
       alpha: number;
       visible: boolean;
-      zIndex: number;
+      order: number;
       blendMode?:
         | "normal"
         | "multiply"

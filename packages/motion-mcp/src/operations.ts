@@ -26,7 +26,9 @@ export function createProject(input: MCPCreateProjectInput): MCPCreateProjectRes
     formatVersion: 2,
     id: input.id,
     composition: input.composition,
+    assets: input.assets,
     layers: input.layers,
+    audio: input.audio,
   };
   return withProjectHash(project, {
     warnings: [],

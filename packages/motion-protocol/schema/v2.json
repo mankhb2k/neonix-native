@@ -349,7 +349,7 @@
                       }
                     ]
                   },
-                  "zIndex": {
+                  "order": {
                     "type": "integer",
                     "minimum": 0
                   },
@@ -501,7 +501,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",
@@ -518,8 +518,8 @@
                   "parentLayerId": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
                   },
-                  "zIndex": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
                   },
                   "frame": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
@@ -817,7 +817,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",
@@ -835,8 +835,8 @@
                   "parentLayerId": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
                   },
-                  "zIndex": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
                   },
                   "frame": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
@@ -996,7 +996,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",
@@ -1015,8 +1015,8 @@
                   "parentLayerId": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
                   },
-                  "zIndex": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
                   },
                   "frame": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
@@ -1123,7 +1123,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",
@@ -1142,8 +1142,8 @@
                   "parentLayerId": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
                   },
-                  "zIndex": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
                   },
                   "frame": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
@@ -1362,7 +1362,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",
@@ -1381,8 +1381,8 @@
                   "parentLayerId": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
                   },
-                  "zIndex": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/zIndex"
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
                   },
                   "frame": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
@@ -1447,7 +1447,7 @@
                 "required": [
                   "id",
                   "parentLayerId",
-                  "zIndex",
+                  "order",
                   "frame",
                   "transform",
                   "timing",

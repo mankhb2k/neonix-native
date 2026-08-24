@@ -7,8 +7,10 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./v2": "./src/v2/index.ts",
     "./mock": "./src/mock/index.ts",
-    "./model": "./src/model/index.ts"
+    "./model": "./src/model/index.ts",
+    "./timeline-projection": "./src/timeline/selectors/layer-timeline-projection.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
@@ -17,6 +19,7 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/patterns": "workspace:*",

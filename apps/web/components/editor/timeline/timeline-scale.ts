@@ -14,12 +14,12 @@ export {
   capCutRulerScale,
   computeRulerTickWindow,
   type CapCutRulerScale,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/v2";
 
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/v2";
 
 /** Alias — start gutter before t=0 (same as playhead gutter). */
 export const TIMELINE_START_GUTTER_PX = TIMELINE_PLAYHEAD_GUTTER_PX;

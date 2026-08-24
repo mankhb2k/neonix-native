@@ -21,7 +21,7 @@ import type { PaintDrawCommand } from "./paint-command";
  *   - width/height
  *   - fill
  *   - blend mode
- *   - zIndex/render order
+ *   - order/render order
  *
  * Static resources (text content, image URI, path data, shape type) are
  * intentionally excluded — they change only on structural edit, not frame.
@@ -32,7 +32,7 @@ export function computePaintItemFingerprint(
     matrix4: readonly number[];
     alpha: number;
     visible: boolean;
-    zIndex: number;
+    order: number;
     blendMode?: string;
   },
 ): string {
@@ -42,7 +42,7 @@ export function computePaintItemFingerprint(
   parts.push(`m4:${transform.matrix4.map(round3).join(",")}`);
   parts.push(`a:${round3(transform.alpha)}`);
   parts.push(`v:${transform.visible ? 1 : 0}`);
-  parts.push(`z:${transform.zIndex}`);
+  parts.push(`o:${transform.order}`);
   if (transform.blendMode) parts.push(`bm:${transform.blendMode}`);
 
   // Draw-specific properties

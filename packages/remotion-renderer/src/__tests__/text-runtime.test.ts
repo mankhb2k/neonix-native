@@ -11,7 +11,7 @@ const runtime: RuntimeProjectV2 = {
   nodes: [{
     id: "text",
     parentId: null,
-    zIndex: 0,
+    order: 0,
     timing: { start: 0, duration: 1 },
     opacity: 1,
     visible: true,

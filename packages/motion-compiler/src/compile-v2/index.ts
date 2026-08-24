@@ -287,7 +287,7 @@ export function compileProtocolV2(
         "group.transform",
         "group.timing",
         "group.opacity",
-        "group.zIndex",
+        "group.order",
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -298,7 +298,7 @@ export function compileProtocolV2(
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
-        zIndex: layer.zIndex,
+        order: layer.order,
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
@@ -319,7 +319,7 @@ export function compileProtocolV2(
         "image.transform",
         "image.timing",
         "image.opacity",
-        "image.zIndex",
+        "image.order",
         "image.asset",
         "image.fit",
         "image.crop",
@@ -333,7 +333,7 @@ export function compileProtocolV2(
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
-        zIndex: layer.zIndex,
+        order: layer.order,
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
@@ -357,7 +357,7 @@ export function compileProtocolV2(
         "video.transform",
         "video.timing",
         "video.opacity",
-        "video.zIndex",
+        "video.order",
         "video.asset",
         "video.fit",
         "video.trim",
@@ -380,7 +380,7 @@ export function compileProtocolV2(
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
-        zIndex: layer.zIndex,
+        order: layer.order,
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
@@ -416,7 +416,7 @@ export function compileProtocolV2(
         "text.transform",
         "text.timing",
         "text.opacity",
-        "text.zIndex",
+        "text.order",
         "text.font",
         layer.payload.text.includes("\n") ? "text.layout.multiline" : "text.layout.singleLine",
         "text.align",
@@ -435,7 +435,7 @@ export function compileProtocolV2(
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
-        zIndex: layer.zIndex,
+        order: layer.order,
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
@@ -469,7 +469,7 @@ export function compileProtocolV2(
         "path.transform",
         "path.timing",
         "path.opacity",
-        "path.zIndex",
+        "path.order",
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -534,7 +534,7 @@ export function compileProtocolV2(
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
-        zIndex: layer.zIndex,
+        order: layer.order,
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
@@ -633,7 +633,7 @@ export function compileProtocolV2(
     return {
       id: layer.id,
         parentId: layer.parentLayerId,
-      zIndex: layer.zIndex,
+      order: layer.order,
       timing: context.timing,
       opacity: context.opacity,
       blendMode,

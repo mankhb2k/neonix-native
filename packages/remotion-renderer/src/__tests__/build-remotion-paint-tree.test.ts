@@ -36,7 +36,7 @@ const buffer: PaintCommandBuffer = {
       matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 6, 0, 1],
       alpha: 1,
       visible: true,
-      zIndex: 0,
+      order: 0,
     },
     {
       op: "drawShape",
@@ -53,7 +53,7 @@ const buffer: PaintCommandBuffer = {
       matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
       alpha: 1,
       visible: true,
-      zIndex: 1,
+      order: 1,
     },
     {
       op: "drawPath",
@@ -122,7 +122,7 @@ describe("buildRemotionPaintTree", () => {
           matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
           alpha: 1,
           visible: true,
-          zIndex: 0,
+          order: 0,
         },
         {
           op: "unsupported",

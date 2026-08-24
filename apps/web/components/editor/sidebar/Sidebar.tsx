@@ -1,67 +1,53 @@
 "use client";
 
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
-import { GroupLayersPanel } from "@/components/editor/panels/GroupLayersPanel";
-import { ProtocolJsonPanel } from "@/components/editor/panels/ProtocolJsonPanel";
-import { useEditorStore } from "@/lib/editor/editor-store";
-import { FileAudio, ImagePlus, Upload } from "lucide-react";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { useMemo } from "react";
 
-function AssetsPanel() {
-  const project = useEditorStore((s) => s.project);
-  const assets = project?.assets ?? [];
+type V2Layer = MotionProtocolV2["layers"][number];
 
-  return (
-    <div className="flex h-full min-h-0 flex-col" data-testid="assets-panel">
-      <div className="shrink-0 space-y-2 border-b border-[var(--border-subtle)] px-3 py-2.5">
-        <button
-          type="button"
-          className="flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] text-[12px] font-medium text-[var(--fg-muted)] transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
-          disabled
-          title="Upload sẽ nối asset ingest API"
-        >
-          <Upload size={14} />
-          Upload media
-        </button>
-        <p className="text-[10px] leading-snug text-[var(--fg-muted)]">
-          Ảnh, SVG, audio (mp3/wav/aac). Kéo vào stage hoặc timeline sau khi
-          upload.
-        </p>
-      </div>
+type DisplayLayer = {
+  layer: V2Layer;
+  depth: number;
+};
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        {assets.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-[var(--border-subtle)] px-3 py-8 text-center">
-            <div className="flex items-center gap-2 text-[var(--fg-disabled)]">
-              <ImagePlus size={20} />
-              <FileAudio size={20} />
-            </div>
-            <p className="text-[12px] text-[var(--fg-muted)]">
-              Chưa có file. Upload ảnh, SVG hoặc audio để dùng trong video.
-            </p>
-          </div>
-        ) : (
-          <ul className="space-y-1.5">
-            {assets.map((asset) => (
-              <li
-                key={asset.id}
-                className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-2"
-              >
-                <p className="truncate text-[12px] font-medium text-[var(--fg-primary)]">
-                  {asset.id}
-                </p>
-                <p className="truncate text-[10px] text-[var(--fg-muted)]">
-                  {asset.assetType} · {asset.uri}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
+function buildLayerTree(layers: readonly V2Layer[]): DisplayLayer[] {
+  const children = new Map<string | null, V2Layer[]>();
+  for (const layer of layers) {
+    const list = children.get(layer.parentLayerId) ?? [];
+    list.push(layer);
+    children.set(layer.parentLayerId, list);
+  }
+  for (const list of children.values()) {
+    list.sort((left, right) => right.order - left.order);
+  }
+
+  const result: DisplayLayer[] = [];
+  const visit = (parentId: string | null, depth: number) => {
+    for (const layer of children.get(parentId) ?? []) {
+      result.push({ layer, depth });
+      if (layer.type === "group") visit(layer.id, depth + 1);
+    }
+  };
+  visit(null, 0);
+  return result;
 }
 
+function layerKindLabel(layer: V2Layer): string {
+  if (layer.type === "text") return "Text";
+  if (layer.type === "shape") return layer.payload.shape;
+  return layer.type;
+}
+
+/** Existing sidebar chrome, migrated in-place to the Protocol V2 document. */
 export function Sidebar() {
+  const { document, selectedLayerIds, setSelectedLayerIds } = useEditorSurface();
+  const displayLayers = useMemo(
+    () => buildLayerTree(document.layers),
+    [document.layers],
+  );
+
   return (
     <aside className="editor-panel overflow-hidden [grid-area:sidebar]">
       <Panel
@@ -74,17 +60,81 @@ export function Sidebar() {
             {
               id: "layers",
               label: "Layers",
-              content: <GroupLayersPanel />,
+              content: (
+                <div className="h-full overflow-auto p-2" data-testid="layers-panel">
+                  <div className="mb-2 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-muted)]">
+                    <span>Protocol V2</span>
+                    <span>{displayLayers.length}</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {displayLayers.map(({ layer, depth }) => {
+                      const selected = selectedLayerIds.includes(layer.id);
+                      return (
+                        <li key={layer.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedLayerIds([layer.id])}
+                            className={`flex w-full items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-colors ${selected ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]" : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"}`}
+                            style={{ paddingLeft: `${10 + depth * 14}px` }}
+                            data-layer-id={layer.id}
+                            data-layer-order={layer.order}
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[12px] font-medium">
+                                {layer.id}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[10px] opacity-70">
+                                {layerKindLabel(layer)} · {layer.timing.start.toFixed(2)}s–{(layer.timing.start + layer.timing.duration).toFixed(2)}s
+                              </span>
+                            </span>
+                            <span className="shrink-0 font-mono text-[10px] opacity-70">
+                              z{layer.order}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ),
             },
             {
               id: "assets",
               label: "Assets",
-              content: <AssetsPanel />,
+              content: (
+                <div className="h-full overflow-auto p-3" data-testid="assets-panel">
+                  {document.assets.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-[var(--border-subtle)] px-3 py-6 text-center text-[12px] text-[var(--fg-muted)]">
+                      Chưa có asset.
+                    </div>
+                  ) : (
+                    <ul className="space-y-1.5">
+                      {document.assets.map((asset) => (
+                        <li
+                          key={asset.id}
+                          className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-2"
+                        >
+                          <p className="truncate text-[12px] font-medium text-[var(--fg-primary)]">
+                            {asset.id}
+                          </p>
+                          <p className="truncate text-[10px] text-[var(--fg-muted)]">
+                            {asset.kind} · {asset.uri}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ),
             },
             {
               id: "json",
               label: "JSON",
-              content: <ProtocolJsonPanel />,
+              content: (
+                <pre className="h-full overflow-auto p-3 text-[10px] leading-relaxed text-[var(--fg-secondary)]">
+                  {JSON.stringify(document, null, 2)}
+                </pre>
+              ),
             },
           ]}
         />
