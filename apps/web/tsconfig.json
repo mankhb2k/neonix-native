@@ -47,6 +47,7 @@
     "**/*.test.tsx",
     "playwright.config.ts",
     "vitest.config.ts",
-    "vitest.v2.config.ts"
+    "vitest.editor.config.ts",
+    "tsconfig.editor.json"
   ]
 }

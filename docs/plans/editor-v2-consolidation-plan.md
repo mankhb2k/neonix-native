@@ -18,7 +18,9 @@ surfaces will not remain as compatibility paths.
   explicit development fallback.
 - [x] Phase 3: remove verified-unreachable V1 UI, Zustand store, localStorage
   persistence, and legacy preview/playback helpers.
-- [ ] Phase 4+: simplify tooling and enforce the editor boundary.
+- [x] Phase 4: rename the editor tooling, enforce restricted imports, and
+  document the V2 session boundary.
+- [ ] Phase 5: final deletion and verification.
 
 This plan intentionally does **not** preserve a V1 project-opening path. The
 current public editor entrypoint already creates and renders a `MotionProtocolV2`
@@ -207,8 +209,8 @@ remains in the web package.
    }
    ```
 
-3. Remove the old `typecheck:v2` and V2-only test config after the new commands
-   run in CI.
+3. Completed: the old `typecheck:v2` script and V2-only config files were
+   removed after the editor commands were verified locally.
 4. Add ESLint restricted-import rules for web editor source:
    - ban `@/lib/v2-editor/**`;
    - ban deleted `@/lib/editor/store/**`, `authoring/**`, `persistence/**`, and

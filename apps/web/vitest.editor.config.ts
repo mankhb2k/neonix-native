@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-/** Only certified Protocol V2 app tests run from the root test contract. */
+/** Only certified Protocol V2 app tests run from the root editor contract. */
 export default defineConfig({
   test: {
     environment: "happy-dom",

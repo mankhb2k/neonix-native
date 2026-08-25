@@ -27,3 +27,7 @@ document store.
 Do not add imports from `lib/v2-editor`, the V1 Zustand store, or the
 unversioned V1 motion-project model. If a V2 feature needs a compatibility
 adapter, put it at an explicit boundary and add a removal issue/test.
+
+ESLint enforces these rules for `app/app/editor`, `components/editor`,
+`hooks/editor`, and `lib/editor`. Browser requests belong in `lib/api`; the
+editor surface must not call `fetch` directly.

@@ -31,6 +31,89 @@ const appLayerFiles = [
   "hooks/**/*.{ts,tsx}",
 ];
 
+/** Imports that would reintroduce the removed V1 editor boundary. */
+const editorBoundaryImportPatterns = [
+  {
+    group: ["@/lib/v2-editor", "@/lib/v2-editor/**"],
+    message: "Use the canonical @/lib/editor V2 modules.",
+  },
+  {
+    group: [
+      "@/lib/editor/store",
+      "@/lib/editor/store/**",
+      "@/lib/editor/authoring",
+      "@/lib/editor/authoring/**",
+      "@/lib/editor/persistence",
+      "@/lib/editor/persistence/**",
+      "@/lib/editor/legacy-runtime",
+      "@/lib/editor/legacy-runtime/**",
+    ],
+    message: "The web editor no longer has a V1 store or persistence path.",
+  },
+];
+
+const editorBoundaryImportPaths = [
+  {
+    name: "@motionvideo/motion-protocol",
+    message: "Editor code must use @motionvideo/motion-protocol/v2 explicitly.",
+  },
+  {
+    name: "@motionvideo/motion-protocol/runtime",
+    message: "Editor code must use @motionvideo/motion-protocol/v2 explicitly.",
+  },
+  {
+    name: "@motionvideo/motion-protocol/v1",
+    message: "Editor code must use @motionvideo/motion-protocol/v2 explicitly.",
+  },
+];
+
+const editorLayerImportPatterns = [
+  {
+    group: ["@motion-canvas/*", "motion-canvas", "@motioncanvas/*"],
+    message:
+      "Motion Canvas belongs in apps/render-worker â€” editor only edits Motion JSON.",
+  },
+  {
+    group: ["**/render-worker/**", "@motionvideo/render-worker"],
+    message: "Do not import render-worker from the web app.",
+  },
+  {
+    group: [
+      "@/lib/editor/timeline/timeline-seek",
+      "@/lib/editor/pointer-session",
+      "@/lib/editor/timeline/sessions/pointer-session-controller",
+    ],
+    message:
+      "Import pure gesture logic from @motionvideo/editor-core; use apps/web/lib/editor/interaction-host for DOM adapters.",
+  },
+  ...editorBoundaryImportPatterns,
+];
+
+const editorLayerImportPaths = [
+  {
+    name: "axios",
+    message: "Use lib/api/* â€” not raw axios in app/components/hooks.",
+  },
+  ...editorBoundaryImportPaths,
+];
+
+const editorLibraryImportPatterns = [
+  {
+    group: ["react", "react/*", "react-dom", "react-dom/*"],
+    message:
+      "Keep lib/editor free of React unless it is a UI adapter.",
+  },
+  {
+    group: ["@/hooks/**", "@/components/**", "@/app/**"],
+    message: "lib/editor must not import hooks, components, or app.",
+  },
+  {
+    group: ["@motion-canvas/*", "**/render-worker/**"],
+    message: "Render engines stay in apps/render-worker.",
+  },
+  ...editorBoundaryImportPatterns,
+];
+
 const coreSafetyRules = {
   eqeqeq: ["error", "always", { null: "ignore" }],
   "no-eval": "error",
@@ -162,6 +245,8 @@ export default tseslint.config(
       "e2e/**",
       "playwright.config.ts",
       "vitest.config.ts",
+      "vitest.editor.config.ts",
+      "tsconfig.editor.json",
     ],
   },
   eslint.configs.recommended,
@@ -222,6 +307,47 @@ export default tseslint.config(
   {
     files: appLayerFiles,
     rules: appLayerRestrictions,
+  },
+  {
+    files: [
+      "app/app/editor/**/*.{ts,tsx}",
+      "components/editor/**/*.{ts,tsx}",
+      "hooks/editor/**/*.{ts,tsx}",
+      "lib/editor/**/*.{ts,tsx}",
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: "./tsconfig.editor.json",
+      },
+    },
+  },
+  {
+    files: [
+      "app/app/editor/**/*.{ts,tsx}",
+      "components/editor/**/*.{ts,tsx}",
+      "hooks/editor/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: editorLayerImportPaths,
+          patterns: editorLayerImportPatterns,
+        },
+      ],
+    },
+  },
+  {
+    files: ["lib/editor/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: editorLibraryImportPatterns,
+        },
+      ],
+    },
   },
   {
     files: ["lib/api/**/*.{ts,tsx}"],

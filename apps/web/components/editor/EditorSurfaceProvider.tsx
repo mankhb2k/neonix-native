@@ -18,6 +18,7 @@ import {
   type V2EditorCommand,
   type V2EditorDiagnostic,
 } from "@motionvideo/editor-core/v2";
+import { saveEditorProject } from "@/lib/api/projects";
 
 export type EditorSurface = {
   document: MotionProtocolV2;
@@ -159,33 +160,25 @@ export function EditorSurfaceProvider({
     const serialized = JSON.stringify(document);
     if (serialized === lastPersistedDocumentRef.current) return undefined;
 
-    const timer = window.setTimeout(async () => {
+    const timer = window.setTimeout(() => {
       setPersistenceStatus("saving");
-      try {
-        const response = await fetch(
-          `/api/projects/${encodeURIComponent(projectRef)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              document,
-              expectedRevisionNo: revisionNo,
-            }),
-          },
-        );
-        if (!response.ok) {
-          setPersistenceStatus(response.status === 409 ? "conflict" : "error");
-          return;
-        }
-        const saved = (await response.json()) as { revisionNo?: unknown };
-        if (typeof saved.revisionNo === "number") {
-          setRevisionNo(saved.revisionNo);
-        }
-        lastPersistedDocumentRef.current = serialized;
-        setPersistenceStatus("saved");
-      } catch {
-        setPersistenceStatus("error");
-      }
+      void saveEditorProject({
+        projectRef,
+        document,
+        expectedRevisionNo: revisionNo,
+      })
+        .then((result) => {
+          if (!result.ok) {
+            setPersistenceStatus(
+              result.status === 409 ? "conflict" : "error",
+            );
+            return;
+          }
+          setRevisionNo(result.revisionNo);
+          lastPersistedDocumentRef.current = serialized;
+          setPersistenceStatus("saved");
+        })
+        .catch(() => setPersistenceStatus("error"));
     }, 700);
 
     return () => window.clearTimeout(timer);
