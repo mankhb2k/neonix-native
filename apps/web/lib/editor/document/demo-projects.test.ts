@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { projectLayersToTimeline } from "@motionvideo/editor-core/timeline-projection";
-import { createThreeKingdomsHistoryProject } from "./projects";
-import { projectDuration } from "./preview-controller";
+import { createThreeKingdomsHistoryProject } from "./demo-projects";
+import { projectDuration } from "../preview/preview-controller";
 
 describe("Three Kingdoms Protocol V2 editor fixture", () => {
   it("is a valid one-minute Protocol V2 document", () => {

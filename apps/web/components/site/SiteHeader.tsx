@@ -60,9 +60,6 @@ export function SiteHeader({
           </nav>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden rounded-lg border border-[var(--border-subtle,#e4e4e7)] px-3 py-1 text-[12px] text-[var(--fg-muted)] xl:inline">
-            Search (Ctrl K) — soon
-          </span>
           <Link
             href="/login"
             className={buttonClassName({

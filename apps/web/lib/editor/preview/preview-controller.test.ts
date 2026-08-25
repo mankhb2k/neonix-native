@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createV2EditorProject } from "./projects";
+import { createV2EditorProject } from "../document/demo-projects";
 import { frameCount, projectDuration, previewFrameAtTime } from "./preview-controller";
 
 describe("V2 editor preview controller", () => {

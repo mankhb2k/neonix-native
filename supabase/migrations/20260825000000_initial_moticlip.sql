@@ -1,7 +1,9 @@
 -- Phase 1: identity, workspace ownership, project revisions and RLS.
 -- Media binaries remain outside Postgres (R2 is a later phase).
 
-create extension if not exists pgcrypto;
+-- Supabase keeps extensions in the dedicated `extensions` schema.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
@@ -29,7 +31,7 @@ create table public.workspace_members (
 
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
-  public_ref text not null unique default ('prj_' || encode(gen_random_bytes(10), 'hex')),
+  public_ref text not null unique default ('prj_' || encode(extensions.gen_random_bytes(10), 'hex')),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   title text not null default 'Untitled project' check (char_length(trim(title)) between 1 and 200),
   current_revision_no integer not null default 0 check (current_revision_no >= 0),
@@ -62,7 +64,7 @@ create table public.assets (
 
 create table public.render_jobs (
   id uuid primary key default gen_random_uuid(),
-  public_ref text not null unique default ('rnd_' || encode(gen_random_bytes(10), 'hex')),
+  public_ref text not null unique default ('rnd_' || encode(extensions.gen_random_bytes(10), 'hex')),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   project_id uuid not null references public.projects (id) on delete cascade,
   revision_id uuid not null references public.project_revisions (id) on delete restrict,

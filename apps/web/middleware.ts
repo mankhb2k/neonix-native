@@ -13,6 +13,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response: NextResponse;
 
+  // MCP uses bearer authentication at the route itself. Keep the endpoint and
+  // protected-resource metadata out of cookie session refresh and host rewrites.
+  if (
+    pathname === "/api/mcp" ||
+    pathname.startsWith("/.well-known/oauth-protected-resource")
+  ) {
+    return NextResponse.next();
+  }
+
   // API and docs stay on this host (no /app rewrite)
   if (
     pathname.startsWith("/api/") ||
@@ -26,7 +35,7 @@ export async function middleware(request: NextRequest) {
     return updateSupabaseSession(request, response);
   }
 
-  // app.motionvideo.com → rewrite into /app/*
+  // app.neonix.video → rewrite into /app/*
   if (isAppHost(hostname)) {
     // Prefer clean URLs on subdomain (no /app prefix in the address bar)
     if (
@@ -49,14 +58,14 @@ export async function middleware(request: NextRequest) {
     return updateSupabaseSession(request, response);
   }
 
-  // motionvideo.com/app → redirect to app subdomain
+  // neonix.video/app → redirect to app subdomain
   if (isMarketingHost(hostname) && !isLocalHost(hostname)) {
     if (
       pathname === APP_ROUTE_PREFIX ||
       pathname.startsWith(`${APP_ROUTE_PREFIX}/`)
     ) {
       const appOrigin =
-        process.env.NEXT_PUBLIC_APP_URL ?? "https://app.motionvideo.com";
+        process.env.NEXT_PUBLIC_APP_URL ?? "https://app.neonix.video";
       const dest = new URL(appOrigin);
       const suffix =
         pathname === APP_ROUTE_PREFIX

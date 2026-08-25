@@ -26,7 +26,7 @@ import {
   resolveLibraryDropPlacement,
 } from "@/lib/editor/library/timeline-library-drop";
 import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
-import { commandsForLibraryPayload } from "@/lib/v2-editor/library";
+import { commandsForLibraryPayload } from "@/lib/editor/library/commands";
 
 /**
  * Pointer gesture for library tiles (Text / Shape).

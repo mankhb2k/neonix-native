@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { projectLayersToTimeline } from "@motionvideo/editor-core/v2";
 import { applyV2EditorCommand } from "@motionvideo/editor-core/v2";
-import { createV2EditorProject } from "./projects";
-import { timelineCommandToV2 } from "../../components/editor/timeline/v2TimelineAdapter";
+import { createV2EditorProject } from "../document/demo-projects";
+import { timelineCommandToV2 } from "./adapter";
 
 describe("V2 timeline adapter", () => {
   it("reorders a main layer when it is dropped onto an existing overlay lane", () => {

@@ -4,7 +4,7 @@ import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
 import type { V2AudioClipPatch, V2AudioTrackPatch, V2LayerPatch } from "@motionvideo/editor-core/v2";
 import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
-import { buildAlignmentPatches, compensateAnchor } from "@/lib/v2-editor/inspector-transform";
+import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
 import { StepperInput } from "./StepperInput";

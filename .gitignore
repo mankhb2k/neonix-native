@@ -15,6 +15,7 @@ out
 !.env.example
 coverage
 .vercel
+supabase/.temp
 tmp
 *.exe
 *.mp4

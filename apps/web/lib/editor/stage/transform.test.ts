@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createV2EditorProject } from "./projects";
+import { createV2EditorProject } from "../document/demo-projects";
 import {
   getSelectionBounds,
   buildV2MovePatches,
@@ -11,7 +11,7 @@ import {
   isPointInsideV2Layer,
   isV2LayerActiveAtTime,
   isV2VisualLayer,
-} from "./stage-transform";
+} from "./transform";
 
 describe("V2 stage transform geometry", () => {
   it("maps an untransformed frame from translate to composition bounds", () => {

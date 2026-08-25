@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./remote": "./src/remote.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -15,10 +16,11 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
-    "zod": "^3.24.2"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@motionvideo/motion-runtime": "workspace:*",

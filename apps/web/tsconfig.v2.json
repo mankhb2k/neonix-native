@@ -8,8 +8,13 @@
     "components/docs/PreviewStage.tsx",
     "components/hub/WorkspaceHome.tsx",
     "lib/hosts.ts",
-    "lib/v2-editor/**/*.ts",
-    "lib/v2-editor/**/*.tsx"
+    "lib/editor/commands/index.ts",
+    "lib/editor/document/**/*.ts",
+    "lib/editor/inspector/transform.ts",
+    "lib/editor/library/commands.ts",
+    "lib/editor/preview/preview-controller.ts",
+    "lib/editor/stage/transform.ts",
+    "lib/editor/timeline/adapter.ts"
   ],
   "exclude": [
     "node_modules",

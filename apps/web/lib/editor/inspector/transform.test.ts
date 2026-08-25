@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAlignmentPatches, compensateAnchor, getLayerBounds } from "./inspector-transform";
+import { buildAlignmentPatches, compensateAnchor, getLayerBounds } from "./transform";
 
 const baseTransform = {
   translate: { x: 100, y: 80, z: 12 },

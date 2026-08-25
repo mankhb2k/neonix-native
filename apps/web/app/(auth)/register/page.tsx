@@ -1,4 +1,4 @@
-import { LoginForm } from "@/app/login/login-form";
+import { LoginForm } from "../login/login-form";
 
 export default async function RegisterPage({
   searchParams,

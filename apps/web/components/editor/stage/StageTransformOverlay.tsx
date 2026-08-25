@@ -14,7 +14,7 @@ import {
   isV2LayerActiveAtTime,
   isV2VisualLayer,
   type StageLayerBounds,
-} from "@/lib/v2-editor/stage-transform";
+} from "@/lib/editor/stage/transform";
 import {
   clientToComposition,
   createStageSession,

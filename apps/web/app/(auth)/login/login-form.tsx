@@ -27,7 +27,7 @@ export function LoginForm({
     setMessage(null);
 
     try {
-      const redirectTo = new URL("/auth/callback", window.location.origin);
+      const redirectTo = new URL("/api/auth/callback", window.location.origin);
       redirectTo.searchParams.set("next", nextPath || "/app");
 
       const supabase = createSupabaseBrowserClient();
@@ -65,7 +65,7 @@ export function LoginForm({
     let result;
     try {
       const supabase = createSupabaseBrowserClient();
-      const redirectTo = new URL("/auth/callback", window.location.origin);
+      const redirectTo = new URL("/api/auth/callback", window.location.origin);
       redirectTo.searchParams.set("next", nextPath || "/app");
 
       result = isRegister

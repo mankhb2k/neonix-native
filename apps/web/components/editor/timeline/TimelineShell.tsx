@@ -18,7 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
 import { TimelineViewport } from "./viewport/TimelineViewport";
-import { timelineCommandToV2 } from "./v2TimelineAdapter";
+import { timelineCommandToV2 } from "@/lib/editor/timeline/adapter";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
 
 /** Existing V1 timeline chrome backed by a Protocol V2 document adapter. */

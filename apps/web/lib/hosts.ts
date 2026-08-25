@@ -1,9 +1,9 @@
 export const MARKETING_HOSTS = new Set([
-  "motionvideo.com",
-  "www.motionvideo.com",
+  "neonix.video",
+  "www.neonix.video",
 ]);
 
-export const APP_HOSTS = new Set(["app.motionvideo.com"]);
+export const APP_HOSTS = new Set(["app.neonix.video"]);
 
 export function getHostname(hostHeader: string | null): string {
   return (hostHeader ?? "").split(":")[0]?.toLowerCase() ?? "";

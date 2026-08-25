@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   useEffect,
   type Dispatch,
@@ -40,6 +41,7 @@ export type EditorSurface = {
   canRedo: boolean;
   canDelete: boolean;
   diagnostics: readonly V2EditorDiagnostic[];
+  persistenceStatus: "idle" | "saving" | "saved" | "error" | "conflict";
 };
 
 const EditorSurfaceContext = createContext<EditorSurface | null>(null);
@@ -124,9 +126,13 @@ function removeCommandsForSelection(
 export function EditorSurfaceProvider({
   initialDocument,
   children,
+  projectRef,
+  initialRevisionNo,
 }: {
   initialDocument: MotionProtocolV2;
   children: ReactNode;
+  projectRef?: string;
+  initialRevisionNo?: number;
 }) {
   const [document, setDocument] = useState(initialDocument);
   const [currentTime, setCurrentTime] = useState(0);
@@ -142,6 +148,48 @@ export function EditorSurfaceProvider({
   const [undoStack, setUndoStack] = useState<readonly HistoryEntry[]>([]);
   const [redoStack, setRedoStack] = useState<readonly HistoryEntry[]>([]);
   const [lastHistoryKey, setLastHistoryKey] = useState<string | null>(null);
+  const [revisionNo, setRevisionNo] = useState(initialRevisionNo ?? 0);
+  const [persistenceStatus, setPersistenceStatus] = useState<
+    "idle" | "saving" | "saved" | "error" | "conflict"
+  >("idle");
+  const lastPersistedDocumentRef = useRef(JSON.stringify(initialDocument));
+
+  useEffect(() => {
+    if (!projectRef || initialRevisionNo == null) return undefined;
+    const serialized = JSON.stringify(document);
+    if (serialized === lastPersistedDocumentRef.current) return undefined;
+
+    const timer = window.setTimeout(async () => {
+      setPersistenceStatus("saving");
+      try {
+        const response = await fetch(
+          `/api/projects/${encodeURIComponent(projectRef)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              document,
+              expectedRevisionNo: revisionNo,
+            }),
+          },
+        );
+        if (!response.ok) {
+          setPersistenceStatus(response.status === 409 ? "conflict" : "error");
+          return;
+        }
+        const saved = (await response.json()) as { revisionNo?: unknown };
+        if (typeof saved.revisionNo === "number") {
+          setRevisionNo(saved.revisionNo);
+        }
+        lastPersistedDocumentRef.current = serialized;
+        setPersistenceStatus("saved");
+      } catch {
+        setPersistenceStatus("error");
+      }
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [document, initialRevisionNo, projectRef, revisionNo]);
 
   const commitCommands = useCallback(
     (commands: readonly V2EditorCommand[]): boolean => {
@@ -295,6 +343,7 @@ export function EditorSurfaceProvider({
       canUndo: undoStack.length > 0,
       canRedo: redoStack.length > 0,
       canDelete,
+      persistenceStatus,
     }),
     [
       canDelete,
@@ -310,6 +359,7 @@ export function EditorSurfaceProvider({
       selectedLayerIds,
       hiddenLayerIds,
       lockedLayerIds,
+      persistenceStatus,
       toggleLayerLock,
       toggleLayerVisibility,
       undo,

@@ -189,7 +189,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<sb_publishable_key>
 
 # Server-only — không thêm NEXT_PUBLIC_ và không commit
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
-MCP_SERVER_URL=http://localhost:3000/mcp
+MCP_SERVER_URL=http://localhost:3000/api/mcp
 MCP_TOKEN_AUDIENCE=<mcp-resource-identifier>
 MCP_AUDIT_SALT=<random-32-plus-byte-secret>
 
@@ -256,3 +256,12 @@ Không cần `ANTHROPIC_API_KEY` cho remote MCP được Claude gọi: Claude l�
 - [Supabase OAuth 2.1 Server](https://supabase.com/docs/guides/auth/oauth-server)
 - [Supabase Login with Google](https://supabase.com/docs/guides/auth/social-login/auth-google)
 - [MCP Authorization specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
+
+## Phase 2 implementation (Neonix)
+
+- Remote endpoint: `https://app.neonix.video/api/mcp`.
+- `open_editor` returns a clean editor URL such as `https://app.neonix.video/editor/{project_id}`.
+- Protected resource metadata: `https://app.neonix.video/.well-known/oauth-protected-resource`.
+- Supabase issuer: `https://<project-ref>.supabase.co/auth/v1`.
+- Supabase JWKS: `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`.
+- Supabase access-token JWT audience is `authenticated`; `MCP_TOKEN_AUDIENCE` identifies the MCP resource and is not used as the JWT audience.

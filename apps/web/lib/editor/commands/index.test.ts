@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createV2EditorProject } from "./projects";
-import { applyV2EditorCommand } from "./commands";
+import { createV2EditorProject } from "../document/demo-projects";
+import { applyV2EditorCommand } from "./index";
 
 describe("V2 editor command contract", () => {
   it("commits a typed layer patch and returns an inverse command", () => {

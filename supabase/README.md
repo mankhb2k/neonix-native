@@ -36,9 +36,9 @@ values from the Dashboard instead.
 - Authentication → Providers → Google: enable the provider.
 - Authentication → URL Configuration → Site URL: `https://app.neonix.video`.
 - Redirect allow-list:
-  - `https://app.neonix.video/auth/callback`
+  - `https://app.neonix.video/api/auth/callback`
   - `https://app.neonix.video/oauth/consent`
-  - `http://localhost:3000/auth/callback`
+  - `http://localhost:3000/api/auth/callback`
   - `http://localhost:3000/oauth/consent`
 - Google OAuth redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 - Authentication → OAuth Server: enable OAuth 2.1 and set authorization path to
@@ -57,9 +57,32 @@ supabase link --project-ref <project-ref>
 supabase db push
 ```
 
-The migration creates profiles, workspaces, projects, immutable revisions,
-render-job metadata, audit events, and RLS policies. It does not create R2
+The migrations create profiles, workspaces, projects, immutable source
+revisions, R2 asset metadata, project-to-asset links, system font catalog,
+upload sessions, deletion jobs, and RLS policies. They do not create R2
 objects or invoke Lambda.
+
+The V2 editor reads and autosaves through the server-only project repository:
+`GET/PATCH /api/projects/:projectId`. The repository validates every document
+with `MotionProtocolV2Schema`, writes immutable `project_revisions`, and uses
+the expected revision number to reject concurrent writes with HTTP 409.
+
+## Verify Phase 2 database + MCP
+
+After `supabase db push`, connect the Neonix MCP endpoint and run these tools
+with an authenticated user:
+
+1. `create_project` with a small JSON `document`.
+2. `get_project` for the returned `project_id`; verify the latest revision has
+   `source_schema_version`, `reason: "mcp"`, and `byte_size`.
+3. `update_project` with `expected_revision_no: 1`; verify the next revision
+   and `last_activity_at` advance.
+4. Sign in as another user and verify `get_project` returns no project.
+
+Project deletion uses `request_project_deletion(project_id)`, which marks the
+project deleted and schedules a seven-day purge window. A trusted scheduled
+worker must later create and process `object_deletion_jobs` to remove R2
+objects before their asset metadata is permanently removed.
 
 ## Verify Phase 1
 
