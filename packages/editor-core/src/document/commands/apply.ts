@@ -15,26 +15,26 @@ export type DeepPartial<T> = T extends readonly (infer Item)[]
     ? { [Key in keyof T]?: DeepPartial<T[Key]> }
     : T;
 
-export type V2LayerPatch = DeepPartial<V2Layer>;
-export type V2AudioClipPatch = DeepPartial<V2AudioClip>;
-export type V2AudioTrackPatch = DeepPartial<V2AudioTrack>;
+export type LayerPatch = DeepPartial<V2Layer>;
+export type AudioClipPatch = DeepPartial<V2AudioClip>;
+export type AudioTrackDocumentPatch = DeepPartial<V2AudioTrack>;
 
 /**
  * Commands operate on the Protocol V2 document directly. Session/UI state
  * (selection, playhead, zoom) is deliberately excluded.
  */
-export type V2EditorCommand =
+export type EditorCommand =
   | { type: "add-asset"; asset: V2Asset }
   | { type: "remove-asset"; assetId: string }
   | { type: "add-audio-clip"; trackId: string; clip: V2AudioClip }
   | { type: "remove-audio-clip"; trackId: string; clipId: string }
   | { type: "add-layer"; layer: V2Layer }
   | { type: "remove-layer"; layerId: string }
-  | { type: "patch-layer"; layerId: string; patch: V2LayerPatch }
+  | { type: "patch-layer"; layerId: string; patch: LayerPatch }
   | { type: "replace-layer"; layerId: string; layer: V2Layer }
   | {
       type: "patch-layers";
-      patches: Record<string, V2LayerPatch>;
+      patches: Record<string, LayerPatch>;
     }
   | {
       type: "replace-layers";
@@ -44,13 +44,13 @@ export type V2EditorCommand =
       type: "reorder-layers";
       parentLayerId: string | null;
       orderedLayerIds: string[];
-      patches?: Record<string, V2LayerPatch>;
+      patches?: Record<string, LayerPatch>;
     }
   | {
       type: "patch-audio-clip";
       trackId: string;
       clipId: string;
-      patch: V2AudioClipPatch;
+      patch: AudioClipPatch;
     }
   | {
       type: "replace-audio-clip";
@@ -61,7 +61,7 @@ export type V2EditorCommand =
   | {
       type: "patch-audio-track";
       trackId: string;
-      patch: V2AudioTrackPatch;
+      patch: AudioTrackDocumentPatch;
     }
   | {
       type: "replace-audio-track";
@@ -69,7 +69,7 @@ export type V2EditorCommand =
       track: V2AudioTrack;
     };
 
-export type V2EditorDiagnostic = {
+export type EditorDiagnostic = {
   severity: "error" | "warning";
   code:
     | "document_invalid"
@@ -80,17 +80,17 @@ export type V2EditorDiagnostic = {
   path?: readonly (string | number)[];
 };
 
-export type V2EditorCommandResult =
+export type EditorCommandResult =
   | {
       ok: true;
       document: MotionProtocolV2;
-      inverse: V2EditorCommand;
-      diagnostics: readonly V2EditorDiagnostic[];
+      inverse: EditorCommand;
+      diagnostics: readonly EditorDiagnostic[];
     }
   | {
       ok: false;
       document: MotionProtocolV2;
-      diagnostics: readonly V2EditorDiagnostic[];
+      diagnostics: readonly EditorDiagnostic[];
     };
 
 function clone<T>(value: T): T {
@@ -118,7 +118,7 @@ function mergePatch<T>(value: T, patch: DeepPartial<T>): T {
 
 function diagnosticsFromSchema(error: {
   issues: Array<{ message: string; path: (string | number)[] }>;
-}): V2EditorDiagnostic[] {
+}): EditorDiagnostic[] {
   return error.issues.map((issue) => ({
     severity: "error",
     code: "document_invalid",
@@ -129,8 +129,8 @@ function diagnosticsFromSchema(error: {
 
 function reject(
   document: MotionProtocolV2,
-  diagnostics: readonly V2EditorDiagnostic[],
-): V2EditorCommandResult {
+  diagnostics: readonly EditorDiagnostic[],
+): EditorCommandResult {
   return { ok: false, document, diagnostics };
 }
 
@@ -138,10 +138,10 @@ function reject(
  * Apply one V2 document command atomically. The source document is never
  * mutated; invalid schema/compiler output is rejected before it reaches UI.
  */
-export function applyV2EditorCommand(
+export function applyEditorCommand(
   input: MotionProtocolV2,
-  command: V2EditorCommand,
-): V2EditorCommandResult {
+  command: EditorCommand,
+): EditorCommandResult {
   const original = clone(input);
   const parsedOriginal = MotionProtocolV2Schema.safeParse(original);
   if (!parsedOriginal.success) {
@@ -150,8 +150,8 @@ export function applyV2EditorCommand(
 
   const commit = (
     next: MotionProtocolV2,
-    inverse: V2EditorCommand,
-  ): V2EditorCommandResult => {
+    inverse: EditorCommand,
+  ): EditorCommandResult => {
     const parsedNext = MotionProtocolV2Schema.safeParse(next);
     if (!parsedNext.success) {
       return reject(original, diagnosticsFromSchema(parsedNext.error));

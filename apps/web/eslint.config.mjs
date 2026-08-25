@@ -55,6 +55,10 @@ const editorBoundaryImportPatterns = [
 
 const editorBoundaryImportPaths = [
   {
+    name: "@motionvideo/editor-core/v2",
+    message: "Use the canonical @motionvideo/editor-core document API.",
+  },
+  {
     name: "@motionvideo/motion-protocol",
     message: "Editor code must use @motionvideo/motion-protocol/v2 explicitly.",
   },

@@ -3,10 +3,12 @@
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   projectLayersToTimeline,
-  v2SelectionClips,
-  v2SelectedClipIds,
-  type V2EditorCommand,
-} from "@motionvideo/editor-core/v2";
+} from "@motionvideo/editor-core/timeline";
+import type { EditorCommand } from "@motionvideo/editor-core/document/commands";
+import {
+  selectionClips as protocolSelectionClips,
+  selectedClipIds as protocolSelectedClipIds,
+} from "@motionvideo/editor-core/selection";
 import {
   selectedClipIdsFrom,
   selectionClips,
@@ -18,7 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
 import { TimelineViewport } from "./viewport/TimelineViewport";
-import { timelineCommandToV2 } from "@/lib/editor/timeline/adapter";
+import { timelineCommandToDocument } from "@/lib/editor/timeline/adapter";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
 
 /** Timeline chrome backed by the Protocol V2 document adapter. */
@@ -138,12 +140,12 @@ export function TimelineShell() {
         .map((clip) => (clip.kind === "scene" ? clip.sceneId : null))
         .filter((id): id is string => Boolean(id));
       if (affectedLayerIds.some((id) => lockedLayerIds.includes(id))) return;
-      const v2Command: V2EditorCommand | null = timelineCommandToV2(
+      const documentCommand: EditorCommand | null = timelineCommandToDocument(
         document,
         projection,
         command,
       );
-      if (v2Command) applyCommand(v2Command);
+      if (documentCommand) applyCommand(documentCommand);
     },
     [applyCommand, document, lockedLayerIds, projection],
   );
@@ -155,8 +157,8 @@ export function TimelineShell() {
   }, [projection.clips]);
 
   const selectedClipIds = useMemo(
-    () => v2SelectedClipIds(
-      v2SelectionClips(
+    () => protocolSelectedClipIds(
+      protocolSelectionClips(
         selection.kind === "clips" ? selection.ids : [],
         selection.kind === "clips" ? selection.primaryId : undefined,
       ),

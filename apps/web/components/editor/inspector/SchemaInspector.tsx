@@ -2,7 +2,11 @@
 
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
-import type { V2AudioClipPatch, V2AudioTrackPatch, V2LayerPatch } from "@motionvideo/editor-core/v2";
+import type {
+  AudioClipPatch,
+  AudioTrackDocumentPatch,
+  LayerPatch,
+} from "@motionvideo/editor-core/document/commands";
 import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
 import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
 import { EffectsInspector } from "./EffectsInspector";
@@ -287,8 +291,8 @@ function AudioInspector({
   assetLabel: string;
   open: boolean;
   onToggle: () => void;
-  onClipPatch: (patch: V2AudioClipPatch) => void;
-  onTrackPatch: (patch: V2AudioTrackPatch) => void;
+  onClipPatch: (patch: AudioClipPatch) => void;
+  onTrackPatch: (patch: AudioTrackDocumentPatch) => void;
 }) {
   return (
     <div className="min-h-full w-full" data-testid="inspector-audio-properties">
@@ -377,10 +381,10 @@ export function SchemaInspector() {
     return [{ value: selected.payload.language, label: `${selected.payload.language} (custom)` }, ...SHIPPED_TEXT_LANGUAGES];
   }, [selected]);
 
-  const patchLayer = (patch: V2LayerPatch) => {
+  const patchLayer = (patch: LayerPatch) => {
     if (selected) applyCommand({ type: "patch-layer", layerId: selected.id, patch });
   };
-  const patchSelectedLayers = (patch: V2LayerPatch) => {
+  const patchSelectedLayers = (patch: LayerPatch) => {
     if (isMultiLayerSelection) {
       applyCommand({
         type: "patch-layers",
@@ -390,7 +394,7 @@ export function SchemaInspector() {
     }
     patchLayer(patch);
   };
-  const patchAudioClip = (patch: V2AudioClipPatch) => {
+  const patchAudioClip = (patch: AudioClipPatch) => {
     if (selectedAudio) {
       applyCommand({
         type: "patch-audio-clip",
@@ -400,12 +404,12 @@ export function SchemaInspector() {
       });
     }
   };
-  const patchAudioTrack = (patch: V2AudioTrackPatch) => {
+  const patchAudioTrack = (patch: AudioTrackDocumentPatch) => {
     if (selectedAudio) {
       applyCommand({ type: "patch-audio-track", trackId: selectedAudio.track.id, patch });
     }
   };
-  const patchLayerCoalesced = (historyKey: string, gestureId: number, patch: V2LayerPatch) => {
+  const patchLayerCoalesced = (historyKey: string, gestureId: number, patch: LayerPatch) => {
     if (!selected) return;
     const command = isMultiLayerSelection
       ? { type: "patch-layers" as const, patches: Object.fromEntries(selectedLayers.map((layer) => [layer.id, patch])) }

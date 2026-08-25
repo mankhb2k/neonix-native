@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyV2EditorCommand } from "@motionvideo/editor-core/v2";
+import { applyEditorCommand } from "@motionvideo/editor-core/document/commands";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   createV2EditorProject,
@@ -18,7 +18,7 @@ describe("web editor Protocol V2 contract", () => {
 
   it("keeps a valid document and inverse command across an edit", () => {
     const initial = createV2EditorProject("shape");
-    const result = applyV2EditorCommand(initial, {
+    const result = applyEditorCommand(initial, {
       type: "patch-layer",
       layerId: "shape",
       patch: { opacity: 0.5 },
@@ -28,7 +28,7 @@ describe("web editor Protocol V2 contract", () => {
     if (!result.ok) return;
     expect(MotionProtocolV2Schema.safeParse(result.document).success).toBe(true);
 
-    const undone = applyV2EditorCommand(result.document, result.inverse);
+    const undone = applyEditorCommand(result.document, result.inverse);
     expect(undone.ok).toBe(true);
     if (undone.ok) expect(undone.document).toEqual(initial);
   });

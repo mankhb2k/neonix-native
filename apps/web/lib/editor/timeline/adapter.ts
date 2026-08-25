@@ -1,17 +1,17 @@
 import type { MotionProtocolV2, V2AudioClip } from "@motionvideo/motion-protocol/v2";
 import {
-  projectLayersToTimeline,
-  type V2AudioClipPatch,
-  type V2EditorCommand,
-  type V2LayerPatch,
-} from "@motionvideo/editor-core/v2";
+  type AudioClipPatch,
+  type EditorCommand,
+  type LayerPatch,
+} from "@motionvideo/editor-core/document/commands";
+import { projectLayersToTimeline as projectTimeline } from "@motionvideo/editor-core/timeline";
 import type {
   TimelineClip,
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core/timeline-runtime";
 
-type Projection = ReturnType<typeof projectLayersToTimeline>;
+type Projection = ReturnType<typeof projectTimeline>;
 
 function layerIdForClip(clip: TimelineClip): string | null {
   return clip.kind === "scene" ? clip.sceneId : null;
@@ -29,27 +29,27 @@ function audioTarget(
   return track && target ? { trackId: track.id, clip: target } : null;
 }
 
-function timingPatch(start: number, duration?: number): V2LayerPatch {
+function timingPatch(start: number, duration?: number): LayerPatch {
   return {
     timing: {
       start: Math.max(0, start),
       ...(duration == null ? {} : { duration: Math.max(0.001, duration) }),
     },
-  } as V2LayerPatch;
+  } as LayerPatch;
 }
 
 function audioTimingPatch(
   start: number,
   duration?: number,
   trimStart?: number,
-): V2AudioClipPatch {
+): AudioClipPatch {
   return {
     timing: {
       start: Math.max(0, start),
       ...(duration == null ? {} : { duration: Math.max(0.001, duration) }),
     },
     ...(trimStart == null ? {} : { trim: { start: Math.max(0, trimStart) } }),
-  } as V2AudioClipPatch;
+  } as AudioClipPatch;
 }
 
 function clipById(projection: Projection, id: string): TimelineClip | null {
@@ -65,7 +65,7 @@ function rootLayerIdsByOrder(document: MotionProtocolV2): string[] {
 
 /**
  * Convert the V1 visual lane intent into a root-sibling insertion index. Lane
- * ids never cross the V2 boundary; the complete sibling list is renumbered
+ * ids never cross the document boundary; the complete sibling list is renumbered
  * atomically by the reorder command.
  */
 function orderedRootIdsForMove(
@@ -88,7 +88,7 @@ function orderedRootIdsForMove(
         ? Math.max(1, lane.order)
         : 0;
   } else if (command.patch.track === "overlay") {
-    // V1 insertOrder is zero-based from Main; V2 order 0 is reserved for Main.
+    // Timeline insertOrder is zero-based from Main; document order 0 is Main.
     if (command.patch.insertNewLane || command.patch.laneId == null) {
       const insertOrder = command.patch.insertOrder ?? 0;
       const maxOverlayOrder = document.layers.reduce(
@@ -116,15 +116,14 @@ function orderedRootIdsForMove(
 }
 
 /**
- * Thin boundary between the V1 timeline interaction contract and a V2
- * document. The viewport/hooks stay unchanged; only their commit payload is
- * translated here.
+ * Thin boundary between the timeline interaction contract and the document.
+ * The viewport/hooks stay unchanged; only their commit payload is translated.
  */
-export function timelineCommandToV2(
+export function timelineCommandToDocument(
   document: MotionProtocolV2,
   projection: Projection,
   command: TimelineCommand,
-): V2EditorCommand | null {
+): EditorCommand | null {
   if (command.type === "move-clip") {
     const clip = clipById(projection, command.clipId);
     if (!clip) return null;
@@ -169,7 +168,7 @@ export function timelineCommandToV2(
   }
 
   if (command.type === "move-clips") {
-    const patches: Record<string, V2LayerPatch> = {};
+    const patches: Record<string, LayerPatch> = {};
     const selectedRootIds: string[] = [];
     for (const id of command.clipIds) {
       const clip = clipById(projection, id);
@@ -260,6 +259,6 @@ export function timelineCommandToV2(
   return null;
 }
 
-export function timelineLanesForV2(projection: Projection): TimelineLane[] {
+export function timelineLanesForDocument(projection: Projection): TimelineLane[] {
   return projection.lanes;
 }

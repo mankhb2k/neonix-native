@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { projectLayersToTimeline } from "@motionvideo/editor-core/v2";
-import { applyV2EditorCommand } from "@motionvideo/editor-core/v2";
+import { projectLayersToTimeline } from "@motionvideo/editor-core/timeline";
+import { applyEditorCommand } from "@motionvideo/editor-core/document/commands";
 import { createV2EditorProject } from "../document/demo-projects";
-import { timelineCommandToV2 } from "./adapter";
+import { timelineCommandToDocument } from "./adapter";
 
 describe("V2 timeline adapter", () => {
   it("reorders a main layer when it is dropped onto an existing overlay lane", () => {
@@ -20,7 +20,7 @@ describe("V2 timeline adapter", () => {
     );
 
     expect(overlay).toBeDefined();
-    const next = timelineCommandToV2(document, projection, {
+    const next = timelineCommandToDocument(document, projection, {
       type: "move-clip",
       clipId: "shape",
       patch: {
@@ -38,7 +38,7 @@ describe("V2 timeline adapter", () => {
     });
 
     if (!next) return;
-    const committed = applyV2EditorCommand(document, next);
+    const committed = applyEditorCommand(document, next);
     expect(committed.ok).toBe(true);
     if (committed.ok) {
       expect(
@@ -66,7 +66,7 @@ describe("V2 timeline adapter", () => {
     );
     expect(overlay).toBeDefined();
 
-    const next = timelineCommandToV2(document, projection, {
+    const next = timelineCommandToDocument(document, projection, {
       type: "move-clip",
       clipId: "shape",
       patch: {
@@ -95,7 +95,7 @@ describe("V2 timeline adapter", () => {
     };
     const projection = projectLayersToTimeline(document);
     const targetLane = projection.lanes.find((lane) => lane.order === 2)!;
-    const next = timelineCommandToV2(document, projection, {
+    const next = timelineCommandToDocument(document, projection, {
       type: "move-clips",
       clipIds: ["layer-0", "layer-1"],
       deltaTime: 1,

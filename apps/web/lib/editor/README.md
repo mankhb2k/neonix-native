@@ -3,8 +3,8 @@
 The web editor has one document model: `MotionProtocolV2` from
 `@motionvideo/motion-protocol/v2`.
 
-All document mutations go through `V2EditorCommand` and
-`applyV2EditorCommand` from `@motionvideo/editor-core/v2`. The React session
+All document mutations go through `EditorCommand` and
+`applyEditorCommand` from `@motionvideo/editor-core/document/commands`. The React session
 state (selection, locks, playhead, and undo/redo) is owned by
 `components/editor/EditorSurfaceProvider`; this library must not add a second
 document store.

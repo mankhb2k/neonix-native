@@ -1,5 +1,5 @@
 import type { V2Asset, MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import type { V2EditorCommand } from "@motionvideo/editor-core/v2";
+import type { EditorCommand } from "@motionvideo/editor-core/document/commands";
 import type { LibraryPayload } from "@/lib/editor/library/library-payload";
 import type { PlacementTarget } from "@motionvideo/editor-core/timeline-runtime";
 
@@ -28,7 +28,6 @@ function transform(
     anchor: { x: width / 2, y: height / 2, z: 0 },
   };
 }
-
 function uniqueId(document: MotionProtocolV2, base: string): string {
   let id = base.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "layer";
   let suffix = 1;
@@ -145,10 +144,10 @@ export function commandsForLibraryPayload(
   document: MotionProtocolV2,
   payload: LibraryPayload,
   placement?: PlacementTarget,
-): V2EditorCommand[] {
+): EditorCommand[] {
   const startTime = placement?.startTime ?? 0;
   const existingAssets = new Set(document.assets.map((asset) => asset.id));
-  const commands: V2EditorCommand[] = [];
+  const commands: EditorCommand[] = [];
   if (payload.kind === "text" && !existingAssets.has(DEFAULT_FONT_ASSET.id)) {
     commands.push({ type: "add-asset", asset: DEFAULT_FONT_ASSET });
   }

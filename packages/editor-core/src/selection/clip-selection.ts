@@ -1,20 +1,20 @@
-export type V2EditorSelection =
+export type EditorSelection =
   | { kind: "none" }
   | { kind: "clips"; ids: string[]; primaryId: string }
   | { kind: "layer"; layerId: string };
 
 const EMPTY_IDS: string[] = [];
 
-export function v2SelectionNone(): V2EditorSelection {
+export function selectionNone(): EditorSelection {
   return { kind: "none" };
 }
 
-export function v2SelectionClips(
+export function selectionClips(
   ids: readonly string[],
   primaryId?: string,
-): V2EditorSelection {
+): EditorSelection {
   const unique = [...new Set(ids.filter(Boolean))];
-  if (unique.length === 0) return v2SelectionNone();
+  if (unique.length === 0) return selectionNone();
   return {
     kind: "clips",
     ids: unique,
@@ -25,6 +25,8 @@ export function v2SelectionClips(
   };
 }
 
-export function v2SelectedClipIds(selection: V2EditorSelection): string[] {
+export function selectedClipIds(selection: EditorSelection): string[] {
   return selection.kind === "clips" ? selection.ids : EMPTY_IDS;
 }
+
+

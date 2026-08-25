@@ -14,10 +14,10 @@ import {
 } from "react";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import {
-  applyV2EditorCommand,
-  type V2EditorCommand,
-  type V2EditorDiagnostic,
-} from "@motionvideo/editor-core/v2";
+  applyEditorCommand,
+  type EditorCommand,
+  type EditorDiagnostic,
+} from "@motionvideo/editor-core/document/commands";
 import { saveEditorProject } from "@/lib/api/projects";
 
 export type EditorSurface = {
@@ -32,16 +32,16 @@ export type EditorSurface = {
   isPlaying: boolean;
   setCurrentTime: Dispatch<SetStateAction<number>>;
   setIsPlaying: Dispatch<SetStateAction<boolean>>;
-  applyCommand: (command: V2EditorCommand) => boolean;
-  applyCommands: (commands: readonly V2EditorCommand[]) => boolean;
-  applyCoalescedCommand: (historyKey: string, command: V2EditorCommand) => boolean;
+  applyCommand: (command: EditorCommand) => boolean;
+  applyCommands: (commands: readonly EditorCommand[]) => boolean;
+  applyCoalescedCommand: (historyKey: string, command: EditorCommand) => boolean;
   undo: () => boolean;
   redo: () => boolean;
   deleteSelectedLayers: () => boolean;
   canUndo: boolean;
   canRedo: boolean;
   canDelete: boolean;
-  diagnostics: readonly V2EditorDiagnostic[];
+  diagnostics: readonly EditorDiagnostic[];
   persistenceStatus: "idle" | "saving" | "saved" | "error" | "conflict";
 };
 
@@ -49,28 +49,28 @@ const EditorSurfaceContext = createContext<EditorSurface | null>(null);
 
 type HistoryEntry = {
   /** Commands that restore the document state before this edit. */
-  undo: readonly V2EditorCommand[];
+  undo: readonly EditorCommand[];
   /** Commands that reapply the edit after an undo. */
-  redo: readonly V2EditorCommand[];
+  redo: readonly EditorCommand[];
 };
 
 type CommandExecution =
   | {
       ok: true;
       document: MotionProtocolV2;
-      inverse: readonly V2EditorCommand[];
+      inverse: readonly EditorCommand[];
     }
-  | { ok: false; diagnostics: readonly V2EditorDiagnostic[] };
+  | { ok: false; diagnostics: readonly EditorDiagnostic[] };
 
 /** Run a set atomically from the UI point of view; no partial document commit. */
 function executeCommands(
   document: MotionProtocolV2,
-  commands: readonly V2EditorCommand[],
+  commands: readonly EditorCommand[],
 ): CommandExecution {
   let next = document;
-  const inverse: V2EditorCommand[] = [];
+  const inverse: EditorCommand[] = [];
   for (const command of commands) {
-    const result = applyV2EditorCommand(next, command);
+    const result = applyEditorCommand(next, command);
     if (!result.ok) return { ok: false, diagnostics: result.diagnostics };
     next = result.document;
     // Inverses run in the reverse order of the original transaction.
@@ -93,7 +93,7 @@ function selectionStillExists(
 function removeCommandsForSelection(
   document: MotionProtocolV2,
   selectedIds: readonly string[],
-): V2EditorCommand[] {
+): EditorCommand[] {
   const selected = new Set(
     selectedIds.filter((id) => document.layers.some((layer) => layer.id === id)),
   );
@@ -143,7 +143,7 @@ export function EditorSurfaceProvider({
   // outside MotionProtocolV2, which only stores renderable layer data.
   const [hiddenLayerIds, setHiddenLayerIds] = useState<string[]>([]);
   const [lockedLayerIds, setLockedLayerIds] = useState<string[]>([]);
-  const [diagnostics, setDiagnostics] = useState<readonly V2EditorDiagnostic[]>(
+  const [diagnostics, setDiagnostics] = useState<readonly EditorDiagnostic[]>(
     [],
   );
   const [undoStack, setUndoStack] = useState<readonly HistoryEntry[]>([]);
@@ -185,7 +185,7 @@ export function EditorSurfaceProvider({
   }, [document, initialRevisionNo, projectRef, revisionNo]);
 
   const commitCommands = useCallback(
-    (commands: readonly V2EditorCommand[]): boolean => {
+    (commands: readonly EditorCommand[]): boolean => {
       if (commands.length === 0) return false;
       const result = executeCommands(document, commands);
       setDiagnostics(result.ok ? [] : result.diagnostics);
@@ -207,7 +207,7 @@ export function EditorSurfaceProvider({
   );
 
   const commitCoalescedCommand = useCallback(
-    (historyKey: string, command: V2EditorCommand): boolean => {
+    (historyKey: string, command: EditorCommand): boolean => {
       const result = executeCommands(document, [command]);
       setDiagnostics(result.ok ? [] : result.diagnostics);
       if (!result.ok) return false;

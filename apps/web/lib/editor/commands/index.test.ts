@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createV2EditorProject } from "../document/demo-projects";
-import { applyV2EditorCommand } from "./index";
+import { applyEditorCommand } from "./index";
 
 describe("V2 editor command contract", () => {
   it("commits a typed layer patch and returns an inverse command", () => {
     const project = createV2EditorProject("shape");
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: {
@@ -23,7 +23,7 @@ describe("V2 editor command contract", () => {
 
   it("restores the exact prior document through the inverse command", () => {
     const project = createV2EditorProject("shape");
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: {
@@ -34,7 +34,7 @@ describe("V2 editor command contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const undone = applyV2EditorCommand(result.document, result.inverse);
+    const undone = applyEditorCommand(result.document, result.inverse);
     expect(undone.ok).toBe(true);
     if (!undone.ok) return;
     expect(undone.document).toEqual(project);
@@ -42,7 +42,7 @@ describe("V2 editor command contract", () => {
 
   it("keeps the last valid document when a command fails schema validation", () => {
     const project = createV2EditorProject("shape");
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: { opacity: 2 },
@@ -55,7 +55,7 @@ describe("V2 editor command contract", () => {
 
   it("returns a diagnostic for a missing layer without mutating the project", () => {
     const project = createV2EditorProject("shape");
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "missing",
       patch: { opacity: 0.5 },
@@ -69,7 +69,7 @@ describe("V2 editor command contract", () => {
   it("adds a new top-level shape with a reversible command", () => {
     const project = createV2EditorProject("shape");
     const source = project.layers[0];
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "add-layer",
       layer: {
         ...source,
@@ -96,7 +96,7 @@ describe("V2 editor command contract", () => {
         { ...source, id: "shape-2", order: 1, timing: { start: 2, duration: 3 } },
       ],
     };
-    const result = applyV2EditorCommand(withSecond, {
+    const result = applyEditorCommand(withSecond, {
       type: "patch-layers",
       patches: {
         shape: { timing: { start: 1 } },
@@ -121,7 +121,7 @@ describe("V2 editor command contract", () => {
         { ...source, id: "layer-2", order: 2 },
       ],
     };
-    const result = applyV2EditorCommand(withSiblings, {
+    const result = applyEditorCommand(withSiblings, {
       type: "reorder-layers",
       parentLayerId: null,
       orderedLayerIds: ["layer-0", "layer-2", "layer-1"],
@@ -147,7 +147,7 @@ describe("V2 editor command contract", () => {
       { id: "blur-1", type: "blur", radius: 8 },
       { id: "glow-1", type: "outer-glow", radius: 12, color: "#ffffff", opacity: 0.5 },
     ] as const;
-    const result = applyV2EditorCommand(project, {
+    const result = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: { effects },
@@ -156,14 +156,14 @@ describe("V2 editor command contract", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.document.layers[0]?.effects?.map((effect) => effect.id)).toEqual(["blur-1", "glow-1"]);
-    const undone = applyV2EditorCommand(result.document, result.inverse);
+    const undone = applyEditorCommand(result.document, result.inverse);
     expect(undone.ok).toBe(true);
     if (undone.ok) expect(undone.document).toEqual(project);
   });
 
   it("rejects duplicate and over-limit effect ids atomically", () => {
     const project = createV2EditorProject("shape");
-    const duplicate = applyV2EditorCommand(project, {
+    const duplicate = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: {
@@ -176,7 +176,7 @@ describe("V2 editor command contract", () => {
     expect(duplicate.ok).toBe(false);
     expect(duplicate.document).toEqual(project);
 
-    const overLimit = applyV2EditorCommand(project, {
+    const overLimit = applyEditorCommand(project, {
       type: "patch-layer",
       layerId: "shape",
       patch: {

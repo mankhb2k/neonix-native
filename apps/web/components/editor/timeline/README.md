@@ -7,8 +7,8 @@ not own a document store or persistence state.
 EditorSurfaceProvider
   -> projectLayersToTimeline(document)
   -> TimelineViewport (layout, seek, marquee, drag/trim)
-  -> timelineCommandToV2(command)
-  -> applyV2EditorCommand(document)
+  -> timelineCommandToDocument(command)
+  -> applyEditorCommand(document)
 ```
 
 Timeline lanes, clips, selection, zoom, and playhead are session projections.
