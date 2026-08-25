@@ -18,21 +18,17 @@ The old `@motionvideo/editor-core/v2` path has no production or test import.
 The old `src/v2` files are removed. The web ESLint boundary keeps a negative
 guard for that path so it cannot be reintroduced.
 
-## Deferred to Phase 2
+## Migrated in Phase 2
 
-These consumers still use `@motionvideo/editor-core/timeline-runtime` because
-they depend on the legacy timeline interaction vocabulary. They are deliberately
-not deleted in Phase 1:
+Timeline viewport, lane rows, clip move/trim, marquee, seek, pointer-session,
+DOM timeline adapters, and library-drop geometry now use explicit
+`@motionvideo/editor-core/timeline` or `/interactions` imports. The former web
+timeline adapter was moved to
+`packages/editor-core/src/timeline/commands/to-document-command.ts`, so
+`TimelineEdit` is translated directly to an `EditorCommand` in editor-core.
 
-- timeline viewport, lane rows, clip move/trim, marquee, and seek hooks;
-- pointer-session and DOM timeline adapters;
-- library drop geometry and placement types;
-- the web timeline adapter that still translates `TimelineCommand` into a
-  document command.
-
-Phase 2 will move these exports into `src/timeline` and
-`src/interactions`, replace `TimelineCommand` with `TimelineEdit`, and then
-enable the `/timeline-runtime` ESLint ban.
+The `src/timeline-runtime.ts` barrel and its package export are deleted. The
+ESLint boundary now rejects the old path so it cannot return.
 
 ## Legacy core inventory
 
@@ -59,6 +55,5 @@ rg -n 'from "@motionvideo/motion-protocol"' packages/editor-core/src packages/pa
 rg -l '@motionvideo/editor-core/(v2|timeline-runtime)' apps packages
 ```
 
-The first command must return only the intentional ESLint guard and the
-deferred `/timeline-runtime` consumers until Phase 2 is complete. The second
+The first command must return only the intentional ESLint guards. The second
 command is the deletion/port checklist for the V1 typecheck debt.

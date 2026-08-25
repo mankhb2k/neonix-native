@@ -1,4 +1,4 @@
-import type { FrameDraft, PlacementTarget } from "@motionvideo/editor-core";
+import type { FrameDraft, PlacementTarget } from "@motionvideo/editor-core/timeline";
 import type { LibraryPayload } from "./library-payload";
 
 export type LibraryCommitPoint =

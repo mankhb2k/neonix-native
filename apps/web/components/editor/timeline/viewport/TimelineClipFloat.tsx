@@ -6,7 +6,7 @@ import {
   ClipStripTrimHandles,
   type ClipStripVisualKind,
 } from "../clips/ClipStrip";
-import type { VisualMediaType } from "@motionvideo/editor-core/timeline-runtime";
+import type { VisualMediaType } from "@motionvideo/editor-core/timeline";
 
 type Props = {
   visualKind: ClipStripVisualKind;

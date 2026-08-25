@@ -1,4 +1,4 @@
-import { DEFAULT_FRAME_DURATION, type FrameDraft } from "@motionvideo/editor-core";
+import { DEFAULT_FRAME_DURATION, type FrameDraft } from "@motionvideo/editor-core/timeline";
 import type { TextDragPayload, TextPreset } from "./types";
 
 export function createTextDraft(input: {

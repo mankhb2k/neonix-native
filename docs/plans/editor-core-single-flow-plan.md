@@ -47,12 +47,10 @@ The `v2/index.ts` timeline re-exports already have correct homes under
 compatibility barrel and must be dissolved into explicit, versionless timeline
 exports.
 
-The active web editor still imports the temporary `/v2` facade in the editor
-surface, inspector, timeline, library commands, adapter, and contract tests.
-It also imports `/timeline-runtime` in timeline gesture/viewport hooks. These
-are the migration consumers. The web app currently has an adapter explicitly
-translating a legacy `TimelineCommand` into a V2 command; that adapter is the
-main remaining dual-model boundary.
+Before Phase 1/2, the active web editor imported the temporary `/v2` facade and
+`/timeline-runtime` in timeline gesture/viewport hooks. Those migration
+consumers are now on the canonical document, timeline, and interactions
+surfaces; the former web adapter has moved into editor-core.
 
 ## Target layout
 
@@ -164,7 +162,7 @@ new code is added to a V1 module.
 Exit criteria: `src/v2/` and `./v2` package export are gone; all document
 mutations use `applyEditorCommand`.
 
-### Phase 2 — remove the legacy timeline adapter
+### Phase 2 — remove the legacy timeline adapter (completed)
 
 1. Replace legacy `TimelineCommand` with a versionless `TimelineEdit` whose
    terms match Protocol V2: layer IDs, audio track IDs, timing, and sibling
@@ -186,6 +184,10 @@ mutations use `applyEditorCommand`.
 
 Exit criteria: no app code or core code translates a V1 timeline command into
 a Protocol V2 command, and `/timeline-runtime` is deleted.
+
+Completed in `refactor(editor-core): establish versionless timeline edit
+boundary`: the translator now lives in `timeline/commands`, active consumers
+use `TimelineEdit`, and the compatibility barrel/package export are gone.
 
 ### Phase 3 — port or delete active stage and draft logic
 

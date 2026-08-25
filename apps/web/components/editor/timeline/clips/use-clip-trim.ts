@@ -9,8 +9,8 @@ import {
 import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import type {
   EditorSelection,
-  TimelineCommand,
-} from "@motionvideo/editor-core";
+  TimelineEdit,
+} from "@motionvideo/editor-core/timeline";
 
 export type { ClipTrimPreview };
 
@@ -19,7 +19,7 @@ export type UseClipTrimArgs = {
   disabled?: boolean;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
+  onExecute: (command: TimelineEdit, label: string) => void;
   onLocalPreview: (preview: ClipTrimPreview | null) => void;
 };
 

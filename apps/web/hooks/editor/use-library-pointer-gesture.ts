@@ -6,7 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { PlacementTarget } from "@motionvideo/editor-core";
+import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   attachLibraryDragWindowListeners,

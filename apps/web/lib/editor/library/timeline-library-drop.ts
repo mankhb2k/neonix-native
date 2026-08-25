@@ -6,7 +6,7 @@
 import {
   clientPointToTimelineTime,
   TIMELINE_PLAYHEAD_GUTTER_PX,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   audioDropPolicy,
@@ -21,7 +21,7 @@ import {
   type TimelineDropTarget,
   type TimelineLane,
   type VideoLaneHit,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import type { LibraryPayload } from "./library-payload";
 
 export type LaneHitLayout = {

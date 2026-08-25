@@ -59,6 +59,10 @@ const editorBoundaryImportPaths = [
     message: "Use the canonical @motionvideo/editor-core document API.",
   },
   {
+    name: "@motionvideo/editor-core/timeline-runtime",
+    message: "Use the canonical @motionvideo/editor-core/timeline or /interactions APIs.",
+  },
+  {
     name: "@motionvideo/motion-protocol",
     message: "Editor code must use @motionvideo/motion-protocol/v2 explicitly.",
   },

@@ -15,12 +15,12 @@ import {
   selectionNone,
   resolveFitAnchorSeconds,
   type EditorSelection,
-  type TimelineCommand,
-} from "@motionvideo/editor-core/timeline-runtime";
+  type TimelineEdit,
+  timelineEditToDocumentCommand,
+} from "@motionvideo/editor-core/timeline";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
 import { TimelineViewport } from "./viewport/TimelineViewport";
-import { timelineCommandToDocument } from "@/lib/editor/timeline/adapter";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
 
 /** Timeline chrome backed by the Protocol V2 document adapter. */
@@ -123,7 +123,7 @@ export function TimelineShell() {
   );
 
   const onExecute = useCallback(
-    (command: TimelineCommand, label: string) => {
+    (command: TimelineEdit, label: string) => {
       void label;
       const affectedClipIds =
         command.type === "move-clip" || command.type === "clip/trim"
@@ -140,7 +140,7 @@ export function TimelineShell() {
         .map((clip) => (clip.kind === "scene" ? clip.sceneId : null))
         .filter((id): id is string => Boolean(id));
       if (affectedLayerIds.some((id) => lockedLayerIds.includes(id))) return;
-      const documentCommand: EditorCommand | null = timelineCommandToDocument(
+      const documentCommand: EditorCommand | null = timelineEditToDocumentCommand(
         document,
         projection,
         command,

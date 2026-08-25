@@ -57,9 +57,9 @@ export type TimelineLaneFlags = {
 };
 
 /**
- * Discriminated Union của tất cả các Timeline Commands trong hệ thống.
+ * Discriminated union of timeline edits crossing the editor boundary.
  */
-export type TimelineCommand =
+export type TimelineEdit =
   | { type: "update-scene-duration"; sceneId: string; duration: number }
   | { type: "add-clip-draft"; draft: FrameDraft; target: PlacementTarget }
   | {
@@ -108,6 +108,16 @@ export type TimelineCommand =
       toClipId: string;
       kind?: "cut" | "fade" | "crossfade";
     };
+
+/**
+ * Canonical timeline intent crossing the editor UI boundary.
+ *
+ * The command runner still consumes the historical `TimelineCommand` alias
+ * internally, but UI surfaces must use this versionless contract. Keeping the
+ * alias here lets the command runner and persisted legacy fixtures migrate in
+ * a later phase without exposing a `v1`/`v2` API at the package boundary.
+ */
+export type TimelineCommand = TimelineEdit;
 
 /** Domain Events được phát ra sau khi thực thi thành công một command. */
 export type TimelineDomainEvent =

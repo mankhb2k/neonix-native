@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import { projectLayersToTimeline } from "@motionvideo/editor-core/timeline-projection";
+import { projectLayersToTimeline } from "@motionvideo/editor-core/timeline";
 import { createThreeKingdomsHistoryProject } from "./demo-projects";
 import { projectDuration } from "../preview/preview-controller";
 

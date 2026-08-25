@@ -11,13 +11,11 @@ import {
   resolveLaneTrackKind,
   type EditorSelection,
   type TimelineClip,
-  type TimelineCommand,
+  type TimelineEdit,
   type TimelineLane,
-} from "@motionvideo/editor-core/timeline-runtime";
-import {
   computeAutoScrollNearEdge,
   type ClipMovePreview,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import {
   getTimelineLibraryDropHost,
   resolveClipMoveDropAtY,
@@ -41,7 +39,7 @@ export type UseClipMoveArgs = {
   autoSnapping?: boolean;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
+  onExecute: (command: TimelineEdit, label: string) => void;
   onMovePreview: (preview: ClipMovePreview | null) => void;
   scrollRef: RefObject<HTMLElement | null>;
 };

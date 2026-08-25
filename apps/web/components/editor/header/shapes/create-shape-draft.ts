@@ -2,7 +2,7 @@ import {
   DEFAULT_FRAME_DURATION,
   type FrameDraft,
   type FrameDraftShape,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline";
 import type { ShapeDragPayload, ShapePreset } from "./types";
 
 export function createShapeDraft(input: {

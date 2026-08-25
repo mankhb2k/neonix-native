@@ -1,13 +1,11 @@
-import type {
-  TimelineClip,
-  TimelineLane,
-} from "@motionvideo/editor-core/timeline-runtime";
 import {
+  type TimelineClip,
+  type TimelineLane,
   buildLaneRows,
   timelineLanesStackHeightWithGap as timelineLanesStackHeightCore,
   type GenericLaneRow,
   type LaneRowConfig,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import {
   BASE_LANE_HEIGHT_PX,
   LAYER_LANE_HEIGHT_PX,
@@ -155,4 +153,4 @@ export {
   timelineLanesContentHeight,
   laneContentOffsetTop,
   laneHeightsWithGaps,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";

@@ -6,13 +6,13 @@ import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
 import { LANE_GAP_PX } from "../timeline-scale";
-import type { ClipMovePreview } from "@motionvideo/editor-core";
+import type { ClipMovePreview } from "@motionvideo/editor-core/timeline";
 import type {
   EditorSelection,
   TimelineClip,
-  TimelineCommand,
+  TimelineEdit,
   TimelineLane,
-} from "@motionvideo/editor-core";
+} from "@motionvideo/editor-core/timeline";
 import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
 import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useCallback, useState, type RefObject } from "react";
@@ -44,7 +44,7 @@ type Props = {
   selection: EditorSelection;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
+  onExecute: (command: TimelineEdit, label: string) => void;
   scrollRef: RefObject<HTMLElement | null>;
   onMarqueePointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onClipSelectPointerDown?: (
@@ -74,7 +74,7 @@ type LaneRowClipsProps = {
   selection: EditorSelection;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
+  onExecute: (command: TimelineEdit, label: string) => void;
   onMovePreview: (preview: ClipMovePreview | null) => void;
   scrollRef: RefObject<HTMLElement | null>;
   onClipSelectPointerDown?: (

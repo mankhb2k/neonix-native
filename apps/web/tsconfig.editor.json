@@ -18,7 +18,7 @@
     "lib/editor/library/commands.ts",
     "lib/editor/preview/preview-controller.ts",
     "lib/editor/stage/transform.ts",
-    "lib/editor/timeline/adapter.ts"
+    "lib/editor/timeline/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -1,17 +1,14 @@
 import type { MotionProtocolV2, V2AudioClip } from "@motionvideo/motion-protocol/v2";
-import {
-  type AudioClipPatch,
-  type EditorCommand,
-  type LayerPatch,
-} from "@motionvideo/editor-core/document/commands";
-import { projectLayersToTimeline as projectTimeline } from "@motionvideo/editor-core/timeline";
 import type {
-  TimelineClip,
-  TimelineCommand,
-  TimelineLane,
-} from "@motionvideo/editor-core/timeline-runtime";
+  AudioClipPatch,
+  EditorCommand,
+  LayerPatch,
+} from "../../document/commands";
+import { projectLayersToTimeline } from "../selectors/layer-timeline-projection";
+import type { TimelineClip, TimelineLane } from "../model/timeline-types";
+import type { TimelineEdit } from "./command-types";
 
-type Projection = ReturnType<typeof projectTimeline>;
+type Projection = ReturnType<typeof projectLayersToTimeline>;
 
 function layerIdForClip(clip: TimelineClip): string | null {
   return clip.kind === "scene" ? clip.sceneId : null;
@@ -25,7 +22,9 @@ function audioTarget(
   const track = document.audio.tracks.find(
     (candidate) => candidate.id === clip.audioTrackId,
   );
-  const target = track?.clips.find((candidate) => candidate.id === clip.id.replace(/^audio\./, ""));
+  const target = track?.clips.find(
+    (candidate) => candidate.id === clip.id.replace(/^audio\./, ""),
+  );
   return track && target ? { trackId: track.id, clip: target } : null;
 }
 
@@ -64,14 +63,14 @@ function rootLayerIdsByOrder(document: MotionProtocolV2): string[] {
 }
 
 /**
- * Convert the V1 visual lane intent into a root-sibling insertion index. Lane
- * ids never cross the document boundary; the complete sibling list is renumbered
- * atomically by the reorder command.
+ * Resolve the timeline's visual lane intent into a root-sibling insertion
+ * index. Lane ids are UI projection details and never cross the document
+ * boundary; the document command renumbers the complete sibling list.
  */
 function orderedRootIdsForMove(
   document: MotionProtocolV2,
   clipId: string,
-  command: Extract<TimelineCommand, { type: "move-clip" }>,
+  command: Extract<TimelineEdit, { type: "move-clip" }>,
   lane: TimelineLane | null,
 ): string[] | null {
   const ordered = rootLayerIdsByOrder(document);
@@ -80,15 +79,11 @@ function orderedRootIdsForMove(
 
   let targetIndex: number | null = null;
   if (command.patch.track === "main") {
-    // The resolved lane is the stronger vertical signal. During a pointer
-    // session the legacy policy can briefly retain the source track while
-    // already resolving an overlay lane; do not collapse that drop to Main.
     targetIndex =
       lane?.kind === "visual" && lane.role === "overlay"
         ? Math.max(1, lane.order)
         : 0;
   } else if (command.patch.track === "overlay") {
-    // Timeline insertOrder is zero-based from Main; document order 0 is Main.
     if (command.patch.insertNewLane || command.patch.laneId == null) {
       const insertOrder = command.patch.insertOrder ?? 0;
       const maxOverlayOrder = document.layers.reduce(
@@ -96,9 +91,6 @@ function orderedRootIdsForMove(
           layer.parentLayerId === null ? Math.max(max, layer.order) : max,
         0,
       );
-      // Existing lane edge inserts use the lane order as a boundary: its
-      // lower edge inserts before that order, while a new outer lane uses
-      // maxOrder + 1 and goes to the top.
       targetIndex =
         insertOrder > maxOverlayOrder
           ? insertOrder
@@ -116,13 +108,14 @@ function orderedRootIdsForMove(
 }
 
 /**
- * Thin boundary between the timeline interaction contract and the document.
- * The viewport/hooks stay unchanged; only their commit payload is translated.
+ * Translate a timeline edit into the canonical document command API. The
+ * timeline projection owns hit-testing; this function is the only boundary
+ * that turns lane intent into Protocol V2 patches.
  */
-export function timelineCommandToDocument(
+export function timelineEditToDocumentCommand(
   document: MotionProtocolV2,
   projection: Projection,
-  command: TimelineCommand,
+  command: TimelineEdit,
 ): EditorCommand | null {
   if (command.type === "move-clip") {
     const clip = clipById(projection, command.clipId);
@@ -174,17 +167,21 @@ export function timelineCommandToDocument(
       const clip = clipById(projection, id);
       const layerId = clip && layerIdForClip(clip);
       if (!clip || !layerId) continue;
-      patches[layerId] = timingPatch(clip.startTime + command.deltaTime, clip.duration);
+      patches[layerId] = timingPatch(
+        clip.startTime + command.deltaTime,
+        clip.duration,
+      );
       selectedRootIds.push(layerId);
     }
     if (selectedRootIds.length === 0) return null;
 
     const targetLane = command.targetLaneId
-      ? (projection.lanes.find((lane) => lane.id === command.targetLaneId) ?? null)
+      ? (projection.lanes.find((lane) => lane.id === command.targetLaneId) ??
+        null)
       : null;
     if (command.targetTrack && selectedRootIds.length > 0) {
       const primaryId = selectedRootIds[0]!;
-      const moveCommand: Extract<TimelineCommand, { type: "move-clip" }> = {
+      const moveCommand: Extract<TimelineEdit, { type: "move-clip" }> = {
         type: "move-clip",
         clipId: primaryId,
         patch: {
@@ -203,7 +200,9 @@ export function timelineCommandToDocument(
       );
       if (targetOrder) {
         const selected = new Set(selectedRootIds);
-        const block = rootLayerIdsByOrder(document).filter((id) => selected.has(id));
+        const block = rootLayerIdsByOrder(document).filter((id) =>
+          selected.has(id),
+        );
         const primaryTargetIndex = targetOrder.indexOf(primaryId);
         const insertIndex = targetOrder
           .slice(0, Math.max(0, primaryTargetIndex))
@@ -238,7 +237,11 @@ export function timelineCommandToDocument(
           type: "patch-audio-clip",
           trackId: target.trackId,
           clipId: target.clip.id,
-          patch: audioTimingPatch(nextStart, command.duration, command.trimStart),
+          patch: audioTimingPatch(
+            nextStart,
+            command.duration,
+            command.trimStart,
+          ),
         }
       : null;
   }
@@ -249,7 +252,10 @@ export function timelineCommandToDocument(
       .map(layerIdForClip)
       .filter((id): id is string => Boolean(id));
     const patches = Object.fromEntries(
-      laneClipIds.map((id, index) => [id, { order: Math.max(0, command.newOrder + index) }]),
+      laneClipIds.map((id, index) => [
+        id,
+        { order: Math.max(0, command.newOrder + index) },
+      ]),
     );
     return Object.keys(patches).length > 0
       ? { type: "patch-layers", patches }

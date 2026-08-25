@@ -13,10 +13,8 @@ import {
   computeViewportLayout,
   type EditorSelection,
   type TimelineClip,
-  type TimelineCommand,
+  type TimelineEdit,
   type TimelineLane,
-} from "@motionvideo/editor-core/timeline-runtime";
-import {
   computePlayheadFollowScroll,
   resolvePlayheadScrubMax,
   timelineTimeToViewportLeft,
@@ -25,7 +23,7 @@ import {
   PLAYHEAD_FOLLOW_MARGIN_PX,
   type ClipMovePreview,
   type MarqueeRect,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
 import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
 import {
@@ -72,7 +70,7 @@ type Props = {
   selection: EditorSelection;
   onSelect: (selection: EditorSelection) => void;
   onSeek: (time: number) => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
+  onExecute: (command: TimelineEdit, label: string) => void;
   onBeginScrub?: () => void;
   onEndScrub?: () => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;

@@ -8,12 +8,10 @@ import {
   selectionClips,
   type EditorSelection,
   type TimelineClip,
-  type TimelineCommand,
-} from "@motionvideo/editor-core/timeline-runtime";
-import {
+  type TimelineEdit,
   resolveClipTrimUpdate,
   type ClipTrimPreview,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 
@@ -24,7 +22,7 @@ export type UseClipTrimArgs = {
   disabled?: boolean;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
-  onCommand: (command: TimelineCommand, label: string) => void;
+  onCommand: (command: TimelineEdit, label: string) => void;
   onTrimPreview: (preview: ClipTrimPreview | null) => void;
 };
 

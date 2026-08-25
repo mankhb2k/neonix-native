@@ -16,7 +16,7 @@ import {
   visibleTimeRange,
   type LaneTimelineIndex,
   type TimelineClip,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 
 export const TIMELINE_CLIP_OVERSCAN_PX = 120;
 export { TIMELINE_LANE_OVERSCAN_PX, visibleLaneWindow } from "./visible-lane-window";

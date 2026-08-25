@@ -9,16 +9,14 @@ import {
   selectionClips,
   type EditorSelection,
   type TimelineClip,
-  type TimelineCommand,
+  type TimelineEdit,
   type TimelineLane,
   type TimelineTrackKind,
-} from "@motionvideo/editor-core/timeline-runtime";
-import {
   collectClipEdgeSnapPoints,
   resolveClipMoveDrag,
   type ClipMoveDropTarget,
   type ClipMovePreview,
-} from "@motionvideo/editor-core/timeline-runtime";
+} from "@motionvideo/editor-core/timeline";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 import type {
@@ -127,7 +125,7 @@ export type UseClipMoveArgs = {
   beginGesture: BeginGesture;
   host: ClipMoveHost;
   onSelect: (selection: EditorSelection) => void;
-  onCommand: (command: TimelineCommand, label: string) => void;
+  onCommand: (command: TimelineEdit, label: string) => void;
   onMovePreview: (preview: ClipMovePreview | null) => void;
 };
 
