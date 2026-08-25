@@ -16,7 +16,9 @@ surfaces will not remain as compatibility paths.
   repository. Supabase-backed project load/list/save is now behind
   `lib/editor/document/project-repository.ts`; seeded demo IDs remain an
   explicit development fallback.
-- [ ] Phase 3+: remove verified-unreachable V1 code and obsolete tooling.
+- [x] Phase 3: remove verified-unreachable V1 UI, Zustand store, localStorage
+  persistence, and legacy preview/playback helpers.
+- [ ] Phase 4+: simplify tooling and enforce the editor boundary.
 
 This plan intentionally does **not** preserve a V1 project-opening path. The
 current public editor entrypoint already creates and renders a `MotionProtocolV2`

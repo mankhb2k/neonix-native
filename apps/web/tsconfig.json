@@ -45,8 +45,6 @@
     "lib/editor",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "components/hub/NewProjectModal.tsx",
-    "components/hub/ProjectList.tsx",
     "playwright.config.ts",
     "vitest.config.ts",
     "vitest.v2.config.ts"
