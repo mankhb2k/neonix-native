@@ -271,16 +271,3 @@ export function cloneLayerWithNewIds(
   }
   return remapAnimationIds(cloned);
 }
-
-/** @deprecated Use `layerFromFrameDraft` (layer vocabulary). */
-export const sceneFromFrameDraft: typeof layerFromFrameDraft = (
-  draft,
-  createId,
-  composition,
-) => layerFromFrameDraft(draft, createId, composition);
-
-/** @deprecated Use `cloneLayerWithNewIds` (layer vocabulary). */
-export const cloneSceneWithNewIds: typeof cloneLayerWithNewIds = (
-  layer,
-  createId,
-) => cloneLayerWithNewIds(layer, createId);

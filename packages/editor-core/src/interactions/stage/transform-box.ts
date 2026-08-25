@@ -9,7 +9,6 @@ export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 export type StageHandle = ResizeHandle | "rotate";
 
 export type StageTransformValues = {
-  rootLayerId: string;
   layerId: string;
   x: number;
   y: number;

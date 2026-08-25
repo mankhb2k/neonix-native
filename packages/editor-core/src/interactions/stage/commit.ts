@@ -1,72 +1,78 @@
-/**
- * Ánh xạ preview transform stage → property patches / DocumentPropertyCommand.
- */
+/** Convert a stage preview into the canonical Protocol V2 document command. */
 
-import type {
-  DocumentPropertyCommand,
-  NodeTargetRef,
-  TransformPatch,
-} from "../../properties/property-commands";
+import type { EditorCommand, LayerPatch } from "../../document/commands";
 import type { StageTransformValues } from "./transform-box";
 
-export type StagePropertyPatch = {
-  target: NodeTargetRef;
+export type StageLayerPatch = {
+  layerId: string;
   values: StageTransformValues;
-  /** Tập con cho set-node-transform của editor-core hiện tại. */
-  transformPatch: TransformPatch;
-  /** width/height cho tới khi TransformPatch mở rộng — host có thể ghi riêng. */
-  sizePatch?: { width: number; height: number };
+  patch: LayerPatch;
 };
 
 export type StageCommitResult = {
   interactionId: string;
   mode: "move" | "resize" | "rotate";
-  patches: StagePropertyPatch[];
-  command: DocumentPropertyCommand | null;
+  patches: StageLayerPatch[];
+  command: EditorCommand | null;
 };
 
-export function toStagePropertyPatches(
+function finiteOr(value: number, fallback: number): number {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function layerPatchFromPreview(
   base: StageTransformValues,
   preview: StageTransformValues,
-): StagePropertyPatch[] {
-  const transformPatch: TransformPatch = {};
-  if (preview.x !== base.x) transformPatch.x = preview.x;
-  if (preview.y !== base.y) transformPatch.y = preview.y;
-  if (preview.rotation !== base.rotation) {
-    transformPatch.rotation = preview.rotation;
+): LayerPatch {
+  const patch: LayerPatch = {};
+  const translate = {
+    x: finiteOr(preview.x, base.x),
+    y: finiteOr(preview.y, base.y),
+  };
+  const rotate = { z: finiteOr(preview.rotation, base.rotation) };
+
+  if (preview.x !== base.x || preview.y !== base.y) {
+    patch.transform = { translate };
   }
+  if (preview.rotation !== base.rotation) {
+    patch.transform = { ...(patch.transform ?? {}), rotate };
+  }
+  if (preview.width !== base.width || preview.height !== base.height) {
+    patch.frame = {
+      width: Math.max(0.001, finiteOr(preview.width, base.width)),
+      height: Math.max(0.001, finiteOr(preview.height, base.height)),
+    };
+  }
+  return patch;
+}
 
-  const sizeChanged =
-    preview.width !== base.width || preview.height !== base.height;
-
+export function toStageLayerPatches(
+  base: StageTransformValues,
+  preview: StageTransformValues,
+): StageLayerPatch[] {
   return [
     {
-      target: { rootLayerId: preview.rootLayerId, layerId: preview.layerId },
+      layerId: preview.layerId,
       values: preview,
-      transformPatch,
-      sizePatch: sizeChanged
-        ? { width: preview.width, height: preview.height }
-        : undefined,
+      patch: layerPatchFromPreview(base, preview),
     },
   ];
 }
 
-/**
- * Tạo command `set-node-transform` cho MỘT patch duy nhất.
- *
- * `toStagePropertyPatches()` luôn trả về đúng một patch (stage tương tác là
- * single-selection). Hàm này nhận đúng một patch để ranh giới rõ ràng:
- * - Không có thay đổi transform (ví dụ chỉ resize size) → trả về `null`.
- *   Size change vẫn nằm ở `patch.sizePatch` để host tự xử lý.
- * - Có thay đổi transform → trả về `{ type: "set-node-transform", ... }`.
- */
-export function toSingleSetNodeTransformCommand(
-  patch: StagePropertyPatch,
-): DocumentPropertyCommand | null {
-  if (Object.keys(patch.transformPatch).length === 0) return null;
+/** Build one atomic command, or a patch-layers command for a group gesture. */
+export function toStageDocumentCommand(
+  patches: readonly StageLayerPatch[],
+): EditorCommand | null {
+  const changed = patches.filter((patch) => Object.keys(patch.patch).length > 0);
+  if (changed.length === 0) return null;
+  if (changed.length === 1) {
+    const patch = changed[0]!;
+    return { type: "patch-layer", layerId: patch.layerId, patch: patch.patch };
+  }
   return {
-    type: "set-node-transform",
-    targets: [patch.target],
-    patch: patch.transformPatch,
+    type: "patch-layers",
+    patches: Object.fromEntries(
+      changed.map((patch) => [patch.layerId, patch.patch]),
+    ),
   };
 }

@@ -74,8 +74,8 @@ Mot so helper dung lai tu app store/legacy layer duoc gom vao day de app co the 
 - `mapNode`
 - `nodeText`
 - `updateVariable`
-- `layerFromFrameDraft` (alias `sceneFromFrameDraft`, deprecated)
-- `cloneLayerWithNewIds` (alias `cloneSceneWithNewIds`, deprecated)
+- `layerFromFrameDraft`
+- `cloneLayerWithNewIds`
 - `stageSizeForAspect`
 
 ## Public API chinh

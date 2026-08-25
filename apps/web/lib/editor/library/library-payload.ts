@@ -1,5 +1,6 @@
-import type { FrameDraftShape } from "@motionvideo/editor-core";
 import type { V2Asset } from "@motionvideo/motion-protocol/v2";
+
+export type LibraryShape = "rectangle" | "ellipse" | "polygon";
 
 /** Library item dragged from header Text / Shape (desktop-parity payload). */
 export type LibraryPayload =
@@ -8,7 +9,7 @@ export type LibraryPayload =
       kind: "shape";
       id: string;
       label: string;
-      shape: FrameDraftShape;
+      shape: LibraryShape;
       duration?: number;
     }
   | {

@@ -5,8 +5,6 @@ import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   getSelectionBounds,
   buildV2MovePatches,
-  buildV2ResizePatch,
-  buildV2RotatePatch,
   getV2LayerBounds,
   getV2LayerSelectionBox,
   getV2LayerWorldQuad,
@@ -132,7 +130,6 @@ function hitboxStyle(layer: V2Layer, compositionWidth: number, compositionHeight
 
 function layerTransformValues(layer: V2Layer): StageTransformValues {
   return {
-    rootLayerId: layer.parentLayerId ?? layer.id,
     layerId: layer.id,
     x: layer.transform.translate.x,
     y: layer.transform.translate.y,
@@ -277,6 +274,10 @@ export function StageTransformOverlay({
     const deltaX = primaryPreview.x - primaryBase.x;
     const deltaY = primaryPreview.y - primaryBase.y;
     if (Math.abs(deltaX) < 1e-6 && Math.abs(deltaY) < 1e-6) return;
+    if (active.bases.size === 1 && result?.command) {
+      applyCommand(result.command);
+      return;
+    }
     const patches = buildV2MovePatches(
       [...active.bases.keys()]
         .map((id) => document.layers.find((layer) => layer.id === id))
@@ -294,12 +295,8 @@ export function StageTransformOverlay({
     const preview = result?.patches[0]?.values;
     activeResizeRef.current = null;
     setResizePreview(null);
-    if (!preview) return;
-    applyCommand({
-      type: "patch-layer",
-      layerId: active.layerId,
-      patch: buildV2ResizePatch(preview),
-    });
+    if (!preview || !result?.command) return;
+    applyCommand(result.command);
   }, [applyCommand]);
 
   const finishRotate = useCallback(() => {
@@ -310,12 +307,8 @@ export function StageTransformOverlay({
     const preview = result?.patches[0]?.values;
     activeRotateRef.current = null;
     setRotatePreview(null);
-    if (!preview || Math.abs(preview.rotation - active.base.rotation) < 1e-6) return;
-    applyCommand({
-      type: "patch-layer",
-      layerId: active.layerId,
-      patch: buildV2RotatePatch({ rotation: preview.rotation }),
-    });
+    if (!preview || !result?.command) return;
+    applyCommand(result.command);
   }, [applyCommand]);
 
   const cancelMove = useCallback(() => {

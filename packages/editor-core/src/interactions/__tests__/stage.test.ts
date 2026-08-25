@@ -9,7 +9,7 @@ import {
   compositionToClient,
   createStageSession,
   hitTestHandle,
-  toStagePropertyPatches,
+  toStageLayerPatches,
 } from "../index";
 
 describe("stage coordinates", () => {
@@ -37,7 +37,6 @@ describe("stage coordinates", () => {
 
 describe("stage transform math", () => {
   const base = {
-    rootLayerId: "s",
     layerId: "n",
     x: 10,
     y: 20,
@@ -106,7 +105,6 @@ describe("stage constraints", () => {
   it("snaps move to guides", () => {
     const { values, guides } = applyMoveConstraints(
       {
-        rootLayerId: "s",
         layerId: "n",
         x: 52,
         y: 10,
@@ -135,7 +133,6 @@ describe("createStageSession", () => {
     const session = createStageSession();
     const previews: unknown[] = [];
     const base = {
-      rootLayerId: "scene",
       layerId: "node",
       x: 0,
       y: 0,
@@ -160,8 +157,8 @@ describe("createStageSession", () => {
     const commit = session.commit("pointerup");
     expect(commit?.patches[0]?.values).toMatchObject({ x: 10, y: 5 });
     expect(commit?.command).toMatchObject({
-      type: "set-node-transform",
-      patch: { x: 10, y: 5 },
+      type: "patch-layer",
+      patch: { transform: { translate: { x: 10, y: 5 } } },
     });
     expect(session.mode).toBe("idle");
     expect(previews.length).toBeGreaterThan(1);
@@ -170,7 +167,6 @@ describe("createStageSession", () => {
   it("previews resize and preserves the opposite edge", () => {
     const session = createStageSession();
     const base = {
-      rootLayerId: "scene",
       layerId: "node",
       x: 10,
       y: 20,
@@ -191,13 +187,15 @@ describe("createStageSession", () => {
     session.updatePointer({ x: 20, y: 0 });
     const commit = session.commit("pointerup");
     expect(commit?.patches[0]?.values).toMatchObject({ x: 30, width: 80 });
-    expect(commit?.patches[0]?.sizePatch).toEqual({ width: 80, height: 50 });
+    expect(commit?.patches[0]?.patch).toEqual({
+      frame: { width: 80, height: 50 },
+      transform: { translate: { x: 30, y: 20 } },
+    });
   });
 
   it("keeps aspect ratio and center when Shift+Alt are held", () => {
     const session = createStageSession();
     const base = {
-      rootLayerId: "scene",
       layerId: "node",
       x: 10,
       y: 20,
@@ -228,7 +226,6 @@ describe("createStageSession", () => {
   it("snaps a rotate session to 45 degrees with Shift", () => {
     const session = createStageSession();
     const rotateBase = {
-      rootLayerId: "scene",
       layerId: "node",
       x: 10,
       y: 20,
@@ -249,7 +246,9 @@ describe("createStageSession", () => {
     session.updatePointer({ x: 80, y: 23 }, { shift: true });
     const commit = session.commit("pointerup");
     expect(commit?.patches[0]?.values.rotation).toBe(45);
-    expect(commit?.command).toMatchObject({ patch: { rotation: 45 } });
+    expect(commit?.command).toMatchObject({
+      patch: { transform: { rotate: { z: 45 } } },
+    });
   });
 
   it("cancels without command", () => {
@@ -258,7 +257,6 @@ describe("createStageSession", () => {
       {
         interactionId: "i2",
         base: {
-          rootLayerId: "s",
           layerId: "n",
           x: 0,
           y: 0,
@@ -276,10 +274,9 @@ describe("createStageSession", () => {
   });
 });
 
-describe("toStagePropertyPatches", () => {
-  it("includes sizePatch when dimensions change", () => {
+describe("toStageLayerPatches", () => {
+  it("includes a frame patch when dimensions change", () => {
     const base = {
-      rootLayerId: "s",
       layerId: "n",
       x: 0,
       y: 0,
@@ -288,7 +285,7 @@ describe("toStagePropertyPatches", () => {
       rotation: 0,
     };
     const preview = { ...base, width: 30 };
-    const patches = toStagePropertyPatches(base, preview);
-    expect(patches[0]?.sizePatch).toEqual({ width: 30, height: 10 });
+    const patches = toStageLayerPatches(base, preview);
+    expect(patches[0]?.patch).toEqual({ frame: { width: 30, height: 10 } });
   });
 });

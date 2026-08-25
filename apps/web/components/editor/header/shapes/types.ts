@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import type { FrameDraftShape } from "@motionvideo/editor-core";
+import type { LibraryShape } from "@/lib/editor/library/library-payload";
 
 export type ShapePreset = {
   id: string;
   label: string;
-  shape: FrameDraftShape;
+  shape: LibraryShape;
   icon: ReactNode;
 };
 
@@ -18,7 +18,7 @@ export const MOTICLIP_SHAPE_MIME = "application/x-moticlip-shape";
 export type ShapeDragPayload = {
   presetId: string;
   label: string;
-  shape: FrameDraftShape;
+  shape: LibraryShape;
 };
 
 export function serializeShapeDrag(payload: ShapeDragPayload): string {

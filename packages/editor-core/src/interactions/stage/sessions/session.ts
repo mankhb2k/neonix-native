@@ -24,8 +24,8 @@ import {
 } from "../transform-box";
 import { applyMoveDelta, applyResizeDelta, applyRotateDelta } from "./math";
 import {
-  toSingleSetNodeTransformCommand,
-  toStagePropertyPatches,
+  toStageDocumentCommand,
+  toStageLayerPatches,
   type StageCommitResult,
 } from "../commit";
 
@@ -216,10 +216,8 @@ export function createStageSession(): StageSession {
         return null;
       }
       const session = active;
-      const patches = toStagePropertyPatches(session.base, session.preview);
-      const command = patches[0]
-        ? toSingleSetNodeTransformCommand(patches[0])
-        : null;
+      const patches = toStageLayerPatches(session.base, session.preview);
+      const command = toStageDocumentCommand(patches);
       const result: StageCommitResult = {
         interactionId: session.interactionId,
         mode: session.mode,

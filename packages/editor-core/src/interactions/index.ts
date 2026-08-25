@@ -126,8 +126,8 @@ export {
   type StageSessionCallbacks,
 } from "./stage/sessions/session";
 export {
-  toSingleSetNodeTransformCommand,
-  toStagePropertyPatches,
+  toStageDocumentCommand,
+  toStageLayerPatches,
   type StageCommitResult,
-  type StagePropertyPatch,
+  type StageLayerPatch,
 } from "./stage/commit";

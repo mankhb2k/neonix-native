@@ -30,6 +30,11 @@ timeline adapter was moved to
 The `src/timeline-runtime.ts` barrel and its package export are deleted. The
 ESLint boundary now rejects the old path so it cannot return.
 
+Phase 3 also removed the active stage/property-command bridge. Stage sessions
+now emit `patch-layer`/`patch-layers` `EditorCommand` values, and the web
+library no longer creates `FrameDraft` values; unused draft adapters and
+deprecated scene aliases are gone.
+
 ## Legacy core inventory
 
 The root package still eagerly exports the following V1-oriented modules. They

@@ -92,10 +92,6 @@ export {
   mapNode,
   layerFromFrameDraft,
   cloneLayerWithNewIds,
-  /** @deprecated Use `layerFromFrameDraft`. */
-  sceneFromFrameDraft,
-  /** @deprecated Use `cloneLayerWithNewIds`. */
-  cloneSceneWithNewIds,
   stageSizeForAspect,
   type CompositionSize,
 } from "./timeline/internal/scene-utils";

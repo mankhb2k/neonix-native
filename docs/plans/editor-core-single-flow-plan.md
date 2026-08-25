@@ -189,7 +189,7 @@ Completed in `refactor(editor-core): establish versionless timeline edit
 boundary`: the translator now lives in `timeline/commands`, active consumers
 use `TimelineEdit`, and the compatibility barrel/package export are gone.
 
-### Phase 3 — port or delete active stage and draft logic
+### Phase 3 — port or delete active stage and draft logic (completed)
 
 1. Rewrite `interactions/stage/commit.ts` to emit `patch-layer`/
    `patch-layers` `EditorCommand` values. It must no longer import
@@ -206,6 +206,10 @@ use `TimelineEdit`, and the compatibility barrel/package export are gone.
 
 Exit criteria: stage, header creation, library drop, and timeline edits share
 one document mutation API.
+
+Completed: stage sessions now emit `EditorCommand` layer patches directly,
+single-layer stage commits are applied through `EditorSurfaceProvider`, and
+unused web `FrameDraft` adapters plus deprecated scene aliases were removed.
 
 ### Phase 4 — delete the V1 implementation
 

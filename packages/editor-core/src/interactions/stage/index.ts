@@ -41,8 +41,8 @@ export {
   createStageSession,
 } from "./sessions/session";
 export {
-  type StagePropertyPatch,
+  type StageLayerPatch,
   type StageCommitResult,
-  toStagePropertyPatches,
-  toSingleSetNodeTransformCommand,
+  toStageLayerPatches,
+  toStageDocumentCommand,
 } from "./commit";
