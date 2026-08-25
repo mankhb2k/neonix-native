@@ -2,7 +2,7 @@
  * Trạng thái phiên kéo-thả move clip trên timeline (không giữ DOM).
  */
 
-import type { ClipMovePatch } from "../../timeline/commands/command-types";
+import type { ClipMovePatch } from "../../timeline/edit-intents";
 
 export type MoveSessionState = {
   clipId: string;

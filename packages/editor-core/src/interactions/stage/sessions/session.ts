@@ -72,7 +72,7 @@ export type StageSession = {
   beginMove(args: BeginMoveArgs, cb: StageSessionCallbacks): void;
   beginResize(args: BeginResizeArgs, cb: StageSessionCallbacks): void;
   beginRotate(args: BeginRotateArgs, cb: StageSessionCallbacks): void;
-  updatePointer(pointer: StagePoint, modifiers?: PointerModifiers): void;
+  updatePointer(pointer: StagePoint, modifiers?: Partial<PointerModifiers>): void;
   cancel(): void;
   commit(reason?: PointerSessionEndReason): StageCommitResult | null;
 };

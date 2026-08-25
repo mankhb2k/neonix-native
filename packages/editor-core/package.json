@@ -11,9 +11,7 @@
     "./selection": "./src/selection/index.ts",
     "./timeline": "./src/timeline/index.ts",
     "./interactions": "./src/interactions/index.ts",
-    "./interactions/stage": "./src/interactions/stage/index.ts",
-    "./mock": "./src/mock/index.ts",
-    "./model": "./src/model/index.ts"
+    "./interactions/stage": "./src/interactions/stage/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.build.json --noEmit",

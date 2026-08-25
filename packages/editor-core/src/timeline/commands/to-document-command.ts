@@ -6,29 +6,22 @@ import type {
 } from "../../document/commands";
 import { projectLayersToTimeline } from "../selectors/layer-timeline-projection";
 import type { TimelineClip, TimelineLane } from "../model/timeline-types";
-import type { TimelineEdit } from "./command-types";
+import type { TimelineEdit } from "../edit-intents";
 
 type Projection = ReturnType<typeof projectLayersToTimeline>;
 
-function layerIdForClip(clip: TimelineClip): string | null {
-  return clip.kind === "scene" ? clip.sceneId : null;
+function clipById(projection: Projection, id: string): TimelineClip | null {
+  return projection.clips.find((clip) => clip.id === id) ?? null;
 }
 
-function audioTarget(
-  document: MotionProtocolV2,
-  clip: TimelineClip,
-): { trackId: string; clip: V2AudioClip } | null {
-  if (clip.kind !== "audio") return null;
-  const track = document.audio.tracks.find(
-    (candidate) => candidate.id === clip.audioTrackId,
-  );
-  const target = track?.clips.find(
-    (candidate) => candidate.id === clip.id.replace(/^audio\./, ""),
-  );
-  return track && target ? { trackId: track.id, clip: target } : null;
+function rootLayerIds(document: MotionProtocolV2): string[] {
+  return document.layers
+    .filter((layer) => layer.parentLayerId === null)
+    .sort((a, b) => a.order - b.order)
+    .map((layer) => layer.id);
 }
 
-function timingPatch(start: number, duration?: number): LayerPatch {
+function layerTimingPatch(start: number, duration?: number): LayerPatch {
   return {
     timing: {
       start: Math.max(0, start),
@@ -51,67 +44,44 @@ function audioTimingPatch(
   } as AudioClipPatch;
 }
 
-function clipById(projection: Projection, id: string): TimelineClip | null {
-  return projection.clips.find((clip) => clip.id === id) ?? null;
+function audioTarget(
+  document: MotionProtocolV2,
+  clip: TimelineClip,
+): { trackId: string; clip: V2AudioClip } | null {
+  if (clip.kind !== "audio") return null;
+  const track = document.audio.tracks.find((candidate) => candidate.id === clip.audioTrackId);
+  const target = track?.clips.find((candidate) => candidate.id === clip.id.replace(/^audio\./, ""));
+  return track && target ? { trackId: track.id, clip: target } : null;
 }
 
-function rootLayerIdsByOrder(document: MotionProtocolV2): string[] {
-  return document.layers
-    .filter((layer) => layer.parentLayerId === null)
-    .sort((left, right) => left.order - right.order)
-    .map((layer) => layer.id);
-}
-
-/**
- * Resolve the timeline's visual lane intent into a root-sibling insertion
- * index. Lane ids are UI projection details and never cross the document
- * boundary; the document command renumbers the complete sibling list.
- */
 function orderedRootIdsForMove(
   document: MotionProtocolV2,
   clipId: string,
   command: Extract<TimelineEdit, { type: "move-clip" }>,
   lane: TimelineLane | null,
 ): string[] | null {
-  const ordered = rootLayerIdsByOrder(document);
-  const currentIndex = ordered.indexOf(clipId);
-  if (currentIndex < 0) return null;
+  const ordered = rootLayerIds(document);
+  const current = ordered.indexOf(clipId);
+  if (current < 0 || !command.patch.track) return null;
 
-  let targetIndex: number | null = null;
+  let target: number | null = null;
   if (command.patch.track === "main") {
-    targetIndex =
-      lane?.kind === "visual" && lane.role === "overlay"
-        ? Math.max(1, lane.order)
-        : 0;
+    target = lane?.kind === "visual" && lane.role === "overlay"
+      ? Math.max(1, lane.order)
+      : 0;
   } else if (command.patch.track === "overlay") {
     if (command.patch.insertNewLane || command.patch.laneId == null) {
-      const insertOrder = command.patch.insertOrder ?? 0;
-      const maxOverlayOrder = document.layers.reduce(
-        (max, layer) =>
-          layer.parentLayerId === null ? Math.max(max, layer.order) : max,
-        0,
-      );
-      targetIndex =
-        insertOrder > maxOverlayOrder
-          ? insertOrder
-          : Math.max(1, insertOrder === 0 ? 1 : insertOrder - 1);
+      target = Math.max(1, command.patch.insertOrder ?? ordered.length);
     } else if (lane?.kind === "visual" && lane.role === "overlay") {
-      targetIndex = Math.max(1, lane.order);
+      target = Math.max(1, lane.order);
     }
   }
-  if (targetIndex == null || targetIndex === currentIndex) return null;
-
-  const withoutClip = ordered.filter((id) => id !== clipId);
-  const clampedIndex = Math.max(0, Math.min(targetIndex, withoutClip.length));
-  withoutClip.splice(clampedIndex, 0, clipId);
-  return withoutClip;
+  if (target == null || target === current) return null;
+  const without = ordered.filter((id) => id !== clipId);
+  without.splice(Math.max(0, Math.min(target, without.length)), 0, clipId);
+  return without;
 }
 
-/**
- * Translate a timeline edit into the canonical document command API. The
- * timeline projection owns hit-testing; this function is the only boundary
- * that turns lane intent into Protocol V2 patches.
- */
 export function timelineEditToDocumentCommand(
   document: MotionProtocolV2,
   projection: Projection,
@@ -120,94 +90,66 @@ export function timelineEditToDocumentCommand(
   if (command.type === "move-clip") {
     const clip = clipById(projection, command.clipId);
     if (!clip) return null;
-    const nextStart = command.patch.startTime;
     const lane = command.patch.laneId
-      ? (projection.lanes.find(
-          (candidate) => candidate.id === command.patch.laneId,
-        ) ?? null)
+      ? projection.lanes.find((entry) => entry.id === command.patch.laneId) ?? null
       : null;
     if (clip.kind === "scene") {
-      const orderedLayerIds = orderedRootIdsForMove(
-        document,
-        clip.sceneId,
-        command,
-        lane,
-      );
-      if (orderedLayerIds) {
+      const ordered = orderedRootIdsForMove(document, clip.sceneId, command, lane);
+      if (ordered) {
         return {
           type: "reorder-layers",
           parentLayerId: null,
-          orderedLayerIds,
-          patches: {
-            [clip.sceneId]: timingPatch(nextStart, clip.duration),
-          },
+          orderedLayerIds: ordered,
+          patches: { [clip.sceneId]: layerTimingPatch(command.patch.startTime, clip.duration) },
         };
       }
-      return {
-        type: "patch-layer",
-        layerId: clip.sceneId,
-        patch: timingPatch(nextStart, clip.duration),
-      };
+      return { type: "patch-layer", layerId: clip.sceneId, patch: layerTimingPatch(command.patch.startTime, clip.duration) };
     }
     const target = audioTarget(document, clip);
     return target
-      ? {
-          type: "patch-audio-clip",
-          trackId: target.trackId,
-          clipId: target.clip.id,
-          patch: audioTimingPatch(nextStart, clip.duration),
-        }
+      ? { type: "patch-audio-clip", trackId: target.trackId, clipId: target.clip.id, patch: audioTimingPatch(command.patch.startTime, clip.duration) }
       : null;
   }
 
   if (command.type === "move-clips") {
     const patches: Record<string, LayerPatch> = {};
-    const selectedRootIds: string[] = [];
+    const selected: string[] = [];
     for (const id of command.clipIds) {
       const clip = clipById(projection, id);
-      const layerId = clip && layerIdForClip(clip);
-      if (!clip || !layerId) continue;
-      patches[layerId] = timingPatch(
-        clip.startTime + command.deltaTime,
-        clip.duration,
-      );
-      selectedRootIds.push(layerId);
+      if (!clip || clip.kind !== "scene") continue;
+      patches[clip.sceneId] = layerTimingPatch(clip.startTime + command.deltaTime, clip.duration);
+      selected.push(clip.sceneId);
     }
-    if (selectedRootIds.length === 0) return null;
-
-    const targetLane = command.targetLaneId
-      ? (projection.lanes.find((lane) => lane.id === command.targetLaneId) ??
-        null)
-      : null;
-    if (command.targetTrack && selectedRootIds.length > 0) {
-      const primaryId = selectedRootIds[0]!;
-      const moveCommand: Extract<TimelineEdit, { type: "move-clip" }> = {
-        type: "move-clip",
-        clipId: primaryId,
-        patch: {
-          startTime: 0,
-          track: command.targetTrack,
-          laneId: command.targetLaneId ?? null,
-          insertNewLane: command.targetInsertNewLane,
-          insertOrder: command.targetInsertOrder,
-        },
-      };
+    if (selected.length === 0) return null;
+    if (command.targetTrack) {
+      const primary = selected[0]!;
+      const targetLane = command.targetLaneId
+        ? projection.lanes.find((lane) => lane.id === command.targetLaneId) ?? null
+        : null;
       const targetOrder = orderedRootIdsForMove(
         document,
-        primaryId,
-        moveCommand,
+        primary,
+        {
+          type: "move-clip",
+          clipId: primary,
+          patch: {
+            startTime: 0,
+            track: command.targetTrack,
+            laneId: command.targetLaneId ?? null,
+            insertNewLane: command.targetInsertNewLane,
+            insertOrder: command.targetInsertOrder,
+          },
+        },
         targetLane,
       );
       if (targetOrder) {
-        const selected = new Set(selectedRootIds);
-        const block = rootLayerIdsByOrder(document).filter((id) =>
-          selected.has(id),
-        );
-        const primaryTargetIndex = targetOrder.indexOf(primaryId);
+        const selectedSet = new Set(selected);
+        const block = rootLayerIds(document).filter((id) => selectedSet.has(id));
+        const targetIndex = targetOrder.indexOf(primary);
         const insertIndex = targetOrder
-          .slice(0, Math.max(0, primaryTargetIndex))
-          .filter((id) => !selected.has(id)).length;
-        const ordered = targetOrder.filter((id) => !selected.has(id));
+          .slice(0, Math.max(0, targetIndex))
+          .filter((id) => !selectedSet.has(id)).length;
+        const ordered = targetOrder.filter((id) => !selectedSet.has(id));
         ordered.splice(insertIndex, 0, ...block);
         return {
           type: "reorder-layers",
@@ -223,46 +165,25 @@ export function timelineEditToDocumentCommand(
   if (command.type === "clip/trim") {
     const clip = clipById(projection, command.clipId);
     if (!clip) return null;
-    const nextStart = command.startTime ?? clip.startTime;
+    const start = command.startTime ?? clip.startTime;
     if (clip.kind === "scene") {
-      return {
-        type: "patch-layer",
-        layerId: clip.sceneId,
-        patch: timingPatch(nextStart, command.duration),
-      };
+      return { type: "patch-layer", layerId: clip.sceneId, patch: layerTimingPatch(start, command.duration) };
     }
     const target = audioTarget(document, clip);
     return target
-      ? {
-          type: "patch-audio-clip",
-          trackId: target.trackId,
-          clipId: target.clip.id,
-          patch: audioTimingPatch(
-            nextStart,
-            command.duration,
-            command.trimStart,
-          ),
-        }
+      ? { type: "patch-audio-clip", trackId: target.trackId, clipId: target.clip.id, patch: audioTimingPatch(start, command.duration, command.trimStart) }
       : null;
   }
 
-  if (command.type === "reorder-lane") {
-    const laneClipIds = projection.clips
-      .filter((clip) => clip.laneId === command.laneId)
-      .map(layerIdForClip)
-      .filter((id): id is string => Boolean(id));
-    const patches = Object.fromEntries(
-      laneClipIds.map((id, index) => [
-        id,
-        { order: Math.max(0, command.newOrder + index) },
-      ]),
-    );
-    return Object.keys(patches).length > 0
-      ? { type: "patch-layers", patches }
-      : null;
-  }
-
-  return null;
+  const laneClipIds = projection.clips.flatMap((clip) =>
+    clip.laneId === command.laneId && clip.kind === "scene"
+      ? [clip.sceneId]
+      : [],
+  );
+  const patches = Object.fromEntries(
+    laneClipIds.map((id, index) => [id, { order: Math.max(0, command.newOrder + index) }]),
+  );
+  return Object.keys(patches).length > 0 ? { type: "patch-layers", patches } : null;
 }
 
 export function timelineLanesForDocument(projection: Projection): TimelineLane[] {

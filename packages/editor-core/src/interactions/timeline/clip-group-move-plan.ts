@@ -31,7 +31,7 @@ function overlaps(intervals: readonly Interval[], start: number, end: number) {
   return intervals.some((interval) => interval.start < end && start < interval.end);
 }
 
-/** Pure, reusable move plan used by the existing V1 pointer gesture. */
+/** Pure, reusable move plan shared by timeline pointer hosts. */
 export function createClipGroupMovePlan(
   doc: Pick<{ clips: TimelineClip[]; lanes: TimelineLane[] }, "clips" | "lanes">,
   clipIds: string[],

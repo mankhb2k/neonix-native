@@ -29,4 +29,6 @@ export function selectedClipIds(selection: EditorSelection): string[] {
   return selection.kind === "clips" ? selection.ids : EMPTY_IDS;
 }
 
+/** Versionless alias used by timeline hosts when deriving selected clip ids. */
+export const selectedClipIdsFrom = selectedClipIds;
 

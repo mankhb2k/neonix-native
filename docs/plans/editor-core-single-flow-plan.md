@@ -70,8 +70,8 @@ packages/editor-core/src/
     index.ts                       # explicit versionless timeline public API
     model/
     projection.ts                  # Protocol V2 -> timeline view-model
+    edit-intents.ts                # TimelineEdit, not V1 TimelineCommand
     commands/
-      types.ts                     # TimelineEdit, not V1 TimelineCommand
       to-document-command.ts       # TimelineEdit -> EditorCommand
     geometry/
     policies/
@@ -245,6 +245,11 @@ aliases, V1 fixtures, V1 migration parsers, or test-only compatibility exports.
 Exit criteria: `packages/editor-core` typechecks against only
 `@motionvideo/motion-protocol/v2`; all V1 type errors disappear because their
 source modules are gone, not because TypeScript exclusions hide them.
+
+Phase 4 is complete. The reverse-import audit removed the orphaned V1
+implementation and its fixtures/tests, retained only the V2 timeline
+projection and pure interaction primitives, and moved timeline UI intents to
+`timeline/edit-intents.ts`. The editor-core build typecheck is now clean.
 
 ### Phase 5 — simplify public API and verify
 

@@ -2,7 +2,7 @@
  * Trạng thái phiên thả item từ thư viện vào timeline.
  */
 
-import type { PlacementTarget } from "../../timeline/commands/command-types";
+import type { PlacementTarget } from "../../timeline/edit-intents";
 
 export type LibraryDropSessionState = {
   itemType: "frame" | "audio";

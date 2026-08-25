@@ -41,19 +41,13 @@ export * from "./policies/drop-target-policy";
 export * from "./policies/zoom-fit-policy";
 export * from "./selectors/track-kind";
 export * from "./selectors/visible-range";
-export * from "../selection/editor-selection";
-export * from "../frame-draft";
-export { MIN_CLIP_SLICE_SEC } from "./clip-clipboard";
+export * from "../selection/clip-selection";
+export { DEFAULT_FRAME_DURATION, MIN_CLIP_SLICE_SEC } from "./timeline-clips";
 export type {
-  AudioLibraryItem,
   ClipMovePatch,
-  CommandResult,
   PlacementTarget,
-  TimelineCommand,
-  TimelineDomainEvent,
   TimelineEdit,
-  TimelineLaneFlags,
-} from "./commands/command-types";
+} from "./edit-intents";
 export {
   timelineEditToDocumentCommand,
   timelineLanesForDocument,

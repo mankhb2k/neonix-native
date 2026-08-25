@@ -52,6 +52,19 @@ are the reason the canonical command API uses the focused
 These modules remain available only for the Phase 4 port/delete decision. No
 new V2 editor code may import them.
 
+## Phase 4 completed
+
+The reverse-import audit found no web or MCP consumer for the V1 document,
+property, sugar, export, history, playback, mock, model, operation, migration,
+or legacy command-runner modules. They were deleted together with their V1
+fixtures/tests. The remaining timeline surface is a small Protocol V2
+projection plus pure geometry/policy/interaction helpers.
+
+`timeline/edit-intents.ts` now owns the versionless UI intent types and
+`timeline/commands/to-document-command.ts` is the single adapter into
+`document/commands`. The root barrel and package exports no longer expose the
+deleted compatibility modules.
+
 ## Repeatable audit commands
 
 ```powershell
