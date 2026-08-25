@@ -12,6 +12,12 @@ export type LibraryPayload =
       duration?: number;
     }
   | {
+      kind: "path";
+      id: string;
+      label: string;
+      duration?: number;
+    }
+  | {
       kind: "asset";
       id: string;
       label: string;

@@ -24,6 +24,7 @@ import {
 
 type PreviewStageProps = {
   project: unknown;
+  hiddenLayerIds?: readonly string[];
   time?: number;
   frame?: RuntimeFrameV2;
   isPlaying?: boolean;
@@ -33,6 +34,7 @@ type PreviewStageProps = {
 
 export function PreviewStage({
   project,
+  hiddenLayerIds = [],
   time = 0,
   frame,
   isPlaying = false,
@@ -53,9 +55,29 @@ export function PreviewStage({
   const isPlayingRef = useRef(isPlaying);
   const [rendererError, setRendererError] = useState<string | null>(null);
   onBackendReadyRef.current = onBackendReady;
+  const renderProject = useMemo(() => {
+    if (hiddenLayerIds.length === 0 || !project || typeof project !== "object") {
+      return project;
+    }
+    const candidate = project as { layers?: unknown };
+    if (!Array.isArray(candidate.layers)) return project;
+    const hidden = new Set(hiddenLayerIds);
+    const source = project as MotionProtocolV2;
+    const isHidden = (layer: MotionProtocolV2["layers"][number]): boolean => {
+      if (hidden.has(layer.id)) return true;
+      let parentId = layer.parentLayerId;
+      while (parentId != null) {
+        if (hidden.has(parentId)) return true;
+        parentId = source.layers.find((parent) => parent.id === parentId)?.parentLayerId ?? null;
+      }
+      return false;
+    };
+    const layers = source.layers.filter((layer) => !isHidden(layer));
+    return { ...source, layers };
+  }, [hiddenLayerIds, project]);
   const parsedResult = useMemo(
-    () => MotionProtocolV2Schema.safeParse(project),
-    [project],
+    () => MotionProtocolV2Schema.safeParse(renderProject),
+    [renderProject],
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
   const error = parsedResult.success ? rendererError : parsedResult.error.message;

@@ -37,9 +37,22 @@ function TextTile({ item }: { item: TextPreset }) {
 
 type Props = {
   className?: string;
+  compact?: boolean;
+  menuPlacement?: "bottom" | "right";
 };
 
-export function TextDropdown({ className }: Props) {
+export function TextDropdown({
+  className,
+  compact = false,
+  menuPlacement = "bottom",
+}: Props) {
+  const quickTextGesture = useLibraryPointerGesture({
+    kind: "text",
+    id: "text-default",
+    label: "Text",
+    text: "Tiêu đề",
+    duration: DEFAULT_FRAME_DURATION,
+  });
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -64,24 +77,52 @@ export function TextDropdown({ className }: Props) {
     };
   }, [open]);
 
+  if (compact) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]",
+        )}
+        title="Thêm text"
+        aria-label="Text tool"
+        data-testid="editor-text-tool"
+        onPointerDown={quickTextGesture.onPointerDown}
+        onKeyDown={quickTextGesture.onKeyDown}
+      >
+        <Type size={17} strokeWidth={1.75} />
+      </button>
+    );
+  }
+
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        className={cn(menuBtn, open && "bg-[var(--bg-hover)] text-[var(--fg-primary)]")}
+        className={cn(
+          compact
+            ? "inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+            : menuBtn,
+          open && "bg-[var(--bg-hover)] text-[var(--fg-primary)]",
+        )}
         title="Text"
+        aria-label="Text tool"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
         data-testid="editor-text-menu"
       >
-        <Type size={14} strokeWidth={1.75} />
-        Text
-        <ChevronDown
-          size={12}
-          className={cn("opacity-70 transition-transform", open && "rotate-180")}
-        />
+        <Type size={compact ? 17 : 14} strokeWidth={1.75} />
+        {!compact ? (
+          <>
+            Text
+            <ChevronDown
+              size={12}
+              className={cn("opacity-70 transition-transform", open && "rotate-180")}
+            />
+          </>
+        ) : null}
       </button>
 
       {open ? (
@@ -89,7 +130,12 @@ export function TextDropdown({ className }: Props) {
           id={panelId}
           role="dialog"
           aria-label="Thư viện Text"
-          className="absolute top-[calc(100%+6px)] left-0 z-50 max-h-[min(70vh,480px)] w-[280px] overflow-y-auto rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-3 shadow-lg"
+          className={cn(
+            "absolute z-50 max-h-[min(70vh,480px)] w-[280px] overflow-y-auto rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-3 shadow-lg",
+            menuPlacement === "right"
+              ? "top-0 left-[calc(100%+6px)]"
+              : "top-[calc(100%+6px)] left-0",
+          )}
         >
           <p className="mb-3 text-[11px] text-[var(--fg-muted)]">
             Click để thêm · kéo thả vào board / timeline

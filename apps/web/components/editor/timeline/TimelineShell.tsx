@@ -38,6 +38,7 @@ export function TimelineShell() {
     canUndo,
     canRedo,
     canDelete,
+    lockedLayerIds,
   } = useEditorSurface();
   const [zoom, setZoom] = useState(TIMELINE_ZOOM_DEFAULT);
   const [snapOn, setSnapOn] = useState(true);
@@ -112,14 +113,31 @@ export function TimelineShell() {
 
   const onSelect = useCallback(
     (next: EditorSelection) => {
-      setSelectedLayerIds(selectedClipIdsFrom(next));
+      setSelectedLayerIds(
+        selectedClipIdsFrom(next).filter((id) => !lockedLayerIds.includes(id)),
+      );
     },
-    [setSelectedLayerIds],
+    [lockedLayerIds, setSelectedLayerIds],
   );
 
   const onExecute = useCallback(
     (command: TimelineCommand, label: string) => {
       void label;
+      const affectedClipIds =
+        command.type === "move-clip" || command.type === "clip/trim"
+          ? [command.clipId]
+          : command.type === "move-clips"
+            ? command.clipIds
+            : command.type === "reorder-lane"
+              ? projection.clips
+                  .filter((clip) => clip.laneId === command.laneId)
+                  .map((clip) => clip.id)
+              : [];
+      const affectedLayerIds = projection.clips
+        .filter((clip) => affectedClipIds.includes(clip.id))
+        .map((clip) => (clip.kind === "scene" ? clip.sceneId : null))
+        .filter((id): id is string => Boolean(id));
+      if (affectedLayerIds.some((id) => lockedLayerIds.includes(id))) return;
       const v2Command: V2EditorCommand | null = timelineCommandToV2(
         document,
         projection,
@@ -127,7 +145,7 @@ export function TimelineShell() {
       );
       if (v2Command) applyCommand(v2Command);
     },
-    [applyCommand, document, projection],
+    [applyCommand, document, lockedLayerIds, projection],
   );
 
   const fitTimeline = useCallback(() => {

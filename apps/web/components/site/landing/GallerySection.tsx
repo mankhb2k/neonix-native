@@ -28,7 +28,7 @@ export function GallerySection() {
       <Reveal>
         <SectionEyebrow>Gallery</SectionEyebrow>
         <SectionHeading className="mt-3 max-w-2xl">
-          See what NeonVideo renders.
+          See what Neonix renders.
         </SectionHeading>
       </Reveal>
 

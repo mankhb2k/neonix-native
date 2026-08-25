@@ -3,9 +3,9 @@ import { getDocsPage } from "@/lib/docs/page-content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "NeonVideo documentation",
+  title: "Neonix documentation",
   description:
-    "Learn NeonVideo authoring, layers, animation, compositing, effects, and examples.",
+    "Learn Neonix authoring, layers, animation, compositing, effects, and examples.",
 };
 
 export default function DocsIndexPage() {

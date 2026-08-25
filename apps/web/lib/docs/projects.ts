@@ -45,7 +45,7 @@ export const SINGLE_ROOT = {
       opacity: 1,
       timing: { start: 0, duration: 5 },
       payload: {
-        text: "Hello NeonVideo" ,
+        text: "Hello Neonix" ,
         fontSize: 64,
         color: "#000000",
         alignment: "center",

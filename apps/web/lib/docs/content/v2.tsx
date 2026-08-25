@@ -11,14 +11,14 @@ const BT = String.fromCharCode(96);
 
 const V2_PAGES: Record<string, V2Page> = {
   "": {
-    title: "NeonVideo V2 documentation",
-    markdown: String.raw`# NeonVideo V2
+    title: "Neonix V2 documentation",
+    markdown: String.raw`# Neonix V2
 
-This is the static guide to NeonVideo's current authoring vocabulary and Atomic Protocol V2. The examples on these pages are display-only teaching material. They are not sent to a compiler, runtime, preview renderer, or export process.
+This is the static guide to Neonix's current authoring vocabulary and Atomic Protocol V2. The examples on these pages are display-only teaching material. They are not sent to a compiler, runtime, preview renderer, or export process.
 
 ## Start with the model
 
-NeonVideo separates intent from rendering:
+Neonix separates intent from rendering:
 
 ${FENCE}text
 MCP / AI / future editor
@@ -340,7 +340,7 @@ ${FENCE}json
   "id": "title",
   "type": "text",
   "payload": {
-    "text": "NeonVideo V2",
+    "text": "Neonix V2",
     "font": { "assetId": "font-roboto-regular" },
     "fontSize": 64,
     "lineHeight": 1.2,

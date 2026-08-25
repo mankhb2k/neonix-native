@@ -2,11 +2,8 @@
 
 import { AppLink } from "@/components/AppLink";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
-import { ShapesDropdown, type ShapeTool } from "./shapes/ShapesDropdown";
-import { TextDropdown } from "./text/TextDropdown";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Home, Scaling, Upload, User } from "lucide-react";
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 const menuBtn =
   "inline-flex h-8 items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[13px] font-medium text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]";
@@ -15,62 +12,8 @@ const iconBtn =
 
 /** Existing header chrome, decoupled from the former V1 store. */
 export function EditorHeader() {
-  const {
-    document,
-    currentTime,
-    applyCommand,
-    setSelectedLayerIds,
-  } = useEditorSurface();
+  const { document } = useEditorSurface();
   const meta = `${document.id} · Protocol V2 · ${document.composition.width}×${document.composition.height}`;
-
-  const addShape = (shape: ShapeTool) => {
-    if (shape === "path") return;
-    const width = 640;
-    const height = 360;
-    const order =
-      Math.max(
-        -1,
-        ...document.layers
-          .filter((layer) => layer.parentLayerId === null)
-          .map((layer) => layer.order),
-      ) + 1;
-    const idBase = `shape-${shape}`;
-    let id = idBase;
-    let suffix = 1;
-    while (document.layers.some((layer) => layer.id === id)) {
-      id = `${idBase}-${suffix}`;
-      suffix += 1;
-    }
-
-    const layer: MotionProtocolV2["layers"][number] = {
-      id,
-      type: "shape",
-      parentLayerId: null,
-      order,
-      frame: { width, height },
-      transform: {
-        translate: {
-          x: (document.composition.width - width) / 2,
-          y: (document.composition.height - height) / 2,
-          z: 0,
-        },
-        scale: { x: 1, y: 1, z: 1 },
-        rotate: { x: 0, y: 0, z: 0 },
-        skew: { x: 0, y: 0 },
-        anchor: { x: width / 2, y: height / 2, z: 0 },
-      },
-      opacity: 1,
-      timing: { start: currentTime, duration: 5 },
-      payload: { shape },
-      style: {
-        fill: "#8b8f98",
-      },
-    };
-
-    if (applyCommand({ type: "add-layer", layer })) {
-      setSelectedLayerIds([id]);
-    }
-  };
 
   return (
     <header className="editor-panel flex h-[var(--editor-chrome-h)] items-center gap-1.5 px-2.5 [grid-area:header]">
@@ -82,8 +25,6 @@ export function EditorHeader() {
           Tệp <ChevronDown size={12} className="opacity-70" />
         </button>
         <span className="mx-1 h-5 w-px bg-[var(--border-strong)]" aria-hidden />
-        <ShapesDropdown onSelect={addShape} />
-        <TextDropdown />
         <button type="button" className={menuBtn} title="Đổi cỡ composition">
           <Scaling size={14} strokeWidth={1.75} /> Đổi cỡ
         </button>

@@ -14,7 +14,7 @@ export function WorkspaceHome() {
           href={marketingUrl("/")}
           className="font-semibold tracking-[-0.02em] text-[var(--fg-primary)] no-underline [font-family:var(--font-display)]"
         >
-          NeonVideo
+          Neonix
         </Link>
         <a
           href={marketingUrl("/")}

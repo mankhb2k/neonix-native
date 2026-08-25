@@ -41,6 +41,15 @@ const HANDLES = [
   "w",
 ] as const;
 
+const VERTICAL_RESIZE_CURSOR = 'url("/cursor/cursor-vertical.svg") 6 8, ns-resize';
+const HORIZONTAL_RESIZE_CURSOR = 'url("/cursor/cursor-horizontal.svg") 8 6, ew-resize';
+const DIAGONAL_NW_SE_CURSOR = 'url("/cursor/resize-diagonal-nw-se.svg") 7 7, nwse-resize';
+const DIAGONAL_NE_SW_CURSOR = 'url("/cursor/resize-diagonal-ne-sw.svg") 7 7, nesw-resize';
+const ROTATE_NW_CURSOR = 'url("/cursor/rotate-nw.svg") 10 10, grab';
+const ROTATE_NE_CURSOR = 'url("/cursor/rotate-ne.svg") 10 10, grab';
+const ROTATE_SW_CURSOR = 'url("/cursor/rotate-sw.svg") 10 10, grab';
+const ROTATE_SE_CURSOR = 'url("/cursor/rotate-se.svg") 10 10, grab';
+
 function percent(value: number, total: number): string {
   return `${(value / Math.max(1, total)) * 100}%`;
 }
@@ -48,20 +57,48 @@ function percent(value: number, total: number): string {
 function handleStyle(handle: (typeof HANDLES)[number]): CSSProperties {
   const style: CSSProperties = {
     position: "absolute",
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    border: "1px solid var(--bg-site)",
-    background: "var(--fg-primary)",
+    width: 16,
+    height: 16,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: 'url("/cursor/handle-dot.svg") center / 16px 16px no-repeat',
+    color: "var(--fg-primary)",
     padding: 0,
     pointerEvents: "none",
   };
-  if (handle.includes("n")) style.top = -5;
-  if (handle.includes("s")) style.bottom = -5;
-  if (handle.includes("w")) style.left = -5;
-  if (handle.includes("e")) style.right = -5;
-  if (handle === "n" || handle === "s") style.left = "calc(50% - 4px)";
-  if (handle === "e" || handle === "w") style.top = "calc(50% - 4px)";
+  if (handle.includes("n")) style.top = -8;
+  if (handle.includes("s")) style.bottom = -8;
+  if (handle.includes("w")) style.left = -8;
+  if (handle.includes("e")) style.right = -8;
+  if (handle === "n" || handle === "s") style.left = "calc(50% - 8px)";
+  if (handle === "e" || handle === "w") style.top = "calc(50% - 8px)";
+  if (handle === "n" || handle === "s") style.cursor = VERTICAL_RESIZE_CURSOR;
+  if (handle === "e" || handle === "w") style.cursor = HORIZONTAL_RESIZE_CURSOR;
+  if (handle === "nw" || handle === "se") style.cursor = DIAGONAL_NW_SE_CURSOR;
+  if (handle === "ne" || handle === "sw") style.cursor = DIAGONAL_NE_SW_CURSOR;
+  return style;
+}
+
+type RotationCorner = "nw" | "ne" | "sw" | "se";
+
+function rotationZoneStyle(corner: RotationCorner): CSSProperties {
+  const style: CSSProperties = {
+    position: "absolute",
+    width: 12,
+    height: 12,
+    zIndex: 2,
+    pointerEvents: "auto",
+    touchAction: "none",
+  };
+  if (corner.includes("n")) style.top = -18;
+  if (corner.includes("s")) style.bottom = -18;
+  if (corner.includes("w")) style.left = -18;
+  if (corner.includes("e")) style.right = -18;
+  if (corner === "nw") style.cursor = ROTATE_NW_CURSOR;
+  if (corner === "ne") style.cursor = ROTATE_NE_CURSOR;
+  if (corner === "sw") style.cursor = ROTATE_SW_CURSOR;
+  if (corner === "se") style.cursor = ROTATE_SE_CURSOR;
   return style;
 }
 
@@ -118,7 +155,11 @@ export function StageTransformOverlay({
     selectedLayerIds,
     setSelectedLayerIds,
     applyCommand,
+    hiddenLayerIds,
+    lockedLayerIds,
   } = useEditorSurface();
+  const hiddenIds = useMemo(() => new Set(hiddenLayerIds), [hiddenLayerIds]);
+  const lockedIds = useMemo(() => new Set(lockedLayerIds), [lockedLayerIds]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<StageSession | null>(null);
   if (!sessionRef.current) sessionRef.current = createStageSession();
@@ -144,10 +185,13 @@ export function StageTransformOverlay({
         .map((id) => document.layers.find((layer) => layer.id === id))
         .filter((layer): layer is V2Layer => Boolean(layer))
         .filter(
-        (layer) =>
-          isV2VisualLayer(layer) && isV2LayerActiveAtTime(layer, currentTime),
+          (layer) =>
+            isV2VisualLayer(layer) &&
+            isV2LayerActiveAtTime(layer, currentTime) &&
+            !hiddenIds.has(layer.id) &&
+            !lockedIds.has(layer.id),
       ),
-    [currentTime, document.layers, selectedLayerIds],
+    [currentTime, document.layers, hiddenIds, lockedIds, selectedLayerIds],
   );
 
   const activeVisualLayers = useMemo(
@@ -157,10 +201,11 @@ export function StageTransformOverlay({
           (layer) =>
             isV2VisualLayer(layer) && isV2LayerActiveAtTime(layer, currentTime),
         )
+        .filter((layer) => !hiddenIds.has(layer.id) && !lockedIds.has(layer.id))
         // Paint/hit-test order follows the DOM: higher order must be later so
         // its transparent hitbox sits above lower layers in overlapping areas.
         .sort((left, right) => left.order - right.order),
-    [currentTime, document.layers],
+    [currentTime, document.layers, hiddenIds, lockedIds],
   );
 
   const selectedDocumentBounds = useMemo(
@@ -310,7 +355,9 @@ export function StageTransformOverlay({
         (layer) =>
           !selectedIds.has(layer.id) &&
           isV2VisualLayer(layer) &&
-          isV2LayerActiveAtTime(layer, currentTime),
+          isV2LayerActiveAtTime(layer, currentTime) &&
+          !hiddenIds.has(layer.id) &&
+          !lockedIds.has(layer.id),
       )
       .map((layer) => getV2LayerBounds(layer));
     const snapEdgesX = [
@@ -357,7 +404,7 @@ export function StageTransformOverlay({
         },
       },
     );
-  }, [activeVisualLayers, compositionHeight, compositionWidth, currentTime, document.layers, selectedLayers, setSelectedLayerIds, toCompositionPoint]);
+  }, [activeVisualLayers, compositionHeight, compositionWidth, currentTime, document.layers, hiddenIds, lockedIds, selectedLayers, setSelectedLayerIds, toCompositionPoint]);
 
   const onResizePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLSpanElement>, handle: ResizeHandle) => {
@@ -406,7 +453,7 @@ export function StageTransformOverlay({
           base,
           worldBounds: getV2LayerBounds(layer),
           pointer,
-          constraints: { snapThreshold: 6 },
+          constraints: { snapThreshold: 2 },
         },
         {
           onPreview: (payload) => {
@@ -503,34 +550,15 @@ export function StageTransformOverlay({
               onPointerDown={(event) => onResizePointerDown(event, handle)}
             />
           ))}
-          <span
-            aria-hidden="true"
-            data-handle="rotate"
-            style={{
-              position: "absolute",
-              left: "calc(50% - 4px)",
-              top: -25,
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              border: "1px solid var(--bg-site)",
-              background: "var(--fg-primary)",
-              pointerEvents: "auto",
-            }}
-            onPointerDown={onRotatePointerDown}
-          />
-          <span
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: -17,
-              width: 1,
-              height: 12,
-              background: "var(--accent)",
-              pointerEvents: "none",
-            }}
-          />
+          {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+            <span
+              key={`rotate-${corner}`}
+              aria-label={`Rotate ${corner}`}
+              data-rotate-handle={corner}
+              style={rotationZoneStyle(corner)}
+              onPointerDown={onRotatePointerDown}
+            />
+          ))}
         </div>
       ) : null}
     </div>

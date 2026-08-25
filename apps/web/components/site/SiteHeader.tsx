@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { SiteNavButton } from "@/components/site/SiteNavButton";
+import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
 import { appUrl } from "@/lib/hosts";
 import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
-import { SiteNavButton } from "@/components/site/SiteNavButton";
 
 const headerOuterClass =
   "sticky top-0 z-20 border-b border-[var(--border-subtle,#e4e4e7)] bg-[color-mix(in_srgb,var(--bg-site)_90%,transparent)] backdrop-blur";
@@ -58,9 +59,31 @@ export function SiteHeader({
             </SiteNavButton>
           </nav>
         </div>
-        <span className="ml-auto hidden rounded-lg border border-[var(--border-subtle,#e4e4e7)] px-3 py-1 text-[12px] text-[var(--fg-muted)] sm:inline">
-          Search (Ctrl K) — soon
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden rounded-lg border border-[var(--border-subtle,#e4e4e7)] px-3 py-1 text-[12px] text-[var(--fg-muted)] xl:inline">
+            Search (Ctrl K) — soon
+          </span>
+          <Link
+            href="/login"
+            className={buttonClassName({
+              variant: "ghost",
+              size: "md",
+              className: "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]",
+            })}
+          >
+            Log in
+          </Link>
+          <Link
+            href="/register"
+            className={buttonClassName({
+              variant: "primary",
+              size: "md",
+              className: "hidden sm:inline-flex",
+            })}
+          >
+            Sign up
+          </Link>
+        </div>
       </div>
     </header>
   );

@@ -1,9 +1,8 @@
-import { GlowButton } from "./primitives/GlowButton";
 import { BeatPulsePreview } from "./primitives/BeatPulsePreview";
+import { GlowButton } from "./primitives/GlowButton";
 import { GridBackdrop } from "./primitives/GridBackdrop";
 import { ScanlineOverlay } from "./primitives/ScanlineOverlay";
 import { SectionEyebrow } from "./primitives/SectionEyebrow";
-import { appUrl } from "@/lib/hosts";
 
 export function HeroSection() {
   return (
@@ -33,7 +32,10 @@ export function HeroSection() {
             animated templates with an AI-first motion format.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <GlowButton href={appUrl("/")}>Start Creating</GlowButton>
+            <GlowButton href="/register">Start for free</GlowButton>
+            <GlowButton href="/login" variant="secondary">
+              Log in
+            </GlowButton>
             <GlowButton href="#showcase" variant="secondary">
               Watch Demo
             </GlowButton>

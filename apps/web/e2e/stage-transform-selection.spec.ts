@@ -61,7 +61,7 @@ test.describe("V2 preview layer hit testing", () => {
     );
   });
 
-  test("rotates a selected shape from the rotate handle", async ({ page }) => {
+  test("rotates a selected shape from a corner rotation zone", async ({ page }) => {
     await page.goto("/app/editor/shape");
     await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
     await page.locator('[data-layer-hit="shape"]').click();
@@ -70,12 +70,12 @@ test.describe("V2 preview layer hit testing", () => {
     await expect(rotationInput).toHaveValue("0");
     const selection = page.getByTestId("stage-selection-bounds");
     const selectionBox = await selection.boundingBox();
-    const rotateHandle = page.locator('[data-handle="rotate"]');
-    const handleBox = await rotateHandle.boundingBox();
-    if (!selectionBox || !handleBox) throw new Error("rotate handle is not visible");
+    const rotateZone = page.locator('[data-rotate-handle="ne"]');
+    const zoneBox = await rotateZone.boundingBox();
+    if (!selectionBox || !zoneBox) throw new Error("corner rotation zone is not visible");
 
-    const startX = handleBox.x + handleBox.width / 2;
-    const startY = handleBox.y + handleBox.height / 2;
+    const startX = zoneBox.x + zoneBox.width / 2;
+    const startY = zoneBox.y + zoneBox.height / 2;
     const centerX = selectionBox.x + selectionBox.width / 2;
     const centerY = selectionBox.y + selectionBox.height / 2;
     const radius = Math.max(24, Math.hypot(startX - centerX, startY - centerY));
@@ -109,5 +109,113 @@ test.describe("V2 preview layer hit testing", () => {
     await expect(page.locator('[data-layer-id="chapter-1-card"]')).toHaveClass(
       /border-\[var\(--accent\)\]/,
     );
+  });
+
+  test("hides a layer from preview and disables its stage hitbox", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+    await expect(page.locator('[data-layer-hit="shape"]')).toBeVisible();
+
+    await page.getByRole("button", { name: "Hide shape", exact: true }).click();
+    await expect(page.locator('[data-layer-hit="shape"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Show shape", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "Show shape", exact: true }).click();
+    await expect(page.locator('[data-layer-hit="shape"]')).toBeVisible();
+  });
+
+  test("locks a layer so it cannot be selected from the stage", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    await page.getByRole("button", { name: "Lock shape", exact: true }).click();
+    await expect(page.locator('[data-layer-hit="shape"]')).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Unlock shape", exact: true })).toBeVisible();
+  });
+
+  test("zooms the preview with the stage button group", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    const controls = page.getByTestId("stage-zoom-controls");
+    const zoomPercent = page.getByTestId("stage-zoom-percent");
+    let initialZoom = 0;
+    let previousZoom = -1;
+    await expect.poll(async () => {
+      initialZoom = Number((await zoomPercent.textContent())?.replace("%", ""));
+      const stable = initialZoom === previousZoom;
+      previousZoom = initialZoom;
+      return stable ? initialZoom : 0;
+    }).toBeGreaterThan(0);
+    expect(initialZoom).toBeGreaterThan(0);
+    await controls.getByRole("button", { name: "Zoom in preview" }).click();
+    await expect.poll(async () => Number((await zoomPercent.textContent())?.replace("%", ""))).toBeGreaterThan(initialZoom);
+    await expect(page.getByRole("button", { name: "Fit preview" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Fit preview" }).click();
+    await expect(zoomPercent).toHaveText(`${initialZoom}%`);
+  });
+
+  test("pans the preview with H pan mode", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    const viewport = page.locator('[data-pan-mode="inactive"]');
+    const frame = page.locator("[data-pan-x]");
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("stage frame is not measurable");
+
+    await page.keyboard.press("h");
+    await expect(page.locator('[data-pan-mode="active"]')).toBeVisible();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 24, box.y + box.height / 2 + 12);
+    await page.mouse.up();
+    await page.keyboard.press("h");
+
+    await expect(viewport).toHaveAttribute("data-pan-mode", "inactive");
+    await expect.poll(async () => Number(await frame.getAttribute("data-pan-x"))).toBeGreaterThan(0);
+    await expect.poll(async () => Number(await frame.getAttribute("data-pan-y"))).toBeGreaterThan(0);
+  });
+
+  test("switches back to select mode with V", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    await page.keyboard.press("h");
+    await expect(page.locator('[data-pan-mode="active"]')).toBeVisible();
+    await expect.poll(async () =>
+      page.getByTestId("stage-transform-overlay").evaluate((element) =>
+        getComputedStyle(element).cursor,
+      ),
+    ).toBe("grab");
+    await page.keyboard.press("v");
+    await expect(page.locator('[data-pan-mode="inactive"]')).toBeVisible();
+  });
+
+  test("switches from pan to select when the rail button is clicked", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    const rail = page.getByTestId("stage-tool-rail");
+    await rail.getByRole("button", { name: "Pan tool" }).click();
+    await expect(page.locator('[data-pan-mode="active"]')).toBeVisible();
+    await rail.getByRole("button", { name: "Select tool" }).click();
+    await expect(page.locator('[data-pan-mode="inactive"]')).toBeVisible();
+  });
+
+  test("renders stage-local select, pan, shape, and text tools", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    const rail = page.getByTestId("stage-tool-rail");
+    await expect(rail).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Select tool" })).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Pan tool" })).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Shape tool" })).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Path tool" })).toHaveCount(0);
+    await expect(rail.getByRole("button", { name: "Text tool" })).toBeVisible();
+
+    await rail.getByRole("button", { name: "Shape tool" }).click();
+    await expect(page.getByTestId("editor-shapes-menu")).toBeVisible();
+
+    await rail.getByRole("button", { name: "Text tool" }).click();
+    await expect(page.locator('[data-layer-hit="text-default"]')).toHaveCount(1);
   });
 });

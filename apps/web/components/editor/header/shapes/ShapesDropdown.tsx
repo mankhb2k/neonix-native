@@ -52,10 +52,19 @@ function ShapeMenuItem({ option, onSelect }: { option: ShapeOption; onSelect?: (
 type Props = {
   className?: string;
   onSelect?: (shape: ShapeTool) => void;
+  compact?: boolean;
+  menuPlacement?: "bottom" | "right";
+  includePath?: boolean;
 };
 
 /** Shape tool menu for the V2 editor header. */
-export function ShapesDropdown({ className, onSelect }: Props) {
+export function ShapesDropdown({
+  className,
+  onSelect,
+  compact = false,
+  menuPlacement = "bottom",
+  includePath = true,
+}: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -80,20 +89,30 @@ export function ShapesDropdown({ className, onSelect }: Props) {
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        className={cn(menuBtn, open && "bg-[var(--bg-hover)] text-[var(--fg-primary)]")}
+        className={cn(
+          compact
+            ? "inline-flex h-8 w-8 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+            : menuBtn,
+          open && "bg-[var(--bg-hover)] text-[var(--fg-primary)]",
+        )}
         title="Shape"
+        aria-label="Shape tool"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
         data-testid="editor-shapes-menu"
       >
-        <Shapes size={14} strokeWidth={1.75} />
-        Shape
-        <ChevronDown
-          size={12}
-          className={cn("opacity-70 transition-transform", open && "rotate-180")}
-        />
+        <Shapes size={compact ? 17 : 14} strokeWidth={1.75} />
+        {!compact ? (
+          <>
+            Shape
+            <ChevronDown
+              size={12}
+              className={cn("opacity-70 transition-transform", open && "rotate-180")}
+            />
+          </>
+        ) : null}
       </button>
 
       {open ? (
@@ -101,9 +120,14 @@ export function ShapesDropdown({ className, onSelect }: Props) {
           id={menuId}
           role="menu"
           aria-label="Shape tools"
-          className="absolute top-[calc(100%+6px)] left-0 z-50 min-w-[220px] rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1.5 shadow-lg"
+          className={cn(
+            "absolute z-50 min-w-[220px] rounded-xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-1.5 shadow-lg",
+            menuPlacement === "right"
+              ? "top-0 left-[calc(100%+6px)]"
+              : "top-[calc(100%+6px)] left-0",
+          )}
         >
-          {SHAPE_OPTIONS.map((option) => <ShapeMenuItem key={option.id} option={option} onSelect={(shape) => { onSelect?.(shape); setOpen(false); }} />)}
+          {SHAPE_OPTIONS.filter((option) => includePath || option.id !== "path").map((option) => <ShapeMenuItem key={option.id} option={option} onSelect={(shape) => { onSelect?.(shape); setOpen(false); }} />)}
         </div>
       ) : null}
     </div>

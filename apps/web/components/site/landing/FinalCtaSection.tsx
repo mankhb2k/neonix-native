@@ -1,8 +1,7 @@
 import { GlowButton } from "./primitives/GlowButton";
 import { GridBackdrop } from "./primitives/GridBackdrop";
-import { ScanlineOverlay } from "./primitives/ScanlineOverlay";
 import { Reveal } from "./primitives/Reveal";
-import { appUrl } from "@/lib/hosts";
+import { ScanlineOverlay } from "./primitives/ScanlineOverlay";
 
 export function FinalCtaSection() {
   return (
@@ -31,7 +30,10 @@ export function FinalCtaSection() {
             it unforgettable.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <GlowButton href={appUrl("/")}>Join Beta</GlowButton>
+            <GlowButton href="/register">Start for free</GlowButton>
+            <GlowButton href="/login" variant="secondary">
+              Log in
+            </GlowButton>
             <GlowButton href="#showcase" variant="secondary">
               View Examples
             </GlowButton>

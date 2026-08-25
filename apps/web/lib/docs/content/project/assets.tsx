@@ -51,7 +51,7 @@ export function assetsPage(): DocsPageView {
           ]}
         />
         <P>
-          How NeonVideo stores managed bytes is product infrastructure — not
+          How Neonix stores managed bytes is product infrastructure — not
           something to invent in JSON. See storage docs later if you operate the
           product, not when you author a file.
         </P>

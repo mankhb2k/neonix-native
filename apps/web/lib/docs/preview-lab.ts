@@ -1349,7 +1349,7 @@ const TEXT_ALIGNMENT_PROJECT = project(
     textLayer({
       id: "text-center-middle",
       order: 1,
-      text: "NeonVideo V2 - Xin chao",
+      text: "Neonix V2 - Xin chao",
       align: "center",
       verticalAlign: "middle",
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 390, y: 430, z: 0 } },

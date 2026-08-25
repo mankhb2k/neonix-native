@@ -1,8 +1,8 @@
-# MotionVideo
+# Neonix
 
-> **NeonVideo** — AI-first motion graphics studio for Vietnamese TVC.
+> **Neonix** — AI-first motion graphics studio for Vietnamese TVC.
 
-MotionVideo là studio tạo motion graphic 2D, kết hợp giữa AI generation và editor
+Neonix là studio tạo motion graphic 2D, kết hợp giữa AI generation và editor
 trực quan. Hệ thống nhận brief từ người dùng hoặc AI agent, sinh project có cấu
 trúc, cho phép chỉnh sửa nội dung, brand, scene, node và timing, rồi xuất MP4 qua
 render pipeline thống nhất — PixiJS cho preview tương tác, Remotion Lambda cho

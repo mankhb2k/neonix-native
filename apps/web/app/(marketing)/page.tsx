@@ -15,7 +15,7 @@ import {
 } from "@/components/site/landing";
 
 export const metadata: Metadata = {
-  title: "NeonVideo — Neon Cyberpunk Video Generator",
+  title: "Neonix — Neon Cyberpunk Video Generator",
   description:
     "Create neon motion videos from JSON, audio, and AI. Music visualizers, cyberpunk stories, glowing titles, and AI-first motion templates.",
 };

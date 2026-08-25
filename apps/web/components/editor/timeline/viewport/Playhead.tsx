@@ -18,6 +18,7 @@ const HIT_STRIP_WIDTH_PX = 14;
 const HANDLE_HEIGHT_PX = 13;
 const HANDLE_TOP_PX = 1;
 const NEEDLE_TOP_PX = HANDLE_TOP_PX + HANDLE_HEIGHT_PX - 2;
+const PLAYHEAD_CURSOR = 'url("/cursor/resize-horizontal.svg") 9 8, ew-resize';
 
 function PlayheadHandleIcon({ muted }: { muted?: boolean }) {
   return (
@@ -103,6 +104,7 @@ export function Playhead({
           left: 0,
           top: NEEDLE_TOP_PX,
           width: HIT_STRIP_WIDTH_PX,
+          cursor: interactive ? PLAYHEAD_CURSOR : undefined,
         }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -124,7 +126,11 @@ export function Playhead({
       {/* Handle icon — same center axis as needle */}
       <div
         className={`absolute left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center ${hitClass}`}
-        style={{ top: HANDLE_TOP_PX, height: HANDLE_HEIGHT_PX }}
+        style={{
+          top: HANDLE_TOP_PX,
+          height: HANDLE_HEIGHT_PX,
+          cursor: interactive ? PLAYHEAD_CURSOR : undefined,
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

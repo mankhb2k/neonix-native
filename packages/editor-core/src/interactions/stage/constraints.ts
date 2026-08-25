@@ -101,8 +101,8 @@ export function applyRotateConstraints(
 ): { values: StageTransformValues; guides: StageGuide[] } {
   const guides: StageGuide[] = [];
   let rotation = next.rotation;
-  // Chỉ snap khi Shift được giữ; Phase 4 dùng các góc chuẩn 45°.
-  const step = 45;
+  // Chỉ snap khi Shift được giữ; dùng các góc chuẩn 15° như Figma.
+  const step = 15;
   const threshold = ctx.snapThreshold ?? 0;
   if (ctx.snapAngle && threshold > 0) {
     const snapped = Math.round(rotation / step) * step;

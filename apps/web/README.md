@@ -1,6 +1,6 @@
-# MotiClip Web (`apps/web`)
+# Neonix Web (`apps/web`)
 
-Next.js host cho MotiClip trên trình duyệt: landing, docs protocol, workspace, editor, và API xuất video.
+Next.js host cho Neonix trên trình duyệt: landing, docs protocol, workspace, editor, và API xuất video.
 
 Web **không** có format riêng. Document duy nhất là `MotionProjectV1`. Editor, AI, docs, preview và export đều đọc/ghi cùng JSON đó.
 
@@ -60,7 +60,7 @@ Envelope `timelineClips` / `timelineLanes` trong localStorage chỉ nhớ packin
 ## 3. Bốn bề mặt sản phẩm
 
 ```text
-/                      Landing (NeonVideo)
+/                      Landing (Neonix)
 /docs/*                Luật authoring V1 — cùng contract AI dùng
 /app                   Workspace: list / tạo project (localStorage)
 /app/editor/[id]       Editor 5 panel

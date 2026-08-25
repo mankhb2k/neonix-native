@@ -22,7 +22,7 @@ export function DesktopTitleStrip() {
       className="flex h-8 shrink-0 select-none items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-editor)] px-3 text-[12px] text-[var(--fg-muted)]"
       style={{ WebkitAppRegion: "drag" } as CSSProperties}
     >
-      <span className="font-medium text-[var(--fg-primary)]">MotionVideo</span>
+      <span className="font-medium text-[var(--fg-primary)]">Neonix</span>
       <span className="text-[11px] opacity-70">Sẵn sàng</span>
     </div>
   );

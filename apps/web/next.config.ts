@@ -1,5 +1,25 @@
+import fs from "node:fs";
 import path from "node:path";
+import { loadEnvConfig } from "@next/env";
 import type { NextConfig } from "next";
+
+// The workspace keeps the local environment file at the repository root while
+// this Next app lives in apps/web. Load that file before Next evaluates the
+// client/server modules so Supabase variables are available in development.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const currentDirectory = process.cwd();
+const workspaceRoot = fs.existsSync(path.join(currentDirectory, ".env"))
+  ? currentDirectory
+  : path.resolve(currentDirectory, "../..");
+const workspaceEnv = loadEnvConfig(
+  workspaceRoot,
+  process.env.NODE_ENV !== "production",
+  undefined,
+  true,
+);
+const publicSupabaseUrl = workspaceEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_URL;
+const publicSupabasePublishableKey =
+  workspaceEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 const nodeCryptoShim = path.join(process.cwd(), "lib/shims/node-crypto.ts");
 
@@ -9,6 +29,13 @@ const browserCryptoExternal =
 const nextConfig: NextConfig = {
   // Allow isolated browser smoke runs to use a fresh build directory.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  // Explicitly expose the root workspace's public Supabase variables to the
+  // browser bundle. This is needed because the app package is nested under
+  // apps/web while local development keeps .env at the repository root.
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publicSupabasePublishableKey,
+  },
   // Legacy editor/Storybook lint debt is checked separately with `pnpm lint:web`.
   // Do not make a production build unavailable while that surface is frozen.
   eslint: {
@@ -36,6 +63,20 @@ const nextConfig: NextConfig = {
     },
   },
   webpack: (config, { isServer, webpack }) => {
+    // Next's nested workspace setup can leave `process.env.*` in the browser
+    // chunk instead of applying its normal public-env replacement. Define the
+    // two public Supabase values explicitly for both dev and production builds.
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
+          publicSupabaseUrl ?? "",
+        ),
+        "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+          publicSupabasePublishableKey ?? "",
+        ),
+      }),
+    );
+
     // Webpack's persistent filesystem cache can become unreadable on Windows
     // ("invalid stored block lengths"), leaving `next dev` stuck at Starting.
     // Keep the development server deterministic; production builds retain the

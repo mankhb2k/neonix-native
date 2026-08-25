@@ -6,7 +6,7 @@ const TOKEN_RE =
 /**
  * Lightweight JSON syntax highlighter.
  *
- * Neon palette (NeonVideo, not Clipkit):
+ * Neon palette (Neonix, not Clipkit):
  * - keys      → fg-secondary
  * - strings   → cyan (accent-text)
  * - numbers   → magenta (accent-magenta)

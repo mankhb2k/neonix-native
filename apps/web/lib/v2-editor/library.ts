@@ -86,6 +86,28 @@ function layerForPayload(
       style: { fill: "#8b8f98" },
     };
   }
+  if (payload.kind === "path") {
+    return {
+      ...base,
+      type: "path",
+      payload: {
+        contours: [
+          {
+            id: `${id}-contour`,
+            start: { x: 0, y: 0 },
+            segments: [
+              { kind: "line", to: { x: width, y: 0 } },
+              { kind: "line", to: { x: width, y: height } },
+              { kind: "line", to: { x: 0, y: height } },
+            ],
+            closed: true,
+          },
+        ],
+        fillRule: "nonzero",
+      },
+      style: { fill: "#8b8f98" },
+    };
+  }
   if (payload.kind === "text") {
     return {
       ...base,
@@ -167,7 +189,7 @@ export function commandsForLibraryPayload(
   // New text/shape items are always painted above existing layers. Their
   // timeline position is still controlled by the current playhead/drop time.
   const targetIndex =
-    payload.kind === "text" || payload.kind === "shape"
+    payload.kind === "text" || payload.kind === "shape" || payload.kind === "path"
       ? ids.length
       : insertionIndex(document, placement);
   const ordered = [...ids];

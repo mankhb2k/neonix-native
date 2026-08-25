@@ -6,14 +6,24 @@ import {
   isLocalHost,
   isMarketingHost,
 } from "./lib/hosts";
+import { updateSupabaseSession } from "./lib/supabase/middleware";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const hostname = getHostname(request.headers.get("host"));
   const { pathname } = request.nextUrl;
+  let response: NextResponse;
 
   // API and docs stay on this host (no /app rewrite)
-  if (pathname.startsWith("/api/") || pathname.startsWith("/docs")) {
-    return NextResponse.next();
+  if (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/docs") ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/oauth/")
+  ) {
+    response = NextResponse.next();
+    return updateSupabaseSession(request, response);
   }
 
   // app.motionvideo.com → rewrite into /app/*
@@ -28,13 +38,15 @@ export function middleware(request: NextRequest) {
         pathname === APP_ROUTE_PREFIX
           ? "/"
           : pathname.slice(APP_ROUTE_PREFIX.length) || "/";
-      return NextResponse.redirect(url);
+      response = NextResponse.redirect(url);
+      return updateSupabaseSession(request, response);
     }
 
     const url = request.nextUrl.clone();
     url.pathname =
       pathname === "/" ? APP_ROUTE_PREFIX : `${APP_ROUTE_PREFIX}${pathname}`;
-    return NextResponse.rewrite(url);
+    response = NextResponse.rewrite(url);
+    return updateSupabaseSession(request, response);
   }
 
   // motionvideo.com/app → redirect to app subdomain
@@ -52,12 +64,14 @@ export function middleware(request: NextRequest) {
           : pathname.slice(APP_ROUTE_PREFIX.length) || "/";
       dest.pathname = suffix;
       dest.search = request.nextUrl.search;
-      return NextResponse.redirect(dest);
+      response = NextResponse.redirect(dest);
+      return updateSupabaseSession(request, response);
     }
   }
 
   // localhost:3000 → / landing, /app product (no rewrite)
-  return NextResponse.next();
+  response = NextResponse.next();
+  return updateSupabaseSession(request, response);
 }
 
 export const config = {

@@ -29,7 +29,7 @@ export function CorePromiseSection() {
         <Reveal>
           <SectionEyebrow>Core promise</SectionEyebrow>
           <SectionHeading className="mt-3">
-            Describe the video. NeonVideo turns it into editable motion.
+            Describe the video. Neonix turns it into editable motion.
           </SectionHeading>
         </Reveal>
       </div>

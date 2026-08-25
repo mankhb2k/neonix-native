@@ -6,6 +6,7 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
@@ -21,6 +22,10 @@ export type EditorSurface = {
   document: MotionProtocolV2;
   selectedLayerIds: string[];
   setSelectedLayerIds: Dispatch<SetStateAction<string[]>>;
+  hiddenLayerIds: readonly string[];
+  lockedLayerIds: readonly string[];
+  toggleLayerVisibility: (layerId: string) => void;
+  toggleLayerLock: (layerId: string) => void;
   currentTime: number;
   isPlaying: boolean;
   setCurrentTime: Dispatch<SetStateAction<number>>;
@@ -127,6 +132,10 @@ export function EditorSurfaceProvider({
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
+  // Visibility and lock are editor-session metadata. They intentionally stay
+  // outside MotionProtocolV2, which only stores renderable layer data.
+  const [hiddenLayerIds, setHiddenLayerIds] = useState<string[]>([]);
+  const [lockedLayerIds, setLockedLayerIds] = useState<string[]>([]);
   const [diagnostics, setDiagnostics] = useState<readonly V2EditorDiagnostic[]>(
     [],
   );
@@ -171,7 +180,9 @@ export function EditorSurfaceProvider({
           return [...previous.slice(-99), { undo: result.inverse, redo: [command] }];
         }
         const next = [...previous];
-        next[next.length - 1] = { ...next[next.length - 1]!, redo: [command] };
+        const last = next[next.length - 1];
+        if (!last) return next;
+        next[next.length - 1] = { ...last, redo: [command] };
         return next;
       });
       setRedoStack([]);
@@ -214,12 +225,51 @@ export function EditorSurfaceProvider({
   }, [document, redoStack]);
 
   const deleteSelectedLayers = useCallback(
-    () => commitCommands(removeCommandsForSelection(document, selectedLayerIds)),
-    [commitCommands, document, selectedLayerIds],
+    () =>
+      commitCommands(
+        removeCommandsForSelection(
+          document,
+          selectedLayerIds.filter((id) => !lockedLayerIds.includes(id)),
+        ),
+      ),
+    [commitCommands, document, lockedLayerIds, selectedLayerIds],
   );
 
+  const toggleLayerVisibility = useCallback((layerId: string) => {
+    setHiddenLayerIds((previous) =>
+      previous.includes(layerId)
+        ? previous.filter((id) => id !== layerId)
+        : [...previous, layerId],
+    );
+    setSelectedLayerIds((previous) =>
+      hiddenLayerIds.includes(layerId)
+        ? previous
+        : previous.filter((id) => id !== layerId),
+    );
+  }, [hiddenLayerIds]);
+
+  const toggleLayerLock = useCallback((layerId: string) => {
+    setLockedLayerIds((previous) =>
+      previous.includes(layerId)
+        ? previous.filter((id) => id !== layerId)
+        : [...previous, layerId],
+    );
+    setSelectedLayerIds((previous) =>
+      lockedLayerIds.includes(layerId)
+        ? previous
+        : previous.filter((id) => id !== layerId),
+    );
+  }, [lockedLayerIds]);
+
+  useEffect(() => {
+    const validIds = new Set(document.layers.map((layer) => layer.id));
+    setHiddenLayerIds((previous) => previous.filter((id) => validIds.has(id)));
+    setLockedLayerIds((previous) => previous.filter((id) => validIds.has(id)));
+  }, [document.layers]);
+
   const canDelete = selectedLayerIds.some((id) =>
-    document.layers.some((layer) => layer.id === id),
+    document.layers.some((layer) => layer.id === id) &&
+    !lockedLayerIds.includes(id),
   );
 
   const value = useMemo<EditorSurface>(
@@ -227,6 +277,10 @@ export function EditorSurfaceProvider({
       document,
       selectedLayerIds,
       setSelectedLayerIds,
+      hiddenLayerIds,
+      lockedLayerIds,
+      toggleLayerVisibility,
+      toggleLayerLock,
       currentTime,
       isPlaying,
       setCurrentTime,
@@ -254,6 +308,10 @@ export function EditorSurfaceProvider({
       redo,
       redoStack.length,
       selectedLayerIds,
+      hiddenLayerIds,
+      lockedLayerIds,
+      toggleLayerLock,
+      toggleLayerVisibility,
       undo,
       undoStack.length,
     ],

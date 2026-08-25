@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 type GlowButtonProps = {
   href: string;
@@ -9,13 +9,13 @@ type GlowButtonProps = {
 };
 
 const base =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-[15px] font-semibold no-underline transition duration-200 will-change-transform";
+  "inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-[14px] font-semibold no-underline transition duration-200 will-change-transform";
 
 const variants = {
   primary:
-    "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_8px_30px_var(--landing-glow-cyan)] hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_0_0_1px_rgba(103,232,249,0.6),0_12px_42px_rgba(34,211,238,0.5)]",
+    "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-[0_0_0_1px_rgba(34,211,238,0.3),0_6px_22px_var(--landing-glow-cyan)] hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_0_0_1px_rgba(103,232,249,0.5),0_9px_30px_rgba(34,211,238,0.4)]",
   secondary:
-    "border-[var(--glass-border)] bg-[var(--glass-surface)] text-[var(--fg-primary)] backdrop-blur-md hover:-translate-y-px hover:border-[var(--neon-cyan-loud)] hover:shadow-[0_0_30px_rgba(34,211,238,0.25)]",
+    "border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--glass-surface)_55%,transparent)] text-[var(--fg-primary)] backdrop-blur-md hover:-translate-y-px hover:border-[var(--neon-cyan-loud)] hover:bg-[color-mix(in_srgb,var(--glass-surface)_70%,transparent)] hover:shadow-[0_0_22px_rgba(34,211,238,0.18)]",
 };
 
 export function GlowButton({

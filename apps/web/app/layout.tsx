@@ -24,7 +24,7 @@ const mono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NeonVideo",
+  title: "Neonix",
   description: "AI Studio — neon / cyber motion graphics từ brief đến export",
 };
 
