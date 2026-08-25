@@ -476,18 +476,6 @@ importers:
       '@motionvideo/motion-protocol':
         specifier: workspace:*
         version: link:../motion-protocol
-      '@motionvideo/motion-runtime':
-        specifier: workspace:*
-        version: link:../motion-runtime
-      '@motionvideo/patterns':
-        specifier: workspace:*
-        version: link:../patterns
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../render-contracts
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
     devDependencies:
       '@eslint/js':
         specifier: ^9.22.0

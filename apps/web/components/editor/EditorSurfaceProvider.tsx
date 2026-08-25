@@ -17,7 +17,7 @@ import {
   applyEditorCommand,
   type EditorCommand,
   type EditorDiagnostic,
-} from "@motionvideo/editor-core/document/commands";
+} from "@motionvideo/editor-core";
 import { saveEditorProject } from "@/lib/api/projects";
 
 export type EditorSurface = {

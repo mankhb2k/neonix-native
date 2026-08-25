@@ -4,11 +4,11 @@ import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import {
   projectLayersToTimeline,
 } from "@motionvideo/editor-core/timeline";
-import type { EditorCommand } from "@motionvideo/editor-core/document/commands";
+import type { EditorCommand } from "@motionvideo/editor-core";
 import {
   selectionClips as protocolSelectionClips,
   selectedClipIds as protocolSelectedClipIds,
-} from "@motionvideo/editor-core/selection";
+} from "@motionvideo/editor-core";
 import {
   selectedClipIdsFrom,
   selectionClips,

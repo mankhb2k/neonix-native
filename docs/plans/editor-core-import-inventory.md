@@ -65,6 +65,20 @@ projection plus pure geometry/policy/interaction helpers.
 `document/commands`. The root barrel and package exports no longer expose the
 deleted compatibility modules.
 
+## Phase 5 completed
+
+The public package map is now deliberately small:
+
+```text
+@motionvideo/editor-core
+@motionvideo/editor-core/timeline
+@motionvideo/editor-core/interactions/stage
+```
+
+Web imports for document commands, selection, and general interactions were
+migrated to the root entrypoint. The export map no longer advertises internal
+`document/commands`, `selection`, or `interactions` subpaths.
+
 ## Repeatable audit commands
 
 ```powershell

@@ -6,7 +6,7 @@ import type {
   AudioClipPatch,
   AudioTrackDocumentPatch,
   LayerPatch,
-} from "@motionvideo/editor-core/document/commands";
+} from "@motionvideo/editor-core";
 import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
 import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
 import { EffectsInspector } from "./EffectsInspector";

@@ -9,7 +9,7 @@ DOM measurement, persistence, preview, and export remain host concerns.
 
 ```ts
 import { applyEditorCommand, type EditorCommand } from
-  "@motionvideo/editor-core/document/commands";
+  "@motionvideo/editor-core";
 import { projectLayersToTimeline, type TimelineEdit } from
   "@motionvideo/editor-core/timeline";
 import { createStageSession } from

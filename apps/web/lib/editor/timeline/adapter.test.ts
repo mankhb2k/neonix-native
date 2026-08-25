@@ -3,7 +3,7 @@ import {
   projectLayersToTimeline,
   timelineEditToDocumentCommand,
 } from "@motionvideo/editor-core/timeline";
-import { applyEditorCommand } from "@motionvideo/editor-core/document/commands";
+import { applyEditorCommand } from "@motionvideo/editor-core";
 import { createV2EditorProject } from "../document/demo-projects";
 
 describe("V2 timeline adapter", () => {

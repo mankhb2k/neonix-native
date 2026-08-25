@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEditorCommand } from "@motionvideo/editor-core/document/commands";
+import { applyEditorCommand } from "@motionvideo/editor-core";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   createV2EditorProject,

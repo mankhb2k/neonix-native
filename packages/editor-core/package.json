@@ -7,10 +7,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./document/commands": "./src/document/commands/index.ts",
-    "./selection": "./src/selection/index.ts",
     "./timeline": "./src/timeline/index.ts",
-    "./interactions": "./src/interactions/index.ts",
     "./interactions/stage": "./src/interactions/stage/index.ts"
   },
   "scripts": {
@@ -21,11 +18,7 @@
   },
   "dependencies": {
     "@motionvideo/motion-compiler": "workspace:*",
-    "@motionvideo/motion-protocol": "workspace:*",
-    "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/patterns": "workspace:*",
-    "@motionvideo/render-contracts": "workspace:*",
-    "zod": "^3.25.76"
+    "@motionvideo/motion-protocol": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

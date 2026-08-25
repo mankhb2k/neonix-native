@@ -288,6 +288,13 @@ projection and pure interaction primitives, and moved timeline UI intents to
 Exit criteria: one document command flow works for web, MCP project creation,
 preview, and export input; there is no V1 or `/v2` editor implementation left.
 
+Phase 5 is complete. The package now exposes only `.`, `./timeline`, and
+`./interactions/stage`; web consumers use the root command/selection/
+interaction surface. Editor-core and web verification are green, including
+the production build. Remaining `MotionProjectV1` matches are documentation
+and legacy protocol fixture pages outside `editor-core`; they are not imported
+by the editor flow.
+
 ## Commit sequence
 
 1. `test(editor-core): freeze single-flow dependency inventory`
