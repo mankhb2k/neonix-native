@@ -43,7 +43,7 @@ function renderDragItemPreview(item: LibraryPayload) {
 
   return (
     <span className="max-w-[56px] truncate text-center text-[14px] font-extrabold tracking-wide text-white drop-shadow-md">
-      {item.text || item.label}
+      {item.kind === "text" ? item.text : item.label}
     </span>
   );
 }

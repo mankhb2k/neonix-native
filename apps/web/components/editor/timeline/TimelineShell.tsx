@@ -21,7 +21,7 @@ import { TimelineViewport } from "./viewport/TimelineViewport";
 import { timelineCommandToV2 } from "@/lib/editor/timeline/adapter";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
 
-/** Existing V1 timeline chrome backed by a Protocol V2 document adapter. */
+/** Timeline chrome backed by the Protocol V2 document adapter. */
 export function TimelineShell() {
   const {
     document,

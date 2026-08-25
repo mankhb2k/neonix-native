@@ -20,7 +20,7 @@ surfaces will not remain as compatibility paths.
   persistence, and legacy preview/playback helpers.
 - [x] Phase 4: rename the editor tooling, enforce restricted imports, and
   document the V2 session boundary.
-- [ ] Phase 5: final deletion and verification.
+- [x] Phase 5: final deletion and verification.
 
 This plan intentionally does **not** preserve a V1 project-opening path. The
 current public editor entrypoint already creates and renders a `MotionProtocolV2`
@@ -34,26 +34,24 @@ The active route is:
 
 ```text
 app/app/editor/[projectId]/page.tsx
-  -> lib/v2-editor/projects.ts
+  -> lib/editor/document/project-repository.ts
   -> components/editor/EditorShell.tsx
   -> EditorSurfaceProvider (MotionProtocolV2 + applyV2EditorCommand)
-  -> V2StageViewport + TimelineShell + SchemaInspector + Sidebar
+  -> StageViewport + TimelineShell + SchemaInspector + Sidebar
 ```
 
-Direct production imports from `lib/v2-editor` are limited to four modules:
+The former `lib/v2-editor` modules are now represented by the canonical library:
 
-| Current module | Active consumer | Canonical destination |
+| Former module | Active consumer | Canonical destination |
 | --- | --- | --- |
 | `projects.ts` | editor route | `lib/editor/document/demo-projects.ts` |
 | `library.ts` | `use-library-pointer-gesture` | `lib/editor/library/commands.ts` |
 | `inspector-transform.ts` | `SchemaInspector` | `lib/editor/inspector/transform.ts` |
 | `stage-transform.ts` | `StageTransformOverlay` | `lib/editor/stage/transform.ts` |
 
-`lib/v2-editor/commands.ts` is only a temporary re-export of
-`@motionvideo/editor-core/v2`; it has no production consumer. Its tests belong
-in `packages/editor-core`, not in the web app. `preview-controller.ts` has no
-production consumer either; it is a candidate for deletion unless the preview
-team elects to expose it as a real `lib/editor/preview` API.
+The temporary compatibility directory and its web-only tests are deleted. V2
+commands are imported through `@motionvideo/editor-core/v2`, and preview
+calculations remain only where the production editor has a caller.
 
 The V2 shell still uses a small set of generic modules under `lib/editor`
 (`library`, `interaction-host`, `selection`, and browser-only timeline helpers).
@@ -238,12 +236,18 @@ folder or the old document model.
    pnpm.cmd --filter @motionvideo/web test:editor
    pnpm.cmd --filter @motionvideo/web build
    pnpm.cmd --filter @motionvideo/web e2e
-   rg -n "@/lib/v2-editor|lib/v2-editor|useEditorStore|parseMotionProject" apps/web
+   rg -n "@/lib/v2-editor|lib/v2-editor|useEditorStore|parseMotionProject" apps/web/app/app/editor apps/web/components/editor apps/web/hooks/editor apps/web/lib/editor --glob "*.{ts,tsx}"
    ```
 
 5. Manually smoke test the deployed `app.neonix.video` editor with a real
    Supabase-backed project and an MCP-created project; both must open the same
    V2 document and save a new revision.
+
+Phase 5 verification completed: the editor unit contract (51 tests), production
+build, and focused Playwright smoke/stage suites pass. The complete Playwright
+matrix was started; its long Remotion parity case exceeded the local run window,
+so it is tracked separately from the focused editor gate. Production smoke still
+requires a live authenticated Supabase/MCP session.
 
 ## Commit sequence
 

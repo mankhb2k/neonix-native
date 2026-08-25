@@ -4,7 +4,7 @@ import { EditorSurfaceProvider } from "@/components/editor/EditorSurfaceProvider
 import { EditorHeader } from "@/components/editor/header/EditorHeader";
 import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
 import { Sidebar } from "@/components/editor/sidebar/Sidebar";
-import { V2StageViewport } from "@/components/editor/stage/V2StageViewport";
+import { StageViewport } from "@/components/editor/stage/StageViewport";
 import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
@@ -34,7 +34,7 @@ export function EditorShell({
       >
         <EditorHeader />
         <Sidebar />
-        <V2StageViewport />
+        <StageViewport />
         <TimelineShell />
         <SchemaInspector />
       </div>

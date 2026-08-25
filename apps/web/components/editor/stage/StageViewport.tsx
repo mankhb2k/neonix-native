@@ -23,7 +23,7 @@ function clampStageZoom(value: number): number {
 }
 
 /** Existing editor stage chrome backed by the Protocol V2 preview pipeline. */
-export function V2StageViewport() {
+export function StageViewport() {
   const { document, currentTime, isPlaying, hiddenLayerIds } = useEditorSurface();
   const [stageZoom, setStageZoom] = useState(STAGE_ZOOM_DEFAULT);
   const [fitScale, setFitScale] = useState(0.5);
@@ -226,3 +226,5 @@ export function V2StageViewport() {
     </main>
   );
 }
+
+

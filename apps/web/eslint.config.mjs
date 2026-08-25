@@ -4,7 +4,8 @@
  * Adapted from a strict Next layer config for MotionVideo:
  *  - UI must not call raw HTTP or pull in render engines
  *  - Domain lives in @motionvideo/* packages
- *  - Editor store may mutate drafts (Zustand)
+ *  - Editor session state stays in EditorSurfaceProvider; document mutations
+ *    use Protocol V2 commands
  *
  * Scripts:
  *  - pnpm --filter @motionvideo/web lint
@@ -426,7 +427,7 @@ export default tseslint.config(
           patterns: [
             {
               group: ["react", "react-dom", "react-dom/*", "zustand", "zustand/*"],
-              message: "lib/editor/timeline/ must be pure domain logic — no React or Zustand allowed.",
+              message: "lib/editor/timeline/ must be pure domain logic — no React or client store allowed.",
             },
             {
               group: ["@/components/**", "@/app/**", "@/hooks/**"],
