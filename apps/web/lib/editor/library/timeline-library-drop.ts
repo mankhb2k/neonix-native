@@ -10,17 +10,14 @@ import {
 import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   audioDropPolicy,
-  audioHitToLane,
   DEFAULT_FRAME_DURATION,
   resolveLaneDropTarget,
-  videoHitToLane,
   visualDropPolicy,
-  type AudioLaneHit,
+  type LaneHit,
   type PlacementTarget,
   type TimelineClip,
   type TimelineDropTarget,
   type TimelineLane,
-  type VideoLaneHit,
 } from "@motionvideo/editor-core/timeline";
 import type { LibraryPayload } from "./library-payload";
 
@@ -139,10 +136,10 @@ function collectSceneLanesFromLayout(
   scrollEl: HTMLElement,
   lanes: readonly TimelineLane[],
   layout: LaneHitLayout,
-): VideoLaneHit[] {
+): LaneHit[] {
   const wsTop = scrollEl.getBoundingClientRect().top;
   const scrollTop = scrollEl.scrollTop;
-  const out: VideoLaneHit[] = [];
+  const out: LaneHit[] = [];
   for (let i = 0; i < lanes.length; i += 1) {
     const lane = lanes[i]!;
     if (lane.kind !== "visual") continue;
@@ -150,9 +147,10 @@ function collectSceneLanesFromLayout(
     const contentH = layout.laneContentHeights[i] ?? 0;
     const top = wsTop + contentTop - scrollTop;
     out.push({
+      family: "visual",
+      role: lane.role,
       top,
       bottom: top + contentH,
-      type: lane.role === "base" ? "main" : "overlay",
       laneId: lane.id,
       order: lane.order,
     });
@@ -160,9 +158,9 @@ function collectSceneLanesFromLayout(
   return out;
 }
 
-function collectSceneLanesFromDom(scope: HTMLElement): VideoLaneHit[] {
+function collectSceneLanesFromDom(scope: HTMLElement): LaneHit[] {
   const layers = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
-  const out: VideoLaneHit[] = [];
+  const out: LaneHit[] = [];
   for (const el of layers) {
     const rawRole = el.getAttribute("data-track-role");
     const rawType = el.getAttribute("data-track-type");
@@ -172,9 +170,10 @@ function collectSceneLanesFromDom(scope: HTMLElement): VideoLaneHit[] {
     const r = el.getBoundingClientRect();
     const orderAttr = el.getAttribute("data-lane-order");
     out.push({
+      family: "visual",
+      role: isBase ? "base" : "overlay",
       top: r.top,
       bottom: r.bottom,
-      type: isBase ? "main" : "overlay",
       laneId: el.getAttribute("data-lane-id"),
       order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
     });
@@ -183,7 +182,7 @@ function collectSceneLanesFromDom(scope: HTMLElement): VideoLaneHit[] {
   return out;
 }
 
-function collectHits(h: TimelineLibraryDropHost): VideoLaneHit[] {
+function collectHits(h: TimelineLibraryDropHost): LaneHit[] {
   return h.laneHitLayout
     ? collectSceneLanesFromLayout(h.scrollEl, h.lanes, h.laneHitLayout)
     : collectSceneLanesFromDom(h.scrollEl);
@@ -193,10 +192,10 @@ function collectAudioZoneLanesFromLayout(
   scrollEl: HTMLElement,
   lanes: readonly TimelineLane[],
   layout: LaneHitLayout,
-): AudioLaneHit[] {
+): LaneHit[] {
   const wsTop = scrollEl.getBoundingClientRect().top;
   const scrollTop = scrollEl.scrollTop;
-  const out: AudioLaneHit[] = [];
+  const out: LaneHit[] = [];
   for (let i = 0; i < lanes.length; i += 1) {
     const lane = lanes[i]!;
     const isAudio = lane.kind === "audio";
@@ -206,9 +205,10 @@ function collectAudioZoneLanesFromLayout(
     const contentH = layout.laneContentHeights[i] ?? 0;
     const top = wsTop + contentTop - scrollTop;
     out.push({
+      family: "audio",
+      role: isBase ? "base" : "audio",
       top,
       bottom: top + contentH,
-      type: isBase ? "main" : "audio",
       laneId: lane.id,
       order: lane.order,
     });
@@ -216,9 +216,9 @@ function collectAudioZoneLanesFromLayout(
   return out;
 }
 
-function collectAudioZoneLanesFromDom(scope: HTMLElement): AudioLaneHit[] {
+function collectAudioZoneLanesFromDom(scope: HTMLElement): LaneHit[] {
   const layers = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
-  const out: AudioLaneHit[] = [];
+  const out: LaneHit[] = [];
   for (const el of layers) {
     const rawRole = el.getAttribute("data-track-role");
     const rawType = el.getAttribute("data-track-type");
@@ -228,9 +228,10 @@ function collectAudioZoneLanesFromDom(scope: HTMLElement): AudioLaneHit[] {
     const r = el.getBoundingClientRect();
     const orderAttr = el.getAttribute("data-lane-order");
     out.push({
+      family: "audio",
+      role: isBase ? "base" : "audio",
       top: r.top,
       bottom: r.bottom,
-      type: isBase ? "main" : "audio",
       laneId: el.getAttribute("data-lane-id"),
       order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
     });
@@ -261,7 +262,7 @@ export function resolveClipMoveDropAtY(
       : collectAudioZoneLanesFromDom(scrollEl);
     return resolveLaneDropTarget(
       clientY,
-      hits.map(audioHitToLane),
+      hits,
       wsTop,
       wasInsert,
       maxOrder,
@@ -276,7 +277,7 @@ export function resolveClipMoveDropAtY(
     : collectSceneLanesFromDom(scrollEl);
   return resolveLaneDropTarget(
     clientY,
-    hits.map(videoHitToLane),
+    hits,
     wsTop,
     wasInsert,
     maxOrder,
@@ -286,14 +287,14 @@ export function resolveClipMoveDropAtY(
 
 function resolveVisualPolicyTarget(
   clientY: number,
-  hits: VideoLaneHit[],
+  hits: LaneHit[],
 ): TimelineDropTarget | null {
   const h = host;
   if (!h || hits.length === 0) return null;
   const wsTop = h.scrollEl.getBoundingClientRect().top;
   const target = resolveLaneDropTarget(
     clientY,
-    hits.map(videoHitToLane),
+    hits,
     wsTop,
     wasInsertVisual,
     maxOverlayOrder(h.lanes),
@@ -321,7 +322,7 @@ function startTimeAtPoint(clientX: number): number {
 
 function contentTopForTarget(
   target: TimelineDropTarget,
-  hits: VideoLaneHit[],
+  hits: LaneHit[],
 ): number {
   const h = host!;
   const scrollTop = h.scrollEl.scrollTop;
@@ -337,7 +338,7 @@ function contentTopForTarget(
     }
   }
   if (target.overBaseBody) {
-    const base = hits.find((x) => x.type === "main");
+    const base = hits.find((x) => x.role === "base");
     if (base) {
       return (base.top + base.bottom) / 2 - scrollRect.top + scrollTop;
     }
@@ -348,7 +349,7 @@ function contentTopForTarget(
 function ghostHeightFor(
   isInsert: boolean,
   target: TimelineDropTarget,
-  hits: VideoLaneHit[],
+  hits: LaneHit[],
 ): number {
   if (isInsert) return 32;
   if (target.laneId) {
@@ -356,7 +357,7 @@ function ghostHeightFor(
     if (hit) return Math.max(20, (hit.bottom - hit.top) * 0.9);
   }
   if (target.overBaseBody) {
-    const base = hits.find((x) => x.type === "main");
+    const base = hits.find((x) => x.role === "base");
     if (base) return Math.max(20, (base.bottom - base.top) * 0.9);
   }
   return 28;

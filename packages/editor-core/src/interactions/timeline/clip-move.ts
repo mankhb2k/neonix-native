@@ -3,7 +3,7 @@
  * Occupancy: không bao giờ chồng clip cùng lane; interior → chèn lane phía trên.
  */
 
-import { clipAcceptsTrack } from "../../timeline/clip-capabilities";
+import { clipAcceptsLane } from "../../timeline/clip-capabilities";
 import {
   resolveExclusiveRowPlacement,
   resolveOccupancyAwarePlacement,
@@ -133,7 +133,7 @@ export type ClipMoveDragResult = {
   commit: ClipMoveDragCommit;
 };
 
-export { clipAcceptsTrack };
+export { clipAcceptsLane };
 
 /** Index i đầu tiên thỏa sorted[i] >= x (hoặc length). */
 export function lowerBound(sorted: readonly number[], x: number): number {
@@ -263,7 +263,11 @@ export function resolveClipMoveDrag(
     previewLaneId = input.drop.laneId;
     insertNewLane = Boolean(input.drop.insertNewLane);
     insertOrder = input.drop.insertOrder ?? null;
-    if (clipAcceptsTrack(input.clip, input.drop.track)) {
+    if (
+      clipAcceptsLane(input.clip, {
+        kind: input.drop.track === "audio" ? "audio" : "visual",
+      })
+    ) {
       commitLaneId = input.drop.laneId;
       commitTrack = input.drop.track;
       valid = true;

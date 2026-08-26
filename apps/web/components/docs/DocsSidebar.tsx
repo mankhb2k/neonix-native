@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DOCS_NAV } from "@/lib/docs/nav";
+import { DOCS_NAV } from "@/lib/docs/docs";
 
 export function DocsSidebar() {
   const pathname = usePathname();

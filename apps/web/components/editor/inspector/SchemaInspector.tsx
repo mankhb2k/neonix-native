@@ -29,11 +29,11 @@ const inputClass =
 
 /** Languages currently shipped by the web editor for text layers. */
 const SHIPPED_TEXT_LANGUAGES = [
-  { value: "vi", label: "Tiếng Việt" },
+  { value: "vi", label: "Vietnamese" },
   { value: "en", label: "English" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-  { value: "zh-CN", label: "简体中文" },
+  { value: "ja", label: "Japanese" },
+  { value: "ko", label: "Korean" },
+  { value: "zh-CN", label: "Simplified Chinese" },
 ] as const;
 
 function InspectorSection({
@@ -266,7 +266,7 @@ function EmptyInspector({
   return (
     <div className="space-y-3" data-testid="inspector-empty">
       <div className="rounded-md border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
-        Chọn một layer trên sidebar hoặc timeline để xem thuộc tính.
+        Select a layer in the sidebar or timeline to view its properties.
       </div>
       <InspectorSection label="Composition" open onToggle={() => undefined}>
         <ReadonlyField label="Size" value={`${width} × ${height}`} />

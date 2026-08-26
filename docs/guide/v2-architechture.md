@@ -1,383 +1,286 @@
-# NeonVideo V2 Architecture
+# MotiClip V2 Architecture Guide
 
-> Status: active architecture for the V2 render core.
+> Status: active architecture and Atomic Protocol V2 reference.
 >
-> Scope: MCP, editor, AI, and CLI intent through authoring, compilation,
-> visual/audio runtime evaluation, preview, export, and final encoded output.
+> Scope: the contract from V2 project JSON through compilation, runtime
+> evaluation, native preview, Remotion export, and encoded media. This is an
+> architecture guide, not an implementation plan or ticket tracker.
 
-## 1. One Intent, One Render Meaning
+## Purpose and source of truth
 
-NeonVideo has several ways to create or modify a video, but they must converge
-before rendering. MCP tools, the editor, AI agents, templates, and the CLI are
-authoring surfaces. They do not own GPU logic, renderer state, or Matrix4 math.
+MotiClip can be authored by the editor, MCP tools, AI, templates, or the CLI.
+Those are authoring surfaces; they do not define rendering semantics. Every
+renderable project must become one strict `MotionProtocolV2` document before
+it reaches the render core.
+
+The source of truth for the accepted JSON is
+[`@motionvideo/motion-protocol`](../../packages/motion-protocol/src/v2/project.ts).
+The complete list of certified visual atomic capabilities is
+[`V2_CERTIFIED_ATOMS`](../../packages/motion-protocol/src/v2/capabilities.ts),
+and the audio list is
+[`V2_AUDIO_CAPABILITY_LEDGER`](../../packages/motion-protocol/src/v2/audio-capabilities.ts).
+This guide explains their architectural meaning; schema and capability ledger
+win if this page ever becomes stale.
+
+## 1. One project, one render meaning
 
 ```text
-MCP tools       Editor UI       AI agent       Templates / CLI
-     |               |              |                  |
-     +---------------+--------------+------------------+
-                             |
-                             v
-                  High-level Authoring JSON
-                             |
-                     Compiler A: lower intent
-                             |
-                             v
-                    Atomic Protocol V2 JSON
-                             |
-                Compiler B: resolve and compile
-                             |
-                             v
-                    Atomic Protocol V2 JSON
-                       /                 \
-                      /                   \
-             Visual domain             Audio domain
-                    |                       |
-          Compiler B visual        Compiler B audio
-                    |                       |
-             RuntimeFrameV2            AudioMixPlanV2
-                    |                       |
-          PaintCommandBuffer       WebAudio / audio render
-                    |                       |
-        Native preview renderer            |
-        WebGPU default / WebGL2            |
-                    \                       /
-                     \                     /
-                      +---------+---------+
-                                |
-                                v
-                         Remotion encoder
-                         frames + audio -> MP4
+Editor / MCP / AI / templates / CLI
+                 |
+                 v
+        MotionProtocolV2 JSON
+                 |
+                 v
+ @motionvideo/motion-compiler
+       compileProtocolV2()
+                 |
+                 v
+           RuntimeProjectV2
+             /           \
+            v             v
+RuntimeFrameV2       RuntimeAudioMixPlanV2
+PaintCommandBuffer          |
+       |                    |
+       +---- Native preview +---- WebAudio preview
+       |                    |
+       +---- Remotion visual +---- Remotion audio
+                              |
+                              v
+                         encoded media
 ```
 
-The invariant is simple: a given Atomic Protocol V2 document and frame time
-must have one backend-neutral runtime meaning. Preview and export may use
-different platform adapters, but they must not reinterpret transforms, timing,
-ordering, visual semantics, or audio timing/mix semantics. Visual and audio
-remain separate until the final media encoder.
+For a given V2 document and time, the visual and audio meaning is
+backend-neutral and deterministic. WebGPU, WebGL2, WebAudio, and Remotion may
+adapt that meaning to their platform, but must not reinterpret timing,
+transforms, ordering, compositing, media selection, or mixing.
 
-## 2. Authoring Surfaces
+Visual and audio are parallel domains. They meet only at final media output;
+audio is never a visual layer and visual rendering never owns the audio clock.
 
-| Surface | Owns | Does not own |
+## 2. Package ownership
+
+| Boundary | Package | Owns | Does not own |
+| --- | --- | --- | --- |
+| Protocol | `@motionvideo/motion-protocol` | Strict V2 authoring JSON, asset metadata, atomic vocabulary, capability ledger | Matrix4 values, GPU objects, decoded media, renderer commands |
+| Compiler | `@motionvideo/motion-compiler` | Validation, references, V2-to-runtime lowering | Pixel rendering, frame playback, GPU resources |
+| Runtime | `@motionvideo/motion-runtime` | Timing, hierarchy, Matrix4/projection evaluation, paint commands, audio mix plans | Protocol parsing, media decoding, WebAudio/GPU state |
+| Preview | `@motionvideo/preview-renderer` | Canvas/device setup, WebGPU-first rendering, WebGL2 fallback, asset upload/cache, diagnostics | Semantic transform composition, authoring JSON parsing, audio clock |
+| Export | `@motionvideo/remotion-renderer` | Rendering the evaluated paint tree, offline audio mix, Remotion encode integration | A second protocol/compiler/transform model |
+
+High-level constructs such as presets, templates, components, auto-layout,
+camera gestures, and AI intent are deliberately outside Atomic Protocol V2.
+The repository currently provides the V2 compiler (Atomic JSON to Runtime IR),
+not a general high-level-authoring compiler. Any future authoring layer must
+lower to the atomic contract described here.
+
+## 3. Canonical Atomic JSON design
+
+### 3.1 V2 root document
+
+Every project has this strict root shape. Unknown fields are rejected.
+
+```text
+MotionProtocolV2
+|- format: "motion-protocol"
+|- formatVersion: 2
+|- id
+|- composition
+|  |- width, height, fps, background, colorSpace: "srgb"
+|  `- view
+|     |- projection: orthographic | perspective
+|     `- transform
+|- assets[]
+|- layers[]
+`- audio
+```
+
+`composition.view` is required. It is not a layer or a user-facing camera
+object: it is the renderer-neutral view state for the entire composition.
+
+- Orthographic projection: `kind`, `zoom`, `near`, and `far`. `zoom: 1`
+  frames the full composition; `zoom: 2` halves the visible width and height.
+- Perspective projection: `kind`, `fov`, `near`, and `far`.
+- View transform: semantic Vec3 `translate` and `rotate` values. Runtime turns
+  it into the world-to-clip Matrix4.
+
+`assets[]` contains renderer-neutral metadata only. Supported asset kinds are
+`image`, `video`, `audio`, and `font`; the descriptor carries an id, URI and
+applicable media metadata. A texture, decoded PCM buffer, browser media
+element, glyph atlas, or GPU handle never belongs in this JSON.
+
+### 3.2 Shared visual-layer contract
+
+All six visual layer types use the following atomic design:
+
+```ts
+type VisualLayerBaseV2 = {
+  id: string;
+  parentLayerId: string | null; // only a group can be a parent
+  order: number;                // unique among siblings; higher paints later
+  frame: { width: number; height: number };
+  transform: {
+    translate: { x: number; y: number; z: number };
+    scale: { x: number; y: number; z: number };
+    rotate: { x: number; y: number; z: number };
+    skew: { x: number; y: number };
+    anchor: { x: number; y: number; z: number };
+  };
+  opacity: number; // 0..1, default 1
+  timing: { start: number; duration: number }; // composition seconds
+  composite?: {
+    blendMode: "normal" | "multiply" | "screen" | "add";
+    mask?: {
+      mode: "clip" | "alpha" | "inverse-alpha" | "luma";
+      sourceLayerId: string;
+      sourceVisibility: "mask-only";
+    };
+  };
+  effects?: EffectV2[];
+};
+```
+
+The transform remains semantic in JSON. The compiler/runtime is the sole owner
+of local, parent/world, view, and projection Matrix4 composition. A normal 2D
+scene is an XY plane at `z = 0` under orthographic projection; the same model
+also supports 3D translation, X/Y rotation, perspective, and a 3D anchor.
+`order`, not `translate.z`, remains the deterministic paint order.
+
+Groups create hierarchy and can carry transform, timing, opacity, blend, and
+mask relationships. A group does not draw, clip to its frame, or become an
+implicit camera. Masking is group-local: its source must be a direct drawable
+child; `clip` requires a shape source, while alpha, inverse-alpha, and luma can
+use a drawable source. Mask sources are emitted as `mask-only`.
+
+There is no generic keyframe/animation-track JSON field in the current V2
+schema. The supported temporal primitive is `timing`; any animation layer must
+be introduced explicitly in a future protocol revision rather than inferred by
+a renderer.
+
+### 3.3 Complete visual atom catalog
+
+The following is the entire currently defined V2 visual layer vocabulary.
+
+| Atom | JSON payload and style | Certified atomic behavior |
 | --- | --- | --- |
-| MCP | Validate, inspect, patch, compile, and render workflows | GPU resources or renderer math |
-| Editor | Human interaction, selection, timeline, and high-level document editing | Atomic compiler internals or GPU commands |
-| AI | Generate or patch high-level intent with explicit constraints | Raw Matrix4, shaders, or backend-specific state |
-| Templates / Skills | Reusable high-level structure and controlled parameters | New atomic behavior without certification |
-| CLI | Automation and deterministic job orchestration | A parallel render contract |
+| `group` | No drawable payload; uses the shared layer fields | Parent/child transforms, nested timing, inherited opacity, sibling order, isolated compositing, four blend modes, and clip/alpha/inverse-alpha/luma masks |
+| `shape` | `payload.shape: "rectangle"` or `"ellipse"`; optional rectangle `cornerRadius`; `style.fill`, opacity, optional stroke/width/opacity | Solid and two-stop linear/radial gradients, fill/stroke opacity, rectangle corner radius, 3D transform, timing, opacity, and ordering |
+| `path` | `payload.contours[]` with line/cubic segments, `fillRule`, optional topology-matched `morph`; fill/stroke style | Nonzero/evenodd fills, multiple contours/holes, fixed-width strokes, miter/bevel/round joins, butt/square/round caps, dash array/offset, and morph interpolation before tessellation |
+| `image` | `payload.assetId`, optional `fit` and normalized `crop` | Image asset lookup, `contain`, `cover`, `fill`, `none`, crop, plus shared transform/timing/opacity/order |
+| `video` | `payload.assetId`, optional `fit`, `trimStart`, `trimEnd`, `loop`, `muted`, `framePolicy` | Deterministic media-time selection; `floor`, `round`, or `ceil` frame policy; trim, loop, mute, fit, and shared fields |
+| `text` | NFC `text`, `fontAssetId`, font size, line height, letter spacing, alignment, vertical alignment, language, fill | Explicit font asset, single-style LTR text, no-wrap/visible overflow layout, single or newline-separated lines, left/center/right and top/middle/bottom alignment, solid fill, plus shared fields |
 
-All surfaces should produce the same high-level representation once that layer
-is enabled. Until then, the V2 render core is exercised directly with Atomic
-Protocol V2 fixtures; this is deliberate while atoms are certified one at a
-time.
+`text` intentionally does **not** accept RTL, variable-font axes, rich text,
+word wrapping, clipping, gradient fill, or text stroke. Those are not hidden
+fallback behaviors.
 
-## 3. High-level Authoring JSON
+### 3.4 Effects
 
-High-level JSON is for rich intent. It can contain concepts that are useful to
-people and AI but would make the renderer needlessly large:
+Effects are ordered atomic operators on the rasterized result of a drawable
+layer. They are not layer types and cannot change semantic transforms. Up to
+eight effects with unique ids may be attached to a drawable.
 
-```text
-High-level Composition
-├── view
-│   └── camera intent, movement, zoom, orbit, and perspective intent
-├── background
-├── timeline
-└── nodes
-    ├── shape
-    ├── path
-    ├── text
-    └── group
-```
+| Effect type | Atomic parameters | Meaning |
+| --- | --- | --- |
+| `color-adjust` | brightness, contrast, saturation, hueRotate | Ordered pixel-local colour adjustment |
+| `blur` | radius | Gaussian spatial blur in output pixels |
+| `drop-shadow` | x, y, blur, color, opacity | Alpha-derived projected shadow |
+| `outer-glow` | radius, color, opacity | Alpha-derived exterior glow |
+| `inner-glow` | radius, color, opacity | Alpha-derived interior glow |
+| `noise` | scale, amount, opacity, seed | Deterministic seeded grain |
 
-`view` is composition-level. A camera is therefore never a visual node: it
-changes how the composition is observed. Compiler A lowers camera intent to
-the normalized V2 view state and, once camera animation is certified, semantic
-tracks targeting that state.
+Spatial effects and group compositing create explicit isolated/offscreen
+surfaces in Runtime IR. Preview/export render those surfaces; they do not
+recalculate a source layer's transforms.
 
-- Pattern, preset, template, and component.
-- Camera movement, parallax, perspective intent, orbit, card tilt, and page
-  flip.
-- Ken Burns, zoom, pan, scene preset, transition, and text animation preset.
-- Auto layout, responsive behavior, variables, and product-level constraints.
+### 3.5 Audio atomic design
 
-For example, a `hero-intro` pattern may describe a product image, a title, a
-fade-up preset, and a camera push. It is not an atom and it is not a renderer
-command.
-
-### Compiler A: high-level to Atomic V2
-
-Compiler A expands rich intent into explicit, inspectable semantic data. It
-resolves templates, presets, layout, defaults, references, and deterministic
-ids. Terms such as `hero-intro`, `fade-up`, and `ken-burns` disappear from its
-output.
-
-Compiler A is pure. It does not acquire a WebGPU device, create a canvas, or
-emit shader code.
-
-## 4. Atomic Protocol V2
-
-Atomic Protocol V2 is the small JSON contract between authoring and render
-execution. It describes what must be rendered, not how one backend implements
-it.
-
-### 4.1 Atomic document tree
-
-```text
-Atomic Protocol V2
-├── composition
-│   ├── width / height / fps / background
-│   └── view
-│       ├── projection
-│       │   ├── orthographic: zoom + near + far
-│       │   └── perspective: fov + near + far
-│       └── transform: translate Vec3 + rotate Vec3
-└── layers[]
-```
-
-The complete root also contains two non-visual domains:
-
-```text
-Atomic Protocol V2
-├── composition
-├── assets[]
-├── layers[]       -> visual scene graph and atomic paint content
-└── audio          -> tracks[] -> clips[] -> media timing and mix intent
-```
-
-This is the current schema shape. `composition.view` is required, so every V2
-document has one explicit projection contract. Orthographic `zoom` is centered
-on the composition: `1` preserves the full composition framing and `2` halves
-the visible width and height. Both projection modes carry `near` and `far` for
-canonical clip-Z boundaries. The camera intent that users author remains
-high-level; this V2 field is the explicit, renderer-neutral result the runtime
-needs.
-
-`layers[]` is a flat, deterministic array whose entries carry `id`,
-`parentLayerId`, `order`, `frame`, semantic 3D `transform`, normalized
-`opacity` (`0..1`, default `1`), and
-`timing`. A `group` entry may parent other layers. Group hierarchy is local
-space structure in Protocol; it is not an implicit camera, clipping surface, or
-depth-buffer feature.
-
-Its vocabulary is intentionally narrow:
-
-| Atomic concept | Meaning |
-| --- | --- |
-| Composition / view | Canvas size, frame rate, background, and normalized view/projection state |
-| Group | Parent-child local space when group certification is available |
-| Shape | Rectangle, ellipse, polygon, then further certified primitives |
-| Text / image / video / path | Semantic content and asset references as each atom is certified |
-| Frame | Local width and height |
-| Transform | Semantic translate, scale, rotate, skew, and 3D anchor |
-| Timing / animation | Active window and keyframes targeting atomic properties |
-| Effects / mask / composite | Certified visual and compositing relationships |
-| Audio | Separate tracks, clips, source trim, gain, pan, fades, and explicit media references |
-
-Atomic V2 never contains a precomputed `mat4`, GPU buffer, shader, texture
-handle, bind group, or backend-specific draw call. Those values belong to later
-stages. The protocol is currently hard-locked to `formatVersion: 2`; V1 input
-is not accepted by the compiler, runtime, preview, or export core.
-
-### 4.2 Audio domain
-
-Audio is a required root domain, including for silent projects. Silence is
-represented by `audio: { sampleRate: 48000, tracks: [] }`.
+`audio` is required, including for silent projects:
 
 ```ts
 type AudioDomainV2 = {
   sampleRate: 48000;
-  tracks: AudioTrackV2[];
-};
-
-type AudioTrackV2 = {
-  id: string;
-  gainDb: number;
-  pan: number; // -1..1
-  muted: boolean;
-  clips: AudioClipV2[];
-};
-
-type AudioClipV2 = {
-  id: string;
-  assetId: string;
-  timing: { start: number; duration: number };
-  trim: { start: number; end?: number };
-  playbackRate: number;
-  loop: boolean;
-  gainDb: number;
-  fadeIn?: AudioFadeV2;
-  fadeOut?: AudioFadeV2;
+  tracks: Array<{
+    id: string;
+    gainDb: number;
+    pan: number; // -1..1
+    muted: boolean;
+    clips: Array<{
+      id: string;
+      assetId: string; // an audio asset or the audio stream of a video asset
+      timing: { start: number; duration: number };
+      trim: { start: number; end?: number };
+      playbackRate: number;
+      loop: boolean;
+      gainDb: number;
+      fadeIn?: { duration: number; curve: "linear" | "equal-power" };
+      fadeOut?: { duration: number; curve: "linear" | "equal-power" };
+    }>;
+  }>;
 };
 ```
 
-Audio is not a visual atom and does not enter the scene graph. It has no frame,
-transform, camera, order, Matrix4, or paint command. An audio clip may
-reference an `audio` asset or explicitly reference the audio stream of a
-`video` asset. A visual video layer does not implicitly create an audio clip.
+All audio time is in composition seconds until Runtime evaluates a requested
+sample range. The audio capability ledger covers asset identity, timing, trim,
+loop, independent track/clip gain, pan, fade curves, track mute, overlapping
+clips, and explicit video-audio sources. A video layer does not create sound
+implicitly; an audio clip must reference the video asset.
 
-All audio timing is expressed in composition seconds. `trim` is source-media
-time, `timing.duration` is composition time, and the fixed V2 sample rate is
-48 kHz. Track and clip gain, pan, looping, and fades are protocol intent;
-decoded PCM, browser nodes, GPU resources, and encoder command strings belong
-to later runtime adapters.
+## 4. Compilation and Runtime IR
 
-### 4.3 Layer and operator delivery plan
+`compileProtocolV2()` validates the strict schema, certified capability usage,
+asset references, hierarchy, sibling order, masks, and view contract. It then
+emits `RuntimeProjectV2`.
 
-The final Atomic V2 surface will grow through certified tickets, not by adding
-all node types to the schema in advance:
+At a visual frame, `evaluateRuntimeProjectV2()` resolves active timing,
+hierarchy, inherited opacity, Matrix4 transforms, view projection, compositing
+boundaries, effects, media time, and stable paint order into `RuntimeFrameV2`
+and its `PaintCommandBuffer`.
 
-| Atomic surface | Plan task | State and ownership |
-| --- | --- | --- |
-| `shape.rectangle`, `shape.ellipse` | Tasks 2-5 | Certified. Frame, 3D transform, timing, opacity, order, fill, gradient, and supported stroke behavior are live. |
-| `path` | Task 6: Path Embedded in 3D | Certified for the current static surface. Closed/open local-plane contours, `nonzero`/`evenodd` fill rules, holes, fixed-width stroke joins/caps/dashes, and topology-matched morph interpolation are resolved by Runtime before the shared Matrix4 transform. |
-| `group` | Task 7: Group and Parent Transform | Certified. Compiler B lowers parent-to-child world Matrix4 inheritance, inherited opacity, nested timing, and deterministic child ordering. Runtime receives drawable leaves only. |
-| `image` | Task 8: Image | Certified. Protocol stores `assets[]` metadata plus `payload.assetId`; Compiler emits backend-neutral `drawImage`, and preview backends own texture upload/cache, fit/crop, and alpha handling. |
-| `video` | Task 9: Video | Certified. Protocol stores video metadata plus trim/loop/mute/frame policy; Runtime emits deterministic `mediaTime`, and preview backends seek the host-owned media source before upload. |
-| `text` | Task 10 | Planned. Adds explicit font assets plus renderer-neutral shaping and glyph-run Runtime IR. |
-| `effects` | Task 11 | Planned operators, not layer types. Each effect receives its own offscreen and pixel-parity contract. |
-| `mask` and blend modes | Task 12 | Planned after groups and offscreen compositing boundaries are certified. |
+At an audio sample range, `evaluateRuntimeAudioMixV2()` produces a
+`RuntimeAudioMixPlanV2` containing deterministic source ranges, loop segments,
+gain envelopes, pan, fades, and mix input order. It does not decode PCM or
+construct WebAudio nodes.
 
-High-level patterns, presets, templates, and components remain blocked until
-the static path, group, image, and video tickets are certified. Compiler A may
-then lower only to entries that the V2 capability manifest marks certified.
-See [Atomic Protocol V2 Preview E2E Plan](../atomic-protocol-v2-preview-e2e-plan.md)
-for the acceptance gates and exact test order.
+Runtime IR may contain calculated Matrix4s and backend-neutral mesh, glyph-run,
+or paint data. It must not contain authoring presets, raw GPU state, textures,
+audio decoders, DOM media elements, or encoder commands.
 
-## 5. Compiler B and Runtime IR
+## 5. Preview, export, and parity
 
-Compiler B accepts validated Atomic Protocol V2 and produces `RuntimeProjectV2`
-with separate visual and audio runtime branches. It is the sole owner of
-render math and protocol-to-runtime lowering:
+`@motionvideo/preview-renderer` consumes only an evaluated runtime frame or
+paint buffer. It selects WebGPU by default and WebGL2 as a fallback. The host
+supplies image/video sources through an asset map or resolver; the renderer
+owns only upload/cache lifecycle and diagnostics.
 
-```text
-Atomic V2
-  +-> validate visual capability and asset/reference rules
-  |   -> resolve visual timing, hierarchy, and stable sibling order
-  |   -> compose local and world Matrix4 transforms
-  |   -> resolve view and projection into `worldToClipMatrix`
-  |   -> lower semantic paint into `PaintCommandBuffer`
-  |
-  +-> validate audio asset references and mix rules
-      -> resolve source trim, playback rate, loop, fades, gain, and pan
-      -> lower audio intent into `AudioMixPlanV2`
-```
+`@motionvideo/remotion-renderer` builds its paint tree from the same command
+buffer and its audio track from the same audio mix plan. It does not parse
+Protocol JSON, compose CSS transforms, or create an export-only timing model.
 
-At a requested video frame, `evaluateRuntimeProjectV2()` produces
-`RuntimeFrameV2` and a `PaintCommandBuffer`. Each drawable has a required
-Matrix4, opacity, visibility, and deterministic sibling `order`. Group nodes are
-lowered before Runtime evaluation, so renderers consume leaves and never
-recompute semantic transform properties or parent hierarchy.
+The architectural acceptance rule is therefore simple: preview and export use
+the same Runtime V2 visual and audio meaning. Backend-specific limitations
+must surface as diagnostics rather than silently changing the result.
 
-For an audio sample range, the same runtime project produces an
-`AudioMixPlanV2`:
+## 6. Non-negotiable boundaries
 
-```ts
-evaluateRuntimeAudioMixV2(runtime, {
-  startSample,
-  sampleCount,
-}): AudioMixPlanV2;
-```
+- Only `format: "motion-protocol"` and `formatVersion: 2` enter the render
+  core; there is no V1 compatibility branch.
+- Atomic JSON contains semantic values, never precomputed `mat4`, draw calls,
+  shader code, GPU handles, texture data, decoded audio, or DOM objects.
+- Preview and Remotion consume runtime output; neither recomposes semantic
+  transforms, hierarchy, view state, timing, or audio mix intent.
+- Audio stays outside `layers[]`; visual nodes have no audio state.
+- High-level authoring concepts never leak into V2 JSON.
+- A capability is supported only when it appears in the corresponding V2
+  capability ledger; schema presence alone is not a support promise.
 
-`AudioMixPlanV2` describes active source ranges, loop segments, gain envelopes,
-pan, fades, and deterministic clip order. It does not contain decoded PCM or
-browser/encoder implementation objects. Runtime therefore owns both branches,
-but never merges audio into the visual frame IR.
+## 7. Related guides and code
 
-### 3D from the beginning
-
-V2 uses one Matrix4 representation for both 2D and 3D. A normal 2D scene is an
-XY plane with `z = 0` under an orthographic projection. Rotate X/Y, translate
-Z, perspective, and a non-zero Z anchor use the same contract when a feature
-needs depth.
-
-Atomic JSON keeps transforms semantic. Runtime IR owns the computed column-major
-`worldToClipMatrix`; WebGL2 adapts its clip Z only at the preview backend.
-During the
-MVP, `order` remains the sole deterministic compositing order; `translate.z`
-does not silently enable depth-buffer ordering.
-
-## 6. Preview Rendering
-
-`@motionvideo/preview-renderer` is NeonVideo's native preview package. It
-consumes `RuntimeFrameV2` or `PaintCommandBuffer` only.
-
-- WebGPU is the default backend.
-- WebGL2 is the fallback and an explicit comparison backend for debugging.
-- Both upload the same resolved Matrix4 and paint the same runtime commands.
-- Both report unsupported commands as diagnostics instead of silently using a
-  different render contract.
-- Preview audio uses a separate WebAudio adapter driven by `AudioMixPlanV2`.
-- WebGPU/WebGL2 never render audio and never own audio clock state.
-
-The preview renderer owns device/context setup, GPU resource upload, draw
-submission, presentation, and diagnostics. It does not parse authoring JSON,
-expand a preset, calculate a layer transform, or depend on PixiJS.
-
-## 7. Export and Final Output
-
-`@motionvideo/remotion-renderer` receives the same Runtime V2 visual frame
-meaning and audio mix meaning as preview. Remotion schedules visual frames,
-renders/mixes audio, and encodes output; it does not recalculate visual
-transforms or reinterpret audio timing.
-
-```text
-Atomic V2
-   |
-Compiler B
-   +--> RuntimeFrameV2 -> WebGPU/WebGL2 preview -> visual frames
-   |
-   +--> AudioMixPlanV2 -> WebAudio preview / Remotion audio render
-                                     |
-                                     v
-                              final media encoder
-```
-
-Export must not introduce a CSS transform model, recalculate layer matrices, or
-accept a legacy project format. Audio export must consume the same sample-rate,
-trim, loop, gain, pan, and fade semantics as preview. Pixel-level visual parity
-tests compare certified cases across WebGPU, WebGL2, and Remotion output, while
-audio parity tests compare deterministic sample ranges and mix plans. The
-canonical full export gate is
-`pnpm e2e:v2-remotion-parity`. It first renders every shared preview-lab fixture
-through `MotiClipVideo`, then opens the native web preview in Playwright and
-compares the complete RGBA PNG buffers. The gate serves the same media assets,
-prepares the same font layout, and therefore verifies the actual preview-to-PNG
-path rather than only checking that Remotion produced a non-empty file.
-
-## 8. Certification and Delivery Order
-
-An atom is complete only after its full path is proven:
-
-```text
-Protocol schema -> Compiler B -> Runtime visual -> WebGPU/WebGL2
--> browser pixel E2E -> Remotion frame
-
-Protocol schema -> Compiler B -> Runtime audio -> WebAudio
--> deterministic audio E2E -> Remotion audio -> encoded-media smoke test
-```
-
-The current V2 visual surface includes rectangle and ellipse paint, image and
-video media, prepared text, path contours and morphing, group transforms,
-Matrix4 projection, and the certified effect operators. Each surface is
-compiled from the preview lab and rendered through WebGPU/WebGL2 in the web
-suite plus Remotion PNG export. High-level patterns, masks, and untested
-future operators still require their own certification evidence.
-
-## 9. Non-negotiable Boundaries
-
-- No V1 compatibility branch in protocol, compiler, runtime, preview, or
-  Remotion export.
-- No high-level pattern, component, preset, template, or layout state in
-  Atomic Protocol V2.
-- No raw Matrix4 in Atomic Protocol V2.
-- No GPU handles in Runtime IR.
-- No semantic transform composition in preview or export renderers.
-- No audio clip, track, or mix state in the visual scene graph.
-- No Matrix4, camera, order, or GPU resource in the audio runtime branch.
-- Preview and export must consume the same `AudioMixPlanV2` semantics.
-- No PixiJS dependency in native preview.
-- No untested atom is exposed as a supported high-level feature.
-
-This guide is the starting point for all future V2 guides. New documentation
-must describe one of these explicit boundaries and link back here rather than
-recreating a parallel architecture.
-
+- [Audio guide](./audio.md): author-facing audio conventions and examples.
+- [Atomic Protocol V2 schema](../../packages/motion-protocol/schema/v2.json):
+  generated JSON Schema for validation and tooling.
+- [Protocol source](../../packages/motion-protocol/src/v2): canonical Zod
+  schemas, layer definitions, assets, effects, and capability ledgers.
+- [Compiler](../../packages/motion-compiler/src/compile-v2): Atomic JSON to
+  Runtime IR lowering.
+- [Runtime](../../packages/motion-runtime/src/v2): visual evaluation and audio
+  mix planning.

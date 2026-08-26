@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  clipAcceptsTrack,
+  clipAcceptsLane,
   collectClipEdgeSnapPoints,
   lowerBound,
   resolveClipMoveDrag,
@@ -51,13 +51,12 @@ function snapLinear(
   return { startTime: bestStart, snapGuideTime: guideTime };
 }
 
-describe("clipAcceptsTrack", () => {
+describe("clipAcceptsLane", () => {
   it("accepts visual on main/overlay and audio on audio only", () => {
-    expect(clipAcceptsTrack({ kind: "scene" }, "main")).toBe(true);
-    expect(clipAcceptsTrack({ kind: "scene" }, "overlay")).toBe(true);
-    expect(clipAcceptsTrack({ kind: "scene" }, "audio")).toBe(false);
-    expect(clipAcceptsTrack({ kind: "audio" }, "audio")).toBe(true);
-    expect(clipAcceptsTrack({ kind: "audio" }, "main")).toBe(false);
+    expect(clipAcceptsLane({ kind: "scene" }, { kind: "visual" })).toBe(true);
+    expect(clipAcceptsLane({ kind: "scene" }, { kind: "audio" })).toBe(false);
+    expect(clipAcceptsLane({ kind: "audio" }, { kind: "audio" })).toBe(true);
+    expect(clipAcceptsLane({ kind: "audio" }, { kind: "visual" })).toBe(false);
   });
 });
 

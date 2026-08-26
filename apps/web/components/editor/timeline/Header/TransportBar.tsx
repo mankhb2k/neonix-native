@@ -69,11 +69,11 @@ export function TransportBar({
               type="button"
               onClick={() => onModeChange("track")}
               className="flex cursor-pointer items-center gap-1.5 rounded-full border-0 bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--accent-text)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--accent-on)]"
-              title="Quay lại"
+              title="Back to tracks"
               data-testid="timeline-group-back"
             >
               <ArrowLeft size={13} strokeWidth={2.5} />
-              <span>Quay lại</span>
+              <span>Back</span>
             </button>
             <span className="max-w-[180px] truncate text-[11px] font-medium text-[var(--fg-muted)]">
               / {layerClipName}

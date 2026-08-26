@@ -14,9 +14,9 @@ implementation references.
 
 ## Current Scope
 
-The render core accepts only Atomic Protocol V2. Rectangle and ellipse are the
-currently certified visual atoms. High-level authoring remains a planned layer;
-it may be introduced only after it can lower to certified atomic capabilities.
-
-Future guides will be added atom by atom after their protocol, compiler,
-runtime, WebGPU, WebGL2, preview E2E, and export parity gates pass.
+The render core accepts only Atomic Protocol V2. Its certified visual surface
+includes groups, rectangle and ellipse shapes, paths, images, video, text,
+effects, blend modes, and masks; audio is a separate certified root domain.
+See the [V2 architecture](./v2-architechture.md) for the exact capability
+catalog and architectural boundaries. High-level authoring remains outside the
+V2 protocol and must lower to certified atomic capabilities.

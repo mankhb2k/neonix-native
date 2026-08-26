@@ -164,9 +164,6 @@ export function resolveBaseStartTime(
   return resolveLaneStart(base, startTime, duration);
 }
 
-/** @deprecated Dùng resolveBaseStartTime thay thế. */
-export const resolveMainStartTime = resolveBaseStartTime;
-
 export type OccupancyAwarePlacement = {
   startTime: number;
   insertNewLane: boolean;

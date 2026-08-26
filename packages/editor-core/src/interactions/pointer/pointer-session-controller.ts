@@ -1,18 +1,16 @@
 import { syncScheduler, type Scheduler } from "../common/scheduler";
-import type { PointerPos } from "../common/point";
+import type { Point } from "../common/point";
 import {
   defaultInteractionCoordinator,
   type InteractionCoordinator,
 } from "./interaction-coordinator";
 
-export type { PointerPos } from "../common/point";
-
 export type SessionState = "idle" | "active" | "committed" | "cancelled";
 
 export type PointerSessionConfig<TState, TResult> = {
   name: string;
-  onStart?: (initialPos: PointerPos) => TState;
-  onUpdate?: (pos: PointerPos, currentState: TState) => TState;
+  onStart?: (initialPos: Point) => TState;
+  onUpdate?: (pos: Point, currentState: TState) => TState;
   onCommit?: (finalState: TState) => TResult;
   onCancel?: (lastState: TState) => void;
 };
@@ -22,20 +20,13 @@ export type PointerSessionControllerOptions = {
   scheduler?: Scheduler;
 };
 
-/** @deprecated Dùng `coordinator.reset()` — giữ lại cho việc migrate test ở app. */
-export function resetActivePointerSessionToken(
-  coordinator: InteractionCoordinator = defaultInteractionCoordinator,
-): void {
-  coordinator.reset();
-}
-
 export class PointerSessionController<TState, TResult = void> {
   private config: PointerSessionConfig<TState, TResult>;
   private sessionToken: string;
   private state: SessionState = "idle";
   private currentState: TState | null = null;
   private rafId: number | null = null;
-  private pendingPos: PointerPos | null = null;
+  private pendingPos: Point | null = null;
   private coordinator: InteractionCoordinator;
   private scheduler: Scheduler;
 
@@ -73,7 +64,7 @@ export class PointerSessionController<TState, TResult = void> {
     }
   }
 
-  public start(initialPos: PointerPos): boolean {
+  public start(initialPos: Point): boolean {
     if (!this.coordinator.tryAcquire(this.sessionToken)) return false;
     this.state = "active";
     this.currentState = this.config.onStart
@@ -82,7 +73,7 @@ export class PointerSessionController<TState, TResult = void> {
     return true;
   }
 
-  public update(pos: PointerPos): void {
+  public update(pos: Point): void {
     if (this.state !== "active") return;
     this.pendingPos = pos;
     if (this.rafId === null) {

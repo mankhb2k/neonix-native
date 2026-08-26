@@ -103,12 +103,12 @@ function historyCardLayer(input: {
 }
 
 const THREE_KINGDOMS_EVENTS = [
-  { start: 0, title: "184 · Khởi nghĩa Khăn Vàng", fill: "#5d1f1f" },
-  { start: 10, title: "189 · Đổng Trác khuynh đảo triều Hán", fill: "#43234f" },
-  { start: 20, title: "200 · Quan Độ — Tào Tháo thống nhất phương Bắc", fill: "#263d59" },
-  { start: 30, title: "208 · Xích Bích — liên minh Tôn Lưu", fill: "#71321f" },
-  { start: 40, title: "220–229 · Ngụy, Thục, Ngô lập quốc", fill: "#274b3b" },
-  { start: 50, title: "280 · Nhà Tấn thống nhất Tam Quốc", fill: "#4d3f25" },
+  { start: 0, title: "184 · Yellow Turban Rebellion", fill: "#5d1f1f" },
+  { start: 10, title: "189 · Dong Zhuo Disrupts the Han Court", fill: "#43234f" },
+  { start: 20, title: "200 · Guandu — Cao Cao Unifies Northern China", fill: "#263d59" },
+  { start: 30, title: "208 · Red Cliffs — The Sun-Liu Alliance", fill: "#71321f" },
+  { start: 40, title: "220–229 · Wei, Shu, and Wu Establish Kingdoms", fill: "#274b3b" },
+  { start: 50, title: "280 · Jin Unifies the Three Kingdoms", fill: "#4d3f25" },
 ] as const;
 
 export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {

@@ -9,12 +9,12 @@ import {
   DOCS_ENTRIES,
   DOCS_NAV,
   DOCS_PAGE_SLUGS,
+  getDocsPage,
+  getV2DocsPage,
   isHiddenDocsSlug,
-} from "./nav";
-import { getV2DocsPage } from "./content/v2";
-import { getDocsPage } from "./page-content";
+} from "./docs";
 
-const publicContentPath = path.join(process.cwd(), "lib", "docs", "content", "v2.tsx");
+const publicContentPath = path.join(process.cwd(), "lib", "docs", "docs.tsx");
 
 describe("static V2 documentation", () => {
   it("resolves every published page without a preview project", () => {

@@ -13,5 +13,3 @@ export function resolveLaneKind(
   return "overlay";
 }
 
-/** @deprecated Dùng resolveLaneKind thay thế. */
-export const resolveLaneTrackKind = resolveLaneKind;

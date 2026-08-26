@@ -8,7 +8,7 @@ import { useClipMove as useClipMoveShared } from "@/hooks/editor/timeline/use-cl
 import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import type { ClipMoveHost } from "@/hooks/editor/timeline/gesture-host";
 import {
-  resolveLaneTrackKind,
+  resolveLaneKind,
   type EditorSelection,
   type TimelineClip,
   type TimelineEdit,
@@ -154,7 +154,7 @@ export function useClipMove({
         };
       },
 
-      trackForLane: resolveLaneTrackKind,
+      trackForLane: resolveLaneKind,
 
       laneRowHeightPx: (targetLane) =>
         laneRowHeightPx(targetLane, allClips ?? clips),

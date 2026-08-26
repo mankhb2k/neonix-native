@@ -2,7 +2,7 @@
  * Pure editor interaction domain. Browser hosts supply pointer listeners,
  * viewport measurements, animation scheduling, and scroll writes themselves.
  */
-export type { Point, PointerPos } from "./common/point";
+export type { Point } from "./common/point";
 export { EMPTY_POINTER_MODIFIERS, type PointerModifiers } from "./common/modifiers";
 export { syncScheduler, type Scheduler } from "./common/scheduler";
 
@@ -14,7 +14,6 @@ export {
 } from "./pointer/interaction-coordinator";
 export {
   PointerSessionController,
-  resetActivePointerSessionToken,
   type PointerSessionConfig,
   type PointerSessionControllerOptions,
   type SessionState,
@@ -41,7 +40,7 @@ export {
   type AutoScrollNearEdgeOptions,
 } from "./timeline/auto-scroll";
 export {
-  clipAcceptsTrack,
+  clipAcceptsLane,
   collectClipEdgeSnapPoints,
   lowerBound,
   resolveClipMoveDrag,
@@ -54,12 +53,9 @@ export {
   type ClipMovePreviewMember,
 } from "./timeline/clip-move";
 export { resolveClipTrimUpdate, type ClipTrimEdge, type ClipTrimPreview } from "./timeline/clip-trim";
-export { clampNodeLocalTiming, type LayerTimingLocal } from "./timeline/layer-timing";
 export {
   reorderLayerIds,
   reorderLayerIdsByInsert,
-  reorderLayerLayerIds,
-  reorderLayerLayerIdsByInsert,
 } from "./timeline/layer-reorder";
 export {
   MARQUEE_TRACK_BOTTOM_PAD_PX,
@@ -76,20 +72,6 @@ export {
   type MarqueeIndexedClip,
   type MarqueeRect,
 } from "./timeline/marquee";
-export type { TimelineDropTargetHint } from "./timeline/drop-target";
-export { resolveDropGeometry, type DropGeometryPureInput, type DropGeometryResult } from "./timeline/drop-geometry";
-export {
-  buildClipMovePatch,
-  createClipMoveSessionState,
-  updateClipMoveSessionState,
-  type MoveSessionState,
-} from "./timeline/clip-move-session";
-export {
-  buildPlacementTarget,
-  createLibraryDropSessionState,
-  updateLibraryDropSessionState,
-  type LibraryDropSessionState,
-} from "./timeline/library-drop-session";
 
 export {
   clientToComposition,

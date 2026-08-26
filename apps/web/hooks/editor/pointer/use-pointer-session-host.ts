@@ -8,25 +8,25 @@ import {
   PointerSessionController,
   shouldCommitPointerSession,
   type InteractionCoordinator,
-  type PointerPos,
+  type Point,
   type PointerSessionConfig,
   type PointerSessionEndReason,
 } from "@motionvideo/editor-core";
 import { browserScheduler } from "@/lib/editor/interaction-host/browser-scheduler";
 
-export type ActivePointerGesture = {
+type ActivePointerGesture = {
   controller: PointerSessionController<unknown>;
   dispose: () => void;
 };
 
 export type BeginGesture = <TState, TResult>(
   config: PointerSessionConfig<TState, TResult>,
-  initialPos: PointerPos,
+  initialPos: Point,
   bindTarget?: HTMLElement | null,
   pointerId?: number,
 ) => PointerSessionController<TState, TResult> | null;
 
-export type UsePointerSessionHostOptions = {
+type UsePointerSessionHostOptions = {
   coordinator?: InteractionCoordinator;
 };
 
@@ -63,7 +63,7 @@ export function usePointerSessionHost(
   const beginGesture = useCallback(
     <TState, TResult>(
       config: PointerSessionConfig<TState, TResult>,
-      initialPos: PointerPos,
+      initialPos: Point,
       bindTarget?: HTMLElement | null,
       pointerId?: number,
     ): PointerSessionController<TState, TResult> | null => {

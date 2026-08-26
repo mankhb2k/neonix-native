@@ -8,7 +8,6 @@ import type {
   TimelineLane,
   TimelineTrackKind,
 } from "@motionvideo/editor-core";
-import type { ClipMoveDropTarget } from "@motionvideo/editor-core";
 
 /** CapCut-style drop target from editor-core policy / app DOM collectors. */
 export type ClipMovePolicyTarget = {
@@ -63,19 +62,3 @@ export type ClipMoveHost = {
   exclusiveRows?: boolean;
 };
 
-export type LayerMoveInsertGap = {
-  insertBeforeIndex: number;
-  contentTop: number;
-  laneId: string;
-};
-
-export type LayerMoveHost = {
-  autoScrollNearEdge: (clientX: number, clientY: number) => void;
-  pointerContentXAtPoint: (clientX: number) => number | null;
-  resolveInsertGapAtClientY: (
-    clientY: number,
-  ) => LayerMoveInsertGap | null;
-};
-
-/** Re-export for adapters building ClipMoveDropTarget. */
-export type { ClipMoveDropTarget };

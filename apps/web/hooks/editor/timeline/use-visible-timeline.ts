@@ -1,5 +1,5 @@
 /**
- * Visible-range virtualization for desktop timeline.
+ * Visible-range clip filtering for the editor timeline.
  * Lane indexes (prefix-max) are built once per clipsByLane reference.
  *
  * clipsForLane has a STABLE function identity across scroll frames:
@@ -19,7 +19,6 @@ import {
 } from "@motionvideo/editor-core/timeline";
 
 export const TIMELINE_CLIP_OVERSCAN_PX = 120;
-export { TIMELINE_LANE_OVERSCAN_PX, visibleLaneWindow } from "./visible-lane-window";
 
 export type UseVisibleTimelineArgs = {
   scrollLeft: number;

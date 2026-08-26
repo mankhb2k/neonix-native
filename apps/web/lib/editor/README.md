@@ -15,14 +15,12 @@ document store.
 - `document/project-repository.ts` is the server-only Supabase boundary for
   project list/load/autosave; the browser never talks to Supabase tables
   directly for editor source revisions.
-- `commands/` is the web-facing V2 command facade.
 - `library/`, `inspector/`, and `stage/` contain pure V2 domain operations.
 - `timeline/` owns the one conversion boundary from timeline interaction
   commands to V2 commands. Timeline UI remains in `components/editor`.
 - `selection/` and `interaction-host/` contain browser-neutral interaction
   helpers used by the V2 shell.
-- `preview/` and `stage/` may expose only production V2 preview ports and
-  calculations.
+- `stage/` may expose only production V2 stage calculations.
 
 Do not add imports from `lib/v2-editor`, the V1 Zustand store, or the
 unversioned V1 motion-project model. If a V2 feature needs a compatibility

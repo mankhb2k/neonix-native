@@ -12,13 +12,10 @@
     "hooks/editor/**/*.ts",
     "hooks/editor/**/*.tsx",
     "lib/hosts.ts",
-    "lib/editor/commands/index.ts",
     "lib/editor/document/**/*.ts",
     "lib/editor/inspector/transform.ts",
     "lib/editor/library/commands.ts",
-    "lib/editor/preview/preview-controller.ts",
-    "lib/editor/stage/transform.ts",
-    "lib/editor/timeline/**/*.ts"
+    "lib/editor/stage/transform.ts"
   ],
   "exclude": [
     "node_modules",

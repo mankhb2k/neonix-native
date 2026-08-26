@@ -2,7 +2,7 @@ import type { V2Asset } from "@motionvideo/motion-protocol/v2";
 
 export type LibraryShape = "rectangle" | "ellipse" | "polygon";
 
-/** Library item dragged from header Text / Shape (desktop-parity payload). */
+/** Library item dragged from the stage Text / Shape tools. */
 export type LibraryPayload =
   | { kind: "text"; id: string; label: string; text: string; duration?: number }
   | {

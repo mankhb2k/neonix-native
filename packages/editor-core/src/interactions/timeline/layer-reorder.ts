@@ -43,12 +43,3 @@ export function reorderLayerIdsByInsert(
   return next;
 }
 
-/**
- * @deprecated Dùng `reorderLayerIds` thay thế (bỏ hậu tố `Layer` trùng lặp).
- */
-export const reorderLayerLayerIds = reorderLayerIds;
-
-/**
- * @deprecated Dùng `reorderLayerIdsByInsert` thay thế (bỏ hậu tố `Layer` trùng lặp).
- */
-export const reorderLayerLayerIdsByInsert = reorderLayerIdsByInsert;

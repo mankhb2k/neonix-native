@@ -4,7 +4,7 @@ import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   createV2EditorProject,
   isV2EditorProjectId,
-} from "../document/demo-projects";
+} from "@/lib/editor/document/demo-projects";
 
 describe("web editor Protocol V2 contract", () => {
   it("accepts every currently supported seeded document", () => {

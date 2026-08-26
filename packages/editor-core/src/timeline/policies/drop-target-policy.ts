@@ -40,11 +40,6 @@ export function insertEdgeBands(heightPx: number): {
 /** Bỏ qua setState indicator khi Y gần như không đổi (giảm re-render dragover) */
 export const INDICATOR_TOP_EPS_PX = 0.5;
 
-/** @deprecated Dùng LANE_INSERT_ENTER_PX thay thế. */
-export const OVERLAY_EDGE_ENTER_PX = LANE_INSERT_ENTER_PX;
-/** @deprecated Dùng LANE_INSERT_EXIT_PX thay thế. */
-export const OVERLAY_EDGE_EXIT_PX = LANE_INSERT_EXIT_PX;
-
 /* ========================================================================== */
 /* 2. HIT TYPE & POLICY                                                       */
 /* ========================================================================== */
@@ -87,90 +82,8 @@ export const audioDropPolicy: LaneDropPolicy = {
   allowBaseTarget: false,
 };
 
-/** @deprecated Prefer LaneHit — kept for call-site compatibility. */
-export type VideoLaneHit = {
-  top: number;
-  bottom: number;
-  type: "overlay" | "main";
-  laneId: string | null;
-  order: number | null;
-};
-
-/** @deprecated Prefer TimelineDropTarget. */
-export type OverlayDragTarget = {
-  isInsert: boolean;
-  laneId: string | null;
-  insertOrder: number | null;
-  indicatorTop: number;
-};
-
-/** @deprecated Prefer LaneHit. */
-export type AudioLaneHit = {
-  top: number;
-  bottom: number;
-  type: "audio" | "main";
-  laneId: string | null;
-  order: number | null;
-};
-
-/** @deprecated Prefer TimelineDropTarget. */
-export type AudioDragTarget = {
-  isInsert: boolean;
-  laneId: string | null;
-  insertOrder: number | null;
-  indicatorTop: number;
-};
-
 /* ========================================================================== */
-/* 3. HIT CONVERTERS                                                         */
-/* ========================================================================== */
-
-/** Map scene hits into shared LaneHit (visual family). */
-export function videoHitToLane(hit: VideoLaneHit): LaneHit {
-  if (hit.type === "main") {
-    return {
-      laneId: hit.laneId,
-      family: "visual",
-      role: "base",
-      order: hit.order,
-      top: hit.top,
-      bottom: hit.bottom,
-    };
-  }
-  return {
-    laneId: hit.laneId,
-    family: "visual",
-    role: hit.laneId ? "overlay" : "placeholder",
-    order: hit.order,
-    top: hit.top,
-    bottom: hit.bottom,
-  };
-}
-
-/** Map audio-zone hits into shared LaneHit (audio family). */
-export function audioHitToLane(hit: AudioLaneHit): LaneHit {
-  if (hit.type === "main") {
-    return {
-      laneId: hit.laneId,
-      family: "audio",
-      role: "base",
-      order: hit.order,
-      top: hit.top,
-      bottom: hit.bottom,
-    };
-  }
-  return {
-    laneId: hit.laneId,
-    family: "audio",
-    role: hit.laneId ? "audio" : "placeholder",
-    order: hit.order,
-    top: hit.top,
-    bottom: hit.bottom,
-  };
-}
-
-/* ========================================================================== */
-/* 4. CORE DROP TARGET RESOLUTION MATH                                       */
+/* 3. CORE DROP TARGET RESOLUTION MATH                                       */
 /* ========================================================================== */
 
 function gapMid(upper: LaneHit, lower: LaneHit, wsTop: number): number {
@@ -445,57 +358,3 @@ function resolveStackZone(
   return null;
 }
 
-/* ========================================================================== */
-/* 5. LEGACY WRAPPERS                                                        */
-/* ========================================================================== */
-
-function toLegacyTarget(target: TimelineDropTarget): OverlayDragTarget {
-  return {
-    isInsert: target.isInsert,
-    laneId: target.laneId,
-    insertOrder: target.insertOrder,
-    indicatorTop: target.indicatorTop,
-  };
-}
-
-/**
- * @deprecated Prefer {@link resolveLaneDropTarget} with {@link visualDropPolicy}.
- */
-export function resolveOverlayDragTarget(
-  clientY: number,
-  lanes: VideoLaneHit[],
-  wsTop: number,
-  wasInsert: boolean,
-  maxOverlayOrder: number,
-): OverlayDragTarget | null {
-  const target = resolveLaneDropTarget(
-    clientY,
-    lanes.map(videoHitToLane),
-    wsTop,
-    wasInsert,
-    maxOverlayOrder,
-    visualDropPolicy,
-  );
-  return target ? toLegacyTarget(target) : null;
-}
-
-/**
- * @deprecated Prefer {@link resolveLaneDropTarget} with {@link audioDropPolicy}.
- */
-export function resolveAudioDragTarget(
-  clientY: number,
-  lanes: AudioLaneHit[],
-  wsTop: number,
-  wasInsert: boolean,
-  maxAudioOrder: number,
-): AudioDragTarget | null {
-  const target = resolveLaneDropTarget(
-    clientY,
-    lanes.map(audioHitToLane),
-    wsTop,
-    wasInsert,
-    maxAudioOrder,
-    audioDropPolicy,
-  );
-  return target ? toLegacyTarget(target) : null;
-}

@@ -16,8 +16,6 @@ const frozenLegacyPrefixes = [
   "apps/web/lib/runtime/preview-evaluate.ts",
   "apps/web/lib/runtime/project-composition.ts",
   "apps/web/e2e/",
-  "apps/web/lib/docs/projects.test.ts",
-  "apps/web/lib/docs/visual-fixtures.test.ts",
   "apps/desktop/gui/editor/",
   "apps/desktop/gui/app/editor/",
   "apps/desktop/shared/logic-parity-matrix.test.ts",

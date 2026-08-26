@@ -51,7 +51,7 @@ export function EmptyTimelineDash({ width, laneId = null }: Props) {
       >
         <Film size={16} strokeWidth={1.5} className="ml-1 shrink-0 opacity-70" />
         <span className="truncate text-[12px] font-medium tracking-wide opacity-80">
-          Kéo khung hình hoặc phương tiện vào đây để bắt đầu tạo
+          Drag media or a frame here to start creating
         </span>
       </div>
     </div>

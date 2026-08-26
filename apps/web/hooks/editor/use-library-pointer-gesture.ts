@@ -13,7 +13,6 @@ import {
   beginLibraryPress,
   cancelLibraryDrag,
   createLibraryDragOwnerId,
-  disposeLibraryDragListeners,
   endLibraryDrag,
   getLibraryDragSession,
   moveLibraryDrag,
@@ -153,7 +152,3 @@ export function useLibraryPointerGesture(payload: LibraryPayload): {
   return { onPointerDown, onKeyDown };
 }
 
-export function disposeLibraryPointerGesture(): void {
-  disposeLibraryDragListeners();
-  cancelLibraryDrag();
-}

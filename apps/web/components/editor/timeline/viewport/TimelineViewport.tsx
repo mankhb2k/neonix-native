@@ -1,7 +1,7 @@
 "use client";
 
 import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
-import { buildLaneHeightPrefix } from "@/hooks/editor/timeline/visible-lane-window";
+import { buildLaneHeightPrefix } from "@/lib/editor/timeline/lane-height-prefix";
 import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
 import { useTimelineSeek } from "@/hooks/editor/timeline/use-timeline-seek";

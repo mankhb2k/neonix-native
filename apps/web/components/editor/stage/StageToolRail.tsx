@@ -1,7 +1,7 @@
 "use client";
 
-import { ShapesDropdown } from "@/components/editor/header/shapes/ShapesDropdown";
-import { TextDropdown } from "@/components/editor/header/text/TextDropdown";
+import { ShapesDropdown } from "@/components/editor/stage/tools/ShapesDropdown";
+import { TextDropdown } from "@/components/editor/stage/tools/text/TextDropdown";
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
 import { Hand, MousePointer2, PenTool } from "lucide-react";
 

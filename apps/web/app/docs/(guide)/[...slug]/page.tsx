@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { DocsArticle } from "@/components/docs/DocsArticle";
-import { DOCS_PAGE_SLUGS, type DocsPageSlug } from "@/lib/docs/nav";
-import { getDocsPage } from "@/lib/docs/page-content";
+import { DOCS_PAGE_SLUGS, getDocsPage, type DocsPageSlug } from "@/lib/docs/docs";
 import type { Metadata } from "next";
 
 export function generateStaticParams() {

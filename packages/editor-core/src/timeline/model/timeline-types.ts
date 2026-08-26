@@ -43,10 +43,7 @@ export type AudioTimelineLane = {
 
 export type TimelineLane = VisualTimelineLane | AudioTimelineLane;
 
-/** @deprecated Legacy persistence kind — migrator map sang visual/audio. */
-export type LegacyTimelineLaneKind = "main" | "overlay" | "audio";
-
-/** @deprecated Prefer laneId; kept for migrate/parse of older saves. */
+/** Interaction track kind used when a drop targets a track without a lane id. */
 export type TimelineTrackKind = "main" | "overlay" | "audio";
 
 type TimelineClipBase = {
@@ -74,26 +71,3 @@ export type AudioTimelineClip = TimelineClipBase & {
 
 export type TimelineClip = SceneTimelineClip | AudioTimelineClip;
 
-export function isSceneClip(clip: TimelineClip): clip is SceneTimelineClip {
-  return clip.kind === "scene";
-}
-
-export function isAudioClip(clip: TimelineClip): clip is AudioTimelineClip {
-  return clip.kind === "audio";
-}
-
-export function isVisualLane(lane: TimelineLane): lane is VisualTimelineLane {
-  return lane.kind === "visual";
-}
-
-export function isBaseLaneObj(lane: TimelineLane): boolean {
-  return lane.kind === "visual" && lane.role === "base";
-}
-
-export function isOverlayLaneObj(lane: TimelineLane): boolean {
-  return lane.kind === "visual" && lane.role === "overlay";
-}
-
-export function clipSceneId(clip: TimelineClip): string | null {
-  return clip.kind === "scene" && clip.sceneId ? clip.sceneId : null;
-}

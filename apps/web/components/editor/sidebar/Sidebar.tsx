@@ -88,7 +88,7 @@ function AssetItem({ asset }: { asset: V2Asset }) {
         className="flex w-full items-center gap-2 rounded-md bg-[var(--bg-surface)] p-2 text-left transition-colors hover:bg-[var(--bg-hover)]"
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}
-        title="Kéo vào stage hoặc timeline để thêm clip"
+        title="Drag to the stage or timeline to add a clip"
       >
         {preview ? (
           <span className="h-10 w-14 shrink-0 overflow-hidden rounded border border-[var(--border-subtle)] bg-black/20">
@@ -374,7 +374,7 @@ export function Sidebar() {
                   </Button>
                   {document.assets.length === 0 ? (
                     <div className="rounded-md border border-dashed border-[var(--border-subtle)] px-3 py-6 text-center text-[12px] text-[var(--fg-muted)]">
-                      Chưa có asset.
+                      No assets yet.
                     </div>
                   ) : (
                     <ul className="space-y-1.5">
