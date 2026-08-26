@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { NextResponse } from "next/server";
 import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import { createMcpServer } from "@/lib/mcp/server";
