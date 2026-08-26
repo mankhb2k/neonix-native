@@ -163,7 +163,7 @@ export function PreviewStage({
       const prepared = compiled.nodes.some((node) => node.content.kind === "text")
         ? await prepareRuntimeProjectV2Text(
             compiled,
-            async (font) => resources.fontBytes.get(font.assetId) ?? null,
+            (font) => Promise.resolve(resources.fontBytes.get(font.assetId) ?? null),
             loadBrowserHarfBuzz,
           )
         : null;
@@ -309,6 +309,8 @@ async function loadPreviewResources(
     try {
       if (asset.kind === "audio") continue;
       if (asset.kind === "font") {
+        // Asset URLs are resolved at runtime and may point to any configured origin.
+        // eslint-disable-next-line no-restricted-globals
         const response = await fetch(asset.uri);
         if (!response.ok) throw new Error(`Unable to load font asset ${asset.id}`);
         const bytes = await response.arrayBuffer();
@@ -372,9 +374,8 @@ async function matchesIntegrity(bytes: ArrayBuffer, integrity: string): Promise<
 function loadBrowserHarfBuzz(): ReturnType<RuntimeTextShaperLoaderV2> {
   // Deliberately opaque to webpack: this public ESM module imports its matching
   // WASM sibling and must not be inspected by Next SSR.
-  return Function("specifier", "return import(specifier)")(
-    "/vendor/harfbuzz/index.mjs",
-  ) as ReturnType<RuntimeTextShaperLoaderV2>;
+  const modulePath: string = "/vendor/harfbuzz/index.mjs";
+  return import(/* webpackIgnore: true */ modulePath) as ReturnType<RuntimeTextShaperLoaderV2>;
 }
 
 function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
@@ -398,13 +399,14 @@ function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
 }
 
 function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
-  if (Math.abs(video.currentTime - time) < 0.0005 && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+  const videoElement = video;
+  if (Math.abs(videoElement.currentTime - time) < 0.0005 && videoElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
     return Promise.resolve();
   }
   return new Promise((resolve) => {
     let settled = false;
     const cleanup = () => {
-      video.removeEventListener("seeked", onSeeked);
+      videoElement.removeEventListener("seeked", onSeeked);
       window.clearTimeout(timeout);
     };
     const onSeeked = () => {
@@ -414,8 +416,8 @@ function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
       resolve();
     };
     const timeout = window.setTimeout(onSeeked, 2000);
-    video.addEventListener("seeked", onSeeked, { once: true });
-    video.currentTime = Math.max(0, time);
+    videoElement.addEventListener("seeked", onSeeked, { once: true });
+    videoElement.currentTime = Math.max(0, time);
   });
 }
 

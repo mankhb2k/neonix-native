@@ -10,11 +10,11 @@ export function DocsToc({
   const [active, setActive] = useState(items[0]?.id ?? "");
 
   useEffect(() => {
-    if (items.length === 0) return;
+    if (items.length === 0) return undefined;
     const headings = items
       .map((item) => document.getElementById(item.id))
       .filter((el): el is HTMLElement => el != null);
-    if (headings.length === 0) return;
+    if (headings.length === 0) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {

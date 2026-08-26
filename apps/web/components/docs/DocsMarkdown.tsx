@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
 
 export function DocsMarkdown({ markdown }: { markdown: string }) {
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import type { ClipMovePreview } from "@motionvideo/editor-core";
 
 import {
   clipStripHeightPx,
@@ -11,6 +10,7 @@ import {
   TimelineClipFloat,
   visualKindFromTrack,
 } from "./TimelineClipFloat";
+import type { ClipMovePreview } from "@motionvideo/editor-core";
 
 type Props = {
   preview: ClipMovePreview | null;

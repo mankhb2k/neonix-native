@@ -1,7 +1,7 @@
 import GithubSlugger from "github-slugger";
 import { createElement } from "react";
-import type { ReactNode } from "react";
 import { DocsMarkdown } from "@/components/docs/DocsMarkdown";
+import type { ReactNode } from "react";
 
 export type DocsPageView = {
   title: string;
@@ -32,7 +32,7 @@ This is the static guide to Neonix's current authoring vocabulary and Atomic Pro
 Neonix separates intent from rendering:
 
 ${FENCE}text
-MCP / AI / future editor
+Claude via MCP / future editor
         -> high-level authoring intent
         -> Atomic Protocol V2
         -> Runtime IR
@@ -77,7 +77,7 @@ ${FENCE}
 
 ## Intent first
 
-High-level authoring is where a person, AI agent, MCP tool, template, or future editor can express rich intent:
+High-level authoring is where a person, Claude via MCP, a template, or the editor can express rich intent:
 
 ${FENCE}json
 {
@@ -123,14 +123,14 @@ An authoring surface may be expressive. The atomic result must be explicit enoug
 JSON blocks in this guide teach structure. They are not validated or rendered by the web documentation page.`,
   },
   ai: {
-    title: "AI and MCP guidance",
-    markdown: String.raw`# AI and MCP guidance
+    title: "Claude and MCP guidance",
+    markdown: String.raw`# Claude and MCP guidance
 
-## Generate intent, then lower it
+## Express intent, then lower it
 
-AI should normally describe the user's goal in high-level terms first. A compiler or approved lowering step turns that intent into Atomic Protocol V2.
+Claude should describe the user's goal in high-level terms first. A compiler or approved lowering step turns that intent into Atomic Protocol V2.
 
-## Current AI rules
+## Current MCP authoring rules
 
 - Prefer explicit V2 fields over guessed shortcuts.
 - Ask for missing composition dimensions, timing, asset references, and text font information.
@@ -628,7 +628,7 @@ const hidden = (slug: string, label: string, surface: DocsSurface): DocsEntry =>
 export const DOCS_ENTRIES: DocsEntry[] = [
   published("", "Overview", "start", "authoring"),
   published("authoring", "Authoring model", "start", "authoring"),
-  published("ai", "AI and MCP guidance", "start", "authoring"),
+  published("ai", "Claude and MCP guidance", "start", "authoring"),
   published("atoms", "Atomic Protocol V2", "protocol", "protocol"),
   published("atoms/composition", "Composition and view", "protocol", "protocol"),
   published("atoms/transform", "Transform and Matrix4", "protocol", "protocol"),

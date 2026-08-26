@@ -7,8 +7,8 @@ import {
   subscribeLibraryDrag,
   type LibraryDragSessionState,
 } from "@/lib/editor/library/library-drag-session";
-import type { LibraryPayload } from "@/lib/editor/library/library-payload";
 import { isOverTimelineDropZone } from "@/lib/editor/library/timeline-library-drop";
+import type { LibraryPayload } from "@/lib/editor/library/library-payload";
 
 const CARD_ANCHOR_X = 34;
 const CARD_ANCHOR_Y = 34;
@@ -16,7 +16,11 @@ const CARD_ANCHOR_Y = 34;
 function renderDragItemPreview(item: LibraryPayload) {
   if (item.kind === "asset") {
     if (item.asset.kind === "image" || item.asset.kind === "video") {
-      return <img src={item.asset.uri} alt="" className="h-full w-full object-cover" />;
+      return (
+        // Asset URLs can be user-provided and are not known at build time.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.asset.uri} alt="" className="h-full w-full object-cover" />
+      );
     }
     return <span className="text-2xl">♪</span>;
   }

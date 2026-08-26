@@ -1,9 +1,9 @@
 # Neonix
 
-> **Neonix** — AI-first motion graphics studio for Vietnamese TVC.
+> **Neonix** — MCP-first motion graphics studio for Vietnamese TVC.
 
-Neonix là studio tạo motion graphic 2D, kết hợp giữa AI generation và editor
-trực quan. Hệ thống nhận brief từ người dùng hoặc AI agent, sinh project có cấu
+Neonix là studio tạo motion graphic 2D, kết hợp Claude qua Remote MCP với editor
+trực quan. Hệ thống nhận brief từ người dùng hoặc Claude qua Remote MCP, sinh project có cấu
 trúc, cho phép chỉnh sửa nội dung, brand, scene, node và timing, rồi xuất MP4 qua
 render pipeline thống nhất — PixiJS cho preview tương tác, Remotion Lambda cho
 export cloud.
@@ -51,16 +51,15 @@ flowchart LR
 **Nguyên tắc cốt lõi**:
 
 - **Một format duy nhất** — `MotionProjectV1` (`.mt`) là canonical authoring contract. Tất cả
-  surface (AI, editor, MCP, Skills) đọc/ghi cùng một format. Không có V2 fallback.
+  surface (Claude via MCP, editor) đọc/ghi cùng một format. Không có V2 fallback.
 - **Compiler tách biệt** — Từ authoring JSON sang `MotionRuntimeProject` (literal, flat).
   Variables, components, presets, bindings, layout được resolve hoàn toàn ở compile time.
 - **Runtime dùng chung** — `motion-runtime` là nơi duy nhất evaluate frame. Pixi và Remotion
   không tự tính easing, timing, transform hay layout.
 - **Editor UI state nằm ngoài project JSON** — Scroll, selection, undo stack, panel layout
   là local state; không ảnh hưởng project hash hay render output.
-- **AI-first** — AI agent tạo project qua `ai-planner` (brief → CommandBatch → MotionProjectV1)
-  hoặc qua Skills (parameterized templates). MCP tools cung cấp automation surface cho validate,
-  patch, compile, preview.
+- **MCP-first** — Claude kết nối Remote MCP để tạo/cập nhật project, validate, patch và compile.
+  Sau đó user mở editor để tinh chỉnh và export; Neonix không chạy AI generation nội bộ.
 
 ---
 
@@ -89,11 +88,11 @@ flowchart LR
 | `editor-interactions` | Gesture state machines, transform math, timeline math       |
 | `editor-react`        | DOM measurement, pointer capture, reusable React hooks      |
 
-### AI & Automation
+### MCP & Automation
 
 | Package           | Vai trò                                                        |
 | ----------------- | -------------------------------------------------------------- |
-| `ai-planner`      | Brief → CreativePlan → typed CommandBatch → project generation |
+| `motion-mcp`      | Remote MCP tools cho create/update project, validate, patch và mở editor |
 | `playback-engine` | Headless frame server cho MCP preview/render                   |
 
 ### Infrastructure
@@ -144,7 +143,7 @@ pnpm --filter @motionvideo/desktop dev
 | [V2 Guides](docs/guide/README.md)                                    | Active documentation entrypoint for the V2 render core    |
 | [V2 Architecture](docs/guide/v2-architechture.md)                    | MCP/editor/AI through high-level, atomic, runtime, and render |
 | [Atomic V2 Preview E2E Plan](docs/atomic-protocol-v2-preview-e2e-plan.md) | Atom-by-atom certification and parity gates          |
-| [AI-First Editor Architecture](docs/ai-first-editor-architecture.md) | Kiến trúc AI agent, MCP, Skills, editor             |
+| [Claude + MCP Editor Architecture](docs/ai-first-editor-architecture.md) | Kiến trúc Claude, MCP và editor             |
 | [Web Architecture](web-architechture.md)                             | Kiến trúc Web và Remotion export |
 
 ---

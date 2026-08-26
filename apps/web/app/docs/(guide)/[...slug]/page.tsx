@@ -12,7 +12,7 @@ export function generateStaticParams() {
 function slugFromParams(slug: string[] | undefined): DocsPageSlug | null {
   const joined = (slug ?? []).join("/");
   if ((DOCS_PAGE_SLUGS as readonly string[]).includes(joined)) {
-    return joined as DocsPageSlug;
+    return joined;
   }
   return null;
 }

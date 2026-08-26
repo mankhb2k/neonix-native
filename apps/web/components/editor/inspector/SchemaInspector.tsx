@@ -1,17 +1,5 @@
 "use client";
 
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
-import { Panel, Tabs } from "@/components/ui";
-import type {
-  AudioClipPatch,
-  AudioTrackDocumentPatch,
-  LayerPatch,
-} from "@motionvideo/editor-core";
-import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
-import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
-import { EffectsInspector } from "./EffectsInspector";
-import { InspectorSelect } from "./InspectorSelect";
-import { StepperInput } from "./StepperInput";
 import {
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -23,6 +11,18 @@ import {
   Dot,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { Panel, Tabs } from "@/components/ui";
+import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
+import { EffectsInspector } from "./EffectsInspector";
+import { InspectorSelect } from "./InspectorSelect";
+import { StepperInput } from "./StepperInput";
+import type {
+  AudioClipPatch,
+  AudioTrackDocumentPatch,
+  LayerPatch,
+} from "@motionvideo/editor-core";
+import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
 
 const inputClass =
   "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";

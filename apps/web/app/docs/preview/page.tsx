@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
 import { PreviewLab } from "@/components/docs/PreviewLab";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Preview lab",

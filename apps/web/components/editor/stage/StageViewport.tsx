@@ -11,8 +11,8 @@ import {
 import { PreviewStage } from "@/components/docs/PreviewStage";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Button } from "@/components/ui";
-import { StageTransformOverlay } from "./StageTransformOverlay";
 import { StageToolRail } from "./StageToolRail";
+import { StageTransformOverlay } from "./StageTransformOverlay";
 
 const STAGE_ZOOM_MIN = 0.5;
 const STAGE_ZOOM_MAX = 2;

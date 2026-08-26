@@ -226,7 +226,7 @@ describe("computeProjectHash", () => {
     };
     const p2 = {
       ...baseProject,
-      metadata: { ...baseProject.metadata, generator: "ai-planner" },
+      metadata: { ...baseProject.metadata, generator: "mcp" },
     };
     expect(computeProjectHash(p1)).toBe(computeProjectHash(p2));
   });

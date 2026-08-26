@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+import { browserScheduler } from "@/lib/editor/interaction-host/browser-scheduler";
 import {
   PointerSessionController,
   shouldCommitPointerSession,
@@ -12,7 +13,6 @@ import {
   type PointerSessionConfig,
   type PointerSessionEndReason,
 } from "@motionvideo/editor-core";
-import { browserScheduler } from "@/lib/editor/interaction-host/browser-scheduler";
 
 type ActivePointerGesture = {
   controller: PointerSessionController<unknown>;

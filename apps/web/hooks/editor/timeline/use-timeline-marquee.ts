@@ -4,6 +4,7 @@ import {
   type RefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   selectedClipIdsFrom,
   selectionClips,
@@ -20,7 +21,6 @@ import {
   shouldPublishMarqueeIds,
   type MarqueeRect,
 } from "@motionvideo/editor-core/timeline";
-import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
 
 const MARQUEE_THRESHOLD_PX = 4;
@@ -138,7 +138,7 @@ export function useTimelineMarquee({
           topPadding,
           laneCount: sortedLanes.length,
           clipsForLaneIndex: (laneIndex) =>
-            clipsByLaneMap.get(sortedLanes[laneIndex]!.id) ?? [],
+            clipsByLaneMap.get(sortedLanes[laneIndex].id) ?? [],
           pixelsPerSecond,
           tracksOriginX: TIMELINE_PLAYHEAD_GUTTER_PX,
         });

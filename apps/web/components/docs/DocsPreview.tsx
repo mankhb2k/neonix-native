@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import { PreviewStage } from "@/components/docs/PreviewStage";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 const hostCanvasClass =
   "relative h-[240px] w-full overflow-hidden bg-[var(--bg-surface)]";

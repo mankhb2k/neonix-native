@@ -5,7 +5,6 @@ import {
 import type { PreviewAsset } from "../shared/types";
 
 export type GL = WebGL2RenderingContext;
-type BlendMode = "normal" | "multiply" | "screen" | "add";
 
 export function shader(gl: GL, type: number, source: string): WebGLShader {
   const result = gl.createShader(type);

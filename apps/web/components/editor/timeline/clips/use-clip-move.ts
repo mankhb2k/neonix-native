@@ -5,8 +5,10 @@
 
 import { useMemo, type RefObject } from "react";
 import { useClipMove as useClipMoveShared } from "@/hooks/editor/timeline/use-clip-move";
-import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
-import type { ClipMoveHost } from "@/hooks/editor/timeline/gesture-host";
+import {
+  getTimelineLibraryDropHost,
+  resolveClipMoveDropAtY,
+} from "@/lib/editor/library/timeline-library-drop";
 import {
   resolveLaneKind,
   type EditorSelection,
@@ -17,14 +19,12 @@ import {
   type ClipMovePreview,
 } from "@motionvideo/editor-core/timeline";
 import {
-  getTimelineLibraryDropHost,
-  resolveClipMoveDropAtY,
-} from "@/lib/editor/library/timeline-library-drop";
-import {
   BASE_LANE_HEIGHT_PX,
   SECONDARY_LANE_HEIGHT_PX,
   TIMELINE_START_GUTTER_PX,
 } from "../timeline-scale";
+import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
+import type { ClipMoveHost } from "@/hooks/editor/timeline/gesture-host";
 
 export type UseClipMoveArgs = {
   clips: TimelineClip[];

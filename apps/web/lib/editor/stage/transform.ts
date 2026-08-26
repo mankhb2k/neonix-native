@@ -78,8 +78,8 @@ export function isPointInsideV2Layer(layer: V2Layer, point: StagePoint): boolean
   const polygon = getV2LayerWorldQuad(layer);
   let inside = false;
   for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
-    const current = polygon[index]!;
-    const prior = polygon[previous]!;
+    const current = polygon[index];
+    const prior = polygon[previous];
     const crosses =
       (current.y > point.y) !== (prior.y > point.y) &&
       point.x <

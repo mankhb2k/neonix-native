@@ -103,7 +103,7 @@ function axisLaneIndex(rows: readonly LaneRow[]): number {
   );
   if (base >= 0) return base;
   for (let i = rows.length - 1; i >= 0; i -= 1) {
-    if (rows[i]!.kind === "visual") return i;
+    if (rows[i].kind === "visual") return i;
   }
   return 0;
 }
@@ -138,7 +138,7 @@ export function timelineVerticalInsets(
   const axis = axisLaneIndex(rows);
   let above = 0;
   for (let i = 0; i < axis; i += 1) {
-    above += rows[i]!.height + webLaneRowConfig.gapPx;
+    above += rows[i].height + webLaneRowConfig.gapPx;
   }
   const axisHeight = rows[axis]?.height ?? 0;
   const maxTop = Math.max(minTop, contentHeight - stack - minBottom);

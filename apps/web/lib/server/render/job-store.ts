@@ -130,7 +130,7 @@ export async function createRenderJob(input: {
   const index = await readIdempotencyIndex();
   if (index[input.idempotencyKey]) {
     // Race: another writer won
-    const raced = await getRenderJob(index[input.idempotencyKey]!);
+    const raced = await getRenderJob(index[input.idempotencyKey]);
     if (raced) return { job: raced, created: false };
   }
   index[input.idempotencyKey] = job.jobId;

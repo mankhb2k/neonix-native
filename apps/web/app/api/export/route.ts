@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 /**
  * Sync local FFmpeg export removed — production export is Remotion Lambda via POST /api/renders.
  */
-export async function POST() {
+export function POST() {
   return NextResponse.json(
     {
       error:

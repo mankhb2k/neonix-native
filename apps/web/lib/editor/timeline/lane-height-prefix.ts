@@ -5,7 +5,7 @@ export function buildLaneHeightPrefix(
   const prefix = new Array<number>(laneHeights.length + 1);
   prefix[0] = 0;
   for (let i = 0; i < laneHeights.length; i += 1) {
-    prefix[i + 1] = prefix[i]! + Math.max(1, laneHeights[i]!);
+    prefix[i + 1] = prefix[i] + Math.max(1, laneHeights[i]);
   }
   return prefix;
 }

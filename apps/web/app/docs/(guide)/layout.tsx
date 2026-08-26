@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import { DocsSidebar } from "@/components/docs/DocsSidebar";
 import { SITE_DOCS_SHELL_X } from "@/lib/site-shell";
+import type { ReactNode } from "react";
 
 const gridClass =
   "mx-auto grid w-full grid-cols-1 md:grid-cols-[20rem_minmax(0,1fr)]";

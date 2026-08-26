@@ -5,9 +5,11 @@
  * projectHash in the browser.
  */
 export function createHash(_algorithm: string) {
+  void _algorithm;
   const parts: string[] = [];
   return {
     update(data: string | Uint8Array, _encoding?: string) {
+      void _encoding;
       parts.push(
         typeof data === "string" ? data : new TextDecoder().decode(data),
       );
@@ -43,6 +45,6 @@ export function timingSafeEqual(a: ArrayBufferView, b: ArrayBufferView): boolean
   const left = new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
   const right = new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
   let diff = 0;
-  for (let i = 0; i < left.length; i += 1) diff |= left[i]! ^ right[i]!;
+  for (let i = 0; i < left.length; i += 1) diff |= left[i] ^ right[i];
   return diff === 0;
 }

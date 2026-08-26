@@ -1,5 +1,5 @@
-import { DocsToc } from "@/components/docs/DocsToc";
 import { DocsPreview } from "@/components/docs/DocsPreview";
+import { DocsToc } from "@/components/docs/DocsToc";
 
 const asideClass =
   "sticky top-14 hidden max-h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-8 xl:block xl:justify-self-start";

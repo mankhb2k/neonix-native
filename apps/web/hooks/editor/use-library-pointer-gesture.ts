@@ -6,8 +6,11 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
+// This hook is the editor's UI adapter and intentionally consumes the surface context.
+// eslint-disable-next-line no-restricted-imports
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
+import { commandsForLibraryPayload } from "@/lib/editor/library/commands";
 import {
   attachLibraryDragWindowListeners,
   beginLibraryPress,
@@ -17,15 +20,14 @@ import {
   getLibraryDragSession,
   moveLibraryDrag,
 } from "@/lib/editor/library/library-drag-session";
-import type { LibraryPayload } from "@/lib/editor/library/library-payload";
 import {
   getTimelineLibraryDropHost,
   isOverLibraryDropZone,
   isOverTimelineDropZone,
   resolveLibraryDropPlacement,
 } from "@/lib/editor/library/timeline-library-drop";
-import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
-import { commandsForLibraryPayload } from "@/lib/editor/library/commands";
+import type { LibraryPayload } from "@/lib/editor/library/library-payload";
+import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
 
 /**
  * Pointer gesture for library tiles (Text / Shape).

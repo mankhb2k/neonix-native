@@ -3,7 +3,6 @@ import {
   assertRuntimeEffectProgram,
   RUNTIME_EFFECT_SOURCE_SURFACE,
   type RuntimeEffectOp,
-  type RuntimeNoiseEffectOp,
   type RuntimeEffectProgram,
   type SurfaceRef,
 } from "./effect-program";

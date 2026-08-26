@@ -3,11 +3,11 @@
  * Visual policy from @motionvideo/editor-core (resolveLaneDropTarget).
  */
 
+import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   clientPointToTimelineTime,
   TIMELINE_PLAYHEAD_GUTTER_PX,
 } from "@motionvideo/editor-core/timeline";
-import { metricsFromScrollElement } from "@/lib/editor/interaction-host/timeline-dom";
 import {
   audioDropPolicy,
   DEFAULT_FRAME_DURATION,
@@ -141,7 +141,7 @@ function collectSceneLanesFromLayout(
   const scrollTop = scrollEl.scrollTop;
   const out: LaneHit[] = [];
   for (let i = 0; i < lanes.length; i += 1) {
-    const lane = lanes[i]!;
+    const lane = lanes[i];
     if (lane.kind !== "visual") continue;
     const contentTop = layout.topPadding + (layout.laneHeightPrefix[i] ?? 0);
     const contentH = layout.laneContentHeights[i] ?? 0;
@@ -197,7 +197,7 @@ function collectAudioZoneLanesFromLayout(
   const scrollTop = scrollEl.scrollTop;
   const out: LaneHit[] = [];
   for (let i = 0; i < lanes.length; i += 1) {
-    const lane = lanes[i]!;
+    const lane = lanes[i];
     const isAudio = lane.kind === "audio";
     const isBase = lane.kind === "visual" && lane.role === "base";
     if (!isAudio && !isBase) continue;

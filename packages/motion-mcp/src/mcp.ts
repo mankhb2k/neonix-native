@@ -112,7 +112,7 @@ export type MCPInspectTimelineInput = z.infer<typeof MCPInspectTimelineInputSche
 export interface MCPInspectTimelineResult extends MCPBaseResult {
   totalDuration: number;
   rootLayerCount: number;
-  layers: Array<{ id: string; type: string; zIndex: number; start: number; duration: number }>;
+  layers: Array<{ id: string; type: string; order: number; start: number; duration: number }>;
 }
 
 export const MCPExplainDiagnosticsInputSchema = z.object({
@@ -220,7 +220,7 @@ export function listCapabilities(filter?: string, includeExperimental = false): 
 export function inspectTimeline(project: MotionProtocolV2, layerId?: string): MCPInspectTimelineResult {
   const layers = project.layers
     .filter((layer) => !layerId || layer.id === layerId)
-    .map((layer) => ({ id: layer.id, type: layer.type, zIndex: layer.zIndex, start: layer.timing.start, duration: layer.timing.duration }));
+    .map((layer) => ({ id: layer.id, type: layer.type, order: layer.order, start: layer.timing.start, duration: layer.timing.duration }));
   return {
     warnings: [],
     totalDuration: layers.reduce((max, layer) => Math.max(max, layer.start + layer.duration), 0),

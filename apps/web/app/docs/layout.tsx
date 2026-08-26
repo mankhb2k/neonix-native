@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { DocsChromeHeader } from "@/components/docs/DocsChromeHeader";
+import type { ReactNode } from "react";
 
 const shellClass = "min-h-screen bg-[var(--bg-site)] text-[var(--fg-primary)]";
 

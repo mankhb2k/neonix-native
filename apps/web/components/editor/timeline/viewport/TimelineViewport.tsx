@@ -1,11 +1,22 @@
 "use client";
 
-import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
-import { buildLaneHeightPrefix } from "@/lib/editor/timeline/lane-height-prefix";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
 import { useTimelineSeek } from "@/hooks/editor/timeline/use-timeline-seek";
 import { useTimelineViewportMetrics } from "@/hooks/editor/timeline/use-timeline-viewport-metrics";
+import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
+import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
+import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
+import { buildLaneHeightPrefix } from "@/lib/editor/timeline/lane-height-prefix";
 import {
   selectedClipIdsFrom,
   selectionClips,
@@ -24,17 +35,6 @@ import {
   type ClipMovePreview,
   type MarqueeRect,
 } from "@motionvideo/editor-core/timeline";
-import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
-import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
 import {
   buildLayerLaneRows,
   buildTrackLaneRows,
@@ -47,12 +47,12 @@ import {
   TIMELINE_START_GUTTER_PX,
 } from "../timeline-scale";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
-import type { TimelineDesignMode } from "../Header/TransportBar";
-import { Playhead } from "./Playhead";
 import { ClipMoveOverlays } from "./ClipMoveOverlays";
 import { LibraryDropGhostOverlay } from "./LibraryDropGhostOverlay";
+import { Playhead } from "./Playhead";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
+import type { TimelineDesignMode } from "../Header/TransportBar";
 
 type Props = {
   mode: TimelineDesignMode;
@@ -182,7 +182,7 @@ export function TimelineViewport({
       return {
         laneContentHeights: contentHeights,
         laneHeightPrefix: buildLaneHeightPrefix(heightsWithGap),
-        sortedLanes: rows as TimelineLane[],
+        sortedLanes: rows,
         clipsByLaneMap: map,
       };
     }, [rows, clips]);

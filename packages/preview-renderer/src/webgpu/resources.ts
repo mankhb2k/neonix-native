@@ -2,7 +2,6 @@ import { SHADER } from "./shaders";
 import type {
   WebGPUContextLike,
   WebGPUDeviceLike,
-  WebGPUTextureLike,
   WebGPURenderPipelineLike,
 } from "../shared/types";
 

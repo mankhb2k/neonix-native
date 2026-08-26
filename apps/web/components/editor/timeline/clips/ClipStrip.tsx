@@ -137,7 +137,7 @@ export function ClipStrip({
     event.stopPropagation();
     if (event.detail >= 2 && onDoubleClick) {
       onDoubleClick(
-        event as unknown as ReactMouseEvent<HTMLElement>,
+        event,
         clip,
       );
       return;

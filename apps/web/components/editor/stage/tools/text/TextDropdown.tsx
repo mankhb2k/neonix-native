@@ -1,12 +1,12 @@
 "use client";
 
-import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
-import { cn } from "@/lib/utils";
 import { ChevronDown, Type } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
+import { getLibraryDragSession } from "@/lib/editor/library/library-drag-session";
+import { cn } from "@/lib/utils";
 import { TEXT_CATEGORIES } from "./catalog";
 import type { TextPreset } from "./types";
-import { getLibraryDragSession } from "@/lib/editor/library/library-drag-session";
 
 const DEFAULT_FRAME_DURATION = 5;
 

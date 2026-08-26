@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 /** Retired — use GET /api/renders/:id/download. */
-export async function GET(): Promise<Response> {
+export function GET(): Response {
   return Response.json(
     {
       error: "Use GET /api/renders/:id/download",

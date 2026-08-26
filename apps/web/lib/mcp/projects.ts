@@ -120,6 +120,10 @@ async function resolveWorkspace(
     workspaceId = data.id;
   }
 
+  if (!workspaceId) {
+    throw new McpProjectError("Unable to resolve a workspace", "INTERNAL");
+  }
+
   const resolvedWorkspaceId = workspaceId;
 
   const role = await getWorkspaceRole(client, principal.userId, resolvedWorkspaceId);

@@ -2,6 +2,11 @@
  * Web timeline layout constants (app chrome) + CapCut scale from editor-core.
  */
 
+import {
+  TIMELINE_LABEL_WIDTH,
+  TIMELINE_PLAYHEAD_GUTTER_PX,
+} from "@motionvideo/editor-core/timeline";
+
 export {
   TIMELINE_ZOOM_MIN,
   TIMELINE_ZOOM_MAX,
@@ -14,11 +19,6 @@ export {
   capCutRulerScale,
   computeRulerTickWindow,
   type CapCutRulerScale,
-} from "@motionvideo/editor-core/timeline";
-
-import {
-  TIMELINE_LABEL_WIDTH,
-  TIMELINE_PLAYHEAD_GUTTER_PX,
 } from "@motionvideo/editor-core/timeline";
 
 /** Alias — start gutter before t=0 (same as playhead gutter). */

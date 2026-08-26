@@ -24,7 +24,7 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
       id: "shape",
       type: "shape",
       parentLayerId: null,
-      zIndex: 0,
+      order: 0,
       frame: { width: 320, height: 180 },
       transform: {
         translate: { x: 0, y: 0, z: 0 },

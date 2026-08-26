@@ -1,10 +1,25 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 type JsonObject = Record<string, unknown>;
+
+type ProjectRow = {
+  id: string;
+  public_ref: string;
+  workspace_id: string;
+  title: string;
+  current_revision_no: number;
+  updated_at: string;
+};
+
+type RevisionRow = {
+  id: string;
+  revision_no: number;
+  document_json: unknown;
+};
 
 const PROJECT_COLUMNS =
   "id, public_ref, workspace_id, title, current_revision_no, created_at, updated_at, last_activity_at, deleted_at, purge_after";
@@ -91,13 +106,7 @@ async function findProject(client: Awaited<ReturnType<typeof createSupabaseServe
       "NOT_FOUND",
     );
   }
-  return data as {
-    id: string;
-    public_ref: string;
-    workspace_id: string;
-    title: string;
-    current_revision_no: number;
-  };
+  return data as unknown as ProjectRow;
 }
 
 async function latestRevision(
@@ -124,11 +133,7 @@ async function latestRevision(
       "NOT_FOUND",
     );
   }
-  return data as {
-    id: string;
-    revision_no: number;
-    document_json: unknown;
-  };
+  return data as unknown as RevisionRow;
 }
 
 function parseDocument(value: unknown): MotionProtocolV2 {
@@ -178,7 +183,8 @@ export async function listProjects(
       "DATABASE_ERROR",
     );
   }
-  return (data ?? []).map((project) => ({
+  const rows = (data ?? []) as unknown as ProjectRow[];
+  return rows.map((project) => ({
     projectId: project.id,
     publicRef: project.public_ref,
     workspaceId: project.workspace_id,
@@ -229,13 +235,15 @@ export async function saveProject(
     );
   }
 
+  const savedRevision = revision as unknown as RevisionRow;
+
   return {
     projectId: project.id,
     publicRef: project.public_ref,
     workspaceId: project.workspace_id,
     title: project.title,
-    revisionNo: revision.revision_no,
-    revisionId: revision.id,
+    revisionNo: savedRevision.revision_no,
+    revisionId: savedRevision.id,
     document: validDocument,
     source: "supabase",
   };

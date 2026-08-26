@@ -14,7 +14,7 @@ describe("Protocol V2 patches", () => {
       formatVersion: 2,
       baseRevision: 0,
       operations: [
-        { op: "addLayer", layer: { ...layer, id: "added", zIndex: 1 } },
+        { op: "addLayer", layer: { ...layer, id: "added", order: 1 } },
         { op: "trimLayer", layerId: "added", start: 1, duration: 2 },
       ],
     });

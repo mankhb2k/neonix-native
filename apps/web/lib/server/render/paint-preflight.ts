@@ -39,7 +39,7 @@ export function preflightPaintCommandBuffer(
     issues.push({
       severity: "error",
       code: "paint_version_mismatch",
-      message: `Paint version ${String(paint.version)} != ${PAINT_COMMAND_VERSION}`,
+      message: `Paint version ${String(paint.version)} != ${String(PAINT_COMMAND_VERSION)}`,
     });
   }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { buttonClassName } from "@/components/ui";
+import type { ReactNode } from "react";
 
 type SiteNavButtonProps = {
   href: string;

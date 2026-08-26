@@ -1,9 +1,9 @@
 "use client";
 
+import { Hand, MousePointer2, PenTool } from "lucide-react";
 import { ShapesDropdown } from "@/components/editor/stage/tools/ShapesDropdown";
 import { TextDropdown } from "@/components/editor/stage/tools/text/TextDropdown";
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
-import { Hand, MousePointer2, PenTool } from "lucide-react";
 
 type Props = {
   isPanMode: boolean;

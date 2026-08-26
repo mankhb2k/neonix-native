@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import { FlatCompat } from "@eslint/eslintrc";
 import eslint from "@eslint/js";
+import reactWebApi from "eslint-plugin-react-web-api";
 import tseslint from "typescript-eslint";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +31,39 @@ const appLayerFiles = [
   "app/**/*.{ts,tsx}",
   "components/**/*.{ts,tsx}",
   "hooks/**/*.{ts,tsx}",
+];
+
+const testAndToolingFiles = [
+  "**/*.spec.{ts,tsx}",
+  "**/*.test.{ts,tsx}",
+  "e2e/**/*.{ts,tsx}",
+];
+
+/** Browser-facing modules must not pull server-only capabilities into the client bundle. */
+const clientServerImportPaths = [
+  {
+    name: "server-only",
+    message: "Client modules must not import server-only markers or server modules.",
+  },
+  {
+    name: "@/lib/supabase/server",
+    message: "Client modules must use the browser Supabase client.",
+  },
+  {
+    name: "@/lib/mcp/server",
+    message: "The MCP server is server-only and must not enter the client bundle.",
+  },
+  {
+    name: "@remotion/lambda-client",
+    message: "Lambda export belongs in server routes, not client modules.",
+  },
+];
+
+const clientServerImportPatterns = [
+  {
+    group: ["@/lib/server/**", "@/app/api/**"],
+    message: "Client modules must not import server-only application code.",
+  },
 ];
 
 /** Imports that would reintroduce the removed V1 editor boundary. */
@@ -183,6 +217,18 @@ const importRules = {
 
 const typescriptErrorRules = {
   "@typescript-eslint/no-explicit-any": "error",
+  "@typescript-eslint/no-empty-object-type": "error",
+  "@typescript-eslint/no-unused-vars": [
+    "error",
+    {
+      args: "after-used",
+      argsIgnorePattern: "^_",
+      varsIgnorePattern: "^_",
+      caughtErrorsIgnorePattern: "^_",
+      destructuredArrayIgnorePattern: "^_",
+      ignoreRestSiblings: true,
+    },
+  ],
   "@typescript-eslint/ban-ts-comment": [
     "error",
     {
@@ -246,16 +292,17 @@ export default tseslint.config(
   {
     ignores: [
       ".next/**",
+      ".next-local3000/**",
       "node_modules/**",
       "next-env.d.ts",
       "eslint.config.mjs",
       "postcss.config.mjs",
       "public/**",
-      "e2e/**",
       "playwright.config.ts",
       "vitest.config.ts",
       "vitest.editor.config.ts",
       "tsconfig.editor.json",
+      "tsconfig.eslint.json",
     ],
   },
   eslint.configs.recommended,
@@ -276,16 +323,27 @@ export default tseslint.config(
         },
       },
     },
+    plugins: {
+      "react-web-api": reactWebApi,
+    },
     rules: {
       ...coreSafetyRules,
       ...importRules,
       ...typescriptErrorRules,
+      "react-web-api/no-leaked-event-listener": "error",
+      "react-web-api/no-leaked-fetch": "error",
+      "react-web-api/no-leaked-intersection-observer": "error",
+      "react-web-api/no-leaked-interval": "error",
+      "react-web-api/no-leaked-resize-observer": "error",
+      "react-web-api/no-leaked-timeout": "error",
       "@next/next/no-img-element": "error",
       "@next/next/no-html-link-for-pages": "error",
       "react/jsx-no-useless-fragment": "error",
       "react/no-unstable-nested-components": "error",
       "react/no-array-index-key": "warn",
       "react/no-danger": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error",
       "react/no-unescaped-entities": ["error", { forbid: [">", "}"] }],
       "no-restricted-syntax": [
         "error",
@@ -316,6 +374,12 @@ export default tseslint.config(
   {
     files: appLayerFiles,
     rules: appLayerRestrictions,
+  },
+  {
+    files: ["app/api/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-globals": "off",
+    },
   },
   {
     files: [
@@ -349,11 +413,13 @@ export default tseslint.config(
   },
   {
     files: ["lib/editor/**/*.{ts,tsx}"],
+    ignores: ["lib/editor/document/project-repository.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
-          patterns: editorLibraryImportPatterns,
+          paths: clientServerImportPaths,
+          patterns: [...clientServerImportPatterns, ...editorLibraryImportPatterns],
         },
       ],
     },
@@ -381,8 +447,25 @@ export default tseslint.config(
     },
   },
   {
+    files: ["lib/docs/**/*.{ts,tsx}"],
+    rules: {
+      // Documentation definitions include React renderers by design, but remain client-safe.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: clientServerImportPaths,
+          patterns: clientServerImportPatterns,
+        },
+      ],
+    },
+  },
+  {
     files: ["lib/**/*.{ts,tsx}"],
-    ignores: ["lib/store/**/*.{ts,tsx}", "lib/api/**/*.{ts,tsx}"],
+    ignores: [
+      "lib/store/**/*.{ts,tsx}",
+      "lib/api/**/*.{ts,tsx}",
+      "lib/docs/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -412,7 +495,9 @@ export default tseslint.config(
       "no-restricted-imports": [
         "error",
         {
+          paths: clientServerImportPaths,
           patterns: [
+            ...clientServerImportPatterns,
             {
               group: ["@/components/**", "@/app/**"],
               message: "Store must not import components or app routes.",
@@ -458,7 +543,10 @@ export default tseslint.config(
       "no-restricted-imports": [
         "error",
         {
+          paths: [...clientServerImportPaths, ...editorLayerImportPaths],
           patterns: [
+            ...clientServerImportPatterns,
+            ...editorLayerImportPatterns,
             {
               group: ["@/lib/editor/store/internal/**"],
               message: "Components must import timeline public API (@/lib/editor/timeline) — do not import store/internal directly.",
@@ -476,12 +564,16 @@ export default tseslint.config(
         "error",
         {
           paths: [
+            ...clientServerImportPaths,
+            ...editorLayerImportPaths,
             {
               name: "axios",
               message: "Use lib/api/* — not raw axios in hooks.",
             },
           ],
           patterns: [
+            ...clientServerImportPatterns,
+            ...editorLayerImportPatterns,
             {
               group: ["@/components/**", "@/app/**"],
               message: "hooks/ must not import components or app.",
@@ -496,12 +588,23 @@ export default tseslint.config(
     },
   },
   {
-    files: ["**/*.spec.ts", "**/*.test.ts", "**/*.test.tsx"],
+    files: testAndToolingFiles,
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: "./tsconfig.eslint.json",
+      },
+    },
     rules: {
       "no-restricted-globals": "off",
       "no-restricted-imports": "off",
+      "no-restricted-syntax": "off",
       "import/first": "off",
+      "import/order": "off",
+      "import/no-useless-path-segments": "off",
       "no-console": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+      "@typescript-eslint/no-redundant-type-constituents": "off",
     },
   },
 );

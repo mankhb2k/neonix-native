@@ -97,6 +97,9 @@ export function Playhead({
       <div
         role="slider"
         aria-label="Playhead"
+        aria-valuemin={0}
+        aria-valuemax={Math.max(leftPx, 1)}
+        aria-valuenow={leftPx}
         aria-disabled={muted || !interactive}
         tabIndex={interactive ? 0 : -1}
         className={`absolute bottom-0 -translate-x-1/2 ${hitClass}`}

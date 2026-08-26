@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { DocsOnThisPage } from "@/components/docs/DocsOnThisPage";
+import type { ReactNode } from "react";
 
 const contentGridClass = "grid min-w-0 grid-cols-1 xl:grid-cols-[1fr_auto_1fr]";
 

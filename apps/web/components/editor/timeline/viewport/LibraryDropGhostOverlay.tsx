@@ -109,7 +109,9 @@ export function LibraryDropGhostOverlay({ contentWidth }: Props) {
       if (hostEl === scrollEl) return;
       unbindScroll();
       scrollEl = hostEl;
-      scrollEl?.addEventListener("scroll", onScroll, { passive: true });
+      // The target is dynamic; unbindScroll removes the same listener before replacement/unmount.
+      // eslint-disable-next-line react-web-api/no-leaked-event-listener
+      scrollEl?.addEventListener("scroll", onScroll);
     };
 
     const unsub = subscribeLibraryDrag((next) => {

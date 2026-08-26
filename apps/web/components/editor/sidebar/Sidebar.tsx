@@ -1,13 +1,5 @@
 "use client";
 
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
-import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
-import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
-import { Button, Panel, Tabs } from "@/components/ui";
-import type {
-  MotionProtocolV2,
-  V2Asset,
-} from "@motionvideo/motion-protocol/v2";
 import {
   Eye,
   EyeOff,
@@ -24,6 +16,14 @@ import {
   Upload,
 } from "lucide-react";
 import { useMemo, useRef, type ChangeEvent, type SyntheticEvent } from "react";
+import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { Button, Panel, Tabs } from "@/components/ui";
+import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
+import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
+import type {
+  MotionProtocolV2,
+  V2Asset,
+} from "@motionvideo/motion-protocol/v2";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 type DisplayLayer = { layer: V2Layer; depth: number };
@@ -93,6 +93,8 @@ function AssetItem({ asset }: { asset: V2Asset }) {
         {preview ? (
           <span className="h-10 w-14 shrink-0 overflow-hidden rounded border border-[var(--border-subtle)] bg-black/20">
             {asset.kind === "image" ? (
+              // Asset URLs can be user-provided and are not known at build time.
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={asset.uri}
                 alt=""
@@ -220,6 +222,7 @@ export function Sidebar() {
   );
 
   const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target;
     const files = [...(event.target.files ?? [])];
     const assets = (await Promise.all(files.map(fileToAsset))).filter(
       (asset): asset is V2Asset => asset !== null,
@@ -237,7 +240,7 @@ export function Sidebar() {
     });
     if (unique.length > 0)
       applyCommands(unique.map((asset) => ({ type: "add-asset", asset })));
-    event.target.value = "";
+    input.value = "";
   };
 
   return (

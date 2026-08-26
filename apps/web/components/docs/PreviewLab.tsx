@@ -10,18 +10,18 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "@/lib/docs/preview-lab";
-import type {
-  PreviewBackendKind,
-  PreviewBackendPreference,
-} from "@motionvideo/preview-renderer";
-import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import { compileProtocolV2 } from "@motionvideo/motion-compiler";
-import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
 import {
   createPlaybackEngineV2,
   createWebAudioAdapterV2,
   type PlaybackEngineV2,
 } from "@motionvideo/playback-engine";
+import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
+import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
+import type {
+  PreviewBackendKind,
+  PreviewBackendPreference,
+} from "@motionvideo/preview-renderer";
 
 const backendOptions: Array<{
   id: PreviewBackendPreference;
@@ -283,7 +283,7 @@ function AudioClipTransport({
   const sourceSpan = Math.max(0.01, trimEnd - trimStart);
 
   useEffect(() => {
-    if (!usesRuntimeAudio) return;
+    if (!usesRuntimeAudio) return undefined;
     const adapter = createWebAudioAdapterV2();
     const engine = createPlaybackEngineV2({
       paintCompositionFrame(frame) {

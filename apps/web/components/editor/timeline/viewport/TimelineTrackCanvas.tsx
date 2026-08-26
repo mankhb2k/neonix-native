@@ -1,22 +1,21 @@
 "use client";
 
+import { useCallback, useState, type RefObject , PointerEvent as ReactPointerEvent } from "react";
+import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
 import { ClipStrip, type ClipStripVisualKind } from "../clips/ClipStrip";
-import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
-import type { LaneRow } from "../lanes/timeline-lane-rows";
 import { LANE_GAP_PX } from "../timeline-scale";
-import type { ClipMovePreview } from "@motionvideo/editor-core/timeline";
-import type {
+import { EmptyTimelineDash } from "./EmptyTimelineDash";
+import type { LaneRow } from "../lanes/timeline-lane-rows";
+import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
+import type { ClipMovePreview ,
   EditorSelection,
   TimelineClip,
   TimelineEdit,
   TimelineLane,
 } from "@motionvideo/editor-core/timeline";
-import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
-import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
-import { useCallback, useState, type RefObject } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+
 
 function visualKindForClip(clip: TimelineClip): ClipStripVisualKind {
   if (clip.kind === "audio") return "audio";

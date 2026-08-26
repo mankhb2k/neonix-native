@@ -65,13 +65,14 @@ export function scrollTracksHorizontallyNearEdge(
   edgePx = 40,
   stepPx = 14,
 ): number {
+  const element = scrollEl;
   const result = computeHorizontalEdgeScroll({
     clientX,
-    viewport: metricsFromScrollElement(scrollEl),
+    viewport: metricsFromScrollElement(element),
     edgePx,
     stepPx,
   });
-  scrollEl.scrollLeft = result.nextScrollLeft;
+  element.scrollLeft = result.nextScrollLeft;
   return result.scrollLeftDelta;
 }
 
@@ -84,16 +85,17 @@ export function ensurePlayheadScrubScroll(
   stepPx = 14,
   scrubMin = 0,
 ): { scrollLeft: number; time: number; scrolledBy: number } {
+  const element = scrollEl;
   const result = ensurePlayheadScrubScrollMetrics({
     clientX,
-    viewport: metricsFromScrollElement(scrollEl),
+    viewport: metricsFromScrollElement(element),
     pixelsPerSecond,
     scrubMax,
     edgePx,
     stepPx,
     scrubMin,
   });
-  scrollEl.scrollLeft = result.nextScrollLeft;
+  element.scrollLeft = result.nextScrollLeft;
   return { scrollLeft: result.nextScrollLeft, time: result.time, scrolledBy: result.scrollLeftDelta };
 }
 
@@ -105,15 +107,16 @@ export function autoScrollElementNearEdge(
   stepPx = 14,
   options?: AutoScrollNearEdgeOptions,
 ): { scrollLeftDelta: number; scrollTopDelta: number } {
+  const element = scrollEl;
   const result = computeAutoScrollNearEdge({
     clientX,
     clientY,
-    viewport: metricsFromScrollElement(scrollEl, 0),
+    viewport: metricsFromScrollElement(element, 0),
     edgePx,
     stepPx,
     options,
   });
-  scrollEl.scrollLeft = result.nextScrollLeft;
-  scrollEl.scrollTop = result.nextScrollTop;
+  element.scrollLeft = result.nextScrollLeft;
+  element.scrollTop = result.nextScrollTop;
   return { scrollLeftDelta: result.scrollLeftDelta, scrollTopDelta: result.scrollTopDelta };
 }

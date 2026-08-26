@@ -110,8 +110,10 @@ export function TimelineHScrollBar({
       className="relative w-full min-w-0 shrink-0 bg-[var(--bg-surface)]"
       style={{ height: TRACK_HEIGHT_PX }}
       data-testid="timeline-hscroll"
+      id="timeline-horizontal-scrollbar"
       aria-label="Timeline horizontal scroll"
       role="scrollbar"
+      aria-controls="timeline-track-canvas"
       aria-orientation="horizontal"
       aria-valuemin={0}
       aria-valuemax={maxScroll}

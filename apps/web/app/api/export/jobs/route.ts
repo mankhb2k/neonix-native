@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 /** Retired — use POST /api/renders. */
-export async function POST(): Promise<Response> {
+export function POST(): Response {
   return Response.json(
     {
       error: "Local export jobs retired. Use POST /api/renders.",

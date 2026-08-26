@@ -886,18 +886,6 @@ const PATH_DONUT_INNER_NONZERO = {
   closed: true as const,
 };
 
-const PATH_DONUT_INNER_EVENODD = {
-  id: "donut-inner-evenodd",
-  start: { x: 170, y: 110 },
-  segments: [
-    { kind: "line" as const, to: { x: 430, y: 110 } },
-    { kind: "line" as const, to: { x: 430, y: 290 } },
-    { kind: "line" as const, to: { x: 170, y: 290 } },
-    { kind: "line" as const, to: { x: 170, y: 110 } },
-  ],
-  closed: true as const,
-};
-
 function pathDonutProject(
   id: string,
   fillRule: "nonzero" | "evenodd",
@@ -937,12 +925,6 @@ const PATH_NONZERO_DONUT_PROJECT = pathDonutProject(
   "preview-path-nonzero-donut-v2",
   "nonzero",
   PATH_DONUT_INNER_NONZERO,
-);
-
-const PATH_EVENODD_DONUT_PROJECT = pathDonutProject(
-  "preview-path-evenodd-donut-v2",
-  "evenodd",
-  PATH_DONUT_INNER_EVENODD,
 );
 
 const PATH_FIVE_POINT_STAR = {

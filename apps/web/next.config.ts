@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, no-param-reassign */
+
 import fs from "node:fs";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
@@ -6,7 +8,7 @@ import type { NextConfig } from "next";
 // The workspace keeps the local environment file at the repository root while
 // this Next app lives in apps/web. Load that file before Next evaluates the
 // client/server modules so Supabase variables are available in development.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
 const currentDirectory = process.cwd();
 const workspaceRoot = fs.existsSync(path.join(currentDirectory, ".env"))
   ? currentDirectory
@@ -36,8 +38,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publicSupabasePublishableKey,
   },
-  // Legacy editor/Storybook lint debt is checked separately with `pnpm lint:web`.
-  // Do not make a production build unavailable while that surface is frozen.
+  // Keep production builds independent from the standalone lint command.
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -50,7 +51,6 @@ const nextConfig: NextConfig = {
     "@motionvideo/motion-protocol",
     "@motionvideo/motion-runtime",
     "@motionvideo/motion-compiler",
-    "@motionvideo/ai-planner",
     "@motionvideo/asset-registry",
     "@motionvideo/preview-renderer",
     "@motionvideo/playback-engine",

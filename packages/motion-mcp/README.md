@@ -8,7 +8,7 @@ returns `RuntimeProjectV2`; it never converts or executes an older project
 format.
 
 ```text
-AI / MCP operation
+Claude via Remote MCP
         |
   Protocol V2 JSON
         |

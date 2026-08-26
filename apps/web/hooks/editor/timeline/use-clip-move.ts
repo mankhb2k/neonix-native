@@ -2,7 +2,7 @@
  * Clip move gesture (single + group, cross-lane, snap) — controlled callbacks.
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   createClipGroupMovePlan,
   selectedClipIdsFrom,
@@ -17,12 +17,12 @@ import {
   type ClipMoveDropTarget,
   type ClipMovePreview,
 } from "@motionvideo/editor-core/timeline";
-import type { PointerEvent as ReactPointerEvent } from "react";
-import type { BeginGesture } from "../pointer/use-pointer-session-host";
 import type {
   ClipMoveHost,
   ClipMovePolicyTarget,
 } from "./gesture-host";
+import type { BeginGesture } from "../pointer/use-pointer-session-host";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 const DRAG_THRESHOLD_PX = 4;
 const SNAP_THRESHOLD_PX = 8;
@@ -147,7 +147,7 @@ export function useClipMove({
 }: UseClipMoveArgs) {
   const pps = Math.max(pixelsPerSecond, 0.001);
   const laneHeightPx = laneHeightPxProp ?? host.laneRowHeightPx(lane);
-  const selected = new Set(selectedClipIdsFrom(selection));
+  const selected = useMemo(() => new Set(selectedClipIdsFrom(selection)), [selection]);
 
   const beginMove = useCallback(
     (event: ReactPointerEvent<HTMLElement>, clip: TimelineClip) => {
@@ -178,7 +178,7 @@ export function useClipMove({
 
       const originX = event.clientX;
       const originY = event.clientY;
-      const clipRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const clipRect = (event.currentTarget).getBoundingClientRect();
       const grabOffsetY = originY - clipRect.top;
 
       const originStart = clip.startTime;

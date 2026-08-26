@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   loadProject,
   ProjectRepositoryError,
   saveProject,
 } from "@/lib/editor/document/project-repository";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -6,7 +6,7 @@ test.describe("web V2 smoke", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Create Neon Motion Videos from JSON, Audio, and AI/i,
+        name: /Create Neon Motion Videos with Claude and MCP/i,
       }),
     ).toBeVisible();
   });

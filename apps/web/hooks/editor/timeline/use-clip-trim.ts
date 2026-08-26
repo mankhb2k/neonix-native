@@ -12,8 +12,8 @@ import {
   resolveClipTrimUpdate,
   type ClipTrimPreview,
 } from "@motionvideo/editor-core/timeline";
-import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 export type { ClipTrimPreview };
 

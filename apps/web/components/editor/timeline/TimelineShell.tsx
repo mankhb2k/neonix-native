@@ -1,14 +1,14 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
-import {
-  projectLayersToTimeline,
-} from "@motionvideo/editor-core/timeline";
-import type { EditorCommand } from "@motionvideo/editor-core";
 import {
   selectionClips as protocolSelectionClips,
   selectedClipIds as protocolSelectedClipIds,
 } from "@motionvideo/editor-core";
+import {
+  projectLayersToTimeline,
+} from "@motionvideo/editor-core/timeline";
 import {
   selectedClipIdsFrom,
   selectionClips,
@@ -18,10 +18,10 @@ import {
   type TimelineEdit,
   timelineEditToDocumentCommand,
 } from "@motionvideo/editor-core/timeline";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { TransportBar } from "./Header/TransportBar";
-import { TimelineViewport } from "./viewport/TimelineViewport";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
+import { TimelineViewport } from "./viewport/TimelineViewport";
+import type { EditorCommand } from "@motionvideo/editor-core";
 
 /** Timeline chrome backed by the Protocol V2 document adapter. */
 export function TimelineShell() {

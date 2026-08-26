@@ -1,7 +1,7 @@
-import type { V2Asset, MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import type { EditorCommand } from "@motionvideo/editor-core";
 import type { LibraryPayload } from "@/lib/editor/library/library-payload";
+import type { EditorCommand } from "@motionvideo/editor-core";
 import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
+import type { V2Asset, MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export const DEFAULT_FONT_ASSET: V2Asset = {
   id: "font-roboto-regular",

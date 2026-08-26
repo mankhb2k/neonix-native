@@ -125,7 +125,7 @@ export function LoginForm({
           </Link>
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
-              AI-first motion studio
+              Claude-connected motion studio
             </p>
             <h2 className="max-w-sm text-3xl font-semibold leading-tight tracking-tight">
               Turn an idea into a video you can keep editing.

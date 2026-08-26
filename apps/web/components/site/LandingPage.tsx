@@ -35,8 +35,8 @@ const USE_CASES = [
     Type,
   ],
   [
-    "AI-generated motion templates",
-    "Reusable components AI can remix per brief.",
+    "Claude-authored motion templates",
+    "Reusable components Claude can compose through MCP.",
     Wand2,
   ],
   ["Podcast & reel visuals", "Audio-reactive loops for vertical feeds.", Mic],
@@ -44,7 +44,7 @@ const USE_CASES = [
 ] as const;
 
 const FEATURES = [
-  ["AI-first JSON protocol", "Strict, editable motion document.", FileJson],
+  ["MCP-first JSON protocol", "Strict, editable motion document.", FileJson],
   ["Neon & cyber effects", "Glow, inner-glow, noise, and blur.", Zap],
   ["Reusable components", "Templates with safe, swappable props.", Boxes],
   ["Beat-synced motion", "Keyframes generated from audio analysis.", Activity],
@@ -173,7 +173,7 @@ function Reveal({
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       setVisible(true);
-      return;
+      return undefined;
     }
 
     const observer = new IntersectionObserver(
@@ -305,6 +305,8 @@ function Waveform() {
     >
       {WAVEFORM.map((value, i) => (
         <rect
+          // Waveform bars are decorative and have no stable domain identity.
+          // eslint-disable-next-line react/no-array-index-key
           key={i}
           x={i * 5}
           y={(64 - Math.max(2, value * 64)) / 2}
@@ -333,7 +335,7 @@ function BeatPulse() {
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
+      return undefined;
     }
 
     let raf = 0;
@@ -389,11 +391,11 @@ function Hero() {
             style={{ fontFamily: "var(--font-display)" }}
             className="mt-4 text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-[var(--fg-primary)]"
           >
-            Create Neon Motion Videos from JSON, Audio, and AI
+            Create Neon Motion Videos with Claude and MCP
           </h1>
           <p className="mt-5 max-w-xl text-[1.05rem] leading-relaxed text-[var(--fg-muted)]">
             Build cyberpunk music visualizers, story videos, glowing titles,
-            and animated templates with an AI-first motion format.
+            and animated templates with a strict, editable motion format.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button href="/register">Start for free</Button>
@@ -829,5 +831,3 @@ export function LandingPage() {
     </main>
   );
 }
-
-

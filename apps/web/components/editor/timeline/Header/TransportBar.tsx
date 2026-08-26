@@ -1,15 +1,15 @@
 "use client";
 
 import { ArrowLeft, Pause, Play, Scaling, ZoomIn, ZoomOut } from "lucide-react";
-import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
-import { EditActions } from "./EditActions";
-import { TimelineModeToggles } from "./TimelineModeToggles";
 import {
   formatTimecode,
   TIMELINE_TRANSPORT_HEIGHT_PX,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
 } from "../timeline-scale";
+import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
+import { EditActions } from "./EditActions";
+import { TimelineModeToggles } from "./TimelineModeToggles";
 
 export type TimelineDesignMode = "track" | "layer";
 

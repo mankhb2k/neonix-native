@@ -5,14 +5,14 @@
 
 import "server-only";
 
-import type { PersistentRenderJob } from "@/lib/server/render/job-store";
-import { saveRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import { buildExportCanaryRecord } from "@/lib/server/render/export-canary";
+import { saveRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import {
   CAPABILITY_MANIFEST_VERSION,
   PAINT_COMMAND_VERSION,
   type RuntimeProjectV2,
 } from "@motionvideo/motion-runtime";
+import type { PersistentRenderJob } from "@/lib/server/render/job-store";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 
 export type LambdaRenderStartResult = {
@@ -57,7 +57,9 @@ export async function startRenderOnLambda(input: {
     });
     // Simulate async completion for stub path
     void (async () => {
-      await new Promise((r) => setTimeout(r, 25));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 25);
+      });
       await updateRenderJob(input.job.jobId, {
         status: "done",
         progress: 1,

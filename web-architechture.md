@@ -1,4 +1,4 @@
-# Web architecture — AI → Pixi preview → Remotion Lambda export
+# Web architecture — Claude Remote MCP → editor → Remotion Lambda export
 
 > Trạng thái: kiến trúc mục tiêu cho Web MVP và Desktop dùng chung core  
 > Cập nhật: 2026-08-06  
@@ -9,14 +9,14 @@
 
 MotiClip có một ngôn ngữ animation duy nhất: `MotionProject` JSON.
 
-- AI chỉ tạo creative plan và typed authoring commands.
+- Claude chỉ tương tác với Neonix qua Remote MCP tools.
 - `MotionProject` là document canonical để lưu, edit, version và export.
 - `motion-compiler` dịch document sang Runtime IR.
 - `motion-runtime` là nơi duy nhất tính giá trị của một frame.
 - PixiJS và Remotion không tự tính easing, timing, transform hoặc layout theo cách riêng.
 - PixiJS chỉ paint frame để preview tương tác.
 - Remotion chỉ paint cùng frame contract để tạo video, quản lý audio, chia render và encode.
-- CSS/React trong Remotion renderer là implementation do MotiClip kiểm soát; AI không sinh CSS, TSX hay Remotion component.
+- CSS/React trong Remotion renderer là implementation do Neonix kiểm soát; MCP không nhận hoặc thực thi code tùy ý.
 - Web và Desktop tự quản lý UI, theme và Zustand/reducer. Chỉ logic interaction và React hooks được đóng gói dùng chung.
 
 Remotion không thay thế schema, compiler hay runtime của MotiClip. Nó thay thế hạ tầng export tự viết: phân phối frame, Chromium rendering, audio/codec, ghép chunk và lưu output.
@@ -55,9 +55,8 @@ flowchart TB
   end
 
   subgraph WebServer["Next.js server / BFF — Node runtime only"]
-    AiApi["POST /api/ai/generations"]
-    Planner["@motionvideo/ai-planner<br/>brief → plan → typed CommandBatch → critic/repair"]
-    Model["Model gateway"]
+    McpApi["POST /api/mcp<br/>Remote MCP transport"]
+    McpServer["@motionvideo/motion-mcp<br/>auth · project tools · protocol validation"]
     ProjectApi["Project revision API"]
     ExportApi["POST /api/renders<br/>validate · authorize · idempotency · rate limit"]
     LambdaClient["@remotion/lambda-client<br/>server-only AWS adapter"]
@@ -101,12 +100,12 @@ flowchart TB
   Video["Final video downloaded by user"]
 
   User --> Chat
-  Chat --> AiApi
-  AiApi --> Planner
-  Planner <--> Model
-  Capability --> Planner
-  Planner -->|"ValidatedCommandBatch proposal"| Chat
-  Chat -->|"Apply"| AppState
+  Chat --> McpApi
+  McpApi --> McpServer
+  McpServer -->|"create/update project"| ProjectApi
+  Capability --> McpServer
+  McpServer -->|"editor deep link"| Chat
+  Chat -->|"Open editor"| EditorUI
   AppState --> EC
   EC --> Schema
   Schema --> Project
@@ -260,7 +259,6 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 | `editor-core`         | Commands, selection, history, document operations<br/>Timeline: lane rows, ruler ticks, viewport layout, drop target policy, layer tree, context actions                                                                                  | Không React/DOM/Zustand                                                          |
 | `editor-interactions` | Gesture state machines và geometry thuần<br/>Timeline: clip move/trim, auto-scroll, seek, marquee, drop geometry, layer reorder                                                                                                           | Không React/DOM/Pixi/Remotion                                                    |
 | `editor-react`        | Hooks DOM/React dùng chung Web/Desktop<br/>Timeline: useClipMove, useClipTrim, useLayerMove, useLayerTrim, useTimelineSeek, useTimelineMarquee, useTimelineViewportMetrics, useVisibleTimeline, useTimelineHotkeys, usePointerSessionHost | Controlled hooks, không import app store                                         |
-| `ai-planner`          | Brief → plans → typed commands → critic/repair                                                                                                                                                                                            | Planning grammar thuộc nội bộ package; zero-template là default path             |
 | `asset-registry`      | Asset contract, hash, SVG safety, font/license metadata                                                                                                                                                                                   | Có browser/server exports riêng; server implementation có thể dùng `node:crypto` |
 | `preview-renderer`    | Native WebGL2/WebGPU preview painter                                                                                                                                                                                                       | Chỉ tiêu thụ contract từ `motion-runtime`, không sở hữu authoring semantics      |
 | `remotion-renderer`   | Production Remotion composition, paint/audio adapter                                                                                                                                                                                      | Chỉ tiêu thụ `EvaluatedFrame`; không đóng vai trò editor preview                 |
@@ -270,7 +268,7 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 
 | Package/app hiện tại | Lý do không là package độc lập                                      | Nơi sở hữu contract trong kiến trúc đích                                               |
 | -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `motion-grammar`     | Chỉ là policy của AI planning                                       | `ai-planner/planning`                                                                  |
+| `motion-grammar`     | Không còn là package/runtime riêng                                 | `motion-protocol` và MCP tool contracts                                               |
 | `shared`             | Misc bucket làm mờ ownership                                        | App config, `motion-protocol` hoặc `render-contracts` tùy loại dữ liệu                 |
 | `preview-kit`        | Composition evaluation không chỉ phục vụ preview                    | `motion-runtime`; fixtures nằm ngoài production barrel                                 |
 | `template-library`   | Template không thuộc zero-template MVP                              | Ngoài active dependency graph; chỉ quay lại như feature module khi có template product |
@@ -379,20 +377,14 @@ Desktop không gọi AWS trực tiếp; Desktop gọi cùng Web API render như 
 - Không cần queue library ngay nếu database render job + Lambda webhook đáp ứng MVP.
 - Không cần tự viết distributed frame worker hoặc FFmpeg orchestration mới.
 
-## 7. Luồng AI tạo video 0→1
+## 7. Luồng Claude qua Remote MCP
 
-1. Client gửi brief, script, format, brand và supplied asset IDs tới `/api/ai/generations`.
-2. Server xác thực user, quota và asset ownership.
-3. `ai-planner` tạo `CreativePlan` và `SceneDesignPlan`.
-4. Model chỉ trả typed `CommandBatch`; không trả TSX/CSS/JS.
-5. Command executor apply batch vào draft transaction.
-6. `motion-protocol` parse/reference validation.
-7. `motion-compiler` compile probe.
-8. `motion-runtime` evaluate probe frames và trả diagnostics.
-9. Critic sửa theo command batch, tối đa số vòng đã cấu hình.
-10. Server trả `GenerationProposal`, không tự ghi đè project user đang mở.
-11. User chọn Apply; app kiểm tra `baseRevision` và commit một history transaction.
-12. Pixi preview paint project mới; user click từng element để sửa tiếp.
+1. Claude kết nối Remote MCP sau khi user hoàn tất OAuth.
+2. MCP xác thực user, kiểm tra quota và quyền truy cập project.
+3. Claude gọi tool create/update project hoặc patch revision.
+4. Server validate Motion Protocol, compile probe và lưu revision.
+5. MCP trả deep link project/editor cho Claude.
+6. User mở editor, tinh chỉnh trực tiếp và export.
 
 ## 8. Luồng edit và preview 1→100
 

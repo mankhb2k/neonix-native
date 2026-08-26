@@ -15,15 +15,12 @@ import type { PreviewBackend } from "../backend";
 import {
   assetSource,
   program,
-  type GL,
 } from "./resources";
 import {
   CLIP_MASK_FRAGMENT_SHADER,
   BLUR_FRAGMENT_SHADER,
   BLUR_VERTEX_SHADER,
-  FRAGMENT_SHADER,
   INNER_GLOW_FRAGMENT_SHADER,
-  VERTEX_SHADER,
 } from "./shaders";
 import { blend, blendPremultiplied, type BlendMode } from "./passes";
 import type {
@@ -906,4 +903,3 @@ export function createWebGL2Backend(
     },
   };
 }
-

@@ -41,7 +41,6 @@ import type {
   WebGPUContextLike,
   WebGPUDeviceLike,
   WebGPUInitOptions,
-  WebGPURenderPipelineLike,
   WebGPUTextureLike,
   WebGPUBufferLike,
   WebGPUCommandEncoderLike,

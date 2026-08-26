@@ -26,7 +26,7 @@ export type ExecuteMotionMcpOptions = {
 
 export function executeMotionMcpOperation(
   operation: MCPToolOperation,
-  options: ExecuteMotionMcpOptions = {},
+  _options: ExecuteMotionMcpOptions = {},
 ): MCPToolResult {
   switch (operation.tool) {
     case "create_project":

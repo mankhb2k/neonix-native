@@ -12,13 +12,13 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { saveEditorProject } from "@/lib/api/projects";
 import {
   applyEditorCommand,
   type EditorCommand,
   type EditorDiagnostic,
 } from "@motionvideo/editor-core";
-import { saveEditorProject } from "@/lib/api/projects";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type EditorSurface = {
   document: MotionProtocolV2;
