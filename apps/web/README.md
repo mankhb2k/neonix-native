@@ -11,7 +11,8 @@ The editor has one document model: `MotionProtocolV2` from
 
 ```text
 Supabase project revision
-  -> app/app/editor/[projectId]
+  -> app.neonix.video/editor/[projectId]
+  -> internal app/app/editor/[projectId]
   -> EditorSurfaceProvider
   -> V2 commands + timeline adapter
   -> PreviewStage + timeline projection

@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
 import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
-import { appUrl } from "@/lib/hosts";
+import { appUrl, dashboardUrl } from "@/lib/hosts";
 import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const headerOuterClass =
   "sticky top-0 z-20 border-b border-[var(--border-subtle,#e4e4e7)] bg-[color-mix(in_srgb,var(--bg-site)_90%,transparent)] backdrop-blur";
@@ -14,6 +18,36 @@ export function SiteHeader({
 }: {
   active?: "docs" | "app" | "home" | "preview";
 }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const isDevelopment = process.env.NODE_ENV !== "production";
+
+  useEffect(() => {
+    if (isDevelopment) return undefined;
+
+    let supabase;
+    try {
+      supabase = createSupabaseBrowserClient();
+    } catch {
+      setIsAuthenticated(false);
+      return undefined;
+    }
+
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => setIsAuthenticated(Boolean(data.session)));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session));
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isDevelopment]);
+
+  const showDashboard = isDevelopment || isAuthenticated === true;
+  const showAuthActions = isDevelopment || isAuthenticated === false;
+
   return (
     <header className={headerOuterClass}>
       <div
@@ -51,7 +85,7 @@ export function SiteHeader({
               Preview
             </SiteNavButton>
             <SiteNavButton
-              href={appUrl("/")}
+              href={appUrl()}
               active={active === "app"}
               external
             >
@@ -60,26 +94,38 @@ export function SiteHeader({
           </nav>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Link
-            href="/login"
-            className={buttonClassName({
-              variant: "ghost",
-              size: "md",
-              className: "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]",
-            })}
-          >
-            Log in
-          </Link>
-          <Link
-            href="/register"
-            className={buttonClassName({
-              variant: "primary",
-              size: "md",
-              className: "hidden sm:inline-flex",
-            })}
-          >
-            Sign up
-          </Link>
+          {showDashboard ? (
+            <a
+              href={dashboardUrl("/dashboard")}
+              className={buttonClassName({ variant: "secondary", size: "md" })}
+            >
+              Dashboard
+            </a>
+          ) : null}
+          {showAuthActions ? (
+            <>
+              <Link
+                href="/login"
+                className={buttonClassName({
+                  variant: "ghost",
+                  size: "md",
+                  className: "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]",
+                })}
+              >
+                Log in
+              </Link>
+              <Link
+                href="/register"
+                className={buttonClassName({
+                  variant: "primary",
+                  size: "md",
+                  className: "hidden sm:inline-flex",
+                })}
+              >
+                Sign up
+              </Link>
+            </>
+          ) : null}
         </div>
       </div>
     </header>

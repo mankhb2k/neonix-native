@@ -259,9 +259,9 @@ Không cần `ANTHROPIC_API_KEY` cho remote MCP được Claude gọi: Claude l�
 
 ## Phase 2 implementation (Neonix)
 
-- Remote endpoint: `https://app.neonix.video/api/mcp`.
+- Remote endpoint: `https://neonix.video/api/mcp`.
 - `open_editor` returns a clean editor URL such as `https://app.neonix.video/editor/{project_id}`.
-- Protected resource metadata: `https://app.neonix.video/.well-known/oauth-protected-resource`.
+- Protected resource metadata: `https://neonix.video/.well-known/oauth-protected-resource`.
 - Supabase issuer: `https://<project-ref>.supabase.co/auth/v1`.
 - Supabase JWKS: `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`.
 - Supabase access-token JWT audience is `authenticated`; `MCP_TOKEN_AUDIENCE` identifies the MCP resource and is not used as the JWT audience.

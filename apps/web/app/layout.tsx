@@ -36,7 +36,6 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
       className={`${sans.variable} ${display.variable} ${mono.variable}`}
     >
       <body>{children}</body>

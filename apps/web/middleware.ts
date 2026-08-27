@@ -8,6 +8,34 @@ import {
 } from "./lib/hosts";
 import { updateSupabaseSession } from "./lib/supabase/middleware";
 
+function workspaceOrigin(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://app.neonix.video";
+}
+
+function controlOrigin(): string {
+  return process.env.NEXT_PUBLIC_MARKETING_URL ?? "https://neonix.video";
+}
+
+function redirectTo(
+  request: NextRequest,
+  origin: string,
+  pathname: string,
+): NextResponse {
+  const destination = new URL(origin);
+  destination.pathname = pathname;
+  destination.search = request.nextUrl.search;
+  return NextResponse.redirect(destination);
+}
+
+function isWorkspaceRoute(pathname: string): boolean {
+  return pathname.startsWith("/editor/") || pathname.startsWith("/preview/");
+}
+
+function removeInternalWorkspacePrefix(pathname: string): string {
+  if (pathname === APP_ROUTE_PREFIX) return "/";
+  return pathname.slice(APP_ROUTE_PREFIX.length) || "/";
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = getHostname(request.headers.get("host"));
   const { pathname } = request.nextUrl;
@@ -22,7 +50,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // API and docs stay on this host (no /app rewrite)
+  // API, authentication, and docs do not belong to either UI shell.
   if (
     pathname.startsWith("/api/") ||
     pathname.startsWith("/docs") ||
@@ -35,50 +63,58 @@ export async function middleware(request: NextRequest) {
     return updateSupabaseSession(request, response);
   }
 
-  // app.neonix.video → rewrite into /app/*
+  // app.neonix.video is the isolated editor/preview workspace. It never hosts
+  // billing, settings, or the project dashboard.
   if (isAppHost(hostname)) {
-    // Prefer clean URLs on subdomain (no /app prefix in the address bar)
     if (
       pathname === APP_ROUTE_PREFIX ||
       pathname.startsWith(`${APP_ROUTE_PREFIX}/`)
     ) {
-      const url = request.nextUrl.clone();
-      url.pathname =
-        pathname === APP_ROUTE_PREFIX
-          ? "/"
-          : pathname.slice(APP_ROUTE_PREFIX.length) || "/";
-      response = NextResponse.redirect(url);
+      const cleanPath = removeInternalWorkspacePrefix(pathname);
+      if (isWorkspaceRoute(cleanPath)) {
+        response = redirectTo(request, workspaceOrigin(), cleanPath);
+      } else {
+        response = redirectTo(request, controlOrigin(), "/dashboard");
+      }
       return updateSupabaseSession(request, response);
     }
 
-    const url = request.nextUrl.clone();
-    url.pathname =
-      pathname === "/" ? APP_ROUTE_PREFIX : `${APP_ROUTE_PREFIX}${pathname}`;
-    response = NextResponse.rewrite(url);
+    if (pathname === "/") {
+      response = redirectTo(request, controlOrigin(), "/dashboard");
+      return updateSupabaseSession(request, response);
+    }
+
+    if (isWorkspaceRoute(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = `${APP_ROUTE_PREFIX}${pathname}`;
+      response = NextResponse.rewrite(url);
+      return updateSupabaseSession(request, response);
+    }
+
+    response = redirectTo(request, controlOrigin(), "/dashboard");
     return updateSupabaseSession(request, response);
   }
 
-  // neonix.video/app → redirect to app subdomain
-  if (isMarketingHost(hostname) && !isLocalHost(hostname)) {
-    if (
-      pathname === APP_ROUTE_PREFIX ||
-      pathname.startsWith(`${APP_ROUTE_PREFIX}/`)
-    ) {
-      const appOrigin =
-        process.env.NEXT_PUBLIC_APP_URL ?? "https://app.neonix.video";
-      const dest = new URL(appOrigin);
-      const suffix =
-        pathname === APP_ROUTE_PREFIX
-          ? "/"
-          : pathname.slice(APP_ROUTE_PREFIX.length) || "/";
-      dest.pathname = suffix;
-      dest.search = request.nextUrl.search;
-      response = NextResponse.redirect(dest);
-      return updateSupabaseSession(request, response);
+  // Keep old /app editor links working during the domain migration. Control
+  // routes move to neonix.video; editor/preview routes move to app.neonix.video.
+  if (
+    isMarketingHost(hostname) &&
+    !isLocalHost(hostname) &&
+    (pathname === APP_ROUTE_PREFIX || pathname.startsWith(`${APP_ROUTE_PREFIX}/`))
+  ) {
+    const cleanPath = removeInternalWorkspacePrefix(pathname);
+    if (isWorkspaceRoute(cleanPath)) {
+      response = redirectTo(request, workspaceOrigin(), cleanPath);
+    } else if (cleanPath === "/") {
+      response = redirectTo(request, controlOrigin(), "/dashboard");
+    } else {
+      response = redirectTo(request, controlOrigin(), cleanPath);
     }
+    return updateSupabaseSession(request, response);
   }
 
-  // localhost:3000 → / landing, /app product (no rewrite)
+  // localhost keeps internal /app/editor routes for development. The dashboard
+  // itself has moved to /dashboard.
   response = NextResponse.next();
   return updateSupabaseSession(request, response);
 }

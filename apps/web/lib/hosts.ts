@@ -25,13 +25,13 @@ export function isLocalHost(hostname: string): boolean {
   );
 }
 
-/** Path prefix for product routes in the Next.js tree (always `/app`). */
+/** Internal route prefix for workspace pages in the Next.js tree. */
 export const APP_ROUTE_PREFIX = "/app";
 
 /**
- * Public base path for links:
- * - local / marketing host: `/app`
- * - app subdomain: `` (root of subdomain)
+ * Public base path for workspace links:
+ * - local development: `/app`
+ * - app.neonix.video: `` (root of the workspace subdomain)
  */
 export function getPublicAppBasePath(hostname: string): string {
   if (isAppHost(hostname)) return "";
@@ -46,6 +46,13 @@ export function marketingUrl(path = "/"): string {
   return p === "/" ? base : `${base}${p}`;
 }
 
+/** URL for the account/control-plane dashboard on the marketing domain. */
+export function dashboardUrl(path = "/dashboard"): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return marketingUrl(normalized === "/" ? "/dashboard" : normalized);
+}
+
+/** URL for the isolated editor/preview workspace. */
 export function appUrl(path = "/"): string {
   const base = (
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000/app"

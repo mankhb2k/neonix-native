@@ -1,5 +1,6 @@
-import { WorkspaceHome } from "@/components/hub/WorkspaceHome";
+import { redirect } from "next/navigation";
 
-export default function AppHomePage() {
-  return <WorkspaceHome />;
+/** Legacy local route; the dashboard now lives at neonix.video/dashboard. */
+export default function LegacyAppHomePage() {
+  redirect("/dashboard");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, Home, Scaling, Upload, User } from "lucide-react";
-import { AppLink } from "@/components/AppLink";
+import { DashboardLink } from "@/components/AppLink";
 import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +18,9 @@ export function EditorHeader() {
   return (
     <header className="editor-panel flex h-[var(--editor-chrome-h)] items-center gap-1.5 px-2.5 [grid-area:header]">
       <div className="flex shrink-0 items-center gap-0.5">
-        <AppLink href="/" aria-label="Back to workspace" className={cn(iconBtn, "no-underline")}>
+        <DashboardLink href="/" aria-label="Back to dashboard" className={cn(iconBtn, "no-underline")}>
           <Home size={16} strokeWidth={1.75} />
-        </AppLink>
+        </DashboardLink>
         <button type="button" className={menuBtn} title="File">
           File <ChevronDown size={12} className="opacity-70" />
         </button>

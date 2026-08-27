@@ -28,7 +28,7 @@ export function LoginForm({
 
     try {
       const redirectTo = new URL("/api/auth/callback", window.location.origin);
-      redirectTo.searchParams.set("next", nextPath || "/app");
+      redirectTo.searchParams.set("next", nextPath || "/dashboard");
 
       const supabase = createSupabaseBrowserClient();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -66,7 +66,7 @@ export function LoginForm({
     try {
       const supabase = createSupabaseBrowserClient();
       const redirectTo = new URL("/api/auth/callback", window.location.origin);
-      redirectTo.searchParams.set("next", nextPath || "/app");
+      redirectTo.searchParams.set("next", nextPath || "/dashboard");
 
       result = isRegister
         ? await supabase.auth.signUp({
@@ -95,7 +95,7 @@ export function LoginForm({
       return;
     }
 
-    window.location.assign(nextPath || "/app");
+    window.location.assign(nextPath || "/dashboard");
   }
 
   const isRegister = mode === "register";

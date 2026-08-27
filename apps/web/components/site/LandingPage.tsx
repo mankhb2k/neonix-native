@@ -143,9 +143,8 @@ function Heading({
 }) {
   return (
     <h2
-      style={{ fontFamily: "var(--font-display)" }}
       className={cn(
-        "text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--fg-primary)]",
+        "[font-family:var(--font-display)] text-[clamp(1.75rem,4vw,2.75rem)] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--fg-primary)]",
         className,
       )}
     >
@@ -215,7 +214,7 @@ function Card({
   return (
     <div
       className={cn(
-        "relative rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-6 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:border-[var(--neon-cyan-loud)] hover:shadow-[0_0_35px_rgba(34,211,238,0.18)]",
+        "relative rounded-xl border border-[rgba(125,211,252,0.18)] bg-[rgba(22,27,40,0.55)] p-6 backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:border-[#67e8f9] hover:shadow-[0_0_35px_rgba(34,211,238,0.18)]",
         className,
       )}
     >
@@ -234,7 +233,7 @@ function Hud({
   return (
     <div
       className={cn(
-        "relative rounded-lg border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] p-5",
+        "relative rounded-lg border border-[rgba(125,211,252,0.18)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] p-5",
         className,
       )}
     >
@@ -258,8 +257,8 @@ function Button({
       className={cn(
         "inline-flex h-10 items-center justify-center gap-2 rounded-full border px-4 text-[14px] font-semibold no-underline transition duration-200",
         secondary
-          ? "border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--glass-surface)_55%,transparent)] text-[var(--fg-primary)] hover:border-[var(--neon-cyan-loud)]"
-          : "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-[0_0_0_1px_rgba(34,211,238,0.3),0_6px_22px_var(--landing-glow-cyan)] hover:bg-[var(--accent-hover)]",
+          ? "border-[rgba(125,211,252,0.18)] bg-[color-mix(in_srgb,rgba(22,27,40,0.55)_55%,transparent)] text-[var(--fg-primary)] hover:border-[#67e8f9]"
+          : "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-[0_0_0_1px_rgba(34,211,238,0.3),0_6px_22px_rgba(34,211,238,0.35)] hover:bg-[var(--accent-hover)]",
       )}
     >
       {children}
@@ -271,13 +270,7 @@ function Backdrop() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, rgba(59,130,246,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(59,130,246,0.07) 1px, transparent 1px)",
-        backgroundSize: "48px 48px",
-        maskImage: "linear-gradient(to bottom, black, transparent)",
-      }}
+      className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_right,rgba(59,130,246,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(59,130,246,0.07)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
     />
   );
 }
@@ -286,11 +279,7 @@ function Scanlines() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0"
-      style={{
-        backgroundImage:
-          "repeating-linear-gradient(0deg, transparent 0 2px, var(--scanline) 2px 3px)",
-      }}
+      className="pointer-events-none absolute inset-0 [background-image:repeating-linear-gradient(0deg,transparent_0_2px,rgba(125,211,252,0.03)_2px_3px)]"
     />
   );
 }
@@ -365,11 +354,7 @@ function BeatPulse() {
       />
       <div
         ref={ring}
-        className="relative h-40 w-40 rounded-full border-2 border-[var(--accent)] will-change-transform"
-        style={{
-          boxShadow:
-            "0 0 30px rgba(34,211,238,0.6), inset 0 0 30px rgba(34,211,238,0.4)",
-        }}
+        className="relative h-40 w-40 rounded-full border-2 border-[var(--accent)] shadow-[0_0_30px_rgba(34,211,238,0.6),inset_0_0_30px_rgba(34,211,238,0.4)] will-change-transform"
       />
       <div className="absolute h-28 w-28 rounded-full border border-[var(--accent-magenta)]" />
       <span className="absolute font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--fg-muted)]">
@@ -388,8 +373,7 @@ function Hero() {
         <div>
           <Eyebrow>Neon cyberpunk video generator</Eyebrow>
           <h1
-            style={{ fontFamily: "var(--font-display)" }}
-            className="mt-4 text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-[var(--fg-primary)]"
+            className="mt-4 [font-family:var(--font-display)] text-[clamp(2.5rem,6vw,4.25rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-[var(--fg-primary)]"
           >
             Create Neon Motion Videos with Claude and MCP
           </h1>
@@ -464,7 +448,7 @@ function CorePromise() {
   ];
 
   return (
-    <Section className="border-y border-[var(--glass-border)] bg-[var(--landing-bg-deep)]">
+    <Section className="border-y border-[rgba(125,211,252,0.18)] bg-[#05060b]">
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
           <Eyebrow>Core promise</Eyebrow>
@@ -559,7 +543,7 @@ function Flow({ title, steps }: { title: string; steps: string[] }) {
 
 function HowItWorks() {
   return (
-    <Section className="border-y border-[var(--glass-border)]">
+    <Section className="border-y border-[rgba(125,211,252,0.18)]">
       <Reveal>
         <Eyebrow>How it works</Eyebrow>
         <Heading className="mt-3 max-w-2xl">
@@ -613,7 +597,7 @@ function Effects() {
   return (
     <Section
       id="showcase"
-      className="border-y border-[var(--glass-border)] bg-[var(--landing-bg-deep)]"
+      className="border-y border-[rgba(125,211,252,0.18)] bg-[#05060b]"
     >
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
@@ -626,7 +610,7 @@ function Effects() {
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {EFFECTS.map((effect, i) => (
           <Reveal key={effect} delay={i * 60}>
-            <div className="group relative grid h-44 place-items-center overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--landing-bg-deep)]">
+            <div className="group relative grid h-44 place-items-center overflow-hidden rounded-xl border border-[rgba(125,211,252,0.18)] bg-[#05060b]">
               <div className="h-20 w-20 rounded-xl border border-[var(--accent)] bg-[linear-gradient(135deg,rgba(34,211,238,0.5),transparent)] shadow-[0_0_30px_rgba(34,211,238,0.4)]" />
               <span className="absolute bottom-3 left-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--fg-muted)]">
                 {effect}
@@ -641,7 +625,7 @@ function Effects() {
 
 function AudioReactive() {
   return (
-    <Section className="bg-[var(--landing-bg-purple)]">
+    <Section className="bg-[#0d0a1a]">
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div>
           <Reveal>
@@ -668,7 +652,7 @@ function AudioReactive() {
           </Reveal>
         </div>
         <Reveal delay={80}>
-          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--landing-bg-deep)] p-6">
+          <div className="rounded-xl border border-[rgba(125,211,252,0.18)] bg-[#05060b] p-6">
             <Waveform />
             <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--fg-muted)]">
               waveform Â· beat markers Â· glow pulse
@@ -682,7 +666,7 @@ function AudioReactive() {
 
 function Templates() {
   return (
-    <Section className="border-y border-[var(--glass-border)]">
+    <Section className="border-y border-[rgba(125,211,252,0.18)]">
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
           <Eyebrow>Templates &amp; components</Eyebrow>
@@ -718,7 +702,7 @@ function JsonTrust() {
     '{"format":"motion-project","formatVersion":2,"layers":[{"id":"ring","type":"shape"}]}';
 
   return (
-    <Section className="border-y border-[var(--glass-border)]">
+    <Section className="border-y border-[rgba(125,211,252,0.18)]">
       <div className="mx-auto max-w-3xl text-center">
         <Reveal>
           <Eyebrow>Developer trust</Eyebrow>
@@ -768,7 +752,7 @@ function Gallery() {
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {GALLERY.map((item, i) => (
           <Reveal key={item} delay={i * 60}>
-            <div className="group relative aspect-video overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--landing-bg-deep)]">
+            <div className="group relative aspect-video overflow-hidden rounded-xl border border-[rgba(125,211,252,0.18)] bg-[#05060b]">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(34,211,238,0.14),transparent_70%)]" />
               <span className="absolute bottom-3 left-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--fg-muted)]">
                 {item}
@@ -783,14 +767,13 @@ function Gallery() {
 
 function FinalCta() {
   return (
-    <section className="relative overflow-hidden border-t border-[var(--glass-border)]">
+    <section className="relative overflow-hidden border-t border-[rgba(125,211,252,0.18)]">
       <Backdrop />
       <Scanlines />
       <div className="relative mx-auto w-full max-w-3xl px-6 py-24 text-center sm:py-32">
         <Reveal>
           <h2
-            style={{ fontFamily: "var(--font-display)" }}
-            className="text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.1] text-[var(--fg-primary)]"
+            className="[font-family:var(--font-display)] text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.1] text-[var(--fg-primary)]"
           >
             Build your first neon motion video
           </h2>

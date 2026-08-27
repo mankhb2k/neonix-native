@@ -11,14 +11,14 @@ test.describe("web V2 smoke", () => {
     ).toBeVisible();
   });
 
-  test("workspace hub exposes certified V2 editors", async ({ page }) => {
-    await page.goto("/app");
-    await expect(page).toHaveURL(/\/app\/?$/);
+  test("dashboard exposes the project hub", async ({ page }) => {
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/dashboard\/?$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      /motion atom/i,
+      /projects/i,
     );
     await expect(
-      page.getByRole("link", { name: /V2 shape editor/i }),
+      page.getByRole("link", { name: /shape composition/i }),
     ).toBeVisible();
   });
 

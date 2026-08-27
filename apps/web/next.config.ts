@@ -1,27 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, no-param-reassign */
 
-import fs from "node:fs";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
 import type { NextConfig } from "next";
 
-// The workspace keeps the local environment file at the repository root while
-// this Next app lives in apps/web. Load that file before Next evaluates the
-// client/server modules so Supabase variables are available in development.
-
 const currentDirectory = process.cwd();
-const workspaceRoot = fs.existsSync(path.join(currentDirectory, ".env"))
-  ? currentDirectory
-  : path.resolve(currentDirectory, "../..");
-const workspaceEnv = loadEnvConfig(
-  workspaceRoot,
+const appEnv = loadEnvConfig(
+  currentDirectory,
   process.env.NODE_ENV !== "production",
   undefined,
   true,
 );
-const publicSupabaseUrl = workspaceEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_URL;
+const publicSupabaseUrl = appEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_URL;
 const publicSupabasePublishableKey =
-  workspaceEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  appEnv.combinedEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 const nodeCryptoShim = path.join(process.cwd(), "lib/shims/node-crypto.ts");
 
@@ -31,9 +23,9 @@ const browserCryptoExternal =
 const nextConfig: NextConfig = {
   // Allow isolated browser smoke runs to use a fresh build directory.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
-  // Explicitly expose the root workspace's public Supabase variables to the
-  // browser bundle. This is needed because the app package is nested under
-  // apps/web while local development keeps .env at the repository root.
+  // Explicitly expose the Web app's public Supabase variables to the browser
+  // bundle. The app reads them from apps/web/.env* in local development and
+  // from the Web project's environment in Vercel.
   env: {
     NEXT_PUBLIC_SUPABASE_URL: publicSupabaseUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publicSupabasePublishableKey,
@@ -55,17 +47,14 @@ const nextConfig: NextConfig = {
     "@motionvideo/preview-renderer",
     "@motionvideo/playback-engine",
   ],
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        "node:crypto": "./lib/shims/node-crypto.ts",
-      },
+  turbopack: {
+    resolveAlias: {
+      "node:crypto": "./lib/shims/node-crypto.ts",
     },
   },
   webpack: (config, { isServer, webpack }) => {
-    // Next's nested workspace setup can leave `process.env.*` in the browser
-    // chunk instead of applying its normal public-env replacement. Define the
-    // two public Supabase values explicitly for both dev and production builds.
+    // Explicitly define the public Supabase values for both dev and production
+    // bundles when running from the nested Web app workspace.
     config.plugins.push(
       new webpack.DefinePlugin({
         "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(

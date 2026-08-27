@@ -1,26 +1,17 @@
 import Link from "next/link";
-import { APP_ROUTE_PREFIX } from "@/lib/hosts";
 import type { ComponentProps } from "react";
 
 type Props = Omit<ComponentProps<typeof Link>, "href"> & {
   href: string;
 };
 
-/** Product links always target `/app/...` (subdomain middleware strips the prefix). */
-export function appHref(path = "/"): string {
+/** Control-plane links stay on neonix.video. */
+export function dashboardHref(path = "/dashboard"): string {
   if (path.startsWith("http")) return path;
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (
-    normalized === APP_ROUTE_PREFIX ||
-    normalized.startsWith(`${APP_ROUTE_PREFIX}/`)
-  ) {
-    return normalized;
-  }
-  return normalized === "/"
-    ? APP_ROUTE_PREFIX
-    : `${APP_ROUTE_PREFIX}${normalized}`;
+  return normalized === "/" ? "/dashboard" : normalized;
 }
 
-export function AppLink({ href, ...rest }: Props) {
-  return <Link href={appHref(href)} {...rest} />;
+export function DashboardLink({ href, ...rest }: Props) {
+  return <Link href={dashboardHref(href)} {...rest} />;
 }
