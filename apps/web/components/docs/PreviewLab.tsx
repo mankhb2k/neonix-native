@@ -10,14 +10,17 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "@/lib/docs/preview-lab";
-import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { compileProtocol, compileProtocolV2 } from "@motionvideo/motion-compiler";
 import {
   createPlaybackEngineV2,
+  createAnimationFrameSchedulerV3,
+  createPlaybackEngineNext,
   createWebAudioAdapterV2,
+  type PlaybackEngineNext,
   type PlaybackEngineV2,
 } from "@motionvideo/playback-engine-next";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
-import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 import type {
   PreviewBackendKind,
   PreviewBackendPreference,
@@ -300,6 +303,8 @@ function AudioClipTransport({
   const audioRef = useRef<HTMLAudioElement>(null);
   const engineRef = useRef<PlaybackEngineV2 | null>(null);
   const audioAdapterRef = useRef<ReturnType<typeof createWebAudioAdapterV2> | null>(null);
+  const suppressFrameUpdateRef = useRef(false);
+  const manualElapsedRef = useRef<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const runtime = useMemo(() => compileProtocolV2(project), [project]);
@@ -312,9 +317,13 @@ function AudioClipTransport({
 
   useEffect(() => {
     if (!usesRuntimeAudio) return undefined;
-    const adapter = createWebAudioAdapterV2();
+    // Keep the docs fixture deterministic across browsers. The production
+    // editor may opt into AudioWorklet, while this small preview uses the
+    // well-supported BufferSource path so a fixture is audible immediately.
+    const adapter = createWebAudioAdapterV2({ preferAudioWorklet: false });
     const engine = createPlaybackEngineV2({
       paintCompositionFrame(frame) {
+        if (suppressFrameUpdateRef.current || (manualElapsedRef.current !== null && !engine.playing)) return;
         const nextElapsed = Math.min(
           clip.timing.duration,
           Math.max(0, frame.time - clip.timing.start),
@@ -334,7 +343,7 @@ function AudioClipTransport({
     engine.load(runtime);
     engineRef.current = engine;
     audioAdapterRef.current = adapter;
-    engine.renderFrameAt(clip.timing.start);
+    engine.previewFrameAt(clip.timing.start);
     return () => {
       engine.dispose();
       adapter.dispose();
@@ -361,12 +370,15 @@ function AudioClipTransport({
     if (!audio) return;
     const next = Math.min(Math.max(0, nextElapsed), clip.timing.duration);
     if (usesRuntimeAudio && engineRef.current) {
+      suppressFrameUpdateRef.current = true;
       engineRef.current.pause();
       audioAdapterRef.current?.pause();
       engineRef.current.seek(clip.timing.start + next);
       audio.volume = fadeGainAt(clip, next);
       setElapsed(next);
       setIsPlaying(false);
+      manualElapsedRef.current = next;
+      suppressFrameUpdateRef.current = false;
       return;
     }
     const sourceOffset = next * clip.playbackRate;
@@ -385,7 +397,14 @@ function AudioClipTransport({
         setIsPlaying(false);
         return;
       }
-      if (elapsed >= clip.timing.duration) seek(0);
+      const playbackElapsed = elapsed >= clip.timing.duration ? 0 : elapsed;
+      if (playbackElapsed === 0 && elapsed >= clip.timing.duration) seek(0);
+      manualElapsedRef.current = null;
+      const prepared = await engineRef.current.prepareAudioAt(clip.timing.start + playbackElapsed);
+      if (!prepared) {
+        setIsPlaying(false);
+        return;
+      }
       const resumed = await audioAdapterRef.current.resume();
       if (!resumed) {
         setIsPlaying(false);
@@ -514,44 +533,45 @@ function PreviewPlayback({
   initialTime: number;
   onBackendChange: (backend: PreviewBackendPreference) => void;
 }) {
-  const runtime = useMemo(() => compileProtocolV2(project), [project]);
+  const runtime = useMemo(() => compileProtocol(project), [project]);
   const duration = Math.max(
     1,
-    runtime.composition.duration ?? 0,
-    ...(runtime.audio?.tracks.flatMap((track) =>
-      track.clips.map((clip) => clip.timing.start + clip.timing.duration),
-    ) ?? []),
-    ...runtime.nodes.map(
+    runtime.visual.composition.duration ?? 0,
+    ...runtime.audioTimeline.tracks.flatMap((track) =>
+      track.clips.map((clip) => (clip.timelineStartSample + clip.timelineDurationSamples) / runtime.audioTimeline.sampleRate),
+    ),
+    ...runtime.visual.nodes.map(
       (node) => node.timing.start + node.timing.duration,
     ),
   );
-  const fps = runtime.composition.fps;
+  const fps = runtime.visual.composition.fps;
   const firstTime = Math.min(Math.max(0, initialTime), duration);
   const [currentTime, setCurrentTime] = useState(firstTime);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackFrame, setPlaybackFrame] = useState<RuntimeFrameV2 | null>(
+  const [playbackFrame, setPlaybackFrame] = useState<RuntimeFrameV3 | null>(
     null,
   );
   const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(
     null,
   );
-  const engineRef = useRef<PlaybackEngineV2 | null>(null);
+  const engineRef = useRef<PlaybackEngineNext | null>(null);
 
   useEffect(() => {
-    const engine = createPlaybackEngineV2({
-      paintCompositionFrame(frame) {
+    const engine = createPlaybackEngineNext({
+      scheduler: createAnimationFrameSchedulerV3(window),
+      videoSink: { publish(plan) {
+        const nextTime = plan.timelineTimeUs / 1_000_000;
+        const frame = evaluateRuntimeProjectV3(runtime, frameIndexAtTime(nextTime, fps), { time: nextTime });
         setPlaybackFrame(frame);
-        setCurrentTime(frame.time);
-        if (frame.time >= duration) setIsPlaying(false);
-      },
+        setCurrentTime(nextTime);
+        if (nextTime >= duration) setIsPlaying(false);
+      } },
     });
     engine.load(runtime);
     engineRef.current = engine;
-    const firstFrame = engine.renderFrameAt(firstTime);
-    if (firstFrame) {
-      setPlaybackFrame(firstFrame);
-      setCurrentTime(firstFrame.time);
-    }
+    engine.seek(firstTime * 1_000_000);
+    setPlaybackFrame(evaluateRuntimeProjectV3(runtime, frameIndexAtTime(firstTime, fps), { time: firstTime }));
+    setCurrentTime(firstTime);
     return () => {
       engine.dispose();
       if (engineRef.current === engine) engineRef.current = null;
@@ -562,14 +582,14 @@ function PreviewPlayback({
     const clamped = Math.min(Math.max(0, next), duration);
     engineRef.current?.pause();
     setIsPlaying(false);
-    engineRef.current?.seek(clamped);
+    engineRef.current?.seek(clamped * 1_000_000);
     setCurrentTime(clamped);
   }
 
   function togglePlayback() {
     const engine = engineRef.current;
     if (!engine) return;
-    if (engine.playing) {
+    if (isPlaying) {
       engine.pause();
       setIsPlaying(false);
       return;

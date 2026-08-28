@@ -1,5 +1,7 @@
 import { evaluateRuntimeProjectV2 } from "./legacy/evaluate";
 import type { RuntimeProjectV2 } from "./legacy/types";
+import { assertRuntimeFrameV2 } from "./legacy/validate";
+import { prepareRuntimeProjectV2Text, type RuntimeTextFontResolverV2, type RuntimeTextShaperLoaderV2 } from "./legacy/text-layout";
 import { validateRuntimeVisualProjectV3 } from "./validate";
 import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
 
@@ -41,3 +43,20 @@ export function evaluateRuntimeProjectV3(
 
 /** Backend-neutral V3 name for visual frame evaluation. */
 export const evaluateVisualFrame = evaluateRuntimeProjectV3;
+
+/** Validate the V3-tagged visual frame without re-exposing a V2 public API. */
+export function assertRuntimeFrameV3(input: unknown): asserts input is RuntimeFrameV3 {
+  if (!input || typeof input !== "object" || (input as { runtimeVersion?: unknown }).runtimeVersion !== 3) {
+    throw new Error("Runtime frame must carry runtimeVersion 3");
+  }
+  assertRuntimeFrameV2({ ...(input as RuntimeFrameV3), runtimeVersion: 2 });
+}
+
+export type RuntimeTextFontResolverV3 = RuntimeTextFontResolverV2;
+export type RuntimeTextShaperLoaderV3 = RuntimeTextShaperLoaderV2;
+
+/** V3 text preparation preserves the certified visual shaper behind the V3 boundary. */
+export async function prepareRuntimeProjectV3Text(project: RuntimeProjectV3, resolveFont: RuntimeTextFontResolverV3, loadHarfBuzz: RuntimeTextShaperLoaderV3): Promise<{ project: RuntimeProjectV3; diagnostics: Awaited<ReturnType<typeof prepareRuntimeProjectV2Text>>["diagnostics"] }> {
+  const prepared = await prepareRuntimeProjectV2Text({ format: "motion-runtime", formatVersion: 2, id: project.projectId, composition: project.visual.composition, view: project.visual.view, nodes: project.visual.nodes }, resolveFont, loadHarfBuzz);
+  return { project: { ...project, visual: { ...project.visual, composition: prepared.project.composition, view: prepared.project.view, nodes: prepared.project.nodes } }, diagnostics: prepared.diagnostics };
+}

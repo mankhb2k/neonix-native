@@ -6,18 +6,19 @@ import {
   previewResourceKey,
   type PreviewResourceLease,
 } from "@/lib/editor/playback/preview-resource-registry";
-import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol/v2";
 import {
-  evaluateRuntimeProjectV2,
+  evaluateRuntimeProjectV3,
   frameIndexAtTime,
-  prepareRuntimeProjectV2Text,
+  prepareRuntimeProjectV3Text,
   type RuntimeFrameV2,
-  type RuntimeProjectV2,
-  type RuntimeTextShaperLoaderV2,
+  type RuntimeFrameV3,
+  type RuntimeProjectV3,
+  type RuntimeTextShaperLoaderV3,
 } from "@motionvideo/motion-runtime";
 import {
   createDOMMediaControllerV2,
@@ -39,7 +40,7 @@ type PreviewStageProps = {
   project: unknown;
   hiddenLayerIds?: readonly string[];
   time?: number;
-  frame?: RuntimeFrameV2;
+  frame?: RuntimeFrameV3 | RuntimeFrameV2;
   isPlaying?: boolean;
   /** Editor mode uses the shared playback controller. */
   externalPlayback?: boolean;
@@ -78,7 +79,7 @@ export function PreviewStage({
   const resourceRegistryRef = useRef<PreviewResourceRegistry | null>(null);
   if (!resourceRegistryRef.current) resourceRegistryRef.current = new PreviewResourceRegistry();
   const resourceRegistry = resourceRegistryRef.current;
-  const runtimeRef = useRef<RuntimeProjectV2 | null>(null);
+  const runtimeRef = useRef<RuntimeProjectV3 | null>(null);
   const audioEngineRef = useRef<PlaybackEngineV2 | null>(null);
   const audioAdapterRef = useRef<WebAudioAdapterV2 | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
@@ -90,7 +91,7 @@ export function PreviewStage({
   const playbackGenerationRef = useRef(-1);
   const resourceGenerationRef = useRef(0);
   const timeRef = useRef(time);
-  const frameRef = useRef<RuntimeFrameV2 | null>(frame ?? null);
+  const frameRef = useRef<RuntimeFrameV3 | null>(frame ? toRuntimeFrameV3(frame) : null);
   const isPlayingRef = useRef(isPlaying);
   const [resourceReadyToken, setResourceReadyToken] = useState(0);
   const [rendererError, setRendererError] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export function PreviewStage({
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
   const error = parsedResult.success ? rendererError : parsedResult.error.message;
-  frameRef.current = frame ?? null;
+  frameRef.current = frame ? toRuntimeFrameV3(frame) : null;
   isPlayingRef.current = isPlaying;
 
   const handleDecodedVideoFrame = useCallback((assetId: string, element: HTMLVideoElement) => {
@@ -185,7 +186,7 @@ export function PreviewStage({
       playbackGenerationRef.current = event.generation;
       timeRef.current = event.time;
       isPlayingRef.current = event.playing;
-      frameRef.current = event.frame;
+      frameRef.current = toRuntimeFrameV3(event.frame);
       const renderer = rendererRef.current;
       const parsed = projectRef.current;
       if (!renderer || !parsed) return;
@@ -196,7 +197,7 @@ export function PreviewStage({
         event.time,
         requestId,
         paintRequestRef,
-        event.frame,
+        toRuntimeFrameV3(event.frame),
         runtimeRef.current,
         assetsRef.current,
         event.playing,
@@ -344,9 +345,15 @@ export function PreviewStage({
       }
       const previousAssets = assetsRef.current;
       const previousResources = resourcesRef.current;
-      const compiled = compileProtocolV2(parsedProject);
-      const prepared = compiled.nodes.some((node) => node.content.kind === "text")
-        ? await prepareRuntimeProjectV2Text(
+      const compiled = compileProtocol(parsedProject);
+      const initialFrame = evaluateRuntimeProjectV3(
+        compiled,
+        frameIndexAtTime(timeRef.current, parsedProject.composition.fps),
+        { time: timeRef.current },
+      );
+      await prepareVideoFrames(initialFrame, resources.assets);
+      const prepared = compiled.visual.nodes.some((node) => node.content.kind === "text")
+        ? await prepareRuntimeProjectV3Text(
             compiled,
             (font) => Promise.resolve(resources.fontBytes.get(font.assetId) ?? null),
             loadBrowserHarfBuzz,
@@ -405,25 +412,6 @@ export function PreviewStage({
       previousResources?.release();
       runtimeRef.current = runtime;
       setResourceReadyToken((value) => value + 1);
-      const audioEngine = audioEngineRef.current;
-      const audioAdapter = audioAdapterRef.current;
-      if (audioEngine && audioAdapter) {
-        audioEngine.load(runtime);
-        audioEngine.seek(timeRef.current);
-        audioAdapter.seek(timeRef.current);
-        if (isPlayingRef.current) {
-          void (async () => {
-            const resumed = await audioAdapter.resume();
-            if (
-              !resumed
-              || !isPlayingRef.current
-              || resourceGeneration !== resourceGenerationRef.current
-            ) return;
-            audioEngine.seek(timeRef.current);
-            audioEngine.play();
-          })();
-        }
-      }
       preparationDiagnosticsRef.current = [
         ...resources.diagnostics,
         ...(prepared?.diagnostics.map((diagnostic) => diagnostic.code) ?? []),
@@ -581,6 +569,10 @@ async function loadPreviewResources(
           const height = asset.height ?? video.videoHeight;
           if (!width || !height) throw new Error(`Video asset ${asset.id} has no dimensions`);
           await seekVideo(video, 0);
+          // Some browsers expose HAVE_CURRENT_DATA before the first decoded
+          // frame is available to WebGPU's copyExternalImageToTexture. Prime
+          // one frame while muted so the initial paused preview is not black.
+          await primeVideoFrame(video);
           return {
             source: video,
             width,
@@ -657,11 +649,11 @@ async function matchesIntegrity(bytes: ArrayBuffer, integrity: string): Promise<
   return actual === expected;
 }
 
-function loadBrowserHarfBuzz(): ReturnType<RuntimeTextShaperLoaderV2> {
+function loadBrowserHarfBuzz(): ReturnType<RuntimeTextShaperLoaderV3> {
   // Deliberately opaque to webpack: this public ESM module imports its matching
   // WASM sibling and must not be inspected by Next SSR.
   const modulePath: string = "/vendor/harfbuzz/index.mjs";
-  return import(/* webpackIgnore: true */ modulePath) as ReturnType<RuntimeTextShaperLoaderV2>;
+  return import(/* webpackIgnore: true */ modulePath) as ReturnType<RuntimeTextShaperLoaderV3>;
 }
 
 function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
@@ -707,14 +699,63 @@ function seekVideo(video: HTMLVideoElement, time: number): Promise<void> {
   });
 }
 
+async function primeVideoFrame(video: HTMLVideoElement): Promise<void> {
+  const target = video as HTMLVideoElement & {
+    requestVideoFrameCallback?: (callback: () => void) => number;
+    cancelVideoFrameCallback?: (handle: number) => void;
+  };
+  if (typeof target.requestVideoFrameCallback !== "function") return;
+  const wasPaused = video.paused;
+  let callbackHandle: number | undefined;
+  try {
+    const frameReady = new Promise<void>((resolve) => {
+      callbackHandle = target.requestVideoFrameCallback?.(() => resolve());
+    });
+    video.muted = true;
+    if (video.paused) await video.play();
+    await Promise.race([
+      frameReady,
+      new Promise<void>((resolve) => window.setTimeout(resolve, 1000)),
+    ]);
+  } catch {
+    // A browser may reject autoplay even for a muted detached element. The
+    // regular loadeddata/seek path remains valid in that case.
+  } finally {
+    if (callbackHandle !== undefined) target.cancelVideoFrameCallback?.(callbackHandle);
+    if (wasPaused) video.pause();
+  }
+}
+
+async function prepareVideoFrames(
+  frame: RuntimeFrameV3,
+  assets: ReadonlyMap<string, PreviewAsset>,
+): Promise<void> {
+  const targets = new Map<string, number>();
+  for (const command of frame.commands) {
+    if (command.op !== "drawVideo" || command.mediaVisible === false) continue;
+    if (!targets.has(command.assetId)) targets.set(command.assetId, command.mediaTime);
+  }
+  await Promise.all([...targets].map(async ([assetId, mediaTime]) => {
+    const asset = assets.get(assetId);
+    if (!asset || asset.kind !== "video" || !(asset.source instanceof HTMLVideoElement)) return;
+    await seekVideo(asset.source, mediaTime);
+    await primeVideoFrame(asset.source);
+  }));
+}
+
+/** Transitional editor events may still carry V2 visual frames; the renderer only consumes V3. */
+function toRuntimeFrameV3(frame: RuntimeFrameV3 | RuntimeFrameV2): RuntimeFrameV3 {
+  return frame.runtimeVersion === 3 ? frame : { ...frame, runtimeVersion: 3 };
+}
+
 function paintFrame(
   renderer: PreviewRenderer,
   project: ReturnType<typeof MotionProtocolV2Schema.parse>,
   time: number,
   requestId: number,
   requestRef: { current: number },
-  frameOverride: RuntimeFrameV2 | null,
-  runtimeOverride: RuntimeProjectV2 | null,
+  frameOverride: RuntimeFrameV3 | null,
+  runtimeOverride: RuntimeProjectV3 | null,
   assets: ReadonlyMap<string, PreviewAsset>,
   playing: boolean,
   preparationDiagnostics: readonly string[],
@@ -735,8 +776,8 @@ function paintFrame(
   const evaluated =
     usableFrameOverride ??
     (runtimeOverride
-      ? evaluateRuntimeProjectV2(runtimeOverride, frameIndex, { time: renderTime })
-      : evaluateRuntimeProjectV2(compileProtocolV2(project), frameIndex, { time: renderTime }));
+      ? evaluateRuntimeProjectV3(runtimeOverride, frameIndex, { time: renderTime })
+      : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, { time: renderTime }));
   if (requestId !== requestRef.current) return;
   renderer.paintFrame(evaluated);
   const rendererCanvas = renderer.canvas;

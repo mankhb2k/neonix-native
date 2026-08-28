@@ -1,8 +1,8 @@
 import {
   assertValidPaintBuffer,
-  assertRuntimeFrameV2,
+  assertRuntimeFrameV3,
   type PaintCommandBuffer,
-  type RuntimeFrameV2,
+  type RuntimeFrameV3,
 } from "@motionvideo/motion-runtime";
 import { createWebGL2Backend } from "./webgl2";
 import { createWebGPUBackend } from "./webgpu";
@@ -104,8 +104,8 @@ export async function createPreviewRenderer(options: PreviewRendererOptions): Pr
   return {
     backend: backend.kind,
     canvas: options.canvas,
-    paintFrame(frame: RuntimeFrameV2) {
-      assertRuntimeFrameV2(frame);
+    paintFrame(frame: RuntimeFrameV3) {
+      assertRuntimeFrameV3(frame);
       assertValidPaintBuffer(frame);
       backend.paint(frame);
     },
