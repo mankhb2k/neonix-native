@@ -14,6 +14,7 @@ import { compileProtocol, compileProtocolV2 } from "@motionvideo/motion-compiler
 import {
   createPlaybackEngineV2,
   createAnimationFrameSchedulerV3,
+  createHTMLMediaAudioBackendV3,
   createPlaybackEngineNext,
   createWebAudioAdapterV2,
   type PlaybackEngineNext,
@@ -129,17 +130,13 @@ export function PreviewLab() {
         </header>
 
         <div className="flex min-w-0 flex-col items-start gap-4 xl:flex-row">
-          {selected.audioFixture ? (
-            <AudioFixturePreview fixture={selected.audioFixture} />
-          ) : (
-            <PreviewPlayback
-              key={selected.id}
-              project={selected.project}
-              backend={backend}
-              initialTime={time}
-              onBackendChange={selectBackend}
-            />
-          )}
+          <PreviewPlayback
+            key={selected.id}
+            project={selected.project}
+            backend={backend}
+            initialTime={time}
+            onBackendChange={selectBackend}
+          />
 
           <aside className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0c0e14]">
             <p className="shrink-0 border-b border-white/10 px-3 py-2 text-[12px] font-medium text-slate-300">
@@ -566,6 +563,15 @@ function PreviewPlayback({
         setCurrentTime(nextTime);
         if (nextTime >= duration) setIsPlaying(false);
       } },
+      audioSink: createHTMLMediaAudioBackendV3({
+        resolveSource(source) { return runtime.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)); },
+        createElement(_clipId, source) {
+          const stream = runtime.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
+          const element = new Audio(stream?.resource.uri ?? "");
+          element.preload = "auto";
+          return element;
+        },
+      }),
     });
     engine.load(runtime);
     engineRef.current = engine;

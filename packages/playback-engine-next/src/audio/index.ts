@@ -6,3 +6,4 @@ export * from "./audio-buffer-policy";
 export * from "./worklet-protocol";
 export * from "./streaming-worklet-backend";
 export * from "./buffer-source-backend";
+export * from "./html-media-audio-backend";
