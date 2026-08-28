@@ -1,4 +1,4 @@
-import { validatePaintCommandBuffer } from "../paint/validate-paint-command-buffer";
+import { validatePaintCommandBuffer } from "../../paint/validate-paint-command-buffer";
 import type {
   RuntimeFrameV2,
   RuntimeProjectV2,

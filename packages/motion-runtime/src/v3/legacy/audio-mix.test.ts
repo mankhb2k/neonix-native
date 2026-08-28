@@ -6,9 +6,9 @@ import {
 import {
   samplesToSeconds,
   secondsToSamples,
-} from "../determinism";
-import { computeRuntimeHash } from "../runtime-hash";
-import { orthographicProjectionMatrix } from "../matrix4";
+} from "../../determinism";
+import { computeRuntimeHash } from "../../runtime-hash";
+import { orthographicProjectionMatrix } from "../../matrix4";
 import type { RuntimeProjectV2 } from "./types";
 
 const source = {

@@ -198,11 +198,11 @@ Runtime V3 là semantic source of truth duy nhất và không chứa duplicate V
 
 ### Công việc
 
-- [ ] Tách visual algorithms đã chứng nhận thành một internal `visual-core` hoặc V3 visual module duy nhất.
-- [ ] Không giữ hai bản gần giống nhau tại `src/v2` và `src/v3/visual`.
-- [ ] Đổi public names sang V3 hoặc tên trung lập: `evaluateVisualFrame`, `RuntimeVisualProject`, `RuntimeFrameV3`.
+- [x] Tách visual algorithms đã chứng nhận thành một internal `visual-core` hoặc V3 visual module duy nhất.
+- [x] Không giữ hai bản gần giống nhau tại `src/v2` và `src/v3/visual`.
+- [x] Đổi public names sang V3 hoặc tên trung lập: `evaluateVisualFrame`, `RuntimeVisualProject`, `RuntimeFrameV3`.
 - [ ] Không export `RuntimeProjectV2`, `RuntimeFrameV2`, `evaluateRuntimeProjectV2` từ runtime root.
-- [ ] Hoàn thiện `validateRuntimeProjectV3()` cho:
+- [x] Hoàn thiện `validateRuntimeProjectV3()` cho:
   - finite/safe numeric ranges;
   - duplicate media/stream/instance/track/clip IDs;
   - source range bounds;
@@ -210,16 +210,16 @@ Runtime V3 là semantic source of truth duy nhất và không chứa duplicate V
   - resource role và stream-kind consistency;
   - video/audio references;
   - visual validation.
-- [ ] Cho visual evaluation hoạt động độc lập với audio readiness khi phù hợp, để audio lỗi không tự động chặn một frame visual hợp lệ.
-- [ ] Giữ runtime không import DOM, React, storage client, WebAudio hoặc WebCodecs.
+- [x] Cho visual evaluation hoạt động độc lập với audio readiness khi phù hợp, để audio lỗi không tự động chặn một frame visual hợp lệ.
+- [x] Giữ runtime không import DOM, React, storage client, WebAudio hoặc WebCodecs.
 
 ### Kiểm thử bắt buộc
 
-- [ ] Runtime validation matrix cho malformed projects.
-- [ ] Deterministic video frame selection ở frame boundaries.
-- [ ] Audio window boundaries và stable input order.
-- [ ] Visual golden parity với semantics đã chứng nhận.
-- [ ] Serialization/restore không làm thay đổi runtime identity.
+- [x] Runtime validation matrix cho malformed projects.
+- [x] Deterministic video frame selection ở frame boundaries.
+- [x] Audio window boundaries và stable input order.
+- [x] Visual golden parity với semantics đã chứng nhận.
+- [x] Serialization/restore không làm thay đổi runtime identity.
 
 ### Exit criteria
 

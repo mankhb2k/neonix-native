@@ -1,34 +1,36 @@
 # `@motionvideo/motion-runtime`
 
-Runtime IR V2 evaluator. Runtime does not parse authoring JSON; it receives
-`RuntimeProjectV2`, resolves timing and stable order, and returns
-  `RuntimeFrameV2` with a backend-neutral `PaintCommandBuffer`.
+Backend-neutral Runtime V3 semantics. Runtime does not parse authoring JSON; it
+receives the compiler's `RuntimeProjectV3`, resolves static video/audio
+timelines, and returns backend-neutral render plans and paint commands.
 
 ```text
-Atomic Protocol V2
+MotionProtocolV2
         |
-  compileProtocolV2
+  compileProtocolToRuntimeV3
         |
-  RuntimeProjectV2
-        |
-  evaluateRuntimeProjectV2
-        |
-  RuntimeFrameV2 / PaintCommandBuffer
+  RuntimeProjectV3
+      |                 |
+resolveVideoAt   resolveAudioWindow
+      |                 |
+VideoRenderPlanV3  AudioMixPlanV3
+      |
+PlaybackEngineNext / offline export
 ```
 
 ## Ownership
 
 | Module | Responsibility |
 | --- | --- |
-| `v2` | RuntimeProjectV2 validation and frame evaluation |
+| `v3` | RuntimeProjectV3 types, validation, timeline resolvers, visual boundary, offline audio, and semantic identity |
 | `matrix4` | Backend-neutral 3D transforms and projection |
 | `paint` | PaintCommandBuffer contract |
 | `clock` | Frame/time quantization |
-| `audio-mix` | Sample-accurate RuntimeAudioMixPlanV2 evaluation |
+| `v2` | Deprecated compatibility evaluator for the legacy editor/export path |
 
 ## Matrix4 hard-lock
 
-Runtime V2 uses one backend-neutral `Matrix4` representation for both 2D and
+Runtime V3 uses one backend-neutral `Matrix4` representation for both 2D and
 3D. A 2D layer is simply an XY-plane transform with `z = 0` and an orthographic
 projection. The runtime public API does not export the old affine/Canvas2D
 adapters, and `PaintCommand.setTransform.matrix4` is required rather than an
@@ -36,19 +38,20 @@ optional fallback.
 
 Those adapters may exist temporarily for the deferred editor migration, but
 they are editor-local implementation details and never Runtime IR. Preview and
-Remotion consume only `RuntimeFrameV2` / `PaintCommandBuffer` for visual
-output.
+Remotion consume the same V3 visual semantics; the legacy V2 evaluator remains
+only as a compatibility bridge until those consumers cut over.
 
-Audio is a parallel runtime output. `evaluateRuntimeAudioMixV2()` returns a
-`RuntimeAudioMixPlanV2` from a sample range; it never decodes media or creates
-WebAudio nodes. The playback WebAudio adapter and Remotion export adapter are
-the only owners of browser/media scheduling.
+Audio is a parallel runtime output. `resolveAudioWindow()` returns an
+`AudioMixPlanV3` from a sample range; it never decodes media or creates WebAudio
+nodes. Playback backends and the offline export adapter are the only owners of
+browser/media scheduling.
 
 ```ts
 import {
-  evaluateRuntimeProjectV2,
-  type RuntimeProjectV2,
-  type RuntimeFrameV2,
+  evaluateRuntimeProjectV3,
+  resolveAudioWindow,
+  resolveVideoAt,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 ```
 

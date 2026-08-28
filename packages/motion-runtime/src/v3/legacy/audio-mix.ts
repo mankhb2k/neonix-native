@@ -1,7 +1,7 @@
 import {
   deterministicTieBreak,
   secondsToSamples,
-} from "../determinism";
+} from "../../determinism";
 import { validateRuntimeProjectV2 } from "./validate";
 import type {
   RuntimeAudioClipV2,

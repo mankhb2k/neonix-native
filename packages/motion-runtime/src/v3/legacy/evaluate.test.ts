@@ -5,7 +5,7 @@ import {
   orthographicProjectionMatrix,
   perspectiveProjectionMatrix,
   translationMatrix3D,
-} from "../matrix4";
+} from "../../matrix4";
 import { evaluateRuntimeProjectV2 } from "./evaluate";
 import { assertRuntimeFrameV2 } from "./validate";
 import type { RuntimeProjectV2 } from "./types";

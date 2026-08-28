@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import * as harfBuzz from "harfbuzzjs";
-import { identityMatrix4, orthographicProjectionMatrix } from "../matrix4";
+import { identityMatrix4, orthographicProjectionMatrix } from "../../matrix4";
 import { evaluateRuntimeProjectV2 } from "./evaluate";
 import { prepareRuntimeProjectV2Text } from "./text-layout";
 import type { RuntimeProjectV2 } from "./types";
@@ -54,7 +54,7 @@ describe("Runtime V2 text layout", () => {
   });
 
   it("shapes an exact font binary into positioned glyph outlines", async () => {
-    const bytes = await readFile(new URL("../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
+    const bytes = await readFile(new URL("../../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
     const prepared = await prepareRuntimeProjectV2Text(project, async () => bytes, async () => harfBuzz);
     expect(prepared.diagnostics).toEqual([]);
     const frame = evaluateRuntimeProjectV2(prepared.project, 0);
@@ -72,7 +72,7 @@ describe("Runtime V2 text layout", () => {
   });
 
   it("positions a single line inside the immutable frame for every alignment", async () => {
-    const bytes = await readFile(new URL("../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
+    const bytes = await readFile(new URL("../../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
     const prepare = async (align: "left" | "center" | "right", verticalAlign: "top" | "middle" | "bottom") => {
       const next: RuntimeProjectV2 = {
         ...project,
@@ -95,7 +95,7 @@ describe("Runtime V2 text layout", () => {
   });
 
   it("shapes explicit line breaks as a paragraph while preserving per-line alignment", async () => {
-    const bytes = await readFile(new URL("../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
+    const bytes = await readFile(new URL("../../../../../assets/fonts/Roboto/static/Roboto-Regular.ttf", import.meta.url));
     const next: RuntimeProjectV2 = {
       ...project,
       nodes: project.nodes.map((node) => node.content.kind === "text"

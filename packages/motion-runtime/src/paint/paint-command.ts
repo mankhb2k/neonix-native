@@ -12,7 +12,7 @@ import type {
   RenderMediaFit,
   RenderNormalizedRect,
 } from "./paint-types";
-import type { RuntimeEffectProgram } from "../v2/effect-program";
+import type { RuntimeEffectProgram } from "../v3/legacy/effect-program";
 
 export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";

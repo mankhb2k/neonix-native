@@ -1,5 +1,5 @@
 import type * as HarfBuzz from "harfbuzzjs";
-import type { PaintTextGlyph } from "../paint/paint-types";
+import type { PaintTextGlyph } from "../../paint/paint-types";
 import type {
   RuntimeDiagnosticV2,
   RuntimeProjectV2,
