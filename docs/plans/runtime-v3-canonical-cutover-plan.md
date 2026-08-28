@@ -237,32 +237,32 @@ PlaybackEngineNext trở thành transport/resource orchestrator production-ready
 
 ### Công việc core
 
-- [ ] Production default dùng monotonic clock cho video-only; fake clock chỉ dùng trong test.
-- [ ] Dùng audio rendered-sample clock khi streaming audio backend active.
-- [ ] Nối `TransportStateMachine` vào engine thay vì mutate state rời rạc.
+- [x] Production default dùng monotonic clock cho video-only; fake clock chỉ dùng trong test.
+- [x] Dùng audio rendered-sample clock khi streaming audio backend active.
+- [x] Nối `TransportStateMachine` vào engine thay vì mutate state rời rạc.
 - [ ] Implement load/readiness barrier thật cho resource resolve, decode và minimum buffer.
-- [ ] Nối operation epoch/token vào mọi async completion.
-- [ ] Implement scheduler, pause, seek, flush và dispose lifecycle nhất quán.
+- [x] Nối operation epoch/token vào mọi async completion.
+- [x] Implement scheduler, pause, seek, flush và dispose lifecycle nhất quán.
 - [ ] Nối adaptive buffer policy và cập nhật underrun/error metrics thật.
-- [ ] Engine chỉ gọi `resolveVideoAt()` và `resolveAudioWindow()`; không copy timing math.
+- [x] Engine chỉ gọi `resolveVideoAt()` và `resolveAudioWindow()`; không copy timing math.
 
 ### Công việc VideoBackend
 
-- [ ] HTMLVideo pool theo `instanceId`, không theo `assetId`.
-- [ ] Resolve source qua MediaResourceProvider.
-- [ ] Không set `currentTime` ở mọi tick; chỉ seek khi operation đổi hoặc drift vượt tolerance.
-- [ ] Pause/release instance không còn active/lookahead.
-- [ ] Publish renderable frame resource và revision cho PreviewRenderer.
-- [ ] Giữ contract đủ trung lập để thêm WebCodecs/video proxy backend sau này.
+- [x] HTMLVideo pool theo `instanceId`, không theo `assetId`.
+- [x] Resolve source qua MediaResourceProvider.
+- [x] Không set `currentTime` ở mọi tick; chỉ seek khi operation đổi hoặc drift vượt tolerance.
+- [x] Pause/release instance không còn active/lookahead.
+- [x] Publish renderable frame resource và revision cho PreviewRenderer.
+- [x] Giữ contract đủ trung lập để thêm WebCodecs/video proxy backend sau này.
 
 ### Công việc AudioBackend
 
 - [ ] Implement DecodeCoordinator và concrete decode backend.
-- [ ] Implement bounded, generation-aware PCM window store.
-- [ ] Implement StreamingWorklet protocol/processor.
-- [ ] Implement BufferSource fallback với giới hạn rõ ràng.
-- [ ] Cả hai backend dùng chung deterministic mixer semantics.
-- [ ] Expose rendered sample counter và underrun telemetry.
+- [x] Implement bounded, generation-aware PCM window store.
+- [x] Implement StreamingWorklet protocol/processor.
+- [x] Implement BufferSource fallback với giới hạn rõ ràng.
+- [x] Cả hai backend dùng chung deterministic mixer semantics.
+- [x] Expose rendered sample counter và underrun telemetry.
 
 ### Exit criteria
 

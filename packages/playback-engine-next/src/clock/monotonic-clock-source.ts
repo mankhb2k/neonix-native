@@ -1,6 +1,8 @@
 import type { PlaybackClockV3 } from "../core/types";
 
-export function createMonotonicClock(nowMs: () => number = () => Date.now()): PlaybackClockV3 {
+const defaultNowMs = (): number => typeof performance !== "undefined" ? performance.now() : Date.now();
+
+export function createMonotonicClock(nowMs: () => number = defaultNowMs): PlaybackClockV3 {
   let anchorUs = 0;
   let anchorMs = nowMs();
   let playing = false;
