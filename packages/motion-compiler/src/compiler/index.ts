@@ -17,6 +17,7 @@ import {
   type RuntimeAudioSourceV2,
   type RuntimeAudioTrackV2,
   type RuntimeProjectV2,
+  type RuntimeVisualProjectV3,
   type RuntimeEffect,
   type RuntimeMaskV2,
   identityMatrix4,
@@ -290,12 +291,15 @@ type LayerContext = {
   timing: { start: number; duration: number };
 };
 
-export type CompileProtocolV2Options = Record<string, never>;
+/** Options accepted by the canonical Protocol compiler. */
+export type CompileProtocolOptions = Record<string, never>;
+/** @deprecated Use CompileProtocolOptions. */
+export type CompileProtocolV2Options = CompileProtocolOptions;
 
-/** Compile Atomic Protocol V2 into backend-neutral Runtime IR V2. */
-export function compileProtocolV2(
+/** Compile Atomic Protocol V2 into the canonical visual/audio Runtime IR. */
+export function compileProtocol(
   input: unknown,
-  _options: CompileProtocolV2Options = {},
+  _options: CompileProtocolOptions = {},
 ): RuntimeProjectV2 {
   const project = parseMotionProtocol(input);
   const projection = viewProjectionMatrix4(project);
@@ -768,12 +772,28 @@ export function compileProtocolV2(
   };
 }
 
+/**
+ * Internal V3 visual boundary. The certified lowering implementation remains
+ * shared while media/audio V3 compilation bypasses the legacy runtime shape.
+ */
+export function compileVisualProject(
+  input: unknown,
+  options: CompileProtocolOptions = {},
+): RuntimeVisualProjectV3 {
+  const legacy = compileProtocol(input, options);
+  return {
+    composition: legacy.composition,
+    view: legacy.view,
+    nodes: legacy.nodes,
+  };
+}
+
 /** Compile V2 and evaluate one frame into the backend-neutral paint contract. */
-export function compileProtocolV2ToPaintCommands(
+export function compileProtocolToPaintCommands(
   input: unknown,
   options: { frame?: number; time?: number } = {},
 ): PaintCommandBuffer {
-  const runtime = compileProtocolV2(input);
+  const runtime = compileProtocol(input);
   const frame = options.frame ??
     (options.time == null
       ? 0
@@ -782,3 +802,9 @@ export function compileProtocolV2ToPaintCommands(
     ...(options.time != null ? { time: options.time } : {}),
   });
 }
+
+/** @deprecated Use compileProtocol. Kept as a source-compatible migration shim. */
+export const compileProtocolV2 = compileProtocol;
+
+/** @deprecated Use compileProtocolToPaintCommands. */
+export const compileProtocolV2ToPaintCommands = compileProtocolToPaintCommands;

@@ -1,21 +1,30 @@
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 import {
+  evaluateRuntimeProjectV3,
+  frameIndexAtTime,
   secondsToSamples,
-  type RuntimeAudioClipV3,
+  type PaintCommandBuffer,
+  type RuntimeAudioFadeV3,
   type RuntimeAudioTrackPlanV3,
   type RuntimeMediaCatalogV3,
   type RuntimeMediaResourceV3,
-  type RuntimeProjectV2,
   type RuntimeProjectV3,
   type RuntimeVisualProjectV3,
+  validateRuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
-import { compileProtocol, type CompileProtocolOptions } from "./compiler";
+import {
+  compileVisualProject,
+  type CompileProtocolOptions,
+} from "./compiler";
 
 const RATE = 48000 as const;
 
 export class CompileProtocolToRuntimeV3Error extends Error {
   constructor(
-    readonly code: "MISSING_MEDIA_STREAM" | "MISSING_AUDIO_DERIVATIVE",
+    readonly code:
+      | "MISSING_MEDIA_STREAM"
+      | "MISSING_AUDIO_DERIVATIVE"
+      | "INVALID_RUNTIME_PROJECT",
     message: string,
     readonly path: string,
   ) {
@@ -25,19 +34,27 @@ export class CompileProtocolToRuntimeV3Error extends Error {
 }
 
 /**
+ * Production callers provide the immutable catalog hydrated from probe data.
+ * The protocol-derived catalog remains a deterministic fixture/dev fallback.
+ */
+export type CompileProtocolV3Options = CompileProtocolOptions & {
+  mediaCatalog?: RuntimeMediaCatalogV3;
+};
+
+/**
  * Canonical Protocol compiler entrypoint for the next runtime.
  *
- * Visual lowering is performed exactly once by compileProtocol(); this
- * function only projects that normalized result into the V3 media/audio
- * timelines consumed by playback-engine-next.
+ * Visual lowering reuses the certified visual compiler implementation. Media,
+ * video and audio timelines are lowered directly from MotionProtocolV2 and
+ * never pass through a RuntimeProjectV2 audio/media contract.
  */
 export function compileProtocolToRuntimeV3(
   input: unknown,
-  options: CompileProtocolOptions = {},
+  options: CompileProtocolV3Options = {},
 ): RuntimeProjectV3 {
   const protocol = parseMotionProtocol(input);
-  const visual = compileProtocol(protocol, options);
-  const mediaCatalog = buildMediaCatalog(protocol);
+  const visual = compileVisualProject(protocol, options);
+  const mediaCatalog = options.mediaCatalog ?? buildMediaCatalog(protocol);
   const videoTimeline = {
     instances: protocol.layers
       .filter((layer) => layer.type === "video")
@@ -72,13 +89,7 @@ export function compileProtocolToRuntimeV3(
   };
   const audioTimeline = {
     sampleRate: RATE,
-    tracks: visual.audio?.tracks.map((track) => ({
-      trackId: track.id,
-      gainLinear: gain(track.gainDb),
-      pan: track.pan,
-      muted: track.muted,
-      clips: track.clips.map((clip) => audioClip(clip, track.id, mediaCatalog)),
-    })) ?? [],
+    tracks: compileAudioTimeline(protocol, visual.nodes, mediaCatalog),
   } satisfies { sampleRate: 48000; tracks: RuntimeAudioTrackPlanV3[] };
   const visualProject: RuntimeVisualProjectV3 = {
     composition: visual.composition,
@@ -86,7 +97,7 @@ export function compileProtocolToRuntimeV3(
     nodes: visual.nodes,
   };
 
-  return {
+  const runtime: RuntimeProjectV3 = {
     format: "motion-runtime",
     runtimeVersion: 3,
     projectId: protocol.id,
@@ -96,12 +107,39 @@ export function compileProtocolToRuntimeV3(
     audioTimeline,
     diagnostics: [],
   };
+  const validation = validateRuntimeProjectV3(runtime);
+  if (!validation.ok) {
+    throw new CompileProtocolToRuntimeV3Error(
+      "INVALID_RUNTIME_PROJECT",
+      validation.diagnostics.map((diagnostic) => diagnostic.message).join(" | "),
+      "runtime",
+    );
+  }
+  return runtime;
 }
 
 /** @deprecated Use compileProtocolToRuntimeV3. */
 export const compileProtocolV2ToRuntimeV3 = compileProtocolToRuntimeV3;
 /** @deprecated Use CompileProtocolToRuntimeV3Error. */
 export const CompileProtocolV2ToRuntimeV3Error = CompileProtocolToRuntimeV3Error;
+
+/** Canonical compiler public API. */
+export const compileProtocol = compileProtocolToRuntimeV3;
+
+/** Compile one V3 visual frame into the backend-neutral paint contract. */
+export function compileProtocolToPaintCommands(
+  input: unknown,
+  options: { frame?: number; time?: number } = {},
+): PaintCommandBuffer {
+  const runtime = compileProtocolToRuntimeV3(input);
+  const frame = options.frame ??
+    (options.time == null
+      ? 0
+      : frameIndexAtTime(options.time, runtime.visual.composition.fps));
+  return evaluateRuntimeProjectV3(runtime, frame, {
+    ...(options.time != null ? { time: options.time } : {}),
+  });
+}
 
 function buildMediaCatalog(protocol: MotionProtocolV2): RuntimeMediaCatalogV3 {
   return {
@@ -153,11 +191,67 @@ function buildMediaCatalog(protocol: MotionProtocolV2): RuntimeMediaCatalogV3 {
   };
 }
 
+type AudioClipIntentV3 = MotionProtocolV2["audio"]["tracks"][number]["clips"][number];
+
+function compileAudioTimeline(
+  protocol: MotionProtocolV2,
+  visualNodes: RuntimeVisualProjectV3["nodes"],
+  catalog: RuntimeMediaCatalogV3,
+): RuntimeAudioTrackPlanV3[] {
+  const independentTracks = protocol.audio.tracks.map((track) => ({
+    trackId: track.id,
+    gainLinear: gain(track.gainDb),
+    pan: track.pan,
+    muted: track.muted,
+    clips: track.clips.map((clip) => audioClip(
+      clip,
+      track.id,
+      catalog,
+      { kind: "standalone-audio", authoringId: clip.id },
+    )),
+  }));
+
+  const embeddedTracks = protocol.layers.flatMap((layer) => {
+    if (layer.type !== "video" || !layer.payload.audio) return [];
+    const node = visualNodes.find((candidate) => candidate.id === layer.id);
+    if (!node || node.timing.duration <= 0) return [];
+    const audio = layer.payload.audio;
+    const clip: AudioClipIntentV3 = {
+      id: `embedded-audio:${layer.id}:clip`,
+      assetId: layer.payload.assetId,
+      timing: { ...node.timing },
+      trim: {
+        start: layer.payload.trimStart ?? 0,
+        ...(layer.payload.trimEnd === undefined ? {} : { end: layer.payload.trimEnd }),
+      },
+      playbackRate: 1,
+      gainDb: audio.gainDb,
+      ...(audio.fadeIn ? { fadeIn: audio.fadeIn } : {}),
+      ...(audio.fadeOut ? { fadeOut: audio.fadeOut } : {}),
+    };
+    return [{
+      trackId: `embedded-audio:${layer.id}`,
+      gainLinear: 1,
+      pan: 0,
+      muted: !audio.enabled,
+      clips: [audioClip(
+        clip,
+        `embedded-audio:${layer.id}`,
+        catalog,
+        { kind: "video", authoringId: layer.id },
+      )],
+    }];
+  });
+
+  return [...independentTracks, ...embeddedTracks];
+}
+
 function audioClip(
-  clip: NonNullable<RuntimeProjectV2["audio"]>["tracks"][number]["clips"][number],
+  clip: AudioClipIntentV3,
   trackId: string,
   catalog: RuntimeMediaCatalogV3,
-): RuntimeAudioClipV3 {
+  origin: { kind: "video" | "standalone-audio"; authoringId: string },
+) {
   const asset = catalog.assets.find((candidate) => candidate.mediaId === clip.assetId);
   const stream = asset?.audio?.[0];
   if (!stream) {
@@ -182,15 +276,12 @@ function audioClip(
     pan: 0,
     muted: false,
     ...(clip.fadeIn
-      ? { fadeIn: { durationSamples: secondsToSamples(clip.fadeIn.duration, RATE), curve: clip.fadeIn.curve } }
+      ? { fadeIn: { durationSamples: secondsToSamples(clip.fadeIn.duration, RATE), curve: clip.fadeIn.curve } satisfies RuntimeAudioFadeV3 }
       : {}),
     ...(clip.fadeOut
-      ? { fadeOut: { durationSamples: secondsToSamples(clip.fadeOut.duration, RATE), curve: clip.fadeOut.curve } }
+      ? { fadeOut: { durationSamples: secondsToSamples(clip.fadeOut.duration, RATE), curve: clip.fadeOut.curve } satisfies RuntimeAudioFadeV3 }
       : {}),
-    origin: {
-      kind: asset?.video?.length ? "video" : "standalone-audio",
-      authoringId: trackId.startsWith("embedded-audio:") ? trackId.slice(15) : clip.id,
-    },
+    origin,
   };
 }
 

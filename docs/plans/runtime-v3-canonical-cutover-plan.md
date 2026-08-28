@@ -154,7 +154,7 @@ function compileProtocol(
 
 ### Công việc
 
-- [ ] Tách compiler thành các pass rõ ràng:
+- [x] Tách compiler thành các pass rõ ràng:
 
   ```text
   parseProtocol()
@@ -165,22 +165,22 @@ function compileProtocol(
   └── validateRuntimeProjectV3()
   ```
 
-- [ ] Reuse visual lowering đã chứng nhận qua internal visual core, không qua public `RuntimeProjectV2` adapter.
-- [ ] Lower embedded video audio trực tiếp thành một audio track/clip V3 độc lập với native video playback.
-- [ ] Lower standalone audio và embedded audio bằng cùng audio compiler path.
-- [ ] Compiler chỉ liên kết protocol asset IDs với catalog streams; không tự đoán stream IDs, duration, sample rate hoặc proxy URI.
-- [ ] Compile diagnostics phải có code, authoring path và media/source identity.
-- [ ] Validate RuntimeProjectV3 trước khi trả kết quả.
+- [x] Reuse visual lowering đã chứng nhận qua internal visual core, không qua public `RuntimeProjectV2` adapter.
+- [x] Lower embedded video audio trực tiếp thành một audio track/clip V3 độc lập với native video playback.
+- [x] Lower standalone audio và embedded audio bằng cùng audio compiler path.
+- [x] Compiler chỉ liên kết protocol asset IDs với catalog streams; không tự đoán stream IDs, duration, sample rate hoặc proxy URI.
+- [x] Compile diagnostics phải có code, authoring path và media/source identity.
+- [x] Validate RuntimeProjectV3 trước khi trả kết quả.
 - [ ] Đổi app/testing imports dần sang `compileProtocol()` canonical.
-- [ ] Đánh dấu adapter cũ deprecated trong migration window; không thêm consumer mới.
+- [x] Đánh dấu adapter cũ deprecated trong migration window; không thêm consumer mới.
 
 ### Kiểm thử bắt buộc
 
 - [ ] Golden RuntimeProjectV3 cho video trim.
 - [ ] Hai instance dùng chung một video asset nhưng có source window khác nhau.
-- [ ] Embedded video audio và background music tạo hai independent audio inputs.
-- [ ] Compiler determinism và stable runtime hash.
-- [ ] Catalog thiếu video stream/audio derivative trả typed diagnostic đúng path.
+- [x] Embedded video audio và background music tạo hai independent audio inputs.
+- [x] Compiler determinism và stable runtime hash.
+- [x] Catalog thiếu video stream/audio derivative trả typed diagnostic đúng path.
 
 ### Exit criteria
 
