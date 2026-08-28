@@ -14,7 +14,7 @@ export async function DELETE(
   const { supabase, user, workspaceId } = result.context;
   const { data: asset, error: assetError } = await supabase
     .from("assets")
-    .select("id, r2_key, status")
+    .select("id, r2_key, preview_key, status")
     .eq("id", assetId)
     .eq("workspace_id", workspaceId)
     .eq("created_by", user.id)
@@ -26,8 +26,22 @@ export async function DELETE(
   const storageKey = typeof assetRow.r2_key === "string" ? assetRow.r2_key : null;
   if (!storageKey) return jsonError("Asset storage key is invalid", 500);
 
+  const { data: variants, error: variantsError } = await supabase
+    .from("asset_variants")
+    .select("r2_key")
+    .eq("asset_id", assetId);
+  if (variantsError) return jsonError(variantsError.message, 500);
+
   try {
-    await getUserAssetsProvider().deleteObject(storageKey);
+    const keys = new Set<string>([
+      storageKey,
+      ...(typeof assetRow.preview_key === "string" ? [assetRow.preview_key] : []),
+      ...((variants ?? []) as Array<{ r2_key?: unknown }>)
+        .map((variant) => variant.r2_key)
+        .filter((key): key is string => typeof key === "string" && key.length > 0),
+    ]);
+    const provider = getUserAssetsProvider();
+    await Promise.all([...keys].map((key) => provider.deleteObject(key)));
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Unable to delete R2 object", 502);
   }
@@ -39,5 +53,12 @@ export async function DELETE(
     .eq("workspace_id", workspaceId);
 
   if (updateError) return jsonError(updateError.message, 400);
+  if (variants?.length) {
+    const { error: variantsDeleteError } = await supabase
+      .from("asset_variants")
+      .delete()
+      .eq("asset_id", assetId);
+    if (variantsDeleteError) return jsonError(variantsDeleteError.message, 500);
+  }
   return new Response(null, { status: 204 });
 }

@@ -1,4 +1,4 @@
-import type { AssetV1 } from "@motionvideo/motion-protocol";
+import type { StorageAsset } from "./types";
 
 /**
  * Sync resolver used by the compiler. Callers batch download URLs from the
@@ -6,7 +6,7 @@ import type { AssetV1 } from "@motionvideo/motion-protocol";
  */
 export type AssetUrlResolver = (assetId: string) => string | undefined;
 
-export function isManagedAsset(asset: AssetV1): boolean {
+export function isManagedAsset(asset: StorageAsset): boolean {
   return asset.storage?.managed === true;
 }
 
@@ -15,7 +15,7 @@ export function isManagedAsset(asset: AssetV1): boolean {
  * Managed assets require `resolver`; unmanaged assets use authoring `uri`.
  */
 export function resolveAssetUri(
-  asset: AssetV1,
+  asset: StorageAsset,
   resolver?: AssetUrlResolver,
 ): string | undefined {
   if (isManagedAsset(asset)) {
@@ -25,7 +25,7 @@ export function resolveAssetUri(
 }
 
 export function resolveProjectAssetUris(
-  assets: AssetV1[],
+  assets: StorageAsset[],
   resolver: AssetUrlResolver,
 ): Map<string, string> {
   const out = new Map<string, string>();

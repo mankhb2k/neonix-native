@@ -38,7 +38,19 @@ async function decodeSource(
 ): Promise<AudioBuffer> {
   const response = await fetch(source.uri);
   if (!response.ok) throw new Error(`Audio asset ${source.assetId} returned HTTP ${response.status}`);
-  const decoded = await decodeContext.decodeAudioData(await response.arrayBuffer());
+  let decoded: AudioBuffer;
+  try {
+    decoded = await decodeContext.decodeAudioData(await response.arrayBuffer());
+  } catch (error) {
+    if (source.kind === "video") {
+      throw new Error(
+        `Unable to decode embedded audio from video asset ${source.assetId}; ` +
+        "an audio derivative is required for this export format",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
   if (decoded.sampleRate === OUTPUT_SAMPLE_RATE) return decoded;
 
   const resampleContext = offlineContext(
@@ -209,25 +221,34 @@ export function RemotionAudioTrack({ runtime }: RemotionAudioTrackProps) {
 
   useEffect(() => {
     const plan = buildRemotionAudioPlanV2(runtime);
+    setSrc(null);
+    setError(null);
     if (!plan) return undefined;
     const handle = delayRender("Prepare Runtime V2 audio mix");
     let cancelled = false;
+    let handleReleased = false;
+    const releaseHandle = () => {
+      if (handleReleased) return;
+      handleReleased = true;
+      continueRender(handle);
+    };
     void renderAudioPlanToWav(plan)
       .then((wav) => {
         if (cancelled) return;
         return blobToDataUrl(wav).then((dataUrl) => {
           if (cancelled) return;
           setSrc(dataUrl);
-          continueRender(handle);
+          releaseHandle();
         });
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
         setError(errorMessage(reason));
-        continueRender(handle);
+        releaseHandle();
       });
     return () => {
       cancelled = true;
+      releaseHandle();
     };
   }, [runtime]);
 

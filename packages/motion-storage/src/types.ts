@@ -1,8 +1,34 @@
 import { z } from "zod";
-import type {
-  AssetV1,
-  AssetValidationIssue,
-} from "@motionvideo/motion-protocol";
+/** Storage API asset DTO. Kept local so storage does not depend on authoring protocol versions. */
+export type StorageAsset = {
+  id: string;
+  assetType: "image" | "svg" | "video" | "audio" | "font";
+  mimeType: string;
+  uri?: string;
+  integrity?: string;
+  sizeBytes?: number;
+  name?: string;
+  storage?: { managed: boolean; provider: string; key: string; retention: string };
+  source?: { kind: "upload"; originalName?: string };
+  width?: number;
+  height?: number;
+  duration?: number;
+  fps?: number;
+  sampleRate?: number;
+  channels?: number;
+  family?: string;
+  weight?: number;
+  style?: "normal" | "italic";
+  sanitized?: boolean;
+};
+
+export type StorageValidationIssue = {
+  layer: "storage";
+  code: string;
+  assetId?: string;
+  path?: string;
+  message: string;
+};
 
 export const CreateUploadRequestSchema = z
   .object({
@@ -36,7 +62,7 @@ export type CreateUploadResponse = {
 };
 
 export type CompleteUploadResponse = {
-  asset: AssetV1;
+  asset: StorageAsset;
 };
 
 export type DownloadUrlResponse = {
@@ -46,12 +72,12 @@ export type DownloadUrlResponse = {
 };
 
 export type ValidateAssetsRequest = {
-  assets: AssetV1[];
+  assets: StorageAsset[];
 };
 
 export type ValidateAssetsResponse = {
   ok: boolean;
-  issues: AssetValidationIssue[];
+  issues: StorageValidationIssue[];
 };
 
 export type StoredAssetRecord = {
@@ -71,7 +97,7 @@ export type StoredAssetRecord = {
   >;
   sizeBytes?: number;
   integrity?: string;
-  asset?: AssetV1;
+  asset?: StorageAsset;
   createdAt: string;
   updatedAt: string;
 };

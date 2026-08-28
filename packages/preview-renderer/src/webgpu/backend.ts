@@ -45,6 +45,11 @@ import type {
   WebGPUBufferLike,
   WebGPUCommandEncoderLike,
 } from "../shared/types";
+import {
+  decideTextureUpdate,
+  previewAssetRevision,
+  type PreviewAssetRevision,
+} from "../shared/texture-upload-policy";
 
 export function createWebGPUBackend(
   options: PreviewRendererOptions,
@@ -80,6 +85,8 @@ export function createWebGPUBackend(
   const clipMaskPostEffectObjects = createClipMaskPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGPUTextureLike>();
+  const textureSizes = new Map<string, { width: number; height: number }>();
+  const uploadedAssetRevisions = new Map<string, PreviewAssetRevision>();
   const textAtlases = new Map<string, TextAtlas>();
   const whiteTexture = device.createTexture({
     size: { width: 1, height: 1 },
@@ -109,17 +116,35 @@ export function createWebGPUBackend(
   let stageHeight = 0;
   let effectWidth = 0;
   let effectHeight = 0;
-  let lastStats: PreviewRenderStats = { backend: "webgpu", drawCalls: 0, skippedCommands: 0, frameTimeMs: 0, diagnostics };
+  let textureUploads = 0;
+  let videoTextureUploads = 0;
+  let lastStats: PreviewRenderStats = { backend: "webgpu", drawCalls: 0, skippedCommands: 0, frameTimeMs: 0, textureUploads: 0, videoTextureUploads: 0, diagnostics };
 
   const pushDiagnostic = (diagnostic: PreviewDiagnostic) => {
+    const maxDiagnostics = Math.max(0, Math.floor(options.maxDiagnostics ?? 64));
+    if (maxDiagnostics === 0) {
+      report(diagnostic);
+      return;
+    }
+    if (diagnostics.length >= maxDiagnostics) diagnostics.splice(0, diagnostics.length - maxDiagnostics + 1);
     diagnostics.push(diagnostic);
     report(diagnostic);
   };
 
   const textureFor = (assetId: string, asset: PreviewAsset): WebGPUTextureLike | null => {
+    const existing = textures.get(assetId);
+    const revision = previewAssetRevision(assetId, asset);
+    const decision = decideTextureUpdate(uploadedAssetRevisions.get(assetId) ?? null, revision);
+    if (existing && decision.kind === "reuse") return existing;
     if (!asset.pixels && !device.queue.copyExternalImageToTexture) {
       pushDiagnostic({ severity: "warning", code: "webgpu_external_image_unavailable", message: "This WebGPU device cannot upload texture image assets" });
       return null;
+    }
+    if (existing && decision.kind === "recreate-and-upload") {
+      existing.destroy?.();
+      textures.delete(assetId);
+      textureSizes.delete(assetId);
+      uploadedAssetRevisions.delete(assetId);
     }
     const texture = textures.get(assetId) ?? device.createTexture({
       size: { width: asset.width, height: asset.height },
@@ -139,6 +164,10 @@ export function createWebGPUBackend(
       device.queue.copyExternalImageToTexture?.({ source: asset.source }, { texture }, { width: asset.width, height: asset.height });
     }
     textures.set(assetId, texture);
+    textureSizes.set(assetId, { width: asset.width, height: asset.height });
+    uploadedAssetRevisions.set(assetId, revision);
+    textureUploads += 1;
+    if (asset.kind === "video") videoTextureUploads += 1;
     return texture;
   };
 
@@ -909,7 +938,7 @@ export function createWebGPUBackend(
       for (const texture of submittedLayerTextures) texture.destroy?.();
       for (const buffer of submittedBuffers) transientBuffers.add(buffer);
     }
-    lastStats = { backend: "webgpu", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, diagnostics: [...diagnostics] };
+    lastStats = { backend: "webgpu", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, textureUploads, videoTextureUploads, diagnostics: [...diagnostics] };
     return lastStats;
   };
 
@@ -931,12 +960,20 @@ export function createWebGPUBackend(
     stats: () => lastStats,
     setAsset(assetId, asset) {
       assets.set(assetId, asset);
+      const previousSize = textureSizes.get(assetId);
+      if (previousSize && (previousSize.width !== asset.width || previousSize.height !== asset.height)) {
+        textures.get(assetId)?.destroy?.();
+        textures.delete(assetId);
+        textureSizes.delete(assetId);
+      }
       textureFor(assetId, asset);
     },
     removeAsset(assetId) {
       assets.delete(assetId);
       textures.get(assetId)?.destroy?.();
       textures.delete(assetId);
+      textureSizes.delete(assetId);
+      uploadedAssetRevisions.delete(assetId);
     },
     diagnostics,
     dispose() {
@@ -950,6 +987,8 @@ export function createWebGPUBackend(
       transientBuffers.clear();
       for (const texture of textures.values()) texture.destroy?.();
       textures.clear();
+      textureSizes.clear();
+      uploadedAssetRevisions.clear();
       textAtlases.clear();
     },
   };

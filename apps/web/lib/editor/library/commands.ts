@@ -134,7 +134,7 @@ function layerForPayload(
       return { ...base, type: "image", payload: { assetId: payload.asset.id, fit: "contain" } };
     }
     if (payload.asset.kind === "video") {
-      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", muted: false, framePolicy: "floor" } };
+      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", framePolicy: "floor" } };
     }
   }
   return null;
@@ -157,7 +157,15 @@ export function commandsForLibraryPayload(
 
   const ids = rootOrder(document);
   if (payload.kind === "asset" && payload.asset.kind === "audio") {
-    const trackId = document.audio.tracks[0]?.id ?? "audio-main";
+    // A library drop onto an audio lane must preserve the selected mixer
+    // track. `lane.audio.<trackId>` is a timeline projection id; fall back to
+    // the first track only for keyboard/stage drops or an empty audio domain.
+    const projectedTrackId = placement?.track === "audio" && placement.laneId
+      ? placement.laneId.replace(/^lane\.audio\./, "")
+      : null;
+    const trackId = projectedTrackId && document.audio.tracks.some((track) => track.id === projectedTrackId)
+      ? projectedTrackId
+      : document.audio.tracks[0]?.id ?? "audio-main";
     const clipBase = `audio-${payload.asset.id}`;
     let clipId = clipBase;
     let suffix = 1;
@@ -174,8 +182,9 @@ export function commandsForLibraryPayload(
         timing: { start: Math.max(0, startTime), duration: Math.max(0.5, payload.duration ?? 5) },
         trim: { start: 0 },
         playbackRate: 1,
-        loop: false,
         gainDb: 0,
+        fadeIn: { duration: 0, curve: "linear" },
+        fadeOut: { duration: 0, curve: "linear" },
       },
     });
     return commands;

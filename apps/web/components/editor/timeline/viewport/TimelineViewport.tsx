@@ -7,14 +7,23 @@ import {
   useMemo,
   useRef,
   useState,
+  memo,
+  type MutableRefObject,
+  type RefObject,
   type PointerEvent as ReactPointerEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-session-host";
 import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
 import { useTimelineSeek } from "@/hooks/editor/timeline/use-timeline-seek";
 import { useTimelineViewportMetrics } from "@/hooks/editor/timeline/use-timeline-viewport-metrics";
-import { ensurePlayheadScrubScroll } from "@/lib/editor/interaction-host/timeline-dom";
+import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
+import {
+  clientXToTimelineTime,
+  ensurePlayheadScrubScroll,
+} from "@/lib/editor/interaction-host/timeline-dom";
 import { registerTimelineLibraryDropHost } from "@/lib/editor/library/timeline-library-drop";
+import { createScrubCoordinator } from "@/lib/editor/playback/scrub-coordinator";
 import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
 import { buildLaneHeightPrefix } from "@/lib/editor/timeline/lane-height-prefix";
 import {
@@ -53,6 +62,7 @@ import { Playhead } from "./Playhead";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
 import type { TimelineDesignMode } from "../Header/TransportBar";
+import type { PlaybackTimeEvent } from "@/lib/editor/playback/playback-controller";
 
 type Props = {
   mode: TimelineDesignMode;
@@ -65,12 +75,16 @@ type Props = {
   timelineFitAnchorSeconds: number | null;
   /** Reset horizontal scroll after an explicit Fit action. */
   fitRevision: number;
-  currentTime: number;
-  isPlaying?: boolean;
+  registerPlaybackTimeSink: (sink: (event: PlaybackTimeEvent) => void) => () => void;
   selection: EditorSelection;
   onSelect: (selection: EditorSelection) => void;
   onSeek: (time: number) => void;
+  /** Visual-only seek used while dragging the playhead (never schedules audio). */
+  onScrubSeek?: (time: number) => void;
   onExecute: (command: TimelineEdit, label: string) => void;
+  onToggleAudioTrackMuted?: (trackId: string) => void;
+  onToggleVideoMuted?: (layerId: string) => void;
+  onDetachVideoAudio?: (layerId: string) => void;
   onBeginScrub?: () => void;
   onEndScrub?: () => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
@@ -80,7 +94,7 @@ type Props = {
   autoSnapping?: boolean;
 };
 
-export function TimelineViewport({
+export const TimelineViewport = memo(function TimelineViewport({
   mode,
   clips,
   lanes,
@@ -89,12 +103,15 @@ export function TimelineViewport({
   zoom,
   timelineFitAnchorSeconds,
   fitRevision,
-  currentTime,
-  isPlaying = false,
+  registerPlaybackTimeSink,
   selection,
   onSelect,
   onSeek,
+  onScrubSeek,
   onExecute,
+  onToggleAudioTrackMuted,
+  onToggleVideoMuted,
+  onDetachVideoAudio,
   onBeginScrub,
   onEndScrub,
   onClipDoubleClick,
@@ -103,8 +120,6 @@ export function TimelineViewport({
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const draggingPlayheadRef = useRef(false);
-  const lastScrubClientXRef = useRef(0);
-  const playheadEdgeRafRef = useRef<number | null>(null);
   const ppsRef = useRef(1);
   const scrubMaxRef = useRef(0);
 
@@ -114,6 +129,11 @@ export function TimelineViewport({
   >(null);
   const [movePreview, setMovePreview] = useState<ClipMovePreview | null>(null);
   const [viewportClientLeft, setViewportClientLeft] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{
+    clip: TimelineClip;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const {
     viewWidth: rawViewWidth,
@@ -137,6 +157,26 @@ export function TimelineViewport({
 
   const { beginGesture } = usePointerSessionHost();
 
+  useEffect(() => {
+    if (!contextMenu) return undefined;
+    const close = () => setContextMenu(null);
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("blur", close);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("blur", close);
+    };
+  }, [contextMenu]);
+
+  const onClipContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLElement>, clip: TimelineClip) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setContextMenu({ clip, x: event.clientX, y: event.clientY });
+    },
+    [],
+  );
+
   const layout = useMemo(
     () =>
       computeViewportLayout({
@@ -152,7 +192,7 @@ export function TimelineViewport({
   const rows = useMemo(() => {
     const built =
       mode === "layer"
-        ? buildLayerLaneRows(lanes)
+        ? buildLayerLaneRows(lanes, clips)
         : buildTrackLaneRows(lanes, clips);
     return mode === "layer" ? built : visibleTrackLaneRows(built, clips);
   }, [clips, lanes, mode]);
@@ -299,47 +339,13 @@ export function TimelineViewport({
     [clipsByLaneMap, onSelect, rows, selection],
   );
 
-  const playheadLeft = timelineTimeToViewportLeft(
-    currentTime,
-    TIMELINE_START_GUTTER_PX,
-    pps,
-    scrollLeft,
-  );
-
   ppsRef.current = pps;
   scrubMaxRef.current = scrubMax;
 
-  /** During playback, scroll the board so the playhead stays in view. */
-  useEffect(() => {
-    if (!isPlaying || draggingPlayheadRef.current) return;
-    const scroll = scrollRef.current;
-    if (!scroll) return;
-    const { scrollLeftDelta, nextScrollLeft } = computePlayheadFollowScroll({
-      time: currentTime,
-      tracksOriginX: TIMELINE_START_GUTTER_PX,
-      pixelsPerSecond: pps,
-      scrollLeft: scroll.scrollLeft,
-      clientWidth: scroll.clientWidth,
-      scrollWidth: scroll.scrollWidth,
-      marginPx: PLAYHEAD_FOLLOW_MARGIN_PX,
-    });
-    if (scrollLeftDelta === 0) return;
-    onHScrollLeft(nextScrollLeft);
-  }, [currentTime, isPlaying, pps, onHScrollLeft]);
-
-  const stopPlayheadEdgeLoop = useCallback(() => {
-    if (playheadEdgeRafRef.current != null) {
-      cancelAnimationFrame(playheadEdgeRafRef.current);
-      playheadEdgeRafRef.current = null;
-    }
-  }, []);
-
-  const scrubPlayheadFromClientX = useCallback(
-    (clientX: number) => {
+  const scrollPlayheadAtEdge = useCallback((clientX: number): boolean => {
       const scroll = scrollRef.current;
-      if (!scroll) return;
-      lastScrubClientXRef.current = clientX;
-      const { time, scrolledBy } = ensurePlayheadScrubScroll(
+      if (!scroll) return false;
+      const { scrolledBy } = ensurePlayheadScrubScroll(
         scroll,
         clientX,
         ppsRef.current,
@@ -347,66 +353,65 @@ export function TimelineViewport({
         PLAYHEAD_SCRUB_EDGE_PX,
         PLAYHEAD_SCRUB_STEP_PX,
       );
-      // scroll position updated by onScroll handler via browser event
-      void scrolledBy;
-      onSeek(time);
+      // The scroll event updates the viewport metrics asynchronously. A
+      // subsequent coordinator flush reads the new scrollLeft and computes
+      // the corresponding composition time.
+      return scrolledBy !== 0;
     },
-    [onSeek],
+    [],
   );
 
-  const ensurePlayheadEdgeLoop = useCallback(() => {
-    if (playheadEdgeRafRef.current != null) return;
-    const tick = () => {
-      playheadEdgeRafRef.current = null;
-      if (!draggingPlayheadRef.current) return;
+  const flushPlayheadScrub = useCallback(
+    (clientX: number, reason: "begin" | "frame" | "end") => {
       const scroll = scrollRef.current;
       if (!scroll) return;
-      const clientX = lastScrubClientXRef.current;
-      const rect = scroll.getBoundingClientRect();
-      const nearRight = clientX > rect.right - PLAYHEAD_SCRUB_EDGE_PX;
-      const nearLeft = clientX < rect.left + PLAYHEAD_SCRUB_EDGE_PX;
-      if (!nearRight && !nearLeft) return;
-      const maxScroll = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
-      const canRight = nearRight && scroll.scrollLeft < maxScroll;
-      const canLeft = nearLeft && scroll.scrollLeft > 0;
-      if (!canRight && !canLeft) return;
-      scrubPlayheadFromClientX(clientX);
-      playheadEdgeRafRef.current = requestAnimationFrame(tick);
-    };
-    playheadEdgeRafRef.current = requestAnimationFrame(tick);
-  }, [scrubPlayheadFromClientX]);
+      if (reason !== "frame") scrollPlayheadAtEdge(clientX);
+      const time = clientXToTimelineTime(
+        clientX,
+        scroll,
+        ppsRef.current,
+        scrubMaxRef.current,
+      );
+      (onScrubSeek ?? onSeek)(time);
+    },
+    [onScrubSeek, onSeek, scrollPlayheadAtEdge],
+  );
 
-  useEffect(() => {
-    return () => {
-      stopPlayheadEdgeLoop();
-      draggingPlayheadRef.current = false;
-    };
-  }, [stopPlayheadEdgeLoop]);
+  const scrubCoordinator = useMemo(
+    () => createScrubCoordinator({
+      onBegin: () => {
+        draggingPlayheadRef.current = true;
+        onBeginScrub?.();
+      },
+      onFlush: flushPlayheadScrub,
+      onEdgeFrame: scrollPlayheadAtEdge,
+      onEnd: () => {
+        draggingPlayheadRef.current = false;
+        onEndScrub?.();
+      },
+    }),
+    [flushPlayheadScrub, onBeginScrub, onEndScrub, scrollPlayheadAtEdge],
+  );
+
+  useEffect(() => () => {
+    scrubCoordinator.cancel();
+    draggingPlayheadRef.current = false;
+  }, [scrubCoordinator]);
 
   const onPlayheadScrubStart = useCallback(
-    (clientX: number) => {
-      draggingPlayheadRef.current = true;
-      onBeginScrub?.();
-      scrubPlayheadFromClientX(clientX);
-      ensurePlayheadEdgeLoop();
-    },
-    [ensurePlayheadEdgeLoop, onBeginScrub, scrubPlayheadFromClientX],
+    (clientX: number) => scrubCoordinator.begin(clientX),
+    [scrubCoordinator],
   );
 
   const onPlayheadScrubMove = useCallback(
-    (clientX: number) => {
-      if (!draggingPlayheadRef.current) return;
-      scrubPlayheadFromClientX(clientX);
-      ensurePlayheadEdgeLoop();
-    },
-    [ensurePlayheadEdgeLoop, scrubPlayheadFromClientX],
+    (clientX: number) => scrubCoordinator.move(clientX),
+    [scrubCoordinator],
   );
 
-  const onPlayheadScrubEnd = useCallback(() => {
-    draggingPlayheadRef.current = false;
-    stopPlayheadEdgeLoop();
-    onEndScrub?.();
-  }, [onEndScrub, stopPlayheadEdgeLoop]);
+  const onPlayheadScrubEnd = useCallback(
+    () => scrubCoordinator.end(),
+    [scrubCoordinator],
+  );
 
   return (
     <div
@@ -440,37 +445,38 @@ export function TimelineViewport({
               className="relative"
               style={{ height: verticalInsets.contentHeight }}
             >
-              <div style={{ marginLeft: TIMELINE_START_GUTTER_PX }}>
-                <TimelineTrackCanvas
-                  rows={rows}
-                  clipsByLane={clipsByLaneMap}
-                  allClips={clips}
-                  lanes={lanes}
-                  pixelsPerSecond={pps}
-                  scrollLeft={scrollLeft}
-                  viewWidth={viewWidth}
-                  contentWidth={trackWidth}
-                  topPadding={verticalInsets.top}
-                  bottomPadding={verticalInsets.bottom}
-                  selectedClipIds={selectedClipIds}
-                  previewSelectedIds={previewSelectedIds}
-                  muteWindow={null}
-                  duration={surfaceDuration}
-                  selection={selection}
-                  beginGesture={beginGesture}
-                  onSelect={onSelect}
-                  onExecute={onExecute}
-                  scrollRef={scrollRef}
-                  onMarqueePointerDown={beginMarquee}
-                  onClipSelectPointerDown={onClipSelectPointerDown}
-                  onClipDoubleClick={onClipDoubleClick}
-                  exclusiveRows={exclusiveRows || mode === "layer"}
-                  autoSnapping={autoSnapping}
-                  timelineEmpty={timelineEmpty}
-                  movePreview={movePreview}
-                  onMovePreview={setMovePreview}
-                />
-              </div>
+              <TimelineTrackCanvas
+                rows={rows}
+                clipsByLane={clipsByLaneMap}
+                allClips={clips}
+                lanes={lanes}
+                pixelsPerSecond={pps}
+                scrollLeft={scrollLeft}
+                viewWidth={viewWidth}
+                contentWidth={trackWidth}
+                topPadding={verticalInsets.top}
+                bottomPadding={verticalInsets.bottom}
+                selectedClipIds={selectedClipIds}
+                previewSelectedIds={previewSelectedIds}
+                muteWindow={null}
+                duration={surfaceDuration}
+                selection={selection}
+                beginGesture={beginGesture}
+                onSelect={onSelect}
+                onExecute={onExecute}
+                onToggleAudioTrackMuted={onToggleAudioTrackMuted}
+                onToggleVideoMuted={onToggleVideoMuted}
+                scrollRef={scrollRef}
+                onMarqueePointerDown={beginMarquee}
+                onClipSelectPointerDown={onClipSelectPointerDown}
+                onClipDoubleClick={onClipDoubleClick}
+                onClipContextMenu={onClipContextMenu}
+                exclusiveRows={exclusiveRows || mode === "layer"}
+                autoSnapping={autoSnapping}
+                timelineEmpty={timelineEmpty}
+                movePreview={movePreview}
+                onMovePreview={setMovePreview}
+              />
             </div>
 
             {marqueeRect ? (
@@ -499,9 +505,51 @@ export function TimelineViewport({
             </div>
           ) : null}
         </div>
+        {contextMenu ? (
+          <div
+            className="fixed z-[80] min-w-44 overflow-hidden rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] py-1 text-[11px] shadow-xl"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            data-testid="timeline-clip-context-menu"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <p className="truncate px-3 py-1 text-[10px] text-[var(--fg-muted)]">{contextMenu.clip.name}</p>
+            {contextMenu.clip.kind === "scene" && contextMenu.clip.mediaType === "video" ? (
+              <>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-1.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!LINKED_VIDEO_AUDIO_V2_ENABLED || !contextMenu.clip.embeddedAudio || !onDetachVideoAudio}
+                  onClick={() => {
+                    if (contextMenu.clip.kind === "scene") onDetachVideoAudio?.(contextMenu.clip.sceneId);
+                    setContextMenu(null);
+                  }}
+                >
+                  Detach audio
+                </button>
+                <button type="button" disabled className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-[var(--fg-muted)] opacity-40" title="An imported audio derivative is required">
+                  Extract audio
+                </button>
+                <button type="button" disabled className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-[var(--fg-muted)] opacity-40">
+                  Replace audio
+                </button>
+                <button type="button" disabled className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-[var(--fg-muted)] opacity-40">
+                  Restore linked audio
+                </button>
+              </>
+            ) : (
+              <p className="px-3 py-1.5 text-[var(--fg-muted)]">No linked audio actions</p>
+            )}
+          </div>
+        ) : null}
         {layoutReady ? (
-          <Playhead
-            leftPx={playheadLeft}
+          <TimelinePlayheadLayer
+            registerPlaybackTimeSink={registerPlaybackTimeSink}
+            pps={pps}
+            scrollRef={scrollRef}
+            draggingRef={draggingPlayheadRef}
+            surfaceDuration={surfaceDuration}
+            timelineEmpty={timelineEmpty}
+            onHScrollLeft={onHScrollLeft}
             muted={timelineEmpty || surfaceDuration <= 0}
             onScrubStart={onPlayheadScrubStart}
             onScrubMove={onPlayheadScrubMove}
@@ -517,5 +565,95 @@ export function TimelineViewport({
         onScrollLeft={onHScrollLeft}
       />
     </div>
+  );
+});
+
+type TimelinePlayheadLayerProps = {
+  registerPlaybackTimeSink: (sink: (event: PlaybackTimeEvent) => void) => () => void;
+  pps: number;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  draggingRef: MutableRefObject<boolean>;
+  surfaceDuration: number;
+  timelineEmpty: boolean;
+  onHScrollLeft: (next: number) => void;
+  muted: boolean;
+  onScrubStart: (clientX: number) => void;
+  onScrubMove: (clientX: number) => void;
+  onScrubEnd: () => void;
+};
+
+function TimelinePlayheadLayer({
+  registerPlaybackTimeSink,
+  pps,
+  scrollRef,
+  draggingRef,
+  surfaceDuration,
+  timelineEmpty,
+  onHScrollLeft,
+  muted,
+  onScrubStart,
+  onScrubMove,
+  onScrubEnd,
+}: TimelinePlayheadLayerProps) {
+  const positionRef = useRef<HTMLDivElement>(null);
+  const ppsRef = useRef(pps);
+  const timeRef = useRef(0);
+  const playingRef = useRef(false);
+  const followRafRef = useRef<number | null>(null);
+  ppsRef.current = pps;
+
+  useEffect(() => {
+    const updatePosition = (time: number) => {
+      const root = positionRef.current;
+      if (!root) return;
+      const left = timelineTimeToViewportLeft(
+        time,
+        TIMELINE_START_GUTTER_PX,
+        ppsRef.current,
+        scrollRef.current?.scrollLeft ?? 0,
+      );
+      root.style.left = `${left}px`;
+      root.dataset.playheadTime = String(time);
+    };
+    const follow = () => {
+      followRafRef.current = null;
+      if (!playingRef.current || draggingRef.current) return;
+      const scroll = scrollRef.current;
+      if (!scroll) return;
+      const { scrollLeftDelta, nextScrollLeft } = computePlayheadFollowScroll({
+        time: timeRef.current,
+        tracksOriginX: TIMELINE_START_GUTTER_PX,
+        pixelsPerSecond: ppsRef.current,
+        scrollLeft: scroll.scrollLeft,
+        clientWidth: scroll.clientWidth,
+        scrollWidth: scroll.scrollWidth,
+        marginPx: PLAYHEAD_FOLLOW_MARGIN_PX,
+      });
+      if (scrollLeftDelta !== 0) onHScrollLeft(nextScrollLeft);
+    };
+    const release = registerPlaybackTimeSink(({ time, playing }: PlaybackTimeEvent) => {
+      timeRef.current = time;
+      playingRef.current = playing;
+      updatePosition(time);
+      if (playing && !draggingRef.current && followRafRef.current == null) {
+        followRafRef.current = requestAnimationFrame(follow);
+      }
+    });
+    return () => {
+      release();
+      if (followRafRef.current != null) cancelAnimationFrame(followRafRef.current);
+      followRafRef.current = null;
+    };
+  }, [draggingRef, onHScrollLeft, registerPlaybackTimeSink, scrollRef]);
+
+  return (
+    <Playhead
+      leftPx={0}
+      positionRef={positionRef}
+      muted={muted || timelineEmpty || surfaceDuration <= 0}
+      onScrubStart={onScrubStart}
+      onScrubMove={onScrubMove}
+      onScrubEnd={onScrubEnd}
+    />
   );
 }

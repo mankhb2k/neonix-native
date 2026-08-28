@@ -11,8 +11,14 @@ import {
   Dot,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Panel, Tabs } from "@/components/ui";
+import { useEditorActions } from "@/hooks/editor/use-editor-actions";
+import {
+  useEditorDocument,
+  useEditorSelection,
+  useEditorStore,
+} from "@/hooks/editor/use-editor-store";
+import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
 import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
@@ -26,6 +32,12 @@ import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2"
 
 const inputClass =
   "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
+
+const DEFAULT_AUDIO_FADE = { duration: 0, curve: "linear" as const };
+
+function clampFadeDuration(value: number, clipDuration: number): number {
+  return Math.max(0, Math.min(clipDuration, Number.isFinite(value) ? value : 0));
+}
 
 /** Languages currently shipped by the web editor for text layers. */
 const SHIPPED_TEXT_LANGUAGES = [
@@ -50,7 +62,7 @@ function InspectorSection({
   className?: string;
 }) {
   return (
-    <section className={`border-b border-[var(--border-subtle)] last:border-b-0 ${className ?? ""}`}>
+    <section className={`border-b border-[var(--border-subtle)] ${className ?? ""}`}>
       <button
         type="button"
         className="flex min-h-9 w-full items-center justify-between px-0 text-left text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fg-muted)]"
@@ -306,21 +318,24 @@ function AudioInspector({
         </div>
         <NumberField label="Playback rate" step={0.01} value={clip.playbackRate} onChange={(value) => onClipPatch({ playbackRate: Math.max(0.001, value) })} />
         <NumberField label="Gain" step={0.1} suffix="dB" value={clip.gainDb} onChange={(value) => onClipPatch({ gainDb: value })} />
-        <ToggleField label="Loop" checked={clip.loop} onChange={(checked) => onClipPatch({ loop: checked })} />
         <NumberField label="Pan" step={0.01} value={track.pan} onChange={(value) => onTrackPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
         <ToggleField label="Track muted" checked={track.muted} onChange={(checked) => onTrackPatch({ muted: checked })} />
-        {clip.fadeIn ? (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Fade in" step={0.01} suffix="s" value={clip.fadeIn.duration} onChange={(value) => onClipPatch({ fadeIn: { duration: Math.max(0.001, Math.min(clip.timing.duration, value)) } })} />
-            <InspectorSelect label="Curve" value={clip.fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeIn: { curve: value as "linear" | "equal-power" } })} />
-          </div>
-        ) : <ActionButton label="Add fade in" onClick={() => onClipPatch({ fadeIn: { duration: 0.1, curve: "linear" } })} />}
-        {clip.fadeOut ? (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Fade out" step={0.01} suffix="s" value={clip.fadeOut.duration} onChange={(value) => onClipPatch({ fadeOut: { duration: Math.max(0.001, Math.min(clip.timing.duration, value)) } })} />
-            <InspectorSelect label="Curve" value={clip.fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeOut: { curve: value as "linear" | "equal-power" } })} />
-          </div>
-        ) : <ActionButton label="Add fade out" onClick={() => onClipPatch({ fadeOut: { duration: 0.1, curve: "linear" } })} />}
+        {(() => {
+          const fadeIn = clip.fadeIn ?? DEFAULT_AUDIO_FADE;
+          const fadeOut = clip.fadeOut ?? DEFAULT_AUDIO_FADE;
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                <NumberField label="Fade in" step={0.01} suffix="s" value={fadeIn.duration} onChange={(value) => onClipPatch({ fadeIn: { duration: clampFadeDuration(value, clip.timing.duration), curve: fadeIn.curve } })} />
+                <InspectorSelect label="Curve" value={fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeIn: { duration: fadeIn.duration, curve: value as "linear" | "equal-power" } })} />
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                <NumberField label="Fade out" step={0.01} suffix="s" value={fadeOut.duration} onChange={(value) => onClipPatch({ fadeOut: { duration: clampFadeDuration(value, clip.timing.duration), curve: fadeOut.curve } })} />
+                <InspectorSelect label="Curve" value={fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeOut: { duration: fadeOut.duration, curve: value as "linear" | "equal-power" } })} />
+              </div>
+            </>
+          );
+        })()}
       </InspectorSection>
     </div>
   );
@@ -328,7 +343,10 @@ function AudioInspector({
 
 /** Inspector shell for Protocol V2; common/type-specific controls remain on the existing surface. */
 export function SchemaInspector() {
-  const { document, selectedLayerIds, applyCommand, applyCoalescedCommand, diagnostics } = useEditorSurface();
+  const { applyCommand, applyCoalescedCommand } = useEditorActions();
+  const document = useEditorDocument();
+  const selectedLayerIds = useEditorSelection();
+  const diagnostics = useEditorStore((state) => state.diagnostics);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     timing: true,
     transform: true,
@@ -639,14 +657,89 @@ export function SchemaInspector() {
 
       {selected.type === "video" ? (
         <InspectorSection label="Media" open={openSections.media ?? false} onToggle={() => toggle("media")}>
-          <ReadonlyField label="Asset" value={document.assets.find((asset) => asset.id === selected.payload.assetId)?.uri ?? selected.payload.assetId} />
-          <InspectorSelect label="Fit" value={selected.payload.fit ?? "contain"} options={[{ value: "contain", label: "Contain" }, { value: "cover", label: "Cover" }, { value: "fill", label: "Fill" }, { value: "none", label: "None" }]} onChange={(value) => patchLayer({ payload: { fit: value as "contain" | "cover" | "fill" | "none" } })} />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Trim start" step={0.01} suffix="s" value={selected.payload.trimStart ?? 0} onChange={(value) => patchLayer({ payload: { trimStart: Math.max(0, value) } })} />
-            <NumberField label="Trim end" step={0.01} suffix="s" value={selected.payload.trimEnd ?? selected.timing.duration} onChange={(value) => patchLayer({ payload: { trimEnd: Math.max(0.001, value) } })} />
-          </div>
-          <ToggleField label="Loop" checked={selected.payload.loop ?? false} onChange={(checked) => patchLayer({ payload: { loop: checked } })} />
-          <ToggleField label="Muted" checked={selected.payload.muted ?? false} onChange={(checked) => patchLayer({ payload: { muted: checked } })} />
+          {(() => {
+            const source = document.assets.find((asset) => asset.id === selected.payload.assetId);
+            const sourceDuration = source?.kind === "video" ? source.duration : undefined;
+            const trimStart = Math.min(
+              selected.payload.trimStart ?? 0,
+              Math.max(0, (sourceDuration ?? Number.POSITIVE_INFINITY) - 0.001),
+            );
+            const maxTrimEnd = sourceDuration ?? Number.POSITIVE_INFINITY;
+            const currentTrimEnd = Math.min(
+              selected.payload.trimEnd ?? sourceDuration ?? selected.timing.duration,
+              maxTrimEnd,
+            );
+            return (
+              <>
+                <ReadonlyField label="Asset" value={source?.uri ?? selected.payload.assetId} />
+                {sourceDuration !== undefined ? (
+                  <ReadonlyField label="Source duration" value={`${sourceDuration.toFixed(2)} s`} />
+                ) : null}
+                <InspectorSelect label="Fit" value={selected.payload.fit ?? "contain"} options={[{ value: "contain", label: "Contain" }, { value: "cover", label: "Cover" }, { value: "fill", label: "Fill" }, { value: "none", label: "None" }]} onChange={(value) => patchLayer({ payload: { fit: value as "contain" | "cover" | "fill" | "none" } })} />
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <NumberField
+                    label="Trim start"
+                    step={0.01}
+                    suffix="s"
+                    value={trimStart}
+                    onChange={(value) => {
+                      const maxStart = Math.max(0, Math.min(maxTrimEnd, currentTrimEnd) - 0.001);
+                      patchLayer({ payload: { trimStart: Math.min(maxStart, Math.max(0, value)) } });
+                    }}
+                  />
+                  <NumberField
+                    label="Trim end"
+                    step={0.01}
+                    suffix="s"
+                    value={currentTrimEnd}
+                    onChange={(value) => {
+                      const minEnd = trimStart + 0.001;
+                      patchLayer({ payload: { trimEnd: Math.min(maxTrimEnd, Math.max(minEnd, value)) } });
+                    }}
+                  />
+                </div>
+              </>
+            );
+          })()}
+          <ToggleField
+            label="Muted"
+            checked={!(selected.payload.audio?.enabled ?? false)}
+            onChange={(checked) => patchLayer({
+              payload: {
+                audio: {
+                  enabled: !checked,
+                  gainDb: selected.payload.audio?.gainDb ?? 0,
+                  fadeIn: selected.payload.audio?.fadeIn ?? DEFAULT_AUDIO_FADE,
+                  fadeOut: selected.payload.audio?.fadeOut ?? DEFAULT_AUDIO_FADE,
+                },
+              },
+            })}
+          />
+          {LINKED_VIDEO_AUDIO_V2_ENABLED && selected.payload.audio ? (() => {
+            const audio = selected.payload.audio;
+            const fadeIn = audio.fadeIn ?? DEFAULT_AUDIO_FADE;
+            const fadeOut = audio.fadeOut ?? DEFAULT_AUDIO_FADE;
+            return (
+              <>
+                <NumberField
+                  label="Gain"
+                  step={0.1}
+                  suffix="dB"
+                  value={audio.gainDb}
+                  onChange={(value) => patchLayer({ payload: { audio: { gainDb: value } } })}
+                />
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <NumberField label="Fade in" step={0.01} suffix="s" value={fadeIn.duration} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: clampFadeDuration(value, selected.timing.duration), curve: fadeIn.curve } } } })} />
+                  <InspectorSelect label="Curve" value={fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: fadeIn.duration, curve: value as "linear" | "equal-power" } } } })} />
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <NumberField label="Fade out" step={0.01} suffix="s" value={fadeOut.duration} onChange={(value) => patchLayer({ payload: { audio: { fadeOut: { duration: clampFadeDuration(value, selected.timing.duration), curve: fadeOut.curve } } } })} />
+                  <InspectorSelect label="Curve" value={fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => patchLayer({ payload: { audio: { fadeOut: { duration: fadeOut.duration, curve: value as "linear" | "equal-power" } } } })} />
+                </div>
+                <ActionButton label="Detach audio" onClick={() => applyCommand({ type: "detach-video-audio", layerId: selected.id })} />
+              </>
+            );
+          })() : null}
           <InspectorSelect label="Frame policy" value={selected.payload.framePolicy ?? "floor"} options={[{ value: "floor", label: "Floor" }, { value: "round", label: "Round" }, { value: "ceil", label: "Ceil" }]} onChange={(value) => patchLayer({ payload: { framePolicy: value as "floor" | "round" | "ceil" } })} />
         </InspectorSection>
       ) : null}

@@ -4,6 +4,11 @@
  */
 
 export {
+  createBoundedHistory,
+  type BoundedHistory,
+} from "./bounded-history";
+
+export {
   createPlaybackClock,
   type PlaybackClock,
   type PlaybackClockOptions,
@@ -31,23 +36,6 @@ export {
 } from "./media-frame-provider";
 
 export {
-  createFrameBuffer,
-  releaseBufferedFrameData,
-  type FrameBuffer,
-  type FrameBufferEntry,
-  type FrameBufferOptions,
-  type BufferStatus,
-} from "./frame-buffer";
-
-export {
-  createBufferPolicy,
-  type BufferPolicy,
-  type BufferPolicyMode,
-  type BufferPolicyConfig,
-  type BufferPolicyState,
-} from "./buffer-policy";
-
-export {
   createMediaFallbackBridge,
   type MediaFallbackBridge,
   type VideoFrameProvider,
@@ -57,12 +45,35 @@ export {
   createPlaybackEngineV2,
   type PlaybackEngineV2,
   type PlaybackV2Consumer,
+  type PlaybackFrameContextV2,
   type PlaybackAudioPlanContextV2,
   type PlaybackAudioSchedulingPolicyV2,
   type PlaybackEngineV2Options,
+  type PlaybackPerformanceV2,
+  type PlaybackPerformanceSampleV2,
   type PlaybackV2Output,
+  type PlaybackV2Snapshot,
   type PlaybackV2Scheduler,
 } from "./playback-engine-v2";
+
+export {
+  createDOMMediaControllerV2,
+  createVideoMediaSession,
+  type PlaybackMediaCommandV2,
+  type PlaybackMediaControllerV2,
+  type PlaybackMediaStatsV2,
+  type PlaybackMediaSyncContextV2,
+  type DOMMediaControllerV2Options,
+  type VideoMediaSession,
+  type VideoMediaSessionContext,
+  type VideoMediaSessionOptions,
+  type VideoMediaSessionStats,
+} from "./media-controller-v2";
+export {
+  decideVideoPreload,
+  type VideoPreloadDecision,
+  type VideoPreloadPolicyInput,
+} from "./video-preload-policy";
 
 export {
   createWebAudioAdapterV2,
@@ -78,10 +89,62 @@ export {
   type WebAudioOfflineContextV2,
   type WebAudioPannerNodeV2,
   type WebAudioParamV2,
+  type WebAudioResourceStatsV2,
 } from "./web-audio-adapter-v2";
+
+export {
+  createAudioBufferCacheV2,
+  type AudioBufferCacheV2,
+  type AudioBufferCacheStatsV2,
+  type AudioBufferCacheV2Options,
+  type AudioBufferLikeV2,
+} from "./audio-buffer-cache-v2";
+
+export {
+  audioSourceCacheKey,
+  hasAudioDerivative,
+  resolveAudioSourceUri,
+} from "./audio-source-resolver";
 
 export {
   type ClockDrive,
   type PresentMode,
   type PreviewWorkerPort,
 } from "./preview-worker-port";
+
+export {
+  createRollingPcmBufferV2,
+  type PcmChunkV2,
+  type RollingPcmBufferV2,
+  type RollingPcmBufferOptionsV2,
+  type RollingPcmBufferStatsV2,
+} from "./rolling-pcm-buffer";
+
+export {
+  createAudioStreamingSessionV2,
+  type AudioDecodeRangeV2,
+  type AudioSegmentDecoderV2,
+  type AudioStreamingSessionV2,
+} from "./audio-streaming";
+
+export {
+  createAudioWorkletMixerV2,
+  type AudioWorkletContextV2,
+  type AudioWorkletMixerChunkV2,
+  type AudioWorkletMixerOptionsV2,
+  type AudioWorkletMixerV2,
+  type AudioWorkletNodeV2,
+  type AudioWorkletPortV2,
+} from "./audio-worklet-mixer";
+
+export {
+  chooseVideoBackendV2,
+  createVideoFrameQueueV2,
+  createWebCodecsVideoDecoderV2,
+  type VideoBackendV2,
+  type VideoFrameQueueOptionsV2,
+  type VideoFrameQueueStatsV2,
+  type VideoFrameQueueV2,
+  type VideoFrameV2,
+  type WebCodecsVideoDecoderV2,
+} from "./video-codecs-provider";

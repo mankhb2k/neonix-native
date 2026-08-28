@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useState, type RefObject , PointerEvent as ReactPointerEvent } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+import { useCallback, useState, type RefObject , PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
+import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
 import { ClipStrip, type ClipStripVisualKind } from "../clips/ClipStrip";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
-import { LANE_GAP_PX } from "../timeline-scale";
+import { LANE_GAP_PX, TIMELINE_START_GUTTER_PX } from "../timeline-scale";
 import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import type { LaneRow } from "../lanes/timeline-lane-rows";
 import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
@@ -15,7 +17,6 @@ import type { ClipMovePreview ,
   TimelineEdit,
   TimelineLane,
 } from "@motionvideo/editor-core/timeline";
-
 
 function visualKindForClip(clip: TimelineClip): ClipStripVisualKind {
   if (clip.kind === "audio") return "audio";
@@ -44,6 +45,8 @@ type Props = {
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineEdit, label: string) => void;
+  onToggleAudioTrackMuted?: (trackId: string) => void;
+  onToggleVideoMuted?: (layerId: string) => void;
   scrollRef: RefObject<HTMLElement | null>;
   onMarqueePointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onClipSelectPointerDown?: (
@@ -51,6 +54,7 @@ type Props = {
     clip: TimelineClip,
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
+  onClipContextMenu?: (event: ReactMouseEvent<HTMLElement>, clip: TimelineClip) => void;
   /** Group surface: one child per row (swap / insert, never pack). */
   exclusiveRows?: boolean;
   autoSnapping?: boolean;
@@ -81,6 +85,7 @@ type LaneRowClipsProps = {
     clip: TimelineClip,
   ) => void;
   onClipDoubleClick?: (clip: TimelineClip) => void;
+  onClipContextMenu?: (event: ReactMouseEvent<HTMLElement>, clip: TimelineClip) => void;
   exclusiveRows?: boolean;
   autoSnapping?: boolean;
   /** Clip currently being dragged — dim its source strip. */
@@ -104,6 +109,7 @@ function LaneRowClips({
   scrollRef,
   onClipSelectPointerDown,
   onClipDoubleClick,
+  onClipContextMenu,
   exclusiveRows = false,
   autoSnapping = true,
   movingClipId,
@@ -169,6 +175,7 @@ function LaneRowClips({
                 ? (_event, target) => onClipDoubleClick(target)
                 : undefined
             }
+            onContextMenu={onClipContextMenu}
           />
         );
       })}
@@ -225,10 +232,13 @@ export function TimelineTrackCanvas({
   beginGesture,
   onSelect,
   onExecute,
+  onToggleAudioTrackMuted,
+  onToggleVideoMuted,
   scrollRef,
   onMarqueePointerDown,
   onClipSelectPointerDown,
   onClipDoubleClick,
+  onClipContextMenu,
   exclusiveRows = false,
   autoSnapping = true,
   timelineEmpty = false,
@@ -249,23 +259,87 @@ export function TimelineTrackCanvas({
   const setMovePreview = onMovePreview ?? (() => undefined);
   return (
     <div
-      className="relative min-h-0"
-      style={{ width: contentWidth }}
-      data-testid="timeline-track-canvas"
-      onPointerDown={(event) => {
-        if (timelineEmpty) return;
-        if (!onMarqueePointerDown || event.button !== 0) return;
-        const target = event.target as HTMLElement;
-        if (target.closest("[data-clip-id]")) return;
-        if (target.closest("button")) return;
-        if (target.closest("[data-marquee-ignore]")) return;
-        if (target.closest("[data-testid='timeline-playhead']")) return;
-        onMarqueePointerDown(event);
+      className="relative flex min-h-0"
+      style={{
+        width: contentWidth + TIMELINE_START_GUTTER_PX,
+        boxSizing: "border-box",
       }}
     >
-      {topPadding > 0 ? (
-        <div style={{ height: topPadding }} aria-hidden />
-      ) : null}
+      <div
+        className="relative shrink-0 bg-[var(--timeline-track-gutter,var(--bg-surface))]"
+        style={{ width: TIMELINE_START_GUTTER_PX }}
+        data-testid="timeline-track-gutter"
+        aria-hidden={timelineEmpty ? true : undefined}
+      >
+        {topPadding > 0 ? <div style={{ height: topPadding }} aria-hidden /> : null}
+        {!timelineEmpty
+          ? rows.map((row, index) => {
+              const laneClips = clipsForLane(row.id);
+              const videoClip = laneClips.find(
+                (clip) => clip.kind === "scene" && clip.mediaType === "video",
+              );
+              const hasEmbeddedAudio = LINKED_VIDEO_AUDIO_V2_ENABLED && videoClip?.kind === "scene" && videoClip.mediaType === "video" && videoClip.embeddedAudio;
+              const videoLayerId = hasEmbeddedAudio && videoClip.kind === "scene" ? videoClip.sceneId : null;
+              const videoMuted = videoClip?.kind === "scene" ? videoClip.muted ?? false : false;
+              const audioTrackId = row.kind === "audio"
+                ? row.id.replace(/^lane\.audio\./, "")
+                : null;
+              const audioToggle = row.kind === "audio" && audioTrackId && onToggleAudioTrackMuted
+                ? {
+                    muted: row.muted ?? false,
+                    label: `${row.name} audio`,
+                    onClick: () => onToggleAudioTrackMuted(audioTrackId),
+                  }
+                : videoLayerId && onToggleVideoMuted
+                  ? {
+                      muted: videoMuted,
+                      label: `${videoClip?.name ?? "Video"} audio`,
+                      onClick: () => onToggleVideoMuted(videoLayerId),
+                    }
+                  : null;
+              return (
+                <div
+                  key={row.id}
+                  className="flex justify-center"
+                  style={{
+                    height: row.height,
+                    marginBottom: index === rows.length - 1 ? 0 : LANE_GAP_PX,
+                  }}
+                >
+                  {audioToggle ? (
+                    <div className="flex items-center gap-0.5">
+                      <TrackAudioButton
+                        muted={audioToggle.muted}
+                        label={audioToggle.label}
+                        onClick={audioToggle.onClick}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
+          : null}
+        {bottomPadding > 0 ? <div style={{ height: bottomPadding }} aria-hidden /> : null}
+      </div>
+
+      <div
+        className="relative min-h-0"
+        style={{ width: contentWidth }}
+        data-testid="timeline-track-canvas"
+        onPointerDown={(event) => {
+          if (timelineEmpty) return;
+          if (!onMarqueePointerDown || event.button !== 0) return;
+          const target = event.target as HTMLElement;
+          if (target.closest("[data-clip-id]")) return;
+          if (target.closest("button")) return;
+          if (target.closest("[data-marquee-ignore]")) return;
+          if (target.closest("[data-testid='timeline-playhead']")) return;
+          onMarqueePointerDown(event);
+        }}
+      >
+        {topPadding > 0 ? (
+          <div style={{ height: topPadding }} aria-hidden />
+        ) : null}
 
       {muteWindow ? (
         <>
@@ -300,52 +374,54 @@ export function TimelineTrackCanvas({
           const laneClips = clipsForLane(row.id);
           const isLast = index === rows.length - 1;
           return (
-            <div
-              key={row.id}
-              className="relative bg-[var(--timeline-track-lane)]"
-              style={{
-                height: row.height,
-                marginBottom: isLast ? 0 : LANE_GAP_PX,
-              }}
-              data-track-lane="true"
-              data-lane-id={row.id}
-              data-lane-order={row.order}
-              data-track-role={
-                row.kind === "audio"
-                  ? "audio"
-                  : row.role === "base"
-                    ? "base"
-                    : "overlay"
-              }
-              data-track-type={
-                row.kind === "audio"
-                  ? "audio"
-                  : row.role === "base"
-                    ? "main"
-                    : "overlay"
-              }
-            >
-              <LaneRowClips
-                row={row}
-                laneClips={laneClips}
-                allClips={allClips}
-                lanes={lanes}
-                pixelsPerSecond={pixelsPerSecond}
-                selectedClipIds={effectiveSelectedIds}
-                previewSelectedIds={effectivePreviewIds}
-                selection={selection}
-                beginGesture={beginGesture}
-                onSelect={onSelect}
-                onExecute={onExecute}
-                onMovePreview={setMovePreview}
-                scrollRef={scrollRef}
-                onClipSelectPointerDown={onClipSelectPointerDown}
-                onClipDoubleClick={onClipDoubleClick}
-                exclusiveRows={exclusiveRows}
-                autoSnapping={autoSnapping}
-                movingClipId={movePreview?.clipId}
-                movePreview={movePreview}
-              />
+            <div key={row.id}>
+              <div
+                className="relative bg-[var(--timeline-track-lane)]"
+                style={{
+                  height: row.height,
+                  marginBottom: isLast ? 0 : LANE_GAP_PX,
+                }}
+                data-track-lane="true"
+                data-lane-id={row.id}
+                data-lane-order={row.order}
+                data-track-role={
+                  row.kind === "audio"
+                    ? "audio"
+                    : row.role === "base"
+                      ? "base"
+                      : "overlay"
+                }
+                data-track-type={
+                  row.kind === "audio"
+                    ? "audio"
+                    : row.role === "base"
+                      ? "main"
+                      : "overlay"
+                }
+              >
+                <LaneRowClips
+                    row={row}
+                    laneClips={laneClips}
+                    allClips={allClips}
+                    lanes={lanes}
+                    pixelsPerSecond={pixelsPerSecond}
+                    selectedClipIds={effectiveSelectedIds}
+                    previewSelectedIds={effectivePreviewIds}
+                    selection={selection}
+                    beginGesture={beginGesture}
+                    onSelect={onSelect}
+                    onExecute={onExecute}
+                    onMovePreview={setMovePreview}
+                    scrollRef={scrollRef}
+                    onClipSelectPointerDown={onClipSelectPointerDown}
+                    onClipDoubleClick={onClipDoubleClick}
+                    onClipContextMenu={onClipContextMenu}
+                    exclusiveRows={exclusiveRows}
+                    autoSnapping={autoSnapping}
+                    movingClipId={movePreview?.clipId}
+                    movePreview={movePreview}
+                />
+              </div>
             </div>
           );
         })
@@ -354,6 +430,32 @@ export function TimelineTrackCanvas({
       {bottomPadding > 0 ? (
         <div style={{ height: bottomPadding }} aria-hidden />
       ) : null}
+      </div>
     </div>
+  );
+}
+
+function TrackAudioButton({
+  muted,
+  label,
+  onClick,
+}: {
+  muted: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="pointer-events-auto flex h-7 w-10 items-center justify-center self-center rounded-md bg-transparent text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+      aria-label={`${muted ? "Unmute" : "Mute"} ${label}`}
+      aria-pressed={muted}
+      data-marquee-ignore="true"
+      data-testid={`timeline-audio-toggle-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={onClick}
+    >
+      {muted ? <VolumeX size={14} strokeWidth={1.8} /> : <Volume2 size={14} strokeWidth={1.8} />}
+    </button>
   );
 }

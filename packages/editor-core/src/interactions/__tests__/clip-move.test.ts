@@ -140,6 +140,36 @@ describe("resolveClipMoveDrag", () => {
     expect(result.preview.laneId).toBe("lane-v");
   });
 
+  it("allows audio clips to overlap on the same mixer track", () => {
+    const result = resolveClipMoveDrag({
+      ...base,
+      clip: { kind: "audio" },
+      originLaneId: "lane.audio.main",
+      originTrack: "audio",
+      pointerContentX: 350,
+      drop: {
+        laneId: "lane.audio.main",
+        track: "audio",
+        laneRole: "audio",
+        laneOrder: -1,
+      },
+      occupancyClips: [{
+        id: "other-audio",
+        laneId: "lane.audio.main",
+        startTime: 2,
+        duration: 5,
+      }],
+      excludeIds: new Set(["c1"]),
+    });
+
+    expect(result.commit.valid).toBe(true);
+    expect(result.commit.startTime).toBe(3);
+    expect(result.commit.laneId).toBe("lane.audio.main");
+    expect(result.commit.track).toBe("audio");
+    expect(result.commit.insertNewLane).toBe(false);
+    expect(result.preview.isInsert).toBe(false);
+  });
+
   it("updates startTime when content X advances (scroll-safe)", () => {
     const before = resolveClipMoveDrag({
       ...base,

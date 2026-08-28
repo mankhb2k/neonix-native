@@ -3,7 +3,7 @@
 > Trạng thái: đề xuất, chưa bắt đầu.
 >
 > Mục tiêu: biến nút `Path` ở Stage toolbar thành Pen tool vẽ trực tiếp trên
-> Preview. Không tạo EditorShell hay Stage mới; tái sử dụng `EditorSurfaceProvider`,
+> Preview. Không tạo EditorShell hay Stage mới; tái sử dụng `EditorProviders`,
 > `V2StageViewport`, `StageTransformOverlay`, command/history và Protocol V2 hiện có.
 
 ## Quyết định UX đã chốt

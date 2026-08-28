@@ -36,7 +36,24 @@
 - Driver đọc `state.playbackRate` mỗi tick nên slope hiện hành đúng.
 - **Chưa support đổi tốc độ giữa lúc đang play.** Nếu mở UI `0.5x/2x`, phải bump `seekRevision` khi đổi rate (hoặc thêm nhánh `playbackRate` vào subscribe) để driver re-anchor từ mốc hiện tại — nếu không frame kế tiếp sẽ nhảy sai.
 
-## 4. Frame/time parity
+## 4. React boundary (V2)
+
+`EditorProviders` is the composition root for the editor session. It exposes
+three narrow boundaries:
+
+- `useEditorStore(selector)` for document, selection, visibility, history and
+  persistence state.
+- `useEditorActions()` for authoring commands and selection/layer mutations.
+- `usePlaybackController()` for imperative media registration, frame/time
+  sinks, transport actions and diagnostics.
+
+The stage receives every realtime frame through the playback sink and paints
+directly into the renderer. Timeline/header UI reads the throttled
+`useTransportStore` snapshot. No realtime frame is stored in React state, and
+there is no broad `EditorSurfaceContext` combining authoring and playback.
+
+## 5. Frame/time parity
+
 
 - `playbackFrameIndex` / `playbackFrameTime` (trong `editor-core/playback/time-frame.ts`) là floor-based, khớp `frameIndexAtTime` của `motion-runtime`.
 - Fallback an toàn cho `NaN` time, `fps <= 0`, `time < 0` — parity được khóa bởi test trong `editor-core/src/__tests__/playback-time-frame.test.ts`.

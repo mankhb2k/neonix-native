@@ -4,3 +4,4 @@ export {
   compileProtocolV2ToPaintCommands,
   type CompileProtocolV2Options,
 } from "./compile-v2";
+export { compileProtocolV2ToRuntimeV3, CompileProtocolV2ToRuntimeV3Error } from "./compile-v3";

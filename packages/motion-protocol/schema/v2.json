@@ -219,6 +219,40 @@
                   },
                   "fps": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                  },
+                  "audio": {
+                    "type": "object",
+                    "properties": {
+                      "uri": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "mimeType": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "duration": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "sampleRate": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0
+                      },
+                      "channels": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 32
+                      },
+                      "integrity": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "uri"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -1423,11 +1457,44 @@
                         "type": "number",
                         "exclusiveMinimum": 0
                       },
-                      "loop": {
-                        "type": "boolean"
-                      },
-                      "muted": {
-                        "type": "boolean"
+                      "audio": {
+                        "type": "object",
+                        "properties": {
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "gainDb": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                            "default": 0
+                          },
+                          "fadeIn": {
+                            "type": "object",
+                            "properties": {
+                              "duration": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing/properties/start"
+                              },
+                              "curve": {
+                                "type": "string",
+                                "enum": [
+                                  "linear",
+                                  "equal-power"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "duration",
+                              "curve"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "fadeOut": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/5/properties/payload/properties/audio/properties/fadeIn"
+                          }
+                        },
+                        "required": [
+                          "enabled"
+                        ],
+                        "additionalProperties": false
                       },
                       "framePolicy": {
                         "type": "string",
@@ -1475,7 +1542,8 @@
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
                   "gainDb": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                    "default": 0
                   },
                   "pan": {
                     "type": "number",
@@ -1530,34 +1598,15 @@
                         "playbackRate": {
                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                         },
-                        "loop": {
-                          "type": "boolean"
-                        },
                         "gainDb": {
-                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                          "default": 0
                         },
                         "fadeIn": {
-                          "type": "object",
-                          "properties": {
-                            "duration": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                            },
-                            "curve": {
-                              "type": "string",
-                              "enum": [
-                                "linear",
-                                "equal-power"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "duration",
-                            "curve"
-                          ],
-                          "additionalProperties": false
+                          "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/5/properties/payload/properties/audio/properties/fadeIn"
                         },
                         "fadeOut": {
-                          "$ref": "#/definitions/MotionProtocolV2/properties/audio/properties/tracks/items/properties/clips/items/properties/fadeIn"
+                          "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/5/properties/payload/properties/audio/properties/fadeIn"
                         }
                       },
                       "required": [
@@ -1565,9 +1614,7 @@
                         "assetId",
                         "timing",
                         "trim",
-                        "playbackRate",
-                        "loop",
-                        "gainDb"
+                        "playbackRate"
                       ],
                       "additionalProperties": false
                     }
@@ -1575,7 +1622,6 @@
                 },
                 "required": [
                   "id",
-                  "gainDb",
                   "pan",
                   "muted",
                   "clips"

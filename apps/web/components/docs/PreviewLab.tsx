@@ -15,7 +15,7 @@ import {
   createPlaybackEngineV2,
   createWebAudioAdapterV2,
   type PlaybackEngineV2,
-} from "@motionvideo/playback-engine";
+} from "@motionvideo/playback-engine-next";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
 import type {
@@ -170,7 +170,6 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
           timing: { start: 0, duration: assetDuration },
           trim: { start: 0, end: assetDuration },
           playbackRate: 1,
-          loop: false,
           gainDb: 0,
         }
       : undefined
@@ -190,6 +189,11 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
           adapter. Asset-only audition remains a native fallback because it has
           no atomic clip to schedule.
         </p>
+        {tracks.length > 1 ? (
+          <p className="mt-2 text-[12px] text-cyan-100/80">
+            This is a multi-input mix example. Compare <code>Audio mix / two tracks</code> with <code>Audio mix / video + music</code> in the Audio group.
+          </p>
+        ) : null}
       </div>
       <div className="space-y-4 p-4">
         {asset && auditionClip ? (
@@ -209,6 +213,32 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
             data-testid="audio-fixture-element"
           />
         )}
+        {tracks.length > 1 ? (
+          <div className="space-y-2 border border-cyan-300/20 bg-[#0b1620] p-3" data-testid="audio-mix-topology">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold tracking-[0.12em] text-cyan-200 uppercase">AudioMixPlan topology</p>
+              <span className="font-mono text-[11px] text-slate-400">{tracks.length} independent inputs</span>
+            </div>
+            <p className="text-[12px] text-slate-400">Each row is a runtime track. Overlapping clip bars stay separate until the audio engine mixes them.</p>
+            <div className="space-y-2">
+              {tracks.map((track) => {
+                const duration = Math.max(1, ...track.clips.map((clip) => clip.timing.start + clip.timing.duration));
+                return (
+                  <div key={track.id} className="grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-2">
+                    <span className="truncate font-mono text-[11px] text-slate-300">{track.id}</span>
+                    <div className="relative h-6 rounded border border-white/10 bg-black/20">
+                      {track.clips.map((clip) => (
+                        <span key={clip.id} className="absolute top-0.5 h-5 overflow-hidden rounded bg-cyan-400/30 px-1 font-mono text-[10px] leading-5 text-cyan-100" style={{ left: `${(clip.timing.start / duration) * 100}%`, width: `${Math.max(4, (clip.timing.duration / duration) * 100)}%` }} title={`${clip.id}: ${clip.timing.start}s +${clip.timing.duration}s`}>
+                          {clip.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
           <AudioMetric label="Sample rate" value={`${fixture.project.audio.sampleRate} Hz`} />
           <AudioMetric label="Tracks" value={String(tracks.length)} />
@@ -231,7 +261,6 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
                     {clip.id}: t={clip.timing.start}s +{clip.timing.duration}s, trim {clip.trim.start}
                     {clip.trim.end != null ? `-${clip.trim.end}` : "+"}, rate {clip.playbackRate}
                     {`, gain ${clip.gainDb} dB, total ${track.gainDb + clip.gainDb} dB`}
-                    {clip.loop ? ", loop" : ""}
                     {clip.fadeIn || clip.fadeOut
                       ? `, fade in ${clip.fadeIn?.duration ?? 0}s / out ${clip.fadeOut?.duration ?? 0}s`
                       : ""}
@@ -280,7 +309,6 @@ function AudioClipTransport({
   );
   const trimStart = clip.trim.start;
   const trimEnd = clip.trim.end ?? trimStart + clip.timing.duration * clip.playbackRate;
-  const sourceSpan = Math.max(0.01, trimEnd - trimStart);
 
   useEffect(() => {
     if (!usesRuntimeAudio) return undefined;
@@ -342,9 +370,7 @@ function AudioClipTransport({
       return;
     }
     const sourceOffset = next * clip.playbackRate;
-    audio.currentTime = clip.loop
-      ? trimStart + (sourceOffset % sourceSpan)
-      : Math.min(trimStart + sourceOffset, trimEnd);
+    audio.currentTime = Math.min(trimStart + sourceOffset, trimEnd);
     audio.volume = fadeGainAt(clip, next);
     setElapsed(next);
   }
@@ -399,15 +425,10 @@ function AudioClipTransport({
           const audio = audioRef.current;
           if (!audio) return;
           if (audio.currentTime >= trimEnd - 0.02) {
-            if (clip.loop) {
-              audio.currentTime = trimStart;
-              setElapsed(0);
-            } else {
-              audio.pause();
-              audio.volume = 0;
-              setIsPlaying(false);
-              setElapsed(clip.timing.duration);
-            }
+            audio.pause();
+            audio.volume = 0;
+            setIsPlaying(false);
+            setElapsed(clip.timing.duration);
             return;
           }
           const nextElapsed = Math.min(
@@ -448,7 +469,6 @@ function AudioClipTransport({
         {muted ? "Track output: muted. " : ""}
         Source range: {formatAudioTime(trimStart)} - {formatAudioTime(trimEnd)}
         {assetDuration != null ? ` of ${formatAudioTime(assetDuration)}` : ""}
-        {clip.loop ? " / loop" : ""}
       </p>
     </div>
   );
@@ -605,6 +625,10 @@ function PreviewPlayback({
           time={currentTime}
           frame={playbackFrame ?? undefined}
           isPlaying={isPlaying}
+          // The preview lab intentionally opts into readback for its pixel
+          // parity/debug assertions. Editor stages keep the production
+          // default (`preserveDrawingBuffer: false`).
+          preserveDrawingBuffer={true}
           onBackendReady={setActiveBackend}
         />
       </div>

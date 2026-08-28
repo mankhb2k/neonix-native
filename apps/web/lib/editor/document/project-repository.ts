@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 
 type JsonObject = Record<string, unknown>;
 
@@ -42,6 +42,7 @@ export type EditorProjectListItem = Pick<
   "projectId" | "publicRef" | "workspaceId" | "title" | "revisionNo"
 > & {
   updatedAt: string;
+  layerCount: number;
 };
 
 export type ProjectRepositoryErrorCode =
@@ -137,14 +138,14 @@ async function latestRevision(
 }
 
 function parseDocument(value: unknown): MotionProtocolV2 {
-  const parsed = MotionProtocolV2Schema.safeParse(value);
-  if (!parsed.success) {
+  try {
+    return parseMotionProtocol(value);
+  } catch {
     throw new ProjectRepositoryError(
       "Project source is not a valid Motion Protocol V2 document",
       "INVALID_DOCUMENT",
     );
   }
-  return parsed.data;
 }
 
 export async function loadProject(
@@ -184,6 +185,33 @@ export async function listProjects(
     );
   }
   const rows = (data ?? []) as unknown as ProjectRow[];
+
+  if (rows.length === 0) return [];
+
+  const { data: revisions, error: revisionsError } = await client
+    .from("project_revisions")
+    .select("project_id, revision_no, document_json")
+    .in("project_id", rows.map((project) => project.id))
+    .order("revision_no", { ascending: false });
+
+  if (revisionsError) {
+    throw new ProjectRepositoryError(
+      "Unable to read project revisions",
+      "DATABASE_ERROR",
+    );
+  }
+
+  const revisionRows = (revisions ?? []) as Array<{
+    project_id: string;
+    document_json: unknown;
+  }>;
+  const latestByProject = new Map<string, unknown>();
+  for (const revision of revisionRows) {
+    if (!latestByProject.has(revision.project_id)) {
+      latestByProject.set(revision.project_id, revision.document_json);
+    }
+  }
+
   return rows.map((project) => ({
     projectId: project.id,
     publicRef: project.public_ref,
@@ -191,6 +219,12 @@ export async function listProjects(
     title: project.title,
     revisionNo: project.current_revision_no,
     updatedAt: project.updated_at,
+    layerCount: (() => {
+      const document = latestByProject.get(project.id);
+      return document && typeof document === "object" && "layers" in document && Array.isArray(document.layers)
+        ? document.layers.length
+        : 0;
+    })(),
   }));
 }
 

@@ -5,8 +5,8 @@ import type {
   DownloadUrlResponse,
   ValidateAssetsRequest,
   ValidateAssetsResponse,
+  StorageAsset,
 } from "./types";
-import type { AssetV1 } from "@motionvideo/motion-protocol";
 
 export type AssetStorageClientOptions = {
   baseUrl: string;
@@ -19,15 +19,15 @@ export type AssetStorageClient = {
   uploadBytes: (uploadUrl: string, body: Buffer | Uint8Array, headers?: Record<string, string>) => Promise<void>;
   completeUpload: (assetId: string) => Promise<CompleteUploadResponse>;
   getDownloadUrl: (assetId: string) => Promise<DownloadUrlResponse>;
-  validateAssets: (assets: AssetV1[]) => Promise<ValidateAssetsResponse>;
+  validateAssets: (assets: StorageAsset[]) => Promise<ValidateAssetsResponse>;
   deleteAsset: (assetId: string) => Promise<void>;
   /**
-   * Convenience: create → PUT bytes → complete → AssetV1.
+   * Convenience: create → PUT bytes → complete → StorageAsset.
    */
   ingestBytes: (
     input: CreateUploadRequest,
     body: Buffer | Uint8Array,
-  ) => Promise<AssetV1>;
+  ) => Promise<StorageAsset>;
 };
 
 async function readError(res: Response): Promise<string> {

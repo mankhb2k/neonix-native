@@ -2,6 +2,8 @@ export {
   projectLayersToTimeline,
   MAIN_LANE_ID,
   type LayerTimelineProjection,
+  type TimelineAssetPreview,
+  type TimelineProjectionOptions,
 } from "./selectors/layer-timeline-projection";
 export {
   DEFAULT_VISUAL_POLICY,
@@ -12,6 +14,7 @@ export {
   type SceneTimelineClip,
   type VisualTimelineLane,
   type VisualMediaType,
+  type TimelinePosterStatus,
   type TimelineTrackKind,
 } from "./model/timeline-types";
 export {
@@ -31,6 +34,11 @@ export {
   type ComputeRulerTickWindowInput,
   type RulerTick,
 } from "./policies/ruler-ticks";
+export { getVideoTimelineDurationLimit } from "./policies/video-duration";
+export {
+  resolveAudioClipPlacement,
+  type AudioPlacement,
+} from "./policies/audio-placement-policy";
 
 // Canonical timeline surface. This barrel replaces the former
 // runtime barrel; browser hosts should import timeline models,

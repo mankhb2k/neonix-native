@@ -5,11 +5,13 @@ export {
   V2ImageAssetSchema,
   V2FontAssetSchema,
   V2VideoAssetSchema,
+  V2VideoAudioDerivativeSchema,
   V2AudioAssetSchema,
   type V2Asset,
   type V2ImageAsset,
   type V2FontAsset,
   type V2VideoAsset,
+  type V2VideoAudioDerivative,
   type V2AudioAsset,
 } from "./assets";
 export {
@@ -17,10 +19,12 @@ export {
   V2AudioDomainSchema,
   V2AudioFadeCurveSchema,
   V2AudioFadeSchema,
+  V2EmbeddedVideoAudioSchema,
   V2AudioTrackSchema,
   type V2AudioClip,
   type V2AudioDomain,
   type V2AudioFade,
+  type V2EmbeddedVideoAudio,
   type V2AudioFadeCurve,
   type V2AudioTrack,
 } from "./audio";

@@ -92,13 +92,14 @@ describe("Protocol V2 preview lab fixtures", () => {
       "audio.asset",
       "audio.timing",
       "audio.trim",
-      "audio.loop",
       "audio.gain",
       "audio.pan",
       "audio.fade",
       "audio.track.mute",
       "audio.track.overlap",
       "audio.video-source",
+      "audio.mix.two-tracks",
+      "audio.mix.video-plus-music",
       "matrix4.2d.identity",
       "matrix4.2d.rotate-z",
       "matrix4.2d.skew",
@@ -121,6 +122,15 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect(buffer.commands[0]?.op).toBe("beginFrame");
       expect(buffer.commands.at(-1)?.op).toBe("endFrame");
     }
+  });
+
+  it("includes explicit two-track mix examples for docs preview", () => {
+    const twoTracks = previewLabCaseById("audio.mix.two-tracks");
+    const videoPlusMusic = previewLabCaseById("audio.mix.video-plus-music");
+    expect(twoTracks.project.audio.tracks.map((track) => track.id)).toEqual(["dialogue", "music"]);
+    expect(videoPlusMusic.project.audio.tracks.map((track) => track.id)).toEqual(["video-audio", "music"]);
+    expect(videoPlusMusic.project.audio.tracks.flatMap((track) => track.clips).map((clip) => clip.assetId)).toContain("example-video-audio-source");
+    expect(videoPlusMusic.project.audio.tracks.flatMap((track) => track.clips).map((clip) => clip.assetId)).toContain("music-mbb-island-tropical");
   });
 
   it("organizes the sidebar by render concept instead of implementation task", () => {

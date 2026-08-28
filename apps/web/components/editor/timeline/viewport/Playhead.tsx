@@ -3,11 +3,13 @@
 import {
   useCallback,
   useRef,
+  type RefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 
 type Props = {
   leftPx: number;
+  positionRef?: RefObject<HTMLDivElement | null>;
   muted?: boolean;
   onScrubStart?: (clientX: number) => void;
   onScrubMove?: (clientX: number) => void;
@@ -46,6 +48,7 @@ function PlayheadHandleIcon({ muted }: { muted?: boolean }) {
  */
 export function Playhead({
   leftPx,
+  positionRef,
   muted,
   onScrubStart,
   onScrubMove,
@@ -88,6 +91,7 @@ export function Playhead({
 
   return (
     <div
+      ref={positionRef}
       className="pointer-events-none absolute inset-y-0 z-[45]"
       style={{ left: leftPx }}
       data-testid="timeline-playhead"

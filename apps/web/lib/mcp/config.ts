@@ -13,9 +13,7 @@ function trimTrailingSlash(value: string): string {
 
 export function getMcpConfig(requestUrl?: string): McpConfig | null {
   const issuer = process.env.SUPABASE_OAUTH_ISSUER?.trim();
-  const configuredResource =
-    process.env.MCP_SERVER_URL?.trim() ||
-    process.env.MCP_TOKEN_AUDIENCE?.trim();
+  const configuredResource = process.env.MCP_SERVER_URL?.trim();
 
   if (!issuer) return null;
 

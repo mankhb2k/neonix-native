@@ -76,9 +76,8 @@ function fixture(): MotionProtocolV2 {
               id: "score-clip",
               assetId: "score",
               timing: { start: 0, duration: 60 },
-              trim: { start: 0 },
+              trim: { start: 0, end: 60 },
               playbackRate: 1,
-              loop: true,
               gainDb: 0,
             },
           ],
@@ -101,6 +100,20 @@ describe("Protocol V2 layer timeline projection", () => {
       id: "lane.main",
       role: "base",
       order: 0,
+    });
+  });
+
+  it("projects track mute onto audio clips for unambiguous timeline chrome", () => {
+    const project = fixture();
+    project.audio.tracks[0]!.muted = true;
+
+    const clip = projectLayersToTimeline(project).clips.find(
+      (item) => item.kind === "audio",
+    );
+    expect(clip).toMatchObject({
+      kind: "audio",
+      audioTrackId: "music",
+      muted: true,
     });
   });
 
@@ -161,5 +174,77 @@ describe("Protocol V2 layer timeline projection", () => {
     );
     expect(projection.duration).toBe(60);
     expect(JSON.stringify(project)).toBe(before);
+  });
+
+  it("keeps embedded video audio collapsed into the video lane", () => {
+    const project = fixture();
+    project.assets.push({
+      id: "video",
+      kind: "video",
+      uri: "/video.mp4",
+      mimeType: "video/mp4",
+      duration: 20,
+      fps: 30,
+    });
+    project.layers.push({
+      id: "video-layer",
+      type: "video",
+      parentLayerId: null,
+      order: 3,
+      frame: { width: 1920, height: 1080 },
+      transform: TRANSFORM,
+      opacity: 1,
+      timing: { start: 4, duration: 8 },
+      payload: {
+        assetId: "video",
+        trimStart: 2,
+        trimEnd: 10,
+        audio: { enabled: true, gainDb: -3 },
+      },
+    });
+
+    const projection = projectLayersToTimeline(project, {
+      assetPreviews: new Map([
+        ["video", { url: "https://signed.example/poster.webp", status: "ready" as const }],
+      ]),
+    });
+    const videoClip = projection.clips.find((clip) => clip.id === "video-layer");
+    expect(videoClip).toMatchObject({
+      kind: "scene",
+      mediaType: "video",
+      muted: false,
+      posterUrl: "https://signed.example/poster.webp",
+      posterStatus: "ready",
+      startTime: 4,
+      duration: 8,
+    });
+    expect(projection.clips.filter((clip) => clip.kind === "audio")).toHaveLength(1);
+    expect(projection.lanes.filter((lane) => lane.kind === "audio")).toHaveLength(1);
+  });
+
+  it("does not expose audio controls for a video without an audio component", () => {
+    const project = fixture();
+    project.assets.push({
+      id: "silent-video",
+      kind: "video",
+      uri: "/silent-video.mp4",
+      mimeType: "video/mp4",
+      duration: 10,
+      fps: 30,
+    });
+    project.layers.push({
+      id: "silent-video-layer",
+      type: "video",
+      parentLayerId: null,
+      order: 3,
+      frame: { width: 1920, height: 1080 },
+      transform: TRANSFORM,
+      opacity: 1,
+      timing: { start: 0, duration: 10 },
+      payload: { assetId: "silent-video" },
+    });
+
+    const clip = projectLayersToTimeline(project).clips.find((item) => item.id === "silent-video-layer");
+    expect(clip).toMatchObject({ muted: false, embeddedAudio: false });
   });
 });

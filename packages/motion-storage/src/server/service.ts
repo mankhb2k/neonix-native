@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { AssetV1 } from "@motionvideo/motion-protocol";
 import type {
   CompleteUploadResponse,
   CreateUploadRequest,
@@ -8,6 +7,7 @@ import type {
   DownloadUrlResponse,
   StoredAssetRecord,
   ValidateAssetsResponse,
+  StorageAsset,
 } from "../types";
 import type { AssetMetadataStore } from "./metadata";
 import type { StorageProvider } from "./providers/types";
@@ -168,7 +168,7 @@ export class AssetService {
     }
 
     const integrity = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-    const asset = buildManagedAssetV1(record, head.sizeBytes, integrity);
+    const asset = buildManagedAsset(record, head.sizeBytes, integrity);
     const now = this.clock().toISOString();
     const next: StoredAssetRecord = {
       ...record,
@@ -229,7 +229,7 @@ export class AssetService {
     };
   }
 
-  async validateAssets(assets: AssetV1[]): Promise<ValidateAssetsResponse> {
+async validateAssets(assets: StorageAsset[]): Promise<ValidateAssetsResponse> {
     const issues: ValidateAssetsResponse["issues"] = [];
     for (const asset of assets) {
       if (asset.storage?.managed !== true) continue;
@@ -315,11 +315,11 @@ export class AssetService {
   }
 }
 
-function buildManagedAssetV1(
+function buildManagedAsset(
   record: StoredAssetRecord,
   sizeBytes: number,
   integrity: string,
-): AssetV1 {
+): StorageAsset {
   const base = {
     id: record.id,
     integrity,

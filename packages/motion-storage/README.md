@@ -1,7 +1,7 @@
 # `@motionvideo/motion-storage`
 
 Closed-loop asset ingest: receive bytes → unique `assetId` → object store →
-`AssetV1` for the project JSON. Storage does **not** own product TTL or the
+`StorageAsset` for the project JSON. Storage does **not** own product TTL or the
 user library — that belongs to the web app DB. Missing file → re-upload → new id.
 
 The V1 asset-storage guide was retired with the V2 hard-cut. See

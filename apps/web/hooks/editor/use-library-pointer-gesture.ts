@@ -6,9 +6,9 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-// This hook is the editor's UI adapter and intentionally consumes the surface context.
-// eslint-disable-next-line no-restricted-imports
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { useEditorActions } from "@/hooks/editor/use-editor-actions";
+import { useEditorDocument } from "@/hooks/editor/use-editor-store";
+import { useTransportStore } from "@/hooks/editor/use-transport-store";
 import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
 import { commandsForLibraryPayload } from "@/lib/editor/library/commands";
 import {
@@ -42,7 +42,9 @@ export function useLibraryPointerGesture(payload: LibraryPayload): {
   payloadRef.current = payload;
   const disposeRef = useRef<(() => void) | null>(null);
   const ownerIdRef = useRef(createLibraryDragOwnerId());
-  const { document, currentTime, applyCommands, setSelectedLayerIds } = useEditorSurface();
+  const { applyCommands, setSelectedLayerIds } = useEditorActions();
+  const document = useEditorDocument();
+  const currentTime = useTransportStore((state) => state.currentTime);
 
   const commit = (item: LibraryPayload, placement?: PlacementTarget) => {
     const commands = commandsForLibraryPayload(document, item, placement);

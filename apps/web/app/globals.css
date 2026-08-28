@@ -41,7 +41,7 @@
   --timeline-clip-overlay: #6b21a8;
   --timeline-clip-overlay-hover: #7e22ce;
   --timeline-clip-overlay-fg: #f5d0fe;
-  --timeline-playhead: var(--fg-primary);
+  --timeline-playhead: #ffffff;
   --timeline-ruler-tick: rgba(23, 23, 23, 0.38);
   --timeline-ruler-label: rgba(23, 23, 23, 0.58);
   --timeline-transport-h: 36px;

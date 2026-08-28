@@ -87,7 +87,9 @@ export async function startRenderOnLambda(input: {
     inputProps: { runtime: input.runtime },
     codec: input.manifest.output.codec === "prores" ? "prores" : "h264",
     privacy: "private",
-    framesPerLambda: 20,
+    // Let Remotion choose the chunk size. A fixed value of 20 makes long
+    // timelines spawn one Lambda per 20 frames (900 workers for 10 minutes at
+    // 30 FPS), exceeding the provider's per-render concurrency limit.
   });
 
   await updateRenderJob(input.job.jobId, {

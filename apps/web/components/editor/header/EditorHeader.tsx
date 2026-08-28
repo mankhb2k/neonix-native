@@ -2,7 +2,7 @@
 
 import { ChevronDown, Home, Scaling, Upload, User } from "lucide-react";
 import { DashboardLink } from "@/components/AppLink";
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { useEditorDocument } from "@/hooks/editor/use-editor-store";
 import { cn } from "@/lib/utils";
 
 const menuBtn =
@@ -12,7 +12,7 @@ const iconBtn =
 
 /** Existing header chrome, decoupled from the former V1 store. */
 export function EditorHeader() {
-  const { document } = useEditorSurface();
+  const document = useEditorDocument();
   const meta = `${document.id} · Protocol V2 · ${document.composition.width}×${document.composition.height}`;
 
   return (

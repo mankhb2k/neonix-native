@@ -130,6 +130,7 @@ function requireCertifiedAudioCapability(capability: string): void {
 function lowerAudioSource(
   asset: Extract<MotionProtocolV2["assets"][number], { kind: "audio" | "video" }>,
 ): RuntimeAudioSourceV2 {
+  const derivative = asset.kind === "video" ? asset.audio : undefined;
   return {
     assetId: asset.id,
     kind: asset.kind,
@@ -143,7 +144,20 @@ function lowerAudioSource(
       ? { channels: asset.channels }
       : {}),
     ...(asset.integrity ? { integrity: asset.integrity } : {}),
+    ...(derivative ? {
+      audioUri: derivative.uri,
+      ...(derivative.mimeType ? { audioMimeType: derivative.mimeType } : {}),
+      ...(derivative.duration !== undefined ? { audioDuration: derivative.duration } : {}),
+      ...(derivative.sampleRate !== undefined ? { audioSampleRate: derivative.sampleRate } : {}),
+      ...(derivative.channels !== undefined ? { audioChannels: derivative.channels } : {}),
+      ...(derivative.integrity ? { audioIntegrity: derivative.integrity } : {}),
+    } : {}),
   };
+}
+
+/** Zero-length protocol fades are an explicit no-op and are omitted at runtime. */
+function isActiveFade(fade: { duration: number } | undefined): fade is { duration: number } {
+  return fade !== undefined && fade.duration > 0;
 }
 
 function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
@@ -158,9 +172,8 @@ function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
       requireCertifiedAudioCapability("audio.asset");
       requireCertifiedAudioCapability("audio.timing");
       requireCertifiedAudioCapability("audio.trim");
-      requireCertifiedAudioCapability("audio.loop");
       requireCertifiedAudioCapability("audio.gain");
-      if (clip.fadeIn || clip.fadeOut) requireCertifiedAudioCapability("audio.fade");
+      if (isActiveFade(clip.fadeIn) || isActiveFade(clip.fadeOut)) requireCertifiedAudioCapability("audio.fade");
 
       const asset = assetsById.get(clip.assetId);
       if (!asset || (asset.kind !== "audio" && asset.kind !== "video")) {
@@ -174,10 +187,10 @@ function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
         timing: { ...clip.timing },
         trim: { ...clip.trim },
         playbackRate: clip.playbackRate,
-        loop: clip.loop,
+        loop: false,
         gainDb: clip.gainDb,
-        ...(clip.fadeIn ? { fadeIn: { ...clip.fadeIn } } : {}),
-        ...(clip.fadeOut ? { fadeOut: { ...clip.fadeOut } } : {}),
+        ...(isActiveFade(clip.fadeIn) ? { fadeIn: { ...clip.fadeIn } } : {}),
+        ...(isActiveFade(clip.fadeOut) ? { fadeOut: { ...clip.fadeOut } } : {}),
       };
     });
 
@@ -204,6 +217,49 @@ function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
     sampleRate: project.audio.sampleRate,
     tracks,
   };
+}
+
+function lowerEmbeddedVideoAudio(
+  project: MotionProtocolV2,
+  layerContexts: ReadonlyMap<string, LayerContext>,
+): RuntimeAudioTrackV2[] {
+  const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
+  return project.layers.flatMap((layer) => {
+    if (layer.type !== "video" || !layer.payload.audio) return [];
+    for (const capability of ["audio.asset", "audio.timing", "audio.trim", "audio.gain"]) {
+      requireCertifiedAudioCapability(capability);
+    }
+    if (isActiveFade(layer.payload.audio.fadeIn) || isActiveFade(layer.payload.audio.fadeOut)) {
+      requireCertifiedAudioCapability("audio.fade");
+    }
+    const asset = assetsById.get(layer.payload.assetId);
+    if (!asset || asset.kind !== "video") {
+      throw new Error(`Embedded video audio ${layer.id} references an invalid video asset`);
+    }
+    const context = layerContexts.get(layer.id);
+    if (!context || context.timing.duration <= 0) return [];
+    return [{
+      id: `embedded-audio:${layer.id}`,
+      gainDb: 0,
+      pan: 0,
+      muted: !layer.payload.audio.enabled,
+      clips: [{
+        id: `embedded-audio:${layer.id}:clip`,
+        assetId: asset.id,
+        source: lowerAudioSource(asset),
+        timing: { ...context.timing },
+        trim: {
+          start: layer.payload.trimStart ?? 0,
+          ...(layer.payload.trimEnd !== undefined ? { end: layer.payload.trimEnd } : {}),
+        },
+        playbackRate: 1,
+        loop: false,
+        gainDb: layer.payload.audio.gainDb,
+        ...(isActiveFade(layer.payload.audio.fadeIn) ? { fadeIn: { ...layer.payload.audio.fadeIn } } : {}),
+        ...(isActiveFade(layer.payload.audio.fadeOut) ? { fadeOut: { ...layer.payload.audio.fadeOut } } : {}),
+      }],
+    }];
+  });
 }
 
 function lowerMask(
@@ -361,8 +417,6 @@ export function compileProtocolV2(
         "video.asset",
         "video.fit",
         "video.trim",
-        "video.loop",
-        "video.mute",
         "video.framePolicy",
       ]) {
         if (!isV2AtomCertified(capability)) {
@@ -404,8 +458,9 @@ export function compileProtocolV2(
             ? { sourceDuration: asset.duration }
             : {}),
           sourceFps,
-          loop: layer.payload.loop ?? false,
-          muted: layer.payload.muted ?? true,
+          // Native video audio is never an output path. Embedded audio is
+          // lowered into RuntimeAudioProjectV2 below and played via WebAudio.
+          muted: true,
           framePolicy: layer.payload.framePolicy ?? "floor",
           ...(effects ? { effects } : {}),
         },
@@ -675,7 +730,14 @@ export function compileProtocolV2(
     };
   }).filter((node): node is RuntimeNodeV2 => node !== null);
 
-  const audio = lowerAudio(project);
+  const audioBase = lowerAudio(project);
+  const audio: RuntimeAudioProjectV2 = {
+    ...audioBase,
+    tracks: [
+      ...audioBase.tracks,
+      ...lowerEmbeddedVideoAudio(project, contextCache),
+    ],
+  };
   const visualDuration = nodes.reduce(
     (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),
     0,

@@ -9,7 +9,7 @@ export function rangesOverlap(
   return aStart < bStart + bDur && bStart < aStart + aDur;
 }
 
-/** Generic free-lane — overlay và audio dùng chung thuật toán. */
+/** Generic free-lane helper for explicit lane creation/retargeting. */
 export function findFreeLaneAmong(
   candidates: TimelineLane[],
   clips: TimelineClip[],

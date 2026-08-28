@@ -4,13 +4,14 @@ const AUDIO_CASES = [
   "audio.asset",
   "audio.timing",
   "audio.trim",
-  "audio.loop",
   "audio.gain",
   "audio.pan",
   "audio.fade",
   "audio.track.mute",
   "audio.track.overlap",
   "audio.video-source",
+  "audio.mix.two-tracks",
+  "audio.mix.video-plus-music",
 ] as const;
 
 test.describe("Protocol V2 audio fixture preview", () => {
@@ -79,7 +80,7 @@ test.describe("Protocol V2 audio fixture preview", () => {
   });
 
   test("keeps the V2 transport aligned through play, pause, and seek", async ({ page }) => {
-    await page.goto("/docs/preview?case=audio.loop");
+    await page.goto("/docs/preview?case=audio.trim");
     const toggle = page.getByTestId("audio-clip-play-toggle");
     const slider = page.getByTestId("audio-clip-time-slider");
 
@@ -87,9 +88,9 @@ test.describe("Protocol V2 audio fixture preview", () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", "Pause audio clip");
 
-    await slider.fill("6");
-    await expect(slider).toHaveValue("6");
-    await expect(page.getByTestId("audio-clip-transport")).toContainText("0:06 / 0:12");
+    await slider.fill("4");
+    await expect(slider).toHaveValue("4");
+    await expect(page.getByTestId("audio-clip-transport")).toContainText("0:04 / 0:05");
 
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-label", "Play audio clip");

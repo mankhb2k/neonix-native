@@ -17,20 +17,25 @@ export function resolveClipTrimUpdate(input: {
   originDuration: number;
   deltaSec: number;
   minDuration: number;
+  maxDuration?: number;
 }): { startTime: number; duration: number } {
   const originEnd = input.originStart + input.originDuration;
   if (input.edge === "right") {
     return {
       startTime: input.originStart,
-      duration: Math.max(
-        input.minDuration,
-        input.originDuration + input.deltaSec,
+      duration: Math.min(
+        input.maxDuration ?? Number.POSITIVE_INFINITY,
+        Math.max(input.minDuration, input.originDuration + input.deltaSec),
       ),
     };
   }
   const nextStart = Math.min(
     originEnd - input.minDuration,
-    Math.max(0, input.originStart + input.deltaSec),
+    Math.max(
+      0,
+      originEnd - (input.maxDuration ?? Number.POSITIVE_INFINITY),
+      input.originStart + input.deltaSec,
+    ),
   );
   return {
     startTime: nextStart,

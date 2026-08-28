@@ -2,9 +2,18 @@ import { FolderKanban, Plus } from "lucide-react";
 import Link from "next/link";
 import { dashboardHref } from "@/components/AppLink";
 import { HubFrame } from "@/components/hub/HubFrame";
+import { listProjects } from "@/lib/editor/document/project-repository";
 import { appUrl } from "@/lib/hosts";
 
-const projects = [
+type ProjectCardData = {
+  title: string;
+  href: string;
+  layers: string;
+  updated: string;
+  accent: string;
+};
+
+const fallbackProjects: ProjectCardData[] = [
   {
     title: "Three Kingdoms",
     href: "/editor/three-kingdoms",
@@ -33,9 +42,9 @@ const projects = [
     updated: "Updated 3 days ago",
     accent: "from-amber-300/20 via-slate-900 to-cyan-500/15",
   },
-] as const;
+];
 
-function ProjectCard({ project }: { project: (typeof projects)[number] }) {
+function ProjectCard({ project }: { project: ProjectCardData }) {
   return (
     <a
       href={appUrl(project.href)}
@@ -65,7 +74,29 @@ function ProjectCard({ project }: { project: (typeof projects)[number] }) {
 }
 
 /** Shared application shell for the Neonix project hub. */
-export function HubShell() {
+export async function HubShell() {
+  let projects = fallbackProjects;
+  try {
+    const rows = await listProjects(50);
+    if (rows.length > 0) {
+      projects = rows.map((project, index) => ({
+        title: project.title,
+        href: `/editor/${project.projectId}`,
+        layers: `${project.layerCount} ${project.layerCount === 1 ? "layer" : "layers"}`,
+        updated: formatUpdated(project.updatedAt),
+        accent: [
+          "from-cyan-400/25 via-slate-900 to-violet-500/20",
+          "from-cyan-300/20 via-slate-900 to-slate-900",
+          "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
+          "from-amber-300/20 via-slate-900 to-cyan-500/15",
+        ][index % 4],
+      }));
+    }
+  } catch {
+    // DevDemoAuth bootstraps the browser session after the initial render.
+    // Keep the static cards for that first unauthenticated response.
+  }
+
   return (
     <HubFrame>
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -116,4 +147,13 @@ export function HubShell() {
             </div>
     </HubFrame>
   );
+}
+
+function formatUpdated(value: string): string {
+  const updatedAt = new Date(value);
+  if (Number.isNaN(updatedAt.getTime())) return "Updated recently";
+  const days = Math.floor((Date.now() - updatedAt.getTime()) / 86_400_000);
+  if (days <= 0) return "Updated today";
+  if (days === 1) return "Updated yesterday";
+  return `Updated ${days} days ago`;
 }

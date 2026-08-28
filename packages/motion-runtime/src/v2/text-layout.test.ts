@@ -48,7 +48,6 @@ describe("Runtime V2 text layout", () => {
     const frame = evaluateRuntimeProjectV2(project, 0);
     expect(frame.commands.map((command) => command.op)).toEqual([
       "beginFrame",
-      "setTransform",
       "endFrame",
     ]);
     expect(frame.diagnostics.map((diagnostic) => diagnostic.code)).toContain("runtime_v2_text_unprepared");

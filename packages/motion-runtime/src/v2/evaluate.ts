@@ -53,15 +53,12 @@ function resolveVideoMedia(
     return { mediaTime: trimStart, visible: false };
   }
 
-  let elapsed = localTime;
+  const elapsed = localTime;
   if (elapsed >= span) {
-    if (!video.loop || !Number.isFinite(span)) {
-      return {
-        mediaTime: Math.max(trimStart, (trimEnd ?? trimStart) - 1 / video.sourceFps),
-        visible: false,
-      };
-    }
-    elapsed %= span;
+    return {
+      mediaTime: Math.max(trimStart, (trimEnd ?? trimStart) - 1 / video.sourceFps),
+      visible: false,
+    };
   }
 
   let mediaTime = trimStart + quantizeVideoFrame(elapsed * video.sourceFps, video.framePolicy) / video.sourceFps;
@@ -137,6 +134,21 @@ export function evaluateRuntimeProjectV2(
   const emitDrawable = (node: RuntimeNodeV2) => {
     if (node.content.kind === "group") return;
     const content = node.content;
+
+    // An unprepared text node cannot produce a drawText command because its
+    // glyph layout is not available yet. Do not emit its transform/effect
+    // scope either: an orphan setTransform makes the frame invalid and can
+    // crash renderer consumers during an editor mount/reload race.
+    if (content.kind === "text" && !content.layout) {
+      diagnostics.push({
+        severity: "warning",
+        code: "runtime_v2_text_unprepared",
+        message: `Runtime V2 text layer ${node.id} has no resolved glyph layout`,
+        layerId: node.id,
+        key: node.id,
+      });
+      return;
+    }
 
     const nodeViewProjection = multiplyMatrix4(
       project.view.worldToClipMatrix,
@@ -229,16 +241,6 @@ export function evaluateRuntimeProjectV2(
         ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
       });
     } else if (content.kind === "text") {
-      if (!content.layout) {
-        diagnostics.push({
-          severity: "warning",
-          code: "runtime_v2_text_unprepared",
-          message: `Runtime V2 text layer ${node.id} has no resolved glyph layout`,
-          layerId: node.id,
-          key: node.id,
-        });
-        return;
-      }
       commands.push({
         op: "drawText",
         key: node.id,
@@ -257,8 +259,8 @@ export function evaluateRuntimeProjectV2(
         fill: content.fill,
         width: content.width,
         height: content.height,
-        glyphs: content.layout.glyphs,
-        lines: content.layout.lines,
+        glyphs: content.layout!.glyphs,
+        lines: content.layout!.lines,
       });
     } else if (content.kind === "image") {
       commands.push({

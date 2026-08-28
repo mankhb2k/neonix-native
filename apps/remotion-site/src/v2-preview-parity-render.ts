@@ -15,6 +15,7 @@ import { countPixels, decodeRgbaPng, pixel } from "./png";
 
 const SITE_ROOT = path.resolve(import.meta.dirname, "..");
 const WEB_PUBLIC = path.resolve(SITE_ROOT, "../web/public");
+const AUDIO_FIXTURE = path.resolve(SITE_ROOT, "../../assets/music/Music-MBB-Island-Tropical_128k.mp3");
 const OUT_DIR = path.resolve(SITE_ROOT, "../../tmp/remotion-v2-preview-parity");
 const BACKGROUND = [16, 24, 32] as const;
 
@@ -23,20 +24,74 @@ function isWithinRoot(file: string, root: string): boolean {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
+function mediaContentType(file: string): string {
+  const extension = path.extname(file).toLowerCase();
+  return {
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".aac": "audio/aac",
+    ".ogg": "audio/ogg",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+  }[extension] ?? "application/octet-stream";
+}
+
+function parseByteRange(value: string | undefined, size: number): { start: number; end: number } | null {
+  if (!value?.startsWith("bytes=")) return null;
+  const [range] = value.slice("bytes=".length).split(",", 1);
+  const [startText, endText] = range?.split("-", 2) ?? [];
+  const start = Number(startText);
+  const end = endText ? Number(endText) : size - 1;
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || start >= size) return null;
+  return { start, end: Math.min(end, size - 1) };
+}
+
 function startAssetServer(): Promise<{ server: Server; baseUrl: string }> {
   return new Promise((resolve, reject) => {
     const server = createServer(async (request, response) => {
       try {
+        if (request.method === "OPTIONS") {
+          response.writeHead(204, {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "Range, Content-Type",
+            "Access-Control-Max-Age": "3600",
+          }).end();
+          return;
+        }
         const requestPath = decodeURIComponent(new URL(request.url ?? "/", "http://127.0.0.1").pathname);
-        const file = path.resolve(WEB_PUBLIC, `.${requestPath}`);
-        if (!isWithinRoot(file, WEB_PUBLIC)) { response.writeHead(403).end(); return; }
+        const file = requestPath === "/api/docs/audio"
+          ? AUDIO_FIXTURE
+          : path.resolve(WEB_PUBLIC, `.${requestPath}`);
+        if (requestPath !== "/api/docs/audio" && !isWithinRoot(file, WEB_PUBLIC)) {
+          response.writeHead(403).end();
+          return;
+        }
         const info = await stat(file);
         if (!info.isFile()) { response.writeHead(404).end(); return; }
-        response.writeHead(200, {
+        const range = parseByteRange(request.headers.range, info.size);
+        const headers = {
           "Access-Control-Allow-Origin": "*",
-          "Content-Length": info.size,
-        });
-        createReadStream(file).pipe(response);
+          "Accept-Ranges": "bytes",
+          "Content-Type": mediaContentType(file),
+          ...(range
+            ? {
+                "Content-Length": range.end - range.start + 1,
+                "Content-Range": `bytes ${range.start}-${range.end}/${info.size}`,
+              }
+            : { "Content-Length": info.size }),
+        };
+        const status = range ? 206 : 200;
+        response.writeHead(status, headers);
+        if (request.method === "HEAD") {
+          response.end();
+          return;
+        }
+        createReadStream(file, range ? { start: range.start, end: range.end } : undefined).pipe(response);
       } catch { response.writeHead(404).end(); }
     });
     server.once("error", reject);
@@ -117,13 +172,14 @@ async function main(): Promise<void> {
       const frameIndex = frameIndexAtTime(previewTime, project.composition.fps);
       const frame = evaluateRuntimeProjectV2(runtime, frameIndex, { time: previewTime });
       const drawable = frame.commands.some((command) => command.op.startsWith("draw"));
-      if (!drawable && fixture.id !== "matrix4.camera-plane" && fixture.id !== "image.missing-asset") throw new Error(`${fixture.id}: no drawable command`);
+      const visualFixture = !fixture.audioFixture;
+      if (!drawable && visualFixture && fixture.id !== "matrix4.camera-plane" && fixture.id !== "image.missing-asset") throw new Error(`${fixture.id}: no drawable command`);
       const composition = await selectComposition({ serveUrl, id: "MotiClipVideo", inputProps: { runtime } });
       const output = path.join(OUT_DIR, `${fixture.id.replaceAll(".", "-")}.png`);
       await renderStill({ chromiumOptions: { gl: "angle" }, composition, frame: frameIndex, inputProps: { runtime }, output, serveUrl });
       const info = await stat(output);
       if (info.size < 1_000) throw new Error(`${fixture.id}: PNG is unexpectedly small`);
-      assertVisibleOutput(fixture.id, decodeRgbaPng(await readFile(output)));
+      if (visualFixture) assertVisibleOutput(fixture.id, decodeRgbaPng(await readFile(output)));
       rendered += 1;
       console.log(`[e2e] ${fixture.id} -> ${output}`);
     }

@@ -18,9 +18,11 @@ import {
   createAssetUpload,
   deleteAsset as deleteAssetRequest,
   listAssets,
+  uploadAssetPreview,
   uploadAssetBytes,
   type Asset,
 } from "@/lib/api/assets";
+import { createBrowserVideoPreview } from "@/lib/media/browser-preview";
 
 type ViewMode = "list" | "grid";
 
@@ -38,7 +40,15 @@ function fileIcon(mimeType: string) {
   return FileIcon;
 }
 
-function AssetPreview({ asset, variant }: { asset: Asset; variant: "list" | "card" }) {
+function AssetPreview({
+  asset,
+  variant,
+  onDuration,
+}: {
+  asset: Asset;
+  variant: "list" | "card";
+  onDuration?: (duration: number) => void;
+}) {
   const [failed, setFailed] = useState(false);
   const Icon = fileIcon(asset.mime_type);
   const canPreview = asset.status === "ready" && Boolean(asset.download_url);
@@ -67,15 +77,62 @@ function AssetPreview({ asset, variant }: { asset: Asset; variant: "list" | "car
       controls
       preload="metadata"
       onError={() => setFailed(true)}
+      onLoadedMetadata={(event) => {
+        const duration = event.currentTarget.duration;
+        if (Number.isFinite(duration)) onDuration?.(duration);
+      }}
       className={variant === "card" ? "h-full w-full object-contain" : "h-10 w-16 rounded-lg object-cover"}
     />
   );
 }
 
-function AssetMeta({ asset }: { asset: Asset }) {
+function MediaDurationProbe({
+  asset,
+  onDuration,
+}: {
+  asset: Asset;
+  onDuration: (assetId: string, duration: number) => void;
+}) {
+  const mediaRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const media = mediaRef.current;
+    if (!media || !asset.download_url) return undefined;
+    const element = media;
+
+    function handleLoadedMetadata() {
+      if (Number.isFinite(element.duration)) onDuration(asset.id, element.duration);
+    }
+
+    element.addEventListener("loadedmetadata", handleLoadedMetadata);
+    element.load();
+    return () => element.removeEventListener("loadedmetadata", handleLoadedMetadata);
+  }, [asset.download_url, asset.id, onDuration]);
+
+  return <audio ref={mediaRef} src={asset.download_url ?? undefined} preload="metadata" className="sr-only" aria-hidden="true" />;
+}
+
+function formatDuration(seconds: number): string {
+  const totalSeconds = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+  const paddedSeconds = String(remainingSeconds).padStart(2, "0");
+
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${paddedSeconds}` : `${minutes}:${paddedSeconds}`;
+}
+
+function AssetMeta({ asset, duration }: { asset: Asset; duration?: number }) {
   return (
     <p className="mt-1 font-mono text-caption text-[var(--fg-muted)]">
-      {formatBytes(asset.byte_size)} <span aria-hidden="true">·</span>{" "}
+      {formatBytes(asset.byte_size)}
+      <span aria-hidden="true"> · </span>
+      {asset.mime_type.startsWith("video/") || asset.mime_type.startsWith("audio/") ? (
+        <>
+          {duration !== undefined ? formatDuration(duration) : "—"}
+          <span aria-hidden="true"> · </span>
+        </>
+      ) : null}
       {asset.status === "ready" ? "Ready" : "Uploading"}
     </p>
   );
@@ -113,7 +170,12 @@ export function AssetsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [durations, setDurations] = useState<Record<string, number>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDuration = useCallback((assetId: string, duration: number) => {
+    setDurations((current) => (current[assetId] === duration ? current : { ...current, [assetId]: duration }));
+  }, []);
 
   const loadAssets = useCallback(async () => {
     setAssets(await listAssets());
@@ -143,9 +205,24 @@ export function AssetsWorkspace() {
     setUploading(file.name);
     let session: Awaited<ReturnType<typeof createAssetUpload>> | null = null;
     let completed = false;
-    try {
-      session = await createAssetUpload(file);
+  try {
+      const browserPreview = file.type.startsWith("video/")
+        ? await createBrowserVideoPreview(file)
+        : null;
+      const preview = browserPreview?.poster
+        ? {
+            size: browserPreview.poster.size,
+            mimeType: "image/webp" as const,
+            width: browserPreview.width ?? 1,
+            height: browserPreview.height ?? 1,
+            ...(browserPreview.durationMs !== null
+              ? { durationMs: browserPreview.durationMs }
+              : {}),
+          }
+        : undefined;
+      session = await createAssetUpload(file, preview);
       await uploadAssetBytes(session, file);
+      if (browserPreview?.poster) await uploadAssetPreview(session, browserPreview.poster);
       await completeAssetUpload(session.assetId);
       completed = true;
       await loadAssets();
@@ -180,6 +257,15 @@ export function AssetsWorkspace() {
 
   return (
     <div>
+      {assets
+        .filter((asset) => asset.mime_type.startsWith("audio/") && asset.status === "ready" && asset.download_url)
+        .map((asset) => (
+          <MediaDurationProbe
+            key={asset.id}
+            asset={asset}
+            onDuration={handleDuration}
+          />
+        ))}
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-caption font-semibold tracking-[0.16em] text-[var(--hub-accent)] uppercase">
@@ -276,11 +362,15 @@ export function AssetsWorkspace() {
               return (
                 <div key={asset.id} className="flex items-center gap-4 px-5 py-4">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--hub-hover)] text-[var(--hub-accent)]">
-                    <AssetPreview asset={asset} variant="list" />
+                    <AssetPreview
+                      asset={asset}
+                      variant="list"
+                      onDuration={(duration) => handleDuration(asset.id, duration)}
+                    />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
-                    <AssetMeta asset={asset} />
+                    <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
                   <AssetActions asset={asset} onDelete={(id) => void deleteAsset(id)} />
                 </div>
@@ -293,13 +383,17 @@ export function AssetsWorkspace() {
           {visibleAssets.map((asset) => {
             return (
               <article key={asset.id} className="overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] transition hover:border-[color-mix(in_srgb,var(--hub-accent)_40%,transparent)]">
-                <div className="flex aspect-[4/3] items-center justify-center bg-[var(--hub-hover)] text-[var(--hub-accent)]">
-                  <AssetPreview asset={asset} variant="card" />
+                <div className="flex aspect-square items-center justify-center overflow-hidden bg-[var(--hub-hover)] text-[var(--hub-accent)]">
+                  <AssetPreview
+                    asset={asset}
+                    variant="card"
+                    onDuration={(duration) => handleDuration(asset.id, duration)}
+                  />
                 </div>
                 <div className="space-y-3 p-4">
                   <div className="min-w-0">
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
-                    <AssetMeta asset={asset} />
+                    <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
                   <AssetActions asset={asset} onDelete={(id) => void deleteAsset(id)} />
                 </div>

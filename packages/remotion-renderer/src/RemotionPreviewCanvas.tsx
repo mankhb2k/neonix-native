@@ -141,7 +141,11 @@ async function loadRemotionAssets(
         const video = document.createElement("video");
         video.crossOrigin = "anonymous";
         video.preload = "auto";
-        video.muted = command.muted ?? true;
+        // Remotion uses this element as a frame decoder only. Embedded audio
+        // is rendered by RemotionAudioTrack from the runtime mix plan; letting
+        // this element produce sound would create a second, drifting player.
+        video.muted = true;
+        video.volume = 0;
         video.playsInline = true;
         video.src = command.uri;
         video.load();

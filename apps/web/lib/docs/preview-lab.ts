@@ -464,8 +464,6 @@ const VIDEO_PROJECT = project(
       fit: "cover",
       trimStart: 0,
       trimEnd: 3,
-      loop: false,
-      muted: true,
       framePolicy: "floor",
     },
   }],

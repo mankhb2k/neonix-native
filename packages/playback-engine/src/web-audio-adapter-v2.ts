@@ -5,6 +5,17 @@ import type {
   RuntimeAudioSourceV2,
 } from "@motionvideo/motion-runtime";
 import type { PlaybackAudioPlanContextV2 } from "./playback-engine-v2";
+import { createBoundedHistory } from "./bounded-history";
+import {
+  createAudioBufferCacheV2,
+  type AudioBufferCacheStatsV2,
+} from "./audio-buffer-cache-v2";
+import {
+  audioSourceCacheKey,
+  hasAudioDerivative,
+  resolveAudioSourceUri,
+} from "./audio-source-resolver";
+import { createAudioWorkletMixerV2, type AudioWorkletMixerV2 } from "./audio-worklet-mixer";
 
 export type WebAudioDiagnosticCodeV2 =
   | "audio-context-unavailable"
@@ -34,6 +45,7 @@ export type WebAudioBufferV2 = {
   sampleRate: number;
   numberOfChannels: number;
   length: number;
+  getChannelData?(channel: number): Float32Array;
 };
 
 export type WebAudioNodeV2 = {
@@ -67,6 +79,7 @@ export type WebAudioContextV2 = {
   createStereoPanner(): WebAudioPannerNodeV2;
   decodeAudioData(data: ArrayBuffer): Promise<WebAudioBufferV2>;
   resume(): Promise<void>;
+  audioWorklet?: { addModule(url: string): Promise<void> };
 };
 
 export type WebAudioOfflineContextV2 = WebAudioContextV2 & {
@@ -85,10 +98,33 @@ export type WebAudioAdapterV2Options = {
     targetSampleRate: number,
   ) => Promise<WebAudioBufferV2>;
   scheduleLeadSeconds?: number;
+  /** Maximum number of decoded buffers retained for reuse. */
+  maxCachedBuffers?: number;
+  /** Maximum estimated decoded PCM bytes retained for reuse. */
+  maxCachedBytes?: number;
+  /** Maximum number of diagnostics retained in memory. */
+  maxDiagnostics?: number;
+  /** Optional sample-accurate mixer. BufferSource nodes remain the fallback. */
+  workletMixer?: AudioWorkletMixerV2;
+  /** Automatically use AudioWorklet when the browser exposes it. */
+  preferAudioWorklet?: boolean;
   onDiagnostic?: (diagnostic: WebAudioDiagnosticV2) => void;
 };
 
+export type WebAudioResourceStatsV2 = {
+  cachedBuffers: number;
+  activeSources: number;
+  /** Sources that reached the scheduler after their composition start time. */
+  lateScheduleCount: number;
+  /** Largest lateness observed since this adapter was created. */
+  maxScheduleLateMs: number;
+};
+
 export type WebAudioAdapterV2 = {
+  /** Decode the sources in a paused preview plan without creating nodes. */
+  prefetchAudioMixPlan(plan: RuntimeAudioMixPlanV2): void;
+  /** Resolve and decode every audible input before transport starts. */
+  prepareAudioMixPlan(plan: RuntimeAudioMixPlanV2): Promise<boolean>;
   consumeAudioMixPlan(
     plan: RuntimeAudioMixPlanV2,
     context: PlaybackAudioPlanContextV2,
@@ -96,6 +132,8 @@ export type WebAudioAdapterV2 = {
   resume(): Promise<boolean>;
   pause(): void;
   seek(time: number): void;
+  getResourceStats(): WebAudioResourceStatsV2;
+  getBufferCacheStats(): AudioBufferCacheStatsV2;
   dispose(): void;
   readonly state: "ready" | "suspended" | "unavailable" | "disposed";
   readonly diagnostics: readonly WebAudioDiagnosticV2[];
@@ -201,10 +239,6 @@ function gainAt(
   return segment.gainEnvelope.baseGain * fadeMultiplier(segment, progress);
 }
 
-function assetCacheKey(source: RuntimeAudioSourceV2): string {
-  return [source.assetId, source.uri, source.integrity ?? "", OUTPUT_SAMPLE_RATE].join("|");
-}
-
 function sourceRangeAt(
   segment: RuntimeAudioMixSegmentV2,
   sample: number,
@@ -223,8 +257,14 @@ function sourceRangeAt(
 export function createWebAudioAdapterV2(
   options: WebAudioAdapterV2Options = {},
 ): WebAudioAdapterV2 {
-  const diagnostics: WebAudioDiagnosticV2[] = [];
-  const cache = new Map<string, Promise<WebAudioBufferV2>>();
+  const diagnosticHistory = createBoundedHistory<WebAudioDiagnosticV2>(
+    options.maxDiagnostics ?? 64,
+  );
+  const cache = createAudioBufferCacheV2<WebAudioBufferV2>({
+    maxCachedBuffers: options.maxCachedBuffers ?? 8,
+    maxCachedBytes: options.maxCachedBytes,
+  });
+  const activeCacheKeys = new Set<string>();
   const activeSources = new Set<ScheduledSource>();
   const scheduledThroughByClip = new Map<string, number>();
   const fetchSource = options.fetchSource ?? defaultFetchSource;
@@ -234,8 +274,11 @@ export function createWebAudioAdapterV2(
   let context: WebAudioContextV2 | null = options.audioContext ?? null;
   let anchorContextTime: number | null = null;
   let generation = 0;
+  let latestEngineGeneration = -1;
   let disposed = false;
   let state: WebAudioAdapterV2["state"] = "suspended";
+  let lateScheduleCount = 0;
+  let maxScheduleLateMs = 0;
 
   const report = (
     code: WebAudioDiagnosticCodeV2,
@@ -247,7 +290,7 @@ export function createWebAudioAdapterV2(
       message,
       ...(source ? { assetId: source.assetId, uri: source.uri } : {}),
     };
-    diagnostics.push(diagnostic);
+    diagnosticHistory.push(diagnostic);
     options.onDiagnostic?.(diagnostic);
   };
 
@@ -265,6 +308,15 @@ export function createWebAudioAdapterV2(
     state = "ready";
   }
 
+  const ownedWorkletMixer = !options.workletMixer && options.preferAudioWorklet !== false && context?.audioWorklet
+    ? createAudioWorkletMixerV2({
+        context: context as unknown as import("./audio-worklet-mixer").AudioWorkletContextV2,
+      })
+    : undefined;
+  const workletMixer = options.workletMixer ?? (
+    ownedWorkletMixer
+  );
+
   const stopAllSources = (): void => {
     for (const scheduled of activeSources) {
       try {
@@ -277,6 +329,8 @@ export function createWebAudioAdapterV2(
       scheduled.panner.disconnect?.();
     }
     activeSources.clear();
+    for (const key of activeCacheKeys) cache.unpin(key);
+    activeCacheKeys.clear();
   };
 
   const resetTransport = (time: number | null): void => {
@@ -288,13 +342,28 @@ export function createWebAudioAdapterV2(
 
   const loadBuffer = (source: RuntimeAudioSourceV2): Promise<WebAudioBufferV2> => {
     if (!context) return Promise.reject(new Error("Web Audio context unavailable"));
-    const key = assetCacheKey(source);
-    const cached = cache.get(key);
-    if (cached) return cached;
-    const promise = fetchSource(source.uri)
+    if (!hasAudioDerivative(source)) {
+      const error = new Error(
+        `Video asset ${source.assetId} has no import-time audio derivative`,
+      );
+      report(
+        "audio-decode-failed",
+        `${error.message}; refusing to fetch the video container as audio`,
+        source,
+      );
+      return Promise.reject(error);
+    }
+    const key = audioSourceCacheKey(source, OUTPUT_SAMPLE_RATE);
+    return cache.getOrLoad(key, () => fetchSource(resolveAudioSourceUri(source))
       .then(
         (data) => decodeAudioData(data, context!).catch((error) => {
-          report("audio-decode-failed", errorMessage(error), source);
+          const message = source.kind === "video"
+            ? `Unable to decode embedded audio from video asset ${source.assetId}; ` +
+              (hasAudioDerivative(source)
+                ? "the configured audio derivative could not be decoded"
+                : "an import-time audio derivative is required in this browser")
+            : errorMessage(error);
+          report("audio-decode-failed", message, source);
           throw error;
         }),
         (error) => {
@@ -308,9 +377,10 @@ export function createWebAudioAdapterV2(
           report("audio-resample-unavailable", errorMessage(error), source);
           throw error;
         });
-      });
-    cache.set(key, promise);
-    return promise;
+      })
+      .then((buffer) => {
+        return buffer;
+      }));
   };
 
   const scheduleSegment = (
@@ -351,25 +421,57 @@ export function createWebAudioAdapterV2(
     const playbackRate = sourceDuration > 0 && compositionDuration > 0
       ? sourceDuration / compositionDuration
       : 1;
+    const targetContextTime = anchorContextTime + startSample / plan.sampleRate;
+    const latenessMs = Math.max(0, context.currentTime - targetContextTime) * 1000;
+    // Tiny timing differences are expected because a source needs a small
+    // scheduling lead. Record only a meaningful missed scheduling deadline.
+    if (latenessMs > 20) {
+      lateScheduleCount += 1;
+      maxScheduleLateMs = Math.max(maxScheduleLateMs, latenessMs);
+    }
     const when = Math.max(
       context.currentTime + scheduleLeadSeconds,
-      anchorContextTime + startSample / plan.sampleRate,
+      targetContextTime,
     );
     const offset = Math.min(
       buffer.duration,
       Math.max(0, sourceStart / input.sourceSampleRate),
     );
+    const segmentSpan = segment.compositionEndSample - segment.compositionStartSample;
+    const startProgress = (startSample - segment.compositionStartSample) / segmentSpan;
+    const endProgress = (endSample - segment.compositionStartSample) / segmentSpan;
+    const startGain = gainAt(segment, startProgress);
+    const endGain = gainAt(segment, endProgress);
+
+    if (workletMixer?.node && buffer.getChannelData) {
+      const channels = Math.max(1, buffer.numberOfChannels);
+      const firstFrame = Math.max(0, Math.floor(offset * buffer.sampleRate));
+      const frameCount = Math.max(0, Math.ceil(sourceDuration * buffer.sampleRate));
+      const channelData = Array.from({ length: channels }, (_, channel) => buffer.getChannelData!(channel));
+      const interleaved = new Float32Array(frameCount * channels);
+      for (let frame = 0; frame < frameCount; frame += 1) {
+        for (let channel = 0; channel < channels; channel += 1) {
+          interleaved[frame * channels + channel] = channelData[channel]?.[firstFrame + frame] ?? 0;
+        }
+      }
+      workletMixer.push({
+        inputId: input.clipId,
+        startSample,
+        sampleRate: plan.sampleRate,
+        channels,
+        data: interleaved,
+        gain: (startGain + endGain) / 2,
+        pan: input.pan,
+      });
+      scheduledThroughByClip.set(input.clipId, endSample);
+      return;
+    }
     const source = context.createBufferSource();
     const gain = context.createGain();
     const panner = context.createStereoPanner();
     source.buffer = buffer;
     source.playbackRate.setValueAtTime(playbackRate, when);
     panner.pan.setValueAtTime(input.pan, when);
-    const segmentSpan = segment.compositionEndSample - segment.compositionStartSample;
-    const startProgress = (startSample - segment.compositionStartSample) / segmentSpan;
-    const endProgress = (endSample - segment.compositionStartSample) / segmentSpan;
-    const startGain = gainAt(segment, startProgress);
-    const endGain = gainAt(segment, endProgress);
     gain.gain.cancelScheduledValues(when);
     gain.gain.setValueAtTime(startGain, when);
     gain.gain.linearRampToValueAtTime(endGain, when + compositionDuration);
@@ -385,7 +487,11 @@ export function createWebAudioAdapterV2(
       panner.disconnect?.();
     };
     try {
-      source.start(when, offset, compositionDuration);
+      // AudioBufferSourceNode duration is measured in source-buffer seconds,
+      // while compositionDuration is in timeline seconds. Passing the latter
+      // truncates or extends a trimmed/rate-adjusted clip (for example 2x).
+      const availableSourceDuration = Math.max(0, buffer.duration - offset);
+      source.start(when, offset, Math.min(sourceDuration, availableSourceDuration));
     } catch (error) {
       activeSources.delete(scheduled);
       report("audio-decode-failed", `Unable to schedule ${input.clipId}: ${errorMessage(error)}`, input.source);
@@ -402,6 +508,12 @@ export function createWebAudioAdapterV2(
     if (input.muted) return;
     void loadBuffer(input.source)
       .then((buffer) => {
+        if (disposed || generationAtRequest !== generation) return;
+        const key = audioSourceCacheKey(input.source, OUTPUT_SAMPLE_RATE);
+        if (!activeCacheKeys.has(key)) {
+          cache.pin(key);
+          activeCacheKeys.add(key);
+        }
         for (const segment of input.segments) {
           scheduleSegment(input, segment, buffer, plan, contextInfo, generationAtRequest);
         }
@@ -411,14 +523,51 @@ export function createWebAudioAdapterV2(
       });
   };
 
+  const prefetchAudioMixPlan = (plan: RuntimeAudioMixPlanV2): void => {
+    if (disposed || !context || plan.sampleRate !== OUTPUT_SAMPLE_RATE) return;
+    const seen = new Set<string>();
+    for (const input of plan.inputs) {
+      if (input.muted) continue;
+      const key = audioSourceCacheKey(input.source, OUTPUT_SAMPLE_RATE);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      void loadBuffer(input.source).catch(() => {
+        // The diagnostic is emitted at the loading boundary above.
+      });
+    }
+  };
+
   return {
+    prefetchAudioMixPlan,
+    async prepareAudioMixPlan(plan) {
+      if (disposed || !context || plan.sampleRate !== OUTPUT_SAMPLE_RATE) return false;
+      const sources = new Map<string, RuntimeAudioSourceV2>();
+      for (const input of plan.inputs) {
+        if (!input.muted) {
+          sources.set(audioSourceCacheKey(input.source, OUTPUT_SAMPLE_RATE), input.source);
+        }
+      }
+      const results = await Promise.all([...sources.values()].map(async (source) => {
+        try {
+          await loadBuffer(source);
+          return true;
+        } catch {
+          return false;
+        }
+      }));
+      const mixerReady = workletMixer ? await workletMixer.ready : true;
+      return mixerReady && results.every(Boolean);
+    },
     consumeAudioMixPlan(plan, contextInfo) {
       if (disposed || !context) return;
+      if (contextInfo.generation < latestEngineGeneration) return;
+      const engineGenerationChanged = contextInfo.generation !== latestEngineGeneration;
+      latestEngineGeneration = contextInfo.generation;
       if (plan.sampleRate !== OUTPUT_SAMPLE_RATE || plan.endSample <= plan.startSample) {
         report("audio-plan-invalid", "AudioMixPlanV2 must use a positive 48 kHz sample window");
         return;
       }
-      if (contextInfo.preroll) resetTransport(contextInfo.time);
+      if (engineGenerationChanged || contextInfo.preroll) resetTransport(contextInfo.time);
       if (anchorContextTime === null) anchorContextTime = context.currentTime - contextInfo.time;
       const generationAtRequest = generation;
       for (const input of plan.inputs) {
@@ -445,16 +594,30 @@ export function createWebAudioAdapterV2(
     pause() {
       if (disposed) return;
       resetTransport(null);
+      workletMixer?.reset(generation);
       if (context?.state === "running") state = "suspended";
     },
     seek(time) {
       if (disposed) return;
       resetTransport(Math.max(0, time));
+      workletMixer?.reset(generation);
+    },
+    getResourceStats() {
+      return {
+        cachedBuffers: cache.getStats().cachedBuffers,
+        activeSources: activeSources.size,
+        lateScheduleCount,
+        maxScheduleLateMs,
+      };
+    },
+    getBufferCacheStats() {
+      return cache.getStats();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       resetTransport(null);
+      ownedWorkletMixer?.dispose();
       cache.clear();
       state = "disposed";
     },
@@ -462,7 +625,7 @@ export function createWebAudioAdapterV2(
       return state;
     },
     get diagnostics() {
-      return diagnostics;
+      return diagnosticHistory.toArray();
     },
   };
 }

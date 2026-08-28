@@ -11,7 +11,7 @@ Phase 0–1 uses Supabase Auth/Postgres only. R2 and Remotion Lambda are deliber
    ```
 
 2. Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, and `MCP_AUDIT_SALT`.
+   and `SUPABASE_SERVICE_ROLE_KEY`.
 
 3. Run the web app:
 

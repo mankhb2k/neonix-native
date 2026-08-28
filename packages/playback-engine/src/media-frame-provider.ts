@@ -52,8 +52,6 @@ export type MediaFrameProvider = {
     assetId: string,
     uri: string,
     options?: {
-      /** Whether to loop the video. */
-      loop?: boolean;
       /** Playback rate. */
       playbackRate?: number;
       /** Whether to mute the video (audio handled separately). */
@@ -119,7 +117,6 @@ export function createMediaFrameProvider(
     assetId: string,
     uri: string,
     options?: {
-      loop?: boolean;
       playbackRate?: number;
       muted?: boolean;
       crossOrigin?: string;
@@ -133,7 +130,7 @@ export function createMediaFrameProvider(
     const video = document.createElement("video");
 
     video.src = uri;
-    video.loop = options?.loop ?? false;
+    video.loop = false;
     video.muted = options?.muted ?? true; // always mute — audio via scheduler
     video.crossOrigin = options?.crossOrigin ?? "anonymous";
     video.preload = "auto";

@@ -3,6 +3,7 @@ import { V2IdSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
 import { V2ImageFitSchema } from "./image";
 import { V2EffectListSchema } from "../effects";
+import { V2EmbeddedVideoAudioSchema } from "../audio";
 
 export const V2VideoFramePolicySchema = z.enum(["floor", "round", "ceil"]);
 
@@ -16,8 +17,7 @@ export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
       fit: V2ImageFitSchema.optional(),
       trimStart: z.number().finite().nonnegative().optional(),
       trimEnd: z.number().finite().positive().optional(),
-      loop: z.boolean().optional(),
-      muted: z.boolean().optional(),
+      audio: V2EmbeddedVideoAudioSchema.optional(),
       framePolicy: V2VideoFramePolicySchema.optional(),
     })
     .strict()
@@ -30,7 +30,7 @@ export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
         });
       }
     }),
-});
+  });
 
 export type V2VideoFramePolicy = z.infer<typeof V2VideoFramePolicySchema>;
 export type V2VideoLayer = z.infer<typeof V2VideoLayerSchema>;

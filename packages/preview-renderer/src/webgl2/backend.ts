@@ -29,6 +29,11 @@ import type {
   PreviewRendererOptions,
   PreviewRenderStats,
 } from "../shared/types";
+import {
+  decideTextureUpdate,
+  previewAssetRevision,
+  type PreviewAssetRevision,
+} from "../shared/texture-upload-policy";
 
 export function createWebGL2Backend(
   options: PreviewRendererOptions,
@@ -44,6 +49,8 @@ export function createWebGL2Backend(
   const canvas = options.canvas;
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGLTexture>();
+  const textureSizes = new Map<string, { width: number; height: number }>();
+  const uploadedAssetRevisions = new Map<string, PreviewAssetRevision>();
   const textAtlases = new Map<string, TextAtlas>();
   const diagnostics: PreviewDiagnostic[] = [];
   const programHandle = program(gl);
@@ -164,30 +171,81 @@ export function createWebGL2Backend(
     drawCalls: 0,
     skippedCommands: 0,
     frameTimeMs: 0,
+    textureUploads: 0,
+    videoTextureUploads: 0,
     diagnostics,
   };
+  let textureUploads = 0;
+  let videoTextureUploads = 0;
 
   const pushDiagnostic = (diagnostic: PreviewDiagnostic) => {
+    const maxDiagnostics = Math.max(0, Math.floor(options.maxDiagnostics ?? 64));
+    if (maxDiagnostics === 0) {
+      report(diagnostic);
+      return;
+    }
+    if (diagnostics.length >= maxDiagnostics) diagnostics.splice(0, diagnostics.length - maxDiagnostics + 1);
     diagnostics.push(diagnostic);
     report(diagnostic);
   };
 
   const uploadTexture = (assetId: string, asset: PreviewAsset): WebGLTexture | null => {
     const existing = textures.get(assetId);
-    const texture = existing ?? gl.createTexture();
+    const revision = previewAssetRevision(assetId, asset);
+    const decision = decideTextureUpdate(uploadedAssetRevisions.get(assetId) ?? null, revision);
+    if (existing && decision.kind === "reuse") return existing;
+    if (existing && decision.kind === "recreate-and-upload") {
+      gl.deleteTexture(existing);
+      textures.delete(assetId);
+      textureSizes.delete(assetId);
+      uploadedAssetRevisions.delete(assetId);
+    }
+    const texture = textures.get(assetId) ?? gl.createTexture();
     if (!texture) return null;
+    const previousSize = textureSizes.get(assetId);
+    const canUpdateInPlace = decision.kind === "upload-in-place" && Boolean(
+      existing && previousSize?.width === asset.width && previousSize.height === asset.height,
+    );
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
-    if (asset.pixels) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, asset.width, asset.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, asset.pixels);
+    if (canUpdateInPlace && asset.pixels) {
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        asset.width,
+        asset.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        asset.pixels as unknown as Uint8Array<ArrayBuffer>,
+      );
+    } else if (canUpdateInPlace) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, assetSource(asset));
+    } else if (asset.pixels) {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        asset.width,
+        asset.height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        asset.pixels as unknown as Uint8Array<ArrayBuffer>,
+      );
     } else {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, assetSource(asset));
     }
     textures.set(assetId, texture);
+    textureSizes.set(assetId, { width: asset.width, height: asset.height });
+    uploadedAssetRevisions.set(assetId, revision);
+    textureUploads += 1;
+    if (asset.kind === "video") videoTextureUploads += 1;
     return texture;
   };
 
@@ -520,9 +578,10 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "warning", code: "preview_asset_missing", message: `Asset ${command.assetId} is not loaded`, key: command.key, layerId: command.layerId });
           continue;
         }
-        if (command.op === "drawVideo" && typeof HTMLVideoElement !== "undefined" && asset.source instanceof HTMLVideoElement && Number.isFinite(command.mediaTime)) {
-          if (Math.abs(asset.source.currentTime - command.mediaTime) > 0.033) asset.source.currentTime = Math.max(0, command.mediaTime);
-        }
+        // Video time is owned by the playback media controller. Seeking here
+        // races the controller (and flushes the decoder when React paints a
+        // slightly older frame), which presents as frozen video with healthy
+        // audio.
         const texture = uploadTexture(command.assetId, asset);
         if (!texture) {
           skippedCommands += 1;
@@ -857,7 +916,7 @@ export function createWebGL2Backend(
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     gl.bindVertexArray(null);
-    lastStats = { backend: "webgl2", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, diagnostics: [...diagnostics] };
+    lastStats = { backend: "webgl2", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, textureUploads, videoTextureUploads, diagnostics: [...diagnostics] };
     return lastStats;
   };
 
@@ -875,6 +934,13 @@ export function createWebGL2Backend(
     stats: () => lastStats,
     setAsset(assetId, asset) {
       assets.set(assetId, asset);
+      const previousSize = textureSizes.get(assetId);
+      if (previousSize && (previousSize.width !== asset.width || previousSize.height !== asset.height)) {
+        const texture = textures.get(assetId);
+        if (texture) gl.deleteTexture(texture);
+        textures.delete(assetId);
+        textureSizes.delete(assetId);
+      }
       uploadTexture(assetId, asset);
     },
     removeAsset(assetId) {
@@ -882,11 +948,15 @@ export function createWebGL2Backend(
       const texture = textures.get(assetId);
       if (texture) gl.deleteTexture(texture);
       textures.delete(assetId);
+      textureSizes.delete(assetId);
+      uploadedAssetRevisions.delete(assetId);
     },
     diagnostics,
     dispose() {
       for (const texture of textures.values()) gl.deleteTexture(texture);
       textures.clear();
+      textureSizes.clear();
+      uploadedAssetRevisions.clear();
       textAtlases.clear();
       gl.deleteBuffer(quadBuffer);
       gl.deleteBuffer(pathBuffer);

@@ -6,6 +6,22 @@ export type Asset = {
   status: "uploading" | "ready" | "failed" | "deleting" | "deleted";
   created_at: string;
   download_url: string | null;
+  preview_key?: string | null;
+  preview_status?: "pending" | "ready" | "failed" | "unsupported" | null;
+  preview_version?: number | null;
+  preview_url?: string | null;
+  source_duration_ms?: number | null;
+  source_width?: number | null;
+  source_height?: number | null;
+  has_audio?: boolean | null;
+};
+
+export type UploadPreview = {
+  size: number;
+  mimeType: "image/webp";
+  width: number;
+  height: number;
+  durationMs?: number;
 };
 
 export type UploadSession = {
@@ -13,6 +29,9 @@ export type UploadSession = {
   uploadUrl: string;
   method: "PUT";
   headers: Record<string, string>;
+  previewUploadUrl?: string;
+  previewHeaders?: Record<string, string>;
+  previewKey?: string;
 };
 
 async function readError(response: Response): Promise<string> {
@@ -31,11 +50,24 @@ export async function listAssets(): Promise<Asset[]> {
   return body.assets;
 }
 
-export async function createAssetUpload(file: File): Promise<UploadSession> {
+export async function createAssetUpload(file: File, preview?: UploadPreview): Promise<UploadSession> {
   const response = await fetch("/api/assets", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name: file.name, size: file.size, mimeType: file.type || "application/octet-stream" }),
+    body: JSON.stringify({
+      name: file.name,
+      size: file.size,
+      mimeType: file.type || "application/octet-stream",
+      preview: preview
+        ? {
+            size: preview.size,
+            mimeType: preview.mimeType,
+            width: preview.width,
+            height: preview.height,
+            durationMs: preview.durationMs,
+          }
+        : undefined,
+    }),
   });
   if (!response.ok) throw new Error(await readError(response));
   return (await response.json()) as UploadSession;
@@ -48,6 +80,25 @@ export async function uploadAssetBytes(session: UploadSession, file: File): Prom
     body: file,
   });
   if (!response.ok) throw new Error(`R2 upload failed (${response.status})`);
+}
+
+export async function uploadAssetPreview(session: UploadSession, preview: Blob): Promise<void> {
+  if (!session.previewUploadUrl) return;
+  const response = await fetch(session.previewUploadUrl, {
+    method: "PUT",
+    headers: session.previewHeaders ?? { "content-type": "image/webp" },
+    body: preview,
+  });
+  if (!response.ok) throw new Error(`R2 preview upload failed (${response.status})`);
+}
+
+export async function persistAssetPreview(assetId: string, preview: Blob): Promise<void> {
+  const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}/preview`, {
+    method: "POST",
+    headers: { "content-type": "image/webp" },
+    body: preview,
+  });
+  if (!response.ok) throw new Error(await readError(response));
 }
 
 export async function completeAssetUpload(assetId: string): Promise<void> {
@@ -63,4 +114,3 @@ export async function deleteAsset(assetId: string): Promise<void> {
   const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
   if (!response.ok) throw new Error(await readError(response));
 }
-

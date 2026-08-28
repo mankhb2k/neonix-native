@@ -44,3 +44,4 @@ export * from "./paint/paint-buffer-contract";
 export * from "./paint/paint-resource-descriptor";
 export * from "./paint/paint-item-fingerprint";
 export * from "./v2";
+export * from "./v3";

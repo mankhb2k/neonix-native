@@ -4,6 +4,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { parseMotionProtocol } from "@motionvideo/motion-protocol";
 import type { McpPrincipal } from "./auth";
 
 type JsonObject = Record<string, unknown>;
@@ -174,6 +175,17 @@ function documentByteSize(document: JsonObject): number {
   return Buffer.byteLength(JSON.stringify(document), "utf8");
 }
 
+function parseProjectDocument(document: JsonObject): JsonObject {
+  try {
+    return parseMotionProtocol(document);
+  } catch {
+    throw new McpProjectError(
+      "document must be a valid Motion Protocol V2 document",
+      "INVALID_INPUT",
+    );
+  }
+}
+
 export async function listWorkspaces(principal: McpPrincipal) {
   const client = getClient(principal);
   const { data, error } = await client
@@ -284,7 +296,13 @@ export async function createProject(
   const client = getClient(principal);
   const workspace = await resolveWorkspace(client, principal, input.workspaceId, true);
   const title = input.title?.trim() || "Untitled project";
-  const document = input.document ?? {};
+  if (!input.document) {
+    throw new McpProjectError(
+      "document is required and must be a valid Motion Protocol V2 document",
+      "INVALID_INPUT",
+    );
+  }
+  const document = parseProjectDocument(input.document);
   const { data: project, error } = await client
     .from("projects")
     .insert({ workspace_id: workspace.id, title, created_by: principal.userId, current_revision_no: 0 })
@@ -299,7 +317,7 @@ export async function createProject(
       revision_no: 1,
       document_json: document,
       content_hash: hashDocument(document),
-      source_schema_version: 1,
+      source_schema_version: 2,
       reason: "mcp",
       byte_size: documentByteSize(document),
       created_by: principal.userId,
@@ -350,17 +368,18 @@ export async function updateProject(
   if (input.title !== undefined) updates.title = input.title.trim();
   let revision = null;
   if (input.document !== undefined) {
+    const document = parseProjectDocument(input.document);
     const revisionNo = project.current_revision_no + 1;
     const { data, error } = await client
       .from("project_revisions")
       .insert({
         project_id: project.id,
         revision_no: revisionNo,
-        document_json: input.document,
-        content_hash: hashDocument(input.document),
-        source_schema_version: 1,
+        document_json: document,
+        content_hash: hashDocument(document),
+        source_schema_version: 2,
         reason: "mcp",
-        byte_size: documentByteSize(input.document),
+        byte_size: documentByteSize(document),
         created_by: principal.userId,
       })
       .select("id, revision_no, document_json, content_hash, source_schema_version, reason, byte_size, created_at")

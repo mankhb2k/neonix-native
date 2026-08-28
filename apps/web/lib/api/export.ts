@@ -21,6 +21,7 @@ export async function exportMotionProject(
       projectId: project.id,
       projectRevision: 0,
       preset: "export-1080p",
+      document: project,
     }),
   });
 

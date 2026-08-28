@@ -6,6 +6,8 @@ export const CreateRenderJobRequestSchema = z.object({
   idempotencyKey: z.string().optional(),
   /** Opaque client payload; server builds RenderManifest. */
   preset: z.string().optional(),
+  /** Optional V2 document snapshot used for server-side export validation. */
+  document: z.unknown().optional(),
 });
 
 export type CreateRenderJobRequest = z.infer<

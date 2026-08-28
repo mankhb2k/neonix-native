@@ -1,6 +1,6 @@
 /**
  * Giải thuật kéo-thả move clip thuần — ghost preview và commit dùng chung một kết quả.
- * Occupancy: không bao giờ chồng clip cùng lane; interior → chèn lane phía trên.
+ * Visual occupancy không cho chồng trong cùng lane; audio dùng mixer policy riêng.
  */
 
 import { clipAcceptsLane } from "../../timeline/clip-capabilities";
@@ -8,6 +8,7 @@ import {
   resolveExclusiveRowPlacement,
   resolveOccupancyAwarePlacement,
 } from "../../timeline/policies/placement-policy";
+import { resolveAudioClipPlacement } from "../../timeline/policies/audio-placement-policy";
 import type {
   TimelineClip,
   TimelineLane,
@@ -275,9 +276,15 @@ export function resolveClipMoveDrag(
       valid = false;
     }
 
-    // Drop thân clip: không bao giờ chồng — đỗ ở đầu/cuối, chuyển lane trống phía
-    // trên, hoặc chèn giữa khi cả hai lane đều occupied.
-    if (valid && !insertNewLane && input.drop.laneId) {
+    // Audio is a mixer domain: clips in one track are allowed to overlap.
+    // Visual layers keep the occupancy policy below.
+    if (valid && commitTrack === "audio" && !insertNewLane) {
+      const audioPlacement = resolveAudioClipPlacement(startTime);
+      startTime = audioPlacement.startTime;
+      insertNewLane = audioPlacement.insertNewLane;
+      insertOrder = audioPlacement.insertOrder;
+      snapGuideTime = audioPlacement.edgeGuideTime;
+    } else if (valid && !insertNewLane && input.drop.laneId) {
       const laneId = input.drop.laneId;
       const onLane =
         input.clipsByLane?.get(laneId) ??

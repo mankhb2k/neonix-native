@@ -10,6 +10,7 @@ import {
   type TimelineClip,
   type TimelineEdit,
   resolveClipTrimUpdate,
+  getVideoTimelineDurationLimit,
   type ClipTrimPreview,
 } from "@motionvideo/editor-core/timeline";
 import type { BeginGesture } from "../pointer/use-pointer-session-host";
@@ -64,6 +65,15 @@ export function useClipTrim({
               originDuration: originDur,
               deltaSec: dx,
               minDuration: MIN_CLIP_SLICE_SEC,
+              maxDuration:
+                clip.kind === "scene" &&
+                clip.mediaType === "video" &&
+                clip.sourceDuration !== undefined
+                  ? getVideoTimelineDurationLimit({
+                      sourceDuration: clip.sourceDuration,
+                      trimStart: clip.trimStart,
+                    })
+                  : undefined,
             });
             onTrimPreview({
               kind: "trim",

@@ -158,6 +158,48 @@ describe("Protocol V2 Compiler B", () => {
     });
   });
 
+  it("routes embedded video audio to the import-time derivative URI", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      assets: [{
+        id: "video-with-audio",
+        kind: "video" as const,
+        uri: "/media/source.mp4",
+        mimeType: "video/mp4",
+        duration: 4,
+        fps: 30,
+        audio: {
+          uri: "/media/source.audio.m4a",
+          mimeType: "audio/mp4",
+          duration: 4,
+          sampleRate: 48000,
+          channels: 2,
+        },
+      }],
+      layers: [{
+        id: "video-layer",
+        type: "video" as const,
+        parentLayerId: null,
+        order: 0,
+        frame: { width: 320, height: 180 },
+        transform: identity,
+        opacity: 1,
+        timing: { start: 0, duration: 2 },
+        payload: {
+          assetId: "video-with-audio",
+          trimStart: 0,
+          audio: { enabled: true, gainDb: 0 },
+        },
+      }],
+    });
+    expect(runtime.audio?.tracks[0]?.clips[0]?.source).toMatchObject({
+      kind: "video",
+      uri: "/media/source.mp4",
+      audioUri: "/media/source.audio.m4a",
+      audioMimeType: "audio/mp4",
+    });
+  });
+
   it("keeps visual Runtime nodes unchanged when audio is added", () => {
     const visual = {
       ...base,
@@ -550,8 +592,6 @@ describe("Protocol V2 Compiler B", () => {
           fit: "cover" as const,
           trimStart: 1,
           trimEnd: 4,
-          loop: true,
-          muted: true,
           framePolicy: "round" as const,
         },
       }],
@@ -568,6 +608,52 @@ describe("Protocol V2 Compiler B", () => {
       mediaVisible: true,
       muted: true,
     }));
+  });
+
+  it("lowers embedded video audio into a linked runtime audio track", () => {
+    const runtime = compileProtocolV2({
+      ...base,
+      id: "video-with-audio",
+      assets: [{
+        id: "clip",
+        kind: "video" as const,
+        uri: "/docs/example-video.mp4",
+        mimeType: "video/mp4",
+        width: 1920,
+        height: 1080,
+        duration: 60,
+        fps: 30,
+      }],
+      layers: [{
+        id: "video",
+        type: "video" as const,
+        parentLayerId: null,
+        order: 0,
+        frame: { width: 960, height: 540 },
+        transform: identity,
+        opacity: 1,
+        timing: { start: 10, duration: 4 },
+        payload: {
+          assetId: "clip",
+          trimStart: 2,
+          trimEnd: 6,
+          audio: {
+            enabled: true,
+            gainDb: -6,
+            fadeOut: { duration: 0.5, curve: "equal-power" as const },
+          },
+        },
+      }],
+    });
+    const embedded = runtime.audio.tracks.find((track) => track.id === "embedded-audio:video");
+    expect(embedded).toMatchObject({ id: "embedded-audio:video", muted: false });
+    expect(embedded?.clips[0]).toMatchObject({
+      assetId: "clip",
+      timing: { start: 10, duration: 4 },
+      trim: { start: 2, end: 6 },
+      gainDb: -6,
+      fadeOut: { duration: 0.5, curve: "equal-power" },
+    });
   });
 
   it("lowers a filled local-plane path into one resolved mesh command", () => {

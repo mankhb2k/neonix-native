@@ -116,7 +116,6 @@ async function main(): Promise<void> {
               timing: { start: 0, duration: 2 },
               trim: { start: 10, end: 12 },
               playbackRate: 1,
-              loop: false,
               gainDb: -12,
               fadeIn: { duration: 0.25, curve: "linear" },
               fadeOut: { duration: 0.25, curve: "equal-power" },

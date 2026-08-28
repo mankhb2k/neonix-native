@@ -7,6 +7,7 @@ import {
   translationMatrix3D,
 } from "../matrix4";
 import { evaluateRuntimeProjectV2 } from "./evaluate";
+import { assertRuntimeFrameV2 } from "./validate";
 import type { RuntimeProjectV2 } from "./types";
 
 const project: RuntimeProjectV2 = {
@@ -62,6 +63,49 @@ const project: RuntimeProjectV2 = {
 };
 
 describe("Runtime IR V2", () => {
+  it("skips unprepared text without emitting an orphan transform", () => {
+    const frame = evaluateRuntimeProjectV2({
+      ...project,
+      nodes: [{
+        id: "unprepared-title",
+        parentId: null,
+        order: 1,
+        timing: { start: 0, duration: 3 },
+        opacity: 1,
+        visible: true,
+        localMatrix: identityMatrix4(),
+        worldMatrix: identityMatrix4(),
+        content: {
+          kind: "text",
+          text: "Pending font",
+          fontAssetId: "pending-font",
+          fontUri: "/fonts/pending.ttf",
+          fontIntegrity: "sha256:pending",
+          width: 200,
+          height: 60,
+          fontSize: 32,
+          lineHeight: 40,
+          letterSpacing: 0,
+          align: "left",
+          verticalAlign: "top",
+          wrap: "none",
+          overflow: "visible",
+          direction: "ltr",
+          fill: "#ffffff",
+        },
+      }],
+    }, 0);
+
+    expect(frame.commands.map((command) => command.op)).toEqual([
+      "beginFrame",
+      "endFrame",
+    ]);
+    expect(frame.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "runtime_v2_text_unprepared" }),
+    );
+    expect(() => assertRuntimeFrameV2(frame)).not.toThrow();
+  });
+
   it("evaluates active certified shapes into a deterministic paint buffer", () => {
     const frame = evaluateRuntimeProjectV2(project, 0);
     expect(frame.runtimeVersion).toBe(2);
@@ -197,7 +241,7 @@ describe("Runtime IR V2", () => {
         id: "video",
         parentId: null,
         order: 0,
-        timing: { start: 0, duration: 6 },
+        timing: { start: 0, duration: 3 },
         opacity: 1,
         visible: true,
         localMatrix: identityMatrix4(),
@@ -211,7 +255,6 @@ describe("Runtime IR V2", () => {
           trimEnd: 4,
           sourceDuration: 60.5,
           sourceFps: 30,
-          loop: true,
           muted: true,
           framePolicy: "floor",
         },
@@ -225,11 +268,7 @@ describe("Runtime IR V2", () => {
       mediaVisible: true,
       muted: true,
     }));
-    expect(looped.commands).toContainEqual(expect.objectContaining({
-      op: "drawVideo",
-      mediaTime: 1.5,
-      mediaVisible: true,
-    }));
+    expect(looped.commands).not.toContainEqual(expect.objectContaining({ op: "drawVideo" }));
   });
 
   it("keeps semantic gradient and independent paint opacity in Runtime V2", () => {

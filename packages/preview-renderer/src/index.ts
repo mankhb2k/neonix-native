@@ -28,3 +28,9 @@ export {
   type EffectPassPlan,
   type EffectPassPlanDiagnostic,
 } from "./shared/effects";
+export {
+  decideTextureUpdate,
+  previewAssetRevision,
+  type PreviewAssetRevision,
+  type TextureUploadDecision,
+} from "./shared/texture-upload-policy";

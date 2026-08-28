@@ -14,6 +14,7 @@ import {
   SECONDARY_LANE_HEIGHT_PX,
   TIMELINE_BOTTOM_PADDING_PX,
   TIMELINE_TOP_PADDING_PX,
+  VIDEO_LANE_HEIGHT_PX,
 } from "../timeline-scale";
 
 // ── Web chrome config ───────────────────────────────────────────────
@@ -59,12 +60,21 @@ export function buildTrackLaneRows(
 ): LaneRow[] {
   const rows = buildLaneRows(lanes, webLaneRowConfig);
   return rows.map((r) => {
-    const clip = clips.find((candidate) => candidate.laneId === r.lane.id);
+    const laneClips = clips.filter((candidate) => candidate.laneId === r.lane.id);
+    const hasVideo = laneClips.some(
+      (candidate) =>
+        candidate.kind === "scene" && candidate.mediaType === "video",
+    );
+    const hasImage = laneClips.some(
+      (candidate) =>
+        candidate.kind === "scene" && candidate.mediaType === "image",
+    );
     const mediaHeight =
-      clip?.kind === "scene" &&
-      (clip.mediaType === "image" || clip.mediaType === "video")
-        ? BASE_LANE_HEIGHT_PX
-        : SECONDARY_LANE_HEIGHT_PX;
+      hasVideo
+        ? VIDEO_LANE_HEIGHT_PX
+        : hasImage
+          ? BASE_LANE_HEIGHT_PX
+          : SECONDARY_LANE_HEIGHT_PX;
     return {
       ...r.lane,
       height: r.kind === "audio" ? SECONDARY_LANE_HEIGHT_PX : mediaHeight,
@@ -76,13 +86,28 @@ export function buildTrackLaneRows(
 }
 
 /** Layer mode: compact rows (first = video-ish) — web-specific. */
-export function buildLayerLaneRows(lanes: TimelineLane[]): LaneRow[] {
+export function buildLayerLaneRows(
+  lanes: TimelineLane[],
+  clips: readonly TimelineClip[] = [],
+): LaneRow[] {
   return [...lanes]
     .sort((a, b) => a.order - b.order)
-    .map((l, i) => ({
-      ...l,
-      height: i === 0 ? LAYER_VIDEO_LANE_HEIGHT_PX : LAYER_LANE_HEIGHT_PX,
-    }));
+    .map((l, i) => {
+      const hasVideo = clips.some(
+        (clip) =>
+          clip.laneId === l.id &&
+          clip.kind === "scene" &&
+          clip.mediaType === "video",
+      );
+      return {
+        ...l,
+        height: hasVideo
+          ? VIDEO_LANE_HEIGHT_PX
+          : i === 0
+            ? LAYER_VIDEO_LANE_HEIGHT_PX
+            : LAYER_LANE_HEIGHT_PX,
+      };
+    });
 }
 
 /** Lane stack height without outer padding. */

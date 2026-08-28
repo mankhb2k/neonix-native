@@ -42,6 +42,13 @@ export type RuntimeAudioSourceV2 = {
   sampleRate?: number;
   channels?: number;
   integrity?: string;
+  /** Resolved import-time audio derivative for a video source. */
+  audioUri?: string;
+  audioMimeType?: string;
+  audioDuration?: number;
+  audioSampleRate?: number;
+  audioChannels?: number;
+  audioIntegrity?: string;
 };
 
 export type RuntimeAudioClipV2 = {
@@ -188,7 +195,6 @@ export type RuntimeVideoV2 = {
   trimEnd?: number;
   sourceDuration?: number;
   sourceFps: number;
-  loop: boolean;
   muted: boolean;
   framePolicy: "floor" | "round" | "ceil";
   effects?: RuntimeEffect[];

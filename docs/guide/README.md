@@ -10,7 +10,7 @@ implementation references.
   editor, AI, and CLI input through high-level authoring, Atomic Protocol V2,
   Runtime IR, native preview, Remotion export, and encoded video.
 - [V2 audio guide](./audio.md): the project-level audio model, asset sources,
-  timing, trim, loop, gain, pan, mute, fade curves, and JSON examples.
+  timing, bounded trim, gain, pan, mute, fade curves, and JSON examples.
 
 ## Current Scope
 

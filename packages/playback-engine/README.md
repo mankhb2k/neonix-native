@@ -25,6 +25,10 @@ const engine = createPlaybackEngineV2({
   paintCompositionFrame(frame) {
     painter.paint(frame);
   },
+  onSnapshot(snapshot) {
+    // The editor subscribes to this one clock for time and playing state.
+    ui.updateTransport(snapshot.time, snapshot.playing);
+  },
 });
 
 engine.load(runtime satisfies RuntimeProjectV2);
@@ -33,6 +37,14 @@ engine.seek(1.5);
 engine.pause();
 engine.dispose();
 ```
+
+`PlaybackV2Snapshot` is the canonical transport publication. It contains the
+evaluated frame, the audio mix window, and active `drawVideo` commands so a
+host does not need a second RAF loop or a second media clock.
+
+Browser hosts may provide `createDOMMediaControllerV2()` through the engine's
+`media` option. It keeps video elements muted, seeks only active commands, and
+pauses inactive sources; audio remains owned by the Web Audio adapter.
 
 `play()` schedules Runtime V2 frames from a monotonic clock. A browser host can
 use the emitted frames to repaint a native media source without seeking the

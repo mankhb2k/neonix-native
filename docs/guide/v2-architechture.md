@@ -210,7 +210,6 @@ type AudioDomainV2 = {
       timing: { start: number; duration: number };
       trim: { start: number; end?: number };
       playbackRate: number;
-      loop: boolean;
       gainDb: number;
       fadeIn?: { duration: number; curve: "linear" | "equal-power" };
       fadeOut?: { duration: number; curve: "linear" | "equal-power" };
@@ -220,9 +219,9 @@ type AudioDomainV2 = {
 ```
 
 All audio time is in composition seconds until Runtime evaluates a requested
-sample range. The audio capability ledger covers asset identity, timing, trim,
-loop, independent track/clip gain, pan, fade curves, track mute, overlapping
-clips, and explicit video-audio sources. A video layer does not create sound
+sample range. The audio capability ledger covers asset identity, timing,
+bounded trim, independent track/clip gain, pan, fade curves, track mute,
+overlapping clips, and explicit video-audio sources. A video layer does not create sound
 implicitly; an audio clip must reference the video asset.
 
 ## 4. Compilation and Runtime IR
@@ -237,7 +236,7 @@ boundaries, effects, media time, and stable paint order into `RuntimeFrameV2`
 and its `PaintCommandBuffer`.
 
 At an audio sample range, `evaluateRuntimeAudioMixV2()` produces a
-`RuntimeAudioMixPlanV2` containing deterministic source ranges, loop segments,
+`RuntimeAudioMixPlanV2` containing deterministic bounded source ranges,
 gain envelopes, pan, fades, and mix input order. It does not decode PCM or
 construct WebAudio nodes.
 
@@ -259,6 +258,65 @@ Protocol JSON, compose CSS transforms, or create an export-only timing model.
 The architectural acceptance rule is therefore simple: preview and export use
 the same Runtime V2 visual and audio meaning. Backend-specific limitations
 must surface as diagnostics rather than silently changing the result.
+
+### 5.1 Media decode and playback pipeline
+
+Media decoding is an application-owned orchestration boundary. The browser may
+provide codec implementations through WebCodecs and audio output through Web
+Audio, but neither `HTMLVideoElement.currentTime` nor native video audio is a
+composition clock. The engine owns operation generations, seek cancellation,
+buffer budgets, scheduling, and the single master audio sample clock.
+
+```text
+Project JSON
+    │
+    ▼
+Media Compiler
+    │
+    ▼
+MediaRenderPlan
+    │
+    ├── Video source ───────────────► Video decoder/frame queue
+    │
+    ├── Embedded video audio ─┐
+    │                         ├──► Decode Worker
+    └── Standalone audio ─────┘         │
+                                        ▼
+                               PCM ring buffers
+                                        │
+                                        ▼
+                               AudioWorklet Mixer
+                                        │
+                                  master sample clock
+                                        │
+                  ┌─────────────────────┴────────────────────┐
+                  ▼                                          ▼
+             Speakers                              WebGL/WebGPU paint
+```
+
+The two audio inputs are semantically different in the authoring model but
+identical at runtime: both resolve to timestamped PCM chunks and enter the same
+mixer. A video's embedded audio is represented by `payload.audio`; its
+import-time audio derivative is stored on the video asset metadata. The
+original video URI is used only by the visual decoder.
+
+The decode and buffering contracts are deliberately bounded:
+
+- `AudioStreamingSessionV2` requests a rolling sample range and rejects stale
+  completions after seek or document changes.
+- `RollingPcmBufferV2` enforces byte/seconds limits and evicts oldest chunks.
+- `AudioWorkletMixerV2` mixes overlapping inputs on the audio rendering thread;
+  `WebAudioAdapterV2` falls back to `AudioBufferSourceNode` when the capability
+  or host policy is unavailable.
+- `VideoFrameQueueV2` bounds decoded video frames and closes discarded frames.
+  `chooseVideoBackendV2` selects WebCodecs only when both codec and demux
+  capabilities are present; otherwise the muted HTML video provider remains the
+  frame fallback.
+
+Playback enters `preparing` before `playing`. It waits for the initial audio
+pre-roll, then starts the audio clock and uses that clock to request video
+frames. On underrun, the engine reports diagnostics and may drop/repeat visual
+frames; it must not let a video element silently take over transport timing.
 
 ## 6. Non-negotiable boundaries
 

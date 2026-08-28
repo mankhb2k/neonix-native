@@ -18,6 +18,14 @@ export type PreviewAsset = {
   kind?: PreviewAssetKind;
   /** Optional RGBA8 pixels for deterministic uploads and non-DOM hosts. */
   pixels?: Uint8Array;
+  /** Incremented by the host when a new decoded video frame is presented. */
+  frameVersion?: number;
+  /** Resource/document generation used to reject stale uploads. */
+  resourceGeneration?: number;
+  /** Content revision for source/integrity changes. */
+  contentRevision?: number;
+  /** Explicit decoded frame revision; falls back to frameVersion for video. */
+  decodedFrameRevision?: number;
 };
 
 export type PreviewAssetResolver = (input: {
@@ -39,6 +47,10 @@ export type PreviewRenderStats = {
   drawCalls: number;
   skippedCommands: number;
   frameTimeMs: number;
+  /** Cumulative texture uploads performed by this backend. */
+  textureUploads: number;
+  /** Cumulative uploads for video assets only. */
+  videoTextureUploads: number;
   diagnostics: readonly PreviewDiagnostic[];
 };
 
@@ -53,6 +65,8 @@ export type PreviewRendererOptions = {
   assets?: ReadonlyMap<string, PreviewAsset>;
   resolveAsset?: PreviewAssetResolver;
   onDiagnostic?: (diagnostic: PreviewDiagnostic) => void;
+  /** Maximum backend diagnostics retained in memory. */
+  maxDiagnostics?: number;
   webgpu?: WebGPUInitOptions;
 };
 

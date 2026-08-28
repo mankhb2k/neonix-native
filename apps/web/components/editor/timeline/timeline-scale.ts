@@ -28,8 +28,10 @@ export const TIMELINE_TRANSPORT_HEIGHT_PX = 36;
 export const TIMELINE_TRACKS_ORIGIN_X =
   TIMELINE_LABEL_WIDTH + TIMELINE_PLAYHEAD_GUTTER_PX;
 
-/** Compact Canva-like lane heights (web chrome). */
-export const BASE_LANE_HEIGHT_PX = 36;
+/** Compact lane height shared by non-video media and the empty-track placeholder. */
+export const BASE_LANE_HEIGHT_PX = 30;
+/** Video strips have three tiers (meta, filmstrip, waveform), so give them room to breathe. */
+export const VIDEO_LANE_HEIGHT_PX = 46;
 export const SECONDARY_LANE_HEIGHT_PX = 28;
 export const LAYER_LANE_HEIGHT_PX = 22;
 export const LAYER_VIDEO_LANE_HEIGHT_PX = 28;

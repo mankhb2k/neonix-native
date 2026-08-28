@@ -25,8 +25,6 @@ export const V2_CERTIFIED_ATOMS = [
   "video.asset",
   "video.fit",
   "video.trim",
-  "video.loop",
-  "video.mute",
   "video.framePolicy",
   "text.transform",
   "text.timing",

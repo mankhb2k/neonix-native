@@ -56,17 +56,37 @@ type TimelineClipBase = {
 
 export type VisualMediaType = "shape" | "image" | "video" | "text";
 
+export type TimelinePosterStatus =
+  | "pending"
+  | "ready"
+  | "failed"
+  | "unsupported";
+
 export type SceneTimelineClip = TimelineClipBase & {
   kind: "scene";
   sceneId: string;
   /** V2 layer type used for media-aware timeline chrome. */
   mediaType?: VisualMediaType;
+  /** Video layer audio output state, when the scene is a video. */
+  muted?: boolean;
+  /** True when this video owns a linked embedded-audio component. */
+  embeddedAudio?: boolean;
+  /** Source duration in seconds, when known from the referenced video asset. */
+  sourceDuration?: number;
+  /** Source trim offset in seconds. */
+  trimStart?: number;
+  /** Ephemeral signed/original preview URL used only by editor chrome. */
+  posterUrl?: string;
+  /** Preview lifecycle state; never persisted in the Protocol V2 document. */
+  posterStatus?: TimelinePosterStatus;
 };
 
 export type AudioTimelineClip = TimelineClipBase & {
   kind: "audio";
   audioTrackId: string;
   assetId: string;
+  /** Derived presentation state; the track mute remains the source of truth. */
+  muted?: boolean;
 };
 
 export type TimelineClip = SceneTimelineClip | AudioTimelineClip;

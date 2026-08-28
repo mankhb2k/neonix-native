@@ -12,7 +12,7 @@ describe("committed Protocol V2 JSON Schema", () => {
   });
 
   it("schema/v2.json matches the V2 Zod source", () => {
-    const committed = readFileSync(schemaPath, "utf8");
+    const committed = readFileSync(schemaPath, "utf8").replace(/\r\n/g, "\n");
     const generated = `${JSON.stringify(zodToJsonSchema(MotionProtocolV2Schema, {
       name: "MotionProtocolV2",
       target: "jsonSchema7",

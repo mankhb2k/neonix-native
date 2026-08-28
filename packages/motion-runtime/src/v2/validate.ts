@@ -299,6 +299,15 @@ export function validateRuntimeProjectV2(
       if (node.content.trimEnd !== undefined && (!Number.isFinite(node.content.trimEnd) || node.content.trimEnd <= node.content.trimStart)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_video_trim_end", message: "Runtime V2 video trimEnd must be greater than trimStart", nodeId: node.id });
       }
+      if (node.content.sourceDuration !== undefined) {
+        const sourceEnd = Math.min(node.content.trimEnd ?? node.content.sourceDuration, node.content.sourceDuration);
+        const availableDuration = sourceEnd - node.content.trimStart;
+        if (!Number.isFinite(node.content.sourceDuration) || node.content.sourceDuration <= 0 || availableDuration <= 0) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_video_source_range", message: "Runtime V2 video source range is invalid", nodeId: node.id });
+        } else if (node.timing.duration > availableDuration) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_video_duration", message: "Runtime V2 video timing exceeds the selected source range", nodeId: node.id });
+        }
+      }
       if (!Number.isFinite(node.content.sourceFps) || node.content.sourceFps <= 0) {
         diagnostics.push({ severity: "error", code: "runtime_v2_video_fps", message: "Runtime V2 video sourceFps must be positive", nodeId: node.id });
       }

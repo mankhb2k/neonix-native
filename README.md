@@ -153,7 +153,6 @@ At minimum, local web development needs:
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<sb_publishable_key>
 SUPABASE_SERVICE_ROLE_KEY=<server-only-key>
-MCP_AUDIT_SALT=<server-only-random-secret>
 ```
 
 Google OAuth client ID/secret are configured in Supabase Authentication →

@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
+import { useEditorActions } from "@/hooks/editor/use-editor-actions";
+import {
+  useEditorDocument,
+  useEditorLocks,
+  useEditorSelection,
+  useEditorVisibility,
+} from "@/hooks/editor/use-editor-store";
+import { useTransportStore } from "@/hooks/editor/use-transport-store";
 import {
   getSelectionBounds,
   buildV2MovePatches,
@@ -146,15 +153,12 @@ export function StageTransformOverlay({
   compositionWidth,
   compositionHeight,
 }: Props) {
-  const {
-    document,
-    currentTime,
-    selectedLayerIds,
-    setSelectedLayerIds,
-    applyCommand,
-    hiddenLayerIds,
-    lockedLayerIds,
-  } = useEditorSurface();
+  const { setSelectedLayerIds, applyCommand } = useEditorActions();
+  const document = useEditorDocument();
+  const selectedLayerIds = useEditorSelection();
+  const hiddenLayerIds = useEditorVisibility();
+  const lockedLayerIds = useEditorLocks();
+  const currentTime = useTransportStore((state) => state.currentTime);
   const hiddenIds = useMemo(() => new Set(hiddenLayerIds), [hiddenLayerIds]);
   const lockedIds = useMemo(() => new Set(lockedLayerIds), [lockedLayerIds]);
   const overlayRef = useRef<HTMLDivElement>(null);

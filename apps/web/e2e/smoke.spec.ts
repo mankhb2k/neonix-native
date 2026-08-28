@@ -29,7 +29,7 @@ test.describe("web V2 smoke", () => {
     await expect(
       page.getByRole("slider", { name: "Playhead" }),
     ).toBeVisible();
-    await expect(page.getByTestId("layers-panel")).toContainText("Protocol V2");
+    await expect(page.getByTestId("layers-panel")).toContainText("shape");
     await expect(page.getByTestId("editor-timeline")).toBeVisible();
     await expect(page.getByTestId("timeline-clip-shape")).toBeVisible();
 

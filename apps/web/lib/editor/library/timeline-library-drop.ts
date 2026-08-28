@@ -59,6 +59,7 @@ export type LibraryDropGhost = {
 
 let host: TimelineLibraryDropHost | null = null;
 let wasInsertVisual = false;
+let wasInsertAudio = false;
 
 export function registerTimelineLibraryDropHost(
   next: TimelineLibraryDropHost,
@@ -68,6 +69,7 @@ export function registerTimelineLibraryDropHost(
     if (host === next) {
       host = null;
       wasInsertVisual = false;
+      wasInsertAudio = false;
     }
   };
 }
@@ -372,18 +374,40 @@ function resolveDropPreview(
   if (!h || !item) return null;
   if (!isOverTimelineDropZone(clientX, clientY)) {
     wasInsertVisual = false;
+    wasInsertAudio = false;
     return null;
   }
 
-  const hits = collectHits(h);
-  const policyTarget = resolveVisualPolicyTarget(clientY, hits);
+  const isAudio = item.kind === "asset" && item.asset.kind === "audio";
+  const hits = isAudio
+    ? (h.laneHitLayout
+      ? collectAudioZoneLanesFromLayout(h.scrollEl, h.lanes, h.laneHitLayout)
+      : collectAudioZoneLanesFromDom(h.scrollEl))
+    : collectHits(h);
+  const policyTarget = isAudio
+    ? resolveLaneDropTarget(
+      clientY,
+      hits,
+      h.scrollEl.getBoundingClientRect().top,
+      wasInsertAudio,
+      h.lanes
+        .filter((lane) => lane.kind === "audio")
+        .reduce((max, lane) => Math.max(max, lane.order), -1),
+      audioDropPolicy,
+    )
+    : resolveVisualPolicyTarget(clientY, hits);
   if (!policyTarget) return null;
+  if (isAudio) wasInsertAudio = policyTarget.isInsert;
+  else wasInsertVisual = policyTarget.isInsert;
 
   const startTime = startTimeAtPoint(clientX);
   const origin = h.tracksOriginX ?? TIMELINE_PLAYHEAD_GUTTER_PX;
   const widthPx = Math.max(24, payloadDurationSec(item) * h.pixelsPerSecond);
-  const track: "main" | "overlay" =
-    policyTarget.overBaseBody && !policyTarget.isInsert ? "main" : "overlay";
+  const track: "main" | "overlay" | "audio" = isAudio
+    ? "audio"
+    : policyTarget.overBaseBody && !policyTarget.isInsert
+      ? "main"
+      : "overlay";
 
   return {
     valid: true,
@@ -427,6 +451,15 @@ export function placementFromLibraryDropGhost(
   >,
 ): PlacementTarget | null {
   if (!preview.valid) return null;
+  if (preview.track === "audio") {
+    return {
+      track: "audio",
+      laneId: preview.isInsert ? null : preview.laneId,
+      insertNewLane: preview.isInsert,
+      insertOrder: preview.isInsert ? (preview.insertOrder ?? 0) : null,
+      startTime: preview.startTime,
+    };
+  }
   const overMain = preview.track === "main" || Boolean(preview.overBaseBody);
   if (overMain && !preview.isInsert) {
     return { track: "main", startTime: preview.startTime };
@@ -453,6 +486,10 @@ export function resolveLibraryDropPlacement(
   item: LibraryPayload,
 ): PlacementTarget | null {
   const preview = resolveDropPreview(clientX, clientY, item);
-  if (!preview) return null;
-  return placementFromLibraryDropGhost(preview);
+  const placement = preview ? placementFromLibraryDropGhost(preview) : null;
+  // A new library gesture must never inherit insert hysteresis from the
+  // previous gesture that ended inside the timeline.
+  wasInsertVisual = false;
+  wasInsertAudio = false;
+  return placement;
 }

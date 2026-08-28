@@ -11,6 +11,21 @@ const V2AssetMetadataShape = {
   integrity: z.string().trim().min(1).optional(),
 };
 
+/** Import-time audio derivative for a video asset.
+ *
+ * The original video URI remains the visual source. This URI is an audio-only,
+ * seekable derivative and is intentionally kept as asset metadata rather than
+ * duplicated in every layer's payload.
+ */
+export const V2VideoAudioDerivativeSchema = z.object({
+  uri: z.string().trim().min(1),
+  mimeType: z.string().trim().min(1).optional(),
+  duration: z.number().finite().nonnegative().optional(),
+  sampleRate: V2PositiveNumberSchema.int().optional(),
+  channels: V2PositiveNumberSchema.int().max(32).optional(),
+  integrity: z.string().trim().min(1).optional(),
+}).strict();
+
 export const V2ImageAssetSchema = z
   .object({ ...V2AssetMetadataShape, kind: z.literal("image") })
   .strict();
@@ -21,6 +36,7 @@ export const V2VideoAssetSchema = z
     kind: z.literal("video"),
     duration: z.number().finite().nonnegative().optional(),
     fps: V2PositiveNumberSchema.optional(),
+    audio: V2VideoAudioDerivativeSchema.optional(),
   })
   .strict();
 
@@ -61,6 +77,7 @@ export const V2AssetListSchema = z.array(V2AssetSchema);
 
 export type V2ImageAsset = z.infer<typeof V2ImageAssetSchema>;
 export type V2VideoAsset = z.infer<typeof V2VideoAssetSchema>;
+export type V2VideoAudioDerivative = z.infer<typeof V2VideoAudioDerivativeSchema>;
 export type V2AudioAsset = z.infer<typeof V2AudioAssetSchema>;
 export type V2FontAsset = z.infer<typeof V2FontAssetSchema>;
 export type V2Asset = z.infer<typeof V2AssetSchema>;

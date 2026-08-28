@@ -6,7 +6,7 @@ import { createAssetStorageClient } from "./client";
 import { createMapAssetUrlResolver, resolveAssetUri } from "./resolve";
 
 describe("motion-storage closed loop", () => {
-  it("ingests bytes and returns managed AssetV1", async () => {
+  it("ingests bytes and returns managed storage asset DTO", async () => {
     const provider = new MemoryStorageProvider({
       publicBaseUrl: "http://127.0.0.1:8787",
     });

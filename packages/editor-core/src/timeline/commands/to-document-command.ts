@@ -5,6 +5,8 @@ import type {
   LayerPatch,
 } from "../../document/commands";
 import { projectLayersToTimeline } from "../selectors/layer-timeline-projection";
+import { MIN_CLIP_SLICE_SEC } from "../timeline-clips";
+import { getVideoTimelineDurationLimit } from "../policies/video-duration";
 import type { TimelineClip, TimelineLane } from "../model/timeline-types";
 import type { TimelineEdit } from "../edit-intents";
 
@@ -28,6 +30,23 @@ function layerTimingPatch(start: number, duration?: number): LayerPatch {
       ...(duration == null ? {} : { duration: Math.max(0.001, duration) }),
     },
   } as LayerPatch;
+}
+
+function maxVideoTimelineDuration(
+  document: MotionProtocolV2,
+  clip: Extract<TimelineClip, { kind: "scene" }>,
+): number | undefined {
+  if (clip.mediaType !== "video") return undefined;
+  const layer = document.layers.find((candidate) => candidate.id === clip.sceneId);
+  if (!layer || layer.type !== "video") return undefined;
+  const asset = document.assets.find((candidate) => candidate.id === layer.payload.assetId);
+  if (asset?.kind !== "video" || asset.duration === undefined) return undefined;
+  const limit = getVideoTimelineDurationLimit({
+    sourceDuration: asset.duration,
+    trimStart: layer.payload.trimStart,
+    trimEnd: layer.payload.trimEnd,
+  });
+  return limit === undefined ? undefined : Math.max(MIN_CLIP_SLICE_SEC, limit);
 }
 
 function audioTimingPatch(
@@ -167,7 +186,11 @@ export function timelineEditToDocumentCommand(
     if (!clip) return null;
     const start = command.startTime ?? clip.startTime;
     if (clip.kind === "scene") {
-      return { type: "patch-layer", layerId: clip.sceneId, patch: layerTimingPatch(start, command.duration) };
+      const maxDuration = maxVideoTimelineDuration(document, clip);
+      const duration = maxDuration === undefined
+        ? command.duration
+        : Math.min(command.duration, maxDuration);
+      return { type: "patch-layer", layerId: clip.sceneId, patch: layerTimingPatch(start, duration) };
     }
     const target = audioTarget(document, clip);
     return target

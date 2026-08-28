@@ -3,10 +3,16 @@ import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol/v2";
-import type { V2AudioClip, V2AudioTrack } from "@motionvideo/motion-protocol/v2";
+import type {
+  V2AudioClip,
+  V2AudioTrack,
+  V2EmbeddedVideoAudio,
+} from "@motionvideo/motion-protocol/v2";
 import type { V2Asset } from "@motionvideo/motion-protocol/v2";
 
 type V2Layer = MotionProtocolV2["layers"][number];
+
+const DEFAULT_AUDIO_FADE = { duration: 0, curve: "linear" as const };
 
 /** Recursive patch accepted by the V2 editor surface. */
 export type DeepPartial<T> = T extends readonly (infer Item)[]
@@ -32,6 +38,10 @@ export type EditorCommand =
   | { type: "remove-layer"; layerId: string }
   | { type: "patch-layer"; layerId: string; patch: LayerPatch }
   | { type: "replace-layer"; layerId: string; layer: V2Layer }
+  | { type: "set-embedded-video-audio"; layerId: string; audio: V2EmbeddedVideoAudio | null }
+  | { type: "detach-video-audio"; layerId: string; trackId?: string; clipId?: string }
+  | { type: "extract-video-audio"; layerId: string; audioAsset: Extract<V2Asset, { kind: "audio" }>; trackId?: string; clipId?: string }
+  | { type: "restore-document"; document: MotionProtocolV2 }
   | {
       type: "patch-layers";
       patches: Record<string, LayerPatch>;
@@ -116,6 +126,34 @@ function mergePatch<T>(value: T, patch: DeepPartial<T>): T {
   return result as T;
 }
 
+function uniqueId(base: string, used: ReadonlySet<string>): string {
+  if (!used.has(base)) return base;
+  let suffix = 2;
+  while (used.has(`${base}-${suffix}`)) suffix += 1;
+  return `${base}-${suffix}`;
+}
+
+function detachedAudioClip(
+  layer: Extract<V2Layer, { type: "video" }>,
+  audio: V2EmbeddedVideoAudio,
+  assetId: string,
+  clipId: string,
+): V2AudioClip {
+  return {
+    id: clipId,
+    assetId,
+    timing: { ...layer.timing },
+    trim: {
+      start: layer.payload.trimStart ?? 0,
+      ...(layer.payload.trimEnd !== undefined ? { end: layer.payload.trimEnd } : {}),
+    },
+    playbackRate: 1,
+    gainDb: audio.gainDb,
+    fadeIn: { ...(audio.fadeIn ?? DEFAULT_AUDIO_FADE) },
+    fadeOut: { ...(audio.fadeOut ?? DEFAULT_AUDIO_FADE) },
+  };
+}
+
 function diagnosticsFromSchema(error: {
   issues: Array<{ message: string; path: (string | number)[] }>;
 }): EditorDiagnostic[] {
@@ -171,6 +209,74 @@ export function applyEditorCommand(
 
     return { ok: true, document: parsedNext.data, inverse, diagnostics: [] };
   };
+
+  if (command.type === "restore-document") {
+    return commit(clone(command.document), {
+      type: "restore-document",
+      document: original,
+    });
+  }
+
+  if (
+    command.type === "set-embedded-video-audio" ||
+    command.type === "detach-video-audio" ||
+    command.type === "extract-video-audio"
+  ) {
+    const layerIndex = original.layers.findIndex((layer) => layer.id === command.layerId);
+    const layer = layerIndex >= 0 ? original.layers[layerIndex] : undefined;
+    if (!layer || layer.type !== "video") {
+      return reject(original, [{ severity: "error", code: "layer_not_found", message: `Video layer not found: ${command.layerId}` }]);
+    }
+    if (command.type === "set-embedded-video-audio") {
+      const next = clone(original);
+      const nextLayer = next.layers[layerIndex]! as Extract<V2Layer, { type: "video" }>;
+      const payload = { ...nextLayer.payload };
+      if (command.audio === null) delete payload.audio;
+      else {
+        payload.audio = {
+          ...clone(command.audio),
+          fadeIn: { ...(command.audio.fadeIn ?? DEFAULT_AUDIO_FADE) },
+          fadeOut: { ...(command.audio.fadeOut ?? DEFAULT_AUDIO_FADE) },
+        };
+      }
+      next.layers[layerIndex] = { ...nextLayer, payload };
+      return commit(next, { type: "replace-layer", layerId: layer.id, layer: clone(layer) });
+    }
+    const embedded = layer.payload.audio;
+    if (!embedded) {
+      return reject(original, [{ severity: "error", code: "command_invalid", message: `Video layer has no embedded audio: ${command.layerId}` }]);
+    }
+    const sourceAsset = original.assets.find((asset) => asset.id === layer.payload.assetId);
+    if (!sourceAsset || sourceAsset.kind !== "video") {
+      return reject(original, [{ severity: "error", code: "command_invalid", message: `Video layer references an invalid source asset: ${layer.payload.assetId}` }]);
+    }
+    let assetId = sourceAsset.id;
+    const next = clone(original);
+    if (command.type === "extract-video-audio") {
+      const existing = original.assets.find((asset) => asset.id === command.audioAsset.id);
+      if (existing && existing.kind !== "audio") {
+        return reject(original, [{ severity: "error", code: "command_invalid", message: `Extracted audio asset id already belongs to a non-audio asset: ${command.audioAsset.id}` }]);
+      }
+      if (!existing) next.assets.push(clone(command.audioAsset));
+      assetId = command.audioAsset.id;
+    }
+    const usedTrackIds = new Set(next.audio.tracks.map((track) => track.id));
+    const trackId = uniqueId(command.trackId ?? `audio-detached:${layer.id}`, usedTrackIds);
+    const usedClipIds = new Set(next.audio.tracks.flatMap((track) => track.clips.map((clip) => clip.id)));
+    const clipId = uniqueId(command.clipId ?? `audio-detached:${layer.id}:clip`, usedClipIds);
+    next.audio.tracks.push({
+      id: trackId,
+      gainDb: 0,
+      pan: 0,
+      muted: !embedded.enabled,
+      clips: [detachedAudioClip(layer, embedded, assetId, clipId)],
+    });
+    const nextLayer = next.layers[layerIndex]! as Extract<V2Layer, { type: "video" }>;
+    const payload = { ...nextLayer.payload };
+    delete payload.audio;
+    next.layers[layerIndex] = { ...nextLayer, payload };
+    return commit(next, { type: "restore-document", document: original });
+  }
 
   if (command.type === "add-layer") {
     if (original.layers.some((layer) => layer.id === command.layer.id)) {
@@ -276,7 +382,11 @@ export function applyEditorCommand(
       next.audio.tracks.push(newTrack);
       track = newTrack;
     }
-    track.clips.push(clone(command.clip));
+    track.clips.push({
+      ...clone(command.clip),
+      fadeIn: { ...(command.clip.fadeIn ?? DEFAULT_AUDIO_FADE) },
+      fadeOut: { ...(command.clip.fadeOut ?? DEFAULT_AUDIO_FADE) },
+    });
     return commit(next, { type: "remove-audio-clip", trackId: command.trackId, clipId: command.clip.id });
   }
 

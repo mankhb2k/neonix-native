@@ -3,12 +3,23 @@ import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
+  type TimelinePosterStatus,
 } from "../model/timeline-types";
 
 export type LayerTimelineProjection = {
   lanes: TimelineLane[];
   clips: TimelineClip[];
   duration: number;
+};
+
+export type TimelineAssetPreview = {
+  url?: string | null;
+  status?: TimelinePosterStatus | null;
+};
+
+export type TimelineProjectionOptions = {
+  /** Ephemeral editor metadata; never serialized into Protocol V2. */
+  assetPreviews?: ReadonlyMap<string, TimelineAssetPreview>;
 };
 
 const MAIN_LANE_ID = "lane.main";
@@ -47,7 +58,9 @@ function laneOrder(lane: VisualLane): number {
  */
 export function projectLayersToTimeline(
   project: MotionProtocolV2,
+  options: TimelineProjectionOptions = {},
 ): LayerTimelineProjection {
+  const assetPreviews = options.assetPreviews;
   const rootLayers = project.layers.filter((layer) => layer.parentLayerId === null);
   const visualLanesByOrder = lanesFromRootOrder(rootLayers);
   const laneIdByLayerId = new Map<string, string>();
@@ -92,6 +105,36 @@ export function projectLayersToTimeline(
       layer.type === "text"
         ? layer.type
         : undefined,
+    ...(layer.type === "video"
+      ? {
+          muted: layer.payload.audio ? !layer.payload.audio.enabled : false,
+          embeddedAudio: Boolean(layer.payload.audio),
+          trimStart: layer.payload.trimStart ?? 0,
+          ...(() => {
+            const asset = project.assets.find((candidate) => candidate.id === layer.payload.assetId);
+            const preview = assetPreviews?.get(layer.payload.assetId);
+            if (asset?.kind === "video") {
+              return {
+                ...(asset.duration !== undefined ? { sourceDuration: asset.duration } : {}),
+                ...(preview?.url ? { posterUrl: preview.url } : {}),
+                posterStatus: preview?.status ?? "pending",
+              };
+            }
+            return {};
+          })(),
+        }
+      : layer.type === "image"
+        ? (() => {
+            const asset = project.assets.find((candidate) => candidate.id === layer.payload.assetId);
+            const preview = assetPreviews?.get(layer.payload.assetId);
+            return asset?.kind === "image"
+              ? {
+                  posterUrl: preview?.url ?? asset.uri,
+                  posterStatus: preview?.status ?? "ready",
+                }
+              : {};
+          })()
+      : {}),
     laneId: laneIdByLayerId.get(layer.id) ?? MAIN_LANE_ID,
     startTime: layer.timing.start,
     duration: layer.timing.duration,
@@ -118,6 +161,7 @@ export function projectLayersToTimeline(
       startTime: clip.timing.start,
       duration: clip.timing.duration,
       name: clip.id,
+      muted: track.muted,
     })),
   );
 

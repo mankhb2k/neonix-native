@@ -13,14 +13,15 @@ The editor has one document model: `MotionProtocolV2` from
 Supabase project revision
   -> app.neonix.video/editor/[projectId]
   -> internal app/app/editor/[projectId]
-  -> EditorSurfaceProvider
+  -> EditorProviders
   -> V2 commands + timeline adapter
   -> PreviewStage + timeline projection
   -> PATCH /api/projects/[projectId]
 ```
 
-`EditorSurfaceProvider` owns session state such as selection, locks, playhead,
-and undo/redo. Only the Protocol V2 document and server revision are persisted.
+`EditorProviders` composes selector-based document/transport stores with narrow
+authoring and playback action contexts. Only the Protocol V2 document and
+server revision are persisted.
 The browser calls project BFF clients from `lib/api`; UI components do not
 call `fetch` directly.
 

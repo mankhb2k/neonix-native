@@ -1,6 +1,7 @@
 "use client";
 
-import { EditorSurfaceProvider } from "@/components/editor/EditorSurfaceProvider";
+import { PlaybackDebugPanel } from "@/components/editor/debug/PlaybackDebugPanel";
+import { EditorProviders } from "@/components/editor/EditorProviders";
 import { EditorHeader } from "@/components/editor/header/EditorHeader";
 import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
 import { Sidebar } from "@/components/editor/sidebar/Sidebar";
@@ -22,7 +23,7 @@ export function EditorShell({
   initialRevisionNo?: number;
 }) {
   return (
-    <EditorSurfaceProvider
+    <EditorProviders
       initialDocument={initialDocument}
       projectRef={projectRef}
       initialRevisionNo={initialRevisionNo}
@@ -37,7 +38,8 @@ export function EditorShell({
         <StageViewport />
         <TimelineShell />
         <SchemaInspector />
+        <PlaybackDebugPanel />
       </div>
-    </EditorSurfaceProvider>
+    </EditorProviders>
   );
 }

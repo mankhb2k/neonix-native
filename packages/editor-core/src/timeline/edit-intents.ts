@@ -6,6 +6,7 @@
  */
 export type PlacementTarget = {
   track?: "main" | "overlay" | "audio";
+  /** Audio lane id when dropping an asset onto a specific mixer track. */
   laneId?: string | null;
   startTime?: number;
   insertNewLane?: boolean;

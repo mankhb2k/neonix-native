@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import type { AssetV1 } from "@motionvideo/motion-protocol";
+import type { StorageAsset } from "../types";
 import { CreateUploadRequestSchema } from "../types";
 import { AssetService, AssetServiceError } from "./service";
 
@@ -116,7 +116,7 @@ export function createAssetApiRouter(options: CreateAssetApiRouterOptions): Rout
     "/validate",
     asyncHandler(async (req, res, next) => {
       try {
-        const assets = (req.body?.assets ?? []) as AssetV1[];
+        const assets = (req.body?.assets ?? []) as StorageAsset[];
         if (!Array.isArray(assets)) {
           res.status(400).json({
             error: { code: "invalid_request", message: "assets must be an array" },

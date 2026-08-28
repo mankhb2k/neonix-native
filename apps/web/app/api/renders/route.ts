@@ -10,6 +10,8 @@ import {
 } from "@/lib/server/render/ownership";
 import { preflightRenderManifest } from "@/lib/server/render/paint-preflight";
 import { startRenderOnLambda } from "@/lib/server/render/remotion-lambda";
+import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   CreateRenderJobRequestSchema,
   isRenderPresetId,
@@ -20,6 +22,19 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const userId = resolveRequestUserId(request);
   const body = CreateRenderJobRequestSchema.parse(await request.json());
+  if (body.document !== undefined) {
+    const parsedProject = MotionProtocolV2Schema.safeParse(body.document);
+    if (!parsedProject.success) {
+      return NextResponse.json({ error: "invalid_project_document" }, { status: 400 });
+    }
+    const durationIssues = validateProjectVideoDurations(parsedProject.data);
+    if (durationIssues.length > 0) {
+      return NextResponse.json(
+        { error: "video_source_duration_mismatch", issues: durationIssues },
+        { status: 422 },
+      );
+    }
+  }
   const presetRaw = body.preset ?? "export-1080p";
   if (!isRenderPresetId(presetRaw)) {
     return NextResponse.json({ error: "invalid_preset" }, { status: 400 });

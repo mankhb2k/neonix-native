@@ -46,7 +46,9 @@ MotionProtocolV2
 The root also contains required `assets[]` and `audio` domains. Silent
 projects use `audio: { sampleRate: 48000, tracks: [] }`. Audio is parallel to
 `layers[]`, not part of the Matrix4 scene graph; its clips reference `audio`
-or `video` assets and lower to `RuntimeAudioMixPlanV2`.
+or `video` assets and lower to `RuntimeAudioMixPlanV2`. A video with embedded
+sound stores only `payload.audio.enabled`, `gainDb`, and optional fades; its
+timing, trim, loop, and visual order remain owned by the video layer.
 
 Every schema is strict. Unknown fields are rejected. A Protocol V1 envelope,
 legacy origin/depth fields, bones, high-level patterns, and runtime-only fields

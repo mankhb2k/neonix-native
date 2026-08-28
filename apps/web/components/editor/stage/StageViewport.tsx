@@ -9,8 +9,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { PreviewStage } from "@/components/docs/PreviewStage";
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Button } from "@/components/ui";
+import { useEditorDocument, useEditorVisibility } from "@/hooks/editor/use-editor-store";
+import { usePlaybackController } from "@/hooks/editor/use-playback-controller";
 import { StageToolRail } from "./StageToolRail";
 import { StageTransformOverlay } from "./StageTransformOverlay";
 
@@ -24,7 +25,9 @@ function clampStageZoom(value: number): number {
 
 /** Existing editor stage chrome backed by the Protocol V2 preview pipeline. */
 export function StageViewport() {
-  const { document, currentTime, isPlaying, hiddenLayerIds } = useEditorSurface();
+  const { registerPlaybackVideo, registerPlaybackFrameSink } = usePlaybackController();
+  const document = useEditorDocument();
+  const hiddenLayerIds = useEditorVisibility();
   const [stageZoom, setStageZoom] = useState(STAGE_ZOOM_DEFAULT);
   const [fitScale, setFitScale] = useState(0.5);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -214,8 +217,9 @@ export function StageViewport() {
           <PreviewStage
             project={document}
             hiddenLayerIds={hiddenLayerIds}
-            time={currentTime}
-            isPlaying={isPlaying}
+            externalPlayback
+            onVideoElement={registerPlaybackVideo}
+            registerPlaybackFrameSink={registerPlaybackFrameSink}
           />
           <StageTransformOverlay
             compositionWidth={document.composition.width}
@@ -226,5 +230,3 @@ export function StageViewport() {
     </main>
   );
 }
-
-

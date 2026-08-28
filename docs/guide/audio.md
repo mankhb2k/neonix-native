@@ -17,7 +17,7 @@ The audio branch has four important concepts:
 | Audio asset | A direct audio file such as MP3, WAV, or another supported source |
 | Video asset source | An explicit reference to the audio stream inside a video asset |
 | Track | A mix lane with gain, pan, mute state, and ordered clips |
-| Clip | A timed use of one source asset with trim, loop, playback rate, gain, and fades |
+| Clip | A bounded timed use of one source asset with trim, playback rate, gain, and fades |
 
 The root project always contains an audio domain. A silent project uses an
 empty track list:
@@ -100,7 +100,6 @@ source and timeline controls for one use of that source.
               "end": 72
             },
             "playbackRate": 1,
-            "loop": false,
             "gainDb": -6,
             "fadeIn": {
               "duration": 4,
@@ -129,7 +128,6 @@ source and timeline controls for one use of that source.
 | `trim.start` | Source-media start position, in seconds |
 | `trim.end` | Optional source-media end position, in seconds |
 | `playbackRate` | Source playback speed; `1` is normal speed |
-| `loop` | Whether the trimmed source range repeats until the clip ends |
 | `gainDb` | Clip gain in decibels; `0` is unchanged |
 | `fadeIn` | Optional gain envelope at the beginning of the clip |
 | `fadeOut` | Optional gain envelope at the end of the clip |
@@ -156,7 +154,6 @@ gain before fades is `-12 dB`:
       "timing": { "start": 0, "duration": 10 },
       "trim": { "start": 52, "end": 62 },
       "playbackRate": 1,
-      "loop": false,
       "gainDb": -6
     }
   ]
@@ -205,10 +202,13 @@ Fade duration cannot be longer than the clip duration. The compiler lowers
 fades into the runtime `RuntimeAudioMixPlanV2` gain envelope, which both the
 WebAudio preview adapter and Remotion export consume.
 
-## Loop and Playback Rate
+## Bounded Clips and Playback Rate
 
-`trim` selects the source range. When `loop` is true, that range repeats until
-the composition clip reaches `timing.duration`.
+`trim` selects the source range. Audio clips are always bounded: playback stops
+when the clip reaches `timing.duration` or the trimmed source range ends. To
+repeat audio, the compiler/editor expands the repeated use into multiple clips
+with distinct `id` values on the same track. This keeps the protocol
+deterministic and avoids backend-specific looping behavior.
 
 ```json
 {
@@ -220,8 +220,7 @@ the composition clip reaches `timing.duration`.
     "start": 0,
     "end": 4
   },
-  "playbackRate": 1,
-  "loop": true
+  "playbackRate": 1
 }
 ```
 

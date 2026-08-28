@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isV2AtomCertified } from "./capabilities";
+import { V2EmbeddedVideoAudioSchema } from "./audio";
 import { MotionProtocolV2Schema } from "./project";
 
 const RECTANGLE_PROJECT = {
@@ -79,7 +80,6 @@ describe("Motion Protocol V2 schema", () => {
             timing: { start: 1, duration: 2 },
             trim: { start: 0.5, end: 2.5 },
             playbackRate: 1,
-            loop: false,
             gainDb: -3,
             fadeIn: { duration: 0.25, curve: "linear" as const },
             fadeOut: { duration: 0.25, curve: "equal-power" as const },
@@ -88,6 +88,160 @@ describe("Motion Protocol V2 schema", () => {
       },
     };
     expect(MotionProtocolV2Schema.parse(audio)).toEqual(audio);
+  });
+
+  it("rejects the removed audio loop field", () => {
+    const project = {
+      ...RECTANGLE_PROJECT,
+      assets: [{
+        id: "voice",
+        kind: "audio" as const,
+        uri: "/audio/voice.wav",
+        mimeType: "audio/wav",
+        duration: 4,
+        sampleRate: 48000,
+        channels: 2,
+      }],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "voice-track",
+          gainDb: 0,
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "voice-clip",
+            assetId: "voice",
+            timing: { start: 0, duration: 2 },
+            trim: { start: 0, end: 2 },
+            playbackRate: 1,
+            gainDb: 0,
+            loop: true,
+          }],
+        }],
+      },
+    };
+    expect(() => MotionProtocolV2Schema.parse(project)).toThrow();
+  });
+
+  it("rejects an audio clip whose duration exceeds its explicit trim range", () => {
+    const project = {
+      ...RECTANGLE_PROJECT,
+      assets: [{
+        id: "voice",
+        kind: "audio" as const,
+        uri: "/audio/voice.wav",
+        mimeType: "audio/wav",
+        duration: 4,
+        sampleRate: 48000,
+        channels: 2,
+      }],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "voice-track",
+          gainDb: 0,
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "voice-clip",
+            assetId: "voice",
+            timing: { start: 0, duration: 3 },
+            trim: { start: 0, end: 2 },
+            playbackRate: 1,
+            gainDb: 0,
+          }],
+        }],
+      },
+    };
+    expect(() => MotionProtocolV2Schema.parse(project)).toThrow(/bounded trim range/);
+  });
+
+  it("normalizes omitted audio gain to unity in JSON", () => {
+    const project = {
+      ...RECTANGLE_PROJECT,
+      assets: [{
+        id: "voice",
+        kind: "audio" as const,
+        uri: "/audio/voice.wav",
+        mimeType: "audio/wav",
+        duration: 4,
+        sampleRate: 48000,
+        channels: 2,
+      }],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "voice-track",
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "voice-clip",
+            assetId: "voice",
+            timing: { start: 0, duration: 4 },
+            trim: { start: 0 },
+            playbackRate: 1,
+          }],
+        }],
+      },
+    };
+
+    const parsed = MotionProtocolV2Schema.parse(project);
+    expect(parsed.audio.tracks[0]?.gainDb).toBe(0);
+    expect(parsed.audio.tracks[0]?.clips[0]?.gainDb).toBe(0);
+    expect(V2EmbeddedVideoAudioSchema.parse({ enabled: true })).toEqual({
+      enabled: true,
+      gainDb: 0,
+    });
+  });
+
+  it("accepts embedded video audio and keeps its timing fields inherited", () => {
+    const video = {
+      ...RECTANGLE_PROJECT,
+      id: "video-with-audio-v2",
+      assets: [{
+        id: "clip",
+        kind: "video" as const,
+        uri: "/video/clip.mp4",
+        mimeType: "video/mp4",
+        duration: 8,
+        fps: 30,
+      }],
+      layers: [{
+        id: "video",
+        type: "video" as const,
+        parentLayerId: null,
+        order: 0,
+        frame: { width: 320, height: 180 },
+        transform: RECTANGLE_PROJECT.layers[0].transform,
+        opacity: 1,
+        timing: { start: 2, duration: 4 },
+        payload: {
+          assetId: "clip",
+          trimStart: 1,
+          trimEnd: 5,
+          audio: {
+            enabled: true,
+            gainDb: -3,
+            fadeIn: { duration: 0.25, curve: "linear" as const },
+          },
+        },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(video)).toEqual(video);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...video,
+      layers: [{
+        ...video.layers[0],
+        payload: {
+          ...video.layers[0].payload,
+          audio: {
+            ...video.layers[0].payload.audio,
+            fadeIn: { duration: 4.1, curve: "linear" as const },
+          },
+        },
+      }],
+    })).toThrow(/cannot exceed video duration/);
   });
 
   it("rejects invalid audio references and duplicate audio identities", () => {
@@ -106,7 +260,6 @@ describe("Motion Protocol V2 schema", () => {
             timing: { start: 0, duration: 1 },
             trim: { start: 0 },
             playbackRate: 1,
-            loop: false,
             gainDb: 0,
           }],
         }],
@@ -385,7 +538,7 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow(/crop x \+ width/);
   });
 
-  it("accepts a video asset with trim, loop, mute, and frame policy", () => {
+  it("accepts a video asset with trim, mute, and frame policy", () => {
     const video = {
       ...RECTANGLE_PROJECT,
       id: "video-project-v2",
@@ -413,8 +566,7 @@ describe("Motion Protocol V2 schema", () => {
           fit: "cover" as const,
           trimStart: 1,
           trimEnd: 4,
-          loop: true,
-          muted: true,
+          audio: { enabled: false, gainDb: 0 },
           framePolicy: "floor" as const,
         },
       }],
@@ -424,6 +576,14 @@ describe("Motion Protocol V2 schema", () => {
       ...video,
       layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimStart: 4, trimEnd: 1 } }],
     })).toThrow(/trimEnd must be greater/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...video,
+      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimEnd: 61 } }],
+    })).toThrow(/trimEnd cannot exceed source duration/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...video,
+      layers: [{ ...video.layers[0], timing: { start: 0, duration: 4 } }],
+    })).toThrow(/selected source range/);
   });
 
   it("accepts text only with an exact font asset and the locked MVP layout", () => {

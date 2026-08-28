@@ -72,8 +72,17 @@ describe("WebGPU preview backend", () => {
       height: 180,
     };
     const backend = createWebGPUBackend(options, { device, context }, () => {});
+    const videoAsset = {
+      source: {} as TexImageSource,
+      width: 2,
+      height: 2,
+      kind: "video" as const,
+      frameVersion: 1,
+      pixels: new Uint8Array(16),
+    };
+    backend.setAsset("video", videoAsset);
 
-    const stats = backend.paint({
+    const frame = {
       version: 1,
       diagnostics: [],
       commands: [
@@ -151,9 +160,33 @@ describe("WebGPU preview backend", () => {
           width: 80,
           height: 40,
         },
+        {
+          op: "setTransform",
+          key: "video",
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 40, 100, 0, 1],
+          alpha: 1,
+          visible: true,
+          order: 2,
+        },
+        {
+          op: "drawVideo",
+          key: "video",
+          layerId: "video",
+          assetId: "video",
+          width: 80,
+          height: 45,
+          fit: "contain",
+          mediaTime: 0,
+          mediaVisible: true,
+        },
         { op: "endFrame" },
       ],
-    });
+    } as const;
+
+    const stats = backend.paint(frame);
+    const repeatStats = backend.paint(frame);
+    videoAsset.frameVersion = 2;
+    const nextFrameStats = backend.paint({ ...frame, version: 2 });
 
     expect(pipelineDescriptors[0]).toMatchObject({ multisample: { count: 4 } });
     expect(textureDescriptors).toContainEqual(
@@ -170,8 +203,10 @@ describe("WebGPU preview backend", () => {
         },
       ],
     });
-    expect(stats.drawCalls).toBe(2);
-    expect(uniformWrites).toHaveLength(2);
+    expect(stats.drawCalls).toBe(3);
+    expect(repeatStats.videoTextureUploads).toBe(1);
+    expect(nextFrameStats.videoTextureUploads).toBe(2);
+    expect(uniformWrites).toHaveLength(9);
     expect(uniformWrites[0]![28]).toBeCloseTo(7);
     expect(uniformWrites[0]![29]).toBeCloseTo(11);
     expect(uniformWrites[0]![31]).toBe(1);

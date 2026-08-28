@@ -158,6 +158,46 @@ export const MotionProtocolV2Schema = z
           });
         }
       }
+      if (layer.type === "video" && layer.payload.audio) {
+        for (const [field, fade] of [["fadeIn", layer.payload.audio.fadeIn], ["fadeOut", layer.payload.audio.fadeOut]] as const) {
+          if (fade && fade.duration > layer.timing.duration) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Video embedded audio ${field} duration cannot exceed video duration`,
+              path: ["layers", index, "payload", "audio", field, "duration"],
+            });
+          }
+        }
+      }
+      if (layer.type === "video") {
+        const source = project.assets.find((asset) => asset.id === layer.payload.assetId);
+        if (source?.kind === "video" && source.duration !== undefined) {
+          const trimStart = layer.payload.trimStart ?? 0;
+          const trimEnd = Math.min(layer.payload.trimEnd ?? source.duration, source.duration);
+          const availableDuration = trimEnd - trimStart;
+          if (availableDuration > 0 && layer.timing.duration > availableDuration) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Video timing duration cannot exceed the selected source range (${availableDuration}s)`,
+              path: ["layers", index, "timing", "duration"],
+            });
+          }
+          if (layer.payload.trimStart !== undefined && layer.payload.trimStart >= source.duration) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Video trimStart cannot reach or exceed source duration (${source.duration}s)`,
+              path: ["layers", index, "payload", "trimStart"],
+            });
+          }
+          if (layer.payload.trimEnd !== undefined && layer.payload.trimEnd > source.duration) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Video trimEnd cannot exceed source duration (${source.duration}s)`,
+              path: ["layers", index, "payload", "trimEnd"],
+            });
+          }
+        }
+      }
     }
   }) as z.ZodType<MotionProtocolV2>;
 

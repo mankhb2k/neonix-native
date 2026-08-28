@@ -16,8 +16,14 @@ import {
   Upload,
 } from "lucide-react";
 import { useMemo, useRef, type ChangeEvent, type SyntheticEvent } from "react";
-import { useEditorSurface } from "@/components/editor/EditorSurfaceProvider";
 import { Button, Panel, Tabs } from "@/components/ui";
+import { useEditorActions } from "@/hooks/editor/use-editor-actions";
+import {
+  useEditorDocument,
+  useEditorLocks,
+  useEditorSelection,
+  useEditorVisibility,
+} from "@/hooks/editor/use-editor-store";
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
 import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
 import type {
@@ -205,16 +211,11 @@ function fileToAsset(
 }
 
 export function Sidebar() {
-  const {
-    document,
-    selectedLayerIds,
-    setSelectedLayerIds,
-    applyCommands,
-    hiddenLayerIds,
-    lockedLayerIds,
-    toggleLayerVisibility,
-    toggleLayerLock,
-  } = useEditorSurface();
+  const { setSelectedLayerIds, applyCommands, toggleLayerVisibility, toggleLayerLock } = useEditorActions();
+  const document = useEditorDocument();
+  const selectedLayerIds = useEditorSelection();
+  const hiddenLayerIds = useEditorVisibility();
+  const lockedLayerIds = useEditorLocks();
   const uploadRef = useRef<HTMLInputElement>(null);
   const displayLayers = useMemo(
     () => buildLayerTree(document.layers),
@@ -261,7 +262,7 @@ export function Sidebar() {
                   data-testid="layers-panel"
                 >
                   <div className="mb-2 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-muted)]">
-                    <span>Protocol V2</span>
+                    <span>Root Layers</span>
                     <span>{displayLayers.length}</span>
                   </div>
                   <ul className="space-y-1">
@@ -299,13 +300,15 @@ export function Sidebar() {
                             <span className="min-w-0 flex-1 truncate text-[12px] font-medium">
                               {layer.id}
                             </span>
-                            <span
-                              className="flex shrink-0 items-center gap-4"
-                            >
+                            <span className="flex shrink-0 items-center gap-4">
                               <span
                                 role="button"
                                 tabIndex={0}
-                                aria-label={hidden ? `Show ${layer.id}` : `Hide ${layer.id}`}
+                                aria-label={
+                                  hidden
+                                    ? `Show ${layer.id}`
+                                    : `Hide ${layer.id}`
+                                }
                                 aria-pressed={hidden}
                                 className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
                                 onPointerDown={(event) => {
@@ -314,17 +317,29 @@ export function Sidebar() {
                                 }}
                                 onClick={stopLayerSelection}
                                 onKeyDown={(event) => {
-                                  if (event.key !== "Enter" && event.key !== " ") return;
+                                  if (
+                                    event.key !== "Enter" &&
+                                    event.key !== " "
+                                  )
+                                    return;
                                   stopLayerSelection(event);
                                   toggleLayerVisibility(layer.id);
                                 }}
                               >
-                                {hidden ? <EyeOff size={14} strokeWidth={1.8} /> : <Eye size={14} strokeWidth={1.8} />}
+                                {hidden ? (
+                                  <EyeOff size={14} strokeWidth={1.8} />
+                                ) : (
+                                  <Eye size={14} strokeWidth={1.8} />
+                                )}
                               </span>
                               <span
                                 role="button"
                                 tabIndex={0}
-                                aria-label={locked ? `Unlock ${layer.id}` : `Lock ${layer.id}`}
+                                aria-label={
+                                  locked
+                                    ? `Unlock ${layer.id}`
+                                    : `Lock ${layer.id}`
+                                }
                                 aria-pressed={locked}
                                 className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
                                 onPointerDown={(event) => {
@@ -333,12 +348,20 @@ export function Sidebar() {
                                 }}
                                 onClick={stopLayerSelection}
                                 onKeyDown={(event) => {
-                                  if (event.key !== "Enter" && event.key !== " ") return;
+                                  if (
+                                    event.key !== "Enter" &&
+                                    event.key !== " "
+                                  )
+                                    return;
                                   stopLayerSelection(event);
                                   toggleLayerLock(layer.id);
                                 }}
                               >
-                                {locked ? <Lock size={14} strokeWidth={1.8} /> : <Unlock size={14} strokeWidth={1.8} />}
+                                {locked ? (
+                                  <Lock size={14} strokeWidth={1.8} />
+                                ) : (
+                                  <Unlock size={14} strokeWidth={1.8} />
+                                )}
                               </span>
                             </span>
                           </button>

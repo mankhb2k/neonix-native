@@ -1,18 +1,41 @@
 "use client";
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useMemo,
   useRef,
   useState,
   useEffect,
-  type Dispatch,
   type ReactNode,
-  type SetStateAction,
 } from "react";
+import { EditorActionsContext, type EditorActions } from "@/hooks/editor/use-editor-actions";
+import { EditorStoreContext } from "@/hooks/editor/use-editor-store";
+import { PlaybackControllerContext, type PlaybackDiagnostic } from "@/hooks/editor/use-playback-controller";
+import {
+  TransportStoreContext,
+} from "@/hooks/editor/use-transport-store";
 import { saveEditorProject } from "@/lib/api/projects";
+import {
+  createPlaybackController,
+  type PlaybackController,
+  type PlaybackControllerDiagnostic,
+  type PlaybackFrameEvent,
+  type PlaybackTimeEvent,
+} from "@/lib/editor/playback/playback-controller";
+import {
+  createTransportStore,
+  type TransportStoreApi,
+} from "@/lib/editor/playback/transport-store";
+import {
+  createEditorStore,
+  type EditorHistoryEntry,
+  type EditorStoreApi,
+} from "@/lib/editor/state/editor-store";
+import {
+  appendOrCoalesceUndoEntry,
+  appendRedoEntry,
+  appendUndoEntry,
+} from "@/lib/editor/state/history-policy";
 import {
   applyEditorCommand,
   type EditorCommand,
@@ -20,39 +43,7 @@ import {
 } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
-export type EditorSurface = {
-  document: MotionProtocolV2;
-  selectedLayerIds: string[];
-  setSelectedLayerIds: Dispatch<SetStateAction<string[]>>;
-  hiddenLayerIds: readonly string[];
-  lockedLayerIds: readonly string[];
-  toggleLayerVisibility: (layerId: string) => void;
-  toggleLayerLock: (layerId: string) => void;
-  currentTime: number;
-  isPlaying: boolean;
-  setCurrentTime: Dispatch<SetStateAction<number>>;
-  setIsPlaying: Dispatch<SetStateAction<boolean>>;
-  applyCommand: (command: EditorCommand) => boolean;
-  applyCommands: (commands: readonly EditorCommand[]) => boolean;
-  applyCoalescedCommand: (historyKey: string, command: EditorCommand) => boolean;
-  undo: () => boolean;
-  redo: () => boolean;
-  deleteSelectedLayers: () => boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  canDelete: boolean;
-  diagnostics: readonly EditorDiagnostic[];
-  persistenceStatus: "idle" | "saving" | "saved" | "error" | "conflict";
-};
-
-const EditorSurfaceContext = createContext<EditorSurface | null>(null);
-
-type HistoryEntry = {
-  /** Commands that restore the document state before this edit. */
-  undo: readonly EditorCommand[];
-  /** Commands that reapply the edit after an undo. */
-  redo: readonly EditorCommand[];
-};
+export type { PlaybackDiagnostic } from "@/hooks/editor/use-playback-controller";
 
 type CommandExecution =
   | {
@@ -124,7 +115,7 @@ function removeCommandsForSelection(
 }
 
 /** Session state for the existing editor chrome; document ownership is V2 only. */
-export function EditorSurfaceProvider({
+export function EditorProviders({
   initialDocument,
   children,
   projectRef,
@@ -136,24 +127,172 @@ export function EditorSurfaceProvider({
   initialRevisionNo?: number;
 }) {
   const [document, setDocument] = useState(initialDocument);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackDiagnostics, setPlaybackDiagnostics] = useState<readonly PlaybackDiagnostic[]>([]);
+  const transportStoreRef = useRef<TransportStoreApi | null>(null);
+  if (!transportStoreRef.current) transportStoreRef.current = createTransportStore();
+  const transportStore = transportStoreRef.current;
+  const editorStoreRef = useRef<EditorStoreApi | null>(null);
+  if (!editorStoreRef.current) editorStoreRef.current = createEditorStore(initialDocument);
+  const editorStore = editorStoreRef.current;
+  const playbackDiagnosticIdRef = useRef(0);
+  const playbackControllerRef = useRef<PlaybackController | null>(null);
+  // Child effects can register video elements before the provider's passive
+  // effect creates the controller. Keep those registrations until then.
+  const playbackVideosRef = useRef(new Map<string, {
+    element: HTMLVideoElement;
+    onFrameReady?: () => void;
+  }>());
+  const currentTimeRef = useRef(0);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   // Visibility and lock are editor-session metadata. They intentionally stay
   // outside MotionProtocolV2, which only stores renderable layer data.
   const [hiddenLayerIds, setHiddenLayerIds] = useState<string[]>([]);
+  const hiddenLayerIdsRef = useRef<readonly string[]>(hiddenLayerIds);
+  hiddenLayerIdsRef.current = hiddenLayerIds;
   const [lockedLayerIds, setLockedLayerIds] = useState<string[]>([]);
   const [diagnostics, setDiagnostics] = useState<readonly EditorDiagnostic[]>(
     [],
   );
-  const [undoStack, setUndoStack] = useState<readonly HistoryEntry[]>([]);
-  const [redoStack, setRedoStack] = useState<readonly HistoryEntry[]>([]);
+  const [undoStack, setUndoStack] = useState<readonly EditorHistoryEntry[]>([]);
+  const [redoStack, setRedoStack] = useState<readonly EditorHistoryEntry[]>([]);
   const [lastHistoryKey, setLastHistoryKey] = useState<string | null>(null);
   const [revisionNo, setRevisionNo] = useState(initialRevisionNo ?? 0);
   const [persistenceStatus, setPersistenceStatus] = useState<
     "idle" | "saving" | "saved" | "error" | "conflict"
   >("idle");
   const lastPersistedDocumentRef = useRef(JSON.stringify(initialDocument));
+
+  useEffect(() => {
+    editorStore.setState({
+      document,
+      selectedLayerIds,
+      hiddenLayerIds,
+      lockedLayerIds,
+      undoStack,
+      redoStack,
+      diagnostics,
+      persistenceStatus,
+    });
+  }, [
+    diagnostics,
+    document,
+    editorStore,
+    hiddenLayerIds,
+    lockedLayerIds,
+    persistenceStatus,
+    redoStack,
+    selectedLayerIds,
+    undoStack,
+  ]);
+
+  useEffect(() => {
+    const pendingVideos = playbackVideosRef.current;
+    const reportDiagnostic = (diagnostic: PlaybackControllerDiagnostic) => {
+      setPlaybackDiagnostics((previous) => [
+        ...previous.slice(-19),
+        {
+          id: ++playbackDiagnosticIdRef.current,
+          ...diagnostic,
+          at: Date.now(),
+        },
+      ]);
+    };
+    const controller = createPlaybackController({
+      onDiagnostic: reportDiagnostic,
+      collectPerformanceMetrics: process.env.NODE_ENV !== "production",
+      onSnapshot: (snapshot) => {
+        currentTimeRef.current = snapshot.time;
+        transportStore.publishSnapshot(
+          snapshot,
+          playbackControllerRef.current?.audioState ?? "uninitialized",
+          undefined,
+          playbackControllerRef.current?.duration,
+        );
+      },
+    });
+    playbackControllerRef.current = controller;
+    controller.setHiddenLayerIds(hiddenLayerIdsRef.current);
+    for (const [assetId, registration] of pendingVideos) {
+      controller.registerVideo(assetId, registration.element, registration.onFrameReady);
+    }
+    return () => {
+      controller.dispose();
+      pendingVideos.clear();
+      if (playbackControllerRef.current === controller) playbackControllerRef.current = null;
+    };
+  }, [transportStore]);
+
+  const registerPlaybackVideo = useCallback((
+    assetId: string,
+    element: HTMLVideoElement,
+    onFrameReady?: () => void,
+  ) => {
+    playbackVideosRef.current.set(assetId, { element, onFrameReady });
+    const releaseControllerRegistration = playbackControllerRef.current?.registerVideo(
+      assetId,
+      element,
+      onFrameReady,
+    );
+    return () => {
+      if (playbackVideosRef.current.get(assetId)?.element === element) {
+        playbackVideosRef.current.delete(assetId);
+      }
+      releaseControllerRegistration?.();
+    };
+  }, []);
+
+  const registerPlaybackFrameSink = useCallback(
+    (sink: (event: PlaybackFrameEvent) => void) =>
+      playbackControllerRef.current?.registerFrameSink(sink) ?? (() => undefined),
+    [],
+  );
+
+  const registerPlaybackTimeSink = useCallback(
+    (sink: (event: PlaybackTimeEvent) => void) =>
+      playbackControllerRef.current?.registerTimeSink(sink) ?? (() => undefined),
+    [],
+  );
+
+  useEffect(() => {
+    playbackControllerRef.current?.setHiddenLayerIds(hiddenLayerIds);
+  }, [hiddenLayerIds]);
+
+  useEffect(() => {
+    const controller = playbackControllerRef.current;
+    if (!controller) return;
+    try {
+      controller.loadDocument(document, currentTimeRef.current);
+    } catch (error) {
+      setDiagnostics([
+        {
+          severity: "error",
+          code: "compile_invalid",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      ]);
+    }
+  }, [document]);
+
+  const playbackPlay = useCallback(() => {
+    void playbackControllerRef.current?.play();
+  }, []);
+
+  const playbackPause = useCallback(() => {
+    playbackControllerRef.current?.pause();
+  }, []);
+
+  const playbackSeek = useCallback((time: number) => {
+    playbackControllerRef.current?.seek(time);
+  }, []);
+
+  const playbackPreviewSeek = useCallback((time: number) => {
+    playbackControllerRef.current?.previewAt(time);
+  }, []);
+
+  const playbackToggle = useCallback(() => {
+    if (playbackControllerRef.current?.playing) playbackPause();
+    else playbackPlay();
+  }, [playbackPause, playbackPlay]);
 
   useEffect(() => {
     if (!projectRef || initialRevisionNo == null) return undefined;
@@ -195,10 +334,9 @@ export function EditorSurfaceProvider({
       setSelectedLayerIds((previous) =>
         previous.filter((id) => selectionStillExists(result.document, id)),
       );
-      setUndoStack((previous) => [
-        ...previous.slice(-99),
-        { undo: result.inverse, redo: [...commands] },
-      ]);
+      setUndoStack((previous) =>
+        appendUndoEntry(previous, { undo: result.inverse, redo: [...commands] }),
+      );
       setRedoStack([]);
       setLastHistoryKey(null);
       return true;
@@ -217,14 +355,12 @@ export function EditorSurfaceProvider({
         previous.filter((id) => selectionStillExists(result.document, id)),
       );
       setUndoStack((previous) => {
-        if (lastHistoryKey !== historyKey || previous.length === 0) {
-          return [...previous.slice(-99), { undo: result.inverse, redo: [command] }];
-        }
-        const next = [...previous];
-        const last = next[next.length - 1];
-        if (!last) return next;
-        next[next.length - 1] = { ...last, redo: [command] };
-        return next;
+        return appendOrCoalesceUndoEntry(
+          previous,
+          historyKey,
+          lastHistoryKey,
+          { undo: result.inverse, redo: [command] },
+        );
       });
       setRedoStack([]);
       setLastHistoryKey(historyKey);
@@ -244,7 +380,7 @@ export function EditorSurfaceProvider({
       previous.filter((id) => selectionStillExists(result.document, id)),
     );
     setUndoStack((previous) => previous.slice(0, -1));
-    setRedoStack((previous) => [...previous, entry]);
+    setRedoStack((previous) => appendRedoEntry(previous, entry));
     setLastHistoryKey(null);
     return true;
   }, [document, undoStack]);
@@ -260,7 +396,7 @@ export function EditorSurfaceProvider({
       previous.filter((id) => selectionStillExists(result.document, id)),
     );
     setRedoStack((previous) => previous.slice(0, -1));
-    setUndoStack((previous) => [...previous, entry]);
+    setUndoStack((previous) => appendUndoEntry(previous, entry));
     setLastHistoryKey(null);
     return true;
   }, [document, redoStack]);
@@ -308,69 +444,96 @@ export function EditorSurfaceProvider({
     setLockedLayerIds((previous) => previous.filter((id) => validIds.has(id)));
   }, [document.layers]);
 
-  const canDelete = selectedLayerIds.some((id) =>
-    document.layers.some((layer) => layer.id === id) &&
-    !lockedLayerIds.includes(id),
+  const applyCommand = useCallback(
+    (command: EditorCommand) => commitCommands([command]),
+    [commitCommands],
   );
-
-  const value = useMemo<EditorSurface>(
+  const getPlaybackResourceStats = useCallback(
+    () => playbackControllerRef.current?.getResourceStats() ?? {
+      registeredVideos: 0,
+      cachedAudioBuffers: 0,
+      activeAudioSources: 0,
+    },
+    [],
+  );
+  const getPlaybackDiagnostics = useCallback(
+    () => playbackControllerRef.current?.getDiagnostics() ?? {
+      performanceSamples: [],
+      media: {
+        syncCalls: 0,
+        activeVideos: 0,
+        seekRequests: 0,
+        suppressedSeeks: 0,
+        hardCorrections: 0,
+        playRequests: 0,
+        playRejections: 0,
+        decodedFrameCallbacks: 0,
+      },
+    },
+    [],
+  );
+  const editorActions = useMemo<EditorActions>(
     () => ({
-      document,
-      selectedLayerIds,
       setSelectedLayerIds,
-      hiddenLayerIds,
-      lockedLayerIds,
       toggleLayerVisibility,
       toggleLayerLock,
-      currentTime,
-      isPlaying,
-      setCurrentTime,
-      setIsPlaying,
-      diagnostics,
-      applyCommand: (command) => commitCommands([command]),
+      applyCommand,
       applyCommands: commitCommands,
       applyCoalescedCommand: commitCoalescedCommand,
       undo,
       redo,
       deleteSelectedLayers,
-      canUndo: undoStack.length > 0,
-      canRedo: redoStack.length > 0,
-      canDelete,
-      persistenceStatus,
     }),
     [
-      canDelete,
+      applyCommand,
       commitCommands,
       commitCoalescedCommand,
-      currentTime,
       deleteSelectedLayers,
-      diagnostics,
-      document,
-      isPlaying,
       redo,
-      redoStack.length,
-      selectedLayerIds,
-      hiddenLayerIds,
-      lockedLayerIds,
-      persistenceStatus,
+      setSelectedLayerIds,
       toggleLayerLock,
       toggleLayerVisibility,
       undo,
-      undoStack.length,
+    ],
+  );
+  const playbackActions = useMemo(
+    () => ({
+      playbackDiagnostics,
+      playbackPlay,
+      playbackPause,
+      playbackSeek,
+      playbackPreviewSeek,
+      playbackToggle,
+      registerPlaybackVideo,
+      registerPlaybackFrameSink,
+      registerPlaybackTimeSink,
+      getPlaybackResourceStats,
+      getPlaybackDiagnostics,
+    }),
+    [
+      getPlaybackResourceStats,
+      getPlaybackDiagnostics,
+      playbackDiagnostics,
+      playbackPause,
+      playbackPlay,
+      playbackPreviewSeek,
+      playbackSeek,
+      playbackToggle,
+      registerPlaybackFrameSink,
+      registerPlaybackTimeSink,
+      registerPlaybackVideo,
     ],
   );
 
   return (
-    <EditorSurfaceContext.Provider value={value}>
-      {children}
-    </EditorSurfaceContext.Provider>
+    <EditorStoreContext.Provider value={editorStore}>
+      <TransportStoreContext.Provider value={transportStore}>
+        <EditorActionsContext.Provider value={editorActions}>
+          <PlaybackControllerContext.Provider value={playbackActions}>
+            {children}
+          </PlaybackControllerContext.Provider>
+        </EditorActionsContext.Provider>
+      </TransportStoreContext.Provider>
+    </EditorStoreContext.Provider>
   );
-}
-
-export function useEditorSurface(): EditorSurface {
-  const value = useContext(EditorSurfaceContext);
-  if (!value) {
-    throw new Error("useEditorSurface must be used inside EditorSurfaceProvider");
-  }
-  return value;
 }

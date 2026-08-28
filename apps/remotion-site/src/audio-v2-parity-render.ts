@@ -100,17 +100,16 @@ function createProject(): MotionProtocolV2 {
         gainDb: 0,
         pan: 1,
         muted: false,
-        clips: [{
-          id: "tone-loop",
+        clips: Array.from({ length: COMPOSITION_DURATION / TONE_DURATION }, (_, index) => ({
+          id: `tone-${index + 1}`,
           assetId: "tone-440hz",
-          timing: { start: 0, duration: COMPOSITION_DURATION },
+          timing: { start: index * TONE_DURATION, duration: TONE_DURATION },
           trim: { start: 0, end: TONE_DURATION },
           playbackRate: 1,
-          loop: true,
           gainDb: 0,
-          fadeIn: { duration: 0.5, curve: "linear" },
-          fadeOut: { duration: 0.5, curve: "linear" },
-        }],
+          ...(index === 0 ? { fadeIn: { duration: 0.5, curve: "linear" as const } } : {}),
+          ...(index === COMPOSITION_DURATION / TONE_DURATION - 1 ? { fadeOut: { duration: 0.5, curve: "linear" as const } } : {}),
+        })),
       }],
     },
   };
@@ -160,7 +159,7 @@ async function main(): Promise<void> {
     "Expected deterministic tone segments",
   );
   const boundaries = plan.inputs[0]!.segments.map((segment) => segment.compositionEndSample);
-  assert(boundaries.join(",") === "24000,48000,72000,96000", `Unexpected loop/fade boundaries: ${boundaries.join(",")}`);
+  assert(boundaries.join(",") === "24000,48000,72000,96000", `Unexpected clip/fade boundaries: ${boundaries.join(",")}`);
 
   try {
     const serveUrl = await bundle({
