@@ -46,7 +46,6 @@ const nextConfig: NextConfig = {
     "@motionvideo/asset-registry",
     "@motionvideo/preview-renderer",
     "@motionvideo/playback-engine-next",
-    "@motionvideo/playback-engine",
   ],
   turbopack: {
     resolveAlias: {

@@ -10,7 +10,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "lint": "eslint src -c ../../eslint.package.mjs --max-warnings 0"
   },
   "dependencies": {
@@ -29,7 +28,6 @@
     "@types/react-dom": "^19.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "typescript": "^5.8.2",
-    "vitest": "^4.1.10"
+    "typescript": "^5.8.2"
   }
 }

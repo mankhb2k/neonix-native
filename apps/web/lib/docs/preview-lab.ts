@@ -1,4 +1,3 @@
-import { MATRIX4_PARITY_CASES } from "@motionvideo/motion-compiler/testing";
 import {
   V2_AUDIO_FIXTURES,
   type MotionProtocolV2,
@@ -2673,16 +2672,6 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: fixture.project,
     previewTime: fixture.previewTime,
     audioFixture: fixture,
-  })),
-  ...MATRIX4_PARITY_CASES.map((item) => ({
-    id: item.id,
-    label: item.id.replace("matrix4.", "Matrix4 / ").replaceAll("-", " "),
-    group: "Task 5.95 / Matrix4 parity",
-    hint:
-      item.id === "matrix4.camera-plane"
-        ? "The behind-camera layer stays clipped while a valid reference and origin sentinel make the result visible."
-        : "Shared Matrix4 fixture used by Preview and Remotion parity tests.",
-    project: item.project,
   })),
 ];
 

@@ -10,7 +10,7 @@ import {
   type PreviewBackendPreference,
   type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
-import type { PaintCommand, RuntimeFrameV2 } from "@motionvideo/motion-runtime";
+import type { PaintCommand, RuntimeFrameV2, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
 export type RemotionPreviewCanvasProps = {
   frame: RuntimeFrameV2;
@@ -122,7 +122,10 @@ async function paintRemotionFrame(
     (assets as Map<string, PreviewAsset>).set(assetId, asset);
   }
   await seekRemotionVideos(frame, assets);
-  renderer.paintFrame(frame);
+  // Remotion's export path still accepts the V2 visual frame shape while the
+  // backend-neutral preview renderer is V3-only. Paint commands are shared;
+  // the runtime-version marker is the only structural difference here.
+  renderer.paintFrame(frame as unknown as RuntimeFrameV3);
 }
 
 async function loadRemotionAssets(

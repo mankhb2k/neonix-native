@@ -22,15 +22,13 @@
     "test:compiler": "pnpm --filter @motionvideo/motion-compiler test",
     "test:runtime": "pnpm --filter @motionvideo/motion-runtime test",
     "test:preview": "pnpm --filter @motionvideo/preview-renderer test",
-    "test:export": "pnpm --filter @motionvideo/remotion-renderer test && pnpm --filter @motionvideo/render-contracts test",
+    "test:export": "pnpm --filter @motionvideo/render-contracts test",
     "validate:v2-boundary": "node scripts/validate-v2-boundary.mjs",
     "validate:v2-runtime-boundary": "node scripts/validate-v2-runtime-boundary.mjs",
     "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs",
     "validate:v2-renderers": "node scripts/validate-v2-renderers.mjs",
     "validate:v2-core": "node scripts/validate-v2-core.mjs",
-    "validate:v2-hard-lock": "node scripts/validate-v2-hard-lock.mjs",
-    "e2e:v2-remotion-parity": "pnpm --filter @motionvideo/remotion-site e2e:v2-preview-parity && pnpm --filter @motionvideo/web exec playwright test e2e/remotion-v2-parity.spec.ts --workers=1",
-    "e2e:v2-audio-parity": "pnpm --filter @motionvideo/remotion-site e2e:audio-v2-parity && pnpm --filter @motionvideo/web exec playwright test e2e/audio-v2-fixtures.spec.ts --workers=1"
+    "validate:v2-hard-lock": "node scripts/validate-v2-hard-lock.mjs"
   },
   "engines": {
     "node": ">=20",

@@ -1,4 +1,4 @@
-import type { RuntimeMediaResourceV3, RuntimeMediaSourceRefV3, RuntimeProjectV3, VideoRenderPlanV3 } from "@motionvideo/motion-runtime";
+import type { RuntimeMediaSourceRefV3, RuntimeProjectV3, VideoRenderPlanV3 } from "@motionvideo/motion-runtime";
 import type { PlaybackOperationTokenV3, VideoPlanSinkV3 } from "../core/types";
 import { requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
 import type { MediaResourceProviderV3, ResolvedMediaResourceV3 } from "../resources/media-resource-provider";
@@ -32,8 +32,7 @@ export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?
     const element = factory(instanceId, source);
     element.muted = true;
     element.preload = "auto";
-    let entry: Entry;
-    entry = { instanceId, source, element, revision: 0, frame: undefined, generation: 0, onReady: () => {
+    const entry: Entry = { instanceId, source, element, revision: 0, frame: undefined, generation: 0, onReady: () => {
       if (entry.pendingSeek && entry.element.readyState >= 1) {
         entry.element.currentTime = entry.pendingSeek.mediaTimeUs / 1e6;
         entry.pendingSeek = undefined;

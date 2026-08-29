@@ -435,36 +435,11 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
 
-  packages/playback-engine:
-    dependencies:
-      '@motionvideo/motion-protocol':
-        specifier: workspace:*
-        version: link:../motion-protocol
-      '@motionvideo/motion-runtime':
-        specifier: workspace:*
-        version: link:../motion-runtime
-      '@motionvideo/render-contracts':
-        specifier: workspace:*
-        version: link:../render-contracts
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.2.0)(happy-dom@20.11.1)(vite@8.1.5(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
-
   packages/playback-engine-next:
     dependencies:
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/playback-engine':
-        specifier: workspace:*
-        version: link:../playback-engine
     devDependencies:
       '@types/node':
         specifier: ^26.2.0
@@ -525,9 +500,6 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.2.0)(happy-dom@20.11.1)(vite@8.1.5(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
 
   packages/render-contracts:
     dependencies:

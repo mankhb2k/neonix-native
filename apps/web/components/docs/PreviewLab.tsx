@@ -10,15 +10,12 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "@/lib/docs/preview-lab";
-import { compileProtocol, compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
-  createPlaybackEngineV2,
   createAnimationFrameSchedulerV3,
   createWebAudioGraphBackendV3,
   createPlaybackEngineNext,
-  createWebAudioAdapterV2,
   type PlaybackEngineNext,
-  type PlaybackEngineV2,
 } from "@motionvideo/playback-engine-next";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3 } from "@motionvideo/motion-runtime";
@@ -189,8 +186,8 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
           Audio contract preview
         </p>
         <p className="mt-1 text-[13px] text-slate-300">
-          V2 track fixtures schedule AudioMixPlanV2 through the browser WebAudio
-          adapter. Asset-only audition remains a native fallback because it has
+          V2 track fixtures schedule AudioMixPlanV3 through the browser WebAudio
+          graph. Asset-only audition remains a native fallback because it has
           no atomic clip to schedule.
         </p>
         {tracks.length > 1 ? (
@@ -303,15 +300,13 @@ function AudioClipTransport({
   project: V2AudioFixture["project"];
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const engineRef = useRef<PlaybackEngineV2 | null>(null);
-  const audioAdapterRef = useRef<ReturnType<typeof createWebAudioAdapterV2> | null>(null);
-  const suppressFrameUpdateRef = useRef(false);
-  const manualElapsedRef = useRef<number | null>(null);
+  const engineRef = useRef<PlaybackEngineNext | null>(null);
+  const audioBackendRef = useRef<ReturnType<typeof createWebAudioGraphBackendV3> | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const runtime = useMemo(() => compileProtocolV2(project), [project]);
+  const runtime = useMemo(() => compileProtocol(project), [project]);
   const usesRuntimeAudio = useMemo(
-    () => runtime.audio?.tracks.some((track) => track.clips.some((item) => item.id === clip.id)) ?? false,
+    () => runtime.audioTimeline.tracks.some((track) => track.clips.some((item) => item.clipId === clip.id)),
     [clip.id, runtime],
   );
   const trimStart = clip.trim.start;
@@ -319,38 +314,48 @@ function AudioClipTransport({
 
   useEffect(() => {
     if (!usesRuntimeAudio) return undefined;
-    // Keep the docs fixture deterministic across browsers. The production
-    // editor may opt into AudioWorklet, while this small preview uses the
-    // well-supported BufferSource path so a fixture is audible immediately.
-    const adapter = createWebAudioAdapterV2({ preferAudioWorklet: false });
-    const engine = createPlaybackEngineV2({
-      paintCompositionFrame(frame) {
-        if (suppressFrameUpdateRef.current || (manualElapsedRef.current !== null && !engine.playing)) return;
-        const nextElapsed = Math.min(
-          clip.timing.duration,
-          Math.max(0, frame.time - clip.timing.start),
+    const backend = createWebAudioGraphBackendV3({
+      resolveSource(source) {
+        return runtime.mediaCatalog.assets.some((asset) =>
+          asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId),
         );
-        setElapsed(nextElapsed);
-        if (audioRef.current) audioRef.current.volume = fadeGainAt(clip, nextElapsed);
-        if (frame.time >= clip.timing.start + clip.timing.duration) {
-          engine.pause();
-          adapter.pause();
-          setIsPlaying(false);
-        }
       },
-      consumeAudioMixPlan(plan, context) {
-        adapter.consumeAudioMixPlan(plan, context);
+      createElement(_clipId, source) {
+        const stream = runtime.mediaCatalog.assets
+          .find((asset) => asset.mediaId === source.mediaId)?.audio
+          ?.find((candidate) => candidate.streamId === source.streamId);
+        const element = new Audio();
+        element.crossOrigin = "anonymous";
+        element.src = stream?.resource.uri ?? "";
+        element.preload = "auto";
+        return element;
       },
     });
+    const engine = createPlaybackEngineNext({
+      scheduler: createAnimationFrameSchedulerV3(window),
+      audioSink: backend,
+    });
     engine.load(runtime);
+    engine.seek(clip.timing.start * 1_000_000);
     engineRef.current = engine;
-    audioAdapterRef.current = adapter;
-    engine.previewFrameAt(clip.timing.start);
+    audioBackendRef.current = backend;
+    const timer = window.setInterval(() => {
+      const snapshot = engine.snapshot();
+      const nextElapsed = Math.min(
+        clip.timing.duration,
+        Math.max(0, snapshot.timeUs / 1_000_000 - clip.timing.start),
+      );
+      if (snapshot.state === "playing") setElapsed(nextElapsed);
+      if (nextElapsed >= clip.timing.duration && snapshot.state === "playing") {
+        engine.pause();
+        setIsPlaying(false);
+      }
+    }, 50);
     return () => {
+      window.clearInterval(timer);
       engine.dispose();
-      adapter.dispose();
       if (engineRef.current === engine) engineRef.current = null;
-      if (audioAdapterRef.current === adapter) audioAdapterRef.current = null;
+      if (audioBackendRef.current === backend) audioBackendRef.current = null;
     };
   }, [clip, runtime, usesRuntimeAudio]);
 
@@ -358,7 +363,6 @@ function AudioClipTransport({
     const audio = audioRef.current;
     if (!audio) return;
     engineRef.current?.pause();
-    audioAdapterRef.current?.pause();
     audio.pause();
     setIsPlaying(false);
     setElapsed(0);
@@ -372,15 +376,10 @@ function AudioClipTransport({
     if (!audio) return;
     const next = Math.min(Math.max(0, nextElapsed), clip.timing.duration);
     if (usesRuntimeAudio && engineRef.current) {
-      suppressFrameUpdateRef.current = true;
       engineRef.current.pause();
-      audioAdapterRef.current?.pause();
-      engineRef.current.seek(clip.timing.start + next);
-      audio.volume = fadeGainAt(clip, next);
+      engineRef.current.seek((clip.timing.start + next) * 1_000_000);
       setElapsed(next);
       setIsPlaying(false);
-      manualElapsedRef.current = next;
-      suppressFrameUpdateRef.current = false;
       return;
     }
     const sourceOffset = next * clip.playbackRate;
@@ -389,29 +388,17 @@ function AudioClipTransport({
     setElapsed(next);
   }
 
-  async function togglePlayback() {
+  function togglePlayback() {
     const audio = audioRef.current;
     if (!audio) return;
-    if (usesRuntimeAudio && engineRef.current && audioAdapterRef.current) {
-      if (engineRef.current.playing) {
+    if (usesRuntimeAudio && engineRef.current) {
+      if (engineRef.current.snapshot().state === "playing") {
         engineRef.current.pause();
-        audioAdapterRef.current.pause();
         setIsPlaying(false);
         return;
       }
       const playbackElapsed = elapsed >= clip.timing.duration ? 0 : elapsed;
       if (playbackElapsed === 0 && elapsed >= clip.timing.duration) seek(0);
-      manualElapsedRef.current = null;
-      const prepared = await engineRef.current.prepareAudioAt(clip.timing.start + playbackElapsed);
-      if (!prepared) {
-        setIsPlaying(false);
-        return;
-      }
-      const resumed = await audioAdapterRef.current.resume();
-      if (!resumed) {
-        setIsPlaying(false);
-        return;
-      }
       engineRef.current.play();
       setIsPlaying(true);
       return;
@@ -436,7 +423,7 @@ function AudioClipTransport({
         muted={muted}
         className="hidden"
         data-testid="audio-fixture-element"
-        data-audio-backend={usesRuntimeAudio ? "web-audio-v2" : "native-fallback"}
+        data-audio-backend={usesRuntimeAudio ? "web-audio-v3" : "native-fallback"}
         onLoadedMetadata={() => {
           if (audioRef.current) {
             audioRef.current.currentTime = trimStart;
@@ -444,6 +431,7 @@ function AudioClipTransport({
           }
         }}
         onTimeUpdate={() => {
+          if (usesRuntimeAudio) return;
           const audio = audioRef.current;
           if (!audio) return;
           if (audio.currentTime >= trimEnd - 0.02) {

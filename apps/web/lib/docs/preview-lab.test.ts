@@ -103,14 +103,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       "audio.video-source",
       "audio.mix.two-tracks",
       "audio.mix.video-plus-music",
-      "matrix4.2d.identity",
-      "matrix4.2d.rotate-z",
-      "matrix4.2d.skew",
-      "matrix4.3d.rotate-x",
-      "matrix4.3d.rotate-y",
-      "matrix4.3d.translate-z",
-      "matrix4.3d.anchor-z",
-      "matrix4.camera-plane",
     ]);
     expect(PREVIEW_LAB_DEFAULT_CASE).toBe("primitive.shape.rectangle");
     expect(previewLabCaseById(null).id).toBe(PREVIEW_LAB_DEFAULT_CASE);

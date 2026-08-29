@@ -13,8 +13,7 @@
     "certify": "node scripts/certify-architecture.mjs"
   },
   "dependencies": {
-    "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/playback-engine": "workspace:*"
+    "@motionvideo/motion-runtime": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
