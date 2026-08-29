@@ -69,7 +69,11 @@ export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
       resolveSource(source) { return runtime?.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)) ?? false; },
       createElement(_clipId, source) {
         const stream = runtime?.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
-        const element = new Audio(stream?.resource.uri ?? "");
+        // Set CORS mode before assigning src or MediaElementAudioSourceNode
+        // will be forced into opaque/silent mode by the browser.
+        const element = new Audio();
+        element.crossOrigin = "anonymous";
+        element.src = stream?.resource.uri ?? "";
         element.preload = "auto";
         return element;
       },

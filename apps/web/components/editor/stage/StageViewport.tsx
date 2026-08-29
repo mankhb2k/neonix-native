@@ -135,7 +135,7 @@ export function StageViewport() {
     <main
       className="editor-panel flex flex-col overflow-hidden [grid-area:stage]"
       data-testid="editor-stage"
-      data-stage-backend="v2"
+      data-stage-backend="playback-engine-next-v3"
     >
       <div
         className={`relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[var(--stage-bg)] px-4 pt-4 pb-3 ${isPanMode ? "cursor-grab [&_[data-testid=stage-transform-overlay]]:!cursor-grab [&_[data-testid=stage-transform-overlay]_*]:!cursor-grab" : ""}`}

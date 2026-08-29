@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getUserAssetsProvider } from "@/lib/server/r2";
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 
 type JsonObject = Record<string, unknown>;
@@ -161,12 +162,61 @@ function parseDocument(value: unknown): MotionProtocolV2 {
   }
 }
 
+/**
+ * Project revisions intentionally keep Protocol V2 authoring data, not
+ * public R2 URLs. Resolve asset references to short-lived private URLs only
+ * at the server boundary so an old revision can be opened after a URL expires
+ * and a public custom domain is never required.
+ */
+async function hydratePrivateAssetUrls(
+  client: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+  document: MotionProtocolV2,
+): Promise<MotionProtocolV2> {
+  const ids = document.assets
+    .map((asset) => asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id)
+    .filter(isUuid);
+  if (ids.length === 0) return document;
+
+  const { data, error } = await client
+    .from("assets")
+    .select("id, r2_key, status")
+    .eq("workspace_id", workspaceId)
+    .in("id", ids)
+    .is("deleted_at", null)
+    .eq("status", "ready");
+  if (error || !data || data.length === 0) return document;
+
+  const provider = getUserAssetsProvider();
+  const urls = new Map<string, string>();
+  await Promise.all((data as Array<{ id: string; r2_key: string; status: string }>).map(async (asset) => {
+    if (!asset.r2_key) return;
+    const signed = await provider.presignGet(asset.r2_key, 10 * 60);
+    urls.set(asset.id, signed.url);
+  }));
+
+  if (urls.size === 0) return document;
+  return {
+    ...document,
+    assets: document.assets.map((asset) => {
+      const dbId = asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id;
+      const uri = urls.get(dbId);
+      return uri ? { ...asset, uri } : asset;
+    }),
+  };
+}
+
 export async function loadProject(
   projectRef: string,
 ): Promise<EditorProjectSnapshot> {
   const { client } = await authenticatedClient();
   const project = await findProject(client, projectRef);
   const revision = await latestRevision(client, project.id);
+  const document = await hydratePrivateAssetUrls(
+    client,
+    project.workspace_id,
+    parseDocument(revision.document_json),
+  );
 
   return {
     projectId: project.id,
@@ -175,7 +225,7 @@ export async function loadProject(
     title: project.title,
     revisionNo: revision.revision_no,
     revisionId: revision.id,
-    document: parseDocument(revision.document_json),
+    document,
     source: "supabase",
   };
 }

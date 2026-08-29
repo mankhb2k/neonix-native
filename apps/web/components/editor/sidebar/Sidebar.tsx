@@ -108,6 +108,7 @@ function AssetItem({ asset }: { asset: V2Asset }) {
               />
             ) : (
               <video
+                crossOrigin="anonymous"
                 src={asset.uri}
                 muted
                 preload="metadata"

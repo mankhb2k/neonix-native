@@ -212,6 +212,7 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
           <audio
             controls
             preload="metadata"
+            crossOrigin="anonymous"
             src={asset?.uri}
             className="w-full"
             data-testid="audio-fixture-element"
@@ -430,6 +431,7 @@ function AudioClipTransport({
       <audio
         ref={audioRef}
         preload="metadata"
+        crossOrigin="anonymous"
         src={assetUri}
         muted={muted}
         className="hidden"
@@ -571,7 +573,9 @@ function PreviewPlayback({
         resolveSource(source) { return runtime.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)); },
         createElement(_clipId, source) {
           const stream = runtime.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
-          const element = new Audio(stream?.resource.uri ?? "");
+          const element = new Audio();
+          element.crossOrigin = "anonymous";
+          element.src = stream?.resource.uri ?? "";
           element.preload = "auto";
           return element;
         },
