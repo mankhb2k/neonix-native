@@ -130,13 +130,17 @@ export function PreviewLab() {
         </header>
 
         <div className="flex min-w-0 flex-col items-start gap-4 xl:flex-row">
-          <PreviewPlayback
-            key={selected.id}
-            project={selected.project}
-            backend={backend}
-            initialTime={time}
-            onBackendChange={selectBackend}
-          />
+          {selected.audioFixture ? (
+            <AudioFixturePreview fixture={selected.audioFixture} />
+          ) : (
+            <PreviewPlayback
+              key={selected.id}
+              project={selected.project}
+              backend={backend}
+              initialTime={time}
+              onBackendChange={selectBackend}
+            />
+          )}
 
           <aside className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0c0e14]">
             <p className="shrink-0 border-b border-white/10 px-3 py-2 text-[12px] font-medium text-slate-300">
