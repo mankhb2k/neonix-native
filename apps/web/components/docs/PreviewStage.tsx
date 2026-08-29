@@ -15,18 +15,10 @@ import {
   evaluateRuntimeProjectV3,
   frameIndexAtTime,
   prepareRuntimeProjectV3Text,
-  type RuntimeFrameV2,
   type RuntimeFrameV3,
   type RuntimeProjectV3,
   type RuntimeTextShaperLoaderV3,
 } from "@motionvideo/motion-runtime";
-import {
-  createDOMMediaControllerV2,
-  createPlaybackEngineV2,
-  createWebAudioAdapterV2,
-  type PlaybackEngineV2,
-  type WebAudioAdapterV2,
-} from "@motionvideo/playback-engine-next";
 import {
   createPreviewRenderer,
   type PreviewAsset,
@@ -40,7 +32,7 @@ type PreviewStageProps = {
   project: unknown;
   hiddenLayerIds?: readonly string[];
   time?: number;
-  frame?: RuntimeFrameV3 | RuntimeFrameV2;
+  frame?: RuntimeFrameV3;
   isPlaying?: boolean;
   /** Editor mode uses the shared playback controller. */
   externalPlayback?: boolean;
@@ -80,8 +72,6 @@ export function PreviewStage({
   if (!resourceRegistryRef.current) resourceRegistryRef.current = new PreviewResourceRegistry();
   const resourceRegistry = resourceRegistryRef.current;
   const runtimeRef = useRef<RuntimeProjectV3 | null>(null);
-  const audioEngineRef = useRef<PlaybackEngineV2 | null>(null);
-  const audioAdapterRef = useRef<WebAudioAdapterV2 | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
   const onBackendReadyRef = useRef(onBackendReady);
   const onVideoElementRef = useRef(onVideoElement);
@@ -91,7 +81,7 @@ export function PreviewStage({
   const playbackGenerationRef = useRef(-1);
   const resourceGenerationRef = useRef(0);
   const timeRef = useRef(time);
-  const frameRef = useRef<RuntimeFrameV3 | null>(frame ? toRuntimeFrameV3(frame) : null);
+  const frameRef = useRef<RuntimeFrameV3 | null>(frame ?? null);
   const isPlayingRef = useRef(isPlaying);
   const [resourceReadyToken, setResourceReadyToken] = useState(0);
   const [rendererError, setRendererError] = useState<string | null>(null);
@@ -123,7 +113,7 @@ export function PreviewStage({
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
   const error = parsedResult.success ? rendererError : parsedResult.error.message;
-  frameRef.current = frame ? toRuntimeFrameV3(frame) : null;
+  frameRef.current = frame ?? null;
   isPlayingRef.current = isPlaying;
 
   const handleDecodedVideoFrame = useCallback((assetId: string, element: HTMLVideoElement) => {
@@ -186,7 +176,7 @@ export function PreviewStage({
       playbackGenerationRef.current = event.generation;
       timeRef.current = event.time;
       isPlayingRef.current = event.playing;
-      frameRef.current = toRuntimeFrameV3(event.frame);
+      frameRef.current = event.frame;
       const renderer = rendererRef.current;
       const parsed = projectRef.current;
       if (!renderer || !parsed) return;
@@ -197,7 +187,7 @@ export function PreviewStage({
         event.time,
         requestId,
         paintRequestRef,
-        toRuntimeFrameV3(event.frame),
+        event.frame,
         runtimeRef.current,
         assetsRef.current,
         event.playing,
@@ -212,72 +202,6 @@ export function PreviewStage({
       }
     };
   }, [externalPlayback, registerPlaybackFrameSink, resourceReadyToken]);
-
-  // Visual frames follow the editor transport, while audio is scheduled by
-  // the shared V2 playback engine and Web Audio adapter. This keeps audio
-  // timing independent from canvas paint work while preserving one playhead.
-  useEffect(() => {
-    if (externalPlayback) return undefined;
-    const adapter = createWebAudioAdapterV2();
-    const media = createDOMMediaControllerV2({
-      resolveVideo: (assetId) => {
-        const asset = assetsRef.current.get(assetId);
-        return asset?.kind === "video" && asset.source instanceof HTMLVideoElement
-          ? asset.source
-          : null;
-      },
-      onFrameReady: (assetId, element) => {
-        handleDecodedVideoFrame(assetId, element);
-      },
-    });
-    const engine = createPlaybackEngineV2(
-      {
-        consumeAudioMixPlan(plan, context) {
-          adapter.consumeAudioMixPlan(plan, context);
-        },
-      },
-      { media },
-    );
-    audioAdapterRef.current = adapter;
-    audioEngineRef.current = engine;
-
-    return () => {
-      engine.dispose();
-      adapter.dispose();
-      if (audioEngineRef.current === engine) audioEngineRef.current = null;
-      if (audioAdapterRef.current === adapter) audioAdapterRef.current = null;
-    };
-  }, [externalPlayback, handleDecodedVideoFrame]);
-
-  useEffect(() => {
-    if (externalPlayback) return undefined;
-    const engine = audioEngineRef.current;
-    if (!engine || isPlayingRef.current) return undefined;
-    if (Math.abs(engine.currentTime - time) > 1e-4) engine.seek(time);
-    return undefined;
-  }, [externalPlayback, time]);
-
-  useEffect(() => {
-    if (externalPlayback) return undefined;
-    const engine = audioEngineRef.current;
-    const adapter = audioAdapterRef.current;
-    const runtime = runtimeRef.current;
-    if (!engine || !adapter || !runtime) return undefined;
-
-    if (!isPlaying) {
-      engine.pause();
-      adapter.pause();
-      return undefined;
-    }
-
-    void (async () => {
-      const resumed = await adapter.resume();
-      if (!resumed || !isPlayingRef.current) return;
-      engine.seek(timeRef.current);
-      engine.play();
-    })();
-    return undefined;
-  }, [externalPlayback, isPlaying]);
 
   // The canvas and GPU renderer live for the lifetime of the backend. Keeping
   // them mounted while the document changes prevents a visible blank frame
@@ -310,8 +234,6 @@ export function PreviewStage({
       runtimeRef.current = null;
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
-      audioEngineRef.current?.pause();
-      audioAdapterRef.current?.pause();
       preparationDiagnosticsRef.current = [];
       canvasRef.current = null;
       canvas.remove();
@@ -741,11 +663,6 @@ async function prepareVideoFrames(
     await seekVideo(asset.source, mediaTime);
     await primeVideoFrame(asset.source);
   }));
-}
-
-/** Transitional editor events may still carry V2 visual frames; the renderer only consumes V3. */
-function toRuntimeFrameV3(frame: RuntimeFrameV3 | RuntimeFrameV2): RuntimeFrameV3 {
-  return frame.runtimeVersion === 3 ? frame : { ...frame, runtimeVersion: 3 };
 }
 
 function paintFrame(
