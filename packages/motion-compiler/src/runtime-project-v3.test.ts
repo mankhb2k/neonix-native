@@ -83,6 +83,7 @@ describe("canonical compiler V3 projection", () => {
       expect(error).toMatchObject({ code: "MISSING_AUDIO_DERIVATIVE" });
     }
   });
+
 });
 
 function fixtureProject(id: string) {

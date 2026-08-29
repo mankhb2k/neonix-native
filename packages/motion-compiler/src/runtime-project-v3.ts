@@ -215,6 +215,11 @@ function compileAudioTimeline(
     if (layer.type !== "video" || !layer.payload.audio) return [];
     const node = visualNodes.find((candidate) => candidate.id === layer.id);
     if (!node || node.timing.duration <= 0) return [];
+    // Video metadata can be available before probe/derivative generation has
+    // discovered an audio stream. Embedded audio is optional; never let that
+    // readiness gap prevent the visual video instance from rendering.
+    const sourceAsset = catalog.assets.find((candidate) => candidate.mediaId === layer.payload.assetId);
+    if (!sourceAsset?.audio?.length) return [];
     const audio = layer.payload.audio;
     const clip: AudioClipIntentV3 = {
       id: `embedded-audio:${layer.id}:clip`,
