@@ -70,6 +70,15 @@ async function migrateObject(sourceKey: string, targetKey: string): Promise<"cop
   return "copied";
 }
 
+function legacyOriginalKey(asset: AssetRow, targetKey: string): string {
+  const extension = targetKey.match(/\.([^./]+)$/)?.[1] ?? "bin";
+  return `assets/asset.${asset.id}.${extension}`;
+}
+
+function legacyPreviewKey(assetId: string): string {
+  return `assets/${assetId}/preview/poster.webp`;
+}
+
 async function main(): Promise<void> {
   let query = supabase
     .from("assets")
@@ -90,6 +99,7 @@ async function main(): Promise<void> {
 
   for (const asset of assets) {
     const targetKey = defaultObjectKey(asset.id, asset.mime_type);
+    const oldOriginalKey = legacyOriginalKey(asset, targetKey);
     const targetPreviewKey = asset.preview_key
       ? derivativeObjectKey(asset.id, "poster", "poster.webp")
       : null;
@@ -123,9 +133,16 @@ async function main(): Promise<void> {
       }
 
       if (apply && deleteOld) {
-        if (asset.r2_key !== targetKey) await provider.deleteObject(asset.r2_key);
-        if (asset.preview_key && targetPreviewKey && asset.preview_key !== targetPreviewKey) {
-          await provider.deleteObject(asset.preview_key);
+        const originalKeysToDelete = new Set([oldOriginalKey, asset.r2_key]);
+        for (const key of originalKeysToDelete) {
+          if (key !== targetKey) await provider.deleteObject(key);
+        }
+        const oldPreviewKey = legacyPreviewKey(asset.id);
+        const previewKeysToDelete = new Set([oldPreviewKey, asset.preview_key]);
+        for (const key of previewKeysToDelete) {
+          if (targetPreviewKey && key && key !== targetPreviewKey) {
+            await provider.deleteObject(key);
+          }
         }
       }
       result.action = changed ? "migrated" : "skipped";
