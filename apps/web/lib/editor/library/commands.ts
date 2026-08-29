@@ -134,7 +134,7 @@ function layerForPayload(
       return { ...base, type: "image", payload: { assetId: payload.asset.id, fit: "contain" } };
     }
     if (payload.asset.kind === "video") {
-      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", framePolicy: "floor" } };
+      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", framePolicy: "floor", audio: { enabled: false, gainDb: 0 } } };
     }
   }
   return null;

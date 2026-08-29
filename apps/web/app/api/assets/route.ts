@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
   const assetId = randomUUID();
   const provider = getUserAssetsProvider();
-  const storageKey = provider.createObjectKey(`asset.${assetId}`, mimeType);
+  const storageKey = provider.createObjectKey(assetId, mimeType);
   const previewKey = hasPreview ? `assets/${assetId}/preview/poster.webp` : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
