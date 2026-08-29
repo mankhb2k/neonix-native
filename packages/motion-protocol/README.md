@@ -46,7 +46,7 @@ MotionProtocolV2
 The root also contains required `assets[]` and `audio` domains. Silent
 projects use `audio: { sampleRate: 48000, tracks: [] }`. Audio is parallel to
 `layers[]`, not part of the Matrix4 scene graph; its clips reference `audio`
-or `video` assets and lower to `RuntimeAudioMixPlanV2`. A video with embedded
+or `video` assets and lower to `RuntimeAudioMixPlanV3`. A video with embedded
 sound stores only `payload.audio.enabled`, `gainDb`, and optional fades; its
 timing, trim, loop, and visual order remain owned by the video layer.
 
@@ -63,7 +63,7 @@ Atomic Protocol V2 JSON
 @motionvideo/motion-compiler
         |
         v
-RuntimeProjectV2
+RuntimeProjectV3
         |
         v
 @motionvideo/motion-runtime

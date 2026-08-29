@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { Audio, continueRender, delayRender } from "remotion";
 import type {
-  RuntimeAudioMixPlanV2,
-  RuntimeAudioMixSegmentV2,
-  RuntimeAudioSourceV2,
-  RuntimeProjectV2,
+  RuntimeAudioMixPlanV3,
+  RuntimeMediaSourceRefV3,
+  RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
-import { buildRemotionAudioPlanV2 } from "./remotion-audio-plan";
+import { clipProgressAtCompositionSampleV3, envelopeGainAtClipProgressV3, sourceSampleAtCompositionSampleV3 } from "@motionvideo/motion-runtime";
+import { buildRemotionAudioPlan } from "./remotion-audio-plan";
 
 const OUTPUT_SAMPLE_RATE = 48000;
 
 type DecodedAudio = {
   buffer: AudioBuffer;
-  source: RuntimeAudioSourceV2;
+  source: RuntimeMediaSourceRefV3;
 };
 
 function errorMessage(error: unknown): string {
@@ -28,23 +28,26 @@ function offlineContext(
     webkitOfflineAudioContext?: typeof OfflineAudioContext;
   };
   const Constructor = scope.OfflineAudioContext ?? scope.webkitOfflineAudioContext;
-  if (!Constructor) throw new Error("Remotion V2 audio export requires OfflineAudioContext");
+  if (!Constructor) throw new Error("Remotion V3 audio export requires OfflineAudioContext");
   return new Constructor(channels, length, sampleRate);
 }
 
 async function decodeSource(
-  source: RuntimeAudioSourceV2,
+  source: RuntimeMediaSourceRefV3,
   decodeContext: OfflineAudioContext,
+  runtime: RuntimeProjectV3,
 ): Promise<AudioBuffer> {
-  const response = await fetch(source.uri);
-  if (!response.ok) throw new Error(`Audio asset ${source.assetId} returned HTTP ${response.status}`);
+  const stream = runtime.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
+  if (!stream) throw new Error(`Audio stream ${source.mediaId}/${source.streamId} is missing from the media catalog`);
+  const response = await fetch(stream.resource.uri);
+  if (!response.ok) throw new Error(`Audio asset ${source.mediaId} returned HTTP ${response.status}`);
   let decoded: AudioBuffer;
   try {
     decoded = await decodeContext.decodeAudioData(await response.arrayBuffer());
   } catch (error) {
-    if (source.kind === "video") {
+    if (runtime.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.video?.length) {
       throw new Error(
-        `Unable to decode embedded audio from video asset ${source.assetId}; ` +
+        `Unable to decode embedded audio from video asset ${source.mediaId}; ` +
         "an audio derivative is required for this export format",
         { cause: error },
       );
@@ -65,45 +68,10 @@ async function decodeSource(
   return resampleContext.startRendering();
 }
 
-function curveValue(progress: number, curve: "linear" | "equal-power"): number {
-  const clamped = Math.min(1, Math.max(0, progress));
-  return curve === "equal-power" ? Math.sin(clamped * Math.PI / 2) : clamped;
-}
-
-function gainAt(
-  segment: RuntimeAudioMixSegmentV2,
-  progress: number,
-): number {
-  let multiplier = 1;
-  const fadeIn = segment.gainEnvelope.fadeIn;
-  const fadeOut = segment.gainEnvelope.fadeOut;
-  if (fadeIn) {
-    multiplier *= curveValue(
-      fadeIn.start + (fadeIn.end - fadeIn.start) * progress,
-      fadeIn.curve,
-    );
-  }
-  if (fadeOut) {
-    multiplier *= 1 - curveValue(
-      fadeOut.start + (fadeOut.end - fadeOut.start) * progress,
-      fadeOut.curve,
-    );
-  }
-  return segment.gainEnvelope.baseGain * multiplier;
-}
-
-function sourceSampleAt(segment: RuntimeAudioMixSegmentV2, sample: number): number {
-  const compositionSpan = segment.compositionEndSample - segment.compositionStartSample;
-  if (compositionSpan <= 0) return segment.sourceStartSample;
-  return segment.sourceStartSample +
-    ((sample - segment.compositionStartSample) / compositionSpan) *
-    (segment.sourceEndSample - segment.sourceStartSample);
-}
-
 function scheduleInput(
   context: OfflineAudioContext,
-  plan: RuntimeAudioMixPlanV2,
-  input: RuntimeAudioMixPlanV2["inputs"][number],
+  plan: RuntimeAudioMixPlanV3,
+  input: RuntimeAudioMixPlanV3["inputs"][number],
   buffer: AudioBuffer,
 ): void {
   if (input.muted) return;
@@ -113,21 +81,21 @@ function scheduleInput(
     const duration = compositionEnd - compositionStart;
     if (duration <= 0) continue;
 
-    const sourceStart = sourceSampleAt(segment, segment.compositionStartSample);
-    const sourceEnd = sourceSampleAt(segment, segment.compositionEndSample);
+    const sourceStart = sourceSampleAtCompositionSampleV3(segment, segment.compositionStartSample);
+    const sourceEnd = sourceSampleAtCompositionSampleV3(segment, segment.compositionEndSample);
     const sourceDuration = (sourceEnd - sourceStart) / input.sourceSampleRate;
     const playbackRate = sourceDuration > 0 ? sourceDuration / duration : 1;
-    const startProgress = 0;
-    const endProgress = 1;
+    const startProgress = clipProgressAtCompositionSampleV3(segment, segment.compositionStartSample);
+    const endProgress = clipProgressAtCompositionSampleV3(segment, segment.compositionEndSample);
     const sourceNode = context.createBufferSource();
     const gainNode = context.createGain();
     const panner = context.createStereoPanner();
     sourceNode.buffer = buffer;
     sourceNode.playbackRate.setValueAtTime(playbackRate, compositionStart);
     panner.pan.setValueAtTime(input.pan, compositionStart);
-    gainNode.gain.setValueAtTime(gainAt(segment, startProgress), compositionStart);
+    gainNode.gain.setValueAtTime(input.gainLinear * envelopeGainAtClipProgressV3(segment.gainEnvelope, startProgress), compositionStart);
     gainNode.gain.linearRampToValueAtTime(
-      gainAt(segment, endProgress),
+      input.gainLinear * envelopeGainAtClipProgressV3(segment.gainEnvelope, endProgress),
       compositionEnd,
     );
     sourceNode.connect(gainNode);
@@ -141,21 +109,22 @@ function scheduleInput(
   }
 }
 
-async function renderAudioPlanToWav(plan: RuntimeAudioMixPlanV2): Promise<Blob> {
+async function renderAudioPlanToWav(plan: RuntimeAudioMixPlanV3, runtime: RuntimeProjectV3): Promise<Blob> {
   const outputLength = Math.max(1, plan.endSample - plan.startSample);
   const decodeContext = offlineContext(2, 1, OUTPUT_SAMPLE_RATE);
   const decoded = new Map<string, DecodedAudio>();
   for (const input of plan.inputs) {
-    if (input.muted || decoded.has(input.assetId)) continue;
-    decoded.set(input.assetId, {
+    const key = `${input.source.mediaId}:${input.source.streamId}`;
+    if (input.muted || decoded.has(key)) continue;
+    decoded.set(key, {
       source: input.source,
-      buffer: await decodeSource(input.source, decodeContext),
+      buffer: await decodeSource(input.source, decodeContext, runtime),
     });
   }
 
   const context = offlineContext(2, outputLength, plan.sampleRate);
   for (const input of plan.inputs) {
-    const asset = decoded.get(input.assetId);
+    const asset = decoded.get(`${input.source.mediaId}:${input.source.streamId}`);
     if (asset) scheduleInput(context, plan, input, asset.buffer);
   }
   return audioBufferToWav(await context.startRendering());
@@ -211,20 +180,20 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 export type RemotionAudioTrackProps = {
-  runtime: RuntimeProjectV2;
+  runtime: RuntimeProjectV3;
 };
 
-/** Remotion export surface for the complete V2 runtime audio domain. */
+/** Remotion export surface for the complete V3 runtime audio domain. */
 export function RemotionAudioTrack({ runtime }: RemotionAudioTrackProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const plan = buildRemotionAudioPlanV2(runtime);
+    const plan = buildRemotionAudioPlan(runtime);
     setSrc(null);
     setError(null);
     if (!plan) return undefined;
-    const handle = delayRender("Prepare Runtime V2 audio mix");
+    const handle = delayRender("Prepare Runtime V3 audio mix");
     let cancelled = false;
     let handleReleased = false;
     const releaseHandle = () => {
@@ -232,7 +201,7 @@ export function RemotionAudioTrack({ runtime }: RemotionAudioTrackProps) {
       handleReleased = true;
       continueRender(handle);
     };
-    void renderAudioPlanToWav(plan)
+    void renderAudioPlanToWav(plan, runtime)
       .then((wav) => {
         if (cancelled) return;
         return blobToDataUrl(wav).then((dataUrl) => {
@@ -252,6 +221,6 @@ export function RemotionAudioTrack({ runtime }: RemotionAudioTrackProps) {
     };
   }, [runtime]);
 
-  if (error) throw new Error(`Remotion V2 audio export failed: ${error}`);
+  if (error) throw new Error(`Remotion V3 audio export failed: ${error}`);
   return src ? <Audio src={src} /> : null;
 }

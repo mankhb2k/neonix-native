@@ -17,7 +17,6 @@ import { usePointerSessionHost } from "@/hooks/editor/pointer/use-pointer-sessio
 import { useTimelineMarquee } from "@/hooks/editor/timeline/use-timeline-marquee";
 import { useTimelineSeek } from "@/hooks/editor/timeline/use-timeline-seek";
 import { useTimelineViewportMetrics } from "@/hooks/editor/timeline/use-timeline-viewport-metrics";
-import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
 import {
   clientXToTimelineTime,
   ensurePlayheadScrubScroll,
@@ -62,7 +61,7 @@ import { Playhead } from "./Playhead";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
 import type { TimelineDesignMode } from "../Header/TransportBar";
-import type { PlaybackTimeEventV3 as PlaybackTimeEvent } from "@/lib/editor/playback/playback-controller-next-v3";
+import type { PlaybackTimeEventV3 as PlaybackTimeEvent } from "@/lib/editor/playback/playback-controller-v3";
 
 type Props = {
   mode: TimelineDesignMode;
@@ -518,7 +517,7 @@ export const TimelineViewport = memo(function TimelineViewport({
                 <button
                   type="button"
                   className="block w-full px-3 py-1.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={!LINKED_VIDEO_AUDIO_V2_ENABLED || !contextMenu.clip.embeddedAudio || !onDetachVideoAudio}
+                  disabled={!contextMenu.clip.embeddedAudio || !onDetachVideoAudio}
                   onClick={() => {
                     if (contextMenu.clip.kind === "scene") onDetachVideoAudio?.(contextMenu.clip.sceneId);
                     setContextMenu(null);

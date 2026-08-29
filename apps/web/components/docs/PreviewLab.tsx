@@ -14,9 +14,9 @@ import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   createAnimationFrameSchedulerV3,
   createWebAudioGraphBackendV3,
-  createPlaybackEngineNext,
-  type PlaybackEngineNext,
-} from "@motionvideo/playback-engine-next";
+  createPlaybackEngine,
+  type PlaybackEngine,
+} from "@motionvideo/playback-engine";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 import type {
@@ -300,7 +300,7 @@ function AudioClipTransport({
   project: V2AudioFixture["project"];
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const engineRef = useRef<PlaybackEngineNext | null>(null);
+  const engineRef = useRef<PlaybackEngine | null>(null);
   const audioBackendRef = useRef<ReturnType<typeof createWebAudioGraphBackendV3> | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -331,7 +331,7 @@ function AudioClipTransport({
         return element;
       },
     });
-    const engine = createPlaybackEngineNext({
+    const engine = createPlaybackEngine({
       scheduler: createAnimationFrameSchedulerV3(window),
       audioSink: backend,
     });
@@ -545,10 +545,10 @@ function PreviewPlayback({
   const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(
     null,
   );
-  const engineRef = useRef<PlaybackEngineNext | null>(null);
+  const engineRef = useRef<PlaybackEngine | null>(null);
 
   useEffect(() => {
-    const engine = createPlaybackEngineNext({
+    const engine = createPlaybackEngine({
       scheduler: createAnimationFrameSchedulerV3(window),
       videoSink: { publish(plan) {
         const nextTime = plan.timelineTimeUs / 1_000_000;

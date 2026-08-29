@@ -4,7 +4,7 @@ This is a static guide to the Atomic Protocol V2 audio domain. Audio is a
 project-level domain that runs beside the visual scene graph. It is not a
 visual layer, does not use Matrix4, and is not rendered by WebGPU or WebGL2.
 
-The same audio contract feeds the runtime `RuntimeAudioMixPlanV2`, browser
+The same audio contract feeds the runtime `RuntimeAudioMixPlanV3`, browser
 playback, and Remotion export. Protocol semantics stop at the runtime plan;
 decoding and scheduling belong to the preview/export adapters.
 
@@ -199,7 +199,7 @@ like the signal is dipping during a musical transition.
 ```
 
 Fade duration cannot be longer than the clip duration. The compiler lowers
-fades into the runtime `RuntimeAudioMixPlanV2` gain envelope, which both the
+fades into the runtime `RuntimeAudioMixPlanV3` gain envelope, which both the
 WebAudio preview adapter and Remotion export consume.
 
 ## Bounded Clips and Playback Rate

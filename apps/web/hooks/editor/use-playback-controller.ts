@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { PlaybackFrameEventV3, PlaybackTimeEventV3 } from "@/lib/editor/playback/playback-controller-next-v3";
+import type { PlaybackFrameEventV3, PlaybackTimeEventV3 } from "@/lib/editor/playback/playback-controller-v3";
 
 export type PlaybackDiagnostic = {
   id: number;

@@ -7,7 +7,7 @@ timelines, and returns backend-neutral render plans and paint commands.
 ```text
 MotionProtocolV2
         |
-  compileProtocolToRuntimeV3
+  compileProtocol
         |
   RuntimeProjectV3
       |                 |
@@ -15,7 +15,7 @@ resolveVideoAt   resolveAudioWindow
       |                 |
 VideoRenderPlanV3  AudioMixPlanV3
       |
-PlaybackEngineNext / offline export
+PlaybackEngine / offline export
 ```
 
 ## Ownership
@@ -26,7 +26,7 @@ PlaybackEngineNext / offline export
 | `matrix4` | Backend-neutral 3D transforms and projection |
 | `paint` | PaintCommandBuffer contract |
 | `clock` | Frame/time quantization |
-| `v2` | Deprecated compatibility evaluator for the legacy editor/export path |
+| `visual-internals` | Certified visual lowering reused behind the V3 visual boundary; not a public project/audio contract |
 
 ## Matrix4 hard-lock
 
@@ -36,10 +36,9 @@ projection. The runtime public API does not export the old affine/Canvas2D
 adapters, and `PaintCommand.setTransform.matrix4` is required rather than an
 optional fallback.
 
-Those adapters may exist temporarily for the deferred editor migration, but
-they are editor-local implementation details and never Runtime IR. Preview and
-Remotion consume the same V3 visual semantics; the legacy V2 evaluator remains
-only as a compatibility bridge until those consumers cut over.
+Those adapters are editor-local implementation details and never Runtime IR.
+Preview and Remotion consume the same V3 visual semantics. Runtime V2 project
+and audio contracts are not exported from the package root.
 
 Audio is a parallel runtime output. `resolveAudioWindow()` returns an
 `AudioMixPlanV3` from a sample range; it never decodes media or creates WebAudio

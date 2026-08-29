@@ -1,8 +1,8 @@
-import type { RuntimeFrameV2 } from "@motionvideo/motion-runtime";
+import type { RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 import { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
 
 export type RemotionFramePainterProps = {
-  paint: RuntimeFrameV2;
+  paint: RuntimeFrameV3;
   backend?: "auto" | "webgpu" | "webgl2";
 };
 
@@ -13,7 +13,7 @@ export function RemotionFramePainter({
 }: RemotionFramePainterProps) {
   const beginFrame = paint.commands.find((command) => command.op === "beginFrame");
   if (!beginFrame || beginFrame.op !== "beginFrame") {
-    throw new Error("RemotionFramePainter requires a RuntimeFrameV2 beginFrame command");
+    throw new Error("RemotionFramePainter requires a RuntimeFrameV3 beginFrame command");
   }
   return (
     <RemotionPreviewCanvas

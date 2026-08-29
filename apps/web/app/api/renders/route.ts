@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   buildStubRenderManifest,
-  buildStubRuntimeProjectV2,
+  buildStubRuntimeProjectV3,
 } from "@/lib/server/render/build-manifest";
 import { createRenderJob } from "@/lib/server/render/job-store";
 import {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       projectRevision,
       preset: presetRaw,
     });
-    const runtime = buildStubRuntimeProjectV2({
+    const runtime = buildStubRuntimeProjectV3({
       projectId: body.projectId,
       preset: presetRaw,
     });

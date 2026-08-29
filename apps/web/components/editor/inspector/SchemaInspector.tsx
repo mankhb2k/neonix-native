@@ -18,7 +18,6 @@ import {
   useEditorSelection,
   useEditorStore,
 } from "@/hooks/editor/use-editor-store";
-import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
 import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
@@ -715,7 +714,7 @@ export function SchemaInspector() {
               },
             })}
           />
-          {LINKED_VIDEO_AUDIO_V2_ENABLED && selected.payload.audio ? (() => {
+          {selected.payload.audio ? (() => {
             const audio = selected.payload.audio;
             const fadeIn = audio.fadeIn ?? DEFAULT_AUDIO_FADE;
             const fadeOut = audio.fadeOut ?? DEFAULT_AUDIO_FADE;

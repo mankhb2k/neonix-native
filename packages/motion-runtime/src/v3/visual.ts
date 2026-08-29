@@ -1,7 +1,7 @@
-import { evaluateRuntimeProjectV2 } from "./legacy/evaluate";
-import type { RuntimeProjectV2 } from "./legacy/types";
-import { assertRuntimeFrameV2 } from "./legacy/validate";
-import { prepareRuntimeProjectV2Text, type RuntimeTextFontResolverV2, type RuntimeTextShaperLoaderV2 } from "./legacy/text-layout";
+import { evaluateVisualRuntimeProject } from "./visual-internals/evaluate";
+import type { VisualRuntimeProject } from "./visual-internals/types";
+import { assertVisualRuntimeFrame } from "./visual-internals/validate";
+import { prepareVisualRuntimeProjectText, type VisualRuntimeTextFontResolver, type VisualRuntimeTextShaperLoader } from "./visual-internals/text-layout";
 import { validateRuntimeVisualProjectV3 } from "./validate";
 import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
 
@@ -9,7 +9,7 @@ import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
  * Evaluate the canonical V3 visual projection.
  *
  * V3 deliberately keeps the certified visual node semantics from V2. The
- * compatibility evaluator is used only as an implementation bridge here; the
+ * certified visual-internals evaluator is used only behind this boundary; the
  * public input is the V3 visual projection and the returned frame is tagged
  * with runtime version 3. Media/audio playback is resolved separately by the
  * V3 timeline functions.
@@ -29,7 +29,7 @@ export function evaluateRuntimeProjectV3(
     );
   }
 
-  const visualProject: RuntimeProjectV2 = {
+  const visualProject: VisualRuntimeProject = {
     format: "motion-runtime",
     formatVersion: 2,
     id: project.projectId,
@@ -37,7 +37,7 @@ export function evaluateRuntimeProjectV3(
     view: project.visual.view,
     nodes: project.visual.nodes,
   };
-  const frameV2 = evaluateRuntimeProjectV2(visualProject, frame, options);
+  const frameV2 = evaluateVisualRuntimeProject(visualProject, frame, options);
   return { ...frameV2, runtimeVersion: 3 };
 }
 
@@ -49,14 +49,14 @@ export function assertRuntimeFrameV3(input: unknown): asserts input is RuntimeFr
   if (!input || typeof input !== "object" || (input as { runtimeVersion?: unknown }).runtimeVersion !== 3) {
     throw new Error("Runtime frame must carry runtimeVersion 3");
   }
-  assertRuntimeFrameV2({ ...(input as RuntimeFrameV3), runtimeVersion: 2 });
+  assertVisualRuntimeFrame({ ...(input as RuntimeFrameV3), runtimeVersion: 2 });
 }
 
-export type RuntimeTextFontResolverV3 = RuntimeTextFontResolverV2;
-export type RuntimeTextShaperLoaderV3 = RuntimeTextShaperLoaderV2;
+export type RuntimeTextFontResolverV3 = VisualRuntimeTextFontResolver;
+export type RuntimeTextShaperLoaderV3 = VisualRuntimeTextShaperLoader;
 
 /** V3 text preparation preserves the certified visual shaper behind the V3 boundary. */
-export async function prepareRuntimeProjectV3Text(project: RuntimeProjectV3, resolveFont: RuntimeTextFontResolverV3, loadHarfBuzz: RuntimeTextShaperLoaderV3): Promise<{ project: RuntimeProjectV3; diagnostics: Awaited<ReturnType<typeof prepareRuntimeProjectV2Text>>["diagnostics"] }> {
-  const prepared = await prepareRuntimeProjectV2Text({ format: "motion-runtime", formatVersion: 2, id: project.projectId, composition: project.visual.composition, view: project.visual.view, nodes: project.visual.nodes }, resolveFont, loadHarfBuzz);
+export async function prepareRuntimeProjectV3Text(project: RuntimeProjectV3, resolveFont: RuntimeTextFontResolverV3, loadHarfBuzz: RuntimeTextShaperLoaderV3): Promise<{ project: RuntimeProjectV3; diagnostics: Awaited<ReturnType<typeof prepareVisualRuntimeProjectText>>["diagnostics"] }> {
+  const prepared = await prepareVisualRuntimeProjectText({ format: "motion-runtime", formatVersion: 2, id: project.projectId, composition: project.visual.composition, view: project.visual.view, nodes: project.visual.nodes }, resolveFont, loadHarfBuzz);
   return { project: { ...project, visual: { ...project.visual, composition: prepared.project.composition, view: prepared.project.view, nodes: prepared.project.nodes } }, diagnostics: prepared.diagnostics };
 }

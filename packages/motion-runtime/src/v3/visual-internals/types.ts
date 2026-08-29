@@ -15,7 +15,7 @@ import type {
   RuntimeEffect,
 } from "../../paint/paint-types";
 
-export type RuntimeCompositionV2 = {
+export type VisualRuntimeComposition = {
   width: number;
   height: number;
   fps: number;
@@ -25,121 +25,25 @@ export type RuntimeCompositionV2 = {
   graphId: string;
 };
 
-export type RuntimeAudioFadeCurveV2 = "linear" | "equal-power";
-
-export type RuntimeAudioFadeV2 = {
-  duration: number;
-  curve: RuntimeAudioFadeCurveV2;
-};
-
-/** Immutable source metadata resolved from an Atomic Protocol V2 asset. */
-export type RuntimeAudioSourceV2 = {
-  assetId: string;
-  kind: "audio" | "video";
-  uri: string;
-  mimeType?: string;
-  duration?: number;
-  sampleRate?: number;
-  channels?: number;
-  integrity?: string;
-  /** Resolved import-time audio derivative for a video source. */
-  audioUri?: string;
-  audioMimeType?: string;
-  audioDuration?: number;
-  audioSampleRate?: number;
-  audioChannels?: number;
-  audioIntegrity?: string;
-};
-
-export type RuntimeAudioClipV2 = {
-  id: string;
-  assetId: string;
-  source: RuntimeAudioSourceV2;
-  timing: RuntimeTimingV2;
-  trim: {
-    start: number;
-    end?: number;
-  };
-  playbackRate: number;
-  loop: boolean;
-  gainDb: number;
-  fadeIn?: RuntimeAudioFadeV2;
-  fadeOut?: RuntimeAudioFadeV2;
-};
-
-export type RuntimeAudioTrackV2 = {
-  id: string;
-  gainDb: number;
-  pan: number;
-  muted: boolean;
-  clips: RuntimeAudioClipV2[];
-};
-
-export type RuntimeAudioProjectV2 = {
-  sampleRate: 48000;
-  tracks: RuntimeAudioTrackV2[];
-};
-
-export type RuntimeAudioFadeProgressV2 = {
-  curve: RuntimeAudioFadeCurveV2;
-  start: number;
-  end: number;
-};
-
-export type RuntimeAudioGainEnvelopeV2 = {
-  baseGain: number;
-  fadeIn?: RuntimeAudioFadeProgressV2;
-  fadeOut?: RuntimeAudioFadeProgressV2;
-};
-
-export type RuntimeAudioMixSegmentV2 = {
-  compositionStartSample: number;
-  compositionEndSample: number;
-  sourceStartSample: number;
-  sourceEndSample: number;
-  loopIndex: number;
-  gainEnvelope: RuntimeAudioGainEnvelopeV2;
-};
-
-export type RuntimeAudioMixInputV2 = {
-  trackId: string;
-  clipId: string;
-  assetId: string;
-  source: RuntimeAudioSourceV2;
-  sourceSampleRate: number;
-  pan: number;
-  muted: boolean;
-  compositionStartSample: number;
-  compositionEndSample: number;
-  segments: RuntimeAudioMixSegmentV2[];
-};
-
-export type RuntimeAudioMixPlanV2 = {
-  sampleRate: 48000;
-  startSample: number;
-  endSample: number;
-  inputs: RuntimeAudioMixInputV2[];
-};
-
-export type RuntimeViewV2 = {
+export type VisualRuntimeView = {
   /** The only view value Runtime V2 exposes to painters: world space to clip space. */
   worldToClipMatrix: Matrix4;
 };
 
-export type RuntimeTimingV2 = {
+export type VisualRuntimeTiming = {
   start: number;
   duration: number;
 };
 
-export type RuntimeBlendModeV2 = "normal" | "multiply" | "screen" | "add";
+export type VisualRuntimeBlendMode = "normal" | "multiply" | "screen" | "add";
 
 /** Runtime-normalized group mask relation. */
-export type RuntimeMaskV2 = {
+export type VisualRuntimeMask = {
   mode: "clip" | "alpha" | "inverse-alpha" | "luma";
   sourceId: string;
 };
 
-export type RuntimeShapeV2 = {
+export type VisualRuntimeShape = {
   kind: "shape";
   shape: "rectangle" | "ellipse";
   width: number;
@@ -154,7 +58,7 @@ export type RuntimeShapeV2 = {
   effects?: RuntimeEffect[];
 };
 
-export type RuntimePathV2 = {
+export type VisualRuntimePath = {
   kind: "path";
   width: number;
   height: number;
@@ -173,7 +77,7 @@ export type RuntimePathV2 = {
   effects?: RuntimeEffect[];
 };
 
-export type RuntimeImageV2 = {
+export type VisualRuntimeImage = {
   kind: "image";
   assetId: string;
   uri?: string;
@@ -184,7 +88,7 @@ export type RuntimeImageV2 = {
   effects?: RuntimeEffect[];
 };
 
-export type RuntimeVideoV2 = {
+export type VisualRuntimeVideo = {
   kind: "video";
   assetId: string;
   uri?: string;
@@ -200,7 +104,7 @@ export type RuntimeVideoV2 = {
   effects?: RuntimeEffect[];
 };
 
-export type RuntimeTextLayoutV2 = {
+export type VisualRuntimeTextLayout = {
   unitsPerEm: number;
   ascender: number;
   descender: number;
@@ -209,7 +113,7 @@ export type RuntimeTextLayoutV2 = {
 };
 
 /** Text stays semantic until the host has resolved the exact font binary. */
-export type RuntimeTextV2 = {
+export type VisualRuntimeText = {
   kind: "text";
   text: string;
   fontAssetId: string;
@@ -227,7 +131,7 @@ export type RuntimeTextV2 = {
   fill: string;
   width: number;
   height: number;
-  layout?: RuntimeTextLayoutV2;
+  layout?: VisualRuntimeTextLayout;
   effects?: RuntimeEffect[];
 };
 
@@ -236,58 +140,56 @@ export type RuntimeTextV2 = {
  * the point at which a subtree must be flattened before one group opacity is
  * composited back into its parent.
  */
-export type RuntimeGroupV2 = {
+export type VisualRuntimeGroup = {
   kind: "group";
   width: number;
   height: number;
 };
 
-export type RuntimeNodeV2 = {
+export type VisualRuntimeNode = {
   id: string;
   parentId: string | null;
   /** Paint order within this node's sibling scope. */
   order: number;
-  timing: RuntimeTimingV2;
+  timing: VisualRuntimeTiming;
   opacity: number;
   /** Omitted only for older in-memory Runtime test fixtures; Compiler V2 emits it. */
-  blendMode?: RuntimeBlendModeV2;
-  mask?: RuntimeMaskV2;
+  blendMode?: VisualRuntimeBlendMode;
+  mask?: VisualRuntimeMask;
   visible: boolean;
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
   content:
-    | RuntimeGroupV2
-    | RuntimeShapeV2
-    | RuntimePathV2
-    | RuntimeImageV2
-    | RuntimeVideoV2
-    | RuntimeTextV2;
+    | VisualRuntimeGroup
+    | VisualRuntimeShape
+    | VisualRuntimePath
+    | VisualRuntimeImage
+    | VisualRuntimeVideo
+    | VisualRuntimeText;
 };
 
-export type RuntimeProjectV2 = {
+export type VisualRuntimeProject = {
   format: "motion-runtime";
   formatVersion: 2;
   id: string;
-  composition: RuntimeCompositionV2;
-  view: RuntimeViewV2;
-  nodes: RuntimeNodeV2[];
-  /** Compiler V2 always emits this; older in-memory fixtures may omit it. */
-  audio?: RuntimeAudioProjectV2;
+  composition: VisualRuntimeComposition;
+  view: VisualRuntimeView;
+  nodes: VisualRuntimeNode[];
 };
 
-export type RuntimeDiagnosticV2 = {
+export type VisualRuntimeDiagnostic = {
   severity: "error" | "warning";
   code: string;
   message: string;
   nodeId?: string;
 };
 
-export type RuntimeValidationV2 = {
+export type VisualRuntimeValidation = {
   ok: boolean;
-  diagnostics: RuntimeDiagnosticV2[];
+  diagnostics: VisualRuntimeDiagnostic[];
 };
 
-export type RuntimeFrameV2 = PaintCommandBuffer & {
+export type VisualRuntimeFrame = PaintCommandBuffer & {
   runtimeFormat: "motion-runtime";
   runtimeVersion: 2;
   frame: number;

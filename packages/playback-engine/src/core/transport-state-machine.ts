@@ -1,4 +1,4 @@
-import type { PlaybackEngineNextState } from "./types";
+import type { PlaybackEngineState } from "./types";
 
 export type PlaybackTransitionEventV3 =
   | "load"
@@ -11,9 +11,9 @@ export type PlaybackTransitionEventV3 =
 
 /** Pure state transition boundary used by future backends and orchestration. */
 export function transitionPlaybackStateV3(
-  state: PlaybackEngineNextState,
+  state: PlaybackEngineState,
   event: PlaybackTransitionEventV3,
-): PlaybackEngineNextState {
+): PlaybackEngineState {
   if (event === "dispose") return "disposed";
   if (state === "disposed") return state;
   if (event === "error") return "error";

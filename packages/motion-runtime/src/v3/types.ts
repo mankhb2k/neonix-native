@@ -1,19 +1,19 @@
 import type {
-  RuntimeCompositionV2,
-  RuntimeFrameV2,
-  RuntimeNodeV2,
-  RuntimeViewV2,
-} from "./legacy/types";
+  VisualRuntimeComposition,
+  VisualRuntimeFrame,
+  VisualRuntimeNode,
+  VisualRuntimeView,
+} from "./visual-internals/types";
 
 /**
  * Visual runtime primitives are intentionally unchanged by the V3 media
  * boundary. These aliases make that reuse explicit at the canonical V3 API
- * instead of forcing V3 consumers to import the legacy namespace.
+ * instead of forcing V3 consumers to import the visual-internals namespace.
  */
-export type RuntimeCompositionV3 = RuntimeCompositionV2;
-export type RuntimeViewV3 = RuntimeViewV2;
-export type RuntimeNodeV3 = RuntimeNodeV2;
-export type RuntimeFrameV3 = Omit<RuntimeFrameV2, "runtimeVersion"> & {
+export type RuntimeCompositionV3 = VisualRuntimeComposition;
+export type RuntimeViewV3 = VisualRuntimeView;
+export type RuntimeNodeV3 = VisualRuntimeNode;
+export type RuntimeFrameV3 = Omit<VisualRuntimeFrame, "runtimeVersion"> & {
   runtimeVersion: 3;
 };
 export type RuntimeMediaResourceRoleV3 = "original" | "preview-proxy" | "video-proxy" | "audio-proxy" | "thumbnail";

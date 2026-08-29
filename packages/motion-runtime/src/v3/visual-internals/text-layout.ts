@@ -1,30 +1,30 @@
 import type * as HarfBuzz from "harfbuzzjs";
 import type { PaintTextGlyph } from "../../paint/paint-types";
 import type {
-  RuntimeDiagnosticV2,
-  RuntimeProjectV2,
-  RuntimeTextLayoutV2,
-  RuntimeTextV2,
+  VisualRuntimeDiagnostic,
+  VisualRuntimeProject,
+  VisualRuntimeTextLayout,
+  VisualRuntimeText,
 } from "./types";
 
-export type RuntimeTextFontResolverV2 = (font: {
+export type VisualRuntimeTextFontResolver = (font: {
   assetId: string;
   uri: string;
   integrity: string;
 }) => Promise<ArrayBuffer | Uint8Array | null>;
 
-export type RuntimeTextShaperLoaderV2 = () => Promise<typeof HarfBuzz>;
+export type VisualRuntimeTextShaperLoader = () => Promise<typeof HarfBuzz>;
 
 export type PrepareRuntimeTextResultV2 = {
-  project: RuntimeProjectV2;
-  diagnostics: RuntimeDiagnosticV2[];
+  project: VisualRuntimeProject;
+  diagnostics: VisualRuntimeDiagnostic[];
 };
 
 function layoutText(
   hb: typeof HarfBuzz,
-  text: RuntimeTextV2,
+  text: VisualRuntimeText,
   bytes: ArrayBuffer | Uint8Array,
-): RuntimeTextLayoutV2 {
+): VisualRuntimeTextLayout {
   const blob = new hb.Blob(bytes);
   const face = new hb.Face(blob);
   const font = new hb.Font(face);
@@ -38,7 +38,7 @@ function layoutText(
     : text.verticalAlign === "bottom"
       ? text.height - text.lineHeight * sourceLines.length
       : 0;
-  const lines: RuntimeTextLayoutV2["lines"] = [];
+  const lines: VisualRuntimeTextLayout["lines"] = [];
 
   for (const [lineIndex, sourceLine] of sourceLines.entries()) {
     const buffer = new hb.Buffer();
@@ -104,12 +104,12 @@ function layoutText(
  * receives the paint frame. This is intentionally separate from the pure,
  * synchronous Protocol V2 compiler.
  */
-export async function prepareRuntimeProjectV2Text(
-  project: RuntimeProjectV2,
-  resolveFont: RuntimeTextFontResolverV2,
-  loadHarfBuzz: RuntimeTextShaperLoaderV2,
+export async function prepareVisualRuntimeProjectText(
+  project: VisualRuntimeProject,
+  resolveFont: VisualRuntimeTextFontResolver,
+  loadHarfBuzz: VisualRuntimeTextShaperLoader,
 ): Promise<PrepareRuntimeTextResultV2> {
-  const diagnostics: RuntimeDiagnosticV2[] = [];
+  const diagnostics: VisualRuntimeDiagnostic[] = [];
   const textNodes = project.nodes.filter((node) => node.content.kind === "text");
   if (textNodes.length === 0) return { project, diagnostics };
   let hb: typeof HarfBuzz;

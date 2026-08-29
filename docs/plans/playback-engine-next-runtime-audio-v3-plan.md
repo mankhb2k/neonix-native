@@ -3,7 +3,7 @@
 > Trạng thái: đề xuất kiến trúc và kế hoạch triển khai.
 >
 > Phạm vi: giữ nguyên MotionProtocolV2 ở authoring boundary; xây RuntimeProjectV3,
-> compiler lowering mới cho media/audio, `playback-engine-next`, audio derivative
+> compiler lowering mới cho media/audio, `playback-engine`, audio derivative
 > pipeline và các backend media có thể thay thế.
 >
 > Mục tiêu cuối: một realtime playback path duy nhất cho editor, một semantic
@@ -135,7 +135,7 @@ AudioWorklet mới phải được thiết kế từ transport contract:
 - không fetch hoặc decode trong audio rendering thread.
 
 Cho đến khi implementation mới qua browser certification, BufferSource backend
-có thể là compatibility backend của `playback-engine-next`, nhưng không phải kiến
+có thể là compatibility backend của `playback-engine`, nhưng không phải kiến
 trúc audio cuối cùng.
 
 ### 2.4 Video ownership đang theo asset thay vì instance
@@ -235,7 +235,7 @@ VideoRenderPlanV3                            AudioMixPlanV3
         │                                              │
         └───────────────────┬──────────────────────────┘
                             ▼
-                    PlaybackEngineNext
+                    PlaybackEngine
                     ├── TransportStateMachine
                     ├── ClockController
                     ├── OperationEpoch
@@ -266,7 +266,7 @@ Export consumes the same RuntimeProjectV3 semantics through an offline backend.
 | MotionProtocolV2 | Authoring intent, asset identity, video embedded-audio intent, independent audio tracks | Stream handle, proxy choice, signed URL refresh, samples, decoder state |
 | Compiler | Validation, lowering, seconds-to-samples, media/source references, static visual/video/audio plans | Network I/O, decode, buffer readiness, clock |
 | Runtime V3 | Deterministic visual/media/audio semantics và range resolution | DOM, WebAudio, WebCodecs, PCM, GPU resources, transport state |
-| PlaybackEngineNext | Transport state, clock policy, generations, readiness, scheduling, diagnostics | Authoring JSON mutation, media container semantics, pixel rendering |
+| PlaybackEngine | Transport state, clock policy, generations, readiness, scheduling, diagnostics | Authoring JSON mutation, media container semantics, pixel rendering |
 | MediaResourceProvider | Logical resource -> current authorized rendition/URL/manifest | Timeline semantics |
 | VideoBackend | Instance lifecycle, prepare/seek/frame readiness, backend-specific buffering | Composition clock và audio |
 | AudioDecodeBackend | Encoded audio chunks -> timestamped PCM | Mix semantics và transport state |
@@ -571,12 +571,12 @@ Compiler rules:
 - Media catalog revision/integrity tham gia resource hash khi có ảnh hưởng output.
 - Preview và export gọi cùng resolver functions.
 
-## 8. PlaybackEngineNext core
+## 8. PlaybackEngine core
 
-`PlaybackEngineNext` là package mới trong thời gian triển khai:
+`PlaybackEngine` là package mới trong thời gian triển khai:
 
 ```text
-packages/playback-engine-next/
+packages/playback-engine/
   src/
     core/
       playback-engine.ts
@@ -1411,13 +1411,13 @@ Exit gate:
 - visual frame parity pass;
 - mọi khác biệt có ADR/test giải thích.
 
-### Phase 4 — PlaybackEngineNext pure core
+### Phase 4 — PlaybackEngine pure core
 
 Mục tiêu: transport/state/clock/generation test được mà không có browser APIs.
 
 Tasks:
 
-- [x] Tạo package `@motionvideo/playback-engine-next`.
+- [x] Tạo package `@motionvideo/playback-engine`.
 - [x] Implement state machine.
 - [x] Implement operation tokens và resource-disposal guard.
 - [x] Implement ClockController và fake clocks.
@@ -1543,18 +1543,17 @@ Tasks:
 - [ ] Chạy unit, typecheck, renderer parity, Remotion parity và Playwright matrix.
 - [ ] Chạy 30–60 phút audio/video soak với long real media.
 - [ ] Profile CPU, heap, AudioWorklet underrun và GPU resource counts.
-- [ ] Bật engine mới mặc định.
-- [ ] Xóa feature flag sau một stabilization window ngắn trong dev.
-- [ ] Xóa `packages/playback-engine` implementation cũ.
-- [ ] Rename `playback-engine-next` thành canonical playback package/API.
-- [ ] Xóa Runtime V2 audio project/mix contracts và compatibility adapters.
-- [ ] Đổi `compileProtocolV2()` sang RuntimeProjectV3 và xóa temporary entry point.
-- [ ] Cập nhật architecture guide, playback docs và capability claims.
+- [x] Bật engine mới mặc định.
+- [x] Xóa feature flag sau một stabilization window ngắn trong dev.
+- [x] Xóa implementation playback cũ và canonicalize thành `packages/playback-engine`.
+- [x] Rename `playback-engine` thành canonical playback package/API.
+- [x] Xóa Runtime V2 audio project/mix contracts khỏi public runtime surface và chuyển Remotion sang V3.
+- [x] Đổi compiler public entrypoint sang RuntimeProjectV3 và xóa temporary V2 entry points.
+- [x] Cập nhật architecture guide, playback docs và capability claims.
 
-Certification hiện xác nhận canonical tree và không còn direct consumer của
-`@motionvideo/playback-engine` trong app source. Một compatibility bridge V2
-vẫn nằm trong `playback-engine-next` để giữ editor behavior; cần loại bridge
-đó sau khi Stage/transport chuyển hoàn toàn sang RuntimeProjectV3.
+Certification hiện xác nhận canonical tree `packages/playback-engine`, không
+còn direct consumer của `@motionvideo/playback-engine`, không còn
+compatibility bridge, và Stage/transport dùng hoàn toàn RuntimeProjectV3.
 
 Exit gate:
 
@@ -1813,7 +1812,7 @@ validation; không thêm feature mới chỉ vào legacy engine sau Phase 4.
 3. V3 resolvers + deterministic/golden tests.
 4. Compiler V2 -> Runtime V3 lowering.
 5. Remotion/offline semantic parity adapter.
-6. PlaybackEngineNext pure state/clock/token core.
+6. PlaybackEngine pure state/clock/token core.
 7. HTMLVideo instance backend + renderer bridge.
 8. Asset DB/probe/derivative resource contract.
 9. MediaResourceProvider + authorized derivative access.

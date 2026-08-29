@@ -108,9 +108,9 @@ importers:
       '@motionvideo/patterns':
         specifier: workspace:*
         version: link:../../packages/patterns
-      '@motionvideo/playback-engine-next':
+      '@motionvideo/playback-engine':
         specifier: workspace:*
-        version: link:../../packages/playback-engine-next
+        version: link:../../packages/playback-engine
       '@motionvideo/preview-renderer':
         specifier: workspace:*
         version: link:../../packages/preview-renderer
@@ -435,7 +435,7 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
 
-  packages/playback-engine-next:
+  packages/playback-engine:
     dependencies:
       '@motionvideo/motion-runtime':
         specifier: workspace:*

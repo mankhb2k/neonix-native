@@ -239,7 +239,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
   },
   {
     id: "audio.render-plan",
-    label: "RuntimeAudioMixPlanV2 (trim/gain/pan/fade/rate)",
+    label: "RuntimeAudioMixPlanV3 (trim/gain/pan/fade/rate)",
     columns: {
       schema: "yes",
       command: "no",

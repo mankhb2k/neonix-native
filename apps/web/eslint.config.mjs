@@ -80,8 +80,6 @@ const editorBoundaryImportPatterns = [
       "@/lib/editor/authoring/**",
       "@/lib/editor/persistence",
       "@/lib/editor/persistence/**",
-      "@/lib/editor/legacy-runtime",
-      "@/lib/editor/legacy-runtime/**",
     ],
     message: "The web editor no longer has a V1 store or persistence path.",
   },

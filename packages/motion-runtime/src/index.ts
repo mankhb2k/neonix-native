@@ -45,7 +45,23 @@ export * from "./paint/paint-resource-descriptor";
 export * from "./paint/paint-item-fingerprint";
 /** Runtime V3 is the source of truth for compiler/playback consumers. */
 export * from "./v3";
-
-// Visual compatibility implementation is namespaced under V3 while
-// downstream renderers finish their API rename. It is not a V2 public path.
-export * from "./v3/legacy";
+// Backend-neutral visual effect IR remains public; Runtime V2 project/audio
+// contracts are intentionally not exported from the canonical root.
+export { buildRuntimeEffectProgram } from "./v3/visual-internals/effects";
+export {
+  assertRuntimeEffectProgram,
+  validateRuntimeEffectProgram,
+  RUNTIME_EFFECT_SOURCE_SURFACE,
+  type RuntimeAlphaMaskEffectOp,
+  type RuntimeInnerAlphaEffectOp,
+  type RuntimeBlurEffectOp,
+  type RuntimeColorAdjustEffectOp,
+  type RuntimeCompositeEffectOp,
+  type RuntimeEffectOp,
+  type RuntimeEffectProgram,
+  type RuntimeEffectProgramDiagnostic,
+  type RuntimeOffsetEffectOp,
+  type RuntimeNoiseEffectOp,
+  type RuntimeTintEffectOp,
+  type SurfaceRef,
+} from "./v3/visual-internals/effect-program";

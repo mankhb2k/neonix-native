@@ -1,38 +1,37 @@
 import { useCurrentFrame } from "remotion";
 import { useMemo } from "react";
 import {
-  assertRuntimeProjectV2,
-  evaluateRuntimeProjectV2,
-  type RuntimeProjectV2,
+  evaluateRuntimeProjectV3,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import { RemotionPreviewCanvas } from "./RemotionPreviewCanvas";
 import { RemotionAudioTrack } from "./RemotionAudioTrack";
 import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotiClipVideoProps = {
-  /** Canonical V2 Runtime IR supplied by the export/application layer. */
-  runtime: RuntimeProjectV2;
+  /** Canonical V3 Runtime IR supplied by the export/application layer. */
+  runtime: RuntimeProjectV3;
 };
 
 /**
- * Production Remotion composition for the V2 Runtime IR. It evaluates each
- * frame through the shared V2 runtime and paints the resulting command buffer.
+ * Production Remotion composition for the V3 Runtime IR. It evaluates each
+ * frame through the shared V3 runtime and paints the resulting command buffer.
  */
 export function MotiClipVideo({ runtime: runtimeProp }: MotiClipVideoProps) {
   const runtime = useMemo(
-    () => assertRemotionTextPrepared(assertRuntimeProjectV2(runtimeProp)),
+    () => assertRemotionTextPrepared(runtimeProp),
     [runtimeProp],
   );
   const frame = useCurrentFrame();
-  const { background } = runtime.composition;
-  const evaluated = evaluateRuntimeProjectV2(runtime, frame);
+  const { background } = runtime.visual.composition;
+  const evaluated = evaluateRuntimeProjectV3(runtime, frame);
 
   return (
     <>
       <RemotionPreviewCanvas
         frame={evaluated}
-        width={runtime.composition.width}
-        height={runtime.composition.height}
+        width={runtime.visual.composition.width}
+        height={runtime.visual.composition.height}
         background={background}
       />
       <RemotionAudioTrack runtime={runtime} />

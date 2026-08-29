@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sourceRoot = join(packageRoot, "src");
-const required = ["core/playback-engine.ts", "core/transport-state-machine.ts", "clock/clock-controller.ts", "audio/pcm-window.ts", "audio/worklet-protocol.ts", "video/html-video-backend.ts", "resources/media-resource-provider.ts", "diagnostics/snapshot.ts", "editor/playback-controller-next.ts", "editor/shadow-compare.ts"];
+const required = ["core/playback-engine.ts", "core/transport-state-machine.ts", "clock/clock-controller.ts", "audio/pcm-window.ts", "audio/worklet-protocol.ts", "video/html-video-backend.ts", "resources/media-resource-provider.ts", "diagnostics/snapshot.ts", "editor/playback-controller-v3.ts"];
 const forbiddenFlat = ["engine.ts", "clock.ts", "types.ts", "operations.ts", "readiness.ts", "video-preload.ts", "html-video-backend.ts"];
 const missing = required.filter((file) => !existsSync(join(sourceRoot, file)));
 const flat = forbiddenFlat.filter((file) => existsSync(join(sourceRoot, file)));
@@ -16,12 +16,11 @@ function scan(dir) {
     if (["node_modules", ".next", "dist"].includes(entry.name)) continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) scan(path);
-    else if (/\.(ts|tsx|js|mjs|json)$/.test(entry.name) && !path.includes(`${join("packages", "playback-engine-next", "scripts")}`)) {
+    else if (/\.(ts|tsx|js|mjs|json)$/.test(entry.name) && !path.includes(`${join("packages", "playback-engine", "scripts")}`)) {
       const text = readFileSync(path, "utf8");
-      if (text.includes("@motionvideo/playback-engine\"")) {
+      if (text.includes("@motionvideo/playback-engine-next")) {
         const relativePath = relative(workspaceRoot, path);
-        if (relativePath.startsWith("packages\\playback-engine-next\\src\\compat") || relativePath === "packages\\playback-engine-next\\package.json") compatibilityBridge.push(relativePath);
-        else if (!relativePath.endsWith("package.json") && relativePath !== "apps\\web\\next.config.ts") legacyConsumers.push(relativePath);
+        legacyConsumers.push(relativePath);
       }
     }
   }

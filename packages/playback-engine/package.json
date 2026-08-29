@@ -1,5 +1,5 @@
 {
-  "name": "@motionvideo/playback-engine-next",
+  "name": "@motionvideo/playback-engine",
   "version": "0.0.1",
   "private": true,
   "type": "module",

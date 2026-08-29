@@ -1,4 +1,4 @@
-# PlaybackEngineNext baseline — 2026-08-28
+# PlaybackEngine baseline — 2026-08-28
 
 This is the reproducible baseline recorded before changing Runtime V2 or adding
 the V3 boundary.

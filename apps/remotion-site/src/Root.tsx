@@ -6,7 +6,7 @@ import {
 } from "@motionvideo/remotion-renderer";
 import {
   orthographicProjectionMatrix,
-  type RuntimeProjectV2,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 
 export type MotiClipCompositionProps = MotiClipVideoProps;
@@ -16,7 +16,7 @@ const DEFAULT_DURATION_IN_FRAMES = 90;
 const calculateMetadata: CalculateMetadataFunction<
   MotiClipCompositionProps
 > = async ({ props }) => {
-  const composition = props.runtime.composition;
+  const composition = props.runtime.visual.composition;
   const durationInFrames = composition.duration === undefined
     ? DEFAULT_DURATION_IN_FRAMES
     : Math.max(1, Math.ceil(composition.duration * composition.fps));
@@ -28,21 +28,26 @@ const calculateMetadata: CalculateMetadataFunction<
   };
 };
 
-const defaultRuntime: RuntimeProjectV2 = {
+const defaultRuntime: RuntimeProjectV3 = {
   format: "motion-runtime",
-  formatVersion: 2,
-  id: "remotion-default-runtime-v2",
-  composition: {
+  runtimeVersion: 3,
+  projectId: "remotion-default-runtime-v3",
+  visual: {
+    composition: {
     width: 1920,
     height: 1080,
     fps: 30,
     background: "#000000",
-    graphId: "remotion-default-runtime-v2",
+      graphId: "remotion-default-runtime-v3",
+    },
+    view: {
+      worldToClipMatrix: orthographicProjectionMatrix(1920, 1080, 1, 1, 4000),
+    },
+    nodes: [],
   },
-  view: {
-    worldToClipMatrix: orthographicProjectionMatrix(1920, 1080, 1, 1, 4000),
-  },
-  nodes: [],
+  mediaCatalog: { assets: [] },
+  videoTimeline: { instances: [] },
+  audioTimeline: { sampleRate: 48000, tracks: [] },
 };
 
 export const RemotionRoot: React.FC = () => {

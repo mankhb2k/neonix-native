@@ -10,7 +10,7 @@ import { saveRenderJob, updateRenderJob } from "@/lib/server/render/job-store";
 import {
   CAPABILITY_MANIFEST_VERSION,
   PAINT_COMMAND_VERSION,
-  type RuntimeProjectV2,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import type { PersistentRenderJob } from "@/lib/server/render/job-store";
 import type { RenderManifest } from "@motionvideo/render-contracts";
@@ -35,7 +35,7 @@ function lambdaConfigured(): boolean {
 export async function startRenderOnLambda(input: {
   job: PersistentRenderJob;
   manifest: RenderManifest;
-  runtime: RuntimeProjectV2;
+  runtime: RuntimeProjectV3;
 }): Promise<LambdaRenderStartResult> {
   if (!lambdaConfigured()) {
     const renderId = `local_${input.job.jobId}`;

@@ -3,16 +3,16 @@ import { createMonotonicClock } from "../clock/index";
 import { createOperationRegistry, createResourceDisposalGuard } from "./operation-token";
 import { createReadinessCoordinator } from "./readiness-coordinator";
 import { transitionPlaybackStateV3 } from "./transport-state-machine";
-import type { PlaybackEngineNext, PlaybackEngineNextOptions, PlaybackEngineNextSnapshot, PlaybackOperationTokenV3, PlaybackEngineNextState } from "./types";
+import type { PlaybackEngine, PlaybackEngineOptions, PlaybackEngineSnapshot, PlaybackOperationTokenV3, PlaybackEngineState } from "./types";
 
-export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}): PlaybackEngineNext {
+export function createPlaybackEngine(options: PlaybackEngineOptions = {}): PlaybackEngine {
   const clock = options.clock ?? createMonotonicClock();
   const scheduler = options.scheduler;
   const operations = createOperationRegistry();
   const resources = createResourceDisposalGuard();
   const readiness = createReadinessCoordinator("unknown");
-  let project: Parameters<PlaybackEngineNext["load"]>[0] | undefined;
-  let state: PlaybackEngineNextState = "idle";
+  let project: Parameters<PlaybackEngine["load"]>[0] | undefined;
+  let state: PlaybackEngineState = "idle";
   let error: string | undefined;
   let scheduled: number | undefined;
   const metrics = { ticks: 0, publishedVideoPlans: 0, publishedAudioPlans: 0, staleOperations: 0, seeks: 0, underruns: 0 };
@@ -50,7 +50,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
     publishAt(timeUs, current);
     if (state === "playing") schedule();
   };
-  const engine: PlaybackEngineNext = {
+  const engine: PlaybackEngine = {
     load(nextProject) {
       if (resources.isDisposed()) return token("load");
       operations.invalidate();
@@ -133,7 +133,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
       return seekToken;
     },
     tick,
-    snapshot(): PlaybackEngineNextSnapshot { return { state, timeUs: clock.nowUs(), generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } }; },
+    snapshot(): PlaybackEngineSnapshot { return { state, timeUs: clock.nowUs(), generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } }; },
     isCurrent: (candidate) => operations.current(candidate),
     complete(candidate, completion) { if (!operations.current(candidate)) { metrics.staleOperations += 1; return undefined; } return completion(); },
     dispose() { if (state === "disposed") return; if (scheduler && scheduled !== undefined) scheduler.cancel(scheduled); const current = token("pause"); options.videoSink?.pause?.(current); options.audioSink?.pause?.(current); options.videoSink?.dispose?.(); options.audioSink?.dispose?.(); resources.dispose(); state = transitionPlaybackStateV3(state, "dispose"); },
@@ -141,4 +141,4 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
   return engine;
 }
 
-export type { PlaybackEngineNext, PlaybackEngineNextOptions, PlaybackEngineNextSnapshot } from "./types";
+export type { PlaybackEngine, PlaybackEngineOptions, PlaybackEngineSnapshot } from "./types";

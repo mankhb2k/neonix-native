@@ -3,7 +3,6 @@
 import { Volume2, VolumeX } from "lucide-react";
 import { useCallback, useState, type RefObject , PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from "react";
 import { useVisibleTimeline } from "@/hooks/editor/timeline/use-visible-timeline";
-import { LINKED_VIDEO_AUDIO_V2_ENABLED } from "@/lib/editor/feature-flags";
 import { ClipStrip, type ClipStripVisualKind } from "../clips/ClipStrip";
 import { useClipMove } from "../clips/use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "../clips/use-clip-trim";
@@ -278,7 +277,7 @@ export function TimelineTrackCanvas({
               const videoClip = laneClips.find(
                 (clip) => clip.kind === "scene" && clip.mediaType === "video",
               );
-              const hasEmbeddedAudio = LINKED_VIDEO_AUDIO_V2_ENABLED && videoClip?.kind === "scene" && videoClip.mediaType === "video" && videoClip.embeddedAudio;
+              const hasEmbeddedAudio = videoClip?.kind === "scene" && videoClip.mediaType === "video" && videoClip.embeddedAudio;
               const videoLayerId = hasEmbeddedAudio && videoClip.kind === "scene" ? videoClip.sceneId : null;
               const videoMuted = videoClip?.kind === "scene" ? videoClip.muted ?? false : false;
               const audioTrackId = row.kind === "audio"

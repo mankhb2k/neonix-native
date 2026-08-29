@@ -16,11 +16,11 @@ import {
 } from "@/hooks/editor/use-transport-store";
 import { saveEditorProject } from "@/lib/api/projects";
 import {
-  createPlaybackControllerNextV3,
-  type PlaybackControllerNextV3,
+  createPlaybackControllerV3,
+  type PlaybackControllerV3,
   type PlaybackFrameEventV3,
   type PlaybackTimeEventV3,
-} from "@/lib/editor/playback/playback-controller-next-v3";
+} from "@/lib/editor/playback/playback-controller-v3";
 import {
   createTransportStore,
   type TransportStoreApi,
@@ -134,7 +134,7 @@ export function EditorProviders({
   if (!editorStoreRef.current) editorStoreRef.current = createEditorStore(initialDocument);
   const editorStore = editorStoreRef.current;
   const playbackDiagnosticIdRef = useRef(0);
-  const playbackControllerRef = useRef<PlaybackControllerNextV3 | null>(null);
+  const playbackControllerRef = useRef<PlaybackControllerV3 | null>(null);
   // Child effects can register video elements before the provider's passive
   // effect creates the controller. Keep those registrations until then.
   const playbackVideosRef = useRef(new Map<string, {
@@ -186,7 +186,7 @@ export function EditorProviders({
 
   useEffect(() => {
     const pendingVideos = playbackVideosRef.current;
-    const controller = createPlaybackControllerNextV3();
+    const controller = createPlaybackControllerV3();
     playbackControllerRef.current = controller;
     controller.setHiddenLayerIds(hiddenLayerIdsRef.current);
     const releaseTime = controller.registerTimeSink((event) => {

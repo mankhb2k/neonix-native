@@ -57,7 +57,7 @@ export type CompileProtocolV3Options = CompileProtocolOptions & {
  * video and audio timelines are lowered directly from MotionProtocolV2 and
  * never pass through a RuntimeProjectV2 audio/media contract.
  */
-export function compileProtocolToRuntimeV3(
+export function compileProtocol(
   input: unknown,
   options: CompileProtocolV3Options = {},
 ): RuntimeProjectV3 {
@@ -127,20 +127,12 @@ export function compileProtocolToRuntimeV3(
   return runtime;
 }
 
-/** @deprecated Use compileProtocolToRuntimeV3. */
-export const compileProtocolV2ToRuntimeV3 = compileProtocolToRuntimeV3;
-/** @deprecated Use CompileProtocolToRuntimeV3Error. */
-export const CompileProtocolV2ToRuntimeV3Error = CompileProtocolToRuntimeV3Error;
-
-/** Canonical compiler public API. */
-export const compileProtocol = compileProtocolToRuntimeV3;
-
 /** Compile one V3 visual frame into the backend-neutral paint contract. */
 export function compileProtocolToPaintCommands(
   input: unknown,
   options: { frame?: number; time?: number } = {},
 ): PaintCommandBuffer {
-  const runtime = compileProtocolToRuntimeV3(input);
+  const runtime = compileProtocol(input);
   const frame = options.frame ??
     (options.time == null
       ? 0

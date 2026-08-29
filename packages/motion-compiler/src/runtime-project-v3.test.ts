@@ -3,7 +3,6 @@ import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
 import type { RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
 import {
   compileProtocol,
-  compileProtocolToRuntimeV3,
 } from "./index";
 
 describe("canonical compiler V3 projection", () => {
@@ -30,7 +29,7 @@ describe("canonical compiler V3 projection", () => {
     const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.timing");
     if (!fixture) throw new Error("audio.timing fixture is missing");
 
-    const runtime = compileProtocolToRuntimeV3(fixture.project);
+    const runtime = compileProtocol(fixture.project);
     const stream = runtime.mediaCatalog.assets[0]?.audio?.[0];
 
     expect(stream).toMatchObject({

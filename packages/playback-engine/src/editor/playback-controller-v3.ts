@@ -1,18 +1,18 @@
 import type { RuntimeProjectV3, RuntimeAudioMixPlanV3, VideoRenderPlanV3 } from "@motionvideo/motion-runtime";
-import { createPlaybackEngineNext } from "../core/playback-engine";
-import type { PlaybackEngineNext, PlaybackEngineNextOptions, PlaybackEngineNextSnapshot } from "../core/types";
+import { createPlaybackEngine } from "../core/playback-engine";
+import type { PlaybackEngine, PlaybackEngineOptions, PlaybackEngineSnapshot } from "../core/types";
 import { createScrubCoordinatorV3, type ScrubCoordinatorV3 } from "./scrub-coordinator";
 import { createPlaybackSnapshotStoreV3 } from "./transport-store";
 
-export type PlaybackControllerNextOptionsV3 = PlaybackEngineNextOptions & { onSnapshot?: (snapshot: PlaybackEngineNextSnapshot) => void; onVideoPlan?: (plan: VideoRenderPlanV3) => void; onAudioPlan?: (plan: RuntimeAudioMixPlanV3) => void };
-export type PlaybackControllerNextV3 = { load(project: RuntimeProjectV3): void; play(): void; pause(): void; toggle(): void; seek(timeUs: number): void; previewAt(timeUs: number): void; tick(): void; beginScrub(): void; updateScrub(timeUs: number): void; endScrub(): void; registerSnapshotSink(sink: (snapshot: PlaybackEngineNextSnapshot) => void): () => void; getSnapshot(): PlaybackEngineNextSnapshot; readonly scrub: ScrubCoordinatorV3; dispose(): void };
+export type PlaybackControllerOptionsV3 = PlaybackEngineOptions & { onSnapshot?: (snapshot: PlaybackEngineSnapshot) => void; onVideoPlan?: (plan: VideoRenderPlanV3) => void; onAudioPlan?: (plan: RuntimeAudioMixPlanV3) => void };
+export type PlaybackControllerV3 = { load(project: RuntimeProjectV3): void; play(): void; pause(): void; toggle(): void; seek(timeUs: number): void; previewAt(timeUs: number): void; tick(): void; beginScrub(): void; updateScrub(timeUs: number): void; endScrub(): void; registerSnapshotSink(sink: (snapshot: PlaybackEngineSnapshot) => void): () => void; getSnapshot(): PlaybackEngineSnapshot; readonly scrub: ScrubCoordinatorV3; dispose(): void };
 
-export function createPlaybackControllerNextV3(options: PlaybackControllerNextOptionsV3 = {}): PlaybackControllerNextV3 {
-  const snapshots = new Set<(snapshot: PlaybackEngineNextSnapshot) => void>();
+export function createPlaybackControllerV3(options: PlaybackControllerOptionsV3 = {}): PlaybackControllerV3 {
+  const snapshots = new Set<(snapshot: PlaybackEngineSnapshot) => void>();
   const videoSink = options.videoSink ?? { publish: (plan: VideoRenderPlanV3) => options.onVideoPlan?.(plan) };
   const audioSink = options.audioSink ?? { publish: (plan: RuntimeAudioMixPlanV3) => options.onAudioPlan?.(plan) };
-  const engineOptions: PlaybackEngineNextOptions = { ...options, videoSink, audioSink };
-  const engine: PlaybackEngineNext = createPlaybackEngineNext(engineOptions);
+  const engineOptions: PlaybackEngineOptions = { ...options, videoSink, audioSink };
+  const engine: PlaybackEngine = createPlaybackEngine(engineOptions);
   let disposed = false;
   const store = createPlaybackSnapshotStoreV3(engine.snapshot());
   store.subscribe(() => { const snapshot = store.getSnapshot(); for (const sink of snapshots) sink(snapshot); });

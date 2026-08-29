@@ -13,8 +13,8 @@ export { assertRemotionTextPrepared } from "./text-runtime";
 export { RemotionAudioTrack } from "./RemotionAudioTrack";
 export type { RemotionAudioTrackProps } from "./RemotionAudioTrack";
 export {
-  buildRemotionAudioPlanV2,
-  runtimeAudioDurationV2,
+  buildRemotionAudioPlan,
+  runtimeAudioDuration,
 } from "./remotion-audio-plan";
 export {
   buildRemotionPaintTree,

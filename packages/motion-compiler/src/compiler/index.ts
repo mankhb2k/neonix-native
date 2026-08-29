@@ -1,8 +1,6 @@
 import {
   multiplyMatrix4,
   composeLocalMatrix4,
-  evaluateRuntimeProjectV2,
-  frameIndexAtTime,
   orthographicProjectionMatrix,
   perspectiveProjectionMatrix,
   rotationMatrixX,
@@ -10,24 +8,21 @@ import {
   rotationMatrixZ,
   translationMatrix3D,
   type Matrix4,
-  type PaintCommandBuffer,
-  type RuntimeNodeV2,
-  type RuntimeAudioClipV2,
-  type RuntimeAudioProjectV2,
-  type RuntimeAudioSourceV2,
-  type RuntimeAudioTrackV2,
-  type RuntimeProjectV2,
   type RuntimeVisualProjectV3,
   type RuntimeEffect,
-  type RuntimeMaskV2,
   identityMatrix4,
   interpolatePathContours,
   tessellateClosedPath,
       tessellatePathStroke,
 } from "@motionvideo/motion-runtime";
 import {
+  evaluateVisualRuntimeProject,
+  type VisualRuntimeNode,
+  type VisualRuntimeProject,
+  type VisualRuntimeMask,
+} from "@motionvideo/motion-runtime/internal/visual";
+import {
   isV2AtomCertified,
-  isV2AudioCapabilityCertified,
   parseMotionProtocol,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
@@ -122,151 +117,10 @@ function lowerBlendMode(layer: MotionProtocolV2["layers"][number]): "normal" | "
   return blendMode;
 }
 
-function requireCertifiedAudioCapability(capability: string): void {
-  if (!isV2AudioCapabilityCertified(capability)) {
-    throw new Error(`Uncertified Protocol V2 audio capability: ${capability}`);
-  }
-}
-
-function lowerAudioSource(
-  asset: Extract<MotionProtocolV2["assets"][number], { kind: "audio" | "video" }>,
-): RuntimeAudioSourceV2 {
-  const derivative = asset.kind === "video" ? asset.audio : undefined;
-  return {
-    assetId: asset.id,
-    kind: asset.kind,
-    uri: asset.uri,
-    ...(asset.mimeType ? { mimeType: asset.mimeType } : {}),
-    ...(asset.duration !== undefined ? { duration: asset.duration } : {}),
-    ...(asset.kind === "audio" && asset.sampleRate !== undefined
-      ? { sampleRate: asset.sampleRate }
-      : {}),
-    ...(asset.kind === "audio" && asset.channels !== undefined
-      ? { channels: asset.channels }
-      : {}),
-    ...(asset.integrity ? { integrity: asset.integrity } : {}),
-    ...(derivative ? {
-      audioUri: derivative.uri,
-      ...(derivative.mimeType ? { audioMimeType: derivative.mimeType } : {}),
-      ...(derivative.duration !== undefined ? { audioDuration: derivative.duration } : {}),
-      ...(derivative.sampleRate !== undefined ? { audioSampleRate: derivative.sampleRate } : {}),
-      ...(derivative.channels !== undefined ? { audioChannels: derivative.channels } : {}),
-      ...(derivative.integrity ? { audioIntegrity: derivative.integrity } : {}),
-    } : {}),
-  };
-}
-
-/** Zero-length protocol fades are an explicit no-op and are omitted at runtime. */
-function isActiveFade(fade: { duration: number } | undefined): fade is { duration: number } {
-  return fade !== undefined && fade.duration > 0;
-}
-
-function lowerAudio(project: MotionProtocolV2): RuntimeAudioProjectV2 {
-  const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
-  const tracks: RuntimeAudioTrackV2[] = project.audio.tracks.map((track) => {
-    requireCertifiedAudioCapability("audio.timing");
-    requireCertifiedAudioCapability("audio.gain");
-    requireCertifiedAudioCapability("audio.pan");
-    if (track.muted) requireCertifiedAudioCapability("audio.track.mute");
-
-    const clips: RuntimeAudioClipV2[] = track.clips.map((clip) => {
-      requireCertifiedAudioCapability("audio.asset");
-      requireCertifiedAudioCapability("audio.timing");
-      requireCertifiedAudioCapability("audio.trim");
-      requireCertifiedAudioCapability("audio.gain");
-      if (isActiveFade(clip.fadeIn) || isActiveFade(clip.fadeOut)) requireCertifiedAudioCapability("audio.fade");
-
-      const asset = assetsById.get(clip.assetId);
-      if (!asset || (asset.kind !== "audio" && asset.kind !== "video")) {
-        throw new Error(`Protocol V2 audio clip ${clip.id} references an invalid source asset`);
-      }
-      if (asset.kind === "video") requireCertifiedAudioCapability("audio.video-source");
-      return {
-        id: clip.id,
-        assetId: clip.assetId,
-        source: lowerAudioSource(asset),
-        timing: { ...clip.timing },
-        trim: { ...clip.trim },
-        playbackRate: clip.playbackRate,
-        loop: false,
-        gainDb: clip.gainDb,
-        ...(isActiveFade(clip.fadeIn) ? { fadeIn: { ...clip.fadeIn } } : {}),
-        ...(isActiveFade(clip.fadeOut) ? { fadeOut: { ...clip.fadeOut } } : {}),
-      };
-    });
-
-    for (let left = 0; left < clips.length; left += 1) {
-      for (let right = left + 1; right < clips.length; right += 1) {
-        const first = clips[left]!;
-        const second = clips[right]!;
-        const overlaps = first.timing.start < second.timing.start + second.timing.duration &&
-          second.timing.start < first.timing.start + first.timing.duration;
-        if (overlaps) requireCertifiedAudioCapability("audio.track.overlap");
-      }
-    }
-
-    return {
-      id: track.id,
-      gainDb: track.gainDb,
-      pan: track.pan,
-      muted: track.muted,
-      clips,
-    };
-  });
-
-  return {
-    sampleRate: project.audio.sampleRate,
-    tracks,
-  };
-}
-
-function lowerEmbeddedVideoAudio(
-  project: MotionProtocolV2,
-  layerContexts: ReadonlyMap<string, LayerContext>,
-): RuntimeAudioTrackV2[] {
-  const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
-  return project.layers.flatMap((layer) => {
-    if (layer.type !== "video" || !layer.payload.audio) return [];
-    for (const capability of ["audio.asset", "audio.timing", "audio.trim", "audio.gain"]) {
-      requireCertifiedAudioCapability(capability);
-    }
-    if (isActiveFade(layer.payload.audio.fadeIn) || isActiveFade(layer.payload.audio.fadeOut)) {
-      requireCertifiedAudioCapability("audio.fade");
-    }
-    const asset = assetsById.get(layer.payload.assetId);
-    if (!asset || asset.kind !== "video") {
-      throw new Error(`Embedded video audio ${layer.id} references an invalid video asset`);
-    }
-    const context = layerContexts.get(layer.id);
-    if (!context || context.timing.duration <= 0) return [];
-    return [{
-      id: `embedded-audio:${layer.id}`,
-      gainDb: 0,
-      pan: 0,
-      muted: !layer.payload.audio.enabled,
-      clips: [{
-        id: `embedded-audio:${layer.id}:clip`,
-        assetId: asset.id,
-        source: lowerAudioSource(asset),
-        timing: { ...context.timing },
-        trim: {
-          start: layer.payload.trimStart ?? 0,
-          ...(layer.payload.trimEnd !== undefined ? { end: layer.payload.trimEnd } : {}),
-        },
-        playbackRate: 1,
-        loop: false,
-        gainDb: layer.payload.audio.gainDb,
-        ...(isActiveFade(layer.payload.audio.fadeIn) ? { fadeIn: { ...layer.payload.audio.fadeIn } } : {}),
-        ...(isActiveFade(layer.payload.audio.fadeOut) ? { fadeOut: { ...layer.payload.audio.fadeOut } } : {}),
-      }],
-    }];
-  });
-}
-
 function lowerMask(
   layer: MotionProtocolV2["layers"][number],
   layersById: ReadonlyMap<string, MotionProtocolV2["layers"][number]>,
-): RuntimeMaskV2 | undefined {
+): VisualRuntimeMask | undefined {
   const mask = layer.composite?.mask;
   if (!mask) return undefined;
   if (layer.type !== "group") {
@@ -293,14 +147,11 @@ type LayerContext = {
 
 /** Options accepted by the canonical Protocol compiler. */
 export type CompileProtocolOptions = Record<string, never>;
-/** @deprecated Use CompileProtocolOptions. */
-export type CompileProtocolV2Options = CompileProtocolOptions;
-
-/** Compile Atomic Protocol V2 into the canonical visual/audio Runtime IR. */
-export function compileProtocol(
+/** Internal certified visual lowering used by the Runtime V3 compiler. */
+function compileVisualRuntimeInternal(
   input: unknown,
   _options: CompileProtocolOptions = {},
-): RuntimeProjectV2 {
+): VisualRuntimeProject {
   const project = parseMotionProtocol(input);
   const projection = viewProjectionMatrix4(project);
   const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
@@ -339,7 +190,7 @@ export function compileProtocol(
     return context;
   };
 
-  const nodes = project.layers.map((layer): RuntimeNodeV2 | null => {
+  const nodes = project.layers.map((layer): VisualRuntimeNode | null => {
     const context = resolveLayerContext(layer);
     const blendMode = lowerBlendMode(layer);
     if (layer.type === "group") {
@@ -463,7 +314,7 @@ export function compileProtocol(
             : {}),
           sourceFps,
           // Native video audio is never an output path. Embedded audio is
-          // lowered into RuntimeAudioProjectV2 below and played via WebAudio.
+          // Embedded audio is lowered by the canonical Runtime V3 compiler.
           muted: true,
           framePolicy: layer.payload.framePolicy ?? "floor",
           ...(effects ? { effects } : {}),
@@ -732,28 +583,12 @@ export function compileProtocol(
         ...(effects ? { effects } : {}),
       },
     };
-  }).filter((node): node is RuntimeNodeV2 => node !== null);
+  }).filter((node): node is VisualRuntimeNode => node !== null);
 
-  const audioBase = lowerAudio(project);
-  const audio: RuntimeAudioProjectV2 = {
-    ...audioBase,
-    tracks: [
-      ...audioBase.tracks,
-      ...lowerEmbeddedVideoAudio(project, contextCache),
-    ],
-  };
   const visualDuration = nodes.reduce(
     (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),
     0,
   );
-  const audioDuration = audio.tracks.reduce(
-    (duration, track) => track.clips.reduce(
-      (trackDuration, clip) => Math.max(trackDuration, clip.timing.start + clip.timing.duration),
-      duration,
-    ),
-    0,
-  );
-
   return {
     format: "motion-runtime",
     formatVersion: 2,
@@ -762,13 +597,12 @@ export function compileProtocol(
       width: project.composition.width,
       height: project.composition.height,
       fps: project.composition.fps,
-      duration: Math.max(visualDuration, audioDuration),
+      duration: visualDuration,
       background: project.composition.background,
       graphId: project.id,
     },
     view: projection,
     nodes,
-    audio,
   };
 }
 
@@ -780,31 +614,10 @@ export function compileVisualProject(
   input: unknown,
   options: CompileProtocolOptions = {},
 ): RuntimeVisualProjectV3 {
-  const legacy = compileProtocol(input, options);
+  const legacy = compileVisualRuntimeInternal(input, options);
   return {
     composition: legacy.composition,
     view: legacy.view,
     nodes: legacy.nodes,
   };
 }
-
-/** Compile V2 and evaluate one frame into the backend-neutral paint contract. */
-export function compileProtocolToPaintCommands(
-  input: unknown,
-  options: { frame?: number; time?: number } = {},
-): PaintCommandBuffer {
-  const runtime = compileProtocol(input);
-  const frame = options.frame ??
-    (options.time == null
-      ? 0
-      : frameIndexAtTime(options.time, runtime.composition.fps));
-  return evaluateRuntimeProjectV2(runtime, frame, {
-    ...(options.time != null ? { time: options.time } : {}),
-  });
-}
-
-/** @deprecated Use compileProtocol. Kept as a source-compatible migration shim. */
-export const compileProtocolV2 = compileProtocol;
-
-/** @deprecated Use compileProtocolToPaintCommands. */
-export const compileProtocolV2ToPaintCommands = compileProtocolToPaintCommands;

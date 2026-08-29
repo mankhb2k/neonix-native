@@ -2,13 +2,13 @@
 
 - Status: accepted for implementation
 - Date: 2026-08-28
-- Scope: Phase 0–1 of `playback-engine-next` and audio compiler
+- Scope: Phase 0–1 of the canonical playback engine and audio compiler
 
 ## Decision
 
 Keep MotionProtocolV2 as the authoring and interchange contract. Add an internal
 `RuntimeProjectV3` compiled representation with separate, immutable plans for
-media, video, and audio. PlaybackEngineNext consumes only those plans and
+media, video, and audio. PlaybackEngine consumes only those plans and
 backend interfaces; it does not know about `HTMLVideoElement`, WebCodecs,
 `AudioBuffer`, fetch, or a particular renderer.
 

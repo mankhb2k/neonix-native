@@ -1,15 +1,14 @@
 import { useCurrentFrame } from "remotion";
 import {
-  assertRuntimeProjectV2,
-  evaluateRuntimeProjectV2,
-  type RuntimeProjectV2,
+  evaluateRuntimeProjectV3,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
 import { RemotionAudioTrack } from "./RemotionAudioTrack";
 import { assertRemotionTextPrepared } from "./text-runtime";
 
 export type MotionCompositionProps = {
-  runtime: RuntimeProjectV2;
+  runtime: RuntimeProjectV3;
   width: number;
   height: number;
   background?: string;
@@ -30,10 +29,7 @@ export function MotionComposition({
   void height;
   void graphId;
   void background;
-  const evaluated = evaluateRuntimeProjectV2(
-    assertRemotionTextPrepared(assertRuntimeProjectV2(runtime)),
-    frame,
-  );
+  const evaluated = evaluateRuntimeProjectV3(assertRemotionTextPrepared(runtime), frame);
   return (
     <>
       <RemotionPaintRenderer paint={evaluated} />

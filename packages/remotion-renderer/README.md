@@ -1,7 +1,7 @@
 # `@motionvideo/remotion-renderer`
 
-Remotion export surface for Runtime V2. The package receives an already
-evaluated `RuntimeFrameV2` and renders the same `PaintCommandBuffer` meaning as
+Remotion export surface for Runtime V3. The package receives an already
+evaluated `RuntimeFrameV3` and renders the same `PaintCommandBuffer` meaning as
 the native preview. It does not parse authoring JSON or compile a project.
 
 ## Pipeline
@@ -13,7 +13,7 @@ Atomic Protocol V2
         |
   motion-runtime
         |
-  RuntimeFrameV2 / PaintCommandBuffer       RuntimeAudioMixPlanV2
+  RuntimeFrameV3 / PaintCommandBuffer       RuntimeAudioMixPlanV3
         |                                          |
   RemotionPreviewCanvas                     RemotionAudioTrack
         \                                          /
@@ -32,11 +32,11 @@ import {
 ```
 
 `RemotionFramePainter` and `RemotionPreviewCanvas` consume required Matrix4
-transforms from Runtime V2. They do not create semantic transforms, convert to
+transforms from Runtime V3. They do not create semantic transforms, convert to
 CSS `matrix(...)`, or maintain a separate export transform model. The native
 preview package owns WebGPU/WebGL2 backend selection; Remotion schedules the
 same runtime frame for encoding. `RemotionAudioTrack` consumes the separate
-`RuntimeAudioMixPlanV2` output, renders its deterministic stereo mix in an
+`RuntimeAudioMixPlanV3` output, renders its deterministic stereo mix in an
 offline audio context, and passes the result to Remotion without re-parsing
 Protocol JSON.
 

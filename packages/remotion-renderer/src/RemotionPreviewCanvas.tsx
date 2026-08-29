@@ -10,10 +10,10 @@ import {
   type PreviewBackendPreference,
   type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
-import type { PaintCommand, RuntimeFrameV2, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
+import type { PaintCommand, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
 export type RemotionPreviewCanvasProps = {
-  frame: RuntimeFrameV2;
+  frame: RuntimeFrameV3;
   width: number;
   height: number;
   background?: string;
@@ -21,7 +21,7 @@ export type RemotionPreviewCanvasProps = {
 };
 
 /**
- * Remotion's V2 frame surface. It consumes the same RuntimeFrameV2 and native
+ * Remotion's V3 frame surface. It consumes the same backend-neutral RuntimeFrameV3 and native
  * preview backend used by the browser preview; Remotion only schedules frames
  * and encodes the resulting canvas.
  */
@@ -45,7 +45,7 @@ export function RemotionPreviewCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    const handle = delayRender("Initialize Runtime V2 preview renderer");
+    const handle = delayRender("Initialize Runtime V3 preview renderer");
     handleRef.current = handle;
     let cancelled = false;
 
@@ -113,7 +113,7 @@ export function RemotionPreviewCanvas({
 
 async function paintRemotionFrame(
   renderer: PreviewRenderer,
-  frame: RuntimeFrameV2,
+  frame: RuntimeFrameV3,
   assets: ReadonlyMap<string, PreviewAsset>,
 ): Promise<void> {
   const additions = await loadRemotionAssets(frame, assets);
@@ -122,14 +122,14 @@ async function paintRemotionFrame(
     (assets as Map<string, PreviewAsset>).set(assetId, asset);
   }
   await seekRemotionVideos(frame, assets);
-  // Remotion's export path still accepts the V2 visual frame shape while the
+  // Remotion's export path consumes the V3 visual frame shape while the
   // backend-neutral preview renderer is V3-only. Paint commands are shared;
   // the runtime-version marker is the only structural difference here.
   renderer.paintFrame(frame as unknown as RuntimeFrameV3);
 }
 
 async function loadRemotionAssets(
-  frame: RuntimeFrameV2,
+  frame: RuntimeFrameV3,
   existing: ReadonlyMap<string, PreviewAsset> = new Map(),
 ): Promise<ReadonlyMap<string, PreviewAsset>> {
   const assets = new Map<string, PreviewAsset>();
@@ -190,7 +190,7 @@ async function loadRemotionAssets(
 }
 
 async function seekRemotionVideos(
-  frame: RuntimeFrameV2,
+  frame: RuntimeFrameV3,
   assets: ReadonlyMap<string, PreviewAsset>,
 ): Promise<void> {
   for (const command of frame.commands) {

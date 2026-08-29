@@ -1,8 +1,8 @@
 import { validatePaintCommandBuffer } from "../../paint/validate-paint-command-buffer";
 import type {
-  RuntimeFrameV2,
-  RuntimeProjectV2,
-  RuntimeValidationV2,
+  VisualRuntimeFrame,
+  VisualRuntimeProject,
+  VisualRuntimeValidation,
 } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,7 +25,7 @@ function normalizeMatrix4(value: unknown): unknown {
 }
 
 /** Rehydrate matrices after JSON transport (for example Remotion inputProps). */
-function normalizeRuntimeProjectV2(input: RuntimeProjectV2): RuntimeProjectV2 {
+function normalizeVisualRuntimeProject(input: VisualRuntimeProject): VisualRuntimeProject {
   const view = input.view;
   const nodes = input.nodes;
   const normalizedView = {
@@ -45,11 +45,11 @@ function normalizeRuntimeProjectV2(input: RuntimeProjectV2): RuntimeProjectV2 {
     );
   return unchanged
     ? input
-    : ({ ...input, view: normalizedView, nodes: normalizedNodes } as RuntimeProjectV2);
+    : ({ ...input, view: normalizedView, nodes: normalizedNodes } as VisualRuntimeProject);
 }
 
 /** Fast boundary check used by renderer consumers before deep validation. */
-export function isRuntimeProjectV2(input: unknown): input is RuntimeProjectV2 {
+export function isVisualRuntimeProject(input: unknown): input is VisualRuntimeProject {
   if (!isRecord(input)) return false;
   const composition = input.composition;
   const view = input.view;
@@ -63,7 +63,7 @@ export function isRuntimeProjectV2(input: unknown): input is RuntimeProjectV2 {
   );
 }
 
-function validationError(prefix: string, diagnostics: RuntimeValidationV2["diagnostics"]): Error {
+function validationError(prefix: string, diagnostics: VisualRuntimeValidation["diagnostics"]): Error {
   return new Error(
     `${prefix}: ${diagnostics
       .filter((diagnostic) => diagnostic.severity === "error")
@@ -73,20 +73,20 @@ function validationError(prefix: string, diagnostics: RuntimeValidationV2["diagn
 }
 
 /** Fail-closed Runtime V2 project boundary for preview/export consumers. */
-export function assertRuntimeProjectV2(input: unknown): RuntimeProjectV2 {
-  if (!isRuntimeProjectV2(input)) {
-    throw new Error("Expected RuntimeProjectV2 with motion-runtime format version 2");
+export function assertVisualRuntimeProject(input: unknown): VisualRuntimeProject {
+  if (!isVisualRuntimeProject(input)) {
+    throw new Error("Expected VisualRuntimeProject with motion-runtime format version 2");
   }
-  const normalized = normalizeRuntimeProjectV2(input);
-  const validation = validateRuntimeProjectV2(normalized);
+  const normalized = normalizeVisualRuntimeProject(input);
+  const validation = validateVisualRuntimeProject(normalized);
   if (!validation.ok) throw validationError("Runtime V2 validation failed", validation.diagnostics);
   return normalized;
 }
 
 /** Fail-closed Runtime V2 frame boundary for preview consumers. */
-export function assertRuntimeFrameV2(input: unknown): asserts input is RuntimeFrameV2 {
+export function assertVisualRuntimeFrame(input: unknown): asserts input is VisualRuntimeFrame {
   if (!isRecord(input)) {
-    throw new Error("Expected RuntimeFrameV2");
+    throw new Error("Expected VisualRuntimeFrame");
   }
   const frame = input.frame;
   const time = input.time;
@@ -102,15 +102,15 @@ export function assertRuntimeFrameV2(input: unknown): asserts input is RuntimeFr
     !Array.isArray(input.commands) ||
     !Array.isArray(input.diagnostics)
   ) {
-    throw new Error("Expected RuntimeFrameV2 with motion-runtime version 2");
+    throw new Error("Expected VisualRuntimeFrame with motion-runtime version 2");
   }
-  const validation = validatePaintCommandBuffer(input as unknown as RuntimeFrameV2);
+  const validation = validatePaintCommandBuffer(input as unknown as VisualRuntimeFrame);
   if (!validation.ok) {
     const details = validation.issues
       .filter((issue) => issue.severity === "error")
       .map((issue) => issue.message)
       .join(" | ");
-    throw new Error(`RuntimeFrameV2 paint validation failed: ${details}`);
+    throw new Error(`VisualRuntimeFrame paint validation failed: ${details}`);
   }
 }
 
@@ -119,10 +119,10 @@ function matrixIs4x4(value: unknown): boolean {
   return values !== undefined && values.length === 16 && values.every(Number.isFinite);
 }
 
-export function validateRuntimeProjectV2(
-  project: RuntimeProjectV2,
-): RuntimeValidationV2 {
-  const diagnostics: RuntimeValidationV2["diagnostics"] = [];
+export function validateVisualRuntimeProject(
+  project: VisualRuntimeProject,
+): VisualRuntimeValidation {
+  const diagnostics: VisualRuntimeValidation["diagnostics"] = [];
   if (project.format !== "motion-runtime" || project.formatVersion !== 2) {
     diagnostics.push({
       severity: "error",
@@ -165,51 +165,6 @@ export function validateRuntimeProjectV2(
       code: "runtime_v2_view_matrix",
       message: "Runtime V2 view.worldToClipMatrix must be a finite 4x4 matrix",
     });
-  }
-
-  if (project.audio) {
-    if (project.audio.sampleRate !== 48000) {
-      diagnostics.push({
-        severity: "error",
-        code: "runtime_v2_audio_sample_rate",
-        message: "Runtime V2 audio sampleRate must be 48000",
-      });
-    }
-    const trackIds = new Set<string>();
-    const clipIds = new Set<string>();
-    for (const track of project.audio.tracks) {
-      if (trackIds.has(track.id)) {
-        diagnostics.push({ severity: "error", code: "runtime_v2_audio_track_id", message: `Duplicate Runtime V2 audio track id: ${track.id}` });
-      }
-      trackIds.add(track.id);
-      if (!Number.isFinite(track.gainDb) || !Number.isFinite(track.pan) || track.pan < -1 || track.pan > 1) {
-        diagnostics.push({ severity: "error", code: "runtime_v2_audio_track_mix", message: `Runtime V2 audio track ${track.id} has invalid gain or pan` });
-      }
-      for (const clip of track.clips) {
-        if (clipIds.has(clip.id)) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_audio_clip_id", message: `Duplicate Runtime V2 audio clip id: ${clip.id}` });
-        }
-        clipIds.add(clip.id);
-        const source = clip.source;
-        if (clip.assetId !== source.assetId || !source.uri.trim() || (source.kind !== "audio" && source.kind !== "video")) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_audio_source", message: `Runtime V2 audio clip ${clip.id} has invalid source metadata` });
-        }
-        if (!Number.isFinite(clip.timing.start) || clip.timing.start < 0 || !Number.isFinite(clip.timing.duration) || clip.timing.duration <= 0) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_audio_timing", message: `Runtime V2 audio clip ${clip.id} has invalid timing` });
-        }
-        if (!Number.isFinite(clip.trim.start) || clip.trim.start < 0 || (clip.trim.end !== undefined && (!Number.isFinite(clip.trim.end) || clip.trim.end <= clip.trim.start))) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_audio_trim", message: `Runtime V2 audio clip ${clip.id} has invalid trim` });
-        }
-        if (!Number.isFinite(clip.playbackRate) || clip.playbackRate <= 0 || !Number.isFinite(clip.gainDb)) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_audio_playback", message: `Runtime V2 audio clip ${clip.id} has invalid playback or gain` });
-        }
-        for (const fade of [clip.fadeIn, clip.fadeOut]) {
-          if (fade && (!Number.isFinite(fade.duration) || fade.duration <= 0 || fade.duration > clip.timing.duration || !["linear", "equal-power"].includes(fade.curve))) {
-            diagnostics.push({ severity: "error", code: "runtime_v2_audio_fade", message: `Runtime V2 audio clip ${clip.id} has invalid fade data` });
-          }
-        }
-      }
-    }
   }
 
   const ids = new Set<string>();

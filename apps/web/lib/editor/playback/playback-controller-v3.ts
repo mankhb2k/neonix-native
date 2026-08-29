@@ -1,12 +1,12 @@
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
-import { createAnimationFrameSchedulerV3, createPlaybackEngineNext, createWebAudioGraphBackendV3, requestMediaElementPlayV3, type PlaybackEngineNext, type PlaybackEngineNextSnapshot } from "@motionvideo/playback-engine-next";
+import { createAnimationFrameSchedulerV3, createPlaybackEngine, createWebAudioGraphBackendV3, requestMediaElementPlayV3, type PlaybackEngine, type PlaybackEngineSnapshot } from "@motionvideo/playback-engine";
 
 export type PlaybackOperationTokenV3 = { documentGeneration: number; transportGeneration: number; seekRequestId: number; generation: number };
 export type PlaybackFrameEventV3 = PlaybackOperationTokenV3 & { time: number; frame: RuntimeFrameV3; playing: boolean };
 export type PlaybackTimeEventV3 = PlaybackOperationTokenV3 & { time: number; playing: boolean };
-export type PlaybackControllerNextV3 = {
+export type PlaybackControllerV3 = {
   loadDocument(document: MotionProtocolV2, currentTime: number): void;
   play(): void;
   pause(): void;
@@ -19,12 +19,12 @@ export type PlaybackControllerNextV3 = {
   registerVideo(assetId: string, element: HTMLVideoElement, onFrameReady?: () => void): () => void;
   readonly playing: boolean;
   readonly duration: number;
-  snapshot(): PlaybackEngineNextSnapshot;
+  snapshot(): PlaybackEngineSnapshot;
   dispose(): void;
 };
 
 /** Editor transport uses the canonical compiler/runtime; rendering remains a Stage concern. */
-export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
+export function createPlaybackControllerV3(): PlaybackControllerV3 {
   let runtime: RuntimeProjectV3 | undefined;
   let disposed = false;
   let documentGeneration = 0;
@@ -44,7 +44,7 @@ export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
     for (const sink of frames) sink({ ...token, time, playing, frame });
     for (const sink of times) sink({ ...token, time, playing });
   };
-  const engine: PlaybackEngineNext = createPlaybackEngineNext({
+  const engine: PlaybackEngine = createPlaybackEngine({
     scheduler,
     videoSink: {
       publish(plan) {
@@ -91,9 +91,24 @@ export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
       engine.load(compiled);
       engine.seek(safeTime(currentTime) * 1_000_000);
     },
-    play() { if (!disposed) engine.play(); },
-    pause() { if (!disposed) engine.pause(); },
-    toggle() { if (engine.snapshot().state === "playing") engine.pause(); else engine.play(); },
+    play() {
+      if (disposed) return;
+      engine.play();
+      const snapshot = engine.snapshot();
+      emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
+    },
+    pause() {
+      if (disposed) return;
+      engine.pause();
+      const snapshot = engine.snapshot();
+      emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
+    },
+    toggle() {
+      if (disposed) return;
+      if (engine.snapshot().state === "playing") engine.pause(); else engine.play();
+      const snapshot = engine.snapshot();
+      emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
+    },
     seek(time) { if (!disposed) { seekRequestId += 1; engine.seek(safeTime(time) * 1_000_000); } },
     previewAt(time) { if (!disposed) { seekRequestId += 1; engine.seek(safeTime(time) * 1_000_000); } },
     registerFrameSink(sink) { frames.add(sink); if (lastFrame) { const snapshot = engine.snapshot(); sink({ documentGeneration, transportGeneration: snapshot.generation, seekRequestId, generation: snapshot.generation, time: lastFrame.time, playing: snapshot.state === "playing", frame: lastFrame }); } return () => frames.delete(sink); },

@@ -26,7 +26,7 @@ import {
   type PreviewBackendPreference,
   type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
-import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-next-v3";
+import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-v3";
 
 type PreviewStageProps = {
   project: unknown;

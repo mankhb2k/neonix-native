@@ -6,9 +6,9 @@ import {
   type Point3D,
 } from "../../matrix4";
 import type { PaintCommand } from "../../paint";
-import { validateRuntimeProjectV2 } from "./validate";
+import { validateVisualRuntimeProject } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
-import type { RuntimeFrameV2, RuntimeNodeV2, RuntimeProjectV2, RuntimeVideoV2 } from "./types";
+import type { VisualRuntimeFrame, VisualRuntimeNode, VisualRuntimeProject, VisualRuntimeVideo } from "./types";
 
 function assertFrame(frame: number): void {
   if (!Number.isSafeInteger(frame) || frame < 0) {
@@ -16,7 +16,7 @@ function assertFrame(frame: number): void {
   }
 }
 
-function stableNodeOrder(nodes: RuntimeNodeV2[]): RuntimeNodeV2[] {
+function stableNodeOrder(nodes: VisualRuntimeNode[]): VisualRuntimeNode[] {
   return [...nodes].sort(
     (left, right) =>
       left.order - right.order ||
@@ -24,7 +24,7 @@ function stableNodeOrder(nodes: RuntimeNodeV2[]): RuntimeNodeV2[] {
   );
 }
 
-function nodeIsActive(node: RuntimeNodeV2, time: number): boolean {
+function nodeIsActive(node: VisualRuntimeNode, time: number): boolean {
   return (
     node.visible &&
     node.opacity > 0 &&
@@ -35,7 +35,7 @@ function nodeIsActive(node: RuntimeNodeV2, time: number): boolean {
 
 function quantizeVideoFrame(
   frame: number,
-  policy: RuntimeVideoV2["framePolicy"],
+  policy: VisualRuntimeVideo["framePolicy"],
 ): number {
   if (policy === "round") return Math.round(frame);
   if (policy === "ceil") return Math.ceil(frame);
@@ -43,7 +43,7 @@ function quantizeVideoFrame(
 }
 
 function resolveVideoMedia(
-  video: RuntimeVideoV2,
+  video: VisualRuntimeVideo,
   localTime: number,
 ): { mediaTime: number; visible: boolean } {
   const trimStart = video.trimStart;
@@ -75,13 +75,13 @@ function resolveVideoMedia(
  * calculation belongs to Compiler B; this evaluator only resolves active
  * windows, stable order, and the already-resolved runtime matrices.
  */
-export function evaluateRuntimeProjectV2(
-  project: RuntimeProjectV2,
+export function evaluateVisualRuntimeProject(
+  project: VisualRuntimeProject,
   frame: number,
   options: { time?: number } = {},
-): RuntimeFrameV2 {
+): VisualRuntimeFrame {
   assertFrame(frame);
-  const validation = validateRuntimeProjectV2(project);
+  const validation = validateVisualRuntimeProject(project);
   if (!validation.ok) {
     throw new Error(
       `Runtime V2 validation failed: ${validation.diagnostics
@@ -111,9 +111,9 @@ export function evaluateRuntimeProjectV2(
       },
     },
   ];
-  const diagnostics = [] as NonNullable<RuntimeFrameV2["diagnostics"]>;
+  const diagnostics = [] as NonNullable<VisualRuntimeFrame["diagnostics"]>;
 
-  const childrenByParent = new Map<string | null, RuntimeNodeV2[]>();
+  const childrenByParent = new Map<string | null, VisualRuntimeNode[]>();
   for (const node of project.nodes) {
     const siblings = childrenByParent.get(node.parentId) ?? [];
     siblings.push(node);
@@ -121,17 +121,17 @@ export function evaluateRuntimeProjectV2(
   }
   const childrenOf = (parentId: string | null) =>
     stableNodeOrder(childrenByParent.get(parentId) ?? []);
-  const subtreeHasEffects = (node: RuntimeNodeV2): boolean => {
+  const subtreeHasEffects = (node: VisualRuntimeNode): boolean => {
     if (node.content.kind !== "group") return (node.content.effects?.length ?? 0) > 0;
     return childrenOf(node.id).some(subtreeHasEffects);
   };
-  const subtreeHasActiveDrawable = (node: RuntimeNodeV2): boolean => {
+  const subtreeHasActiveDrawable = (node: VisualRuntimeNode): boolean => {
     if (!nodeIsActive(node, time)) return false;
     if (node.content.kind === "group") return childrenOf(node.id).some(subtreeHasActiveDrawable);
     return node.content.kind !== "text" || node.content.layout !== undefined;
   };
 
-  const emitDrawable = (node: RuntimeNodeV2) => {
+  const emitDrawable = (node: VisualRuntimeNode) => {
     if (node.content.kind === "group") return;
     const content = node.content;
 
@@ -319,7 +319,7 @@ export function evaluateRuntimeProjectV2(
     }
   };
 
-  const emitNode = (node: RuntimeNodeV2): void => {
+  const emitNode = (node: VisualRuntimeNode): void => {
     if (!nodeIsActive(node, time)) return;
     if (node.content.kind !== "group") {
       emitDrawable(node);

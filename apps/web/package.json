@@ -30,7 +30,7 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-storage": "workspace:*",
     "@motionvideo/patterns": "workspace:*",
-      "@motionvideo/playback-engine-next": "workspace:*",
+      "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/preview-renderer": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
     "@remotion/lambda-client": "4.0.506",

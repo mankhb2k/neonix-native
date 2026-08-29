@@ -23,12 +23,9 @@
     "test:runtime": "pnpm --filter @motionvideo/motion-runtime test",
     "test:preview": "pnpm --filter @motionvideo/preview-renderer test",
     "test:export": "pnpm --filter @motionvideo/render-contracts test",
+    "certify:playback": "pnpm --filter @motionvideo/playback-engine certify",
     "validate:v2-boundary": "node scripts/validate-v2-boundary.mjs",
-    "validate:v2-runtime-boundary": "node scripts/validate-v2-runtime-boundary.mjs",
-    "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs",
-    "validate:v2-renderers": "node scripts/validate-v2-renderers.mjs",
-    "validate:v2-core": "node scripts/validate-v2-core.mjs",
-    "validate:v2-hard-lock": "node scripts/validate-v2-hard-lock.mjs"
+    "validate:v2-consumers": "node scripts/validate-v2-consumers.mjs"
   },
   "engines": {
     "node": ">=20",

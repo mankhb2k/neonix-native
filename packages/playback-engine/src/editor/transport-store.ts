@@ -1,9 +1,9 @@
-import type { PlaybackEngineNextSnapshot } from "../core/types";
+import type { PlaybackEngineSnapshot } from "../core/types";
 
-export type PlaybackSnapshotStoreV3 = { getSnapshot(): PlaybackEngineNextSnapshot; subscribe(listener: () => void): () => void; publish(snapshot: PlaybackEngineNextSnapshot): void };
+export type PlaybackSnapshotStoreV3 = { getSnapshot(): PlaybackEngineSnapshot; subscribe(listener: () => void): () => void; publish(snapshot: PlaybackEngineSnapshot): void };
 
 /** Coalesces rapid engine ticks so UI subscribers do not render once per RAF. */
-export function createPlaybackSnapshotStoreV3(initial: PlaybackEngineNextSnapshot): PlaybackSnapshotStoreV3 {
+export function createPlaybackSnapshotStoreV3(initial: PlaybackEngineSnapshot): PlaybackSnapshotStoreV3 {
   let snapshot = initial;
   let queued = false;
   const listeners = new Set<() => void>();

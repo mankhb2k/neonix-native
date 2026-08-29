@@ -5,7 +5,7 @@
 import {
   CAPABILITY_MANIFEST_VERSION,
   orthographicProjectionMatrix,
-  type RuntimeProjectV2,
+  type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import {
   parseRenderManifest,
@@ -65,13 +65,13 @@ export function buildStubRenderManifest(input: {
 }
 
 /**
- * Temporary V2 runtime for the API stub. Real export orchestration will load
- * the compiled RuntimeProjectV2 for the requested project before dispatch.
+ * Minimal V3 runtime for the API stub. Real export orchestration will load
+ * the compiled RuntimeProjectV3 for the requested project before dispatch.
  */
-export function buildStubRuntimeProjectV2(input: {
+export function buildStubRuntimeProjectV3(input: {
   projectId: string;
   preset: RenderPresetId;
-}): RuntimeProjectV2 {
+}): RuntimeProjectV3 {
   const spec = RENDER_PRESET_SPECS[input.preset];
   const worldToClipMatrix = orthographicProjectionMatrix(
     spec.width,
@@ -82,18 +82,23 @@ export function buildStubRuntimeProjectV2(input: {
   );
   return {
     format: "motion-runtime",
-    formatVersion: 2,
-    id: input.projectId,
-    composition: {
+    runtimeVersion: 3,
+    projectId: input.projectId,
+    visual: {
+      composition: {
       width: spec.width,
       height: spec.height,
       fps: spec.fps,
       background: "#000000",
-      graphId: input.projectId,
+        graphId: input.projectId,
+      },
+      view: {
+        worldToClipMatrix,
+      },
+      nodes: [],
     },
-    view: {
-      worldToClipMatrix,
-    },
-    nodes: [],
+    mediaCatalog: { assets: [] },
+    videoTimeline: { instances: [] },
+    audioTimeline: { sampleRate: 48000, tracks: [] },
   };
 }

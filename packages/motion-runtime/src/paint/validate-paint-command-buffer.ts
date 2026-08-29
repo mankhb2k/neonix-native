@@ -6,7 +6,7 @@ import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
 import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import type { PaintValidateIssue, PaintValidateResult } from "./paint-display-list";
-import { validateRuntimeEffectProgram } from "../v3/legacy/effect-program";
+import { validateRuntimeEffectProgram } from "../v3/visual-internals/effect-program";
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);

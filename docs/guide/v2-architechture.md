@@ -32,7 +32,7 @@ Editor / MCP / AI / templates / CLI
                  |
                  v
  @motionvideo/motion-compiler
- compileProtocol() + compileProtocolToRuntimeV3()
+ compileProtocol()
                  |
                  v
            RuntimeProjectV3
@@ -41,7 +41,7 @@ Editor / MCP / AI / templates / CLI
   VideoRenderPlanV3   AudioMixPlanV3
              \           /
                  v
-          PlaybackEngineNext
+          PlaybackEngine
              /           \
             v             v
     Native preview      Offline export
@@ -94,7 +94,7 @@ VideoRenderPlanV3                            AudioMixPlanV3
         │                                              │
         └───────────────────┬──────────────────────────┘
                             ▼
-                    PlaybackEngineNext
+                    PlaybackEngine
                     ├── TransportStateMachine
                     ├── ClockController
                     ├── OperationEpoch
@@ -106,8 +106,8 @@ VideoRenderPlanV3                            AudioMixPlanV3
               ┌──────────┘                 └──────────┐
               ▼                                       ▼
          VideoBackend                            AudioBackend
-         ├── HTMLVideo                       ├── StreamingWorklet
-         └── WebCodecs (later)               └── BufferSource fallback
+         ├── HTMLVideo V1                    ├── WebAudioGraph V1
+         └── WebCodecs V2                    └── StreamingWorklet V2
               │                                       │
               └──────────────────┬────────────────────┘
                                  ▼
@@ -125,7 +125,7 @@ audio therefore enter the same `AudioMixPlanV3` without making audio a visual
 layer concern.
 
 `resolveVideoAt()` and `resolveAudioWindow()` are pure timeline queries. They
-return backend-neutral plans, not decoded frames or PCM. `PlaybackEngineNext`
+return backend-neutral plans, not decoded frames or PCM. `PlaybackEngine`
 owns transport, the single audio master clock, operation epochs, readiness,
 buffering, resource leases, and diagnostics. HTML video, WebCodecs, Streaming
 Worklet, and BufferSource are replaceable adapters behind those boundaries;
@@ -154,7 +154,7 @@ RuntimeProjectV3
 └── audioTimeline
         |
         v
-PlaybackEngineNext                         Neonix owns
+PlaybackEngine                             Neonix owns
 ├── TransportStateMachine
 ├── timeline position
 ├── play / pause / seek / rate
@@ -195,8 +195,8 @@ the timeline clock.
 
 Today the MVP exposes engine-owned `play`, `pause`, and `seek`, driven by a
 `TransportClock` while HTML media adapters execute their bounded commands.
-`WebAudioGraphBackendV3` is the primary MVP audio mixer; the native HTML media
-adapter is retained only as a compatibility fallback. `rate` remains an
+`WebAudioGraphBackendV3` is the primary MVP audio mixer; a native HTML media
+adapter is retained only as a narrow fallback. `rate` remains an
 engine-owned future command and adapters must not modify
 `HTMLMediaElement.playbackRate` independently.
 
@@ -317,7 +317,7 @@ interface MediaProcessingBackend {
 `VercelNodeMediaProcessor` is the current adapter. A future
 `RailwayDockerMediaProcessor` or `VpsDockerMediaProcessor` can implement the
 same job/result contract without changing `MotionProtocolV2`,
-`RuntimeProjectV3`, `AudioTimelinePlanV3`, or `PlaybackEngineNext`. Supabase
+`RuntimeProjectV3`, `AudioTimelinePlanV3`, or `PlaybackEngine`. Supabase
 Storage and Database remain the durable source of originals, derivatives,
 metadata, and job status; Supabase Edge Functions may dispatch or receive a
 webhook but are not the media-processing runtime.
@@ -506,12 +506,12 @@ retired field; new documents remain strict and cannot encode implicit looping.
 `compileProtocol()` is the canonical pure compiler entrypoint. It validates the
 strict schema, certified capability usage, asset references, hierarchy, sibling
 order, masks, and view contract, then emits the canonical visual/runtime V3
-semantics. `compileProtocolToRuntimeV3()` lowers the same validated document
+semantics. `compileProtocol()` lowers the validated document
 into `RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
 `audioTimeline` plans. No second compiler or alternate protocol source is
 allowed.
 
-The visual evaluator retained under `motion-runtime/src/v3/legacy` is an
+The certified visual lowering retained under `motion-runtime/src/v3/visual-internals` is an
 implementation namespace for the certified paint semantics; it is not a
 second runtime contract. New playback code uses the V3 projection and its pure
 timeline resolvers. It does not reparse authoring JSON or rebuild timing at the
@@ -638,5 +638,5 @@ frames; it must not let a video element silently take over transport timing.
   [`runtime-project-v3.ts`](../../packages/motion-compiler/src/runtime-project-v3.ts).
 - [Runtime](../../packages/motion-runtime/src): V3 visual evaluation, media
   catalog types, and timeline resolvers.
-- [Playback Engine Next](../../packages/playback-engine-next/src): transport,
+- [Playback Engine](../../packages/playback-engine/src): transport,
   clock, readiness, buffering, resource, backend, and diagnostics orchestration.

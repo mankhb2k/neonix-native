@@ -21,7 +21,7 @@ RuntimeProjectV3
         └── resolveAudioWindow(sampleRange)
                  │
                  ▼
-         PlaybackEngineNext
+         PlaybackEngine
          ├── Clock / Transport
          ├── Readiness
          ├── Resource lifecycle
@@ -75,7 +75,7 @@ Protocol không sở hữu:
 | Protocol lowering | `motion-compiler` |
 | Stream/probe metadata | `motion-storage` và immutable catalog snapshot |
 | Video/audio timeline semantics | `motion-runtime` |
-| Clock, transport, seek generation, readiness | `playback-engine-next` |
+| Clock, transport, seek generation, readiness | `playback-engine` |
 | Decode và device/browser I/O | Video/Audio backend |
 | GPU painting | `preview-renderer` |
 | Offline output | Offline backend/export adapter |
@@ -201,7 +201,7 @@ Runtime V3 là semantic source of truth duy nhất và không chứa duplicate V
 - [x] Tách visual algorithms đã chứng nhận thành một internal `visual-core` hoặc V3 visual module duy nhất.
 - [x] Không giữ hai bản gần giống nhau tại `src/v2` và `src/v3/visual`.
 - [x] Đổi public names sang V3 hoặc tên trung lập: `evaluateVisualFrame`, `RuntimeVisualProject`, `RuntimeFrameV3`.
-- [ ] Không export `RuntimeProjectV2`, `RuntimeFrameV2`, `evaluateRuntimeProjectV2` từ runtime root.
+- [x] Không export `RuntimeProjectV2`, `RuntimeFrameV2`, `evaluateRuntimeProjectV2` từ runtime root.
 - [x] Hoàn thiện `validateRuntimeProjectV3()` cho:
   - finite/safe numeric ranges;
   - duplicate media/stream/instance/track/clip IDs;
@@ -229,11 +229,11 @@ Runtime V3 là semantic source of truth duy nhất và không chứa duplicate V
 
 ---
 
-## Bước 4 — Hoàn thiện PlaybackEngineNext
+## Bước 4 — Hoàn thiện PlaybackEngine
 
 ### Mục tiêu
 
-PlaybackEngineNext trở thành transport/resource orchestrator production-ready, không tự tính lại timeline semantics.
+PlaybackEngine trở thành transport/resource orchestrator production-ready, không tự tính lại timeline semantics.
 
 ### Công việc core
 
@@ -321,7 +321,7 @@ createPlaybackControllerNext({
 
 ### Exit criteria
 
-- Editor và `/docs/preview` mặc định chạy PlaybackEngineNext.
+- Editor và `/docs/preview` mặc định chạy PlaybackEngine.
 - Không còn `compileProtocolV2()` hoặc `createPlaybackEngineV2()` trong app preview/editor hot path.
 - Hai audio mix cases chứng minh pipeline V3, không chỉ UI fixture.
 
@@ -375,24 +375,24 @@ Preview và export dùng cùng compiled project và resolver semantics; chỉ ba
 - [ ] 30–60 phút soak test không tăng vô hạn heap, PCM, HTMLVideo instances hoặc GPU resources.
 - [ ] Rapid seek/document switch không phát stale operations.
 - [ ] Audio underrun và A/V drift nằm trong budgets đã chốt.
-- [ ] Architecture certification xác định đúng mọi legacy consumer, kể cả compatibility re-export.
+- [x] Architecture certification xác định đúng mọi legacy consumer, kể cả compatibility re-export.
 
 ### Cutover
 
-- [ ] Bật PlaybackEngineNext mặc định.
-- [ ] Giữ feature flag rollback trong một stabilization window ngắn ở môi trường dev.
+- [x] Bật PlaybackEngine mặc định.
+- [x] Giữ feature flag rollback trong một stabilization window ngắn ở môi trường dev.
 - [ ] Theo dõi diagnostics/metrics trước khi xóa fallback.
 - [ ] Xóa feature flag khi không còn consumer legacy.
 
 ### Xóa legacy
 
-- [ ] Xóa package PlaybackEngineV2 cũ.
-- [ ] Xóa compatibility barrel/re-export.
-- [ ] Xóa compiler V2 runtime-output path và V2-to-V3 adapter.
-- [ ] Xóa RuntimeProjectV2/audio mix contracts và duplicated `src/v2` implementation.
-- [ ] Chuẩn hóa imports chỉ từ canonical package roots.
-- [ ] Xóa validators/scripts/docs chỉ còn nói về runtime/playback V2.
-- [ ] Cập nhật architecture guide để phản ánh production hot path thực tế.
+- [x] Xóa package PlaybackEngineV2 cũ.
+- [x] Xóa compatibility barrel/re-export.
+- [x] Xóa compiler V2 runtime-output path và V2-to-V3 adapter.
+- [x] Xóa RuntimeProjectV2/audio mix contracts và duplicated `src/v2` implementation.
+- [x] Chuẩn hóa imports chỉ từ canonical package roots.
+- [x] Xóa validators/scripts/docs chỉ còn nói về runtime/playback V2.
+- [x] Cập nhật architecture guide để phản ánh production hot path thực tế.
 
 ### Exit criteria
 
@@ -410,7 +410,7 @@ Kế hoạch hoàn thành khi tất cả điều sau cùng đúng:
 - `compileProtocol()` tạo `RuntimeProjectV3` trực tiếp.
 - `RuntimeProjectV3` chứa visual, immutable media catalog references, video timeline và audio timeline.
 - Runtime V3 là pure và deterministic.
-- PlaybackEngineNext là transport/resource orchestrator duy nhất.
+- PlaybackEngine là transport/resource orchestrator duy nhất.
 - Preview editor và docs preview chạy V3 mặc định.
 - Export dùng cùng Runtime V3 semantics.
 - Audio 44.1/48 kHz, trim, playback rate, fade, pan, overlap và embedded video audio có golden parity.
