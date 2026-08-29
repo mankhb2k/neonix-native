@@ -7,7 +7,8 @@ export function createAudioClockSourceV3(readTimeSeconds: () => number, seek?: (
   return {
     source: "audio",
     nowUs: () => Math.max(0, readTimeSeconds() * 1_000_000),
-    setPlaying(_next, atUs) { if (atUs !== undefined) seek?.(atUs); },
+    start(atUs) { if (atUs !== undefined) seek?.(atUs); },
+    pause(atUs) { if (atUs !== undefined) seek?.(atUs); return atUs ?? Math.max(0, readTimeSeconds() * 1_000_000); },
     seek(next) { seek?.(Math.max(0, next)); },
   };
 }
@@ -17,9 +18,13 @@ export function createRenderedSampleClockSourceV3(readRenderedSamples: () => num
   return {
     source: "audio",
     nowUs: () => Math.max(0, readRenderedSamples()) / sampleRate * 1_000_000,
-    setPlaying(_next, atUs) { if (atUs !== undefined) seek?.(Math.max(0, Math.floor(atUs / 1_000_000 * sampleRate))); },
+    start(atUs) { if (atUs !== undefined) seek?.(Math.max(0, Math.floor(atUs / 1_000_000 * sampleRate))); },
+    pause(atUs) { if (atUs !== undefined) seek?.(Math.max(0, Math.floor(atUs / 1_000_000 * sampleRate))); return atUs ?? Math.max(0, readRenderedSamples()) / sampleRate * 1_000_000; },
     seek(timeUs) { seek?.(Math.max(0, Math.floor(timeUs / 1_000_000 * sampleRate))); },
   };
 }
+
+/** Transport clock for the StreamingWorklet rendered-sample counter. */
+export const createAudioSampleTransportClockV3 = createRenderedSampleClockSourceV3;
 
 export type { PlaybackClockV3 };

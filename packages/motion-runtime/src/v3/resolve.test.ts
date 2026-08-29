@@ -76,7 +76,7 @@ describe("Runtime V3 timeline resolution", () => {
       },
     };
 
-    const plan = resolveAudioWindow(audioProject, { startSample: 48_000, endSample: 96_000 });
+    const plan = resolveAudioWindow(audioProject, { startSample: 48_000, frameCount: 48_000 });
     expect(plan.inputs[0]?.segments[0]).toMatchObject({
       sourceStartSample: 44_100,
       sourceEndSample: 88_200,
@@ -140,7 +140,7 @@ describe("Runtime V3 timeline resolution", () => {
       },
     };
 
-    const plan = resolveAudioWindow(audioProject, { startSample: 34_000, endSample: 46_000 });
+    const plan = resolveAudioWindow(audioProject, { startSample: 34_000, frameCount: 12_000 });
     expect(plan.inputs).toHaveLength(2);
     expect(plan.inputs.find((input) => input.clipId === "lead")?.segments[0]).toMatchObject({
       sourceStartSample: 88_200,

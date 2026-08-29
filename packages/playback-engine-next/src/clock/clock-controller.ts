@@ -11,8 +11,8 @@ export type ClockControllerV3 = {
 export function createClockControllerV3(clock: PlaybackClockV3): ClockControllerV3 {
   return {
     clock,
-    play: (atUs) => clock.setPlaying(true, atUs),
-    pause: (atUs) => clock.setPlaying(false, atUs),
+    play: (atUs) => clock.start(atUs),
+    pause: (atUs) => { clock.pause(atUs); },
     seek: (timeUs) => clock.seek(timeUs),
     nowUs: () => clock.nowUs(),
   };

@@ -87,7 +87,7 @@ RuntimeProjectV3
         ├──────────────────────────────────────────────┐
         │                                              │
         ▼                                              ▼
-resolveVideoAt(time)                       resolveAudioWindow(sampleRange)
+resolveVideoAt(timeUs)                     resolveAudioWindow({ startSample, frameCount })
         │                                              │
         ▼                                              ▼
 VideoRenderPlanV3                            AudioMixPlanV3
@@ -169,8 +169,8 @@ Video Engine            Audio Engine
         |                   |
         v                   v
 VideoBackend            AudioBackend
-HTMLVideo MVP           HTMLMedia fallback MVP
-WebCodecs later         StreamingWorklet target
+HTMLVideo V1            WebAudioGraph V1
+WebCodecs V2            StreamingWorklet V2
         |                   |
         └──────── Chrome ───┘
 ```
@@ -193,14 +193,56 @@ is an expected adapter completion, not a transport-state transition. A rejected
 play is reported as an adapter diagnostic; it never lets a media element become
 the timeline clock.
 
-Today the MVP exposes engine-owned `play`, `pause`, and `seek`, driven by the
-monotonic clock while HTML media adapters execute those commands. `rate` is an
-engine-owned future transport command; it is intentionally not exposed by the
-current public controller, and an adapter must not change
-`HTMLMediaElement.playbackRate` on its own. At the target architecture,
-StreamingWorklet's rendered sample counter becomes the engine's audio clock and
-video adapters only seek or present the frame requested for that authoritative
-time.
+Today the MVP exposes engine-owned `play`, `pause`, and `seek`, driven by a
+`TransportClock` while HTML media adapters execute their bounded commands.
+`WebAudioGraphBackendV3` is the primary MVP audio mixer; the native HTML media
+adapter is retained only as a compatibility fallback. `rate` remains an
+engine-owned future command and adapters must not modify
+`HTMLMediaElement.playbackRate` independently.
+
+#### 1.2.1 Transport-clock and audio-window contracts
+
+`TransportClock` is an explicit seam. The engine consumes timeline
+microseconds and does not know whether the position originated from
+`performance.now()`, an AudioContext, or a rendered sample counter.
+
+```ts
+interface TransportClock {
+  nowUs(): number;
+  start(atUs?: number): void;
+  pause(atUs?: number): number;
+  seek(timeUs: number): void;
+}
+```
+
+The current preview clock is `MonotonicTransportClock`. The V2 precision path
+is `AudioSampleTransportClock`, which converts
+`renderedSamples / project.audioTimeline.sampleRate` into the same timeline-us
+domain. `rate` remains an engine-owned future command; it is deliberately not
+exposed by the current controller, and an adapter must never modify
+`HTMLMediaElement.playbackRate` independently.
+
+Audio is resolved in an unambiguous composition-sample domain:
+
+```ts
+resolveAudioWindow(runtime, { startSample, frameCount })
+```
+
+`sampleRate` is fixed by `runtime.audioTimeline`; it is not caller input. The
+result is a bounded `AudioMixPlanV3`: active inputs, native source sample
+ranges, gain envelopes, pan and fades. `frameCount` maps directly to a
+128-frame AudioWorklet quantum, while buffer policy can request a larger
+prefetch window such as 2048 frames.
+
+For MVP audible playback, `WebAudioGraphBackendV3` owns one graph per active
+clip: `MediaElementAudioSourceNode -> GainNode -> StereoPannerNode -> master`.
+Browser media elements still perform HTTP, buffering and decode; Neonix applies
+the resolved gain, pan and fade automation and decides when each element seeks,
+starts or pauses. `HTMLMediaAudioBackendV3` remains a compatibility fallback,
+not the primary mixer. At the target architecture,
+`StreamingWorkletBackend` consumes decoded PCM windows and its rendered-sample
+counter becomes the authoritative transport clock; video adapters then only
+present frames for that time.
 
 ### 1.3 Media ingest, probing, and derivative processing
 
@@ -539,9 +581,13 @@ The V3 decode and buffering contracts are deliberately bounded:
   plan and rejects stale completions after a seek or operation-epoch change.
 - `PcmWindow` and `AudioBufferPolicy` enforce bounded sample/byte windows;
   discarded chunks are released before new work is admitted.
-- `StreamingWorkletBackend` is the streaming audio adapter;
-  `BufferSourceBackend` is the deterministic fallback when a worklet is not
-  available or host policy selects it.
+- `WebAudioGraphBackendV3` is the MVP output mixer: each active browser media
+  source is routed through GainNode and StereoPannerNode into one master graph.
+  `HTMLMediaAudioBackendV3` is compatibility fallback only, not the primary
+  overlap/fade/pan implementation.
+- `StreamingWorkletBackend` is the V2 streaming adapter; it replaces graph
+  output with bounded PCM windows and an AudioWorklet mixer when precision and
+  streaming are required.
 - `VideoInstancePool` owns reusable video instances and
   `HtmlVideoBackend` adapts HTML video to the V3 plan. A future WebCodecs
   backend can replace it without changing timeline resolution or transport.

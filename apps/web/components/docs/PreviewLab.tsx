@@ -14,7 +14,7 @@ import { compileProtocol, compileProtocolV2 } from "@motionvideo/motion-compiler
 import {
   createPlaybackEngineV2,
   createAnimationFrameSchedulerV3,
-  createHTMLMediaAudioBackendV3,
+  createWebAudioGraphBackendV3,
   createPlaybackEngineNext,
   createWebAudioAdapterV2,
   type PlaybackEngineNext,
@@ -567,7 +567,7 @@ function PreviewPlayback({
         setCurrentTime(nextTime);
         if (nextTime >= duration) setIsPlaying(false);
       } },
-      audioSink: createHTMLMediaAudioBackendV3({
+      audioSink: createWebAudioGraphBackendV3({
         resolveSource(source) { return runtime.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)); },
         createElement(_clipId, source) {
           const stream = runtime.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);

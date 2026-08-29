@@ -22,7 +22,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
     error = reason instanceof Error ? reason.message : String(reason);
     readiness.set("failed");
     state = transitionPlaybackStateV3(state, "error");
-    clock.setPlaying(false);
+    clock.pause();
     if (scheduler && scheduled !== undefined) scheduler.cancel(scheduled);
     scheduled = undefined;
   };
@@ -31,9 +31,11 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
     try {
       options.videoSink?.publish(resolveVideoAt(project, timeUs), current);
       metrics.publishedVideoPlans += options.videoSink ? 1 : 0;
-      const startSample = Math.floor(timeUs / 1_000_000 * 48000);
-      const endSample = startSample + (options.audioWindowSamples ?? 2048);
-      options.audioSink?.publish(resolveAudioWindow(project, { startSample, endSample }), current);
+      const startSample = Math.floor(timeUs / 1_000_000 * project.audioTimeline.sampleRate);
+      options.audioSink?.publish(resolveAudioWindow(project, {
+        startSample,
+        frameCount: options.audioWindowFrameCount ?? 2048,
+      }), current);
       metrics.publishedAudioPlans += options.audioSink ? 1 : 0;
       metrics.underruns = Math.max(metrics.underruns, options.audioSink?.telemetry?.().underruns ?? 0);
     } catch (reason) {
@@ -57,7 +59,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
       readiness.set("loading");
       error = undefined;
       project = nextProject;
-      clock.setPlaying(false);
+      clock.pause();
       clock.seek(0);
       const validation = validateRuntimeProjectV3(nextProject);
       if (!validation.ok) {
@@ -85,7 +87,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
       const current = token("play");
       if (!readiness.canPlay() || (state !== "ready" && state !== "paused")) return current;
       try {
-        clock.setPlaying(true);
+        clock.start();
         state = transitionPlaybackStateV3(state, "play");
         options.videoSink?.start?.(current);
         options.audioSink?.start?.(current);
@@ -99,7 +101,7 @@ export function createPlaybackEngineNext(options: PlaybackEngineNextOptions = {}
       const current = token("pause");
       if (state === "playing") {
         try { options.videoSink?.pause?.(current); options.audioSink?.pause?.(current); } catch (reason) { fail(reason); return current; }
-        clock.setPlaying(false);
+        clock.pause();
         state = transitionPlaybackStateV3(state, "pause");
         if (scheduler && scheduled !== undefined) scheduler.cancel(scheduled);
         scheduled = undefined;

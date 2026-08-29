@@ -15,7 +15,8 @@ export class RuntimeAudioResolutionError extends Error {
 
 export function resolveAudioWindow(runtime: RuntimeProjectV3, range: AudioSampleRangeV3): RuntimeAudioMixPlanV3 {
   const startSample = Math.max(0, Math.floor(range.startSample));
-  const endSample = Math.max(startSample, Math.floor(range.endSample));
+  const frameCount = Math.max(0, Math.floor(range.frameCount));
+  const endSample = startSample + frameCount;
   const inputs: RuntimeAudioMixPlanV3["inputs"] = [];
 
   for (const track of runtime.audioTimeline.tracks) {

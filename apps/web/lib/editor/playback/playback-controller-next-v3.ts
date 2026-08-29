@@ -1,7 +1,7 @@
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
-import { createAnimationFrameSchedulerV3, createHTMLMediaAudioBackendV3, createPlaybackEngineNext, requestMediaElementPlayV3, type PlaybackEngineNext, type PlaybackEngineNextSnapshot } from "@motionvideo/playback-engine-next";
+import { createAnimationFrameSchedulerV3, createPlaybackEngineNext, createWebAudioGraphBackendV3, requestMediaElementPlayV3, type PlaybackEngineNext, type PlaybackEngineNextSnapshot } from "@motionvideo/playback-engine-next";
 
 export type PlaybackOperationTokenV3 = { documentGeneration: number; transportGeneration: number; seekRequestId: number; generation: number };
 export type PlaybackFrameEventV3 = PlaybackOperationTokenV3 & { time: number; frame: RuntimeFrameV3; playing: boolean };
@@ -65,7 +65,7 @@ export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
       pause() { for (const element of videos.values()) element.pause(); },
       dispose() { for (const element of videos.values()) element.pause(); videos.clear(); },
     },
-    audioSink: createHTMLMediaAudioBackendV3({
+    audioSink: createWebAudioGraphBackendV3({
       resolveSource(source) { return runtime?.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)) ?? false; },
       createElement(_clipId, source) {
         const stream = runtime?.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
