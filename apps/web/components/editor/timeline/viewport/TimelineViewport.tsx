@@ -62,7 +62,7 @@ import { Playhead } from "./Playhead";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
 import type { TimelineDesignMode } from "../Header/TransportBar";
-import type { PlaybackTimeEvent } from "@/lib/editor/playback/playback-controller";
+import type { PlaybackTimeEventV3 as PlaybackTimeEvent } from "@/lib/editor/playback/playback-controller-next-v3";
 
 type Props = {
   mode: TimelineDesignMode;

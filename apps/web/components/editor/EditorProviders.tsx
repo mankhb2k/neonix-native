@@ -16,12 +16,11 @@ import {
 } from "@/hooks/editor/use-transport-store";
 import { saveEditorProject } from "@/lib/api/projects";
 import {
-  createPlaybackController,
-  type PlaybackController,
-  type PlaybackControllerDiagnostic,
-  type PlaybackFrameEvent,
-  type PlaybackTimeEvent,
-} from "@/lib/editor/playback/playback-controller";
+  createPlaybackControllerNextV3,
+  type PlaybackControllerNextV3,
+  type PlaybackFrameEventV3,
+  type PlaybackTimeEventV3,
+} from "@/lib/editor/playback/playback-controller-next-v3";
 import {
   createTransportStore,
   type TransportStoreApi,
@@ -135,7 +134,7 @@ export function EditorProviders({
   if (!editorStoreRef.current) editorStoreRef.current = createEditorStore(initialDocument);
   const editorStore = editorStoreRef.current;
   const playbackDiagnosticIdRef = useRef(0);
-  const playbackControllerRef = useRef<PlaybackController | null>(null);
+  const playbackControllerRef = useRef<PlaybackControllerNextV3 | null>(null);
   // Child effects can register video elements before the provider's passive
   // effect creates the controller. Keep those registrations until then.
   const playbackVideosRef = useRef(new Map<string, {
@@ -187,36 +186,17 @@ export function EditorProviders({
 
   useEffect(() => {
     const pendingVideos = playbackVideosRef.current;
-    const reportDiagnostic = (diagnostic: PlaybackControllerDiagnostic) => {
-      setPlaybackDiagnostics((previous) => [
-        ...previous.slice(-19),
-        {
-          id: ++playbackDiagnosticIdRef.current,
-          ...diagnostic,
-          at: Date.now(),
-        },
-      ]);
-    };
-    const controller = createPlaybackController({
-      onDiagnostic: reportDiagnostic,
-      collectPerformanceMetrics: process.env.NODE_ENV !== "production",
-      onSnapshot: (snapshot) => {
-        currentTimeRef.current = snapshot.time;
-        transportStore.publishSnapshot(
-          snapshot,
-          playbackControllerRef.current?.audioState ?? "uninitialized",
-          undefined,
-          playbackControllerRef.current?.duration,
-        );
-      },
-    });
+    const controller = createPlaybackControllerNextV3();
     playbackControllerRef.current = controller;
     controller.setHiddenLayerIds(hiddenLayerIdsRef.current);
-    for (const [assetId, registration] of pendingVideos) {
-      controller.registerVideo(assetId, registration.element, registration.onFrameReady);
-    }
+    const releaseTime = controller.registerTimeSink((event) => {
+      currentTimeRef.current = event.time;
+      transportStore.publishTransport({ time: event.time, playing: event.playing, generation: event.generation, duration: controller.duration });
+    });
+    for (const [assetId, registration] of pendingVideos) controller.registerVideo(assetId, registration.element, registration.onFrameReady);
     return () => {
       controller.dispose();
+      releaseTime();
       pendingVideos.clear();
       if (playbackControllerRef.current === controller) playbackControllerRef.current = null;
     };
@@ -242,13 +222,13 @@ export function EditorProviders({
   }, []);
 
   const registerPlaybackFrameSink = useCallback(
-    (sink: (event: PlaybackFrameEvent) => void) =>
+    (sink: (event: PlaybackFrameEventV3) => void) =>
       playbackControllerRef.current?.registerFrameSink(sink) ?? (() => undefined),
     [],
   );
 
   const registerPlaybackTimeSink = useCallback(
-    (sink: (event: PlaybackTimeEvent) => void) =>
+    (sink: (event: PlaybackTimeEventV3) => void) =>
       playbackControllerRef.current?.registerTimeSink(sink) ?? (() => undefined),
     [],
   );
@@ -274,7 +254,7 @@ export function EditorProviders({
   }, [document]);
 
   const playbackPlay = useCallback(() => {
-    void playbackControllerRef.current?.play();
+    playbackControllerRef.current?.play();
   }, []);
 
   const playbackPause = useCallback(() => {
@@ -449,15 +429,15 @@ export function EditorProviders({
     [commitCommands],
   );
   const getPlaybackResourceStats = useCallback(
-    () => playbackControllerRef.current?.getResourceStats() ?? {
+    () => ({
       registeredVideos: 0,
       cachedAudioBuffers: 0,
       activeAudioSources: 0,
-    },
+    }),
     [],
   );
   const getPlaybackDiagnostics = useCallback(
-    () => playbackControllerRef.current?.getDiagnostics() ?? {
+    () => ({
       performanceSamples: [],
       media: {
         syncCalls: 0,
@@ -469,7 +449,7 @@ export function EditorProviders({
         playRejections: 0,
         decodedFrameCallbacks: 0,
       },
-    },
+    }),
     [],
   );
   const editorActions = useMemo<EditorActions>(

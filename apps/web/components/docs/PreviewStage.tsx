@@ -34,7 +34,7 @@ import {
   type PreviewBackendPreference,
   type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
-import type { PlaybackFrameEvent } from "@/lib/editor/playback/playback-controller";
+import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-next-v3";
 
 type PreviewStageProps = {
   project: unknown;
@@ -45,7 +45,7 @@ type PreviewStageProps = {
   /** Editor mode uses the shared playback controller. */
   externalPlayback?: boolean;
   /** Imperative frame path used by editor mode; avoids React state per RAF. */
-  registerPlaybackFrameSink?: (sink: (event: PlaybackFrameEvent) => void) => () => void;
+  registerPlaybackFrameSink?: (sink: (event: PlaybackFrameEventV3) => void) => () => void;
   backend?: PreviewBackendPreference;
   onBackendReady?: (backend: PreviewBackendKind | null) => void;
   /** Keep the WebGL backbuffer only for capture/test scenarios. */

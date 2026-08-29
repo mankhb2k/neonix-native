@@ -13,6 +13,7 @@ export type TransportUIState = {
 };
 
 export type TransportStoreApi = StoreApi<TransportUIState> & {
+  publishTransport: (input: { time: number; playing: boolean; generation: number; duration?: number }) => boolean;
   publishSnapshot: (
     snapshot: PlaybackV2Snapshot,
     audioState?: TransportUIState["audioState"],
@@ -66,6 +67,16 @@ export function createTransportStore(
       activeAudioInputIds: snapshot.activeAudioInputIds,
       performance: publishPerformance ? snapshot.performance : previous.performance,
     });
+    return true;
+  };
+  store.publishTransport = (input) => {
+    const previous = store.getState();
+    const duration = input.duration ?? previous.duration;
+    const now = performance.now();
+    const transition = previous.playing !== input.playing || previous.generation !== input.generation || previous.duration !== duration;
+    if (!transition && input.playing && now - lastPublishedAt < intervalMs) return false;
+    lastPublishedAt = now;
+    store.setState({ currentTime: input.time, playing: input.playing, generation: input.generation, duration, activeVisualMediaIds: [], activeAudioInputIds: [], performance: previous.performance });
     return true;
   };
 
