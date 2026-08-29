@@ -228,6 +228,21 @@ Audio is resolved in an unambiguous composition-sample domain:
 resolveAudioWindow(runtime, { startSample, frameCount })
 ```
 
+#### 1.2.2 Private media access
+
+Neonix keeps user media private in R2. `MotionProtocolV2` revisions may carry
+the last known URI for authoring portability, but the editor server rehydrates
+UUID-backed asset references to short-lived S3-compatible presigned URLs when
+loading a project. The browser therefore reads originals and derivatives
+without requiring an R2 custom domain or exposing the bucket publicly.
+
+The media elements and image loaders set `crossOrigin = "anonymous"` before
+assigning `src`. The R2 bucket CORS policy must allow the exact app origins
+(for example `http://localhost:3000` and the production app origin), `GET` and
+`HEAD`, and range/exposure headers used by media playback. A custom domain is
+optional infrastructure for a future authenticated media gateway; it is not
+part of the MVP contract.
+
 `sampleRate` is fixed by `runtime.audioTimeline`; it is not caller input. The
 result is a bounded `AudioMixPlanV3`: active inputs, native source sample
 ranges, gain envelopes, pan and fades. `frameCount` maps directly to a
@@ -490,25 +505,26 @@ retired field; new documents remain strict and cannot encode implicit looping.
 
 `compileProtocol()` is the canonical pure compiler entrypoint. It validates the
 strict schema, certified capability usage, asset references, hierarchy, sibling
-order, masks, and view contract, then emits the proven visual `RuntimeProjectV2`
-semantics. `compileProtocolToRuntimeV3()` projects that normalized result into
-`RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
+order, masks, and view contract, then emits the canonical visual/runtime V3
+semantics. `compileProtocolToRuntimeV3()` lowers the same validated document
+into `RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
 `audioTimeline` plans. No second compiler or alternate protocol source is
 allowed.
 
-`RuntimeProjectV2` remains a compatibility representation for existing visual
-consumers. New playback code uses the V3 projection and its pure timeline
-resolvers; it does not reparse authoring JSON or rebuild timing at the backend.
+The visual evaluator retained under `motion-runtime/src/v3/legacy` is an
+implementation namespace for the certified paint semantics; it is not a
+second runtime contract. New playback code uses the V3 projection and its pure
+timeline resolvers. It does not reparse authoring JSON or rebuild timing at the
+backend.
 
-At a visual frame, `evaluateRuntimeProjectV2()` resolves active timing,
-hierarchy, inherited opacity, Matrix4 transforms, view projection, compositing
-boundaries, effects, media time, and stable paint order into `RuntimeFrameV2`
-and its `PaintCommandBuffer`.
+At a visual frame, the V3 visual evaluator resolves active timing, hierarchy,
+inherited opacity, transforms, view projection, compositing boundaries,
+effects, media time, and stable paint order into the backend-neutral paint
+buffer.
 
-At an audio sample range, `evaluateRuntimeAudioMixV2()` produces a
-`RuntimeAudioMixPlanV2` containing deterministic bounded source ranges,
-gain envelopes, pan, fades, and mix input order. It does not decode PCM or
-construct WebAudio nodes.
+At an audio sample range, `resolveAudioWindow()` produces an `AudioMixPlanV3`
+containing deterministic bounded source ranges, gain envelopes, pan, fades,
+and mix input order. It does not decode PCM or construct WebAudio nodes.
 
 For the next runtime, `resolveVideoAt()` and `resolveAudioWindow()` consume the
 static V3 timelines and return `VideoRenderPlanV3` and `AudioMixPlanV3`. This is
@@ -620,8 +636,7 @@ frames; it must not let a video element silently take over transport timing.
 - [Compiler](../../packages/motion-compiler/src/compiler): Atomic JSON to
   Runtime IR lowering, with the V3 projection in
   [`runtime-project-v3.ts`](../../packages/motion-compiler/src/runtime-project-v3.ts).
-- [Runtime](../../packages/motion-runtime/src/v2): visual evaluation and audio
-  mix planning; V3 timeline types and resolvers live in
-  [`src/v3`](../../packages/motion-runtime/src/v3).
+- [Runtime](../../packages/motion-runtime/src): V3 visual evaluation, media
+  catalog types, and timeline resolvers.
 - [Playback Engine Next](../../packages/playback-engine-next/src): transport,
   clock, readiness, buffering, resource, backend, and diagnostics orchestration.
