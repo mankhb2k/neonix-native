@@ -110,7 +110,9 @@ async function main(): Promise<void> {
       }
 
       const changed = originalAction === "copied" || previewAction === "copied";
-      if (apply && changed) {
+      const metadataNeedsUpdate = asset.r2_key !== targetKey
+        || (targetPreviewKey !== null && asset.preview_key !== targetPreviewKey);
+      if (apply && metadataNeedsUpdate) {
         const update: { r2_key: string; preview_key?: string } = { r2_key: targetKey };
         if (targetPreviewKey) update.preview_key = targetPreviewKey;
         const { error: updateError } = await supabase
