@@ -27,7 +27,7 @@
 2. `V2AudioClipSchema` already accepts a video asset as its source. This is the
    existing explicit “video source audio” escape hatch and is the shape used by
    `audio.video-source` fixtures.
-3. `compile-v2` lowers only `project.audio.tracks` into
+3. `src/compiler` lowers only `project.audio.tracks` into
    `RuntimeAudioProjectV2`; it does not lower a video layer's embedded audio.
 4. `PreviewStage` currently calls `HTMLVideoElement.play()` for every loaded
    video asset when `isPlaying` is true and changes `source.muted` from the

@@ -471,6 +471,82 @@ const VIDEO_PROJECT = project(
   [PREVIEW_VIDEO_ASSET],
 );
 
+const VIDEO_TRIM_PROJECT = project(
+  "preview-video-trim-v2",
+  [{
+    id: "video-trim",
+    type: "video",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 960, height: 540 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 270, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 4 },
+    payload: {
+      assetId: PREVIEW_VIDEO_ASSET.id,
+      fit: "cover",
+      trimStart: 12,
+      trimEnd: 16,
+      framePolicy: "floor",
+    },
+  }],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_VIDEO_ASSET],
+);
+
+const VIDEO_FRAME_POLICY_PROJECT = project(
+  "preview-video-frame-policy-v2",
+  [{
+    id: "video-ceil",
+    type: "video",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 960, height: 540 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 270, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      assetId: PREVIEW_VIDEO_ASSET.id,
+      fit: "cover",
+      trimStart: 24,
+      trimEnd: 27,
+      framePolicy: "ceil",
+    },
+  }],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_VIDEO_ASSET],
+);
+
+const VIDEO_MULTI_INSTANCE_PROJECT = project(
+  "preview-video-multi-instance-v2",
+  [
+    {
+      id: "video-left",
+      type: "video",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 720, height: 405 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 360, y: 270, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 4 },
+      payload: { assetId: PREVIEW_VIDEO_ASSET.id, fit: "cover", trimStart: 4, trimEnd: 8, framePolicy: "floor" },
+    },
+    {
+      id: "video-right",
+      type: "video",
+      parentLayerId: null,
+      order: 1,
+      frame: { width: 720, height: 405 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 1560, y: 810, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 4 },
+      payload: { assetId: PREVIEW_VIDEO_ASSET.id, fit: "cover", trimStart: 36, trimEnd: 40, framePolicy: "round" },
+    },
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_VIDEO_ASSET],
+);
+
 const RECTANGLE_PROJECT = project("preview-rectangle-v2", [
   rectangle({ id: "rectangle", order: 0, fill: "#00aa88" }),
 ]);
@@ -1930,6 +2006,30 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 9 / Video",
     hint: "The local MP4 is decoded at the requested composition frame; runtime emits source media time before the renderer uploads it.",
     project: VIDEO_PROJECT,
+  },
+  {
+    id: "video.trim",
+    label: "Video / trim range",
+    group: "Task 9 / Video",
+    hint: "The same MP4 is constrained to source seconds 12 through 16; the runtime never asks the backend to loop or read outside that range.",
+    project: VIDEO_TRIM_PROJECT,
+    previewTime: 1,
+  },
+  {
+    id: "video.frame-policy",
+    label: "Video / ceil frame policy",
+    group: "Task 9 / Video",
+    hint: "Ceil frame selection is explicit in the protocol and remains a renderer decision after Runtime resolves the source media time.",
+    project: VIDEO_FRAME_POLICY_PROJECT,
+    previewTime: 1,
+  },
+  {
+    id: "video.multi-instance",
+    label: "Video / two instances",
+    group: "Task 9 / Video",
+    hint: "Two independent instances address different source windows from one asset, proving asset identity is separate from playback ownership.",
+    project: VIDEO_MULTI_INSTANCE_PROJECT,
+    previewTime: 1,
   },
   {
     id: "text.single-line.alignment",

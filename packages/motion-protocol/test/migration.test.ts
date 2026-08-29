@@ -54,4 +54,43 @@ describe("Protocol V2 legacy migration", () => {
     expect(result.project.layers[0]).toMatchObject({ payload: { audio: { enabled: false, gainDb: 0 } } });
     expect(result.diagnostics[0]?.code).toBe("legacy_video_muted");
   });
+
+  it("removes the retired loop fields from persisted video and audio clips", () => {
+    const legacyWithLoop = {
+      ...legacy,
+      layers: [{
+        ...legacy.layers[0],
+        payload: { ...legacy.layers[0].payload, loop: true },
+      }],
+      assets: [
+        ...legacy.assets,
+        { id: "music", kind: "audio" as const, uri: "/music.mp3", mimeType: "audio/mpeg", duration: 4, sampleRate: 48000, channels: 2 },
+      ],
+      audio: {
+        sampleRate: 48000 as const,
+        tracks: [{
+          id: "music-track",
+          gainDb: 0,
+          pan: 0,
+          muted: false,
+          clips: [{
+            id: "music-clip",
+            assetId: "music",
+            timing: { start: 0, duration: 2 },
+            trim: { start: 0, end: 2 },
+            playbackRate: 1,
+            gainDb: 0,
+            loop: true,
+          }],
+        }],
+      },
+    };
+
+    const result = parseMotionProtocolV2WithMigration(legacyWithLoop);
+    expect(result.project.layers[0]?.payload).not.toHaveProperty("loop");
+    expect(result.project.audio.tracks[0]?.clips[0]).not.toHaveProperty("loop");
+    expect(result.diagnostics.filter((item) => item.code === "removed_loop")).toHaveLength(2);
+    expect(legacyWithLoop.layers[0]?.payload).toHaveProperty("loop", true);
+    expect(legacyWithLoop.audio.tracks[0]?.clips[0]).toHaveProperty("loop", true);
+  });
 });

@@ -42,8 +42,8 @@ const previewFiles = productionFiles(
 const remotionFiles = productionFiles(
   path.join(repositoryRoot, "packages", "remotion-renderer", "src"),
 );
-const compilerV2Files = productionFiles(
-  path.join(repositoryRoot, "packages", "motion-compiler", "src", "compile-v2"),
+const compilerFiles = productionFiles(
+  path.join(repositoryRoot, "packages", "motion-compiler", "src", "compiler"),
 );
 
 function checkFiles(files, rules) {
@@ -78,9 +78,9 @@ const runtimeNonMatrix4Files = certifiedRuntimeFiles.filter(
 checkFiles(certifiedRuntimeFiles, runtimeMatrixRules);
 if (partialMatrixRule) {
   checkFiles(runtimeNonMatrix4Files, [partialMatrixRule]);
-  checkFiles(compilerV2Files, [partialMatrixRule]);
+  checkFiles(compilerFiles, [partialMatrixRule]);
 }
-checkFiles(compilerV2Files, matrix4OnlyRules);
+checkFiles(compilerFiles, matrix4OnlyRules);
 checkFiles(previewFiles, [
   ...rendererMatrixRules,
   {
@@ -125,5 +125,5 @@ if (violations.length) {
 }
 
 console.log(
-  "V2 Matrix4 hard-lock clean: Runtime, preview, Remotion, and Compiler V2 keep the certified boundary.",
+  "V2 Matrix4 hard-lock clean: Runtime, preview, Remotion, and the canonical compiler keep the certified boundary.",
 );

@@ -1686,7 +1686,7 @@ count của cache entries.
 | Current area | Action |
 | --- | --- |
 | `motion-protocol/src/v2` | Giữ; chỉ sửa nếu phát hiện semantic authoring thực sự thiếu |
-| `motion-compiler/src/compile-v2` | Reuse validation/visual lowering; thêm V3 lowering rồi cut over |
+| `motion-compiler/src/compiler` | Reuse validation/visual lowering; thêm V3 lowering rồi cut over |
 | `motion-runtime/src/v2/evaluate.ts` | Reuse visual algorithms/types qua V3 boundary |
 | `motion-runtime/src/v2/audio-mix.ts` | Port verified math sang V3 resolver; thay contract |
 | `motion-runtime/src/v2/types.ts` audio fields | Replace bằng catalog/sourceRef + sample-based timeline |

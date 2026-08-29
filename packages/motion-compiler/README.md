@@ -1,12 +1,13 @@
 # `@motionvideo/motion-compiler`
 
-Compiler B lowers Atomic Protocol V2 JSON into backend-neutral Runtime IR V2.
+The compiler lowers Atomic Protocol V2 JSON into the canonical backend-neutral
+runtime representation used during the migration to Runtime V3.
 It does not render pixels, own GPU resources, or evaluate a frame by itself.
 
 ```text
 Atomic Protocol V2 JSON
         |
-  compileProtocolV2
+  compileProtocol
         |
 RuntimeProjectV2
         |
@@ -15,25 +16,33 @@ evaluateRuntimeProjectV2
 PaintCommandBuffer
 ```
 
-## Public V2 API
+## Public API
 
 ```ts
 import {
-  compileProtocolV2,
-  compileProtocolV2ToPaintCommands,
+  compileProtocol,
+  compileProtocolToPaintCommands,
 } from "@motionvideo/motion-compiler";
 
-const runtime = compileProtocolV2(protocol);
-const frame = compileProtocolV2ToPaintCommands(protocol, { frame: 0 });
+const runtime = compileProtocol(protocol);
+const frame = compileProtocolToPaintCommands(protocol, { frame: 0 });
 ```
 
-`compileProtocolV2()` validates the V2 schema, certified capabilities, timing,
+`compileProtocol()` validates the V2 schema, certified capabilities, timing,
 references, and view state before emitting `RuntimeProjectV2`. Matrix4 values
 are runtime IR values; they are not stored in Atomic Protocol JSON.
 
-`compileProtocolV2ToPaintCommands()` is only a convenience composition of the
-V2 compiler and `evaluateRuntimeProjectV2()`. Preview and export should use the
-same Runtime IR and paint semantics.
+`compileProtocolToRuntimeV3()` projects the same normalized compiler result into
+the media-catalog/video-timeline/audio-timeline IR consumed by
+`playback-engine-next`. It does not re-parse or re-lower visual semantics.
+
+`compileProtocolToPaintCommands()` is only a convenience composition of the
+canonical compiler and `evaluateRuntimeProjectV2()`. Preview and export should
+use the same Runtime IR and paint semantics.
+
+The old `compileProtocolV2*` names remain deprecated source-compatible aliases
+for callers that have not completed migration; they are not separate compiler
+implementations.
 
 ## Ownership
 

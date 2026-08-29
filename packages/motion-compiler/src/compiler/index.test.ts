@@ -9,7 +9,7 @@ import {
   transformPoint4,
 } from "@motionvideo/motion-runtime";
 import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
-import { compileProtocolV2, compileProtocolV2ToPaintCommands } from "./index";
+import { compileProtocol, compileProtocolToPaintCommands } from "./index";
 
 const identity = {
   translate: { x: 0, y: 0, z: 0 },
@@ -41,9 +41,9 @@ const base = {
   audio: { sampleRate: 48000, tracks: [] },
 };
 
-describe("Protocol V2 Compiler B", () => {
+describe("canonical Protocol compiler", () => {
   it("lowers the Text atom without shaping or font I/O", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       id: "v2-text",
       assets: [{
@@ -91,7 +91,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("emits RuntimeProjectV2 before frame evaluation", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       layers: [
         {
@@ -128,7 +128,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a silent project into an empty Runtime Audio IR", () => {
-    const runtime = compileProtocolV2({ ...base, layers: [] });
+    const runtime = compileProtocol({ ...base, layers: [] });
 
     expect(runtime.audio).toEqual({ sampleRate: 48000, tracks: [] });
     expect(runtime.composition.duration).toBe(0);
@@ -137,7 +137,7 @@ describe("Protocol V2 Compiler B", () => {
   it("resolves audio source metadata and extends duration for audio-only projects", () => {
     const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.fade");
     expect(fixture).toBeDefined();
-    const runtime = compileProtocolV2(fixture!.project);
+    const runtime = compileProtocol(fixture!.project);
     const clip = runtime.audio?.tracks[0]?.clips[0];
 
     expect(runtime.nodes).toEqual([]);
@@ -159,7 +159,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("routes embedded video audio to the import-time derivative URI", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       assets: [{
         id: "video-with-audio",
@@ -216,9 +216,9 @@ describe("Protocol V2 Compiler B", () => {
         style: { fill: "#00aa88" },
       }],
     };
-    const withoutAudio = compileProtocolV2(visual);
+    const withoutAudio = compileProtocol(visual);
     const audioProject = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.timing")!.project;
-    const withAudio = compileProtocolV2({
+    const withAudio = compileProtocol({
       ...visual,
       assets: audioProject.assets,
       audio: audioProject.audio,
@@ -230,7 +230,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("uses normalized default opacity when Atomic V2 omits it", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       id: "v2-default-opacity",
       layers: [{
@@ -250,7 +250,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("retains a group boundary so Runtime can composite its opacity once", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       id: "v2-group-isolation",
       layers: [
@@ -286,7 +286,7 @@ describe("Protocol V2 Compiler B", () => {
       content: { kind: "group" },
     });
     expect(runtime.nodes[1]).toMatchObject({ id: "child", parentId: "group", opacity: 1 });
-    const commands = compileProtocolV2ToPaintCommands({
+    const commands = compileProtocolToPaintCommands({
       ...base,
       id: "v2-group-isolation",
       layers: [
@@ -341,12 +341,12 @@ describe("Protocol V2 Compiler B", () => {
         style: { fill: "#ff0000" },
       }],
     };
-    const runtime = compileProtocolV2(project);
+    const runtime = compileProtocol(project);
     expect(runtime.nodes[0]?.content).toMatchObject({
       kind: "shape",
       effects: project.layers[0].effects,
     });
-    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    const commands = compileProtocolToPaintCommands(project).commands;
     const scope = commands.find((command) => command.op === "beginLayer");
     expect(scope).toMatchObject({
       effectProgram: {
@@ -360,7 +360,7 @@ describe("Protocol V2 Compiler B", () => {
   it.each(["normal", "multiply", "screen", "add"] as const)(
     "lowers the certified %s blend mode into the paint transform",
     (blendMode) => {
-      const commands = compileProtocolV2ToPaintCommands({
+      const commands = compileProtocolToPaintCommands({
         ...base,
         id: `v2-blend-${blendMode}`,
         layers: [{
@@ -402,7 +402,7 @@ describe("Protocol V2 Compiler B", () => {
         style: { fill: "#d9d9d9" },
       }],
     };
-    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    const commands = compileProtocolToPaintCommands(project).commands;
     expect(commands.find((command) => command.op === "beginLayer")).toMatchObject({
       offscreen: true,
       effectProgram: {
@@ -434,7 +434,7 @@ describe("Protocol V2 Compiler B", () => {
         style: { fill: "#d9d9d9" },
       }],
     };
-    const commands = compileProtocolV2ToPaintCommands(project).commands;
+    const commands = compileProtocolToPaintCommands(project).commands;
     expect(commands.find((command) => command.op === "beginLayer")).toMatchObject({
       offscreen: true,
       effectProgram: {
@@ -450,7 +450,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("emits a valid empty frame", () => {
-    const buffer = compileProtocolV2ToPaintCommands({ ...base, layers: [] });
+    const buffer = compileProtocolToPaintCommands({ ...base, layers: [] });
     expect(buffer.commands.map((command) => command.op)).toEqual([
       "beginFrame",
       "endFrame",
@@ -458,7 +458,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("emits rectangle fill commands from atomic V2", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -491,7 +491,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("emits an ellipse without changing the shared transform contract", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -527,7 +527,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers an Image Atom to a backend-neutral drawImage command", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       assets: [{
         id: "photo",
@@ -566,7 +566,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a Video Atom with source timing policy to drawVideo", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       assets: [{
         id: "clip",
@@ -611,7 +611,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers embedded video audio into a linked runtime audio track", () => {
-    const runtime = compileProtocolV2({
+    const runtime = compileProtocol({
       ...base,
       id: "video-with-audio",
       assets: [{
@@ -657,7 +657,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a filled local-plane path into one resolved mesh command", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -703,7 +703,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a certified path stroke into a separate resolved stroke mesh", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -748,7 +748,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a certified rectangle stroke into the paint command", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -776,7 +776,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a certified ellipse stroke into the paint command", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -804,7 +804,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("preserves a custom local stroke width", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -832,7 +832,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects a stroke width without a stroke color", () => {
     expect(() =>
-      compileProtocolV2ToPaintCommands({
+      compileProtocolToPaintCommands({
         ...base,
         layers: [
           {
@@ -853,7 +853,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("preserves independent fill and stroke opacity", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -886,7 +886,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects stroke opacity without a stroke color", () => {
     expect(() =>
-      compileProtocolV2ToPaintCommands({
+      compileProtocolToPaintCommands({
         ...base,
         layers: [
           {
@@ -907,7 +907,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers a rounded rectangle geometry and clamps its radius", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -935,7 +935,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects corner radius on an ellipse", () => {
     expect(() =>
-      compileProtocolV2ToPaintCommands({
+      compileProtocolToPaintCommands({
         ...base,
         layers: [
           {
@@ -956,7 +956,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers semantic gradient fill data without moving it into the renderer", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -999,7 +999,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers the frame view into backend-neutral projection matrices", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       composition: {
         ...base.composition,
@@ -1021,7 +1021,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("applies the inverse camera transform in the locked order", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       composition: {
         ...base.composition,
@@ -1065,7 +1065,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers translate, scale, and local anchor into affine and Matrix4 outputs", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -1095,7 +1095,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers rotation and skew in the shared affine matrix", () => {
-    const buffer = compileProtocolV2ToPaintCommands({
+    const buffer = compileProtocolToPaintCommands({
       ...base,
       layers: [
         {
@@ -1129,7 +1129,7 @@ describe("Protocol V2 Compiler B", () => {
   });
 
   it("lowers group transforms and timing into the child while preserving its opacity boundary", () => {
-    const buffer = compileProtocolV2ToPaintCommands(
+    const buffer = compileProtocolToPaintCommands(
       {
         ...base,
         layers: [
@@ -1185,7 +1185,7 @@ describe("Protocol V2 Compiler B", () => {
     });
 
     expect(
-      compileProtocolV2ToPaintCommands(
+      compileProtocolToPaintCommands(
         {
           ...base,
           layers: [
@@ -1246,18 +1246,18 @@ describe("Protocol V2 Compiler B", () => {
       },
     ];
     expect(
-      compileProtocolV2ToPaintCommands({ ...base, layers }, { time: 0.999 }).commands.map(
+      compileProtocolToPaintCommands({ ...base, layers }, { time: 0.999 }).commands.map(
         (command) => command.op,
       ),
     ).toEqual(["beginFrame", "endFrame"]);
 
-    const active = compileProtocolV2ToPaintCommands({ ...base, layers }, { time: 1 });
+    const active = compileProtocolToPaintCommands({ ...base, layers }, { time: 1 });
     expect(active.commands.filter((command) => command.op === "setTransform")).toEqual([
       expect.objectContaining({ key: "back", alpha: 0.5, order: 0 }),
       expect.objectContaining({ key: "front", alpha: 1, order: 1 }),
     ]);
     expect(
-      compileProtocolV2ToPaintCommands({ ...base, layers }, { time: 2 }).commands.map(
+      compileProtocolToPaintCommands({ ...base, layers }, { time: 2 }).commands.map(
         (command) => command.op,
       ),
     ).toEqual(["beginFrame", "endFrame"]);
@@ -1265,7 +1265,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects retired V1 envelopes before lowering", () => {
     expect(() =>
-      compileProtocolV2({
+      compileProtocol({
         format: "motion-project",
         formatVersion: 1,
         id: "legacy",
@@ -1277,7 +1277,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects mixed V1/V2 fields instead of migrating them", () => {
     expect(() =>
-      compileProtocolV2({
+      compileProtocol({
         ...base,
         bone: { id: "legacy-bone" },
         layers: [],
@@ -1285,7 +1285,7 @@ describe("Protocol V2 Compiler B", () => {
     ).toThrow();
 
     expect(() =>
-      compileProtocolV2({
+      compileProtocol({
         ...base,
         layers: [
           {
@@ -1307,7 +1307,7 @@ describe("Protocol V2 Compiler B", () => {
 
   it("rejects unknown atom and transform fields fail-closed", () => {
     expect(() =>
-      compileProtocolV2({
+      compileProtocol({
         ...base,
         layers: [
           {
@@ -1327,7 +1327,7 @@ describe("Protocol V2 Compiler B", () => {
     ).toThrow();
 
     expect(() =>
-      compileProtocolV2({
+      compileProtocol({
         ...base,
         layers: [
           {

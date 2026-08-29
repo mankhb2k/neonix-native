@@ -1,4 +1,4 @@
-import { compileProtocolV2 } from "@motionvideo/motion-compiler";
+import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
@@ -196,7 +196,7 @@ export function applyEditorCommand(
     }
 
     try {
-      compileProtocolV2(parsedNext.data);
+      compileProtocol(parsedNext.data);
     } catch (error) {
       return reject(original, [
         {

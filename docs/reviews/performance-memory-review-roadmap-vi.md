@@ -234,7 +234,7 @@ Thư mục:
 - `packages/motion-runtime/src/v2/evaluate.ts`
 - `packages/motion-runtime/src/v2/validate.ts`
 - `packages/motion-runtime/src/paint/validate-paint-command-buffer.ts`
-- `packages/motion-compiler/src/compile-v2/`
+- `packages/motion-compiler/src/compiler/`
 
 Kiểm tra các invariant:
 
@@ -565,4 +565,3 @@ pnpm.cmd --filter @motionvideo/web exec playwright test --project=chromium --wor
 Khi review performance-sensitive E2E, dùng một worker để tránh chính test suite
 làm nhiễu RAF/GPU timing. Luôn ghi rõ test nào pass, test nào skip vì WebGPU,
 và test nào fail do fixture/parity contract độc lập với playback.
-

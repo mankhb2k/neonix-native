@@ -1,7 +1,9 @@
 import { MotionProtocolV2Schema, type MotionProtocolV2 } from "./v2";
 
+type JsonRecord = Record<string, unknown>;
+
 export type ProtocolMigrationDiagnostic = {
-  code: "legacy_video_muted";
+  code: "legacy_video_muted" | "removed_loop" | "clamped_video_duration";
   severity: "warning";
   path: readonly (string | number)[];
   message: string;
@@ -18,35 +20,105 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * One-way migration for persisted V2 documents written before embedded video
- * audio was explicit. The returned input is safe to pass to the strict V2
- * schema; the original value is never mutated.
+ * audio was explicit or before loop was retired. The returned input is safe to
+ * pass to the strict V2 schema; the original value is never mutated.
  */
 export function migrateMotionProtocolV2(input: unknown): MotionProtocolV2Migration {
-  if (!isRecord(input) || !Array.isArray(input.layers)) {
+  if (!isRecord(input)) {
     return { input, diagnostics: [] };
   }
 
   const diagnostics: ProtocolMigrationDiagnostic[] = [];
-  const layers = input.layers.map((layer, layerIndex) => {
-    if (!isRecord(layer) || layer.type !== "video" || !isRecord(layer.payload)) return layer;
-    if (!Object.prototype.hasOwnProperty.call(layer.payload, "muted")) return layer;
-
-    const payload = { ...layer.payload };
-    const muted = payload.muted === true;
-    delete payload.muted;
-    if (!isRecord(payload.audio)) {
-      payload.audio = { enabled: !muted, gainDb: 0 };
+  const assetDurations = new Map<string, number>();
+  if (Array.isArray(input.assets)) {
+    for (const asset of input.assets) {
+      if (isRecord(asset) && typeof asset.id === "string" && typeof asset.duration === "number" && Number.isFinite(asset.duration)) {
+        assetDurations.set(asset.id, asset.duration);
+      }
     }
-    diagnostics.push({
-      code: "legacy_video_muted",
-      severity: "warning",
-      path: ["layers", layerIndex, "payload", "muted"],
-      message: "Migrated legacy video payload.muted to payload.audio.enabled; save the project to persist the new shape.",
-    });
-    return { ...layer, payload };
-  });
+  }
+  const layers = Array.isArray(input.layers)
+    ? input.layers.map((layer, layerIndex) => {
+        if (!isRecord(layer) || layer.type !== "video" || !isRecord(layer.payload)) return layer;
 
-  return { input: { ...input, layers }, diagnostics };
+        let payload = layer.payload;
+        if (Object.prototype.hasOwnProperty.call(payload, "muted")) {
+          payload = { ...payload };
+          const muted = payload.muted === true;
+          delete payload.muted;
+          if (!isRecord(payload.audio)) {
+            payload.audio = { enabled: !muted, gainDb: 0 };
+          }
+          diagnostics.push({
+            code: "legacy_video_muted",
+            severity: "warning",
+            path: ["layers", layerIndex, "payload", "muted"],
+            message: "Migrated legacy video payload.muted to payload.audio.enabled; save the project to persist the new shape.",
+          });
+        }
+        const removedVideoLoop = Object.prototype.hasOwnProperty.call(payload, "loop");
+        if (removedVideoLoop) {
+          if (payload === layer.payload) payload = { ...payload };
+          delete payload.loop;
+          diagnostics.push({
+            code: "removed_loop",
+            severity: "warning",
+            path: ["layers", layerIndex, "payload", "loop"],
+            message: "Removed the retired video loop field; duplicate the clip when repeated playback is needed.",
+          });
+        }
+        let migratedLayer: JsonRecord = payload === layer.payload ? layer : { ...layer, payload };
+        if (removedVideoLoop && isRecord(layer.timing) && typeof layer.timing.duration === "number") {
+          const sourceDuration = typeof payload.assetId === "string" ? assetDurations.get(payload.assetId) : undefined;
+          const trimStart = typeof payload.trimStart === "number" ? payload.trimStart : 0;
+          const trimEnd = typeof payload.trimEnd === "number" ? Math.min(payload.trimEnd, sourceDuration ?? payload.trimEnd) : sourceDuration;
+          const availableDuration = trimEnd === undefined ? undefined : trimEnd - trimStart;
+          if (availableDuration !== undefined && availableDuration > 0 && layer.timing.duration > availableDuration) {
+            migratedLayer = {
+              ...migratedLayer,
+              timing: { ...layer.timing, duration: availableDuration },
+            };
+            diagnostics.push({
+              code: "clamped_video_duration",
+              severity: "warning",
+              path: ["layers", layerIndex, "timing", "duration"],
+              message: "Clamped a looping video to its real source duration because protocol V2 no longer supports looping.",
+            });
+          }
+        }
+        return migratedLayer;
+      })
+    : input.layers;
+
+  const audio = isRecord(input.audio) && Array.isArray(input.audio.tracks)
+    ? {
+        ...input.audio,
+        tracks: input.audio.tracks.map((track, trackIndex) => {
+          if (!isRecord(track) || !Array.isArray(track.clips)) return track;
+          return {
+            ...track,
+            clips: track.clips.map((clip, clipIndex) => {
+              if (!isRecord(clip) || !Object.prototype.hasOwnProperty.call(clip, "loop")) return clip;
+              const migratedClip = { ...clip };
+              delete migratedClip.loop;
+              diagnostics.push({
+                code: "removed_loop",
+                severity: "warning",
+                path: ["audio", "tracks", trackIndex, "clips", clipIndex, "loop"],
+                message: "Removed the retired audio loop field; duplicate the clip when repeated playback is needed.",
+              });
+              return migratedClip;
+            }),
+          };
+        }),
+      }
+    : input.audio;
+
+  if (layers === input.layers && audio === input.audio) {
+    return { input, diagnostics };
+  }
+
+  return { input: { ...input, layers, audio }, diagnostics };
 }
 
 export function parseMotionProtocolV2WithMigration(input: unknown): {

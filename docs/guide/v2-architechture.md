@@ -1,4 +1,4 @@
-# MotiClip V2 Architecture Guide
+# Neonix V2 Architecture Guide
 
 > Status: active architecture and Atomic Protocol V2 reference.
 >
@@ -8,7 +8,7 @@
 
 ## Purpose and source of truth
 
-MotiClip can be authored by the editor, MCP tools, AI, templates, or the CLI.
+Neonix can be authored by the editor, MCP tools, AI, templates, or the CLI.
 Those are authoring surfaces; they do not define rendering semantics. Every
 renderable project must become one strict `MotionProtocolV2` document before
 it reaches the render core.
@@ -32,18 +32,19 @@ Editor / MCP / AI / templates / CLI
                  |
                  v
  @motionvideo/motion-compiler
-       compileProtocolV2()
+ compileProtocol() + compileProtocolToRuntimeV3()
                  |
                  v
-           RuntimeProjectV2
+           RuntimeProjectV3
              /           \
             v             v
-RuntimeFrameV2       RuntimeAudioMixPlanV2
-PaintCommandBuffer          |
-       |                    |
-       +---- Native preview +---- WebAudio preview
-       |                    |
-       +---- Remotion visual +---- Remotion audio
+  VideoRenderPlanV3   AudioMixPlanV3
+             \           /
+                 v
+          PlaybackEngineNext
+             /           \
+            v             v
+    Native preview      Offline export
                               |
                               v
                          encoded media
@@ -57,21 +58,166 @@ transforms, ordering, compositing, media selection, or mixing.
 Visual and audio are parallel domains. They meet only at final media output;
 audio is never a visual layer and visual rendering never owns the audio clock.
 
+### 1.1 Authoring, compilation, and the next playback runtime
+
+Protocol V2 remains the authoring contract. Runtime V3 is the execution
+projection: it keeps the certified visual runtime semantics while separating
+static video and audio timelines from backend-specific playback. The compiler
+is pure and deterministic; it does not create media elements, decoders, audio
+nodes, GPU resources, or worker state.
+
+```text
+AUTHORING — MotionProtocolV2
+│
+│  VideoLayer
+│  ├── visual intent
+│  └── embedded audio intent
+│
+▼
+PURE COMPILER
+│
+▼
+RuntimeProjectV3
+├── composition
+├── mediaCatalog
+├── visual                    # reuse visual runtime semantics đã chứng nhận
+├── videoTimeline             # static VideoTimelinePlanV3
+└── audioTimeline             # static AudioTimelinePlanV3
+        │
+        ├──────────────────────────────────────────────┐
+        │                                              │
+        ▼                                              ▼
+resolveVideoAt(time)                       resolveAudioWindow(sampleRange)
+        │                                              │
+        ▼                                              ▼
+VideoRenderPlanV3                            AudioMixPlanV3
+        │                                              │
+        └───────────────────┬──────────────────────────┘
+                            ▼
+                    PlaybackEngineNext
+                    ├── TransportStateMachine
+                    ├── ClockController
+                    ├── OperationEpoch
+                    ├── ReadinessCoordinator
+                    ├── BufferPolicy
+                    ├── ResourceCoordinator
+                    └── Diagnostics/Metrics
+                         │                 │
+              ┌──────────┘                 └──────────┐
+              ▼                                       ▼
+         VideoBackend                            AudioBackend
+         ├── HTMLVideo                       ├── StreamingWorklet
+         └── WebCodecs (later)               └── BufferSource fallback
+              │                                       │
+              └──────────────────┬────────────────────┘
+                                 ▼
+                         Preview Renderer
+                         ├── WebGPU
+                         └── WebGL2
+
+Export consumes the same RuntimeProjectV3 semantics through an offline backend.
+```
+
+`VideoLayer.payload.audio` is an authoring intent only. During compilation,
+embedded video audio is converted into an explicit audio timeline clip that
+references the video's audio stream. Standalone audio clips and embedded video
+audio therefore enter the same `AudioMixPlanV3` without making audio a visual
+layer concern.
+
+`resolveVideoAt()` and `resolveAudioWindow()` are pure timeline queries. They
+return backend-neutral plans, not decoded frames or PCM. `PlaybackEngineNext`
+owns transport, the single audio master clock, operation epochs, readiness,
+buffering, resource leases, and diagnostics. HTML video, WebCodecs, Streaming
+Worklet, and BufferSource are replaceable adapters behind those boundaries;
+changing one does not change compiler or timeline semantics. The preview
+renderer consumes the resulting video resources and paint commands, while an
+offline export backend consumes the same V3 plans for parity.
+
+### 1.2 Media ingest, probing, and derivative processing
+
+Media processing is deliberately a deployment adapter, not part of the
+protocol, compiler, or playback engine. The authoring contract contains only
+asset identity and intent. After upload, a processor probes the original
+asset and publishes immutable derivatives using the shared storage namespace:
+
+```text
+Client
+  |
+  | direct upload
+  v
+Supabase Storage  --------------------------+
+  |                                         |
+  v                                         |
+assets/{assetId}/original.*                 |
+                                            |
+                                            v
+                              MediaProcessingBackend
+                              |                 |
+                              | MVP             | later
+                              v                 v
+                      Vercel Node.js      Railway/VPS Docker worker
+                              |
+                              +-- ffprobe: stream metadata
+                              +-- ffmpeg: optional audio extraction
+                              +-- poster/proxy generation
+                              +-- update asset + probe job status
+                                            |
+                                            v
+assets/{assetId}/
+  audio/stream-1.m4a
+  poster/poster.webp
+  video/proxy-720p.mp4
+                                            |
+                                            v
+                                  RuntimeProjectV3.mediaCatalog
+```
+
+The MVP processor runs in a Vercel **Node.js** function. It must not run in
+the Edge runtime, and it must not receive video bytes through the API request;
+it reads the original from Supabase Storage with a signed URL and writes
+results back to Storage. `ffprobe` records stream facts first. If a video has
+an audio stream, `ffmpeg` produces the canonical `stream-1.m4a` derivative. If
+no audio stream exists, the video remains visual-only and the compiler does
+not invent an embedded audio clip.
+
+The processing boundary is replaceable:
+
+```ts
+interface MediaProcessingBackend {
+  probeAndDerive(job: MediaProcessingJob): Promise<MediaProcessingResult>;
+}
+```
+
+`VercelNodeMediaProcessor` is the current adapter. A future
+`RailwayDockerMediaProcessor` or `VpsDockerMediaProcessor` can implement the
+same job/result contract without changing `MotionProtocolV2`,
+`RuntimeProjectV3`, `AudioTimelinePlanV3`, or `PlaybackEngineNext`. Supabase
+Storage and Database remain the durable source of originals, derivatives,
+metadata, and job status; Supabase Edge Functions may dispatch or receive a
+webhook but are not the media-processing runtime.
+
+Processing is asynchronous and idempotent. The asset lifecycle is
+`uploading -> processing -> ready | partial | failed`; retries use the asset
+id plus source integrity as the idempotency key. The runtime only consumes a
+catalog after the required derivative has been verified, so a temporary worker
+failure cannot change playback semantics.
+
 ## 2. Package ownership
 
 | Boundary | Package | Owns | Does not own |
 | --- | --- | --- | --- |
 | Protocol | `@motionvideo/motion-protocol` | Strict V2 authoring JSON, asset metadata, atomic vocabulary, capability ledger | Matrix4 values, GPU objects, decoded media, renderer commands |
-| Compiler | `@motionvideo/motion-compiler` | Validation, references, V2-to-runtime lowering | Pixel rendering, frame playback, GPU resources |
+| Compiler | `@motionvideo/motion-compiler` | Validation, references, pure V2-to-V3 lowering | Pixel rendering, frame playback, GPU resources |
 | Runtime | `@motionvideo/motion-runtime` | Timing, hierarchy, Matrix4/projection evaluation, paint commands, audio mix plans | Protocol parsing, media decoding, WebAudio/GPU state |
+| Media processing | `@motionvideo/motion-storage` plus a deployment adapter | Object-key policy, probe/derivative records, job lifecycle, integrity checks | Authoring semantics, timeline evaluation, playback clocks |
 | Preview | `@motionvideo/preview-renderer` | Canvas/device setup, WebGPU-first rendering, WebGL2 fallback, asset upload/cache, diagnostics | Semantic transform composition, authoring JSON parsing, audio clock |
 | Export | `@motionvideo/remotion-renderer` | Rendering the evaluated paint tree, offline audio mix, Remotion encode integration | A second protocol/compiler/transform model |
 
 High-level constructs such as presets, templates, components, auto-layout,
 camera gestures, and AI intent are deliberately outside Atomic Protocol V2.
-The repository currently provides the V2 compiler (Atomic JSON to Runtime IR),
-not a general high-level-authoring compiler. Any future authoring layer must
-lower to the atomic contract described here.
+The repository provides the canonical V2 compiler plus the V3 runtime
+projection, not a general high-level-authoring compiler. Any future authoring
+layer must lower to the atomic contract described here.
 
 ## 3. Canonical Atomic JSON design
 
@@ -166,7 +312,7 @@ The following is the entire currently defined V2 visual layer vocabulary.
 | `shape` | `payload.shape: "rectangle"` or `"ellipse"`; optional rectangle `cornerRadius`; `style.fill`, opacity, optional stroke/width/opacity | Solid and two-stop linear/radial gradients, fill/stroke opacity, rectangle corner radius, 3D transform, timing, opacity, and ordering |
 | `path` | `payload.contours[]` with line/cubic segments, `fillRule`, optional topology-matched `morph`; fill/stroke style | Nonzero/evenodd fills, multiple contours/holes, fixed-width strokes, miter/bevel/round joins, butt/square/round caps, dash array/offset, and morph interpolation before tessellation |
 | `image` | `payload.assetId`, optional `fit` and normalized `crop` | Image asset lookup, `contain`, `cover`, `fill`, `none`, crop, plus shared transform/timing/opacity/order |
-| `video` | `payload.assetId`, optional `fit`, `trimStart`, `trimEnd`, `loop`, `muted`, `framePolicy` | Deterministic media-time selection; `floor`, `round`, or `ceil` frame policy; trim, loop, mute, fit, and shared fields |
+| `video` | `payload.assetId`, optional `fit`, `trimStart`, `trimEnd`, `audio`, `framePolicy` | Deterministic media-time selection; `floor`, `round`, or `ceil` frame policy; trim, embedded-audio intent, fit, and shared fields |
 | `text` | NFC `text`, `fontAssetId`, font size, line height, letter spacing, alignment, vertical alignment, language, fill | Explicit font asset, single-style LTR text, no-wrap/visible overflow layout, single or newline-separated lines, left/center/right and top/middle/bottom alignment, solid fill, plus shared fields |
 
 `text` intentionally does **not** accept RTL, variable-font axes, rich text,
@@ -224,11 +370,24 @@ bounded trim, independent track/clip gain, pan, fade curves, track mute,
 overlapping clips, and explicit video-audio sources. A video layer does not create sound
 implicitly; an audio clip must reference the video asset.
 
+Protocol V2 has no audio or video loop field. Repetition is represented by
+separate clips or instances with explicit timeline ranges. Persisted documents
+from the short-lived loop experiment are migrated on read by removing the
+retired field; new documents remain strict and cannot encode implicit looping.
+
 ## 4. Compilation and Runtime IR
 
-`compileProtocolV2()` validates the strict schema, certified capability usage,
-asset references, hierarchy, sibling order, masks, and view contract. It then
-emits `RuntimeProjectV2`.
+`compileProtocol()` is the canonical pure compiler entrypoint. It validates the
+strict schema, certified capability usage, asset references, hierarchy, sibling
+order, masks, and view contract, then emits the proven visual `RuntimeProjectV2`
+semantics. `compileProtocolToRuntimeV3()` projects that normalized result into
+`RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
+`audioTimeline` plans. No second compiler or alternate protocol source is
+allowed.
+
+`RuntimeProjectV2` remains a compatibility representation for existing visual
+consumers. New playback code uses the V3 projection and its pure timeline
+resolvers; it does not reparse authoring JSON or rebuild timing at the backend.
 
 At a visual frame, `evaluateRuntimeProjectV2()` resolves active timing,
 hierarchy, inherited opacity, Matrix4 transforms, view projection, compositing
@@ -239,6 +398,11 @@ At an audio sample range, `evaluateRuntimeAudioMixV2()` produces a
 `RuntimeAudioMixPlanV2` containing deterministic bounded source ranges,
 gain envelopes, pan, fades, and mix input order. It does not decode PCM or
 construct WebAudio nodes.
+
+For the next runtime, `resolveVideoAt()` and `resolveAudioWindow()` consume the
+static V3 timelines and return `VideoRenderPlanV3` and `AudioMixPlanV3`. This is
+an evaluation-layer change, not a second authoring protocol: both V2-compatible
+visual semantics and V3 media plans originate from the same compiled document.
 
 Runtime IR may contain calculated Matrix4s and backend-neutral mesh, glyph-run,
 or paint data. It must not contain authoring presets, raw GPU state, textures,
@@ -256,10 +420,10 @@ buffer and its audio track from the same audio mix plan. It does not parse
 Protocol JSON, compose CSS transforms, or create an export-only timing model.
 
 The architectural acceptance rule is therefore simple: preview and export use
-the same Runtime V2 visual and audio meaning. Backend-specific limitations
+the same RuntimeProjectV3 visual and audio meaning. Backend-specific limitations
 must surface as diagnostics rather than silently changing the result.
 
-### 5.1 Media decode and playback pipeline
+### 5.1 Media decode and playback pipeline (V3)
 
 Media decoding is an application-owned orchestration boundary. The browser may
 provide codec implementations through WebCodecs and audio output through Web
@@ -300,18 +464,18 @@ mixer. A video's embedded audio is represented by `payload.audio`; its
 import-time audio derivative is stored on the video asset metadata. The
 original video URI is used only by the visual decoder.
 
-The decode and buffering contracts are deliberately bounded:
+The V3 decode and buffering contracts are deliberately bounded:
 
-- `AudioStreamingSessionV2` requests a rolling sample range and rejects stale
-  completions after seek or document changes.
-- `RollingPcmBufferV2` enforces byte/seconds limits and evicts oldest chunks.
-- `AudioWorkletMixerV2` mixes overlapping inputs on the audio rendering thread;
-  `WebAudioAdapterV2` falls back to `AudioBufferSourceNode` when the capability
-  or host policy is unavailable.
-- `VideoFrameQueueV2` bounds decoded video frames and closes discarded frames.
-  `chooseVideoBackendV2` selects WebCodecs only when both codec and demux
-  capabilities are present; otherwise the muted HTML video provider remains the
-  frame fallback.
+- `DecodeCoordinator` requests only the audio windows required by the current
+  plan and rejects stale completions after a seek or operation-epoch change.
+- `PcmWindow` and `AudioBufferPolicy` enforce bounded sample/byte windows;
+  discarded chunks are released before new work is admitted.
+- `StreamingWorkletBackend` is the streaming audio adapter;
+  `BufferSourceBackend` is the deterministic fallback when a worklet is not
+  available or host policy selects it.
+- `VideoInstancePool` owns reusable video instances and
+  `HtmlVideoBackend` adapts HTML video to the V3 plan. A future WebCodecs
+  backend can replace it without changing timeline resolution or transport.
 
 Playback enters `preparing` before `playing`. It waits for the initial audio
 pre-roll, then starts the audio clock and uses that clock to request video
@@ -338,7 +502,11 @@ frames; it must not let a video element silently take over transport timing.
   generated JSON Schema for validation and tooling.
 - [Protocol source](../../packages/motion-protocol/src/v2): canonical Zod
   schemas, layer definitions, assets, effects, and capability ledgers.
-- [Compiler](../../packages/motion-compiler/src/compile-v2): Atomic JSON to
-  Runtime IR lowering.
+- [Compiler](../../packages/motion-compiler/src/compiler): Atomic JSON to
+  Runtime IR lowering, with the V3 projection in
+  [`runtime-project-v3.ts`](../../packages/motion-compiler/src/runtime-project-v3.ts).
 - [Runtime](../../packages/motion-runtime/src/v2): visual evaluation and audio
-  mix planning.
+  mix planning; V3 timeline types and resolvers live in
+  [`src/v3`](../../packages/motion-runtime/src/v3).
+- [Playback Engine Next](../../packages/playback-engine-next/src): transport,
+  clock, readiness, buffering, resource, backend, and diagnostics orchestration.

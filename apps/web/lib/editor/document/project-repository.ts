@@ -74,6 +74,19 @@ function documentByteSize(document: JsonObject): number {
   return Buffer.byteLength(JSON.stringify(document), "utf8");
 }
 
+function parseFailureDetail(error: unknown): string {
+  if (error && typeof error === "object" && "issues" in error && Array.isArray(error.issues)) {
+    const issue = error.issues[0] as { path?: unknown; message?: unknown } | undefined;
+    if (issue && typeof issue.message === "string") {
+      const path = Array.isArray(issue.path) && issue.path.length > 0
+        ? ` at ${issue.path.map(String).join(".")}`
+        : "";
+      return `${issue.message}${path}`;
+    }
+  }
+  return "schema validation failed";
+}
+
 async function authenticatedClient() {
   const client = await createSupabaseServerClient();
   const { data, error } = await client.auth.getUser();
@@ -140,9 +153,9 @@ async function latestRevision(
 function parseDocument(value: unknown): MotionProtocolV2 {
   try {
     return parseMotionProtocol(value);
-  } catch {
+  } catch (error) {
     throw new ProjectRepositoryError(
-      "Project source is not a valid Motion Protocol V2 document",
+      `Project source is not a valid Motion Protocol V2 document: ${parseFailureDetail(error)}`,
       "INVALID_DOCUMENT",
     );
   }

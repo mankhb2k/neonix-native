@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileProtocolV2ToPaintCommands } from "@motionvideo/motion-compiler";
+import { compileProtocolToPaintCommands } from "@motionvideo/motion-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   PREVIEW_LAB_CASES,
@@ -26,6 +26,9 @@ describe("Protocol V2 preview lab fixtures", () => {
       "composite.blend.stack.screen",
       "composite.blend.stack.add",
       "video.frame-seek",
+      "video.trim",
+      "video.frame-policy",
+      "video.multi-instance",
       "text.single-line.alignment",
       "text.left.alignment",
       "text.right.alignment",
@@ -116,7 +119,7 @@ describe("Protocol V2 preview lab fixtures", () => {
   it("parses and compiles every V2 fixture without V1", () => {
     for (const fixture of PREVIEW_LAB_CASES) {
       const project = MotionProtocolV2Schema.parse(fixture.project);
-      const buffer = compileProtocolV2ToPaintCommands(project, {
+      const buffer = compileProtocolToPaintCommands(project, {
         time: fixture.previewTime ?? 0,
       });
       expect(buffer.commands[0]?.op).toBe("beginFrame");
@@ -188,7 +191,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       { id: "clip-mask-ellipse", parentLayerId: "clip-mask-group", type: "shape" },
       { id: "clip-mask-content", parentLayerId: "clip-mask-group", type: "image" },
     ]);
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
       op: "beginLayer",
       key: "clip-mask-group",
@@ -209,7 +212,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       id: "alpha-mask-ellipse",
       style: { fillOpacity: 0.45 },
     });
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
       op: "beginLayer",
       key: "alpha-mask-group",
@@ -223,7 +226,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       id: "inverse-alpha-mask-group",
       composite: { mask: { mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only" } },
     });
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
       op: "beginLayer",
       key: "inverse-alpha-mask-group",
@@ -238,7 +241,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       composite: { mask: { mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only" } },
     });
     expect(fixture.project.layers[1]).toMatchObject({ style: { fill: "#808080" } });
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
       op: "beginLayer",
       key: "luma-mask-group",
@@ -248,7 +251,7 @@ describe("Protocol V2 preview lab fixtures", () => {
 
   it("keeps nested isolation scopes balanced in runtime paint commands", () => {
     const fixture = previewLabCaseById("group.isolation.nested");
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands.filter((command) => command.op === "beginLayer")).toEqual([
       expect.objectContaining({ key: "nested-outer-group", isolation: true, offscreen: true, compositeAlpha: 0.75 }),
       expect.objectContaining({ key: "nested-inner-group", isolation: true, offscreen: true, compositeAlpha: 0.5 }),
@@ -261,7 +264,7 @@ describe("Protocol V2 preview lab fixtures", () => {
 
   it("embeds a mask group inside an outer isolation scope", () => {
     const fixture = previewLabCaseById("composite.mask.nested");
-    const buffer = compileProtocolV2ToPaintCommands(fixture.project, { time: 0 });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
       op: "beginLayer",
       key: "nested-mask-outer-group",

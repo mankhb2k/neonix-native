@@ -3,7 +3,7 @@ import {
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol/v2";
 import {
-  compileProtocolV2,
+  compileProtocol,
 } from "@motionvideo/motion-compiler";
 import { computeRuntimeHash, shortHash } from "@motionvideo/render-contracts";
 import type { MCPApplyPatchInput, MCPApplyPatchResult, MCPCapabilityCheck, MCPCompileProjectInput, MCPCompileProjectResult, MCPCreateProjectInput, MCPCreateProjectResult, MCPValidateProjectInput, MCPValidateProjectResult } from "./mcp";
@@ -70,7 +70,7 @@ export function applyPatch(input: MCPApplyPatchInput): MCPApplyPatchResult {
 
 export function compileProject(input: MCPCompileProjectInput): MCPCompileProjectResult {
   try {
-    const runtime = compileProtocolV2(input.project);
+    const runtime = compileProtocol(input.project);
     const runtimeProject = runtime as unknown as Record<string, unknown>;
     const runtimeHash = computeRuntimeHash(runtimeProject);
     const diagnostics: Diagnostic[] = [];

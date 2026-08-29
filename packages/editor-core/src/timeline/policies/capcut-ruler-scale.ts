@@ -9,7 +9,7 @@ export const TIMELINE_ZOOM_DEFAULT = 50;
 
 export const TIMELINE_LABEL_WIDTH = 96;
 /** Chỗ trống dẫn vào trước t=0 (playhead / start gutter). */
-export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
+export const TIMELINE_PLAYHEAD_GUTTER_PX = 32;
 /** Chiều cao dòng time ruler sticky. */
 export const TIMELINE_RULER_HEIGHT_PX = 28;
 

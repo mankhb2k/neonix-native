@@ -26,7 +26,7 @@ const packageRules = {
   },
   "motion-runtime": {
     dependencies: new Set(),
-    exports: new Set(["."]),
+    exports: new Set([".", "./v2", "./v3"]),
     forbiddenImports: [
       "@motionvideo/motion-protocol",
       "@motionvideo/motion-compiler",
