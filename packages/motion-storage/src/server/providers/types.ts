@@ -23,6 +23,7 @@ export interface StorageProvider {
   /** When true, bytes are uploaded to this API (`PUT .../bytes`) instead of a remote presign. */
   readonly usesLocalUploadEndpoint: boolean;
   createObjectKey(assetId: string, mimeType: string): string;
+  copyObject(sourceKey: string, targetKey: string): Promise<void>;
   putObject(input: PutObjectInput): Promise<void>;
   getObject(key: string): Promise<Buffer | null>;
   headObject(key: string): Promise<{ sizeBytes: number; contentType?: string } | null>;

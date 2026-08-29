@@ -36,6 +36,15 @@ export class MemoryStorageProvider implements StorageProvider {
     return defaultObjectKey(assetId, mimeType);
   }
 
+  async copyObject(sourceKey: string, targetKey: string): Promise<void> {
+    const source = this.objects.get(sourceKey);
+    if (!source) throw new Error(`Object not found: ${sourceKey}`);
+    this.objects.set(targetKey, {
+      body: Buffer.from(source.body),
+      contentType: source.contentType,
+    });
+  }
+
   async putObject(input: PutObjectInput): Promise<void> {
     this.objects.set(input.key, {
       body: Buffer.from(input.body),

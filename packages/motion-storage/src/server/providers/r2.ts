@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -46,6 +47,16 @@ export class R2StorageProvider implements StorageProvider {
 
   createObjectKey(assetId: string, mimeType: string): string {
     return defaultObjectKey(assetId, mimeType);
+  }
+
+  async copyObject(sourceKey: string, targetKey: string): Promise<void> {
+    await this.client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucket,
+        CopySource: encodeURIComponent(`${this.bucket}/${sourceKey}`),
+        Key: targetKey,
+      }),
+    );
   }
 
   async putObject(input: PutObjectInput): Promise<void> {
