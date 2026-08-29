@@ -1,5 +1,6 @@
 import type { RuntimeMediaResourceV3, RuntimeMediaSourceRefV3, RuntimeProjectV3, VideoRenderPlanV3 } from "@motionvideo/motion-runtime";
 import type { PlaybackOperationTokenV3, VideoPlanSinkV3 } from "../core/types";
+import { requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
 import type { MediaResourceProviderV3, ResolvedMediaResourceV3 } from "../resources/media-resource-provider";
 
 export type VideoElementLikeV3 = { src: string; currentTime: number; readyState: number; muted: boolean; preload: "none" | "metadata" | "auto"; play(): Promise<void> | void; pause(): void; load(): void; addEventListener(type: string, listener: () => void): void; removeEventListener(type: string, listener: () => void): void; requestVideoFrameCallback?(callback: (now: number, metadata: { mediaTime: number }) => void): number; cancelVideoFrameCallback?(handle: number): void };
@@ -15,7 +16,7 @@ export type HTMLVideoBackendV3 = VideoPlanSinkV3 & { seek(instanceId: string, me
 const sameSource = (left: RuntimeMediaSourceRefV3, right: RuntimeMediaSourceRefV3): boolean => left.mediaId === right.mediaId && left.streamId === right.streamId;
 
 /** HTMLVideoElement adapter; ownership is by playback instance, never asset id. */
-export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?: VideoFrameResourceBridgeV3): HTMLVideoBackendV3 {
+export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?: VideoFrameResourceBridgeV3, onPlayFailure?: MediaElementPlayFailureReporterV3): HTMLVideoBackendV3 {
   const pool = new Map<string, Entry>();
   let playing = false;
   const resource = (entry: Entry): VideoFrameResourceV3 | undefined => entry.frame === undefined ? undefined : { kind: "video-frame", instanceId: entry.instanceId, revision: entry.revision, frame: entry.frame };
@@ -77,10 +78,10 @@ export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?
       for (const request of plan.instances) {
         const entry = get(request.instanceId, request.source);
         applySeek(entry, request.mediaTimeUs, token.generation);
-        if (playing) void entry.element.play();
+        if (playing) requestMediaElementPlayV3(entry.element, "video", onPlayFailure);
       }
     },
-    start() { playing = true; for (const entry of pool.values()) void entry.element.play(); },
+    start() { playing = true; for (const entry of pool.values()) requestMediaElementPlayV3(entry.element, "video", onPlayFailure); },
     pause() { playing = false; for (const entry of pool.values()) entry.element.pause(); },
     flush() { for (const entry of pool.values()) entry.element.pause(); },
     seek(instanceId, mediaTimeUs, generation) { const entry = pool.get(instanceId); if (entry) applySeek(entry, mediaTimeUs, generation); },
@@ -99,13 +100,13 @@ export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?
 }
 
 /** Resource resolution is a readiness concern, separate from element ownership. */
-export function createResourceBackedHTMLVideoBackendV3(factory: ResolvedVideoElementFactoryV3, provider: MediaResourceProviderV3, bridge?: VideoFrameResourceBridgeV3): HTMLVideoBackendV3 {
+export function createResourceBackedHTMLVideoBackendV3(factory: ResolvedVideoElementFactoryV3, provider: MediaResourceProviderV3, bridge?: VideoFrameResourceBridgeV3, onPlayFailure?: MediaElementPlayFailureReporterV3): HTMLVideoBackendV3 {
   const resolved = new Map<string, ResolvedMediaResourceV3>();
   const backend = createHTMLVideoBackendV3((instanceId, source) => {
     const resource = resolved.get(`${source.mediaId}:${source.streamId}`);
     if (!resource) throw new Error(`Video resource '${source.mediaId}:${source.streamId}' was not prepared`);
     return factory(instanceId, source, resource);
-  }, bridge);
+  }, bridge, onPlayFailure);
   return {
     ...backend,
     async prepare(project: RuntimeProjectV3) {

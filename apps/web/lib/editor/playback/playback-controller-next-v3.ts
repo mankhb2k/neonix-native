@@ -1,7 +1,7 @@
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
-import { createAnimationFrameSchedulerV3, createHTMLMediaAudioBackendV3, createPlaybackEngineNext, type PlaybackEngineNext, type PlaybackEngineNextSnapshot } from "@motionvideo/playback-engine-next";
+import { createAnimationFrameSchedulerV3, createHTMLMediaAudioBackendV3, createPlaybackEngineNext, requestMediaElementPlayV3, type PlaybackEngineNext, type PlaybackEngineNextSnapshot } from "@motionvideo/playback-engine-next";
 
 export type PlaybackOperationTokenV3 = { documentGeneration: number; transportGeneration: number; seekRequestId: number; generation: number };
 export type PlaybackFrameEventV3 = PlaybackOperationTokenV3 & { time: number; frame: RuntimeFrameV3; playing: boolean };
@@ -57,7 +57,7 @@ export function createPlaybackControllerNextV3(): PlaybackControllerNextV3 {
           const target = request.mediaTimeUs / 1_000_000;
           if (Math.abs(element.currentTime - target) > 0.05) element.currentTime = target;
           element.muted = true;
-          if (playing) void element.play(); else element.pause();
+          if (playing) requestMediaElementPlayV3(element, "video"); else element.pause();
         }
         for (const [mediaId, element] of videos) if (!active.has(mediaId)) element.pause();
         emit(plan.timelineTimeUs / 1_000_000, playing);

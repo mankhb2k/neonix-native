@@ -12,4 +12,19 @@ describe("HTML media audio fallback V3", () => {
     backend.publish({ ...plan, inputs: [] }, { generation: 0, operationId: 3, kind: "tick" });
     expect(created[0]?.pauses).toBe(1);
   });
+  it("contains rejected native play promises", async () => {
+    const failures: unknown[] = [];
+    const backend = createHTMLMediaAudioBackendV3({
+      resolveSource: () => true,
+      createElement: () => ({ currentTime: 0, volume: 0, muted: false, play: () => Promise.reject(new DOMException("blocked", "NotAllowedError")), pause() {} }),
+      onPlayFailure: (failure) => failures.push(failure),
+    });
+    const plan = { sampleRate: 48000 as const, startSample: 0, endSample: 2048, inputs: [{ trackId: "t", clipId: "a", source: { mediaId: "m", streamId: "a" }, sourceSampleRate: 48000, channels: 2, gainLinear: 1, pan: 0, muted: false, compositionStartSample: 0, compositionEndSample: 96000, segments: [{ compositionStartSample: 0, compositionEndSample: 96000, clipTimelineStartSample: 0, clipTimelineDurationSamples: 96000, sourceStartSample: 0, sourceEndSample: 96000, gainEnvelope: { baseGain: 1 } }] }] };
+    backend.publish(plan, { generation: 0, operationId: 1, kind: "tick" });
+    backend.start?.({ generation: 0, operationId: 2, kind: "play" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({ backend: "audio" });
+  });
 });

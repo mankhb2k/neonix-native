@@ -133,7 +133,76 @@ changing one does not change compiler or timeline semantics. The preview
 renderer consumes the resulting video resources and paint commands, while an
 offline export backend consumes the same V3 plans for parity.
 
-### 1.2 Media ingest, probing, and derivative processing
+### 1.2 Playback ownership and adapter boundary
+
+The following is the MVP ownership model. It is deliberately explicit: a
+browser media element is a decoder/presenter adapter, never the authority for
+composition time.
+
+```text
+AUTHORING
+MotionProtocolV2
+        |
+        v
+PURE COMPILER
+        |
+        v
+RuntimeProjectV3
+├── visual
+├── mediaCatalog
+├── videoTimeline
+└── audioTimeline
+        |
+        v
+PlaybackEngineNext                         Neonix owns
+├── TransportStateMachine
+├── timeline position
+├── play / pause / seek / rate
+├── OperationEpoch
+├── Readiness / Buffer policy
+├── resolveVideoAt(time)
+└── resolveAudioWindow(samples)
+        |
+        ├───────────────────┐
+        v                   v
+Video Engine            Audio Engine
+        |                   |
+        v                   v
+VideoBackend            AudioBackend
+HTMLVideo MVP           HTMLMedia fallback MVP
+WebCodecs later         StreamingWorklet target
+        |                   |
+        └──────── Chrome ───┘
+```
+
+**Neonix owns** the MotionProtocolV2 contract and validation, pure compilation
+to RuntimeProjectV3, composition time and transport commands, operation epochs,
+active video/audio selection, deterministic trim/gain/pan/fade/mute/overlap
+resolution, video-muted-by-default policy, asset identity, R2 resource keys,
+the media catalog, and derivative policy.
+
+**Chrome owns** HTTP range requests, cache and network buffering, demux/decode
+for supported H.264/AAC streams, HTMLVideoElement/HTMLAudioElement instances,
+GPU presentation, audio-device output, user-gesture/autoplay policy, and the
+promise lifecycle returned by `element.play()`.
+
+The adapter is responsible for translating an engine command to that browser
+surface and for containing browser-specific outcomes. In particular, an
+`AbortError` caused when a newer pause/seek supersedes an outstanding `play()`
+is an expected adapter completion, not a transport-state transition. A rejected
+play is reported as an adapter diagnostic; it never lets a media element become
+the timeline clock.
+
+Today the MVP exposes engine-owned `play`, `pause`, and `seek`, driven by the
+monotonic clock while HTML media adapters execute those commands. `rate` is an
+engine-owned future transport command; it is intentionally not exposed by the
+current public controller, and an adapter must not change
+`HTMLMediaElement.playbackRate` on its own. At the target architecture,
+StreamingWorklet's rendered sample counter becomes the engine's audio clock and
+video adapters only seek or present the frame requested for that authoritative
+time.
+
+### 1.3 Media ingest, probing, and derivative processing
 
 Media processing is deliberately a deployment adapter, not part of the
 protocol, compiler, or playback engine. The authoring contract contains only
