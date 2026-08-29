@@ -1,4 +1,4 @@
-import type { RuntimeAudioMixPlanV3, RuntimeMediaSourceRefV3 } from "./types";
+import type { RuntimeAudioMixPlanV3, RuntimeMediaSourceRefV3 } from "../project/types";
 import {
   clipProgressAtCompositionSampleV3,
   envelopeGainAtClipProgressV3,

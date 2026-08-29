@@ -1,4 +1,4 @@
-import { COMPOSITION_SAMPLE_RATE_V3 } from "./audio-mixing";
+import { COMPOSITION_SAMPLE_RATE_V3 } from "../audio/audio-mixing";
 import type {
   RuntimeAudioClipV3,
   RuntimeMediaAssetV3,

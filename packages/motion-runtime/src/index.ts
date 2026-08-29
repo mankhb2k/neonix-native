@@ -1,18 +1,20 @@
 /** Canonical backend-neutral Runtime V3 public API. */
-export * from "./matrix4";
+
+export * from "./geometry/matrix4";
 export {
   flattenPathContour,
   interpolatePathContours,
   tessellateClosedPath,
   tessellatePathStroke,
   type PathStrokeOptions,
-} from "./path-tessellation";
+} from "./geometry/path-tessellation";
+
 export {
   frameIndexAtTime,
   frameTimestamp,
   quantizeTimeToFrame,
   type FrameTimestamp,
-} from "./clock";
+} from "./foundation/clock";
 export {
   FRAME_EPSILON,
   GEOMETRY_EPSILON,
@@ -26,12 +28,10 @@ export {
   roundTimeToFrame,
   samplesToSeconds,
   secondsToSamples,
-} from "./determinism";
-export * from "./media-timing";
-export * from "./runtime-hash";
-// Keep the public runtime surface explicit. The old Canvas2D/affine adapters
-// remain editor-local implementation details and must not become
-// part of the backend-neutral runtime contract again.
+} from "./foundation/determinism";
+export * from "./media/media-timing";
+export * from "./foundation/runtime-hash";
+
 export * from "./paint/paint-command";
 export * from "./paint/paint-buffer";
 export * from "./paint/paint-types";
@@ -41,11 +41,40 @@ export * from "./paint/decode-paint-command-buffer";
 export * from "./paint/paint-buffer-contract";
 export * from "./paint/paint-resource-descriptor";
 export * from "./paint/paint-item-fingerprint";
-/** Runtime V3 is the source of truth for compiler/playback consumers. */
-export * from "./v3";
-// Backend-neutral visual effect IR remains public; Runtime V2 project/audio
-// contracts are intentionally not exported from the canonical root.
-export { buildRuntimeEffectProgram } from "./v3/visual-internals/effects";
+export * from "./paint/evaluated-geometry";
+export * from "./paint/replay-2d";
+
+export * from "./project/types";
+export * from "./project/visual";
+export * from "./project/resolve";
+export * from "./project/validate";
+export * from "./project/identity";
+export * from "./audio/offline-audio";
+export * from "./audio/audio-mixing";
+
+export { evaluateVisualRuntimeProject } from "./visual/evaluate";
+export {
+  assertVisualRuntimeFrame,
+  assertVisualRuntimeProject,
+  isVisualRuntimeProject,
+  normalizeVisualRuntimeProject,
+  validateVisualRuntimeProject,
+} from "./visual/validate";
+export { prepareVisualRuntimeProjectText } from "./visual/text-layout";
+export type {
+  VisualRuntimeComposition,
+  VisualRuntimeFrame,
+  VisualRuntimeMask,
+  VisualRuntimeNode,
+  VisualRuntimeProject,
+  VisualRuntimeTextLayout,
+  VisualRuntimeView,
+} from "./visual/types";
+export type {
+  VisualRuntimeTextFontResolver,
+  VisualRuntimeTextShaperLoader,
+} from "./visual/text-layout";
+export { buildRuntimeEffectProgram } from "./visual/effects";
 export {
   assertRuntimeEffectProgram,
   validateRuntimeEffectProgram,
@@ -62,4 +91,4 @@ export {
   type RuntimeNoiseEffectOp,
   type RuntimeTintEffectOp,
   type SurfaceRef,
-} from "./v3/visual-internals/effect-program";
+} from "./visual/effect-program";

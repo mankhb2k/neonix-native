@@ -3,12 +3,12 @@ import type {
   VisualRuntimeFrame,
   VisualRuntimeNode,
   VisualRuntimeView,
-} from "./visual-internals/types";
+} from "../visual/types";
 
 /**
  * Visual runtime primitives are intentionally unchanged by the V3 media
  * boundary. These aliases make that reuse explicit at the canonical V3 API
- * instead of forcing V3 consumers to import the visual-internals namespace.
+ * instead of forcing V3 consumers to import visual implementation details.
  */
 export type RuntimeCompositionV3 = VisualRuntimeComposition;
 export type RuntimeViewV3 = VisualRuntimeView;

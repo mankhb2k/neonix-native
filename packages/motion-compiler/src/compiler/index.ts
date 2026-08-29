@@ -10,17 +10,15 @@ import {
   type Matrix4,
   type RuntimeVisualProjectV3,
   type RuntimeEffect,
+  evaluateVisualRuntimeProject,
+  type VisualRuntimeNode,
+  type VisualRuntimeProject,
+  type VisualRuntimeMask,
   identityMatrix4,
   interpolatePathContours,
   tessellateClosedPath,
       tessellatePathStroke,
 } from "@motionvideo/motion-runtime";
-import {
-  evaluateVisualRuntimeProject,
-  type VisualRuntimeNode,
-  type VisualRuntimeProject,
-  type VisualRuntimeMask,
-} from "@motionvideo/motion-runtime/internal/visual";
 import {
   parseMotionProtocol,
   type MotionProtocolV2,

@@ -1,4 +1,4 @@
-import type { RuntimeAudioGainEnvelopeV3, RuntimeAudioMixSegmentV3 } from "./types";
+import type { RuntimeAudioGainEnvelopeV3, RuntimeAudioMixSegmentV3 } from "../project/types";
 
 export const COMPOSITION_SAMPLE_RATE_V3 = 48_000 as const;
 

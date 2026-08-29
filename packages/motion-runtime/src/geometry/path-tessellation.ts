@@ -6,7 +6,7 @@ import type {
   PathStrokeDash,
   PathStrokeJoin,
   PathStrokeMesh,
-} from "./paint/paint-types";
+} from "../paint/paint-types";
 
 const EPSILON = 1e-7;
 const CUBIC_FLATNESS = 0.25;

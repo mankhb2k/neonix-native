@@ -1,11 +1,11 @@
-﻿import { frameToTime } from "../../determinism";
+import { frameToTime } from "../foundation/determinism";
 import {
   matrix4ToArray,
   multiplyMatrix4,
   projectPoint3D,
   type Point3D,
-} from "../../matrix4";
-import type { PaintCommand } from "../../paint";
+} from "../geometry/matrix4";
+import type { PaintCommand } from "../paint/paint-command";
 import { normalizeVisualRuntimeProject, validateVisualRuntimeProject } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
 import type { VisualRuntimeFrame, VisualRuntimeNode, VisualRuntimeProject, VisualRuntimeVideo } from "./types";

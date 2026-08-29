@@ -1,4 +1,4 @@
-import { COMPOSITION_SAMPLE_RATE_V3 } from "./audio-mixing";
+import { COMPOSITION_SAMPLE_RATE_V3 } from "../audio/audio-mixing";
 import type { AudioSampleRangeV3, RuntimeAudioClipV3, RuntimeAudioGainEnvelopeV3, RuntimeAudioMixPlanV3, RuntimeAudioMixSegmentV3, RuntimeMediaAudioStreamV3, RuntimeProjectV3, VideoRenderPlanV3 } from "./types";
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const stream = (r: RuntimeProjectV3, s: { mediaId: string; streamId: string }) => r.mediaCatalog.assets.find(a => a.mediaId === s.mediaId)?.audio?.find(x => x.streamId === s.streamId);

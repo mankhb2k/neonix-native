@@ -12,7 +12,7 @@
  * localTransformMatrix3D.
  */
 
-import { GEOMETRY_EPSILON } from "./determinism";
+import { GEOMETRY_EPSILON } from "../foundation/determinism";
 
 // ── Types ─────────────────────────────────────────────────────────────
 

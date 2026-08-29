@@ -1,5 +1,5 @@
-import type { Matrix4 } from "../../matrix4";
-import type { PaintCommandBuffer } from "../../paint";
+import type { Matrix4 } from "../geometry/matrix4";
+import type { PaintCommandBuffer } from "../paint/paint-buffer";
 import type {
   PaintFill,
   PaintTextGlyph,
@@ -13,7 +13,7 @@ import type {
   RenderMediaFit,
   RenderNormalizedRect,
   RuntimeEffect,
-} from "../../paint/paint-types";
+} from "../paint/paint-types";
 
 export type VisualRuntimeComposition = {
   width: number;

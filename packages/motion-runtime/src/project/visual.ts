@@ -1,8 +1,8 @@
-import { evaluateVisualRuntimeProject } from "./visual-internals/evaluate";
-import { normalizeVisualRuntimeProject } from "./visual-internals/validate";
-import type { VisualRuntimeProject } from "./visual-internals/types";
-import { assertVisualRuntimeFrame } from "./visual-internals/validate";
-import { prepareVisualRuntimeProjectText, type VisualRuntimeTextFontResolver, type VisualRuntimeTextShaperLoader } from "./visual-internals/text-layout";
+import { evaluateVisualRuntimeProject } from "../visual/evaluate";
+import { normalizeVisualRuntimeProject } from "../visual/validate";
+import type { VisualRuntimeProject } from "../visual/types";
+import { assertVisualRuntimeFrame } from "../visual/validate";
+import { prepareVisualRuntimeProjectText, type VisualRuntimeTextFontResolver, type VisualRuntimeTextShaperLoader } from "../visual/text-layout";
 import { validateRuntimeVisualProjectV3 } from "./validate";
 import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
 
@@ -31,7 +31,7 @@ export function normalizeRuntimeProjectV3(project: RuntimeProjectV3): RuntimePro
  * Evaluate the canonical V3 visual projection.
  *
  * V3 deliberately keeps the certified visual node semantics from V2. The
- * certified visual-internals evaluator is used only behind this boundary; the
+ * certified visual evaluator is used only behind this boundary; the
  * public input is the V3 visual projection and the returned frame is tagged
  * with runtime version 3. Media/audio playback is resolved separately by the
  * V3 timeline functions.

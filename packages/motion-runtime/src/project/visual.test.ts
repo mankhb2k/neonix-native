@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { identityMatrix4 } from "../matrix4";
+import { identityMatrix4 } from "../geometry/matrix4";
 import { evaluateRuntimeProjectV3 } from "./visual";
 import type { RuntimeProjectV3 } from "./types";
 

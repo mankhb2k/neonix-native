@@ -3,7 +3,7 @@
  * Ephemeral per-frame structure — not a second JSON schema.
  */
 
-import type { RuntimeEffectProgram } from "../v3/visual-internals/effect-program";
+import type { RuntimeEffectProgram } from "../visual/effect-program";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
 

@@ -8,7 +8,7 @@
  * §5.3–5.4 in core-engine-roadmap.md
  */
 
-import type { Matrix2D } from "../matrix";
+import type { Matrix2D } from "../geometry/matrix2d";
 
 // ── Bounds ────────────────────────────────────────────────────────────
 

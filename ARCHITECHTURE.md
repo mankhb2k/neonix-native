@@ -231,6 +231,9 @@ Compiler là điểm chuyển đổi duy nhất từ authoring model sang runtim
 
 Compiler bàn giao `RuntimeProjectV3` cho Runtime.
 
+Chi tiết trách nhiệm, luồng compile và capability được mô tả trong
+[`motion-compiler README`](packages/motion-compiler/README.md).
+
 ### 4. Runtime
 
 #### Vai trò
@@ -240,30 +243,46 @@ Runtime là nguồn semantics chung cho Preview và Export.
 #### Luồng dữ liệu
 
 ```text
-                 RuntimeProjectV3
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │        RUNTIME       │
-              │                      │
-              │  Evaluate timeline   │
-              │  Resolve frame state │
-              │  Create paint output │
-              └──────────┬───────────┘
-                         │
-                         ▼
-                  Paint commands
+RuntimeProjectV3
+        │
+        │ evaluate(frame, time)
+        ▼
+┌──────────────────────────┐
+│          RUNTIME         │
+│                          │
+│  Timeline evaluation     │
+│  Hierarchy resolution    │
+│  Matrix calculation      │
+│  Opacity/compositing     │
+│  Media-time resolution   │
+│  Paint command creation  │
+│  Audio mix plan creation │
+└────────────┬─────────────┘
+             │
+             ├── PaintCommandBuffer
+             └── AudioMixPlanV3
 ```
 
 #### Trách nhiệm
 
-1. Evaluate timeline theo frame hoặc time.
-2. Tạo frame state từ `RuntimeProjectV3`.
-3. Tạo paint commands cho backend Render.
+Runtime thực hiện sáu công việc cốt lõi cho visual frame:
+
+1. Evaluate timeline theo `frame` hoặc `time`.
+2. Resolve hierarchy và thứ tự layer.
+3. Tính matrix transform từ local space đến composition space.
+4. Resolve opacity và compositing/isolation của layer hoặc group.
+5. Resolve media time cho video và media đang hiển thị tại thời điểm đó.
+6. Tạo `PaintCommandBuffer` backend-neutral cho Preview và Export.
+
+Song song với visual evaluation, Runtime tạo `AudioMixPlanV3` cho khoảng
+sample được yêu cầu để audio pipeline có thể mix đúng timeline.
 
 #### Điểm bàn giao
 
-Runtime bàn giao paint commands cho Render.
+Runtime bàn giao `PaintCommandBuffer` và `AudioMixPlanV3` cho Render.
+
+Chi tiết trách nhiệm, boundary và output contract được mô tả trong
+[`motion-runtime README`](packages/motion-runtime/README.md).
 
 ### 5. Render
 
@@ -329,17 +348,17 @@ RuntimeProjectV3
 
 ## Ranh giới trách nhiệm
 
-| Thành phần | Trách nhiệm chính |
-| --- | --- |
-| Editor / MCP / AI Agent | Tạo và sửa authoring intent |
-| MotionProtocolV2 | Project JSON contract |
-| Compiler | Hạ V2 thành RuntimeProjectV3 |
-| Motion Runtime | Evaluate timeline và tạo paint commands |
-| Preview Renderer | Render realtime trong browser |
-| Export Renderer | Render offline native trên VPS |
-| FFmpeg | Encode frame/audio thành MP4 |
-| Web API | Auth, ownership, job state, artifact metadata |
-| Storage | Lưu asset và export artifact |
+| Thành phần              | Trách nhiệm chính                             |
+| ----------------------- | --------------------------------------------- |
+| Editor / MCP / AI Agent | Tạo và sửa authoring intent                   |
+| MotionProtocolV2        | Project JSON contract                         |
+| Compiler                | Hạ V2 thành RuntimeProjectV3                  |
+| Motion Runtime          | Evaluate timeline và tạo paint commands       |
+| Preview Renderer        | Render realtime trong browser                 |
+| Export Renderer         | Render offline native trên VPS                |
+| FFmpeg                  | Encode frame/audio thành MP4                  |
+| Web API                 | Auth, ownership, job state, artifact metadata |
+| Storage                 | Lưu asset và export artifact                  |
 
 ## Tiêu chuẩn quyết định
 
@@ -356,3 +375,12 @@ Protocol
 
 Nếu capability chưa được hỗ trợ ở native export, export phải báo lỗi rõ ràng;
 không được âm thầm tạo một video sai semantics.
+
+## Kết luận ngắn gọn
+
+- Editor/MCP/AI Agent trả lời: **người dùng muốn tạo hoặc thay đổi project như thế nào?**
+- Protocol trả lời: **ý định đó được biểu diễn thành project canonical nào?**
+- Compiler trả lời: **project này có thể chạy như thế nào?**
+- Runtime trả lời: **ở frame/time này, project đang ở trạng thái nào?**
+- Renderer trả lời: **dùng công nghệ nào để vẽ trạng thái đó?**
+- FFmpeg trả lời: **đóng các frame/audio thành MP4 như thế nào?**

@@ -1,4 +1,4 @@
-import type { RuntimeEffect } from "../../paint/paint-types";
+import type { RuntimeEffect } from "../paint/paint-types";
 import {
   assertRuntimeEffectProgram,
   RUNTIME_EFFECT_SOURCE_SURFACE,

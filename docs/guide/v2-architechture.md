@@ -518,7 +518,7 @@ into `RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
 `audioTimeline` plans. No second compiler or alternate protocol source is
 allowed.
 
-The certified visual lowering retained under `motion-runtime/src/v3/visual-internals` is an
+The certified visual lowering retained under `motion-runtime/src/visual` is an
 implementation namespace for the certified paint semantics; it is not a
 second runtime contract. New playback code uses the V3 projection and its pure
 timeline resolvers. It does not reparse authoring JSON or rebuild timing at the
