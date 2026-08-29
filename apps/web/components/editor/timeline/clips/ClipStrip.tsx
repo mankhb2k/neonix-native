@@ -294,7 +294,9 @@ export function ClipStrip({
         "absolute top-0 bottom-0 my-auto h-[90%] select-none",
         interactive ? "cursor-pointer" : null,
         selected && "z-10",
-        clip.muted && "opacity-35",
+        // `muted` on a scene means embedded audio only. Keep the visual
+        // preview/title fully opaque; only standalone audio tiles are dimmed.
+        clip.kind === "audio" && clip.muted && "opacity-35",
         isMovingSource && "invisible pointer-events-none",
         embeddedMedia
           ? cn(

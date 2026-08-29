@@ -1,4 +1,4 @@
-import { validatePaintCommandBuffer } from "../../paint/validate-paint-command-buffer";
+﻿import { validatePaintCommandBuffer } from "../../paint/validate-paint-command-buffer";
 import type {
   VisualRuntimeFrame,
   VisualRuntimeProject,
@@ -24,8 +24,8 @@ function normalizeMatrix4(value: unknown): unknown {
   return values ? new Float64Array(values) : value;
 }
 
-/** Rehydrate matrices after JSON transport (for example Remotion inputProps). */
-function normalizeVisualRuntimeProject(input: VisualRuntimeProject): VisualRuntimeProject {
+/** Rehydrate matrices after JSON transport (for example Native VPS export inputProps). */
+export function normalizeVisualRuntimeProject(input: VisualRuntimeProject): VisualRuntimeProject {
   const view = input.view;
   const nodes = input.nodes;
   const normalizedView = {
@@ -396,3 +396,4 @@ export function validateVisualRuntimeProject(
   }
   return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics };
 }
+

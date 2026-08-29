@@ -8,7 +8,7 @@ import {
   V2LayerSchema,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol/v2";
-import { computeProjectHash, computeProjectHashShort } from "@motionvideo/render-contracts";
+import { computeProjectHash, computeProjectHashShort } from "@motionvideo/export-renderer/contracts";
 import { MotionProtocolV2PatchSchema } from "./patch";
 
 export const MOTION_MCP_PROTOCOL_VERSION = 2 as const;

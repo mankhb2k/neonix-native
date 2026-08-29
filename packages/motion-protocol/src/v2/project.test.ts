@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { isV2AtomCertified } from "./capabilities";
 import { V2EmbeddedVideoAudioSchema } from "./audio";
 import { MotionProtocolV2Schema } from "./project";
 
@@ -80,7 +79,9 @@ describe("Motion Protocol V2 schema", () => {
             timing: { start: 1, duration: 2 },
             trim: { start: 0.5, end: 2.5 },
             playbackRate: 1,
+            enabled: true,
             gainDb: -3,
+            pan: 0,
             fadeIn: { duration: 0.25, curve: "linear" as const },
             fadeOut: { duration: 0.25, curve: "equal-power" as const },
           }],
@@ -192,6 +193,7 @@ describe("Motion Protocol V2 schema", () => {
     expect(V2EmbeddedVideoAudioSchema.parse({ enabled: true })).toEqual({
       enabled: true,
       gainDb: 0,
+      pan: 0,
     });
   });
 
@@ -223,6 +225,7 @@ describe("Motion Protocol V2 schema", () => {
           audio: {
             enabled: true,
             gainDb: -3,
+            pan: 0,
             fadeIn: { duration: 0.25, curve: "linear" as const },
           },
         },
@@ -316,7 +319,7 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
-  it("accepts ellipse as the second certified shape primitive", () => {
+  it("accepts ellipse as the second supported shape primitive", () => {
     const ellipse = {
       ...RECTANGLE_PROJECT,
       id: "ellipse-project-v2",
@@ -566,7 +569,7 @@ describe("Motion Protocol V2 schema", () => {
           fit: "cover" as const,
           trimStart: 1,
           trimEnd: 4,
-          audio: { enabled: false, gainDb: 0 },
+          audio: { enabled: false, gainDb: 0, pan: 0 },
           framePolicy: "floor" as const,
         },
       }],
@@ -908,21 +911,4 @@ describe("Motion Protocol V2 schema", () => {
     ).toThrow();
   });
 
-  it("certifies rectangle, ellipse, and the completed static Path surface", () => {
-    expect(isV2AtomCertified("shape.rectangle.fill")).toBe(true);
-    expect(isV2AtomCertified("shape.ellipse.fill")).toBe(true);
-    expect(isV2AtomCertified("path.fill")).toBe(true);
-    expect(isV2AtomCertified("path.strokeDash")).toBe(true);
-    expect(isV2AtomCertified("path.morph")).toBe(true);
-    expect(isV2AtomCertified("effect.outer-glow")).toBe(true);
-    expect(isV2AtomCertified("effect.inner-glow")).toBe(true);
-    expect(isV2AtomCertified("group.transform")).toBe(true);
-    expect(isV2AtomCertified("group.timing")).toBe(true);
-    expect(isV2AtomCertified("group.opacity")).toBe(true);
-    expect(isV2AtomCertified("image.asset")).toBe(true);
-    expect(isV2AtomCertified("image.fit")).toBe(true);
-    expect(isV2AtomCertified("image.crop")).toBe(true);
-    expect(isV2AtomCertified("effect.color-adjust")).toBe(true);
-    expect(isV2AtomCertified("shape.path.fill")).toBe(false);
-  });
 });

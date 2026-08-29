@@ -1,6 +1,6 @@
 import type { RuntimeMediaSourceRefV3, RuntimeProjectV3, VideoRenderPlanV3 } from "@motionvideo/motion-runtime";
 import type { PlaybackOperationTokenV3, VideoPlanSinkV3 } from "../core/types";
-import { requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
+import { awaitMediaElementPlayV3, requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
 import type { MediaResourceProviderV3, ResolvedMediaResourceV3 } from "../resources/media-resource-provider";
 
 export type VideoElementLikeV3 = { src: string; currentTime: number; readyState: number; muted: boolean; preload: "none" | "metadata" | "auto"; play(): Promise<void> | void; pause(): void; load(): void; addEventListener(type: string, listener: () => void): void; removeEventListener(type: string, listener: () => void): void; requestVideoFrameCallback?(callback: (now: number, metadata: { mediaTime: number }) => void): number; cancelVideoFrameCallback?(handle: number): void };
@@ -80,7 +80,7 @@ export function createHTMLVideoBackendV3(factory: VideoElementFactoryV3, bridge?
         if (playing) requestMediaElementPlayV3(entry.element, "video", onPlayFailure);
       }
     },
-    start() { playing = true; for (const entry of pool.values()) requestMediaElementPlayV3(entry.element, "video", onPlayFailure); },
+    async start() { playing = true; await Promise.all([...pool.values()].map((entry) => awaitMediaElementPlayV3(entry.element, "video", onPlayFailure))); },
     pause() { playing = false; for (const entry of pool.values()) entry.element.pause(); },
     flush() { for (const entry of pool.values()) entry.element.pause(); },
     seek(instanceId, mediaTimeUs, generation) { const entry = pool.get(instanceId); if (entry) applySeek(entry, mediaTimeUs, generation); },

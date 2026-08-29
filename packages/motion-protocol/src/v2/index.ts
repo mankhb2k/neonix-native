@@ -28,13 +28,6 @@ export {
   type V2AudioFadeCurve,
   type V2AudioTrack,
 } from "./audio";
-export {
-  V2_AUDIO_CAPABILITY_LEDGER,
-  isV2AudioCapabilityCertified,
-  isV2AudioCapabilityRuntimeReady,
-  type V2AudioCapability,
-  type V2AudioCapabilityStatus,
-} from "./audio-capabilities";
 export { V2_AUDIO_FIXTURES, type V2AudioFixture } from "./audio-fixtures";
 export {
   V2ColorSchema,
@@ -62,11 +55,6 @@ export {
   type V2NoiseEffect,
   type V2Effect,
 } from "./effects";
-export {
-  isV2AtomCertified,
-  V2_CERTIFIED_ATOMS,
-  type V2CertifiedAtom,
-} from "./capabilities";
 export {
   V2FrameSchema,
   V2LayerBaseSchema,

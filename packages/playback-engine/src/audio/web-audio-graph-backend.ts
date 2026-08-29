@@ -6,7 +6,7 @@ import {
   type RuntimeMediaSourceRefV3,
 } from "@motionvideo/motion-runtime";
 import type { AudioBackendV3 } from "./audio-backend";
-import { requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
+import { awaitMediaElementPlayV3, requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
 
 export type WebAudioParamV3 = {
   value: number;
@@ -43,6 +43,8 @@ type Entry = {
   source: WebAudioMediaElementSourceNodeV3;
   gain: WebAudioGainNodeV3;
   panner: WebAudioStereoPannerNodeV3;
+  scheduledThroughSample?: number;
+  automationKey?: string;
 };
 
 export type WebAudioGraphBackendV3 = AudioBackendV3 & {
@@ -116,6 +118,11 @@ export function createWebAudioGraphBackendV3(options: WebAudioGraphBackendOption
     }
   };
   const play = (entry: Entry): void => {
+    // publish() runs on every engine tick; avoid enqueueing a play promise
+    // while this media element is already running.
+    // Some host test doubles omit `paused`; only skip when the browser
+    // explicitly reports that playback is already active.
+    if (entry.element.paused === false) return;
     const resume = context?.resume;
     if (!resume) {
       requestMediaElementPlayV3(entry.element, "audio", options.onPlayFailure);
@@ -129,9 +136,11 @@ export function createWebAudioGraphBackendV3(options: WebAudioGraphBackendOption
   const applyAutomation = (entry: Entry, plan: RuntimeAudioMixPlanV3, input: RuntimeAudioMixPlanV3["inputs"][number], segment: RuntimeAudioMixPlanV3["inputs"][number]["segments"][number]): void => {
     const activeGraph = graph();
     if (!activeGraph) return;
-    const at = activeGraph.context.currentTime;
+    const automationKey = `${input.clipId}:${segment.compositionStartSample}:${segment.compositionEndSample}:${input.gainLinear}:${input.pan}:${input.muted}`;
     const endSample = Math.min(plan.endSample, segment.compositionEndSample);
-    const gainAt = (sample: number): number => input.gainLinear * envelopeGainAtClipProgressV3(segment.gainEnvelope, clipProgressAtCompositionSampleV3(segment, sample));
+    if (entry.automationKey === automationKey && entry.scheduledThroughSample !== undefined && plan.startSample < entry.scheduledThroughSample) return;
+    const at = activeGraph.context.currentTime;
+    const gainAt = (sample: number): number => input.muted ? 0 : input.gainLinear * envelopeGainAtClipProgressV3(segment.gainEnvelope, clipProgressAtCompositionSampleV3(segment, sample));
     entry.panner.pan.cancelScheduledValues(at);
     entry.panner.pan.setValueAtTime(input.pan, at);
     entry.gain.gain.cancelScheduledValues(at);
@@ -139,13 +148,15 @@ export function createWebAudioGraphBackendV3(options: WebAudioGraphBackendOption
     if (endSample > plan.startSample) {
       entry.gain.gain.linearRampToValueAtTime(gainAt(endSample - 1), at + (endSample - plan.startSample) / plan.sampleRate);
     }
+    entry.automationKey = automationKey;
+    entry.scheduledThroughSample = endSample;
   };
   return {
     get context() { return context; },
     publish(plan, token) {
       const active = new Set<string>();
       for (const input of plan.inputs) {
-        if (input.muted || !options.resolveSource(input.source)) continue;
+        if (!options.resolveSource(input.source)) continue;
         const segment = input.segments.find((candidate) => candidate.compositionStartSample <= plan.startSample && plan.startSample < candidate.compositionEndSample);
         if (!segment) continue;
         const entry = entryFor(input.clipId, input.source);
@@ -162,9 +173,14 @@ export function createWebAudioGraphBackendV3(options: WebAudioGraphBackendOption
       }
       for (const [clipId, entry] of entries) if (!active.has(clipId)) release(clipId, entry);
     },
-    start() { playing = true; for (const entry of entries.values()) play(entry); },
+    async start() {
+      playing = true;
+      const activeContext = graph()?.context;
+      if (activeContext?.resume) await activeContext.resume();
+      await Promise.all([...entries.values()].map((entry) => awaitMediaElementPlayV3(entry.element, "audio", options.onPlayFailure)));
+    },
     pause() { playing = false; for (const entry of entries.values()) entry.element.pause(); },
-    flush() { for (const entry of entries.values()) entry.element.pause(); },
+    flush() { for (const entry of entries.values()) { entry.element.pause(); entry.scheduledThroughSample = undefined; entry.automationKey = undefined; } },
     dispose() {
       playing = false;
       for (const [clipId, entry] of entries) release(clipId, entry);

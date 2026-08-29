@@ -37,6 +37,7 @@ function fixture(): MotionProtocolV2 {
         mimeType: "video/mp4",
         duration: 20,
         fps: 30,
+        audio: { uri: "/video-audio.m4a", mimeType: "audio/mp4", duration: 20, sampleRate: 48000, channels: 2 },
       },
     ],
     layers: [
@@ -56,6 +57,7 @@ function fixture(): MotionProtocolV2 {
           audio: {
             enabled: true,
             gainDb: -6,
+            pan: 0,
             fadeIn: { duration: 0.25, curve: "linear" },
             fadeOut: { duration: 0.5, curve: "equal-power" },
           },
@@ -110,6 +112,7 @@ describe("linked video audio commands", () => {
       trim: { start: 2, end: 6 },
       playbackRate: 1,
       gainDb: -6,
+      pan: 0,
       fadeIn: { duration: 0.25, curve: "linear" },
       fadeOut: { duration: 0.5, curve: "equal-power" },
     });

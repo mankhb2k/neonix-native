@@ -2,7 +2,6 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getUserAssetsProvider } from "@/lib/server/r2";
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 
 type JsonObject = Record<string, unknown>;
@@ -187,13 +186,27 @@ async function hydratePrivateAssetUrls(
     .eq("status", "ready");
   if (error || !data || data.length === 0) return document;
 
-  const provider = getUserAssetsProvider();
+  const { data: variants } = await client
+    .from("asset_variants")
+    .select("asset_id, r2_key, variant_kind, mime_type, metadata_json")
+    .in("asset_id", (data as Array<{ id: string }>).map((asset) => asset.id));
+  const audioVariants = new Map<string, { key: string; mimeType: string; metadata: Record<string, unknown> }>();
+  for (const variant of (variants ?? []) as Array<{ asset_id?: unknown; r2_key?: unknown; variant_kind?: unknown; mime_type?: unknown; metadata_json?: unknown }>) {
+    if (typeof variant.asset_id !== "string" || typeof variant.r2_key !== "string" || typeof variant.mime_type !== "string") continue;
+    if (variant.variant_kind !== "proxy" || !variant.r2_key.includes("/audio/")) continue;
+    const metadata = variant.metadata_json && typeof variant.metadata_json === "object"
+      ? variant.metadata_json as Record<string, unknown>
+      : {};
+    audioVariants.set(variant.asset_id, { key: variant.r2_key, mimeType: variant.mime_type, metadata });
+  }
+
+  // Keep the bucket private. Browser media is read through the authenticated
+  // same-origin range proxy, so no R2 CORS policy or public custom domain is
+  // required and signed URLs never enter the authoring document.
   const urls = new Map<string, string>();
-  await Promise.all((data as Array<{ id: string; r2_key: string; status: string }>).map(async (asset) => {
-    if (!asset.r2_key) return;
-    const signed = await provider.presignGet(asset.r2_key, 10 * 60);
-    urls.set(asset.id, signed.url);
-  }));
+  for (const asset of data as Array<{ id: string; r2_key: string; status: string }>) {
+    if (asset.r2_key) urls.set(asset.id, `/api/assets/${encodeURIComponent(asset.id)}/media`);
+  }
 
   if (urls.size === 0) return document;
   return {
@@ -201,7 +214,24 @@ async function hydratePrivateAssetUrls(
     assets: document.assets.map((asset) => {
       const dbId = asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id;
       const uri = urls.get(dbId);
-      return uri ? { ...asset, uri } : asset;
+      if (!uri) return asset;
+      const audioVariant = asset.kind === "video" ? audioVariants.get(dbId) : undefined;
+      const existingAudio = asset.kind === "video" ? asset.audio : undefined;
+      const audio = asset.kind === "video" && (existingAudio || audioVariant)
+        ? {
+            ...(existingAudio ?? {}),
+            uri: `/api/assets/${encodeURIComponent(dbId)}/media?variant=audio`,
+            ...(audioVariant?.mimeType ? { mimeType: audioVariant.mimeType } : {}),
+            ...(typeof audioVariant?.metadata.duration === "number" ? { duration: audioVariant.metadata.duration } : {}),
+            ...(typeof audioVariant?.metadata.sampleRate === "number" ? { sampleRate: audioVariant.metadata.sampleRate } : {}),
+            ...(typeof audioVariant?.metadata.channels === "number" ? { channels: audioVariant.metadata.channels } : {}),
+          }
+        : undefined;
+      return {
+        ...asset,
+        uri,
+        ...(audio ? { audio } : {}),
+      };
     }),
   };
 }

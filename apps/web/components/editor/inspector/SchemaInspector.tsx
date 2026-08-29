@@ -316,8 +316,10 @@ function AudioInspector({
           <NumberField label="Trim end" step={0.01} suffix="s" value={clip.trim.end ?? clip.trim.start + clip.timing.duration} onChange={(value) => onClipPatch({ trim: { end: Math.max(clip.trim.start + 0.001, value) } })} />
         </div>
         <NumberField label="Playback rate" step={0.01} value={clip.playbackRate} onChange={(value) => onClipPatch({ playbackRate: Math.max(0.001, value) })} />
+        <ToggleField label="Enabled" checked={clip.enabled} onChange={(checked) => onClipPatch({ enabled: checked })} />
         <NumberField label="Gain" step={0.1} suffix="dB" value={clip.gainDb} onChange={(value) => onClipPatch({ gainDb: value })} />
-        <NumberField label="Pan" step={0.01} value={track.pan} onChange={(value) => onTrackPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
+        <NumberField label="Pan" step={0.01} value={clip.pan} onChange={(value) => onClipPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
+        <NumberField label="Track pan" step={0.01} value={track.pan} onChange={(value) => onTrackPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
         <ToggleField label="Track muted" checked={track.muted} onChange={(checked) => onTrackPatch({ muted: checked })} />
         {(() => {
           const fadeIn = clip.fadeIn ?? DEFAULT_AUDIO_FADE;
@@ -708,6 +710,7 @@ export function SchemaInspector() {
                 audio: {
                   enabled: !checked,
                   gainDb: selected.payload.audio?.gainDb ?? 0,
+                  pan: selected.payload.audio?.pan ?? 0,
                   fadeIn: selected.payload.audio?.fadeIn ?? DEFAULT_AUDIO_FADE,
                   fadeOut: selected.payload.audio?.fadeOut ?? DEFAULT_AUDIO_FADE,
                 },
@@ -726,6 +729,8 @@ export function SchemaInspector() {
                   suffix="dB"
                   value={audio.gainDb}
                   onChange={(value) => patchLayer({ payload: { audio: { gainDb: value } } })}
+                />
+                <NumberField label="Pan" step={0.01} value={audio.pan} onChange={(value) => patchLayer({ payload: { audio: { pan: Math.max(-1, Math.min(1, value)) } } })}
                 />
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                   <NumberField label="Fade in" step={0.01} suffix="s" value={fadeIn.duration} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: clampFadeDuration(value, selected.timing.duration), curve: fadeIn.curve } } } })} />

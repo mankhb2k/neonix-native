@@ -22,10 +22,12 @@ import {
   type VisualRuntimeMask,
 } from "@motionvideo/motion-runtime/internal/visual";
 import {
-  isV2AtomCertified,
   parseMotionProtocol,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
+import { isCompilerFeatureSupported } from "./capabilities";
+
+const isV2AtomCertified = isCompilerFeatureSupported;
 
 function viewProjectionMatrix4(project: MotionProtocolV2): {
   worldToClipMatrix: Matrix4;

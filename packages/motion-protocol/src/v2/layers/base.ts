@@ -15,7 +15,7 @@ export const V2FrameSchema = z
   })
   .strict();
 
-/** Portable GPU blend modes certified by Task 12, Subtask 2. */
+/** Portable GPU blend modes represented by the Protocol V2 schema. */
 export const V2BlendModeSchema = z.enum([
   "normal",
   "multiply",

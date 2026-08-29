@@ -134,7 +134,9 @@ function layerForPayload(
       return { ...base, type: "image", payload: { assetId: payload.asset.id, fit: "contain" } };
     }
     if (payload.asset.kind === "video") {
-      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", framePolicy: "floor", audio: { enabled: false, gainDb: 0 } } };
+      // The video element is muted by the playback adapter. Embedded audio is
+      // a separate compiler-generated mix input and is enabled by default.
+      return { ...base, type: "video", payload: { assetId: payload.asset.id, fit: "contain", framePolicy: "floor", audio: { enabled: true, gainDb: 0, pan: 0 } } };
     }
   }
   return null;
@@ -182,7 +184,9 @@ export function commandsForLibraryPayload(
         timing: { start: Math.max(0, startTime), duration: Math.max(0.5, payload.duration ?? 5) },
         trim: { start: 0 },
         playbackRate: 1,
+        enabled: true,
         gainDb: 0,
+        pan: 0,
         fadeIn: { duration: 0, curve: "linear" },
         fadeOut: { duration: 0, curve: "linear" },
       },

@@ -19,7 +19,7 @@
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
-    "@motionvideo/render-contracts": "workspace:*",
+    "@motionvideo/export-renderer": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {

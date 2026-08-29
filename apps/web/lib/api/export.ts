@@ -1,5 +1,5 @@
 /**
- * Request MP4 export via Remotion Lambda BFF (POST /api/renders).
+ * Request MP4 export via the native VPS worker BFF (POST /api/renders).
  */
 
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";

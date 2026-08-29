@@ -28,7 +28,7 @@ const runtime = compileProtocol(protocol);
 const frame = compileProtocolToPaintCommands(protocol, { frame: 0 });
 ```
 
-`compileProtocol()` validates the V2 schema, certified capabilities, timing,
+`compileProtocol()` validates the V2 schema, compiler-supported features, timing,
 references, and view state before emitting `RuntimeProjectV3`. Matrix4 values
 are runtime IR values; they are not stored in Atomic Protocol JSON.
 
@@ -45,7 +45,8 @@ the authoring input, while RuntimeProjectV3 is the only compiler output.
 
 ## Ownership
 
-- `@motionvideo/motion-protocol`: Atomic Protocol V2 schema and certification.
+- `@motionvideo/motion-protocol`: Atomic Protocol V2 schema and validation.
+- `@motionvideo/motion-compiler`: compiler-supported features and V2 → V3 lowering.
 - `@motionvideo/motion-runtime`: timing evaluation, matrix validation, and
   backend-neutral paint commands.
 - `@motionvideo/preview-renderer`: WebGPU default with WebGL2 fallback.

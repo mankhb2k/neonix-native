@@ -5,7 +5,7 @@ import { createScrubCoordinatorV3, type ScrubCoordinatorV3 } from "./scrub-coord
 import { createPlaybackSnapshotStoreV3 } from "./transport-store";
 
 export type PlaybackControllerOptionsV3 = PlaybackEngineOptions & { onSnapshot?: (snapshot: PlaybackEngineSnapshot) => void; onVideoPlan?: (plan: VideoRenderPlanV3) => void; onAudioPlan?: (plan: RuntimeAudioMixPlanV3) => void };
-export type PlaybackControllerV3 = { load(project: RuntimeProjectV3): void; play(): void; pause(): void; toggle(): void; seek(timeUs: number): void; previewAt(timeUs: number): void; tick(): void; beginScrub(): void; updateScrub(timeUs: number): void; endScrub(): void; registerSnapshotSink(sink: (snapshot: PlaybackEngineSnapshot) => void): () => void; getSnapshot(): PlaybackEngineSnapshot; readonly scrub: ScrubCoordinatorV3; dispose(): void };
+export type PlaybackControllerV3 = { load(project: RuntimeProjectV3): void; play(): void; pause(): void; toggle(): void; seek(timeUs: number): void; setRate(rate: number): void; previewAt(timeUs: number): void; tick(): void; beginScrub(): void; updateScrub(timeUs: number): void; endScrub(): void; registerSnapshotSink(sink: (snapshot: PlaybackEngineSnapshot) => void): () => void; getSnapshot(): PlaybackEngineSnapshot; readonly scrub: ScrubCoordinatorV3; dispose(): void };
 
 export function createPlaybackControllerV3(options: PlaybackControllerOptionsV3 = {}): PlaybackControllerV3 {
   const snapshots = new Set<(snapshot: PlaybackEngineSnapshot) => void>();
@@ -15,11 +15,13 @@ export function createPlaybackControllerV3(options: PlaybackControllerOptionsV3 
   const engine: PlaybackEngine = createPlaybackEngine(engineOptions);
   let disposed = false;
   const store = createPlaybackSnapshotStoreV3(engine.snapshot());
+  const unsubscribeEngine = engine.subscribe((snapshot) => store.publish(snapshot));
   store.subscribe(() => { const snapshot = store.getSnapshot(); for (const sink of snapshots) sink(snapshot); });
   const emit = () => { const snapshot = engine.snapshot(); store.publish(snapshot); options.onSnapshot?.(snapshot); };
   const scrub = createScrubCoordinatorV3((timeUs) => { engine.seek(timeUs); emit(); }, () => { engine.play(); emit(); });
   const play = () => { if (disposed) return; engine.play(); emit(); };
   const pause = () => { if (disposed) return; engine.pause(); emit(); };
   const toggle = () => { if (engine.snapshot().state === "playing") pause(); else play(); };
-  return { load(project) { if (disposed) return; engine.load(project); emit(); }, play, pause, toggle, seek(timeUs) { if (disposed) return; engine.seek(timeUs); emit(); }, previewAt(timeUs) { if (disposed) return; engine.seek(timeUs); emit(); }, tick() { if (disposed) return; engine.tick(); emit(); }, beginScrub() { scrub.begin(engine.snapshot().state === "playing"); engine.pause(); emit(); }, updateScrub(timeUs) { scrub.update(timeUs); }, endScrub() { if (scrub.end()) return; emit(); }, registerSnapshotSink(sink) { if (disposed) return () => undefined; snapshots.add(sink); sink(store.getSnapshot()); return () => snapshots.delete(sink); }, getSnapshot: () => store.getSnapshot(), scrub, dispose() { if (disposed) return; disposed = true; engine.dispose(); snapshots.clear(); } };
+  const setRate = (rate: number) => { if (!disposed) { engine.setRate(rate); emit(); } };
+  return { load(project) { if (disposed) return; engine.load(project); emit(); }, play, pause, toggle, setRate, seek(timeUs) { if (disposed) return; engine.seek(timeUs); emit(); }, previewAt(timeUs) { if (disposed) return; engine.seek(timeUs); emit(); }, tick() { if (disposed) return; engine.tick(); emit(); }, beginScrub() { scrub.begin(engine.snapshot().state === "playing"); engine.pause(); emit(); }, updateScrub(timeUs) { scrub.update(timeUs); }, endScrub() { if (scrub.end()) return; emit(); }, registerSnapshotSink(sink) { if (disposed) return () => undefined; snapshots.add(sink); sink(store.getSnapshot()); return () => snapshots.delete(sink); }, getSnapshot: () => store.getSnapshot(), scrub, dispose() { if (disposed) return; disposed = true; unsubscribeEngine(); engine.dispose(); snapshots.clear(); } };
 }

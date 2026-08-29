@@ -83,7 +83,7 @@ The detailed protocol and renderer contract is documented in
 | --- | --- |
 | [`motion-mcp`](packages/motion-mcp) | Transport-agnostic remote MCP tool contracts and registration. The web app supplies auth and persistence. |
 | [`motion-storage`](packages/motion-storage) | Storage abstraction for memory or R2/S3-compatible object storage. Postgres stores metadata, not media bytes. |
-| [`render-contracts`](packages/render-contracts) | Provider-neutral render manifest, job, and webhook contracts. |
+| [`export-renderer`](packages/export-renderer) | Native VPS renderer plus the shared render manifest, job, provider, preset, and worker contracts. |
 | [`asset-registry`](packages/asset-registry) | Asset identity, MIME/hash metadata, SVG safety, and font metadata. |
 | [`audio-analysis`](packages/audio-analysis) | Audio metadata and analysis helpers. |
 | [`playback-engine`](packages/playback-engine) | Browser playback scheduling and WebAudio consumption of Runtime V2 audio plans. |

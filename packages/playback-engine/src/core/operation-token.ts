@@ -3,10 +3,20 @@ import type { PlaybackOperationTokenV3 } from "./types";
 export function createOperationRegistry() {
   let generation = 0;
   let operationId = 0;
+  let latestCommandId = 0;
   return {
-    begin(kind: PlaybackOperationTokenV3["kind"]): PlaybackOperationTokenV3 { return { generation, operationId: ++operationId, kind }; },
+    begin(kind: PlaybackOperationTokenV3["kind"]): PlaybackOperationTokenV3 {
+      const id = ++operationId;
+      // Render ticks must not invalidate an async transport command. Only a
+      // new transport/load command supersedes the previous command.
+      if (kind !== "tick") latestCommandId = id;
+      return { generation, operationId: id, kind };
+    },
     invalidate(): void { generation += 1; },
-    current(token: PlaybackOperationTokenV3) { return token.generation === generation && token.operationId === operationId; },
+    current(token: PlaybackOperationTokenV3) {
+      if (token.generation !== generation) return false;
+      return token.kind === "tick" ? token.operationId === operationId : token.operationId === latestCommandId;
+    },
     generation: () => generation,
   };
 }

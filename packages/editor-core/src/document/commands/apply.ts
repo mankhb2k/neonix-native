@@ -148,7 +148,9 @@ function detachedAudioClip(
       ...(layer.payload.trimEnd !== undefined ? { end: layer.payload.trimEnd } : {}),
     },
     playbackRate: 1,
+    enabled: audio.enabled,
     gainDb: audio.gainDb,
+    pan: audio.pan,
     fadeIn: { ...(audio.fadeIn ?? DEFAULT_AUDIO_FADE) },
     fadeOut: { ...(audio.fadeOut ?? DEFAULT_AUDIO_FADE) },
   };
@@ -268,7 +270,8 @@ export function applyEditorCommand(
       id: trackId,
       gainDb: 0,
       pan: 0,
-      muted: !embedded.enabled,
+      // Per-clip enabled owns silence; the track remains a neutral mixer bus.
+      muted: false,
       clips: [detachedAudioClip(layer, embedded, assetId, clipId)],
     });
     const nextLayer = next.layers[layerIndex]! as Extract<V2Layer, { type: "video" }>;

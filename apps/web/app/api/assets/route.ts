@@ -6,7 +6,7 @@ import {
   jsonError,
   userAssetsBucketName,
 } from "@/lib/server/asset-context";
-import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
+import { getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 
@@ -43,20 +43,18 @@ export async function GET() {
 
   if (error) return jsonError(error.message, 500);
 
-  const provider = getUserAssetsProvider();
-  const assets = await Promise.all(
-    ((data ?? []) as unknown as AssetRow[]).map(async (asset) => {
+  const assets = ((data ?? []) as unknown as AssetRow[]).map((asset) => {
       let downloadUrl: string | null = null;
       if (asset.status === "ready") {
-        downloadUrl = publicUserAssetUrl(asset.r2_key)
-          ?? (await provider.presignGet(asset.r2_key, 10 * 60)).url;
+        // Browser reads stay same-origin and private. The media route adds
+        // Range support and authorizes the current workspace on every read.
+        downloadUrl = `/api/assets/${encodeURIComponent(asset.id)}/media`;
       }
       const previewUrl = asset.preview_key && asset.preview_status === "ready"
-        ? (publicUserAssetUrl(asset.preview_key) ?? (await provider.presignGet(asset.preview_key, 10 * 60)).url)
+        ? `/api/assets/${encodeURIComponent(asset.id)}/media?variant=poster`
         : null;
       return { ...asset, download_url: downloadUrl, preview_url: previewUrl };
-    }),
-  );
+  });
 
   return Response.json({ assets });
 }

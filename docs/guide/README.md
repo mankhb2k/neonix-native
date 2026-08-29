@@ -14,9 +14,9 @@ implementation references.
 
 ## Current Scope
 
-The render core accepts only Atomic Protocol V2. Its certified visual surface
+The render core accepts only Atomic Protocol V2. Its compiler-supported visual surface
 includes groups, rectangle and ellipse shapes, paths, images, video, text,
-effects, blend modes, and masks; audio is a separate certified root domain.
-See the [V2 architecture](./v2-architechture.md) for the exact capability
-catalog and architectural boundaries. High-level authoring remains outside the
-V2 protocol and must lower to certified atomic capabilities.
+effects, blend modes, and masks; audio is a separate root domain.
+See the [V2 architecture](./v2-architechture.md) for the compiler-supported
+feature catalog and architectural boundaries. High-level authoring remains outside the
+V2 protocol and must lower to compiler-supported atomic features.

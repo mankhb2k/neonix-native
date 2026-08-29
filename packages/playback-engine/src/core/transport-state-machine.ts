@@ -19,8 +19,8 @@ export function transitionPlaybackStateV3(
   if (event === "error") return "error";
   if (event === "load") return "loading";
   if (event === "ready") return "ready";
-  if (event === "play" && (state === "ready" || state === "paused")) return "playing";
-  if (event === "pause" && state === "playing") return "paused";
+  if (event === "play" && (state === "ready" || state === "paused" || state === "preparing" || state === "buffering")) return "playing";
+  if (event === "pause" && (state === "playing" || state === "preparing" || state === "buffering" || state === "seeking")) return "paused";
   if (event === "seek" && state !== "idle") return "seeking";
   return state;
 }

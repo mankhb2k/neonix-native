@@ -2,21 +2,39 @@
 
 import { AlertCircle, CheckCircle2, Clock3, Download, Grid2X2, List, Search } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
 
 type ViewMode = "list" | "grid";
 
-const statusCards = [
-  { label: "Total exports", value: "0", icon: Download },
-  { label: "Ready", value: "0", icon: CheckCircle2 },
-  { label: "Processing", value: "0", icon: Clock3 },
-  { label: "Failed", value: "0", icon: AlertCircle },
-] as const;
+type ExportJob = { jobId: string; projectId: string; status: string; progress: number; stage?: string; error?: string; metrics?: { outputSizeInBytes?: number; displayCost?: number; estimatedBillingDurationInMilliseconds?: number }; createdAt: number; };
 
 export function ExportsWorkspace() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [jobs, setJobs] = useState<ExportJob[]>([]);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const response = await fetch("/api/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json() as { jobs?: ExportJob[] };
+      if (active) setJobs(data.jobs ?? []);
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
+
+  const visibleJobs = useMemo(() => jobs.filter((job) => statusFilter === "all" || (statusFilter === "ready" ? job.status === "done" : statusFilter === "processing" ? ["queued", "rendering", "encoding"].includes(job.status) : job.status === "failed")), [jobs, statusFilter]);
+  const statusCards = [
+    { label: "Total exports", value: String(jobs.length), icon: Download },
+    { label: "Ready", value: String(jobs.filter((job) => job.status === "done").length), icon: CheckCircle2 },
+    { label: "Processing", value: String(jobs.filter((job) => ["queued", "rendering", "encoding"].includes(job.status)).length), icon: Clock3 },
+    { label: "Failed", value: String(jobs.filter((job) => job.status === "failed").length), icon: AlertCircle },
+  ] as const;
 
   return (
     <div>
@@ -67,7 +85,8 @@ export function ExportsWorkspace() {
         </label>
         <select
           aria-label="Filter exports by status"
-          defaultValue="all"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
           className="h-10 rounded-lg border border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-3 text-body text-[var(--fg-muted)] outline-none focus:border-[var(--hub-accent)]"
         >
           <option value="all">All statuses</option>
@@ -75,7 +94,7 @@ export function ExportsWorkspace() {
           <option value="processing">Processing</option>
           <option value="failed">Failed</option>
         </select>
-        <span className="text-caption text-[var(--fg-muted)]">0 files</span>
+        <span className="text-caption text-[var(--fg-muted)]">{visibleJobs.length} files</span>
         <div className="flex items-center gap-1 sm:ml-auto" aria-label="Export view">
           <button
             type="button"
@@ -98,7 +117,23 @@ export function ExportsWorkspace() {
         </div>
       </div>
 
-      <div className="mt-6 flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-6 py-16 text-center">
+      {visibleJobs.length > 0 ? (
+        <div className="mt-6 space-y-2">
+          {visibleJobs.map((job) => (
+            <div key={job.jobId} className="flex flex-col gap-3 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="m-0 text-body font-semibold text-[var(--fg-primary)]">{job.projectId}</p>
+                <p className="mt-1 m-0 text-caption text-[var(--fg-muted)]">{job.jobId} · {job.stage ?? job.status}</p>
+              </div>
+              <div className="text-right text-caption text-[var(--fg-muted)]">
+                <p className="m-0 font-medium text-[var(--fg-primary)]">{job.status} · {Math.round(job.progress * 100)}%</p>
+                <p className="mt-1 m-0">{job.metrics?.outputSizeInBytes ? Math.round(job.metrics.outputSizeInBytes / 1024 / 1024 * 100) / 100 + " MB" : "Awaiting metrics"}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className={jobs.length > 0 ? "hidden" : "mt-6 flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-6 py-16 text-center"}>
         <span className="flex size-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--hub-accent)]">
           <Download className="size-5" />
         </span>

@@ -25,5 +25,12 @@ describe("RuntimeProjectV3 visual boundary", () => {
     expect(frame.commands.at(0)?.op).toBe("beginFrame");
     expect(frame.commands.at(-1)?.op).toBe("endFrame");
   });
+  it("rehydrates Matrix4 values after JSON transport", () => {
+    const transported = JSON.parse(JSON.stringify(project)) as RuntimeProjectV3;
+    const frame = evaluateRuntimeProjectV3(transported, 0);
+    expect(frame.commands.at(0)?.op).toBe("beginFrame");
+    expect(frame.commands.at(0)).toMatchObject({ projection: { worldToClipMatrix: expect.arrayContaining([1, 1, 1, 1]) } });
+  });
+
 });
 

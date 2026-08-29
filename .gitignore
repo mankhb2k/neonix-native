@@ -32,3 +32,5 @@ apps/web/.next.bak*
 /remotion
 /clipkit
 /pixijs
+/html-to-video
+/shortcut

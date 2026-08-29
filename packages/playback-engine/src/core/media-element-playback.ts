@@ -16,19 +16,28 @@ export type MediaElementPlayFailureReporterV3 = (
   failure: MediaElementPlayFailureV3,
 ) => void;
 
+/** Awaitable form used by a backend start/preroll operation. */
+export async function awaitMediaElementPlayV3(
+  element: MediaElementPlayLikeV3,
+  backend: MediaElementPlayFailureV3["backend"],
+  reportFailure?: MediaElementPlayFailureReporterV3,
+): Promise<void> {
+  try {
+    await element.play();
+  } catch (reason) {
+    reportFailure?.({ backend, reason });
+    throw reason;
+  }
+}
+
 export function requestMediaElementPlayV3(
   element: MediaElementPlayLikeV3,
   backend: MediaElementPlayFailureV3["backend"],
   reportFailure?: MediaElementPlayFailureReporterV3,
 ): void {
-  try {
-    Promise.resolve(element.play()).catch((reason: unknown) => {
+  void awaitMediaElementPlayV3(element, backend, reportFailure).catch(() => {
       // AbortError is normal when an engine pause/seek overtakes play(). The
       // optional reporter lets the host surface meaningful policy failures
       // (for example NotAllowedError) without handing timing back to Chrome.
-      reportFailure?.({ backend, reason });
-    });
-  } catch (reason) {
-    reportFailure?.({ backend, reason });
-  }
+  });
 }

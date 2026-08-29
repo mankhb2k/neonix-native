@@ -1,9 +1,31 @@
 import { evaluateVisualRuntimeProject } from "./visual-internals/evaluate";
+import { normalizeVisualRuntimeProject } from "./visual-internals/validate";
 import type { VisualRuntimeProject } from "./visual-internals/types";
 import { assertVisualRuntimeFrame } from "./visual-internals/validate";
 import { prepareVisualRuntimeProjectText, type VisualRuntimeTextFontResolver, type VisualRuntimeTextShaperLoader } from "./visual-internals/text-layout";
 import { validateRuntimeVisualProjectV3 } from "./validate";
 import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
+
+/** Rehydrate the visual matrices after a JSON transport boundary. */
+export function normalizeRuntimeProjectV3(project: RuntimeProjectV3): RuntimeProjectV3 {
+  const normalized = normalizeVisualRuntimeProject({
+    format: "motion-runtime",
+    formatVersion: 2,
+    id: project.projectId,
+    composition: project.visual.composition,
+    view: project.visual.view,
+    nodes: project.visual.nodes,
+  });
+  return {
+    ...project,
+    visual: {
+      ...project.visual,
+      composition: normalized.composition,
+      view: normalized.view,
+      nodes: normalized.nodes,
+    },
+  };
+}
 
 /**
  * Evaluate the canonical V3 visual projection.

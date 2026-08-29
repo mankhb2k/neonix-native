@@ -11,6 +11,7 @@ export {
   assertVisualRuntimeFrame,
   assertVisualRuntimeProject,
   isVisualRuntimeProject,
+  normalizeVisualRuntimeProject,
   validateVisualRuntimeProject,
 } from "./visual-internals/validate";
 export { prepareVisualRuntimeProjectText } from "./visual-internals/text-layout";

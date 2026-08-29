@@ -14,3 +14,9 @@ export {
   CompileProtocolToRuntimeV3Error,
   type CompileProtocolV3Options,
 } from "./runtime-project-v3";
+export {
+  COMPILER_SUPPORTED_FEATURES,
+  COMPILER_SUPPORTED_FEATURES_VERSION,
+  isCompilerFeatureSupported,
+  type CompilerSupportedFeature,
+} from "./compiler/capabilities";

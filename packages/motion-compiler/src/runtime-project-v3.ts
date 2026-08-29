@@ -53,7 +53,7 @@ export type CompileProtocolV3Options = CompileProtocolOptions & {
 /**
  * Canonical Protocol compiler entrypoint for the next runtime.
  *
- * Visual lowering reuses the certified visual compiler implementation. Media,
+ * Visual lowering reuses the compiler-supported visual implementation. Media,
  * video and audio timelines are lowered directly from MotionProtocolV2 and
  * never pass through a RuntimeProjectV2 audio/media contract.
  */
@@ -231,7 +231,9 @@ function compileAudioTimeline(
         ...(layer.payload.trimEnd === undefined ? {} : { end: layer.payload.trimEnd }),
       },
       playbackRate: 1,
+      enabled: audio.enabled,
       gainDb: audio.gainDb,
+      pan: audio.pan,
       ...(audio.fadeIn ? { fadeIn: audio.fadeIn } : {}),
       ...(audio.fadeOut ? { fadeOut: audio.fadeOut } : {}),
     };
@@ -239,7 +241,7 @@ function compileAudioTimeline(
       trackId: `embedded-audio:${layer.id}`,
       gainLinear: 1,
       pan: 0,
-      muted: !audio.enabled,
+      muted: false,
       clips: [audioClip(
         clip,
         `embedded-audio:${layer.id}`,
@@ -279,8 +281,8 @@ function audioClip(
       : {}),
     playbackRate: clip.playbackRate,
     gainLinear: gain(clip.gainDb),
-    pan: 0,
-    muted: false,
+    pan: clip.pan,
+    muted: !clip.enabled,
     ...(clip.fadeIn
       ? { fadeIn: { durationSamples: secondsToSamples(clip.fadeIn.duration, RATE), curve: clip.fadeIn.curve } satisfies RuntimeAudioFadeV3 }
       : {}),

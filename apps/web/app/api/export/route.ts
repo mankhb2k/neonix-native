@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 /**
- * Sync local FFmpeg export removed — production export is Remotion Lambda via POST /api/renders.
+ * Export is handled by the native VPS worker via POST /api/renders.
  */
 export function POST() {
   return NextResponse.json(
     {
       error:
-        "Local CLI export is retired. Use POST /api/renders (Remotion Lambda).",
+        "Use POST /api/renders for native VPS export.",
       code: "EXPORT_ROUTE_RETIRED",
     },
     { status: 410 },

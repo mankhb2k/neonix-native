@@ -37,7 +37,7 @@ adapters, and `PaintCommand.setTransform.matrix4` is required rather than an
 optional fallback.
 
 Those adapters are editor-local implementation details and never Runtime IR.
-Preview and Remotion consume the same V3 visual semantics. Runtime V2 project
+Preview and the native export worker consume the same V3 visual semantics. Runtime V2 project
 and audio contracts are not exported from the package root.
 
 Audio is a parallel runtime output. `resolveAudioWindow()` returns an

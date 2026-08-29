@@ -23,14 +23,6 @@ export default [
             },
             {
               group: [
-                "@motionvideo/remotion-renderer",
-                "@motionvideo/remotion-renderer/*",
-              ],
-              message:
-                "Runtime must not import Remotion renderer. It is framework-agnostic.",
-            },
-            {
-              group: [
                 "@motionvideo/motion-compiler",
                 "@motionvideo/motion-compiler/*",
               ],

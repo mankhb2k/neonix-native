@@ -3,9 +3,17 @@ import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
 import type { RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
 import {
   compileProtocol,
+  COMPILER_SUPPORTED_FEATURES,
+  isCompilerFeatureSupported,
 } from "./index";
 
 describe("canonical compiler V3 projection", () => {
+  it("owns the feature support catalog", () => {
+    expect(COMPILER_SUPPORTED_FEATURES).toContain("shape.rectangle.fill");
+    expect(isCompilerFeatureSupported("shape.rectangle.fill")).toBe(true);
+    expect(isCompilerFeatureSupported("shape.path.fill")).toBe(false);
+  });
+
   it("derives RuntimeProjectV3 from the same canonical compiler output", () => {
     const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === "audio.mix.video-plus-music");
     if (!fixture) throw new Error("audio.mix.video-plus-music fixture is missing");

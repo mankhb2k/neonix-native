@@ -311,6 +311,7 @@ export function TimelineShell() {
             audio: {
               enabled: !(audio?.enabled ?? false),
               gainDb: audio?.gainDb ?? 0,
+              pan: audio?.pan ?? 0,
               ...(audio?.fadeIn ? { fadeIn: audio.fadeIn } : {}),
               ...(audio?.fadeOut ? { fadeOut: audio.fadeOut } : {}),
             },

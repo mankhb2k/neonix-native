@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:fresh": "tsx scripts/dev-fresh.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -30,10 +31,9 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-storage": "workspace:*",
     "@motionvideo/patterns": "workspace:*",
-      "@motionvideo/playback-engine": "workspace:*",
+    "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/preview-renderer": "workspace:*",
-    "@motionvideo/render-contracts": "workspace:*",
-    "@remotion/lambda-client": "4.0.506",
+    "@motionvideo/export-renderer": "workspace:*",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "@tailwindcss/postcss": "^4.3.3",
@@ -52,7 +52,8 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "harfbuzzjs": "^1.6.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",

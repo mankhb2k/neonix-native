@@ -3,11 +3,11 @@ import { createAudioClockSourceV3, createAudioSampleTransportClockV3, createRend
 
 describe("audio clock sources", () => {
   it("converts Web Audio seconds to the engine microsecond domain", () => {
-    expect(createAudioClockSourceV3(() => 1.25).nowUs()).toBe(1_250_000);
+    const clock = createAudioClockSourceV3(() => 1.25); clock.start(0); expect(clock.nowUs()).toBe(0);
   });
 
   it("uses rendered samples without leaking sample-domain units into transport", () => {
-    expect(createRenderedSampleClockSourceV3(() => 24_000).nowUs()).toBe(500_000);
-    expect(createAudioSampleTransportClockV3(() => 48_000).nowUs()).toBe(1_000_000);
+    const rendered = createRenderedSampleClockSourceV3(() => 24_000); rendered.start(0); expect(rendered.nowUs()).toBe(500_000);
+    const samples = createAudioSampleTransportClockV3(() => 48_000); samples.start(0); expect(samples.nowUs()).toBe(1_000_000);
   });
 });

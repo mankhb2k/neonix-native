@@ -1,5 +1,5 @@
-/**
- * Deterministic media frame rounding shared by Pixi preview + Remotion export.
+﻿/**
+ * Deterministic media frame rounding shared by Pixi preview + Native VPS export export.
  */
 
 export type MediaTimingInput = {
@@ -53,7 +53,7 @@ export function resolveMediaTiming(input: MediaTimingInput): MediaTimingResult {
   };
 }
 
-/** Font preload policy for Remotion delayRender / Pixi Assets.load. */
+/** Font preload policy for Native VPS export delayRender / Pixi Assets.load. */
 export type FontPreloadRequest = {
   family: string;
   uri: string;
@@ -64,3 +64,4 @@ export type FontPreloadRequest = {
 export function fontPreloadKey(req: FontPreloadRequest): string {
   return `${req.family}:${req.weight ?? 400}:${req.style ?? "normal"}:${req.uri}`;
 }
+

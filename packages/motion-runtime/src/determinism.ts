@@ -1,10 +1,10 @@
-/**
- * Determinism rules — single source of truth for frame rounding, epsilon,
+﻿/**
+ * Determinism rules â€” single source of truth for frame rounding, epsilon,
  * stable sort, seed quantization, and locale invariance.
  *
  * Every module that touches time, geometry, or ordering MUST use these
  * constants and helpers to guarantee pixel-identical output across
- * Pixi preview, Remotion export, and render worker.
+ * Pixi preview, Native VPS export export, and render worker.
  *
  * Rule summary:
  * 1. Frame rounding: half-up via Math.floor(time * fps + FRAME_EPSILON)
@@ -14,11 +14,11 @@
  * 5. Seed: feed through deterministicUint32 before any PRNG
  */
 
-// ── Epsilon constants ─────────────────────────────────────────────────
+// â”€â”€ Epsilon constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Frame-time epsilon — prevents floating-point drift when converting
- * time ↔ frame index at common frame rates (24, 25, 30, 60 fps).
+ * Frame-time epsilon â€” prevents floating-point drift when converting
+ * time â†” frame index at common frame rates (24, 25, 30, 60 fps).
  * Empirical: Number.EPSILON (~2.2e-16) is too small for 60fps rounding;
  * multiplying by 8 gives enough headroom without snapping wrong frames.
  */
@@ -31,24 +31,24 @@ export const FRAME_EPSILON = Number.EPSILON * 8;
 export const GEOMETRY_EPSILON = 1e-12;
 
 /**
- * Length epsilon — used for perimeter / path-length <= 0 checks.
+ * Length epsilon â€” used for perimeter / path-length <= 0 checks.
  * Larger than geometry epsilon because path lengths accumulate error.
  */
 export const LENGTH_EPSILON = 1e-9;
 
 /**
- * Time-window clamp epsilon — keeps a local time strictly inside the
+ * Time-window clamp epsilon â€” keeps a local time strictly inside the
  * half-open segment `[0, duration)` when it lands on the boundary.
  * Much smaller than one frame at any supported fps, so it never eats a
  * legitimate frame; only prevents `t == duration` from snapping past the end.
  */
 export const TIME_CLAMP_EPSILON = 1e-6;
 
-// ── Frame rounding ────────────────────────────────────────────────────
+// â”€â”€ Frame rounding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Round a time (in seconds) to a discrete frame index at the given fps.
- * Policy: floor(time * fps + FRAME_EPSILON) — equivalent to half-up rounding
+ * Policy: floor(time * fps + FRAME_EPSILON) â€” equivalent to half-up rounding
  * after epsilon guard.
  */
 export function roundTimeToFrame(time: number, fps: number): number {
@@ -62,10 +62,10 @@ export function roundTimeToFrame(time: number, fps: number): number {
  * Quantize a time value to a stable millisecond index.
  * Used for evaluated-effect seeds so sub-frame jitter does not change hashes.
  *
- * Policy: floor with `TIME_CLAMP_EPSILON` guard — matches `roundTimeToFrame`,
- * not `Math.round`. This keeps `1.0005s → 1000ms` (sub-millisecond drift does
+ * Policy: floor with `TIME_CLAMP_EPSILON` guard â€” matches `roundTimeToFrame`,
+ * not `Math.round`. This keeps `1.0005s â†’ 1000ms` (sub-millisecond drift does
  * not push past the boundary) while still snapping the float representation
- * of `1.001s` (≈1000.9999999999999ms) up to `1001`.
+ * of `1.001s` (â‰ˆ1000.9999999999999ms) up to `1001`.
  */
 export function quantizeTimeToMilliseconds(time: number): number {
   if (!Number.isFinite(time) || time < 0) return 0;
@@ -73,7 +73,7 @@ export function quantizeTimeToMilliseconds(time: number): number {
 }
 
 /**
- * Convert a frame index back to exact frame time (NO epsilon — this
+ * Convert a frame index back to exact frame time (NO epsilon â€” this
  * is the canonical time for that frame).
  */
 export function frameToTime(frame: number, fps: number): number {
@@ -113,7 +113,7 @@ export function samplesToSeconds(sample: number, sampleRate: number): number {
 /**
  * Clamp a local time into the half-open segment window `[0, duration)`.
  * Never returns `duration` itself (backed off by `TIME_CLAMP_EPSILON`), so
- * `t → frame` maps to the last valid frame rather than past-the-end.
+ * `t â†’ frame` maps to the last valid frame rather than past-the-end.
  */
 export function clampSegmentLocalTime(
   localTime: number,
@@ -125,7 +125,7 @@ export function clampSegmentLocalTime(
   );
 }
 
-// ── Sort tie-break ────────────────────────────────────────────────────
+// â”€â”€ Sort tie-break â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Stable tie-break comparator for deterministic ordering.
@@ -134,7 +134,7 @@ export function clampSegmentLocalTime(
  * the same layer order.
  */
 export function deterministicTieBreak(a: string, b: string): number {
-  // Lexicographic compare — no localeCompare because it's per-locale.
+  // Lexicographic compare â€” no localeCompare because it's per-locale.
   if (a < b) return -1;
   if (a > b) return 1;
   return 0;
@@ -155,7 +155,7 @@ export function numericThenId(
   return deterministicTieBreak(aId, bId);
 }
 
-// ── Seed quantization ─────────────────────────────────────────────────
+// â”€â”€ Seed quantization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fnv1a(value: string): number {
   let hash = 0x811c9dc5;
@@ -202,13 +202,13 @@ export function deterministicRandom(
   return deterministicUint32(seed, channel, sampleIndex) / 0x1_0000_0000;
 }
 
-// ── Locale invariance ─────────────────────────────────────────────────
+// â”€â”€ Locale invariance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Assert that no locale-dependent API is used without an explicit locale.
  * Call this in debug/test builds to catch accidental Intl or toLocaleString.
  *
- * Does nothing in production — the check is only for dev confidence.
+ * Does nothing in production â€” the check is only for dev confidence.
  */
 export function assertNoImplicitLocale(): void {
   const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
@@ -226,7 +226,7 @@ export function assertNoImplicitLocale(): void {
   Number.prototype.toLocaleString = function (...args: unknown[]) {
     if (args.length === 0) {
       console.warn(
-        "[determinism] Number.toLocaleString() called without explicit locale — " +
+        "[determinism] Number.toLocaleString() called without explicit locale â€” " +
           "this produces non-deterministic output across machines.",
       );
     }
@@ -238,3 +238,4 @@ export function assertNoImplicitLocale(): void {
     }
   ).__determinismWrapped = true;
 }
+

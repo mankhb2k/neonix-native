@@ -53,10 +53,6 @@ const clientServerImportPaths = [
     name: "@/lib/mcp/server",
     message: "The MCP server is server-only and must not enter the client bundle.",
   },
-  {
-    name: "@remotion/lambda-client",
-    message: "Lambda export belongs in server routes, not client modules.",
-  },
 ];
 
 const clientServerImportPatterns = [

@@ -18,12 +18,16 @@ export const V2AudioFadeSchema = z
   })
   .strict();
 
-/** Audio embedded in a video layer. Timing is inherited from the owner layer. */
+/**
+ * Per-input controls shared by embedded video audio and standalone clips.
+ * Timing/source identity live with their respective authoring objects.
+ */
 export const V2EmbeddedVideoAudioSchema = z
   .object({
     enabled: z.boolean(),
     /** JSON omission means unity gain; editors may still persist an explicit value. */
     gainDb: V2FiniteNumberSchema.default(0),
+    pan: V2FiniteNumberSchema.min(-1).max(1).default(0),
     fadeIn: V2AudioFadeSchema.optional(),
     fadeOut: V2AudioFadeSchema.optional(),
   })
@@ -46,8 +50,11 @@ export const V2AudioClipSchema = z
       })
       .strict(),
     playbackRate: V2PositiveNumberSchema,
+    /** `false` keeps the clip on the timeline but makes its mix input silent. */
+    enabled: z.boolean().default(true),
     /** JSON omission means unity gain. */
     gainDb: V2FiniteNumberSchema.default(0),
+    pan: V2FiniteNumberSchema.min(-1).max(1).default(0),
     fadeIn: V2AudioFadeSchema.optional(),
     fadeOut: V2AudioFadeSchema.optional(),
   })

@@ -183,9 +183,9 @@ function videoLayer(input: { id: string; order: number; assetId: string; start: 
     payload: {
       assetId: input.assetId,
       fit: "cover" as const,
-      // Video visuals are always mute. Audio enters the mix only through an
-      // explicit AudioClip that points to an audio asset/derivative.
-      audio: { enabled: false, gainDb: 0 },
+      // The video element is muted; the compiler links its detected audio
+      // derivative as a separate mix input when this is enabled.
+      audio: { enabled: true, gainDb: 0, pan: 0 },
       framePolicy: "floor" as const,
     },
   };
@@ -206,7 +206,9 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
         assetId: asset.id,
         timing: { start: 0, duration },
         trim: { start: 0, end: duration },
+        enabled: true,
         gainDb: 0,
+        pan: 0,
         playbackRate: 1,
         fadeIn: { duration: 2, curve: "equal-power" as const },
         fadeOut: { duration: 3, curve: "equal-power" as const },

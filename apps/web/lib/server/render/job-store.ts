@@ -5,7 +5,7 @@
 
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { RenderJobStatus } from "@motionvideo/render-contracts";
+import type { RenderJobStatus } from "@motionvideo/export-renderer/contracts";
 
 export type PersistentRenderJob = {
   jobId: string;
@@ -19,10 +19,15 @@ export type PersistentRenderJob = {
   error?: string;
   /** Serialized export canary (engine/capability/preflight). */
   canaryJson?: string;
-  lambdaRenderId?: string;
-  bucketName?: string;
   outputKey?: string;
   artifactPath?: string;
+  metrics?: {
+    framesRendered?: number;
+    outputSizeInBytes?: number;
+    timeToRenderFrames?: number;
+    timeToEncode?: number;
+    timeToFinish?: number;
+  };
   createdAt: number;
   updatedAt: number;
 };
@@ -33,6 +38,10 @@ function repoRoot(): string {
     return path.resolve(cwd, "../..");
   }
   return cwd;
+}
+
+export function buildRenderOutputKey(userId: string, jobId: string): string {
+  return userId + "/" + jobId + ".mp4";
 }
 
 export function renderJobsRootDir(): string {

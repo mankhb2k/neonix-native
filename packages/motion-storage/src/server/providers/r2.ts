@@ -83,6 +83,17 @@ export class R2StorageProvider implements StorageProvider {
     }
   }
 
+  /** Stream an object without buffering the whole media file in the server. */
+  async getObjectStream(key: string, range?: string) {
+    return this.client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ...(range ? { Range: range } : {}),
+      }),
+    );
+  }
+
   async headObject(
     key: string,
   ): Promise<{ sizeBytes: number; contentType?: string } | null> {
@@ -111,7 +122,7 @@ export class R2StorageProvider implements StorageProvider {
     expiresInSeconds: number,
   ): Promise<PresignPutResult> {
     const url = await getSignedUrl(
-      this.client,
+      this.client as any,
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -128,7 +139,7 @@ export class R2StorageProvider implements StorageProvider {
 
   async presignGet(key: string, expiresInSeconds: number): Promise<PresignGetResult> {
     const url = await getSignedUrl(
-      this.client,
+      this.client as any,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: expiresInSeconds },
     );

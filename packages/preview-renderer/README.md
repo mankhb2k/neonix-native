@@ -5,7 +5,7 @@ Native preview rendering boundary for MotionVideo.
 The package consumes only `RuntimeFrameV3` / `PaintCommandBuffer`. It does not
 import PixiJS, compile authoring JSON, or evaluate motion. The same V2 command
 buffer can therefore be painted by this package for interactive preview and by
-Remotion for export.
+Native VPS export is provided by `@motionvideo/export-renderer`.
 
 The render contract is Matrix4-only. Compiler B/runtime resolve local, world,
 view, and projection matrices before this package is called; a backend only

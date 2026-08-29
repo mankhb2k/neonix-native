@@ -3,7 +3,7 @@
  */
 
 export type ExportCanaryRecord = {
-  engine: "remotion-lambda" | "remotion-local" | "stub";
+  engine: "native-vps" | "stub";
   paintCommandVersion: number;
   capabilityManifest: string;
   preflightOk: boolean;

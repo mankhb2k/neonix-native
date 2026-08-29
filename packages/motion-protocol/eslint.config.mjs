@@ -23,8 +23,6 @@ export default [
                 "@motionvideo/motion-compiler/*",
                 "@motionvideo/preview-renderer",
                 "@motionvideo/preview-renderer/*",
-                "@motionvideo/remotion-renderer",
-                "@motionvideo/remotion-renderer/*",
               ],
               message: "Protocol must not import compiler or renderer packages.",
             },

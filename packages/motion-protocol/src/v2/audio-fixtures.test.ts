@@ -1,21 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isV2AtomCertified } from "./capabilities";
-import { V2_AUDIO_CAPABILITY_LEDGER } from "./audio-capabilities";
 import { V2_AUDIO_FIXTURES } from "./audio-fixtures";
 import { MotionProtocolV2Schema } from "./project";
 
 describe("Protocol V2 audio fixture catalog", () => {
-  it("has one parseable fixture for every ledger capability", () => {
-    const fixtureIds = new Set(V2_AUDIO_FIXTURES.map((fixture) => fixture.id));
-    expect(V2_AUDIO_FIXTURES).toHaveLength(V2_AUDIO_CAPABILITY_LEDGER.length);
-
-    for (const entry of V2_AUDIO_CAPABILITY_LEDGER) {
-      expect(fixtureIds.has(entry.fixtureId)).toBe(true);
-      const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === entry.fixtureId);
-      expect(fixture?.capability).toBe(entry.id);
-      expect(entry.status).toBe("certified");
-      expect(isV2AtomCertified(entry.id)).toBe(false);
-      expect(MotionProtocolV2Schema.parse(fixture?.project)).toEqual(fixture?.project);
+  it("has parseable fixtures for the audio shapes", () => {
+    expect(V2_AUDIO_FIXTURES.length).toBeGreaterThan(0);
+    for (const fixture of V2_AUDIO_FIXTURES) {
+      expect(MotionProtocolV2Schema.parse(fixture.project)).toEqual(fixture.project);
     }
   });
 

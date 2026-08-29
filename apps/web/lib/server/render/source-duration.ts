@@ -9,7 +9,7 @@ export type SourceDurationIssue = {
 
 /**
  * Export-side duration gate. The upload contract supplies the source duration;
- * a real Lambda probe can replace that metadata later, but export must never
+ * a real media probe can replace that metadata later, but export must never
  * silently render beyond a known source range.
  */
 export function validateProjectVideoDurations(

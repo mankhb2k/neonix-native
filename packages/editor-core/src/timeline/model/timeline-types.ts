@@ -67,7 +67,7 @@ export type SceneTimelineClip = TimelineClipBase & {
   sceneId: string;
   /** V2 layer type used for media-aware timeline chrome. */
   mediaType?: VisualMediaType;
-  /** Video layer audio output state, when the scene is a video. */
+  /** Embedded video audio output state; never controls visual visibility. */
   muted?: boolean;
   /** True when this video owns a linked embedded-audio component. */
   embeddedAudio?: boolean;
@@ -85,7 +85,7 @@ export type AudioTimelineClip = TimelineClipBase & {
   kind: "audio";
   audioTrackId: string;
   assetId: string;
-  /** Derived presentation state; the track mute remains the source of truth. */
+  /** Derived audio presentation state; the track mute remains the source of truth. */
   muted?: boolean;
 };
 

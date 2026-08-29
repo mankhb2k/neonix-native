@@ -40,13 +40,6 @@ export {
 export { validatePaintCommandBuffer } from "./validate-paint-command-buffer";
 export { decodePaintCommandBuffer } from "./decode-paint-command-buffer";
 export {
-  PAINT_OP_CAPABILITIES,
-  getPaintOpCapability,
-  resolvePaintFallback,
-  type PaintFallbackPolicy,
-  type PaintOpCapability,
-} from "./paint-capabilities";
-export {
   paintContractVersion,
   validatePaintBuffer,
   assertValidPaintBuffer,

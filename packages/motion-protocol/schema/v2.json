@@ -1467,6 +1467,12 @@
                             "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
                             "default": 0
                           },
+                          "pan": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1,
+                            "default": 0
+                          },
                           "fadeIn": {
                             "type": "object",
                             "properties": {
@@ -1598,8 +1604,18 @@
                         "playbackRate": {
                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                         },
+                        "enabled": {
+                          "type": "boolean",
+                          "default": true
+                        },
                         "gainDb": {
                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                          "default": 0
+                        },
+                        "pan": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1,
                           "default": 0
                         },
                         "fadeIn": {

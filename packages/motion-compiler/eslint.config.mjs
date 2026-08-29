@@ -15,14 +15,6 @@ export default [
           patterns: [
             {
               group: [
-                "@motionvideo/remotion-renderer",
-                "@motionvideo/remotion-renderer/*",
-              ],
-              message:
-                "Compiler must not import Remotion renderer. Use @motionvideo/render-contracts for shared types.",
-            },
-            {
-              group: [
                 "@motionvideo/web",
                 "@motionvideo/desktop",
                 "@motionvideo/editor-core",

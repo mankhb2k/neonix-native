@@ -1,6 +1,6 @@
 import { sourceSampleAtCompositionSampleV3, type RuntimeAudioMixPlanV3, type RuntimeMediaSourceRefV3 } from "@motionvideo/motion-runtime";
 import type { AudioBackendV3 } from "./audio-backend";
-import { requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
+import { awaitMediaElementPlayV3, requestMediaElementPlayV3, type MediaElementPlayFailureReporterV3 } from "../core/media-element-playback";
 
 export type HTMLAudioElementLikeV3 = { currentTime: number; volume: number; muted: boolean; play(): Promise<void> | void; pause(): void };
 export type HTMLMediaAudioBackendOptionsV3 = { createElement(clipId: string, source: RuntimeMediaSourceRefV3): HTMLAudioElementLikeV3; resolveSource(source: RuntimeMediaSourceRefV3): boolean; onPlayFailure?: MediaElementPlayFailureReporterV3 };
@@ -24,7 +24,7 @@ export function createHTMLMediaAudioBackendV3(options: HTMLMediaAudioBackendOpti
     publish(plan: RuntimeAudioMixPlanV3) {
       const active = new Set<string>();
       for (const input of plan.inputs) {
-        if (input.muted || !options.resolveSource(input.source)) continue;
+        if (!options.resolveSource(input.source)) continue;
         const segment = input.segments.find((candidate) => candidate.compositionStartSample <= plan.startSample && plan.startSample < candidate.compositionEndSample);
         if (!segment) continue;
         active.add(input.clipId);
@@ -36,12 +36,12 @@ export function createHTMLMediaAudioBackendV3(options: HTMLMediaAudioBackendOpti
         }
         const sourceSample = sourceSampleAtCompositionSampleV3(segment, plan.startSample);
         element.currentTime = sourceSample / input.sourceSampleRate;
-        element.volume = Math.max(0, Math.min(1, input.gainLinear));
+        element.volume = input.muted ? 0 : Math.max(0, Math.min(1, input.gainLinear));
         if (playing) requestMediaElementPlayV3(element, "audio", options.onPlayFailure);
       }
       releaseInactive(active);
     },
-    start() { playing = true; for (const element of entries.values()) requestMediaElementPlayV3(element, "audio", options.onPlayFailure); },
+    async start() { playing = true; await Promise.all([...entries.values()].map((element) => awaitMediaElementPlayV3(element, "audio", options.onPlayFailure))); },
     pause() { playing = false; for (const element of entries.values()) element.pause(); },
     flush() { for (const element of entries.values()) element.pause(); },
     dispose() { playing = false; for (const element of entries.values()) element.pause(); entries.clear(); },

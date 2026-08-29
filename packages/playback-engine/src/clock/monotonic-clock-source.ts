@@ -6,12 +6,14 @@ export function createMonotonicClock(nowMs: () => number = defaultNowMs): Playba
   let anchorUs = 0;
   let anchorMs = nowMs();
   let playing = false;
+  let rate = 1;
   return {
     source: "monotonic",
-    nowUs: () => playing ? anchorUs + (nowMs() - anchorMs) * 1000 : anchorUs,
-    start(atUs) { anchorUs = atUs ?? (playing ? anchorUs + (nowMs() - anchorMs) * 1000 : anchorUs); anchorMs = nowMs(); playing = true; },
-    pause(atUs) { anchorUs = atUs ?? (playing ? anchorUs + (nowMs() - anchorMs) * 1000 : anchorUs); anchorMs = nowMs(); playing = false; return anchorUs; },
+    nowUs: () => playing ? anchorUs + (nowMs() - anchorMs) * 1000 * rate : anchorUs,
+    start(atUs) { anchorUs = atUs ?? (playing ? anchorUs + (nowMs() - anchorMs) * 1000 * rate : anchorUs); anchorMs = nowMs(); playing = true; },
+    pause(atUs) { anchorUs = atUs ?? (playing ? anchorUs + (nowMs() - anchorMs) * 1000 * rate : anchorUs); anchorMs = nowMs(); playing = false; return anchorUs; },
     seek(next) { anchorUs = Math.max(0, next); anchorMs = nowMs(); },
+    setRate(next) { const current = playing ? anchorUs + (nowMs() - anchorMs) * 1000 * rate : anchorUs; anchorUs = current; anchorMs = nowMs(); rate = Number.isFinite(next) && next > 0 ? next : 1; },
   };
 }
 

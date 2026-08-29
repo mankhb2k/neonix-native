@@ -171,7 +171,9 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
           timing: { start: 0, duration: assetDuration },
           trim: { start: 0, end: assetDuration },
           playbackRate: 1,
+          enabled: true,
           gainDb: 0,
+          pan: 0,
         }
       : undefined
   );

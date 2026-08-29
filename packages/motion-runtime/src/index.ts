@@ -28,7 +28,6 @@ export {
   secondsToSamples,
 } from "./determinism";
 export * from "./media-timing";
-export * from "./capability-ledger";
 export * from "./runtime-hash";
 // Keep the public runtime surface explicit. The old Canvas2D/affine adapters
 // remain editor-local implementation details and must not become
@@ -39,7 +38,6 @@ export * from "./paint/paint-types";
 export * from "./paint/paint-display-list";
 export * from "./paint/validate-paint-command-buffer";
 export * from "./paint/decode-paint-command-buffer";
-export * from "./paint/paint-capabilities";
 export * from "./paint/paint-buffer-contract";
 export * from "./paint/paint-resource-descriptor";
 export * from "./paint/paint-item-fingerprint";

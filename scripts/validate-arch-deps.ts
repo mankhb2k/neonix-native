@@ -84,19 +84,17 @@ const CORE_PACKAGES = new Set([
   "@motionvideo/motion-compiler",
   "@motionvideo/motion-runtime",
   "@motionvideo/editor-core",
-  "@motionvideo/render-contracts",
 ]);
 
 const RENDERER_PACKAGES = new Set([
   "@motionvideo/preview-renderer",
-  "@motionvideo/remotion-renderer",
+  "@motionvideo/export-renderer",
 ]);
 
 const APP_PACKAGES = new Set([
   "@motionvideo/web",
   "@motionvideo/desktop",
   "@motionvideo/render-worker",
-  "@motionvideo/remotion-site",
 ]);
 
 // ── Forbidden rule ────────────────────────────────────────────────────

@@ -42,6 +42,10 @@ export function getUserAssetsProvider(): R2StorageProvider {
   return getR2Provider("assets");
 }
 
+export function getUserExportsProvider(): R2StorageProvider {
+  return getR2Provider("exports");
+}
+
 /**
  * Public read URL for buckets intentionally exposed through an R2 custom
  * domain. Uploads and private server-side operations continue using S3

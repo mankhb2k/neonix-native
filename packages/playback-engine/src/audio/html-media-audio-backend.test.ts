@@ -21,7 +21,7 @@ describe("HTML media audio fallback V3", () => {
     });
     const plan = { sampleRate: 48000 as const, startSample: 0, endSample: 2048, inputs: [{ trackId: "t", clipId: "a", source: { mediaId: "m", streamId: "a" }, sourceSampleRate: 48000, channels: 2, gainLinear: 1, pan: 0, muted: false, compositionStartSample: 0, compositionEndSample: 96000, segments: [{ compositionStartSample: 0, compositionEndSample: 96000, clipTimelineStartSample: 0, clipTimelineDurationSamples: 96000, sourceStartSample: 0, sourceEndSample: 96000, gainEnvelope: { baseGain: 1 } }] }] };
     backend.publish(plan, { generation: 0, operationId: 1, kind: "tick" });
-    backend.start?.({ generation: 0, operationId: 2, kind: "play" });
+    await expect(backend.start?.({ generation: 0, operationId: 2, kind: "play" })).rejects.toBeInstanceOf(DOMException);
     await Promise.resolve();
     await Promise.resolve();
     expect(failures).toHaveLength(1);

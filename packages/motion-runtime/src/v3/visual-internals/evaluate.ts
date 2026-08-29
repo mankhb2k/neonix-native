@@ -1,4 +1,4 @@
-import { frameToTime } from "../../determinism";
+﻿import { frameToTime } from "../../determinism";
 import {
   matrix4ToArray,
   multiplyMatrix4,
@@ -6,7 +6,7 @@ import {
   type Point3D,
 } from "../../matrix4";
 import type { PaintCommand } from "../../paint";
-import { validateVisualRuntimeProject } from "./validate";
+import { normalizeVisualRuntimeProject, validateVisualRuntimeProject } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
 import type { VisualRuntimeFrame, VisualRuntimeNode, VisualRuntimeProject, VisualRuntimeVideo } from "./types";
 
@@ -80,6 +80,10 @@ export function evaluateVisualRuntimeProject(
   frame: number,
   options: { time?: number } = {},
 ): VisualRuntimeFrame {
+  // Native VPS export inputProps cross a JSON boundary. Rehydrate Matrix4 values before
+  // validation and arithmetic; otherwise serialized typed arrays are plain
+  // objects without a numeric length and matrix operations produce NaN.
+  project = normalizeVisualRuntimeProject(project);
   assertFrame(frame);
   const validation = validateVisualRuntimeProject(project);
   if (!validation.ok) {
@@ -375,3 +379,4 @@ export function evaluateVisualRuntimeProject(
     diagnostics,
   };
 }
+

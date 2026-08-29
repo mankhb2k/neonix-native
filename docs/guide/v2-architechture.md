@@ -15,12 +15,9 @@ it reaches the render core.
 
 The source of truth for the accepted JSON is
 [`@motionvideo/motion-protocol`](../../packages/motion-protocol/src/v2/project.ts).
-The complete list of certified visual atomic capabilities is
-[`V2_CERTIFIED_ATOMS`](../../packages/motion-protocol/src/v2/capabilities.ts),
-and the audio list is
-[`V2_AUDIO_CAPABILITY_LEDGER`](../../packages/motion-protocol/src/v2/audio-capabilities.ts).
-This guide explains their architectural meaning; schema and capability ledger
-win if this page ever becomes stale.
+Compiler-supported visual features are owned by
+`@motionvideo/motion-compiler`. Protocol owns the project schema and validation;
+the compiler decides which valid features can be lowered to RuntimeProjectV3.
 
 ## 1. One project, one render meaning
 
@@ -118,11 +115,18 @@ VideoRenderPlanV3                            AudioMixPlanV3
 Export consumes the same RuntimeProjectV3 semantics through an offline backend.
 ```
 
-`VideoLayer.payload.audio` is an authoring intent only. During compilation,
-embedded video audio is converted into an explicit audio timeline clip that
-references the video's audio stream. Standalone audio clips and embedded video
-audio therefore enter the same `AudioMixPlanV3` without making audio a visual
-layer concern.
+`VideoLayer.payload.audio` is authoring intent only. It uses the same per-input
+controls as a standalone audio clip: `enabled`, `gainDb`, `pan`, `fadeIn`, and
+`fadeOut`. During compilation, embedded video audio becomes an explicit audio
+timeline clip that references the video's audio derivative. Standalone clips
+and embedded video audio therefore enter the same `AudioMixPlanV3` without
+making audio a visual-layer concern.
+
+`enabled: false` means "keep this source on the composition timeline but make
+only this mix input silent." It lowers to a muted runtime clip and the audio
+adapter keeps its source aligned at zero gain. It must never pause, seek, or
+otherwise change `PlaybackEngine` transport. `track.muted`, `track.gainDb`, and
+`track.pan` remain optional mixer-bus controls for all clips on that track.
 
 `resolveVideoAt()` and `resolveAudioWindow()` are pure timeline queries. They
 return backend-neutral plans, not decoded frames or PCM. `PlaybackEngine`
@@ -332,7 +336,7 @@ failure cannot change playback semantics.
 
 | Boundary | Package | Owns | Does not own |
 | --- | --- | --- | --- |
-| Protocol | `@motionvideo/motion-protocol` | Strict V2 authoring JSON, asset metadata, atomic vocabulary, capability ledger | Matrix4 values, GPU objects, decoded media, renderer commands |
+| Protocol | `@motionvideo/motion-protocol` | Strict V2 authoring JSON, asset metadata, and atomic vocabulary | Matrix4 values, GPU objects, decoded media, renderer commands |
 | Compiler | `@motionvideo/motion-compiler` | Validation, references, pure V2-to-V3 lowering | Pixel rendering, frame playback, GPU resources |
 | Runtime | `@motionvideo/motion-runtime` | Timing, hierarchy, Matrix4/projection evaluation, paint commands, audio mix plans | Protocol parsing, media decoding, WebAudio/GPU state |
 | Media processing | `@motionvideo/motion-storage` plus a deployment adapter | Object-key policy, probe/derivative records, job lifecycle, integrity checks | Authoring semantics, timeline evaluation, playback clocks |
@@ -482,7 +486,9 @@ type AudioDomainV2 = {
       timing: { start: number; duration: number };
       trim: { start: number; end?: number };
       playbackRate: number;
+      enabled: boolean; // false is silent; it never stops transport
       gainDb: number;
+      pan: number; // -1..1, per source
       fadeIn?: { duration: number; curve: "linear" | "equal-power" };
       fadeOut?: { duration: number; curve: "linear" | "equal-power" };
     }>;
@@ -491,10 +497,11 @@ type AudioDomainV2 = {
 ```
 
 All audio time is in composition seconds until Runtime evaluates a requested
-sample range. The audio capability ledger covers asset identity, timing,
-bounded trim, independent track/clip gain, pan, fade curves, track mute,
-overlapping clips, and explicit video-audio sources. A video layer does not create sound
-implicitly; an audio clip must reference the video asset.
+sample range. Protocol covers audio asset identity, timing,
+bounded trim, per-input enable/gain/pan/fades, track bus controls, overlapping
+clips, and explicit video-audio sources. A video layer does not create sound
+implicitly: its `payload.audio` must be present and its source video must have
+an imported audio derivative before the compiler can create a mix input.
 
 Protocol V2 has no audio or video loop field. Repetition is represented by
 separate clips or instances with explicit timeline ranges. Persisted documents
@@ -504,7 +511,7 @@ retired field; new documents remain strict and cannot encode implicit looping.
 ## 4. Compilation and Runtime IR
 
 `compileProtocol()` is the canonical pure compiler entrypoint. It validates the
-strict schema, certified capability usage, asset references, hierarchy, sibling
+strict schema, compiler-supported feature usage, asset references, hierarchy, sibling
 order, masks, and view contract, then emits the canonical visual/runtime V3
 semantics. `compileProtocol()` lowers the validated document
 into `RuntimeProjectV3`: a media catalog plus static `videoTimeline` and
@@ -623,8 +630,8 @@ frames; it must not let a video element silently take over transport timing.
   transforms, hierarchy, view state, timing, or audio mix intent.
 - Audio stays outside `layers[]`; visual nodes have no audio state.
 - High-level authoring concepts never leak into V2 JSON.
-- A capability is supported only when it appears in the corresponding V2
-  capability ledger; schema presence alone is not a support promise.
+- A feature is supported for rendering only when the Compiler can lower it to
+  RuntimeProjectV3; schema presence alone is not a render promise.
 
 ## 7. Related guides and code
 
@@ -632,7 +639,7 @@ frames; it must not let a video element silently take over transport timing.
 - [Atomic Protocol V2 schema](../../packages/motion-protocol/schema/v2.json):
   generated JSON Schema for validation and tooling.
 - [Protocol source](../../packages/motion-protocol/src/v2): canonical Zod
-  schemas, layer definitions, assets, effects, and capability ledgers.
+  schemas, layer definitions, assets, and effects.
 - [Compiler](../../packages/motion-compiler/src/compiler): Atomic JSON to
   Runtime IR lowering, with the V3 projection in
   [`runtime-project-v3.ts`](../../packages/motion-compiler/src/runtime-project-v3.ts).
