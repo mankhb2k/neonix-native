@@ -19,6 +19,15 @@ import {
 
 const RATE = 48000 as const;
 
+function mediaIdAliases(id: string): readonly string[] {
+  return id.startsWith("asset-") ? [id, id.slice("asset-".length)] : [id, `asset-${id}`];
+}
+
+function findMediaAsset(catalog: RuntimeMediaCatalogV3, id: string): RuntimeMediaCatalogV3["assets"][number] | undefined {
+  const aliases = new Set(mediaIdAliases(id));
+  return catalog.assets.find((asset) => aliases.has(asset.mediaId));
+}
+
 export class CompileProtocolToRuntimeV3Error extends Error {
   constructor(
     readonly code:
@@ -60,7 +69,7 @@ export function compileProtocolToRuntimeV3(
       .filter((layer) => layer.type === "video")
       .flatMap((layer) => {
         const node = visual.nodes.find((candidate) => candidate.id === layer.id);
-        const asset = mediaCatalog.assets.find((candidate) => candidate.mediaId === layer.payload.assetId);
+        const asset = findMediaAsset(mediaCatalog, layer.payload.assetId);
         const stream = asset?.video?.[0];
         if (!node || !stream || node.timing.duration <= 0) {
           if (node && !stream) {
@@ -75,7 +84,7 @@ export function compileProtocolToRuntimeV3(
         return [{
           instanceId: `video:${layer.id}`,
           nodeId: layer.id,
-          source: { mediaId: layer.payload.assetId, streamId: stream.streamId },
+          source: { mediaId: asset.mediaId, streamId: stream.streamId },
           timelineStartUs: Math.round(node.timing.start * 1e6),
           timelineDurationUs: Math.round(node.timing.duration * 1e6),
           sourceStartUs: Math.round((layer.payload.trimStart ?? 0) * 1e6),
@@ -218,7 +227,7 @@ function compileAudioTimeline(
     // Video metadata can be available before probe/derivative generation has
     // discovered an audio stream. Embedded audio is optional; never let that
     // readiness gap prevent the visual video instance from rendering.
-    const sourceAsset = catalog.assets.find((candidate) => candidate.mediaId === layer.payload.assetId);
+    const sourceAsset = findMediaAsset(catalog, layer.payload.assetId);
     if (!sourceAsset?.audio?.length) return [];
     const audio = layer.payload.audio;
     const clip: AudioClipIntentV3 = {
@@ -257,7 +266,7 @@ function audioClip(
   catalog: RuntimeMediaCatalogV3,
   origin: { kind: "video" | "standalone-audio"; authoringId: string },
 ) {
-  const asset = catalog.assets.find((candidate) => candidate.mediaId === clip.assetId);
+  const asset = findMediaAsset(catalog, clip.assetId);
   const stream = asset?.audio?.[0];
   if (!stream) {
     throw new CompileProtocolToRuntimeV3Error(
@@ -269,7 +278,7 @@ function audioClip(
   return {
     clipId: clip.id,
     trackId,
-    source: { mediaId: clip.assetId, streamId: stream.streamId },
+    source: { mediaId: asset.mediaId, streamId: stream.streamId },
     timelineStartSample: secondsToSamples(clip.timing.start, RATE),
     timelineDurationSamples: secondsToSamples(clip.timing.duration, RATE),
     sourceStartSample: secondsToSamples(clip.trim.start, stream.sampleRate),

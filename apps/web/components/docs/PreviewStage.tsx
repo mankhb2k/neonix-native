@@ -505,9 +505,11 @@ async function loadPreviewResources(
             contentRevision: 1,
           } satisfies PreviewAsset;
         }, disposePreviewAsset);
-        leases.push(lease);
-        loaded.set(asset.id, lease.value);
-        continue;
+      leases.push(lease);
+      loaded.set(asset.id, lease.value);
+      if (asset.id.startsWith("asset-")) loaded.set(asset.id.slice("asset-".length), lease.value);
+      else loaded.set(`asset-${asset.id}`, lease.value);
+      continue;
       }
       const lease = await registry.acquire(key, async () => {
         const image = new Image();
