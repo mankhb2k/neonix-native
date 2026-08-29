@@ -50,25 +50,26 @@ một project được rút gọn thành:
                     │   RuntimeProjectV3  │
                     └──────────┬──────────┘
                                │
+                    Runtime outputs
                     ┌──────────┴──────────┐
                     │                     │
                     ▼                     ▼
              ┌──────────────┐      ┌──────────────┐
-             │    PREVIEW   │      │    EXPORT    │
-             │   Renderer   │      │    Engine    │
+             │   PLAYBACK   │      │    EXPORT    │
+             │              │      │   Renderer   │
              └──────┬───────┘      └──────┬───────┘
                     │                     │
-                 WebGPU/                 Native
-                 WebGL2                 Renderer
-                    │                     │
-                    │                     ▼
-                    │                  FFmpeg
-                    │                     │
-                    │                     ▼
-                    │                    MP4
-                    │                     │
-                    └──────────┐   ┌──────┘
-                               ▼   ▼
+                    ▼                     ▼
+             ┌──────────────┐        Native
+             │    PREVIEW   │        Renderer
+             │   Renderer   │           │
+             └──────┬───────┘           ▼
+                    │                 FFmpeg
+                 WebGPU/                │
+                 WebGL2                 ▼
+                    │                  MP4
+                    └──────────┬────────┘
+                               ▼
                               USER
 ```
 
@@ -279,44 +280,122 @@ sample được yêu cầu để audio pipeline có thể mix đúng timeline.
 
 #### Điểm bàn giao
 
-Runtime bàn giao `PaintCommandBuffer` và `AudioMixPlanV3` cho Render.
+Runtime bàn giao `PaintCommandBuffer` và `AudioMixPlanV3` cho Playback & Render.
 
 Chi tiết trách nhiệm, boundary và output contract được mô tả trong
 [`motion-runtime README`](packages/motion-runtime/README.md).
 
-### 5. Render
+### 5. Playback & Render
 
-#### Vai trò
+Playback và Render là các lớp tiêu thụ output của Runtime. Chúng không tạo
+semantics mới cho project; chúng điều phối thời gian, vẽ frame hoặc đóng frame
+và audio thành media cuối cùng.
 
-Render chuyển runtime output thành preview hoặc media cuối cùng.
+Playback chỉ tồn tại trong Editor để phục vụ thao tác realtime của người dùng.
+`docs/preview` và Export Renderer không đi qua Playback; chúng gọi Runtime với
+`frame/time` xác định để kiểm chứng hoặc render deterministically.
 
-#### Luồng dữ liệu
+#### 5.1 Playback
+
+##### Vai trò
+
+Playback điều phối việc phát lại project trong Editor và kết nối clock của
+người dùng với Runtime.
+
+##### Luồng dữ liệu
 
 ```text
-                  Paint commands
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │        RENDER        │
-              │                      │
-              │  Preview backend     │
-              │  Native export       │
-              │  Media encoding      │
-              └──────────┬───────────┘
-                         │
-                         ▼
-                          User
+User controls
+     │
+     │ play / pause / seek / loop
+     ▼
+PLAYBACK
+     │
+     ├── request frame/time → Runtime
+     ├── PaintCommandBuffer → Preview Renderer
+     └── AudioMixPlanV3 → Audio playback
 ```
 
-#### Trách nhiệm
+##### Trách nhiệm
 
-1. Render preview tương tác trong browser.
-2. Render offline bằng native renderer trên VPS.
-3. Chuyển frame và audio thành media cuối cùng.
+1. Quản lý play, pause, seek, loop và clock phát lại.
+2. Yêu cầu Runtime đánh giá đúng `frame/time` hiện tại.
+3. Chuyển `PaintCommandBuffer` cho Preview Renderer.
+4. Chuyển `AudioMixPlanV3` cho audio playback.
 
-#### Điểm bàn giao
+##### Điểm bàn giao
 
-Render bàn giao preview hoặc media cuối cùng cho User.
+Playback bàn giao visual output cho Preview Renderer và audio plan cho audio
+playback backend.
+
+Playback không phải là một bước trong visual test của `docs/preview` và không
+được cung cấp frame hoặc audio cho Export Renderer.
+
+#### 5.2 Preview Renderer
+
+##### Vai trò
+
+Preview Renderer vẽ realtime trạng thái do Runtime trả về trong Editor.
+
+##### Luồng dữ liệu
+
+```text
+Runtime + fixed frame/time
+        │
+        ▼
+PaintCommandBuffer
+        │
+        ▼
+PREVIEW RENDERER
+        │
+        ├── WebGPU / WebGL2
+        └── canvas / screen preview
+```
+
+##### Trách nhiệm
+
+1. Replay `PaintCommandBuffer` bằng backend đồ họa của browser.
+2. Hiển thị đúng transform, layer order, opacity, media và compositing.
+3. Nhận frame realtime từ Playback trong Editor hoặc frame cố định từ
+   `docs/preview` visual tests.
+4. Không tự đánh giá timeline hoặc tạo semantics thay Runtime.
+
+##### Điểm bàn giao
+
+Preview Renderer bàn giao hình ảnh realtime cho User trong Editor.
+
+#### 5.3 Export Renderer
+
+##### Vai trò
+
+Export Renderer render project offline bằng native backend và tạo output video.
+
+##### Luồng dữ liệu
+
+```text
+RuntimeProjectV3
+        │
+        ▼
+EXPORT RENDERER (independent from Playback)
+        ├── evaluate frame → PaintCommandBuffer
+        ├── replay bằng native renderer → frames
+        ├── resolve audio → AudioMixPlanV3
+        └── FFmpeg → MP4
+```
+
+##### Trách nhiệm
+
+1. Duyệt toàn bộ frame theo composition FPS và duration.
+2. Dùng Runtime output để render frame bằng native backend trên VPS.
+3. Xử lý audio plan và đồng bộ audio với video.
+4. Gửi frame và audio cho FFmpeg để tạo MP4.
+
+Export Renderer không sử dụng clock, frame buffer hoặc audio playback state của
+Playback.
+
+##### Điểm bàn giao
+
+Export Renderer bàn giao MP4 và metadata export cho Web API hoặc Storage.
 
 ## Quy tắc đơn giản hóa kiến trúc
 
@@ -331,6 +410,9 @@ Render bàn giao preview hoặc media cuối cùng cho User.
    metadata; export worker chỉ nhận runtime project, render và trả artifact.
 8. Unsupported capability phải fail closed và trả diagnostic rõ ràng.
 9. Tối ưu chỉ được thêm sau khi có test chứng minh output vẫn đúng hình ảnh.
+10. Playback chỉ phục vụ Editor và không phải là nguồn frame/audio cho export.
+11. `docs/preview` phải kiểm tra trực tiếp Runtime và Preview Renderer bằng
+    frame/time xác định, không phụ thuộc clock realtime của Playback.
 
 ## Luồng dữ liệu chuẩn
 
@@ -342,8 +424,10 @@ MotionProtocolV2
 Compiler
       ↓
 RuntimeProjectV3
-      ├── Preview Renderer → WebGPU/WebGL2 → user preview
-      └── Export Renderer  → Native frames → FFmpeg → MP4 → user download
+      └── Runtime evaluator
+            ├── Editor Playback → Preview Renderer → WebGPU/WebGL2 → user preview
+            ├── docs/preview → Preview Renderer → visual test output
+            └── Export Renderer → Native frames → FFmpeg → MP4 → user download
 ```
 
 ## Ranh giới trách nhiệm
@@ -353,7 +437,8 @@ RuntimeProjectV3
 | Editor / MCP / AI Agent | Tạo và sửa authoring intent                   |
 | MotionProtocolV2        | Project JSON contract                         |
 | Compiler                | Hạ V2 thành RuntimeProjectV3                  |
-| Motion Runtime          | Evaluate timeline và tạo paint commands       |
+| Motion Runtime          | Evaluate frame/time và tạo visual/audio plans |
+| Playback                | Điều phối clock, controls và phát lại          |
 | Preview Renderer        | Render realtime trong browser                 |
 | Export Renderer         | Render offline native trên VPS                |
 | FFmpeg                  | Encode frame/audio thành MP4                  |
