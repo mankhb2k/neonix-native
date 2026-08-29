@@ -1704,7 +1704,7 @@ test.describe("Protocol V2 atom preview", () => {
     ]);
   });
 
-  test("fits a full HD composition inside the stage and exposes transport controls", async ({
+  test("fits a full HD composition inside the stage and exposes fixed-frame controls", async ({
     page,
   }) => {
     await page.goto("/docs/preview?case=primitive.shape.rectangle&backend=webgl2");
@@ -1731,34 +1731,24 @@ test.describe("Protocol V2 atom preview", () => {
     expect(sidebarLayout.height).toBeGreaterThan(600);
     await expect(page.getByTestId("preview-transport")).toBeVisible();
     await expect(page.getByTestId("preview-timecode")).toHaveText("0:00 / 0:03");
-
-    await page.getByTestId("preview-play-toggle").click();
-    await expect(page.getByTestId("preview-play-toggle")).toHaveAttribute(
-      "aria-label",
-      "Pause",
-    );
-    await page.getByTestId("preview-play-toggle").click();
-    await expect(page.getByTestId("preview-play-toggle")).toHaveAttribute(
-      "aria-label",
-      "Play",
-    );
+    await expect(page.getByText("Fixed frame")).toBeVisible();
   });
 
-  test("advances a V2 video preview through the playback engine", async ({
+  test("renders a V2 video preview at deterministic requested times", async ({
     page,
   }) => {
     await page.goto("/docs/preview?case=video.frame-seek&backend=webgl2&time=0");
     const slider = page.getByTestId("preview-time-slider");
-    const toggle = page.getByTestId("preview-play-toggle");
     await expect(slider).toHaveValue("0");
 
-    await toggle.click();
-    await expect
-      .poll(async () => Number(await slider.inputValue()), { timeout: 5_000 })
-      .toBeGreaterThan(0.2);
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", "Play");
+    await slider.fill("1");
+    await expect(slider).toHaveValue("1");
+    await expect(page.getByTestId("preview-timecode")).toHaveText("0:01 / 0:03");
+    await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
+      "data-video-times",
+      "video:1.000:visible",
+      { timeout: 10_000 },
+    );
   });
 
   test("keeps 3D rectangle bounds and interior pixels within backend tolerance", async ({

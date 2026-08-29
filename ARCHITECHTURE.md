@@ -73,6 +73,91 @@ một project được rút gọn thành:
                               USER
 ```
 
+## Luồng Media Ingest và Audio
+
+Media Ingest là luồng chuẩn bị asset nằm trước authoring và chạy xuyên qua
+Protocol, Compiler, Runtime đến Render. Đây không phải là một tầng semantics
+mới: nó chỉ biến file upload thành resource và metadata mà các tầng sau có thể
+tham chiếu ổn định.
+
+```text
+USER
+  │
+  │ upload MP4
+  ▼
+WEB API / STORAGE
+  │
+  ├── lưu original video asset
+  └── tạo media preparation job
+  │
+  ▼
+MEDIA INGEST WORKER
+  │
+  ├── ffprobe
+  │     └── duration, fps, dimensions, streams, codec, audio metadata
+  │
+  ├── video source
+  │     └── dùng để đọc frame hình ảnh
+  │
+  └── audio derivative
+        └── dùng cho audio timeline và mixing
+  │
+  ▼
+ASSET CATALOG
+  │
+  │ asset đã probe và sẵn sàng
+  ▼
+MotionProtocolV2
+  │
+  │ video.payload.audio + video timing/trim
+  ▼
+Compiler
+  │
+  ├── Visual Video Layer
+  └── Audio Clip / Audio Timeline
+  │
+  ▼
+RuntimeProjectV3
+  │
+  ├── PaintCommandBuffer
+  └── AudioMixPlanV3
+  │
+  ├── Preview Renderer + Audio Backend
+  └── Export Renderer + FFmpeg
+```
+
+### Ranh giới của Media Ingest
+
+1. Web API nhận upload, xác thực quyền sở hữu và lưu original asset.
+2. Media Ingest Worker dùng `ffprobe` để đọc metadata thực tế của file.
+3. Nếu video có audio, Worker tạo một audio-only derivative có thể seek và
+   ghi nhận derivative đó vào asset catalog.
+4. Original MP4 không cần bị ghi đè hoặc tách thành các ảnh PNG.
+5. Preview và Export dùng video source cho hình ảnh; audio derivative là nguồn
+   audio riêng.
+6. Nếu audio derivative chưa sẵn sàng, asset chưa được coi là sẵn sàng cho
+   audio render.
+
+### Audio đi qua các tầng
+
+```text
+video.payload.audio
+  → authoring audio controls
+  → Compiler tạo audio clip độc lập
+  → Runtime tạo AudioMixPlanV3
+  → Audio Backend / FFmpeg decode và mix
+  → MP4 mux audio + video
+```
+
+`video.payload.audio` mô tả ý định audio của video layer: bật/tắt, gain,
+pan và fade. Timing và trim mặc định lấy từ video layer; Compiler chuyển các
+giá trị đó thành timing/trim của audio clip runtime. Vì vậy video và audio
+được tách để xử lý, nhưng vẫn giữ cùng một timeline authoring.
+
+Chi tiết về upload, probe và derivative nằm trong
+[`motion-storage README`](packages/motion-storage/README.md). Chi tiết về
+audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/README.md).
+
 ## Năm tầng cốt lõi
 
 ### 1. Author
@@ -137,7 +222,9 @@ Protocol chuẩn hóa authoring intent thành một project hợp lệ và canon
 
 #### Trách nhiệm
 
-Protocol cung cấp một JSON project canonical duy nhất:
+Protocol cung cấp một JSON project canonical duy nhất. Với video có audio,
+Protocol lưu cả liên kết audio của video layer và audio derivative metadata
+trong asset; Protocol không chứa decoded audio hoặc frame data.
 
 ```text
 MotionProtocolV2
@@ -230,7 +317,8 @@ Compiler là điểm chuyển đổi duy nhất từ authoring model sang runtim
 
 #### Điểm bàn giao
 
-Compiler bàn giao `RuntimeProjectV3` cho Runtime.
+Compiler bàn giao `RuntimeProjectV3` cho Runtime. Embedded audio của video
+layer trở thành một audio clip độc lập trong audio timeline.
 
 Chi tiết trách nhiệm, luồng compile và capability được mô tả trong
 [`motion-compiler README`](packages/motion-compiler/README.md).
@@ -277,6 +365,10 @@ Runtime thực hiện sáu công việc cốt lõi cho visual frame:
 
 Song song với visual evaluation, Runtime tạo `AudioMixPlanV3` cho khoảng
 sample được yêu cầu để audio pipeline có thể mix đúng timeline.
+
+Audio plan giữ các đặc tính đã được Compiler hạ xuống: source derivative,
+composition range, source trim, playback rate, enabled/mute, gain, pan và fade
+envelope. Runtime không decode audio và không tạo audio device.
 
 #### Điểm bàn giao
 
@@ -387,15 +479,22 @@ EXPORT RENDERER (independent from Playback)
 
 1. Duyệt toàn bộ frame theo composition FPS và duration.
 2. Dùng Runtime output để render frame bằng native backend trên VPS.
-3. Xử lý audio plan và đồng bộ audio với video.
+3. Đọc audio derivative, xử lý `AudioMixPlanV3` và đồng bộ audio với video.
 4. Gửi frame và audio cho FFmpeg để tạo MP4.
 
 Export Renderer không sử dụng clock, frame buffer hoặc audio playback state của
 Playback.
 
+Trong luồng export, audio nhúng trong original MP4 bị vô hiệu hóa ở đầu vào
+video. Audio được decode từ derivative, mix theo `AudioMixPlanV3`, sau đó
+FFmpeg mux video stream và audio stream thành MP4 cuối cùng.
+
 ##### Điểm bàn giao
 
 Export Renderer bàn giao MP4 và metadata export cho Web API hoặc Storage.
+
+Chi tiết pipeline native, audio separation và ranh giới FFmpeg được mô tả
+trong [`export-renderer README`](packages/export-renderer/README.md).
 
 ## Quy tắc đơn giản hóa kiến trúc
 
@@ -419,6 +518,8 @@ Export Renderer bàn giao MP4 và metadata export cho Web API hoặc Storage.
 ```text
 User / AI input
       ↓
+Upload MP4 → Storage → Media Ingest → Asset Catalog
+      ↓
 MotionProtocolV2
       ↓
 Compiler
@@ -427,7 +528,7 @@ RuntimeProjectV3
       └── Runtime evaluator
             ├── Editor Playback → Preview Renderer → WebGPU/WebGL2 → user preview
             ├── docs/preview → Preview Renderer → visual test output
-            └── Export Renderer → Native frames → FFmpeg → MP4 → user download
+            └── Export Renderer → Native frames + audio mix → FFmpeg → MP4 → user download
 ```
 
 ## Ranh giới trách nhiệm
@@ -443,7 +544,8 @@ RuntimeProjectV3
 | Export Renderer         | Render offline native trên VPS                |
 | FFmpeg                  | Encode frame/audio thành MP4                  |
 | Web API                 | Auth, ownership, job state, artifact metadata |
-| Storage                 | Lưu asset và export artifact                  |
+| Storage                 | Lưu original, derivative và export artifact  |
+| Media Ingest Worker     | Probe media và tạo audio derivative           |
 
 ## Tiêu chuẩn quyết định
 

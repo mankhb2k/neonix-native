@@ -36,20 +36,18 @@ async function seekSlider(page: Page, value: number) {
   }, value);
 }
 
-test.describe("preview playback transport and resource lifecycle", () => {
-  test("plays, pauses, and keeps the paint clock moving with decoded video frames", async ({ page }) => {
+test.describe("preview renderer and resource lifecycle", () => {
+  test("renders a fixed video frame without the playback engine", async ({ page }) => {
     await page.goto(VIDEO_CASE);
     const canvas = page.getByTestId("preview-v2-canvas");
     const slider = page.getByTestId("preview-time-slider");
-    const toggle = page.getByTestId("preview-play-toggle");
     await expect(canvas).toHaveAttribute("data-backend", "webgl2");
     await expect(canvas).toHaveAttribute("data-video-times", "video:0.000:visible");
     await expect(slider).toHaveValue("0");
 
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", "Pause");
-    await expect.poll(async () => Number(await slider.inputValue()), { timeout: 5_000 })
-      .toBeGreaterThan(0.2);
+    await slider.fill("1");
+    await expect(slider).toHaveValue("1");
+    await expect(canvas).toHaveAttribute("data-video-times", "video:1.000:visible", { timeout: 10_000 });
     const playingSnapshot = await canvas.evaluate((node) => ({
       paintAt: Number(node.getAttribute("data-paint-at-ms") ?? 0),
       interval: Number(node.getAttribute("data-paint-interval-ms") ?? 0),
@@ -57,14 +55,7 @@ test.describe("preview playback transport and resource lifecycle", () => {
       diagnostics: node.getAttribute("data-diagnostics") ?? "",
     }));
     expect(playingSnapshot.paintAt).toBeGreaterThan(0);
-    expect(playingSnapshot.interval).toBeLessThan(100);
     expect(playingSnapshot.diagnostics).not.toMatch(/error|unavailable/i);
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", "Play");
-    const pausedAt = await slider.inputValue();
-    await page.waitForTimeout(180);
-    await expect(slider).toHaveValue(pausedAt);
     await expect(canvas).toHaveAttribute("data-paint-playing", "false");
   });
 
@@ -98,18 +89,12 @@ test.describe("preview playback transport and resource lifecycle", () => {
     expect(snapshot.diagnostics).not.toMatch(/error|unavailable/i);
   });
 
-  test("keeps preview resource counts bounded across 100 play/pause/seek cycles", async ({ page }) => {
+  test("keeps preview resource counts bounded across 100 fixed-frame seeks", async ({ page }) => {
     await page.goto(VIDEO_CASE);
     const canvas = page.getByTestId("preview-v2-canvas");
-    const toggle = page.getByTestId("preview-play-toggle");
     await expect(canvas).toHaveAttribute("data-video-times", "video:0.000:visible");
 
     for (let cycle = 0; cycle < 100; cycle += 1) {
-      await toggle.click();
-      await expect(toggle).toHaveAttribute("aria-label", "Pause");
-      await page.waitForTimeout(35);
-      await toggle.click();
-      await expect(toggle).toHaveAttribute("aria-label", "Play");
       await seekSlider(page, (cycle % 6) * 0.4);
     }
 

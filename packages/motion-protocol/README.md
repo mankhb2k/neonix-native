@@ -46,9 +46,11 @@ MotionProtocolV2
 The root also contains required `assets[]` and `audio` domains. Silent
 projects use `audio: { sampleRate: 48000, tracks: [] }`. Audio is parallel to
 `layers[]`, not part of the visual scene graph; its clips reference `audio` or
-`video` assets. A video with embedded sound stores only `payload.audio.enabled`,
-`gainDb`, `pan`, and optional fades; its timing, trim, and visual order remain
-owned by the video layer.
+`video` assets. A video layer with embedded sound stores its audio authoring
+controls in `payload.audio`. The video layer remains the default source of
+composition timing and source trim; the Compiler copies those values into a
+separate runtime audio clip. The audio derivative itself is metadata on the
+video asset and is not decoded audio.
 
 Every schema is strict. Unknown fields are rejected. A Protocol V1 envelope,
 legacy origin/depth fields, bones, high-level patterns, and runtime-only fields
@@ -259,6 +261,63 @@ Each audio clip may also contain `fadeIn` and `fadeOut`, each with a
 Audio clip timing is composition time. `trim` is source time. Audio clips may
 reference only `audio` assets or the audio derivative of a `video` asset.
 `enabled: false` silences the mix input without removing it from the timeline.
+
+#### Embedded audio on a video layer
+
+`video.payload.audio` is an authoring control surface for the audio stream
+belonging to that video layer. It has the same audio characteristics as a
+standalone input:
+
+| Field | Meaning |
+| --- | --- |
+| `enabled` | Whether the embedded audio contributes to the mix |
+| `gainDb` | Input gain in decibels |
+| `pan` | Normalized stereo pan from `-1` to `1` |
+| `fadeIn` | Optional fade-in duration and curve |
+| `fadeOut` | Optional fade-out duration and curve |
+| video `timing` | Default composition range for the linked audio |
+| video `trimStart` / `trimEnd` | Default source range for the linked audio |
+
+The current Protocol keeps timing and trim on the video layer so one edit can
+move, trim, or retime the visual and its original audio together. The
+authoring command changes these values; the Compiler resolves them into an
+independent audio clip. This avoids putting decoder state, PCM, or FFmpeg
+commands inside Protocol JSON.
+
+Example:
+
+```json
+{
+  "type": "video",
+  "timing": { "start": 2, "duration": 4 },
+  "payload": {
+    "assetId": "video-01",
+    "trimStart": 1,
+    "trimEnd": 5,
+    "audio": {
+      "enabled": true,
+      "gainDb": -3,
+      "pan": 0,
+      "fadeIn": { "duration": 0.25, "curve": "linear" },
+      "fadeOut": { "duration": 0.5, "curve": "equal-power" }
+    }
+  }
+}
+```
+
+The semantic lowering is:
+
+```text
+video layer
+  ├── visual source: original video stream
+  └── audio source: video asset audio derivative
+        └── timing/trim inherited from the video layer
+            + gain/pan/fades from payload.audio
+```
+
+If an editor needs audio independent from the video, it should create or
+promote a standalone audio clip in `audio.tracks[]` instead of silently
+changing the meaning of the linked video layer.
 
 ### 8. Validation rules
 

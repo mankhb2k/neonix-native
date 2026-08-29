@@ -108,6 +108,32 @@ pan, mute state, and fade envelopes.
 nodes, open an audio device, or encode audio. The playback backend and the
 offline export pipeline perform those operations.
 
+### Embedded video audio
+
+When a video layer has `payload.audio`, Runtime receives the already-lowered
+audio clip from the Compiler. It does not read audio fields from the visual
+video command and does not inspect the original MP4 itself.
+
+```text
+RuntimeProjectV3
+  ├── videoTimeline
+  │     └── visual video instance → video frame plan
+  └── audioTimeline
+        └── linked audio clip → AudioMixPlanV3
+              ├── source: audio derivative
+              ├── composition timing: linked to video timing
+              ├── source trim: linked to video trim
+              ├── playback rate
+              ├── gain / pan
+              └── fade envelopes
+```
+
+At a requested sample window, Runtime resolves whether the linked audio is
+active, maps composition samples to source samples, and emits the controls
+needed by the audio backend. The original video's embedded audio is therefore
+not played as a second input. Preview mutes it and uses the audio backend;
+Export disables it and uses the offline audio pipeline.
+
 ## Public boundaries
 
 ### Input
@@ -148,6 +174,21 @@ Runtime
 The visual output is consumed by Preview Renderer and Export Renderer. The
 audio output is consumed by playback or offline audio processing. Runtime does
 not return an MP4 and does not own storage, job management, or billing.
+
+## Audio ownership summary
+
+```text
+Protocol
+  → describes audio intent and linked controls
+Compiler
+  → creates an independent runtime audio clip
+Runtime
+  → resolves sample-accurate state into AudioMixPlanV3
+Audio Backend
+  → decodes, applies gain/fade/pan, and mixes
+FFmpeg
+  → encodes or muxes the final audio with video
+```
 
 ## Determinism and parity
 

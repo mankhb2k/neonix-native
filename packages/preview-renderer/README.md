@@ -25,6 +25,30 @@ Text, paths, masks, and advanced effects intentionally report diagnostics until
 their native pipelines are implemented. This keeps missing capability visible
 while the backend grows.
 
+## Preview media and audio boundary
+
+Preview receives visual semantics from Runtime and audio semantics from the
+separate playback audio backend. It does not play the audio track embedded in
+the original video element as an additional source.
+
+```text
+RuntimeProjectV3
+  ├── PaintCommandBuffer
+  │     └── Preview Renderer → video frames on canvas
+  └── AudioMixPlanV3
+        └── Playback Audio Backend → audio derivative
+```
+
+For a video layer with `payload.audio`, the visual video resource is rendered
+with its embedded audio muted. The linked audio derivative is scheduled from
+the same compiled timing and trim and receives gain, pan, and fade controls
+from `AudioMixPlanV3`.
+
+`docs/preview` calls Runtime and this renderer with a fixed frame/time for
+visual parity tests. It does not use the Editor Playback clock. Audio
+playback controls belong to the Editor Playback path and never affect Native
+Export.
+
 ```ts
 const renderer = await createPreviewRenderer({
   canvas,

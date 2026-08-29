@@ -186,6 +186,35 @@ Protocol audio + video embedded audio
               audioTimeline
 ```
 
+For embedded audio, the video layer is the authoring owner of the linked
+timeline by default:
+
+```text
+video layer
+  ├── timing.start / timing.duration
+  ├── payload.trimStart / payload.trimEnd
+  └── payload.audio
+        ├── enabled
+        ├── gainDb
+        ├── pan
+        └── fadeIn / fadeOut
+        │
+        ▼
+runtime audio clip
+  ├── source: video asset audio derivative
+  ├── timing: copied from video layer
+  ├── trim: copied from video payload
+  └── controls: copied from payload.audio
+```
+
+This is the important separation: the Compiler does not leave audio attached
+to the visual node for the Runtime to interpret. It emits a visual video
+instance and an independent audio timeline input that share the same source
+asset and timing semantics. If `payload.audio.enabled` is false, the linked
+audio input remains represented but is silent. If audio must be edited
+independently, authoring should use a standalone `audio.tracks[].clips[]`
+entry.
+
 Audio sample rate in Protocol V2 and the runtime mix plan is `48000` for the
 composition timeline. A source stream may retain its native sample rate in the
 media catalog.

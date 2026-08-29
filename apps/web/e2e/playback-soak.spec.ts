@@ -35,17 +35,13 @@ async function readMetrics(page: Page) {
   });
 }
 
-test.describe("10-minute playback soak", () => {
-  test("keeps heap/resource trend bounded during continuous playback", async ({ page }) => {
+test.describe("10-minute preview renderer soak", () => {
+  test("keeps heap/resource trend bounded during repeated fixed-frame renders", async ({ page }) => {
     test.setTimeout((SOAK_SECONDS + 60) * 1000);
     await page.goto(VIDEO_CASE);
-    const toggle = page.getByTestId("preview-play-toggle");
     const slider = page.getByTestId("preview-time-slider");
-    await expect(toggle).toHaveAttribute("aria-label", "Play");
 
     const before = await collectHeapSnapshot(page, "heap-before.heapsnapshot");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", "Pause");
 
     const samples: Array<{ elapsedSec: number; metrics: Awaited<ReturnType<typeof readMetrics>> }> = [];
     const started = Date.now();
@@ -55,18 +51,15 @@ test.describe("10-minute playback soak", () => {
       const value = Number(await slider.inputValue());
       const max = Number(await slider.getAttribute("max") ?? 0);
       // The fixture is short. Restart at the boundary so the composition clock
-      // remains active while the browser is observed for the full soak window.
+      // remains exercised while the browser is observed for the full soak window.
       if (max > 0 && value >= max - 0.05) {
         await slider.fill("0");
-        if (await toggle.getAttribute("aria-label") === "Play") await toggle.click();
       }
       if (Math.floor(elapsedSec) % 30 === 0) {
         samples.push({ elapsedSec, metrics: await readMetrics(page) });
       }
     }
 
-    if (await toggle.getAttribute("aria-label") === "Pause") await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-label", "Play");
     const after = await collectHeapSnapshot(page, "heap-after.heapsnapshot");
     const finalMetrics = await readMetrics(page);
     const result = {
