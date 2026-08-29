@@ -12,6 +12,7 @@
     "typecheck:editor": "tsc --noEmit -p tsconfig.editor.json",
     "test:editor": "vitest run --config vitest.editor.config.ts",
     "seed:demo-user": "tsx scripts/seed-demo-user.ts",
+    "seed:render-tests": "tsx scripts/seed-render-test-projects.ts",
     "migrate:asset-prefix": "tsx scripts/migrate-asset-prefix-v3.ts",
     "test:editor:watch": "vitest --config vitest.editor.config.ts",
     "test": "pnpm run test:editor",

@@ -21,6 +21,10 @@ type DbAsset = {
   mime_type: string;
   byte_size: number;
   status: string;
+  r2_key: string;
+  source_duration_ms: number | null;
+  source_width: number | null;
+  source_height: number | null;
 };
 
 type AssetRef = {
@@ -166,7 +170,7 @@ function imageLayer(input: { id: string; order: number; assetId: string; start: 
   };
 }
 
-function videoLayer(input: { id: string; order: number; assetId: string; start: number; duration: number; muted?: boolean }) {
+function videoLayer(input: { id: string; order: number; assetId: string; start: number; duration: number }) {
   return {
     id: input.id,
     type: "video" as const,
@@ -179,7 +183,9 @@ function videoLayer(input: { id: string; order: number; assetId: string; start: 
     payload: {
       assetId: input.assetId,
       fit: "cover" as const,
-      audio: { enabled: !(input.muted ?? true) },
+      // Video visuals are always mute. Audio enters the mix only through an
+      // explicit AudioClip that points to an audio asset/derivative.
+      audio: { enabled: false, gainDb: 0 },
       framePolicy: "floor" as const,
     },
   };
@@ -189,9 +195,10 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
   return {
     ...project,
     audio: {
-    sampleRate: 48000 as const,
+      sampleRate: 48000 as const,
     tracks: [{
       id: `${id}-track`,
+      gainDb: 0,
       pan: 0,
       muted: false,
       clips: [{
@@ -199,6 +206,7 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
         assetId: asset.id,
         timing: { start: 0, duration },
         trim: { start: 0, end: duration },
+        gainDb: 0,
         playbackRate: 1,
         fadeIn: { duration: 2, curve: "equal-power" as const },
         fadeOut: { duration: 3, curve: "equal-power" as const },
@@ -211,8 +219,39 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
 function withAssets(project: MotionProtocolV2, assets: AssetRef[]) {
   return {
     ...project,
-    assets: [...project.assets, ...assets.map(({ dbId: _dbId, ...asset }) => asset)],
+    assets: [...project.assets, ...assets.map((asset) => {
+      if (asset.kind === "image") return {
+        id: asset.id,
+        kind: "image" as const,
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        ...(asset.width != null ? { width: asset.width } : {}),
+        ...(asset.height != null ? { height: asset.height } : {}),
+      };
+      if (asset.kind === "video") return {
+        id: asset.id,
+        kind: "video" as const,
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        ...(asset.width != null ? { width: asset.width } : {}),
+        ...(asset.height != null ? { height: asset.height } : {}),
+        ...(asset.duration != null ? { duration: asset.duration } : {}),
+        ...(asset.fps != null ? { fps: asset.fps } : {}),
+      };
+      return {
+        id: asset.id,
+        kind: "audio" as const,
+        uri: asset.uri,
+        mimeType: asset.mimeType,
+        ...(asset.duration != null ? { duration: asset.duration } : {}),
+        ...(asset.sampleRate != null ? { sampleRate: asset.sampleRate } : {}),
+      };
+    })],
   };
+}
+
+function availableDuration(asset: AssetRef, requested: number): number {
+  return Math.min(requested, asset.duration ?? requested);
 }
 
 function buildProjects(assets: Record<string, AssetRef>): Array<{ title: string; document: MotionProtocolV2; assetDbIds: string[] }> {
@@ -229,7 +268,7 @@ function buildProjects(assets: Record<string, AssetRef>): Array<{ title: string;
 
   const p2 = withAssets(baseProject("render-test-media-mix-60s", 60, "#08111f"), [assets.videoShort, assets.imageLandscape, assets.imageAlpha, assets.audioShort]);
   p2.layers = [
-    videoLayer({ id: "video-background", order: 0, assetId: assets.videoShort.id, start: 0, duration: 60, muted: true }),
+    videoLayer({ id: "video-background", order: 0, assetId: assets.videoShort.id, start: 0, duration: 60 }),
     imageLayer({ id: "landscape-overlay", order: 1, assetId: assets.imageLandscape.id, start: 0, duration: 30, x: 120, y: 120, width: 720, height: 405, opacity: 0.82 }),
     imageLayer({ id: "alpha-overlay", order: 2, assetId: assets.imageAlpha.id, start: 30, duration: 30, x: 1200, y: 520, width: 420, height: 420 }),
     text({ id: "media-title", order: 3, start: 0, duration: 60, value: "Media mix benchmark", size: 72 }),
@@ -239,7 +278,7 @@ function buildProjects(assets: Record<string, AssetRef>): Array<{ title: string;
   const p3Base = withAssets(baseProject("render-test-video-source-5m", 300, "#06101a"), [assets.videoLong, assets.audioLong]);
   const p3 = addAudio(p3Base, assets.audioLong, 300, "five-minute-audio");
   p3.layers = [
-    videoLayer({ id: "five-minute-video", order: 0, assetId: assets.videoLong.id, start: 0, duration: 300, muted: false }),
+    videoLayer({ id: "five-minute-video", order: 0, assetId: assets.videoLong.id, start: 0, duration: availableDuration(assets.videoLong, 300) }),
     text({ id: "five-minute-title", order: 1, start: 0, duration: 300, value: "Five-minute 1080p30 source test", size: 58, y: 850 }),
   ];
 
@@ -255,7 +294,7 @@ function buildProjects(assets: Record<string, AssetRef>): Array<{ title: string;
   const p5Base = withAssets(baseProject("render-test-heavy-composite-5m", 300, "#0b1020"), [assets.videoLong, assets.imageLandscape, assets.imageSquare, assets.imageAlpha, assets.svg, assets.audioLong]);
   const p5 = p5Base;
   p5.layers = [
-    videoLayer({ id: "composite-video", order: 0, assetId: assets.videoLong.id, start: 0, duration: 300, muted: true }),
+    videoLayer({ id: "composite-video", order: 0, assetId: assets.videoLong.id, start: 0, duration: availableDuration(assets.videoLong, 300) }),
     imageLayer({ id: "composite-landscape", order: 1, assetId: assets.imageLandscape.id, start: 0, duration: 300, x: 0, y: 0, width: 1920, height: 1080, opacity: 0.28 }),
     imageLayer({ id: "composite-square", order: 2, assetId: assets.imageSquare.id, start: 0, duration: 150, x: 130, y: 180, width: 560, height: 560, opacity: 0.9 }),
     imageLayer({ id: "composite-alpha", order: 3, assetId: assets.imageAlpha.id, start: 150, duration: 150, x: 1230, y: 180, width: 560, height: 560 }),
@@ -278,6 +317,7 @@ function hashDocument(document: MotionProtocolV2): string {
 }
 
 async function main() {
+  const refresh = process.argv.includes("--refresh");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Supabase environment is not configured");
@@ -290,7 +330,7 @@ async function main() {
   const { data: membership, error: membershipError } = await db.from("workspace_members").select("workspace_id").eq("user_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (membershipError || !membership) throw membershipError ?? new Error("Demo workspace was not found");
 
-  const { data: rows, error: assetsError } = await db.from("assets").select("id, original_filename, mime_type, byte_size, status").eq("workspace_id", membership.workspace_id).eq("status", "ready").is("deleted_at", null);
+  const { data: rows, error: assetsError } = await db.from("assets").select("id, original_filename, mime_type, byte_size, status, r2_key, source_duration_ms, source_width, source_height").eq("workspace_id", membership.workspace_id).eq("status", "ready").is("deleted_at", null);
   if (assetsError) throw assetsError;
   const byName = new Map((rows as DbAsset[]).map((asset) => [asset.original_filename?.toLowerCase(), asset]));
   const required = ["video-1080p.mp4", "Video Project.mp4", "tinh-yeu-mau-nang-128k.mp3", "Music-MBB-Island-Tropical_128k.mp3", "example16-9.jpg", "example1-1.jpg", "beer-can_8798947.png", "cute_7980701.png", "Whatapp-icon.svg"];
@@ -298,14 +338,23 @@ async function main() {
 
   const storage = getUserAssetsProvider();
   const objectUrl = async (asset: DbAsset): Promise<string> => {
-    const { data, error } = await db.from("assets").select("r2_key").eq("id", asset.id).single();
-    if (error || !data?.r2_key) throw error ?? new Error(`Missing R2 key for ${asset.original_filename}`);
-    const signed = await storage.presignGet(data.r2_key, 60 * 60 * 24 * 7);
+    if (!asset.r2_key) throw new Error(`Missing R2 key for ${asset.original_filename}`);
+    const signed = await storage.presignGet(asset.r2_key, 60 * 60 * 24 * 7);
     return signed.url;
   };
   const ref = async (name: string, kind: AssetRef["kind"], extra: Partial<AssetRef> = {}): Promise<AssetRef> => {
     const dbAsset = byName.get(name.toLowerCase())!;
-    return { id: `asset-${dbAsset.id}`, dbId: dbAsset.id, kind, uri: await objectUrl(dbAsset), mimeType: dbAsset.mime_type, ...extra };
+    return {
+      id: `asset-${dbAsset.id}`,
+      dbId: dbAsset.id,
+      kind,
+      uri: await objectUrl(dbAsset),
+      mimeType: dbAsset.mime_type,
+      ...extra,
+      duration: dbAsset.source_duration_ms != null ? dbAsset.source_duration_ms / 1_000 : extra.duration,
+      width: dbAsset.source_width ?? extra.width,
+      height: dbAsset.source_height ?? extra.height,
+    };
   };
   const assetRefs = {
     videoShort: await ref("Video Project.mp4", "video", { duration: 60.5, fps: 30, width: 1920, height: 1080 }),
@@ -319,29 +368,39 @@ async function main() {
   };
 
   const projects = buildProjects(assetRefs);
-  const { data: existing, error: existingError } = await db.from("projects").select("id,title").eq("workspace_id", membership.workspace_id).like("title", `${TEST_PREFIX}%`).is("deleted_at", null);
+  const { data: existing, error: existingError } = await db.from("projects").select("id,title,current_revision_no").eq("workspace_id", membership.workspace_id).like("title", `${TEST_PREFIX}%`).is("deleted_at", null);
   if (existingError) throw existingError;
-  const existingTitles = new Set((existing ?? []).map((project) => project.title));
+  const existingByTitle = new Map((existing ?? []).map((project) => [project.title, project]));
   let created = 0;
+  let refreshed = 0;
+  let skipped = 0;
   for (const entry of projects) {
-    if (existingTitles.has(entry.title)) continue;
     const parsed = MotionProtocolV2Schema.parse(entry.document);
-    const { data: project, error: projectError } = await db.from("projects").insert({ workspace_id: membership.workspace_id, title: entry.title, created_by: user.id, current_revision_no: 0 }).select("id").single();
-    if (projectError || !project) throw projectError ?? new Error("Project insert returned no row");
+    const existingProject = existingByTitle.get(entry.title);
+    if (existingProject && !refresh) {
+      skipped += 1;
+      continue;
+    }
+    const project = existingProject ?? await (async () => {
+      const { data, error } = await db.from("projects").insert({ workspace_id: membership.workspace_id, title: entry.title, created_by: user.id, current_revision_no: 0 }).select("id,title,current_revision_no").single();
+      if (error || !data) throw error ?? new Error("Project insert returned no row");
+      return data;
+    })();
     const documentJson = parsed as unknown as Record<string, unknown>;
-    const { error: revisionError } = await db.from("project_revisions").insert({ project_id: project.id, revision_no: 1, document_json: documentJson, content_hash: hashDocument(parsed), source_schema_version: 2, reason: "import", byte_size: Buffer.byteLength(JSON.stringify(documentJson), "utf8"), created_by: user.id });
+    const revisionNo = (existingProject?.current_revision_no ?? 0) + 1;
+    const { error: revisionError } = await db.from("project_revisions").insert({ project_id: project.id, revision_no: revisionNo, document_json: documentJson, content_hash: hashDocument(parsed), source_schema_version: 2, reason: "import", byte_size: Buffer.byteLength(JSON.stringify(documentJson), "utf8"), created_by: user.id });
     if (revisionError) throw revisionError;
     if (entry.assetDbIds.length > 0) {
-      const { error: linksError } = await db.from("project_assets").insert(entry.assetDbIds.map((assetId) => ({ project_id: project.id, asset_id: assetId, attached_by: user.id })));
+      const { error: linksError } = await db.from("project_assets").upsert(entry.assetDbIds.map((assetId) => ({ project_id: project.id, asset_id: assetId, attached_by: user.id })), { onConflict: "project_id,asset_id", ignoreDuplicates: true });
       if (linksError) throw linksError;
     }
-    created += 1;
-    console.log(`${entry.title}: ${project.id}`);
+    if (existingProject) refreshed += 1; else created += 1;
+    console.log(`${existingProject ? "Refreshed" : "Created"} ${entry.title}: ${project.id}`);
   }
-  console.log(`Created ${created} render test projects; skipped ${projects.length - created} existing projects.`);
+  console.log(`Render test projects: created ${created}, refreshed ${refreshed}, skipped ${skipped}.`);
 }
 
 void main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(error instanceof Error ? error.message : JSON.stringify(error));
   process.exitCode = 1;
 });
