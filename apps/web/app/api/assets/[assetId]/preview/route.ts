@@ -1,5 +1,5 @@
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
-import { getUserAssetsProvider } from "@/lib/server/r2";
+import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
 import { derivativeObjectKey } from "@motionvideo/motion-storage";
 
 export const runtime = "nodejs";
@@ -48,11 +48,13 @@ export async function GET(
     return jsonError("Asset preview is not ready", 409);
   }
 
-  const signed = await getUserAssetsProvider().presignGet(asset.preview_key, 10 * 60);
+  const signed = publicUserAssetUrl(asset.preview_key)
+    ? { url: publicUserAssetUrl(asset.preview_key)!, expiresAt: null }
+    : await getUserAssetsProvider().presignGet(asset.preview_key, 10 * 60);
   return Response.json({
     assetId,
     url: signed.url,
-    expiresAt: signed.expiresAt.toISOString(),
+    expiresAt: signed.expiresAt ? signed.expiresAt.toISOString() : null,
   });
 }
 

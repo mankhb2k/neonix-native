@@ -41,3 +41,15 @@ export function getR2Provider(kind: UserBucket): R2StorageProvider {
 export function getUserAssetsProvider(): R2StorageProvider {
   return getR2Provider("assets");
 }
+
+/**
+ * Public read URL for buckets intentionally exposed through an R2 custom
+ * domain. Uploads and private server-side operations continue using S3
+ * presigned URLs; this is only for browser media/canvas reads.
+ */
+export function publicUserAssetUrl(key: string): string | null {
+  const base = process.env.R2_PUBLIC_ASSETS_URL?.trim().replace(/\/+$/, "");
+  if (!base) return null;
+  const path = key.split("/").map((segment) => encodeURIComponent(segment)).join("/");
+  return `${base}/${path}`;
+}

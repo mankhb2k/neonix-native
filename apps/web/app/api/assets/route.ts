@@ -6,7 +6,7 @@ import {
   jsonError,
   userAssetsBucketName,
 } from "@/lib/server/asset-context";
-import { getUserAssetsProvider } from "@/lib/server/r2";
+import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 
@@ -48,11 +48,11 @@ export async function GET() {
     ((data ?? []) as unknown as AssetRow[]).map(async (asset) => {
       let downloadUrl: string | null = null;
       if (asset.status === "ready") {
-        const signed = await provider.presignGet(asset.r2_key, 10 * 60);
-        downloadUrl = signed.url;
+        downloadUrl = publicUserAssetUrl(asset.r2_key)
+          ?? (await provider.presignGet(asset.r2_key, 10 * 60)).url;
       }
       const previewUrl = asset.preview_key && asset.preview_status === "ready"
-        ? (await provider.presignGet(asset.preview_key, 10 * 60)).url
+        ? (publicUserAssetUrl(asset.preview_key) ?? (await provider.presignGet(asset.preview_key, 10 * 60)).url)
         : null;
       return { ...asset, download_url: downloadUrl, preview_url: previewUrl };
     }),

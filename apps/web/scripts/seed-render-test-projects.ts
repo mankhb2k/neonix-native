@@ -4,7 +4,7 @@ import { loadEnvConfig } from "@next/env";
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
-import { getUserAssetsProvider } from "@/lib/server/r2";
+import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
 
 loadEnvConfig(process.cwd(), false);
 
@@ -339,8 +339,8 @@ async function main() {
   const storage = getUserAssetsProvider();
   const objectUrl = async (asset: DbAsset): Promise<string> => {
     if (!asset.r2_key) throw new Error(`Missing R2 key for ${asset.original_filename}`);
-    const signed = await storage.presignGet(asset.r2_key, 60 * 60 * 24 * 7);
-    return signed.url;
+    return publicUserAssetUrl(asset.r2_key)
+      ?? (await storage.presignGet(asset.r2_key, 60 * 60 * 24 * 7)).url;
   };
   const ref = async (name: string, kind: AssetRef["kind"], extra: Partial<AssetRef> = {}): Promise<AssetRef> => {
     const dbAsset = byName.get(name.toLowerCase())!;
