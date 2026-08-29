@@ -1,5 +1,6 @@
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
 import { getUserAssetsProvider } from "@/lib/server/r2";
+import { derivativeObjectKey } from "@motionvideo/motion-storage";
 
 export const runtime = "nodejs";
 
@@ -95,7 +96,7 @@ export async function POST(
   if (body.byteLength === 0) return jsonError("Poster body is empty");
   if (body.byteLength > MAX_POSTER_BYTES) return jsonError("Poster exceeds the 5 MB limit", 413);
 
-  const previewKey = asset.preview_key ?? `assets/${asset.id}/preview/poster.webp`;
+  const previewKey = asset.preview_key ?? derivativeObjectKey(asset.id, "poster", "poster.webp");
   try {
     await getUserAssetsProvider().putObject({ key: previewKey, body, contentType: "image/webp" });
   } catch (uploadError) {

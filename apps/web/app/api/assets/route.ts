@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { derivativeObjectKey } from "@motionvideo/motion-storage";
 import {
   assetKindForMime,
   getAssetRequestContext,
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
   const assetId = randomUUID();
   const provider = getUserAssetsProvider();
   const storageKey = provider.createObjectKey(assetId, mimeType);
-  const previewKey = hasPreview ? `assets/${assetId}/preview/poster.webp` : null;
+  const previewKey = hasPreview ? derivativeObjectKey(assetId, "poster", "poster.webp") : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
   const { supabase, user, workspaceId } = result.context;

@@ -27,3 +27,9 @@ export {
 export type { StorageValidationIssue } from "./types";
 export * from "./media-probe-v3";
 export * from "./media-resource-provider-v3";
+
+/** Pure, deterministic object-key helpers shared by upload and derivative APIs. */
+export {
+  defaultObjectKey,
+  derivativeObjectKey,
+} from "./server/providers/types";

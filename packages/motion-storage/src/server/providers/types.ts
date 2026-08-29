@@ -67,13 +67,24 @@ function extensionForMime(mimeType: string): string {
 }
 
 export function defaultObjectKey(assetId: string, mimeType: string): string {
-  const safeId = assetId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeId = safeAssetStorageId(assetId);
   return `assets/${safeId}/original.${extensionForMime(mimeType)}`;
 }
 
 /** Stable derivative namespace shared by probe/preview workers. */
 export function derivativeObjectKey(assetId: string, kind: "audio" | "video" | "poster", fileName: string): string {
-  const safeId = assetId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeId = safeAssetStorageId(assetId);
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   return `assets/${safeId}/${kind}/${safeName}`;
+}
+
+/**
+ * Storage identity is the database UUID. `asset-<uuid>` is accepted as a
+ * client/reference alias, but must not create a second object namespace.
+ */
+function safeAssetStorageId(assetId: string): string {
+  const withoutAlias = assetId.startsWith("asset-")
+    ? assetId.slice("asset-".length)
+    : assetId;
+  return withoutAlias.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
