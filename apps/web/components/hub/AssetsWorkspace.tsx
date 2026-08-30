@@ -169,6 +169,73 @@ function AssetActions({ asset, onDelete }: { asset: Asset; onDelete: (id: string
   );
 }
 
+function DeleteAssetDialog({
+  asset,
+  deleting,
+  onCancel,
+  onConfirm,
+}: {
+  asset: Asset;
+  deleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const titleId = "delete-asset-dialog-title";
+  const descriptionId = "delete-asset-dialog-description";
+  const assetName = asset.original_filename ?? asset.id;
+
+  useEffect(() => {
+    cancelButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deleting) onCancel();
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [deleting, onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="w-full max-w-md rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] p-6 shadow-2xl"
+      >
+        <h2 id={titleId} className="m-0 text-lg font-semibold text-[var(--fg-primary)]">
+          Delete asset?
+        </h2>
+        <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--fg-muted)]">
+          “{assetName}” and its stored files will be permanently deleted. This action cannot be undone.
+        </p>
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            ref={cancelButtonRef}
+            type="button"
+            disabled={deleting}
+            onClick={onCancel}
+            className="rounded-lg border border-[var(--hub-border)] px-3.5 py-2 text-sm font-medium text-[var(--fg-primary)] transition hover:bg-[var(--hub-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={onConfirm}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
+          >
+            {deleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            {deleting ? "Deleting..." : "Delete asset"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AssetsWorkspace() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +244,8 @@ export function AssetsWorkspace() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [durations, setDurations] = useState<Record<string, number>>({});
+  const [pendingDelete, setPendingDelete] = useState<Asset | null>(null);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDuration = useCallback((assetId: string, duration: number) => {
@@ -255,15 +324,27 @@ export function AssetsWorkspace() {
     }
   }
 
-  async function deleteAsset(assetId: string) {
+  const requestDeleteAsset = useCallback((assetId: string) => {
+    const asset = assets.find((candidate) => candidate.id === assetId);
+    if (asset) setPendingDelete(asset);
+  }, [assets]);
+
+  const deleteAsset = useCallback(async () => {
+    if (!pendingDelete) return;
+    const assetId = pendingDelete.id;
     setError(null);
+    setDeletingAssetId(assetId);
     try {
       await deleteAssetRequest(assetId);
       setAssets((current) => current.filter((asset) => asset.id !== assetId));
+      setPendingDelete(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Delete failed");
+      setPendingDelete(null);
+    } finally {
+      setDeletingAssetId(null);
     }
-  }
+  }, [pendingDelete]);
 
   const normalizedSearch = search.trim().toLowerCase();
   const visibleAssets = normalizedSearch
@@ -387,7 +468,7 @@ export function AssetsWorkspace() {
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
                     <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
-                  <AssetActions asset={asset} onDelete={(id) => void deleteAsset(id)} />
+                  <AssetActions asset={asset} onDelete={requestDeleteAsset} />
                 </div>
               );
             })}
@@ -410,13 +491,23 @@ export function AssetsWorkspace() {
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
                     <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
-                  <AssetActions asset={asset} onDelete={(id) => void deleteAsset(id)} />
+                  <AssetActions asset={asset} onDelete={requestDeleteAsset} />
                 </div>
               </article>
             );
           })}
         </div>
       )}
+      {pendingDelete ? (
+        <DeleteAssetDialog
+          asset={pendingDelete}
+          deleting={deletingAssetId === pendingDelete.id}
+          onCancel={() => {
+            if (!deletingAssetId) setPendingDelete(null);
+          }}
+          onConfirm={() => void deleteAsset()}
+        />
+      ) : null}
     </div>
   );
 }
