@@ -1,8 +1,9 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { derivativeObjectKey } from "@/lib/server/r2";
+import { listSystemAssetCatalog, systemAssetUrl, type SystemAssetRow } from "@/lib/server/system-assets";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 
 type JsonObject = Record<string, unknown>;
@@ -173,24 +174,40 @@ async function hydratePrivateAssetUrls(
   workspaceId: string,
   document: MotionProtocolV2,
 ): Promise<MotionProtocolV2> {
-  const ids = document.assets
+  const userAssetIds = document.assets
     .map((asset) => asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id)
     .filter(isUuid);
-  if (ids.length === 0) return document;
+  const systemAssetIds = document.assets
+    .map((asset) => asset.id)
+    .filter((id) => id.startsWith("system:"));
 
-  const { data, error } = await client
-    .from("assets")
-    .select("id, r2_key, status")
-    .eq("workspace_id", workspaceId)
-    .in("id", ids)
-    .is("deleted_at", null)
-    .eq("status", "ready");
-  if (error || !data || data.length === 0) return document;
+  const userAssets = userAssetIds.length > 0
+    ? await client
+      .from("assets")
+      .select("id, r2_key, status")
+      .eq("workspace_id", workspaceId)
+      .in("id", userAssetIds)
+      .is("deleted_at", null)
+      .eq("status", "ready")
+    : { data: [], error: null };
+  if (userAssets.error) return document;
 
-  const { data: variants } = await client
-    .from("asset_variants")
-    .select("asset_id, r2_key, variant_kind, mime_type, metadata_json")
-    .in("asset_id", (data as Array<{ id: string }>).map((asset) => asset.id));
+  const systemAssets = systemAssetIds.length > 0
+    ? await listSystemAssetCatalog([...new Set(systemAssetIds)])
+    : [];
+  const data = (userAssets.data ?? []) as Array<{ id: string; r2_key: string; status: string }>;
+  const systemOrigins = new Map(
+    systemAssets
+      .filter((asset: SystemAssetRow) => asset.variant_kind === "origin" && asset.parent_id === null)
+      .map((asset: SystemAssetRow) => [asset.id, asset]),
+  );
+
+  const { data: variants } = data.length > 0
+    ? await client
+      .from("asset_variants")
+      .select("asset_id, r2_key, variant_kind, mime_type, metadata_json")
+      .in("asset_id", data.map((asset) => asset.id))
+    : { data: [] };
   const audioVariants = new Map<string, { key: string; mimeType: string; metadata: Record<string, unknown> }>();
   for (const variant of (variants ?? []) as Array<{ asset_id?: unknown; r2_key?: unknown; variant_kind?: unknown; mime_type?: unknown; metadata_json?: unknown }>) {
     if (typeof variant.asset_id !== "string" || typeof variant.r2_key !== "string" || typeof variant.mime_type !== "string") continue;
@@ -206,9 +223,10 @@ async function hydratePrivateAssetUrls(
   // same-origin range proxy, so no R2 CORS policy or public custom domain is
   // required and signed URLs never enter the authoring document.
   const urls = new Map<string, string>();
-  for (const asset of data as Array<{ id: string; r2_key: string; status: string }>) {
+  for (const asset of data) {
     if (asset.r2_key) urls.set(asset.id, `/api/assets/${encodeURIComponent(asset.id)}/media`);
   }
+  for (const asset of systemOrigins.values()) urls.set(asset.id, systemAssetUrl(asset.id));
 
   if (urls.size === 0) return document;
   return {
@@ -217,6 +235,41 @@ async function hydratePrivateAssetUrls(
       const dbId = asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id;
       const uri = urls.get(dbId);
       if (!uri) return asset;
+      const systemAsset = systemOrigins.get(dbId);
+      if (systemAsset) {
+        const metadata = systemAsset.metadata_json ?? {};
+        if (asset.kind === "video") {
+          return {
+            ...asset,
+            uri,
+            mimeType: systemAsset.mime_type,
+            ...(systemAsset.width ? { width: systemAsset.width } : {}),
+            ...(systemAsset.height ? { height: systemAsset.height } : {}),
+            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms / 1000 } : {}),
+            ...(typeof metadata.fps === "number" ? { fps: metadata.fps } : {}),
+          };
+        }
+        if (asset.kind === "audio") {
+          return {
+            ...asset,
+            uri,
+            mimeType: systemAsset.mime_type,
+            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms / 1000 } : {}),
+            ...(typeof metadata.sampleRate === "number" ? { sampleRate: metadata.sampleRate } : {}),
+            ...(typeof metadata.channels === "number" ? { channels: metadata.channels } : {}),
+          };
+        }
+        if (asset.kind === "image") {
+          return {
+            ...asset,
+            uri,
+            mimeType: systemAsset.mime_type,
+            ...(systemAsset.width ? { width: systemAsset.width } : {}),
+            ...(systemAsset.height ? { height: systemAsset.height } : {}),
+          };
+        }
+        return { ...asset, uri };
+      }
       const audioVariant = asset.kind === "video" ? audioVariants.get(dbId) : undefined;
       const existingAudio = asset.kind === "video" ? asset.audio : undefined;
       const audio = asset.kind === "video" && (existingAudio || audioVariant)

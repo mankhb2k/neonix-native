@@ -4,7 +4,7 @@ import { getUserAssetsProvider } from "@/lib/server/r2";
 export const runtime = "nodejs";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ assetId: string }> },
 ) {
   const result = await getAssetRequestContext();
@@ -26,6 +26,30 @@ export async function DELETE(
   const storageKey = typeof assetRow.r2_key === "string" ? assetRow.r2_key : null;
   if (!storageKey) return jsonError("Asset storage key is invalid", 500);
 
+  let replaceReferences = false;
+  if (request.headers.get("content-type")?.includes("application/json")) {
+    try {
+      const body = (await request.json()) as { replaceReferences?: unknown };
+      replaceReferences = body.replaceReferences === true;
+    } catch {
+      return jsonError("Invalid JSON body");
+    }
+  }
+
+  const { data: projectLinks, error: projectLinksError } = await supabase
+    .from("project_assets")
+    .select("project_id")
+    .eq("asset_id", assetId);
+  if (projectLinksError) return jsonError(projectLinksError.message, 500);
+  const projectLinkRows = (projectLinks ?? []) as Array<{ project_id?: unknown }>;
+  const projectIds = [...new Set(projectLinkRows.map((link) => link.project_id).filter((id): id is string => typeof id === "string"))];
+  if (projectIds.length > 0 && !replaceReferences) {
+    return Response.json(
+      { error: { message: "Asset is used by one or more projects" }, code: "ASSET_IN_USE", projectIds },
+      { status: 409 },
+    );
+  }
+
   const { data: variants, error: variantsError } = await supabase
     .from("asset_variants")
     .select("r2_key")
@@ -46,19 +70,10 @@ export async function DELETE(
     return jsonError(error instanceof Error ? error.message : "Unable to delete R2 object", 502);
   }
 
-  const { error: updateError } = await supabase
-    .from("assets")
-    .update({ status: "deleted" })
-    .eq("id", assetId)
-    .eq("workspace_id", workspaceId);
-
-  if (updateError) return jsonError(updateError.message, 400);
-  if (variants?.length) {
-    const { error: variantsDeleteError } = await supabase
-      .from("asset_variants")
-      .delete()
-      .eq("asset_id", assetId);
-    if (variantsDeleteError) return jsonError(variantsDeleteError.message, 500);
-  }
-  return new Response(null, { status: 204 });
+  const deletionResponse = await supabase.rpc(
+    "delete_asset_with_system_fallback",
+    { target_asset_id: assetId },
+  );
+  if (deletionResponse.error) return jsonError(deletionResponse.error.message, 500);
+  return Response.json({ ok: true, deletion: deletionResponse.data as unknown });
 }

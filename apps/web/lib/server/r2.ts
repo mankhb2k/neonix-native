@@ -222,6 +222,10 @@ export function getUserExportsProvider(): R2StorageProvider {
   return getR2Provider("exports");
 }
 
+export function getSystemAssetsProvider(): R2StorageProvider {
+  return getR2Provider("system");
+}
+
 export function publicUserAssetUrl(key: string): string | null {
   const base = process.env.R2_PUBLIC_ASSETS_URL?.trim().replace(/\/+$/, "");
   if (!base) return null;

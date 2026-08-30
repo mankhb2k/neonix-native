@@ -17,6 +17,12 @@ export type Asset = {
   preview_error?: string | null;
 };
 
+export type AssetUsageProject = {
+  id: string;
+  title: string;
+  publicRef: string;
+};
+
 export type UploadPreview = {
   size: number;
   mimeType: "image/webp";
@@ -102,6 +108,13 @@ export async function persistAssetPreview(assetId: string, preview: Blob): Promi
   if (!response.ok) throw new Error(await readError(response));
 }
 
+export async function getAssetUsage(assetId: string): Promise<AssetUsageProject[]> {
+  const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}/usage`, { cache: "no-store" });
+  if (!response.ok) throw new Error(await readError(response));
+  const body = (await response.json()) as { projects?: AssetUsageProject[] };
+  return Array.isArray(body.projects) ? body.projects : [];
+}
+
 export async function completeAssetUpload(assetId: string): Promise<void> {
   const response = await fetch("/api/assets/upload/complete", {
     method: "POST",
@@ -111,7 +124,13 @@ export async function completeAssetUpload(assetId: string): Promise<void> {
   if (!response.ok) throw new Error(await readError(response));
 }
 
-export async function deleteAsset(assetId: string): Promise<void> {
-  const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+export async function deleteAsset(assetId: string, options?: { replaceReferences?: boolean }): Promise<void> {
+  const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}`, {
+    method: "DELETE",
+    ...(options ? {
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(options),
+    } : {}),
+  });
   if (!response.ok) throw new Error(await readError(response));
 }

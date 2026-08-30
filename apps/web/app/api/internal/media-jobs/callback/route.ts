@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: job, error: jobError } = await supabase
     .from("media_jobs")
-    .select("id, asset_id, source_integrity, workspace_id")
+    .select("id, asset_id, source_integrity, workspace_id, status")
     .eq("id", payload.jobId)
     .maybeSingle();
   if (jobError) return Response.json({ error: jobError.message }, { status: 500 });
@@ -72,6 +72,16 @@ export async function POST(request: Request) {
   if (job.asset_id !== payload.assetId || job.source_integrity !== payload.sourceIntegrity) {
     return Response.json({ error: "media_job_identity_mismatch" }, { status: 409 });
   }
+
+  const { data: asset, error: assetLookupError } = await supabase
+    .from("assets")
+    .select("id, deleted_at")
+    .eq("id", payload.assetId)
+    .eq("workspace_id", job.workspace_id)
+    .maybeSingle();
+  if (assetLookupError) return Response.json({ error: assetLookupError.message }, { status: 500 });
+  if (!asset || asset.deleted_at) return Response.json({ error: "asset_deleted" }, { status: 409 });
+  if (job.status === "failed") return Response.json({ error: "media_job_closed" }, { status: 409 });
 
   const provider = getUserAssetsProvider();
   const verifiedDerivatives: Array<{

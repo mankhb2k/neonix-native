@@ -17,10 +17,12 @@ import {
   completeAssetUpload,
   createAssetUpload,
   deleteAsset as deleteAssetRequest,
+  getAssetUsage,
   listAssets,
   uploadAssetPreview,
   uploadAssetBytes,
   type Asset,
+  type AssetUsageProject,
 } from "@/lib/api/assets";
 import { createBrowserVideoPreview } from "@/lib/media/browser-preview";
 
@@ -144,7 +146,15 @@ function AssetMeta({ asset, duration }: { asset: Asset; duration?: number }) {
   );
 }
 
-function AssetActions({ asset, onDelete }: { asset: Asset; onDelete: (id: string) => void }) {
+function AssetActions({
+  asset,
+  checking,
+  onDelete,
+}: {
+  asset: Asset;
+  checking: boolean;
+  onDelete: (id: string) => void;
+}) {
   return (
     <div className="flex shrink-0 items-center gap-2">
       {asset.download_url ? (
@@ -159,11 +169,12 @@ function AssetActions({ asset, onDelete }: { asset: Asset; onDelete: (id: string
       ) : null}
       <button
         type="button"
+        disabled={checking}
         aria-label={`Delete ${asset.original_filename ?? "asset"}`}
         onClick={() => onDelete(asset.id)}
-        className="rounded-md p-2 text-[var(--fg-muted)] transition hover:bg-red-500/10 hover:text-red-600"
+        className="rounded-md p-2 text-[var(--fg-muted)] transition hover:bg-red-500/10 hover:text-red-600 disabled:cursor-wait disabled:opacity-50"
       >
-        <Trash2 className="size-4" />
+        {checking ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
       </button>
     </div>
   );
@@ -171,11 +182,13 @@ function AssetActions({ asset, onDelete }: { asset: Asset; onDelete: (id: string
 
 function DeleteAssetDialog({
   asset,
+  projects,
   deleting,
   onCancel,
   onConfirm,
 }: {
   asset: Asset;
+  projects: AssetUsageProject[];
   deleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -211,6 +224,20 @@ function DeleteAssetDialog({
         <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--fg-muted)]">
           “{assetName}” and its stored files will be permanently deleted. This action cannot be undone.
         </p>
+        {projects.length > 0 ? (
+          <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+            <p className="font-semibold">
+              This asset is used by {projects.length} {projects.length === 1 ? "project" : "projects"}.
+            </p>
+            <p className="mt-1 leading-5">
+              The current revision of each project will use a compatible system placeholder instead.
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {projects.slice(0, 5).map((project) => <li key={project.id}>{project.title}</li>)}
+              {projects.length > 5 ? <li>and {projects.length - 5} more</li> : null}
+            </ul>
+          </div>
+        ) : null}
         <div className="mt-6 flex justify-end gap-2">
           <button
             ref={cancelButtonRef}
@@ -228,7 +255,7 @@ function DeleteAssetDialog({
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
           >
             {deleting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-            {deleting ? "Deleting..." : "Delete asset"}
+            {deleting ? "Deleting..." : projects.length > 0 ? "Delete and replace" : "Delete asset"}
           </button>
         </div>
       </div>
@@ -245,8 +272,11 @@ export function AssetsWorkspace() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [durations, setDurations] = useState<Record<string, number>>({});
   const [pendingDelete, setPendingDelete] = useState<Asset | null>(null);
+  const [deleteProjects, setDeleteProjects] = useState<AssetUsageProject[]>([]);
+  const [checkingDeleteAssetId, setCheckingDeleteAssetId] = useState<string | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const deleteRequestIdRef = useRef(0);
 
   const handleDuration = useCallback((assetId: string, duration: number) => {
     setDurations((current) => (current[assetId] === duration ? current : { ...current, [assetId]: duration }));
@@ -324,9 +354,25 @@ export function AssetsWorkspace() {
     }
   }
 
-  const requestDeleteAsset = useCallback((assetId: string) => {
+  const requestDeleteAsset = useCallback(async (assetId: string) => {
     const asset = assets.find((candidate) => candidate.id === assetId);
-    if (asset) setPendingDelete(asset);
+    if (!asset) return;
+    const requestId = deleteRequestIdRef.current + 1;
+    deleteRequestIdRef.current = requestId;
+    setError(null);
+    setCheckingDeleteAssetId(assetId);
+    try {
+      const projects = await getAssetUsage(assetId);
+      if (deleteRequestIdRef.current !== requestId) return;
+      setDeleteProjects(projects);
+      setPendingDelete(asset);
+    } catch (reason) {
+      if (deleteRequestIdRef.current === requestId) {
+        setError(reason instanceof Error ? reason.message : "Unable to check asset usage");
+      }
+    } finally {
+      if (deleteRequestIdRef.current === requestId) setCheckingDeleteAssetId(null);
+    }
   }, [assets]);
 
   const deleteAsset = useCallback(async () => {
@@ -335,12 +381,14 @@ export function AssetsWorkspace() {
     setError(null);
     setDeletingAssetId(assetId);
     try {
-      await deleteAssetRequest(assetId);
+      await deleteAssetRequest(assetId, { replaceReferences: true });
       setAssets((current) => current.filter((asset) => asset.id !== assetId));
       setPendingDelete(null);
+      setDeleteProjects([]);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Delete failed");
       setPendingDelete(null);
+      setDeleteProjects([]);
     } finally {
       setDeletingAssetId(null);
     }
@@ -468,7 +516,11 @@ export function AssetsWorkspace() {
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
                     <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
-                  <AssetActions asset={asset} onDelete={requestDeleteAsset} />
+                  <AssetActions
+                    asset={asset}
+                    checking={checkingDeleteAssetId === asset.id}
+                    onDelete={(id) => { void requestDeleteAsset(id); }}
+                  />
                 </div>
               );
             })}
@@ -491,7 +543,11 @@ export function AssetsWorkspace() {
                     <p className="truncate text-body font-medium text-[var(--fg-primary)]">{asset.original_filename ?? asset.id}</p>
                     <AssetMeta asset={asset} duration={durations[asset.id]} />
                   </div>
-                  <AssetActions asset={asset} onDelete={requestDeleteAsset} />
+                  <AssetActions
+                    asset={asset}
+                    checking={checkingDeleteAssetId === asset.id}
+                    onDelete={(id) => { void requestDeleteAsset(id); }}
+                  />
                 </div>
               </article>
             );
@@ -501,6 +557,7 @@ export function AssetsWorkspace() {
       {pendingDelete ? (
         <DeleteAssetDialog
           asset={pendingDelete}
+          projects={deleteProjects}
           deleting={deletingAssetId === pendingDelete.id}
           onCancel={() => {
             if (!deletingAssetId) setPendingDelete(null);

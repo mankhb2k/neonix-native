@@ -187,6 +187,40 @@ uploading → queued → processing → ready
 - `failed`: ingest thất bại hoặc timeout sau retry.
 - Export audio phải fail closed nếu audio derivative bắt buộc chưa `ready`.
 
+### System asset fallback và xóa user asset
+
+System placeholder nằm trong bucket R2 riêng `neonix-system-assets` và được
+đăng ký trong bảng `system_assets`. Catalog dùng một bảng self-reference cho cả
+asset gốc và derivative:
+
+```text
+system:image-placeholder       -> placeholder/image.webp
+system:svg-placeholder         -> placeholder/svg-placeholder.svg
+system:video-placeholder       -> placeholder/video.mp4
+system:video-placeholder:poster -> placeholder/video-poster.webp
+system:audio-silence           -> placeholder/silence.m4a
+```
+
+Project chỉ lưu system asset ID ổn định. Khi load project, Web resolve ID thành
+URL same-origin `/api/system-assets/:id`; bucket vẫn private.
+
+Khi user xóa asset, Web kiểm tra `project_assets` trước và hiển thị các project
+đang sử dụng. Nếu user xác nhận, RPC `delete_asset_with_system_fallback` chạy
+transaction:
+
+```text
+lock asset
+  -> tạo revision mới với fallback cùng loại
+  -> cập nhật document asset/layer/audio references
+  -> xóa project_assets của user asset
+  -> đánh dấu asset deleted + deleted_at
+  -> đánh dấu media job đang chạy failed nếu có
+```
+
+Image/SVG, video và audio lần lượt được thay bằng placeholder tương thích;
+không thay video/audio bằng image vì sẽ làm sai loại layer. Revision cũ vẫn
+được giữ bất biến.
+
 ## Luồng export
 
 ```text
