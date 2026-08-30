@@ -2,8 +2,7 @@
 
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
-import { defaultObjectKey, derivativeObjectKey } from "@motionvideo/motion-storage";
-import { getUserAssetsProvider } from "@/lib/server/r2";
+import { defaultObjectKey, derivativeObjectKey, getUserAssetsProvider } from "@/lib/server/r2";
 
 loadEnvConfig(process.cwd(), false);
 

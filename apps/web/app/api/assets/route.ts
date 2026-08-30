@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { derivativeObjectKey } from "@motionvideo/motion-storage";
 import {
   assetKindForMime,
   getAssetRequestContext,
   jsonError,
   userAssetsBucketName,
 } from "@/lib/server/asset-context";
-import { getUserAssetsProvider } from "@/lib/server/r2";
+import { derivativeObjectKey, getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 

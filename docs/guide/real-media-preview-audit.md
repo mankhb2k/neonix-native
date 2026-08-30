@@ -11,7 +11,7 @@ path without introducing a second source of truth.
 | Browser asset upload | `apps/web/components/hub/AssetsWorkspace.tsx`, `apps/web/lib/api/assets.ts` | Generates a capped first-frame poster, then PUTs source + poster directly to R2 | Keep source and poster completion idempotent |
 | Upload session | `apps/web/app/api/assets/route.ts` | Creates one source object, one poster key, and one `assets` row | Keep keys server-derived |
 | Upload completion | `apps/web/app/api/assets/upload/complete/route.ts` | Verifies source + poster with `HeadObject`, marks preview ready/failed | Add production media probe in Lambda adapter |
-| R2 signing | `apps/web/lib/server/r2.ts`, `packages/motion-storage/src/server/providers/r2.ts` | Private presigned PUT/GET | Sign preview GET separately; never expose credentials |
+| R2 signing | `apps/web/lib/server/r2.ts` | Private presigned PUT/GET | Sign preview GET separately; never expose credentials |
 | Local editor media import | `apps/web/components/editor/sidebar/Sidebar.tsx:fileToAsset` | Reads image/video/audio metadata from object URLs | Add first-frame poster and clean up object URLs |
 | Asset library preview | `apps/web/components/hub/AssetsWorkspace.tsx:AssetPreview` | Images use source URL; videos use a native video preview | Prefer signed poster URL |
 | Timeline video visuals | `apps/web/components/editor/timeline/clips/ClipStrip.tsx` | Signed `poster.webp` with pending/failed/unsupported states | One real poster image stretched to the clip |

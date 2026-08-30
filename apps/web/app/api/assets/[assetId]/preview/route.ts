@@ -1,6 +1,5 @@
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
-import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
-import { derivativeObjectKey } from "@motionvideo/motion-storage";
+import { derivativeObjectKey, getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 

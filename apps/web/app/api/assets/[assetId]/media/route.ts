@@ -1,7 +1,6 @@
 import { Readable } from "node:stream";
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
-import { getUserAssetsProvider } from "@/lib/server/r2";
-import { derivativeObjectKey } from "@motionvideo/motion-storage";
+import { derivativeObjectKey, getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 

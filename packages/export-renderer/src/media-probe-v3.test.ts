@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { createFfprobeMediaProbeV3, hydrateRuntimeMediaCatalogV3, MemoryMediaProbeStoreV3, runMediaDerivativeJobsV3, runMediaProbeJobV3 } from "./index";
+import {
+  createFfprobeMediaProbeV3,
+  hydrateRuntimeMediaCatalogV3,
+  MemoryMediaProbeStoreV3,
+  runMediaDerivativeJobsV3,
+  runMediaProbeJobV3,
+} from "./index";
 
 describe("media probe V3", () => {
-  it("deduplicates probe jobs by idempotency key and persists lifecycle output", async () => {
+  it("deduplicates probe jobs and persists lifecycle output", async () => {
     const store = new MemoryMediaProbeStoreV3();
     const first = await store.enqueue({ jobId: "job-1", assetId: "video", idempotencyKey: "video:sha256:a", status: "queued", createdAt: "2026-08-28T00:00:00Z" });
     const second = await store.enqueue({ jobId: "job-2", assetId: "video", idempotencyKey: "video:sha256:a", status: "queued", createdAt: "2026-08-28T00:00:01Z" });
@@ -12,7 +18,7 @@ describe("media probe V3", () => {
     expect(record.status).toBe("ready");
   });
 
-  it("hydrates an immutable catalog using the audio derivative, not the original video URI", () => {
+  it("hydrates audio from the derivative, not the original video URI", () => {
     const snapshot = hydrateRuntimeMediaCatalogV3({ assetId: "video", status: "ready", streams: [{ streamId: "video:audio", kind: "audio", durationSamples: 10, sampleRate: 48000, channels: 2 }], derivatives: [{ derivativeId: "d", kind: "audio", uri: "/audio.m4a", mimeType: "audio/mp4", version: 1 }], updatedAt: "", version: 1 }, "/video.mp4", "video/mp4");
     expect(snapshot.catalog.assets[0]?.audio?.[0]?.resource.uri).toBe("/audio.m4a");
     expect(snapshot.catalog.assets[0]?.audio?.[0]?.resource.role).toBe("audio-proxy");
@@ -32,7 +38,7 @@ describe("media probe V3", () => {
     expect((await store.get("bad"))?.status).toBe("failed");
   });
 
-  it("normalizes ffprobe streams into sample-accurate runtime metadata", async () => {
+  it("normalizes ffprobe streams into sample-accurate metadata", async () => {
     const probe = createFfprobeMediaProbeV3({ run: async () => JSON.stringify({ streams: [{ codec_type: "audio", codec_name: "aac", duration: "2.5", sample_rate: "44100", channels: 2, time_base: "1/44100" }, { codec_type: "video", codec_name: "h264", duration: "2.5", width: 1280, height: 720, r_frame_rate: "30/1" }] }) });
     const result = await probe("source.mp4", "asset");
     expect(result.streams[0]).toMatchObject({ kind: "audio", sampleRate: 44100, durationSamples: 110250 });

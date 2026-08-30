@@ -85,7 +85,7 @@ USER
   │
   │ upload MP4
   ▼
-WEB API / STORAGE
+WEB APP
   │
   ├── lưu original video asset
   └── tạo media preparation job
@@ -154,8 +154,9 @@ pan và fade. Timing và trim mặc định lấy từ video layer; Compiler chu
 giá trị đó thành timing/trim của audio clip runtime. Vì vậy video và audio
 được tách để xử lý, nhưng vẫn giữ cùng một timeline authoring.
 
-Chi tiết về upload, probe và derivative nằm trong
-[`motion-storage README`](packages/motion-storage/README.md). Chi tiết về
+Chi tiết về upload và R2 orchestration nằm trong `apps/web/lib/server/r2.ts`.
+Chi tiết về probe, derivative và media worker nằm trong
+[`export-renderer README`](packages/export-renderer/README.md). Chi tiết về
 audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/README.md).
 
 ## Năm tầng cốt lõi
@@ -544,7 +545,7 @@ RuntimeProjectV3
 | Export Renderer         | Render offline native trên VPS                |
 | FFmpeg                  | Encode frame/audio thành MP4                  |
 | Web API                 | Auth, ownership, job state, artifact metadata |
-| Storage                 | Lưu original, derivative và export artifact  |
+| Web App storage         | Điều phối R2, upload, signed URL và metadata |
 | Media Ingest Worker     | Probe media và tạo audio derivative           |
 
 ## Tiêu chuẩn quyết định

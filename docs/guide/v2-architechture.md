@@ -339,7 +339,7 @@ failure cannot change playback semantics.
 | Protocol | `@motionvideo/motion-protocol` | Strict V2 authoring JSON, asset metadata, and atomic vocabulary | Matrix4 values, GPU objects, decoded media, renderer commands |
 | Compiler | `@motionvideo/motion-compiler` | Validation, references, pure V2-to-V3 lowering | Pixel rendering, frame playback, GPU resources |
 | Runtime | `@motionvideo/motion-runtime` | Timing, hierarchy, Matrix4/projection evaluation, paint commands, audio mix plans | Protocol parsing, media decoding, WebAudio/GPU state |
-| Media processing | `@motionvideo/motion-storage` plus a deployment adapter | Object-key policy, probe/derivative records, job lifecycle, integrity checks | Authoring semantics, timeline evaluation, playback clocks |
+| Media processing | Web-owned storage orchestration plus `@motionvideo/export-renderer` VPS worker | Object-key policy in Web; probe/derivative records and media processing in the worker | Authoring semantics, timeline evaluation, playback clocks |
 | Preview | `@motionvideo/preview-renderer` | Canvas/device setup, WebGPU-first rendering, WebGL2 fallback, asset upload/cache, diagnostics | Semantic transform composition, authoring JSON parsing, audio clock |
 | Export | `@motionvideo/remotion-renderer` | Rendering the evaluated paint tree, offline audio mix, Remotion encode integration | A second protocol/compiler/transform model |
 

@@ -3,7 +3,7 @@ import type { RuntimeMediaResourceV3 } from "@motionvideo/motion-runtime";
 /**
  * Backend boundary for late-bound URLs. RuntimeProjectV3 contains immutable
  * resource identity; tokens, signed URLs and range requests belong here.
- * This intentionally matches motion-storage's provider contract structurally.
+ * This intentionally matches the Web-owned media provider contract structurally.
  */
 export type ResolvedMediaResourceV3 = { readonly uri: string; readonly expiresAt?: string; readonly headers?: Readonly<Record<string, string>> };
 export type MediaResourceProviderV3 = {
