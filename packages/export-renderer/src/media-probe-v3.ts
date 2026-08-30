@@ -145,11 +145,12 @@ export function createFfprobeMediaProbeV3(options: FfprobeMediaProbeOptionsV3 = 
   const run = options.run ?? (async (args: readonly string[]) => (await execFile(options.ffprobePath ?? "ffprobe", args, { maxBuffer: 4 * 1024 * 1024 })).stdout);
   const sampleRate = options.sampleRate ?? 48000;
   return async (sourcePath: string, assetId = sourcePath): Promise<MediaProbeRecordV3> => {
-    const output = JSON.parse(await run(["-v", "error", "-show_streams", "-show_format", "-of", "json", sourcePath])) as { streams?: Array<Record<string, unknown>> };
+    const output = JSON.parse(await run(["-v", "error", "-show_streams", "-show_format", "-of", "json", sourcePath])) as { streams?: Array<Record<string, unknown>>; format?: Record<string, unknown> };
+    const formatDurationSec = Number(output.format?.duration ?? 0);
     const streams = (output.streams ?? []).flatMap((raw, index): MediaStreamProbeV3[] => {
       const kind = raw.codec_type === "audio" ? "audio" : raw.codec_type === "video" ? "video" : undefined;
       if (!kind) return [];
-      const durationSec = Number(raw.duration ?? 0);
+      const durationSec = Number(raw.duration ?? formatDurationSec);
       const stream: MediaStreamProbeV3 = { streamId: `${assetId}:${kind}:${index}`, kind, codec: typeof raw.codec_name === "string" ? raw.codec_name : undefined, codecConfig: typeof raw.extradata === "string" ? raw.extradata : undefined, durationUs: durationSec > 0 ? Math.round(durationSec * 1e6) : undefined, timeBase: typeof raw.time_base === "string" ? raw.time_base : undefined, disposition: typeof raw.disposition === "object" && raw.disposition ? raw.disposition as Record<string, number> : undefined };
       if (kind === "audio") Object.assign(stream, { sampleRate: Number(raw.sample_rate) || sampleRate, channels: Number(raw.channels) || 2, durationSamples: Math.round(durationSec * (Number(raw.sample_rate) || sampleRate)) });
       else Object.assign(stream, { width: Number(raw.width) || 1, height: Number(raw.height) || 1, frameRate: parseRate(raw.r_frame_rate) });

@@ -133,7 +133,13 @@ function AssetMeta({ asset, duration }: { asset: Asset; duration?: number }) {
           <span aria-hidden="true"> · </span>
         </>
       ) : null}
-      {asset.status === "ready" ? "Ready" : "Uploading"}
+      {asset.status !== "ready"
+        ? "Uploading"
+        : asset.mime_type.startsWith("video/") && asset.preview_status === "pending"
+          ? "Preparing media"
+          : asset.mime_type.startsWith("video/") && asset.preview_status === "failed"
+            ? "Preview unavailable"
+            : "Ready"}
     </p>
   );
 }
@@ -199,6 +205,15 @@ export function AssetsWorkspace() {
     window.addEventListener("neonix:dev-demo-authenticated", reloadAfterDemoAuth);
     return () => window.removeEventListener("neonix:dev-demo-authenticated", reloadAfterDemoAuth);
   }, [loadAssets]);
+
+  useEffect(() => {
+    const hasPendingMedia = assets.some((asset) => asset.mime_type.startsWith("video/") && asset.preview_status === "pending");
+    if (!hasPendingMedia) return undefined;
+    const timer = window.setInterval(() => {
+      loadAssets().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to refresh assets"));
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [assets, loadAssets]);
 
   async function uploadFile(file: File) {
     setError(null);

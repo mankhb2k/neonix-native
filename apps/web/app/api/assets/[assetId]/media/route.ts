@@ -4,6 +4,20 @@ import { derivativeObjectKey, getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
 
+type MediaAssetRow = { id: string; r2_key: string; preview_key: string | null; mime_type: string; status: string };
+
+function asMediaAssetRow(value: unknown): MediaAssetRow | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string"
+    && typeof record.r2_key === "string"
+    && (record.preview_key === null || typeof record.preview_key === "string")
+    && typeof record.mime_type === "string"
+    && typeof record.status === "string"
+    ? value as MediaAssetRow
+    : null;
+}
+
 function parseVariant(request: Request): "original" | "audio" | "poster" {
   const value = new URL(request.url).searchParams.get("variant");
   return value === "audio" || value === "poster" ? value : "original";
@@ -28,11 +42,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ asse
     .is("deleted_at", null)
     .maybeSingle();
   if (error) return jsonError(error.message, 500);
-  const asset = rawAsset as { id: string; r2_key: string; preview_key: string | null; mime_type: string; status: string } | null;
+  const asset = asMediaAssetRow(rawAsset);
   if (!asset || asset.status !== "ready") return jsonError("Asset not found", 404);
 
   const variant = parseVariant(request);
-  let key = asset.r2_key as string;
+  let key = asset.r2_key;
   if (variant === "poster") {
     key = typeof asset.preview_key === "string" ? asset.preview_key : "";
   } else if (variant === "audio") {
@@ -40,12 +54,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ asse
       .from("asset_variants")
       .select("r2_key, variant_kind, metadata_json")
       .eq("asset_id", assetId);
+    const canonicalAudioKey = derivativeObjectKey(assetId, "audio", "audio.m4a");
     const audioVariant = (variants ?? []).find((item: { r2_key?: unknown; variant_kind?: unknown; metadata_json?: unknown }) => {
-      if (item.variant_kind !== "proxy" || typeof item.r2_key !== "string") return false;
+      if (!(item.variant_kind === "audio" || item.variant_kind === "proxy") || typeof item.r2_key !== "string") return false;
       const metadata = item.metadata_json && typeof item.metadata_json === "object" ? item.metadata_json as Record<string, unknown> : {};
-      return metadata.kind === "audio" || item.r2_key.includes("/audio/");
+      // Keep the legacy path check while existing derivative rows are being
+      // migrated. New derivatives use the canonical flat file name.
+      return metadata.kind === "audio" || item.r2_key === canonicalAudioKey || item.r2_key.includes("/audio/");
     });
-    key = typeof audioVariant?.r2_key === "string" ? audioVariant.r2_key : derivativeObjectKey(assetId, "audio", "stream-1.m4a");
+    key = typeof audioVariant?.r2_key === "string" ? audioVariant.r2_key : derivativeObjectKey(assetId, "audio", "audio.m4a");
   }
 
   const provider = getUserAssetsProvider();

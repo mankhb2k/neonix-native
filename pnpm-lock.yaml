@@ -236,6 +236,9 @@ importers:
 
   packages/export-renderer:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.787.0
+        version: 3.1109.0
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime

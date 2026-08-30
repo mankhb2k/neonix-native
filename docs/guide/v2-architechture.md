@@ -278,7 +278,7 @@ Client
 Supabase Storage  --------------------------+
   |                                         |
   v                                         |
-assets/{assetId}/original.*                 |
+{assetId}/origin.*                         |
                                             |
                                             v
                               MediaProcessingBackend
@@ -293,10 +293,10 @@ assets/{assetId}/original.*                 |
                               +-- update asset + probe job status
                                             |
                                             v
-assets/{assetId}/
-  audio/stream-1.m4a
-  poster/poster.webp
-  video/proxy-720p.mp4
+{assetId}/
+  audio.m4a
+  poster.webp
+  video-proxy.mp4
                                             |
                                             v
                                   RuntimeProjectV3.mediaCatalog
@@ -306,7 +306,7 @@ The MVP processor runs in a Vercel **Node.js** function. It must not run in
 the Edge runtime, and it must not receive video bytes through the API request;
 it reads the original from Supabase Storage with a signed URL and writes
 results back to Storage. `ffprobe` records stream facts first. If a video has
-an audio stream, `ffmpeg` produces the canonical `stream-1.m4a` derivative. If
+an audio stream, `ffmpeg` produces the canonical `audio.m4a` derivative. If
 no audio stream exists, the video remains visual-only and the compiler does
 not invent an embedded audio clip.
 

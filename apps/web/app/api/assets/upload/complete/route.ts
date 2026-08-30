@@ -1,7 +1,32 @@
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
+import { dispatchMediaJob, MEDIA_PIPELINE_VERSION } from "@/lib/server/media/worker";
 import { getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
+
+type UploadAssetRow = {
+  id: string;
+  r2_key: string | null;
+  mime_type: string;
+  byte_size: number;
+  status: string;
+  original_filename: string | null;
+  preview_key: string | null;
+  preview_status: string | null;
+  preview_version: number | null;
+};
+
+function asUploadAssetRow(value: unknown): UploadAssetRow | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string"
+    && (record.r2_key === null || typeof record.r2_key === "string")
+    && typeof record.mime_type === "string"
+    && typeof record.byte_size === "number"
+    && typeof record.status === "string"
+    ? value as UploadAssetRow
+    : null;
+}
 
 export async function POST(request: Request) {
   const result = await getAssetRequestContext();
@@ -27,7 +52,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (assetError) return jsonError(assetError.message, 500);
-  const assetRow = asset;
+  const assetRow = asUploadAssetRow(asset);
   if (!assetRow) return jsonError("Asset not found", 404);
   if (assetRow.status === "ready") {
     return Response.json({ asset: assetRow });
@@ -57,20 +82,26 @@ export async function POST(request: Request) {
   let previewReady = false;
   let previewError: string | null = null;
   const previewKey = typeof assetRow.preview_key === "string" ? assetRow.preview_key : null;
+  const isVideo = assetRow.mime_type.startsWith("video/");
+  const browserPreviewExpected = Number(uploadSession?.expected_preview_byte_size) > 0;
   if (previewKey) {
-    const previewHead = await provider.headObject(previewKey);
-    if (previewHead?.sizeBytes && previewHead.sizeBytes > 0) {
-      if (uploadSession?.expected_preview_byte_size && previewHead.sizeBytes !== uploadSession.expected_preview_byte_size) {
-        previewError = "Uploaded preview size does not match the declared size";
-      } else if (uploadSession?.expected_preview_mime_type && previewHead.contentType
-        && previewHead.contentType !== uploadSession.expected_preview_mime_type) {
-        previewError = "Uploaded preview content type does not match the declared type";
-      } else if (previewHead.contentType && previewHead.contentType !== "image/webp") {
-        previewError = "Uploaded preview content type does not match image/webp";
+    if (browserPreviewExpected) {
+      const previewHead = await provider.headObject(previewKey);
+      if (previewHead?.sizeBytes && previewHead.sizeBytes > 0) {
+        if (uploadSession?.expected_preview_byte_size && previewHead.sizeBytes !== uploadSession.expected_preview_byte_size) {
+          previewError = "Uploaded preview size does not match the declared size";
+        } else if (uploadSession?.expected_preview_mime_type && previewHead.contentType
+          && previewHead.contentType !== uploadSession.expected_preview_mime_type) {
+          previewError = "Uploaded preview content type does not match the declared type";
+        } else if (previewHead.contentType && previewHead.contentType !== "image/webp") {
+          previewError = "Uploaded preview content type does not match image/webp";
+        } else {
+          previewReady = true;
+        }
       } else {
-        previewReady = true;
+        previewError = "Preview poster was not uploaded";
       }
-    } else {
+    } else if (!isVideo) {
       previewError = "Preview poster was not uploaded";
     }
   }
@@ -80,7 +111,7 @@ export async function POST(request: Request) {
     .update({
       status: "ready",
       content_hash: `r2:${head.sizeBytes}:${storageKey}`,
-      preview_status: previewReady ? "ready" : previewKey ? "failed" : "unsupported",
+      preview_status: previewReady ? "ready" : previewKey ? (isVideo && !browserPreviewExpected ? "pending" : "failed") : "unsupported",
       preview_error: previewError,
     })
     .eq("id", assetId)
@@ -108,5 +139,53 @@ export async function POST(request: Request) {
     .eq("created_by", user.id);
 
   if (sessionError) return jsonError(sessionError.message, 500);
-  return Response.json({ asset: updated });
+
+  let mediaJob: { id: string; status: string } | null = null;
+  if (isVideo) {
+    const sourceIntegrity = `r2:${head.sizeBytes}:${storageKey}`;
+    const idempotencyKey = `${assetId}:${sourceIntegrity}:v${MEDIA_PIPELINE_VERSION}`;
+    const { data: createdJob, error: mediaJobError } = await supabase
+      .from("media_jobs")
+      .insert({
+        workspace_id: workspaceId,
+        asset_id: assetId,
+        status: "queued",
+        idempotency_key: idempotencyKey,
+        source_integrity: sourceIntegrity,
+        pipeline_version: MEDIA_PIPELINE_VERSION,
+      })
+      .select("id, status")
+      .single();
+    if (mediaJobError) {
+      if (mediaJobError.code !== "23505") return jsonError(mediaJobError.message, 500);
+      const { data: existingJob, error: existingJobError } = await supabase
+        .from("media_jobs")
+        .select("id, status")
+        .eq("asset_id", assetId)
+        .maybeSingle();
+      if (existingJobError || !existingJob) return jsonError(existingJobError?.message ?? "Media job not found", 500);
+      mediaJob = existingJob;
+    } else {
+      mediaJob = createdJob;
+    }
+
+    if (mediaJob.status === "queued") {
+      try {
+        await dispatchMediaJob({
+          jobId: mediaJob.id,
+          assetId,
+          sourceKey: storageKey,
+          sourceMimeType: assetRow.mime_type,
+          sourceIntegrity,
+        });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        await supabase.from("media_jobs").update({ status: "failed", last_error: detail }).eq("id", mediaJob.id);
+        await supabase.from("assets").update({ preview_status: "failed", preview_error: `media_worker_dispatch_failed: ${detail}` }).eq("id", assetId).eq("workspace_id", workspaceId);
+        mediaJob = { ...mediaJob, status: "failed" };
+      }
+    }
+  }
+
+  return Response.json({ asset: updated, ...(mediaJob ? { mediaJob } : {}) });
 }

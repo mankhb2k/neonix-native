@@ -244,6 +244,7 @@ pnpm --filter @motionvideo/export-renderer start
 
 - `GET /health` (also `/healthz` and `/readyz`)
 - `POST /v1/renders`
+- `POST /v1/media/prepare` (requires `x-internal-worker-token`)
 
 Request body:
 
@@ -256,8 +257,24 @@ Request body:
 ```
 
 `outputName` is restricted to a relative `.mp4` path under
-`tmp/export-renderer` by default. No R2, Supabase or export job record is
-written by this worker yet.
+`tmp/export-renderer` by default. Media preparation reads the origin from the
+configured R2 user-assets bucket, writes `{assetId}/poster.webp` and (when an
+audio stream exists) `{assetId}/audio.m4a`, then calls the Web API callback
+provided in the request. The worker never writes Supabase directly.
+
+Media preparation request:
+
+```json
+{
+  "jobId": "uuid",
+  "assetId": "uuid",
+  "sourceKey": "asset-id/origin.mp4",
+  "sourceMimeType": "video/mp4",
+  "sourceIntegrity": "r2:123:asset-id/origin.mp4",
+  "callbackUrl": "https://app.example.com/api/internal/media-jobs/callback",
+  "pipelineVersion": 1
+}
+```
 
 ## Docker
 

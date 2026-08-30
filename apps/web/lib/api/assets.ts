@@ -14,6 +14,7 @@ export type Asset = {
   source_width?: number | null;
   source_height?: number | null;
   has_audio?: boolean | null;
+  preview_error?: string | null;
 };
 
 export type UploadPreview = {

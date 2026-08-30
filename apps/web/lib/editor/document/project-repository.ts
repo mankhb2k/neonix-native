@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { derivativeObjectKey } from "@/lib/server/r2";
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 
 type JsonObject = Record<string, unknown>;
@@ -193,7 +194,8 @@ async function hydratePrivateAssetUrls(
   const audioVariants = new Map<string, { key: string; mimeType: string; metadata: Record<string, unknown> }>();
   for (const variant of (variants ?? []) as Array<{ asset_id?: unknown; r2_key?: unknown; variant_kind?: unknown; mime_type?: unknown; metadata_json?: unknown }>) {
     if (typeof variant.asset_id !== "string" || typeof variant.r2_key !== "string" || typeof variant.mime_type !== "string") continue;
-    if (variant.variant_kind !== "proxy" || !variant.r2_key.includes("/audio/")) continue;
+    const canonicalAudioKey = derivativeObjectKey(variant.asset_id, "audio", "audio.m4a");
+    if (!(variant.variant_kind === "audio" || variant.variant_kind === "proxy") || (variant.r2_key !== canonicalAudioKey && !variant.r2_key.includes("/audio/"))) continue;
     const metadata = variant.metadata_json && typeof variant.metadata_json === "object"
       ? variant.metadata_json as Record<string, unknown>
       : {};

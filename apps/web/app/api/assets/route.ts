@@ -25,6 +25,7 @@ type AssetRow = {
   source_width: number | null;
   source_height: number | null;
   has_audio: boolean | null;
+  preview_error: string | null;
 };
 
 export async function GET() {
@@ -34,7 +35,7 @@ export async function GET() {
   const { supabase, workspaceId } = result.context;
   const { data, error } = await supabase
     .from("assets")
-    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, preview_version, source_duration_ms, source_width, source_height, has_audio")
+    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, preview_version, source_duration_ms, source_width, source_height, has_audio, preview_error")
     .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
     .in("status", ["uploading", "ready"])
@@ -120,7 +121,8 @@ export async function POST(request: Request) {
   const assetId = randomUUID();
   const provider = getUserAssetsProvider();
   const storageKey = provider.createObjectKey(assetId, mimeType);
-  const previewKey = hasPreview ? derivativeObjectKey(assetId, "poster", "poster.webp") : null;
+  const isVideo = mimeType.startsWith("video/");
+  const previewKey = hasPreview || isVideo ? derivativeObjectKey(assetId, "poster", "poster.webp") : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
   const { supabase, user, workspaceId } = result.context;
@@ -139,12 +141,12 @@ export async function POST(request: Request) {
     original_filename: name,
     metadata_json: {},
     preview_key: previewKey,
-    preview_status: hasPreview ? "pending" : "unsupported",
+    preview_status: hasPreview || isVideo ? "pending" : "unsupported",
     source_duration_ms: hasPreview && Number.isFinite(previewDurationMs!) ? Math.round(previewDurationMs!) : null,
     source_width: validatedPreviewWidth,
     source_height: validatedPreviewHeight,
     has_audio: null,
-    preview_version: hasPreview ? 3 : null,
+    preview_version: hasPreview || isVideo ? 3 : null,
     created_at: now,
   });
 
@@ -170,7 +172,7 @@ export async function POST(request: Request) {
 
   try {
     const signed = await provider.presignPut(storageKey, mimeType, 15 * 60);
-    const previewSigned = previewKey
+    const previewSigned = hasPreview && previewKey
       ? await provider.presignPut(previewKey, "image/webp", 15 * 60)
       : null;
     return Response.json({

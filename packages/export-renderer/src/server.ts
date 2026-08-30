@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { isAbsolute, join, resolve } from "node:path";
 import { renderRuntimeProjectV3 } from "./render";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { prepareMediaJob, type MediaPrepareRequest } from "./media-worker";
 
 const port = Number(process.env.EXPORT_RENDERER_PORT ?? 8787);
 const workspaceRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -42,7 +43,10 @@ function outputNameFromToken(token: string): string {
   return safeOutputName(outputName, "output");
 }
 
-export function createExportRendererServer() {
+export function createExportRendererServer(options: {
+  mediaPrepare?: (input: MediaPrepareRequest) => Promise<unknown>;
+} = {}) {
+  const mediaPrepare = options.mediaPrepare ?? prepareMediaJob;
   return createServer(async (request, response) => {
     try {
       if (request.method === "GET" && ["/health", "/healthz", "/readyz"].includes(request.url ?? "")) {
@@ -50,6 +54,48 @@ export function createExportRendererServer() {
         return;
       }
       const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+      if (request.method === "POST" && requestUrl.pathname === "/v1/media/prepare") {
+        const expectedToken = process.env.INTERNAL_WORKER_TOKEN?.trim();
+        const rawToken = request.headers["x-internal-worker-token"];
+        const suppliedToken = (Array.isArray(rawToken) ? rawToken[0] : rawToken)?.trim();
+        if (!expectedToken) {
+          json(response, 503, { ok: false, error: "worker_auth_not_configured" });
+          return;
+        }
+        if (!suppliedToken || suppliedToken !== expectedToken) {
+          json(response, 401, { ok: false, error: "unauthorized" });
+          return;
+        }
+        const body = await readJson(request) as Partial<MediaPrepareRequest>;
+        if (!body.jobId || !body.assetId || !body.sourceKey || !body.sourceMimeType || !body.sourceIntegrity || !body.callbackUrl) {
+          json(response, 400, { ok: false, error: "invalid_media_prepare_request" });
+          return;
+        }
+        let callbackUrl: URL;
+        try {
+          callbackUrl = new URL(body.callbackUrl);
+          if (!["http:", "https:"].includes(callbackUrl.protocol)) throw new Error("unsupported callback protocol");
+        } catch {
+          json(response, 400, { ok: false, error: "invalid_callback_url" });
+          return;
+        }
+        const job = {
+          jobId: body.jobId,
+          assetId: body.assetId,
+          sourceKey: body.sourceKey,
+          sourceMimeType: body.sourceMimeType,
+          sourceIntegrity: body.sourceIntegrity,
+          callbackUrl: callbackUrl.toString(),
+          ...(body.pipelineVersion ? { pipelineVersion: body.pipelineVersion } : {}),
+        } satisfies MediaPrepareRequest;
+        void mediaPrepare(job).catch((error) => {
+          // The worker reports normal media failures through the callback. This
+          // log only covers a callback or infrastructure failure after dispatch.
+          console.error("[export-renderer] media job failed", { jobId: job.jobId, error });
+        });
+        json(response, 202, { ok: true, jobId: job.jobId, status: "processing" });
+        return;
+      }
       if (request.method === "GET" && requestUrl.pathname.startsWith("/v1/outputs/")) {
         const token = requestUrl.pathname.slice("/v1/outputs/".length);
         const outputName = outputNameFromToken(token);

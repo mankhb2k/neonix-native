@@ -69,17 +69,29 @@ function safeAssetStorageId(assetId: string): string {
 }
 
 export function defaultObjectKey(assetId: string, mimeType: string): string {
-  return `assets/${safeAssetStorageId(assetId)}/original.${extensionForMime(mimeType)}`;
+  const storageId = safeAssetStorageId(assetId);
+  const extension = extensionForMime(mimeType);
+
+  // Every asset owns a namespace, even when it only has one original object.
+  // This keeps future thumbnails, waveforms, proxies, and audio derivatives
+  // under one predictable prefix.
+  return `${storageId}/origin.${extension}`;
 }
 
-/** Stable derivative namespace shared by preview and media workers. */
+/** Stable video derivative keys shared by preview and media workers. */
 export function derivativeObjectKey(
   assetId: string,
   kind: "audio" | "video" | "poster",
   fileName: string,
 ): string {
+  const defaultFileName = kind === "poster"
+    ? "poster.webp"
+    : kind === "audio"
+      ? "audio.m4a"
+      : fileName;
+  const safeFileName = defaultFileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `assets/${safeAssetStorageId(assetId)}/${kind}/${safeName}`;
+  return `${safeAssetStorageId(assetId)}/${kind === "video" ? safeName : safeFileName}`;
 }
 
 export class R2StorageProvider {
