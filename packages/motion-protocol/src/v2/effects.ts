@@ -26,6 +26,46 @@ export const V2ColorAdjustEffectSchema = z
   })
   .strict();
 
+/** CSS grayscale() expressed as a readable semantic effect. */
+export const V2GrayscaleEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("grayscale"),
+    /** Normalized amount; 0 preserves color and 1 is full grayscale. */
+    amount: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
+/** CSS sepia() expressed as a readable semantic effect. */
+export const V2SepiaEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("sepia"),
+    /** Normalized amount; 0 preserves color and 1 is full sepia. */
+    amount: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
+/** CSS invert() expressed as a readable semantic effect. */
+export const V2InvertEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("invert"),
+    /** Normalized amount; 0 preserves color and 1 fully inverts it. */
+    amount: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
+/** CSS filter: opacity() kept distinct from the layer opacity property. */
+export const V2FilterOpacityEffectSchema = z
+  .object({
+    id: V2IdSchema,
+    type: z.literal("filter-opacity"),
+    /** Normalized filter alpha; this value participates in effect order. */
+    amount: V2FiniteNumberSchema.min(0).max(1),
+  })
+  .strict();
+
 export const V2BlurEffectSchema = z
   .object({
     id: V2IdSchema,
@@ -88,6 +128,10 @@ export const V2NoiseEffectSchema = z
 
 export const V2EffectSchema = z.discriminatedUnion("type", [
   V2ColorAdjustEffectSchema,
+  V2GrayscaleEffectSchema,
+  V2SepiaEffectSchema,
+  V2InvertEffectSchema,
+  V2FilterOpacityEffectSchema,
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
   V2OuterGlowEffectSchema,
@@ -113,6 +157,10 @@ export const V2EffectListSchema = z
   });
 
 export type V2ColorAdjustEffect = z.infer<typeof V2ColorAdjustEffectSchema>;
+export type V2GrayscaleEffect = z.infer<typeof V2GrayscaleEffectSchema>;
+export type V2SepiaEffect = z.infer<typeof V2SepiaEffectSchema>;
+export type V2InvertEffect = z.infer<typeof V2InvertEffectSchema>;
+export type V2FilterOpacityEffect = z.infer<typeof V2FilterOpacityEffectSchema>;
 export type V2BlurEffect = z.infer<typeof V2BlurEffectSchema>;
 export type V2DropShadowEffect = z.infer<typeof V2DropShadowEffectSchema>;
 export type V2OuterGlowEffect = z.infer<typeof V2OuterGlowEffectSchema>;

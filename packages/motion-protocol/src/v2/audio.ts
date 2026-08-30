@@ -2,7 +2,8 @@ import { z } from "zod";
 import {
   V2FiniteNumberSchema,
   V2IdSchema,
-  V2NonNegativeNumberSchema,
+  V2MillisecondsSchema,
+  V2PositiveMillisecondsSchema,
   V2PositiveNumberSchema,
 } from "./common";
 
@@ -13,7 +14,8 @@ export const V2AudioFadeSchema = z
     // A zero-length fade is the explicit "disabled" state. Keeping the
     // object present lets editors expose fade controls without an add/remove
     // toggle while preserving a no-op audio mix by default.
-    duration: V2NonNegativeNumberSchema,
+    /** Fade duration in milliseconds. */
+    duration: V2MillisecondsSchema,
     curve: V2AudioFadeCurveSchema,
   })
   .strict();
@@ -39,14 +41,14 @@ export const V2AudioClipSchema = z
     assetId: V2IdSchema,
     timing: z
       .object({
-        start: V2NonNegativeNumberSchema,
-        duration: V2PositiveNumberSchema,
+        start: V2MillisecondsSchema,
+        duration: V2PositiveMillisecondsSchema,
       })
       .strict(),
     trim: z
       .object({
-        start: V2NonNegativeNumberSchema,
-        end: V2PositiveNumberSchema.optional(),
+        start: V2MillisecondsSchema,
+        end: V2PositiveMillisecondsSchema.optional(),
       })
       .strict(),
     playbackRate: V2PositiveNumberSchema,

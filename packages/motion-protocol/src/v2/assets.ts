@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { V2IdSchema, V2PositiveNumberSchema } from "./common";
+import { V2IdSchema, V2MillisecondsSchema, V2PositiveNumberSchema } from "./common";
 
 /** Renderer-neutral asset metadata. GPU textures never cross this boundary. */
 const V2AssetMetadataShape = {
@@ -20,7 +20,8 @@ const V2AssetMetadataShape = {
 export const V2VideoAudioDerivativeSchema = z.object({
   uri: z.string().trim().min(1),
   mimeType: z.string().trim().min(1).optional(),
-  duration: z.number().finite().nonnegative().optional(),
+  /** Duration metadata in milliseconds. */
+  duration: V2MillisecondsSchema.optional(),
   sampleRate: V2PositiveNumberSchema.int().optional(),
   channels: V2PositiveNumberSchema.int().max(32).optional(),
   integrity: z.string().trim().min(1).optional(),
@@ -34,7 +35,8 @@ export const V2VideoAssetSchema = z
   .object({
     ...V2AssetMetadataShape,
     kind: z.literal("video"),
-    duration: z.number().finite().nonnegative().optional(),
+    /** Duration metadata in milliseconds. */
+    duration: V2MillisecondsSchema.optional(),
     fps: V2PositiveNumberSchema.optional(),
     audio: V2VideoAudioDerivativeSchema.optional(),
   })
@@ -46,7 +48,8 @@ export const V2AudioAssetSchema = z
     kind: z.literal("audio"),
     uri: z.string().trim().min(1),
     mimeType: z.string().trim().min(1),
-    duration: z.number().finite().nonnegative().optional(),
+    /** Duration metadata in milliseconds. */
+    duration: V2MillisecondsSchema.optional(),
     sampleRate: V2PositiveNumberSchema.int().optional(),
     channels: V2PositiveNumberSchema.int().max(32).optional(),
     integrity: z.string().trim().min(1).optional(),

@@ -32,14 +32,20 @@ export { V2_AUDIO_FIXTURES, type V2AudioFixture } from "./audio-fixtures";
 export {
   V2ColorSchema,
   V2FiniteNumberSchema,
+  V2MillisecondsSchema,
   V2IdSchema,
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
+  V2PositiveMillisecondsSchema,
 } from "./common";
 export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
 export {
   V2ColorAdjustEffectSchema,
+  V2GrayscaleEffectSchema,
+  V2SepiaEffectSchema,
+  V2InvertEffectSchema,
+  V2FilterOpacityEffectSchema,
   V2BlurEffectSchema,
   V2DropShadowEffectSchema,
   V2OuterGlowEffectSchema,
@@ -48,6 +54,10 @@ export {
   V2EffectSchema,
   V2EffectListSchema,
   type V2ColorAdjustEffect,
+  type V2GrayscaleEffect,
+  type V2SepiaEffect,
+  type V2InvertEffect,
+  type V2FilterOpacityEffect,
   type V2BlurEffect,
   type V2DropShadowEffect,
   type V2OuterGlowEffect,
@@ -58,6 +68,9 @@ export {
 export {
   V2FrameSchema,
   V2LayerBaseSchema,
+  V2BlendModeSchema,
+  V2IsolationModeSchema,
+  V2CompositeSchema,
   V2GroupLayerSchema,
   V2ImageFitSchema,
   V2ImageLayerSchema,
@@ -69,6 +82,8 @@ export {
   V2ShapeLayerSchema,
   V2TextLayerSchema,
   type V2Frame,
+  type V2BlendMode,
+  type V2IsolationMode,
   type V2GroupLayer,
   type V2ImageFit,
   type V2ImageLayer,
@@ -80,10 +95,49 @@ export {
   type V2TextLayer,
 } from "./layers";
 export { V2TimingSchema, type V2Timing } from "./timing";
-export { V2TransformSchema, type V2Transform } from "./transform";
+export {
+  V2Mat4Schema,
+  V2TransformOperationSchema,
+  V2TransformOperationsSchema,
+  V2TransformSchema,
+  V2Vec2Schema,
+  V2Vec3Schema,
+  type V2Mat4,
+  type V2Transform,
+  type V2TransformOperation,
+  type V2TransformOperations,
+  type V2Vec2,
+  type V2Vec3,
+} from "./transform";
+export {
+  V2AnimatableValueSchema,
+  V2EasingSchema,
+  V2InterpolationSchema,
+  V2KeyframeSchema,
+  V2PropertyPathSchema,
+  V2TrackSchema,
+  V2TrackListSchema,
+  type V2AnimatableValue,
+  type V2Easing,
+  type V2Interpolation,
+  type V2Keyframe,
+  type V2PropertyPath,
+  type V2Track,
+  type V2TrackList,
+} from "./animation";
 export {
   V2ProjectionSchema,
   V2ViewSchema,
   type V2Projection,
   type V2View,
 } from "./view";
+export {
+  V2BackfaceVisibilitySchema,
+  V2PerspectiveContextSchema,
+  V2Render3DSchema,
+  V2TransformStyleSchema,
+  type V2BackfaceVisibility,
+  type V2PerspectiveContext,
+  type V2Render3D,
+  type V2TransformStyle,
+} from "./render3d";

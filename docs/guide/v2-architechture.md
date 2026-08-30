@@ -402,9 +402,15 @@ type VisualLayerBaseV2 = {
     anchor: { x: number; y: number; z: number };
   };
   opacity: number; // 0..1, default 1
-  timing: { start: number; duration: number }; // composition seconds
+  timing: { start: number; duration: number }; // composition milliseconds
+  tracks?: TrackV2[]; // typed keyframes in local milliseconds
   composite?: {
-    blendMode: "normal" | "multiply" | "screen" | "add";
+    blendMode:
+      | "normal" | "darken" | "multiply" | "color-burn"
+      | "lighten" | "screen" | "color-dodge" | "overlay"
+      | "soft-light" | "hard-light" | "difference" | "exclusion"
+      | "hue" | "saturation" | "color" | "luminosity";
+    isolation?: "auto" | "isolate";
     mask?: {
       mode: "clip" | "alpha" | "inverse-alpha" | "luma";
       sourceLayerId: string;
@@ -427,10 +433,15 @@ implicit camera. Masking is group-local: its source must be a direct drawable
 child; `clip` requires a shape source, while alpha, inverse-alpha, and luma can
 use a drawable source. Mask sources are emitted as `mask-only`.
 
-There is no generic keyframe/animation-track JSON field in the current V2
-schema. The supported temporal primitive is `timing`; any animation layer must
-be introduced explicitly in a future protocol revision rather than inferred by
-a renderer.
+Blend modes use the CSS canonical names in Protocol V2 and are evaluated by
+the runtime against source and backdrop pixels; they are not lowered to a
+color matrix. `isolation` is a separate compositing boundary.
+
+Each layer may carry an optional `tracks[]` list. A track addresses one
+animatable leaf property with a typed dot-separated path and strictly ordered
+keyframes in local milliseconds. CSS animation/transition, Figma smart animate,
+and AE-style editor actions remain high-level inputs; they must lower to these
+protocol tracks. Runtime behavior is defined outside the Protocol package.
 
 ### 3.3 Complete visual atom catalog
 
@@ -438,8 +449,8 @@ The following is the entire currently defined V2 visual layer vocabulary.
 
 | Atom | JSON payload and style | Certified atomic behavior |
 | --- | --- | --- |
-| `group` | No drawable payload; uses the shared layer fields | Parent/child transforms, nested timing, inherited opacity, sibling order, isolated compositing, four blend modes, and clip/alpha/inverse-alpha/luma masks |
-| `shape` | `payload.shape: "rectangle"` or `"ellipse"`; optional rectangle `cornerRadius`; `style.fill`, opacity, optional stroke/width/opacity | Solid and two-stop linear/radial gradients, fill/stroke opacity, rectangle corner radius, 3D transform, timing, opacity, and ordering |
+| `group` | No drawable payload; uses the shared layer fields | Parent/child transforms, nested timing, inherited opacity, sibling order, CSS blend modes, isolation, and clip/alpha/inverse-alpha/luma masks |
+| `shape` | `payload.shape: "rectangle"` or `"ellipse"`; optional rectangle `cornerRadius`; `style.fill`, opacity, optional stroke/width/opacity | Solid and multi-stop linear/radial/conic gradients, fill/stroke opacity, rectangle corner radius, 3D transform, timing, opacity, and ordering |
 | `path` | `payload.contours[]` with line/cubic segments, `fillRule`, optional topology-matched `morph`; fill/stroke style | Nonzero/evenodd fills, multiple contours/holes, fixed-width strokes, miter/bevel/round joins, butt/square/round caps, dash array/offset, and morph interpolation before tessellation |
 | `image` | `payload.assetId`, optional `fit` and normalized `crop` | Image asset lookup, `contain`, `cover`, `fill`, `none`, crop, plus shared transform/timing/opacity/order |
 | `video` | `payload.assetId`, optional `fit`, `trimStart`, `trimEnd`, `audio`, `framePolicy` | Deterministic media-time selection; `floor`, `round`, or `ceil` frame policy; trim, embedded-audio intent, fit, and shared fields |
@@ -458,6 +469,10 @@ eight effects with unique ids may be attached to a drawable.
 | Effect type | Atomic parameters | Meaning |
 | --- | --- | --- |
 | `color-adjust` | brightness, contrast, saturation, hueRotate | Ordered pixel-local colour adjustment |
+| `grayscale` | amount (`0..1`) | CSS grayscale semantic filter |
+| `sepia` | amount (`0..1`) | CSS sepia semantic filter |
+| `invert` | amount (`0..1`) | CSS invert semantic filter |
+| `filter-opacity` | amount (`0..1`) | CSS opacity filter, distinct from layer opacity |
 | `blur` | radius | Gaussian spatial blur in output pixels |
 | `drop-shadow` | x, y, blur, color, opacity | Alpha-derived projected shadow |
 | `outer-glow` | radius, color, opacity | Alpha-derived exterior glow |
@@ -467,6 +482,11 @@ eight effects with unique ids may be attached to a drawable.
 Spatial effects and group compositing create explicit isolated/offscreen
 surfaces in Runtime IR. Preview/export render those surfaces; they do not
 recalculate a source layer's transforms.
+
+Semantic color filters remain readable in Protocol V2. A later
+compiler/runtime stage may lower contiguous color-filter runs to a fused
+Mat4x5 color matrix, but effect order must remain unchanged across spatial
+effects such as `blur` and `drop-shadow`.
 
 ### 3.5 Audio atomic design
 
@@ -483,21 +503,21 @@ type AudioDomainV2 = {
     clips: Array<{
       id: string;
       assetId: string; // an audio asset or the audio stream of a video asset
-      timing: { start: number; duration: number };
-      trim: { start: number; end?: number };
+      timing: { start: number; duration: number }; // milliseconds
+      trim: { start: number; end?: number }; // milliseconds
       playbackRate: number;
       enabled: boolean; // false is silent; it never stops transport
       gainDb: number;
       pan: number; // -1..1, per source
-      fadeIn?: { duration: number; curve: "linear" | "equal-power" };
-      fadeOut?: { duration: number; curve: "linear" | "equal-power" };
+      fadeIn?: { duration: number; curve: "linear" | "equal-power" }; // milliseconds
+      fadeOut?: { duration: number; curve: "linear" | "equal-power" }; // milliseconds
     }>;
   }>;
 };
 ```
 
-All audio time is in composition seconds until Runtime evaluates a requested
-sample range. Protocol covers audio asset identity, timing,
+All audio time in the Protocol document is in composition milliseconds until
+Runtime evaluates a requested sample range. Protocol covers audio asset identity, timing,
 bounded trim, per-input enable/gain/pan/fades, track bus controls, overlapping
 clips, and explicit video-audio sources. A video layer does not create sound
 implicitly: its `payload.audio` must be present and its source video must have

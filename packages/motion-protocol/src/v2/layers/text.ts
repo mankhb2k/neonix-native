@@ -11,7 +11,8 @@ import { V2EffectListSchema } from "../effects";
 /**
  * Task 10 MVP deliberately permits one deterministic layout surface only.
  * Word wrapping, clipping, RTL, variable axes, and rich text need separate
- * compiler support after single-style text parity is locked.
+ * authoring support after single-style text parity is locked. Temporal tracks
+ * are shared by all layer types through the base layer contract.
  */
 export const V2TextLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("text"),

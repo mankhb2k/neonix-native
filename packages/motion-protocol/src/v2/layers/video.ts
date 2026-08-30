@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { V2IdSchema } from "../common";
+import { V2IdSchema, V2MillisecondsSchema, V2PositiveMillisecondsSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
 import { V2ImageFitSchema } from "./image";
 import { V2EffectListSchema } from "../effects";
@@ -15,8 +15,9 @@ export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
     .object({
       assetId: V2IdSchema,
       fit: V2ImageFitSchema.optional(),
-      trimStart: z.number().finite().nonnegative().optional(),
-      trimEnd: z.number().finite().positive().optional(),
+      /** Source trim positions in milliseconds. */
+      trimStart: V2MillisecondsSchema.optional(),
+      trimEnd: V2PositiveMillisecondsSchema.optional(),
       audio: V2EmbeddedVideoAudioSchema.optional(),
       framePolicy: V2VideoFramePolicySchema.optional(),
     })

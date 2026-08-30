@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { MotionProtocolV2Schema } from "../src/index";
+import { MotionProtocolV2Schema } from "../index";
 
-const schemaPath = join(__dirname, "..", "schema", "v2.json");
+const schemaPath = join(__dirname, "..", "..", "schema", "v2.json");
 
 describe("committed Protocol V2 JSON Schema", () => {
   it("schema/v2.json exists", () => {

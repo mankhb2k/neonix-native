@@ -10,20 +10,55 @@ export {
   V2LayerBaseSchema,
   V2FrameSchema,
   V2BlendModeSchema,
+  V2IsolationModeSchema,
   V2CompositeSchema,
   V2MaskModeSchema,
   V2MaskSchema,
   type V2Frame,
   type V2BlendMode,
+  type V2IsolationMode,
   type V2MaskMode,
   type V2Mask,
 } from "./base";
+export {
+  V2AnimatableValueSchema,
+  V2EasingSchema,
+  V2InterpolationSchema,
+  V2KeyframeSchema,
+  V2PropertyPathSchema,
+  V2TrackSchema,
+  V2TrackListSchema,
+  type V2AnimatableValue,
+  type V2Easing,
+  type V2Interpolation,
+  type V2Keyframe,
+  type V2PropertyPath,
+  type V2Track,
+  type V2TrackList,
+} from "../animation";
 export { V2GroupLayerSchema, type V2GroupLayer } from "./group";
 export { V2ImageFitSchema, V2ImageLayerSchema, type V2ImageFit, type V2ImageLayer } from "./image";
-export { V2ShapeLayerSchema, type V2ShapeLayer } from "./shape";
+export {
+  V2GradientFillSchema,
+  V2GradientStopSchema,
+  V2ShapeLayerSchema,
+  type V2GradientFill,
+  type V2GradientStop,
+  type V2ShapeLayer,
+} from "./shape";
 export { V2TextLayerSchema, type V2TextLayer } from "./text";
 export { V2PathContourSchema, V2PathLayerSchema, type V2PathLayer } from "./path";
 export { V2VideoFramePolicySchema, V2VideoLayerSchema, type V2VideoFramePolicy, type V2VideoLayer } from "./video";
+export {
+  V2BackfaceVisibilitySchema,
+  V2PerspectiveContextSchema,
+  V2Render3DSchema,
+  V2TransformStyleSchema,
+  type V2BackfaceVisibility,
+  type V2PerspectiveContext,
+  type V2Render3D,
+  type V2TransformStyle,
+} from "../render3d";
 
 export const V2LayerSchema = z.discriminatedUnion("type", [
   V2GroupLayerSchema,

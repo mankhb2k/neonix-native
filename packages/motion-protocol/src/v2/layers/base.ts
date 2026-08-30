@@ -7,6 +7,8 @@ import {
 } from "../common";
 import { V2TimingSchema } from "../timing";
 import { V2TransformSchema } from "../transform";
+import { V2TrackListSchema } from "../animation";
+import { V2BackfaceVisibilitySchema } from "../render3d";
 
 export const V2FrameSchema = z
   .object({
@@ -18,10 +20,25 @@ export const V2FrameSchema = z
 /** Portable GPU blend modes represented by the Protocol V2 schema. */
 export const V2BlendModeSchema = z.enum([
   "normal",
+  "darken",
   "multiply",
+  "color-burn",
+  "lighten",
   "screen",
-  "add",
+  "color-dodge",
+  "overlay",
+  "soft-light",
+  "hard-light",
+  "difference",
+  "exclusion",
+  "hue",
+  "saturation",
+  "color",
+  "luminosity",
 ]);
+
+/** CSS isolation property for compositing groups. */
+export const V2IsolationModeSchema = z.enum(["auto", "isolate"]);
 
 /** Mask operators consume a direct child source from an isolated group. */
 export const V2MaskModeSchema = z.enum(["clip", "alpha", "inverse-alpha", "luma"]);
@@ -37,6 +54,7 @@ export const V2MaskSchema = z
 export const V2CompositeSchema = z
   .object({
     blendMode: V2BlendModeSchema.default("normal"),
+    isolation: V2IsolationModeSchema.optional(),
     mask: V2MaskSchema.optional(),
   })
   .strict();
@@ -51,12 +69,17 @@ export const V2LayerBaseSchema = z
     transform: V2TransformSchema,
     /** Source alpha shared by normal and non-normal blend modes. */
     opacity: V2FiniteNumberSchema.min(0).max(1).default(1),
+    /** Whether the reverse side of the accumulated 3D transform may paint. */
+    backfaceVisibility: V2BackfaceVisibilitySchema.optional(),
     composite: V2CompositeSchema.optional(),
     timing: V2TimingSchema,
+    /** Optional local property tracks; omitted for static layers. */
+    tracks: V2TrackListSchema.optional(),
   })
   .strict();
 
 export type V2Frame = z.infer<typeof V2FrameSchema>;
 export type V2BlendMode = z.infer<typeof V2BlendModeSchema>;
+export type V2IsolationMode = z.infer<typeof V2IsolationModeSchema>;
 export type V2MaskMode = z.infer<typeof V2MaskModeSchema>;
 export type V2Mask = z.infer<typeof V2MaskSchema>;

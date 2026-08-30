@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { V2EmbeddedVideoAudioSchema } from "./audio";
-import { MotionProtocolV2Schema } from "./project";
+import { V2EmbeddedVideoAudioSchema } from "../v2/audio";
+import { MotionProtocolV2Schema } from "../v2/project";
 
 const RECTANGLE_PROJECT = {
   format: "motion-protocol",

@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { V2NonNegativeNumberSchema, V2PositiveNumberSchema } from "./common";
+import { V2MillisecondsSchema, V2PositiveMillisecondsSchema } from "./common";
 
 export const V2TimingSchema = z
   .object({
-    start: V2NonNegativeNumberSchema,
-    duration: V2PositiveNumberSchema,
+    /** Composition start in milliseconds. */
+    start: V2MillisecondsSchema,
+    /** Layer duration in milliseconds. */
+    duration: V2PositiveMillisecondsSchema,
   })
   .strict();
 

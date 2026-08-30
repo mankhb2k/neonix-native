@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "generate:schema": "tsx scripts/generate-json-schema.ts",
-    "check:schema": "tsx scripts/generate-json-schema.ts && vitest run test/schema-files.test.ts",
+    "check:schema": "tsx scripts/generate-json-schema.ts && vitest run src/_test_/schema-files.test.ts",
     "lint": "eslint src test --max-warnings 0"
   },
   "dependencies": {

@@ -6,6 +6,87 @@ import { V2AudioDomainSchema } from "./audio";
 import { V2LayerListSchema } from "./layers";
 import type { MotionProtocolV2 } from "./types";
 
+const COMMON_NUMBER_PATHS = new Set([
+  "opacity",
+  "frame.width",
+  "frame.height",
+  "transform.translate.x",
+  "transform.translate.y",
+  "transform.translate.z",
+  "transform.scale.x",
+  "transform.scale.y",
+  "transform.scale.z",
+  "transform.rotate.x",
+  "transform.rotate.y",
+  "transform.rotate.z",
+  "transform.skew.x",
+  "transform.skew.y",
+  "transform.anchor.x",
+  "transform.anchor.y",
+  "transform.anchor.z",
+]);
+
+const COMMON_ENUM_PATHS = new Set([
+  "composite.blendMode",
+  "composite.isolation",
+]);
+
+function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]): Set<string> | null {
+  if (COMMON_NUMBER_PATHS.has(path)) return new Set(["number"]);
+  if (COMMON_ENUM_PATHS.has(path)) return new Set(["enum"]);
+
+  const layerPaths: Record<string, Set<string>> = {
+    shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity"]),
+    path: new Set(["style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "payload.morph.progress"]),
+    text: new Set(["payload.fontSize", "payload.lineHeight", "payload.letterSpacing"]),
+    image: new Set(["payload.crop.x", "payload.crop.y", "payload.crop.width", "payload.crop.height"]),
+    video: new Set(["payload.trimStart", "payload.trimEnd"]),
+    group: new Set(),
+  };
+  if (layerPaths[layer.type]?.has(path)) return new Set(["number"]);
+
+  const colorPaths = layer.type === "text"
+    ? new Set(["style.fill"])
+    : layer.type === "shape"
+      ? new Set(["style.fill", "style.stroke"])
+      : layer.type === "path"
+        ? new Set(["style.fill", "style.stroke"])
+        : new Set<string>();
+  if (colorPaths.has(path)) return new Set(["color"]);
+
+  const enumPaths = layer.type === "text"
+    ? new Set(["payload.align", "payload.verticalAlign"])
+    : layer.type === "image" || layer.type === "video"
+      ? new Set(["payload.fit"])
+      : new Set<string>();
+  if (enumPaths.has(path)) return new Set(["enum"]);
+
+  const segments = path.split(".");
+  if (segments[0] !== "effects" || segments.length !== 3) return null;
+  const effectId = segments[1]!;
+  const effect = "effects" in layer
+    ? layer.effects?.find((candidate) => candidate.id === effectId)
+    : undefined;
+  if (!effect) return null;
+  const effectNumberFields: Record<string, readonly string[]> = {
+    "color-adjust": ["brightness", "contrast", "saturation", "hueRotate"],
+    grayscale: ["amount"],
+    sepia: ["amount"],
+    invert: ["amount"],
+    "filter-opacity": ["amount"],
+    blur: ["radius"],
+    "drop-shadow": ["x", "y", "blur", "opacity"],
+    "outer-glow": ["radius", "opacity"],
+    "inner-glow": ["radius", "opacity"],
+    noise: ["scale", "amount", "opacity", "seed"],
+  };
+  if (effectNumberFields[effect.type]?.includes(segments[2]!)) return new Set(["number"]);
+  if ((effect.type === "drop-shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") && segments[2] === "color") {
+    return new Set(["color"]);
+  }
+  return null;
+}
+
 export const MotionProtocolV2Schema = z
   .object({
     format: z.literal("motion-protocol"),
@@ -105,6 +186,29 @@ export const MotionProtocolV2Schema = z
       }
       siblingOrders.add(layer.order);
       ordersByParent.set(layer.parentLayerId, siblingOrders);
+      for (const [trackIndex, track] of (layer.tracks ?? []).entries()) {
+        const allowedKinds = trackValueKinds(track.path, layer);
+        if (!allowedKinds) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Track path does not identify an animatable property on layer ${layer.id}: ${track.path}`,
+            path: ["layers", index, "tracks", trackIndex, "path"],
+          });
+        } else if (track.keyframes.some((keyframe) => !allowedKinds.has(keyframe.value.type))) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Track value type does not match property path: ${track.path}`,
+            path: ["layers", index, "tracks", trackIndex, "keyframes"],
+          });
+        }
+        if (track.keyframes.some((keyframe) => keyframe.time > layer.timing.duration)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Track keyframe time cannot exceed layer duration: ${track.path}`,
+            path: ["layers", index, "tracks", trackIndex, "keyframes"],
+          });
+        }
+      }
       const mask = layer.composite?.mask;
       if (mask) {
         if (layer.type !== "group") {
@@ -185,14 +289,14 @@ export const MotionProtocolV2Schema = z
           if (layer.payload.trimStart !== undefined && layer.payload.trimStart >= source.duration) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Video trimStart cannot reach or exceed source duration (${source.duration}s)`,
+            message: `Video trimStart cannot reach or exceed source duration (${source.duration}ms)`,
               path: ["layers", index, "payload", "trimStart"],
             });
           }
           if (layer.payload.trimEnd !== undefined && layer.payload.trimEnd > source.duration) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Video trimEnd cannot exceed source duration (${source.duration}s)`,
+            message: `Video trimEnd cannot exceed source duration (${source.duration}ms)`,
               path: ["layers", index, "payload", "trimEnd"],
             });
           }

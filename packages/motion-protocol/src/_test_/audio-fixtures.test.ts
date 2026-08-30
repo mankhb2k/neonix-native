@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { V2_AUDIO_FIXTURES } from "./audio-fixtures";
-import { MotionProtocolV2Schema } from "./project";
+import { V2_AUDIO_FIXTURES } from "../v2/audio-fixtures";
+import { MotionProtocolV2Schema } from "../v2/project";
 
 describe("Protocol V2 audio fixture catalog", () => {
   it("has parseable fixtures for the audio shapes", () => {
