@@ -16,6 +16,10 @@ RuntimeProjectV3
   -> FFmpeg H.264 MP4
 ```
 
+The pipeline above is the current visual baseline. It proves deterministic
+Runtime V3 frame output before the worker adds the workload-specific caches and
+native GPU passes described below.
+
 ## End-to-end export architecture
 
 Export Renderer is an offline consumer of the compiled runtime. It does not
@@ -44,6 +48,135 @@ FFmpeg
   ├── audio input: mixed audio samples
   └── mux / encode → MP4
 ```
+
+## Workload-specific renderer target
+
+V2 already separates transform, timing, hierarchy, effects, and asset identity.
+The Compiler can lower that meaning into immutable static descriptors plus state
+that must be evaluated for the requested frame. Runtime remains
+backend-neutral; actual GPU/CPU handles belong only to this renderer.
+
+```text
+RuntimeProjectV3
+        │
+        ├── static semantic descriptors
+        └── dynamic frame state
+        │
+        ▼
+Render Scheduler
+        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+   Static cache     Dynamic pass      Media pass
+        │               │               │
+        └───────────────┼───────────────┘
+                        ▼
+                   Compositor
+                        ▼
+                 RGBA frame buffer
+                        ▼
+                     FFmpeg
+```
+
+The renderer must not do this per frame:
+
+```text
+parse JSON → rebuild scene → rebuild DOM → screenshot
+```
+
+Instead, it opens one export session, prepares reusable resources once, then
+only evaluates and updates work that changes for each frame.
+
+### Static descriptors and renderer resources
+
+`RuntimeProjectV3` may describe data that is static for an export, but it must
+not contain texture handles, GPU objects, decoder instances, or encoder state.
+
+```text
+Runtime static descriptor
+  ├── geometry descriptor
+  ├── glyph run descriptor
+  ├── paint/style descriptor
+  ├── blend/composite descriptor
+  ├── media resource identity
+  └── static fingerprint
+
+Renderer cache entry
+  ├── GPU/CPU texture
+  ├── tessellated path geometry
+  ├── glyph atlas location
+  ├── decoded media frame
+  └── cached isolated surface
+
+Dynamic frame state
+  ├── matrix
+  ├── opacity
+  ├── media time
+  ├── visibility
+  └── animated effect parameters
+```
+
+### Export frame loop
+
+```text
+open export session
+prepare static resources and cache keys
+
+for each composition frame:
+    evaluate Runtime at frame/time
+    update dynamic matrices, opacity, and effect values
+    resolve required video frame and media resources
+    replay static/dynamic/media passes
+    composite to final RGBA frame buffer
+    write frame to FFmpeg pipe
+
+resolve and mix audio windows
+FFmpeg encodes/muxes final MP4
+```
+
+## Future workload paths
+
+Not every atom needs the same backend path. The target scheduler can specialize
+the work while preserving one Runtime meaning:
+
+| Atom | Target path |
+| --- | --- |
+| Shape | Reusable geometry → GPU/CPU draw pass |
+| Path | Tessellation cache → GPU/CPU draw pass |
+| Image | Decode/texture cache → draw pass |
+| Text | Glyph shaping cache + glyph atlas → draw pass |
+| Video | Decoder → current frame → texture/draw pass |
+| Blur/effects | Filter or compute pass over the required surface |
+| Audio | Offline Audio Backend → FFmpeg encode/mux |
+
+The first implementation does not need GPU for every atom. The current
+CPU/SVG rasterization path remains the certified correctness baseline. A new
+native or GPU path is accepted only after parity tests prove the same output.
+
+## Cache rules and optimization order
+
+Cache entries must be invalidated by every value that can change output:
+
+```text
+static fingerprint
++ asset integrity
++ Runtime version
++ renderer version
++ export preset
+```
+
+Recommended order:
+
+1. Static shape geometry and path tessellation cache.
+2. Font, glyph, and image resource cache.
+3. Static layer or isolated-subtree surface cache.
+4. Batching and specialized native/GPU passes.
+5. Video decode-to-texture reuse.
+6. Optional hardware encoding such as NVENC after visual parity is stable.
+
+Static surface caching is valid only when every visual input for that surface is
+unchanged over the cached range. It is an execution optimization, never a new
+timeline or compositing rule.
 
 ### Video and audio source separation
 
@@ -74,7 +207,7 @@ applied from the audio plan.
 | Pixel rendering | Native Renderer |
 | Audio decode and mixing | Offline Audio Backend |
 | Final encode and mux | FFmpeg |
-| Output artifact and ownership metadata | Web API / Storage |
+| Output artifact and ownership metadata | Web API / R2 |
 
 Export Renderer must fail closed when a required video stream, audio
 derivative, or supported native operation is unavailable. It must never silently

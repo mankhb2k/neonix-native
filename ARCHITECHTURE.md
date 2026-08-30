@@ -313,8 +313,10 @@ Compiler là điểm chuyển đổi duy nhất từ authoring model sang runtim
 1. Kiểm tra feature trong project có được Compiler hỗ trợ hay không.
 2. Chuẩn hóa các giá trị mặc định và semantics cần thiết cho runtime.
 3. Hạ composition, layers, media và audio thành runtime model.
-4. Tạo `RuntimeProjectV3` deterministic.
-5. Trả diagnostic rõ ràng khi project chưa thể compile.
+4. Phân loại descriptor semantic có thể tái sử dụng và state cần evaluate theo
+   frame/time; không tạo GPU/CPU resource thật.
+5. Tạo `RuntimeProjectV3` deterministic.
+6. Trả diagnostic rõ ràng khi project chưa thể compile.
 
 #### Điểm bàn giao
 
@@ -398,28 +400,62 @@ người dùng với Runtime.
 ##### Luồng dữ liệu
 
 ```text
-User controls
-     │
-     │ play / pause / seek / loop
-     ▼
-PLAYBACK
-     │
-     ├── request frame/time → Runtime
-     ├── PaintCommandBuffer → Preview Renderer
-     └── AudioMixPlanV3 → Audio playback
+USER / EDITOR CONTROLS
+        │
+        │ play / pause / seek / loop / speed
+        ▼
+┌─────────────────────────┐
+│        PLAYBACK         │
+│                         │
+│  Playback state         │
+│  Playback clock         │
+│  Playhead position      │
+│  Frame/time mapping     │
+│  Seek / loop control    │
+│  Buffer / resource load │
+└────────────┬────────────┘
+             │
+             ├── evaluate(frame/time)
+             ▼
+      RuntimeProjectV3
+             │
+             ├── PaintCommandBuffer
+             │         ▼
+             │   Preview Renderer
+             │         ▼
+             │      Canvas
+             │
+             └── AudioMixPlanV3
+                       ▼
+                Audio Playback Backend
+                       ▼
+                    Speakers
 ```
 
 ##### Trách nhiệm
 
-1. Quản lý play, pause, seek, loop và clock phát lại.
-2. Yêu cầu Runtime đánh giá đúng `frame/time` hiện tại.
-3. Chuyển `PaintCommandBuffer` cho Preview Renderer.
-4. Chuyển `AudioMixPlanV3` cho audio playback.
+1. Quản lý trạng thái phát lại: `idle`, `playing`, `paused`, `seeking` và
+   `ended`.
+2. Duy trì playback clock realtime và tiến playhead theo tốc độ phát.
+3. Quản lý vị trí playhead theo cả composition seconds và frame number.
+4. Xử lý play, pause, stop, seek, loop, in/out range và playback speed.
+5. Chuyển đổi clock thành `frame/time` hợp lệ trước mỗi lần yêu cầu Runtime.
+6. Yêu cầu Runtime đánh giá `RuntimeProjectV3` tại frame/time hiện tại.
+7. Chuyển `PaintCommandBuffer` tới Preview Renderer để vẽ lên Canvas.
+8. Chuyển `AudioMixPlanV3` tới Audio Playback Backend để phát qua Speakers.
+9. Điều phối tải, seek, readiness, buffering và cache các media resource cần
+   cho realtime playback.
+10. Phát sự kiện trạng thái, xử lý lỗi và điều chỉnh việc request frame khi
+    realtime bị trễ; không thay đổi semantics của Runtime.
 
 ##### Điểm bàn giao
 
-Playback bàn giao visual output cho Preview Renderer và audio plan cho audio
-playback backend.
+Playback bàn giao `PaintCommandBuffer` cho Preview Renderer và
+`AudioMixPlanV3` cho Audio Playback Backend.
+
+Playback chỉ quản lý transport và realtime delivery. Timeline semantics,
+layer timing, video trim, audio gain/fade/pan và media-time mapping vẫn thuộc
+Protocol, Compiler và Runtime tương ứng.
 
 Playback không phải là một bước trong visual test của `docs/preview` và không
 được cung cấp frame hoặc audio cho Export Renderer.
@@ -433,29 +469,52 @@ Preview Renderer vẽ realtime trạng thái do Runtime trả về trong Editor.
 ##### Luồng dữ liệu
 
 ```text
-Runtime + fixed frame/time
+RuntimeProjectV3
         │
+        │ evaluate(frame/time)
         ▼
 PaintCommandBuffer
         │
         ▼
-PREVIEW RENDERER
-        │
-        ├── WebGPU / WebGL2
-        └── canvas / screen preview
+┌─────────────────────────┐
+│    PREVIEW RENDERER     │
+│                         │
+│  Chọn backend            │
+│  Quản lý canvas/context  │
+│  Quản lý GPU resources   │
+│  Replay paint commands   │
+│  Render media            │
+│  Resize / device scale   │
+│  Diagnostic / lifecycle  │
+└────────────┬────────────┘
+             │
+             ├── WebGPU API → GPU → Canvas
+             └── WebGL2 API → GPU → Canvas
 ```
 
 ##### Trách nhiệm
 
-1. Replay `PaintCommandBuffer` bằng backend đồ họa của browser.
-2. Hiển thị đúng transform, layer order, opacity, media và compositing.
-3. Nhận frame realtime từ Playback trong Editor hoặc frame cố định từ
-   `docs/preview` visual tests.
-4. Không tự đánh giá timeline hoặc tạo semantics thay Runtime.
+1. Nhận `PaintCommandBuffer` từ Runtime.
+2. Chọn WebGPU hoặc WebGL2 theo khả năng của browser.
+3. Tạo và quản lý canvas, context, buffers, textures, surfaces và GPU
+   resources.
+4. Replay command theo đúng thứ tự layer, transform, opacity và compositing.
+5. Upload và vẽ image, video frame, path, text hoặc shape.
+6. Quản lý resize, pixel ratio, canvas lifecycle và resource disposal.
+7. Trả diagnostic khi backend hoặc capability chưa được hỗ trợ.
+8. Vẽ kết quả thật lên Canvas để Editor hoặc `docs/preview` quan sát, chụp ảnh
+   và so sánh parity.
+
+Preview Renderer không tự đánh giá timeline, không compile Protocol và không
+tạo semantics thay Runtime. WebGPU và WebGL2 chỉ là hai backend thực thi cùng
+một `PaintCommandBuffer`.
 
 ##### Điểm bàn giao
 
 Preview Renderer bàn giao hình ảnh realtime cho User trong Editor.
+
+Chi tiết về backend WebGPU/WebGL2, GPU resources và lifecycle được mô tả trong
+[`preview-renderer README`](packages/preview-renderer/README.md).
 
 #### 5.3 Export Renderer
 
@@ -468,31 +527,80 @@ Export Renderer render project offline bằng native backend và tạo output vi
 ```text
 RuntimeProjectV3
         │
+        ├── static semantic descriptors
+        └── dynamic frame state
+        │
         ▼
-EXPORT RENDERER (independent from Playback)
-        ├── evaluate frame → PaintCommandBuffer
-        ├── replay bằng native renderer → frames
-        ├── resolve audio → AudioMixPlanV3
-        └── FFmpeg → MP4
+┌────────────────────────────────┐
+│       EXPORT RENDERER WORKER   │
+│                                │
+│  Preflight / capability check  │
+│  Export session                │
+│  Render scheduler              │
+│  Resource and render cache     │
+│  Native rendering              │
+│  Audio pipeline                │
+│  Progress / metrics            │
+└───────────────┬────────────────┘
+                │
+                ├── evaluate(frame/time) → PaintCommandBuffer
+                │         │
+                │         ▼
+                │   Static cache / Dynamic pass / Media pass
+                │         │
+                │         ▼
+                │     Compositor → RGBA frame buffer
+                │
+                └── resolve audio → AudioMixPlanV3
+                          │
+                          ▼
+                   Offline Audio Backend
+                │
+                ▼
+              FFmpeg encode / mux
+                │
+                ▼
+              MP4 artifact
 ```
 
 ##### Trách nhiệm
 
-1. Duyệt toàn bộ frame theo composition FPS và duration.
-2. Dùng Runtime output để render frame bằng native backend trên VPS.
-3. Đọc audio derivative, xử lý `AudioMixPlanV3` và đồng bộ audio với video.
-4. Gửi frame và audio cho FFmpeg để tạo MP4.
+1. Nhận export job và `RuntimeProjectV3` đã được Compiler tạo.
+2. Kiểm tra preset, capability, media resource và fail rõ ràng khi chưa thể
+   export đúng semantics.
+3. Tạo export session cố định theo resolution, FPS, duration và quality.
+4. Nhận static semantic descriptors và dynamic frame state từ Runtime; không
+   parse Protocol JSON hoặc dựng lại scene/DOM ở từng frame.
+5. Sở hữu Render Scheduler, resource cache và render cache; GPU texture,
+   tessellation, glyph atlas hoặc decoded media frame không thuộc Runtime.
+6. Duyệt toàn bộ frame deterministically theo composition FPS và duration.
+7. Replay `PaintCommandBuffer` bằng native renderer, điều phối static cache,
+   dynamic pass, media pass và compositing để tạo RGBA frame buffer.
+8. Đọc video/image/font resources khi cần và đồng bộ đúng media time Runtime
+   đã resolve.
+9. Đọc audio derivative, xử lý `AudioMixPlanV3` và đồng bộ audio với video.
+10. Gửi RGBA frame buffer và mixed audio cho FFmpeg để encode/mux MP4.
+11. Ghi progress, thời gian, diagnostics, artifact metadata và render metrics
+    cho Web API.
 
 Export Renderer không sử dụng clock, frame buffer hoặc audio playback state của
 Playback.
+
+Compiler có thể phân loại dữ liệu static và dynamic, nhưng chỉ Renderer được
+phép biến static descriptor thành GPU/CPU resource thật. Cache chỉ tái sử dụng
+công việc không đổi; nó không được chứa hoặc thay đổi timeline semantics.
 
 Trong luồng export, audio nhúng trong original MP4 bị vô hiệu hóa ở đầu vào
 video. Audio được decode từ derivative, mix theo `AudioMixPlanV3`, sau đó
 FFmpeg mux video stream và audio stream thành MP4 cuối cùng.
 
+FFmpeg là media backend: nhận RGBA frame buffer và mixed audio để encode/mux.
+Nó không sở hữu Matrix4, hierarchy, timing, compositing, mask, effects hay
+quy tắc render của Neonix.
+
 ##### Điểm bàn giao
 
-Export Renderer bàn giao MP4 và metadata export cho Web API hoặc Storage.
+Export Renderer bàn giao MP4, artifact metadata và render metrics cho Web API.
 
 Chi tiết pipeline native, audio separation và ranh giới FFmpeg được mô tả
 trong [`export-renderer README`](packages/export-renderer/README.md).
@@ -519,7 +627,7 @@ trong [`export-renderer README`](packages/export-renderer/README.md).
 ```text
 User / AI input
       ↓
-Upload MP4 → Storage → Media Ingest → Asset Catalog
+Upload MP4 → Web App R2 orchestration → Media Ingest → Asset Catalog
       ↓
 MotionProtocolV2
       ↓
