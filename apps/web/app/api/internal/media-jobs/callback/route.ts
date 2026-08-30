@@ -142,7 +142,6 @@ export async function POST(request: Request) {
     .update({
       ...(poster ? { preview_key: poster.r2_key } : {}),
       preview_status: poster ? "ready" : "failed",
-      preview_version: payload.pipelineVersion,
       preview_error: finalError,
       source_duration_ms: video?.durationUs ? Math.round(video.durationUs / 1000) : null,
       source_width: video?.width ?? null,

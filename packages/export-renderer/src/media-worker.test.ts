@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { writeFile } from "node:fs/promises";
 import { prepareMediaJob, type MediaObjectStore } from "./media-worker";
 
-function fakeStore(source: Buffer) {
-  const objects = new Map<string, Buffer>([["video/origin.mp4", source]]);
+function fakeStore(source: Buffer, initialObjects: Array<[string, Buffer]> = []) {
+  const objects = new Map<string, Buffer>([["video/origin.mp4", source], ...initialObjects]);
   const store: MediaObjectStore = {
     async getObject(key) { return objects.get(key) ?? null; },
     async putObject(input) { objects.set(input.key, input.body); },
@@ -12,8 +12,8 @@ function fakeStore(source: Buffer) {
 }
 
 describe("media worker", () => {
-  it("downloads origin, creates canonical poster/audio keys, and reports ready", async () => {
-    const { store, objects } = fakeStore(Buffer.from("origin-video"));
+  it("downloads origin, verifies the browser poster, creates audio, and reports ready", async () => {
+    const { store, objects } = fakeStore(Buffer.from("origin-video"), [["asset-1/poster.webp", Buffer.from("browser-poster")]]);
     const callbacks: unknown[] = [];
     const result = await prepareMediaJob({
       jobId: "job-1",
@@ -41,7 +41,7 @@ describe("media worker", () => {
 
     expect(result.status).toBe("ready");
     expect(result.derivatives.map((item) => item.uri)).toEqual(["asset-1/poster.webp", "asset-1/audio.m4a"]);
-    expect(objects.has("asset-1/poster.webp")).toBe(true);
+    expect(objects.get("asset-1/poster.webp")?.toString()).toBe("browser-poster");
     expect(objects.has("asset-1/audio.m4a")).toBe(true);
     expect(callbacks).toHaveLength(1);
   });
@@ -71,8 +71,8 @@ describe("media worker", () => {
     expect(objects.get("asset-browser/poster.webp")?.toString()).toBe("browser-poster");
   });
 
-  it("returns ready with only a poster when the video has no audio stream", async () => {
-    const { store } = fakeStore(Buffer.from("origin-video"));
+  it("returns ready with only a browser poster when the video has no audio stream", async () => {
+    const { store } = fakeStore(Buffer.from("origin-video"), [["asset-2/poster.webp", Buffer.from("browser-poster")]]);
     const result = await prepareMediaJob({
       jobId: "job-2",
       assetId: "asset-2",
@@ -89,6 +89,31 @@ describe("media worker", () => {
     expect(result.status).toBe("ready");
     expect(result.derivatives).toHaveLength(1);
     expect(result.derivatives[0]?.kind).toBe("poster");
+  });
+
+  it("does not create a poster when the browser poster is missing", async () => {
+    const { store, objects } = fakeStore(Buffer.from("origin-video"));
+    const ffmpegArgs: string[][] = [];
+    const result = await prepareMediaJob({
+      jobId: "job-missing-poster",
+      assetId: "asset-missing-poster",
+      sourceKey: "video/origin.mp4",
+      sourceMimeType: "video/mp4",
+      sourceIntegrity: "r2:12:asset-missing-poster/origin.mp4",
+      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+    }, {
+      store,
+      probe: async () => ({ assetId: "asset-missing-poster", status: "processing", streams: [{ streamId: "video", kind: "video" }, { streamId: "audio", kind: "audio" }], derivatives: [], updatedAt: "", version: 0 }),
+      runFfmpeg: async (args) => { ffmpegArgs.push([...args]); await writeFile(String(args.at(-1)), Buffer.from("audio")); },
+      callback: async () => undefined,
+    });
+
+    expect(result.status).toBe("partial");
+    expect(result.error).toContain("browser poster object not found");
+    expect(result.derivatives.map((item) => item.kind)).toEqual(["audio"]);
+    expect(ffmpegArgs).toHaveLength(1);
+    expect(ffmpegArgs[0]).toContain("0:a:0");
+    expect(objects.has("asset-missing-poster/poster.webp")).toBe(false);
   });
 
   it("reports failed when the origin cannot be probed", async () => {

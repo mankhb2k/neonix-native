@@ -95,7 +95,8 @@ Mọi asset dùng cùng một namespace trong R2:
 {assetId}/audio.m4a
 ```
 
-`assets.r2_key` trỏ tới `origin.*`. Derivative key và metadata được lưu trong
+`assets.r2_key` trỏ tới `origin.*`. Poster được tạo và upload một lần ở browser;
+worker chỉ verify poster đó. Derivative key và metadata được lưu trong
 asset catalog; bytes luôn nằm trong R2, không nằm trong Supabase.
 
 ### Video upload flow
@@ -124,7 +125,7 @@ Browser
                     ├─ đọc origin từ R2
                     ├─ ffprobe stream metadata
                     ├─ verify poster.webp đã có từ browser
-                    ├─ fallback tạo poster.webp nếu browser không gửi
+                    ├─ poster.webp phải tồn tại từ browser; worker không tạo poster
                     ├─ nếu có audio: tạo và upload audio.m4a
                     └─ callback Web API
                               │

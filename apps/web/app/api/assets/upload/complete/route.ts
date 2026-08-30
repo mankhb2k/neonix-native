@@ -16,6 +16,13 @@ type UploadAssetRow = {
   preview_version: number | null;
 };
 
+type MediaJobRow = {
+  id: string;
+  status: string;
+  started_at: string | null;
+  attempt_count: number;
+};
+
 function asUploadAssetRow(value: unknown): UploadAssetRow | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
@@ -25,6 +32,17 @@ function asUploadAssetRow(value: unknown): UploadAssetRow | null {
     && typeof record.byte_size === "number"
     && typeof record.status === "string"
     ? value as UploadAssetRow
+    : null;
+}
+
+function asMediaJobRow(value: unknown): MediaJobRow | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  return typeof record.id === "string"
+    && typeof record.status === "string"
+    && (record.started_at === null || typeof record.started_at === "string")
+    && typeof record.attempt_count === "number"
+    ? value as MediaJobRow
     : null;
 }
 
@@ -140,7 +158,7 @@ export async function POST(request: Request) {
 
   if (sessionError) return jsonError(sessionError.message, 500);
 
-  let mediaJob: { id: string; status: string } | null = null;
+  let mediaJob: MediaJobRow | null = null;
   if (isVideo) {
     const sourceIntegrity = `r2:${head.sizeBytes}:${storageKey}`;
     const idempotencyKey = `${assetId}:${sourceIntegrity}:v${MEDIA_PIPELINE_VERSION}`;
@@ -154,13 +172,13 @@ export async function POST(request: Request) {
         source_integrity: sourceIntegrity,
         pipeline_version: MEDIA_PIPELINE_VERSION,
       })
-      .select("id, status")
+      .select("id, status, started_at, attempt_count")
       .single();
     if (mediaJobError) {
       if (mediaJobError.code !== "23505") return jsonError(mediaJobError.message, 500);
       const { data: existingJob, error: existingJobError } = await supabase
         .from("media_jobs")
-        .select("id, status")
+        .select("id, status, started_at, attempt_count")
         .eq("asset_id", assetId)
         .maybeSingle();
       if (existingJobError || !existingJob) return jsonError(existingJobError?.message ?? "Media job not found", 500);
@@ -169,10 +187,37 @@ export async function POST(request: Request) {
       mediaJob = createdJob;
     }
 
+    let claimedForDispatch = false;
     if (mediaJob.status === "queued") {
+      const { data: claimedJob, error: claimError } = await supabase
+        .rpc("claim_media_job", { p_job_id: mediaJob.id })
+        .maybeSingle();
+      if (claimError) return jsonError(claimError.message, 500);
+
+      const claimedJobRow = asMediaJobRow(claimedJob);
+      if (!claimedJobRow) {
+        const { data: currentJob, error: currentJobError } = await supabase
+          .from("media_jobs")
+          .select("id, status, started_at, attempt_count")
+          .eq("id", mediaJob.id)
+          .maybeSingle();
+        if (currentJobError || !currentJob) {
+          return jsonError(currentJobError?.message ?? "Media job not found", 500);
+        }
+        const currentJobRow = asMediaJobRow(currentJob);
+        if (!currentJobRow) return jsonError("Media job has an invalid lifecycle state", 500);
+        mediaJob = currentJobRow;
+      } else {
+        mediaJob = claimedJobRow;
+        claimedForDispatch = true;
+      }
+    }
+
+    const jobToDispatch = mediaJob;
+    if (claimedForDispatch && jobToDispatch) {
       try {
         await dispatchMediaJob({
-          jobId: mediaJob.id,
+          jobId: jobToDispatch.id,
           assetId,
           sourceKey: storageKey,
           sourceMimeType: assetRow.mime_type,
@@ -180,9 +225,13 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
-        await supabase.from("media_jobs").update({ status: "failed", last_error: detail }).eq("id", mediaJob.id);
+        await supabase.from("media_jobs").update({
+          status: "failed",
+          last_error: detail,
+          completed_at: new Date().toISOString(),
+        }).eq("id", jobToDispatch.id);
         await supabase.from("assets").update({ preview_status: "failed", preview_error: `media_worker_dispatch_failed: ${detail}` }).eq("id", assetId).eq("workspace_id", workspaceId);
-        mediaJob = { ...mediaJob, status: "failed" };
+        mediaJob = { ...jobToDispatch, status: "failed" };
       }
     }
   }

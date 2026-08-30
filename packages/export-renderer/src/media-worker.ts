@@ -164,17 +164,14 @@ export async function prepareMediaJob(
     const errors: string[] = [];
 
     try {
-      const existingPoster = await deps.store.getObject(derivativeKey(input.assetId, "poster"));
-      const posterReused = Boolean(existingPoster && existingPoster.byteLength > 0);
-      if (posterReused) {
-        await writeFile(posterPath, existingPoster!);
-        console.log("[media-worker] poster reused", { jobId: input.jobId, assetId: input.assetId, key: derivativeKey(input.assetId, "poster") });
-      } else {
-        await deps.runFfmpeg(["-y", "-hide_banner", "-loglevel", "error", "-i", sourcePath, "-map", "0:v:0", "-frames:v", "1", "-c:v", "libwebp", "-quality", "82", posterPath]);
-        console.log("[media-worker] poster fallback generated", { jobId: input.jobId, assetId: input.assetId });
+      const posterKey = derivativeKey(input.assetId, "poster");
+      const existingPoster = await deps.store.getObject(posterKey);
+      if (!existingPoster || existingPoster.byteLength === 0) {
+        throw new Error("browser poster object not found");
       }
+      await writeFile(posterPath, existingPoster);
+      console.log("[media-worker] poster verified", { jobId: input.jobId, assetId: input.assetId, key: posterKey });
       const derivative = await outputDerivative({ assetId: input.assetId, kind: "poster", path: posterPath, mimeType: "image/webp", pipelineVersion });
-      if (!posterReused) await deps.store.putObject({ key: derivative.uri, body: await readFile(posterPath), contentType: derivative.mimeType });
       base.derivatives.push(derivative);
     } catch (error) {
       errors.push(`poster: ${error instanceof Error ? error.message : String(error)}`);

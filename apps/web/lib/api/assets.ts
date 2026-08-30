@@ -99,15 +99,6 @@ export async function uploadAssetPreview(session: UploadSession, preview: Blob):
   if (!response.ok) throw new Error(`R2 preview upload failed (${response.status})`);
 }
 
-export async function persistAssetPreview(assetId: string, preview: Blob): Promise<void> {
-  const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}/preview`, {
-    method: "POST",
-    headers: { "content-type": "image/webp" },
-    body: preview,
-  });
-  if (!response.ok) throw new Error(await readError(response));
-}
-
 export async function getAssetUsage(assetId: string): Promise<AssetUsageProject[]> {
   const response = await fetch(`/api/assets/${encodeURIComponent(assetId)}/usage`, { cache: "no-store" });
   if (!response.ok) throw new Error(await readError(response));

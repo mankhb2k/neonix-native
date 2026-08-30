@@ -109,30 +109,19 @@ async function waitForPresentedVideoFrame(video: HTMLVideoElement): Promise<void
  */
 export async function createBrowserVideoPreview(file: File): Promise<BrowserVideoPreview> {
   const objectUrl = URL.createObjectURL(file);
-  return createBrowserVideoPreviewFromSource(objectUrl, true);
-}
-
-/**
- * Captures the first frame from a CORS-enabled remote source. This is used as
- * an ephemeral fallback for videos uploaded before poster metadata existed;
- * callers may persist the returned WebP through the authenticated preview API.
- */
-export async function createBrowserVideoPreviewFromUrl(url: string): Promise<BrowserVideoPreview> {
-  return createBrowserVideoPreviewFromSource(url, false);
+  return createBrowserVideoPreviewFromSource(objectUrl);
 }
 
 async function createBrowserVideoPreviewFromSource(
   source: string,
-  revokeSource: boolean,
 ): Promise<BrowserVideoPreview> {
   const video = document.createElement("video");
   video.preload = "auto";
   video.muted = true;
   video.playsInline = true;
-  if (!revokeSource) video.crossOrigin = "anonymous";
 
   try {
-    debugVideoPreview("loading source", { remote: !revokeSource });
+    debugVideoPreview("loading source");
     video.src = source;
     video.load();
     await waitForEvent<Event>(video, "loadedmetadata");
@@ -218,6 +207,6 @@ async function createBrowserVideoPreviewFromSource(
   } finally {
     video.removeAttribute("src");
     video.load();
-    if (revokeSource) URL.revokeObjectURL(source);
+    URL.revokeObjectURL(source);
   }
 }
