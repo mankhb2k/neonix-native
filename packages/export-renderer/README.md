@@ -258,9 +258,11 @@ Request body:
 
 `outputName` is restricted to a relative `.mp4` path under
 `tmp/export-renderer` by default. Media preparation reads the origin from the
-configured R2 user-assets bucket, writes `{assetId}/poster.webp` and (when an
-audio stream exists) `{assetId}/audio.m4a`, then calls the Web API callback
-provided in the request. The worker never writes Supabase directly.
+configured R2 user-assets bucket, reuses the browser-generated
+`{assetId}/poster.webp` when present, creates it only as a fallback when the
+browser poster is missing, and writes `{assetId}/audio.m4a` when an audio
+stream exists. It then calls the Web API callback provided in the request.
+The worker never writes Supabase directly.
 
 Media preparation request:
 

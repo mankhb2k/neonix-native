@@ -149,6 +149,7 @@ export async function prepareMediaJob(
   try {
     const source = await deps.store.getObject(input.sourceKey);
     if (!source) throw new Error("origin object not found");
+    console.log("[media-worker] origin loaded", { jobId: input.jobId, assetId: input.assetId, sourceKey: input.sourceKey, bytes: source.byteLength });
     workDir = await mkdtemp(join(tmpdir(), "neonix-media-"));
     const sourcePath = join(workDir, "origin.media");
     const posterPath = join(workDir, "poster.webp");
@@ -157,17 +158,27 @@ export async function prepareMediaJob(
     const sourceContentHash = hashBuffer(source);
     const probe = await deps.probe(sourcePath, input.assetId);
     const streams = probe.streams;
+    console.log("[media-worker] probe complete", { jobId: input.jobId, assetId: input.assetId, streams: streams.map((stream) => stream.kind) });
     if (!streams.some((stream) => stream.kind === "video")) throw new Error("origin has no video stream");
     const hasAudio = streams.some((stream) => stream.kind === "audio");
     const errors: string[] = [];
 
     try {
-      await deps.runFfmpeg(["-y", "-hide_banner", "-loglevel", "error", "-i", sourcePath, "-map", "0:v:0", "-frames:v", "1", "-c:v", "libwebp", "-quality", "82", posterPath]);
+      const existingPoster = await deps.store.getObject(derivativeKey(input.assetId, "poster"));
+      const posterReused = Boolean(existingPoster && existingPoster.byteLength > 0);
+      if (posterReused) {
+        await writeFile(posterPath, existingPoster!);
+        console.log("[media-worker] poster reused", { jobId: input.jobId, assetId: input.assetId, key: derivativeKey(input.assetId, "poster") });
+      } else {
+        await deps.runFfmpeg(["-y", "-hide_banner", "-loglevel", "error", "-i", sourcePath, "-map", "0:v:0", "-frames:v", "1", "-c:v", "libwebp", "-quality", "82", posterPath]);
+        console.log("[media-worker] poster fallback generated", { jobId: input.jobId, assetId: input.assetId });
+      }
       const derivative = await outputDerivative({ assetId: input.assetId, kind: "poster", path: posterPath, mimeType: "image/webp", pipelineVersion });
-      await deps.store.putObject({ key: derivative.uri, body: await readFile(posterPath), contentType: derivative.mimeType });
+      if (!posterReused) await deps.store.putObject({ key: derivative.uri, body: await readFile(posterPath), contentType: derivative.mimeType });
       base.derivatives.push(derivative);
     } catch (error) {
       errors.push(`poster: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("[media-worker] poster failed", { jobId: input.jobId, assetId: input.assetId, error });
     }
 
     if (hasAudio) {
@@ -176,8 +187,10 @@ export async function prepareMediaJob(
         const derivative = await outputDerivative({ assetId: input.assetId, kind: "audio", path: audioPath, mimeType: "audio/mp4", pipelineVersion });
         await deps.store.putObject({ key: derivative.uri, body: await readFile(audioPath), contentType: derivative.mimeType });
         base.derivatives.push(derivative);
+        console.log("[media-worker] audio uploaded", { jobId: input.jobId, assetId: input.assetId, key: derivative.uri, bytes: derivative.byteSize });
       } catch (error) {
         errors.push(`audio: ${error instanceof Error ? error.message : String(error)}`);
+        console.error("[media-worker] audio failed", { jobId: input.jobId, assetId: input.assetId, error });
       }
     }
 
@@ -189,6 +202,7 @@ export async function prepareMediaJob(
         : "failed";
     const result: MediaPrepareResult = { ...base, status, sourceContentHash, streams, ...(errors.length ? { error: errors.join("; ") } : {}) };
     await deps.callback(input.callbackUrl, result);
+    console.log("[media-worker] job completed", { jobId: input.jobId, assetId: input.assetId, status, derivatives: result.derivatives.map((derivative) => derivative.kind) });
     return result;
   } catch (error) {
     const result: MediaPrepareResult = {
@@ -198,6 +212,7 @@ export async function prepareMediaJob(
       error: error instanceof Error ? error.message : String(error),
     };
     await deps.callback(input.callbackUrl, result);
+    console.error("[media-worker] job failed", { jobId: input.jobId, assetId: input.assetId, error: result.error });
     return result;
   } finally {
     if (workDir) await rm(workDir, { recursive: true, force: true });

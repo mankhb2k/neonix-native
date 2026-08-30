@@ -104,9 +104,11 @@ asset catalog; bytes luôn nằm trong R2, không nằm trong Supabase.
 Browser
   │
   ├─ POST /api/assets
-  │    └─ Web tạo asset + upload session, status = uploading
+  │    └─ Web tạo asset + upload session, preview_key = {assetId}/poster.webp
   │
   ├─ PUT origin.mp4 → R2/{assetId}/origin.mp4
+  │
+  ├─ PUT poster.webp → R2/{assetId}/poster.webp (browser-generated)
   │
   └─ POST /api/assets/upload/complete
        │
@@ -121,7 +123,8 @@ Browser
                     ├─ claim job, status = processing
                     ├─ đọc origin từ R2
                     ├─ ffprobe stream metadata
-                    ├─ tạo và upload poster.webp
+                    ├─ verify poster.webp đã có từ browser
+                    ├─ fallback tạo poster.webp nếu browser không gửi
                     ├─ nếu có audio: tạo và upload audio.m4a
                     └─ callback Web API
                               │

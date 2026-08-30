@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { writeFile } from "node:fs/promises";
 import { prepareMediaJob, type MediaObjectStore } from "./media-worker";
 
 function fakeStore(source: Buffer) {
@@ -34,7 +35,7 @@ describe("media worker", () => {
         updatedAt: new Date().toISOString(),
         version: 0,
       }),
-      runFfmpeg: async (args) => { await import("node:fs/promises").then(({ writeFile }) => writeFile(String(args.at(-1)), Buffer.from(String(args.at(-1))))); },
+      runFfmpeg: async (args) => { await writeFile(String(args.at(-1)), Buffer.from(String(args.at(-1)))); },
       callback: async (_url, payload) => { callbacks.push(payload); },
     });
 
@@ -43,6 +44,31 @@ describe("media worker", () => {
     expect(objects.has("asset-1/poster.webp")).toBe(true);
     expect(objects.has("asset-1/audio.m4a")).toBe(true);
     expect(callbacks).toHaveLength(1);
+  });
+
+  it("reuses the browser poster and only invokes FFmpeg for audio", async () => {
+    const { store, objects } = fakeStore(Buffer.from("origin-video"));
+    objects.set("asset-browser/poster.webp", Buffer.from("browser-poster"));
+    const ffmpegArgs: string[][] = [];
+    const result = await prepareMediaJob({
+      jobId: "job-browser",
+      assetId: "asset-browser",
+      sourceKey: "video/origin.mp4",
+      sourceMimeType: "video/mp4",
+      sourceIntegrity: "r2:12:asset-browser/origin.mp4",
+      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+    }, {
+      store,
+      probe: async () => ({ assetId: "asset-browser", status: "processing", streams: [{ streamId: "video", kind: "video" }, { streamId: "audio", kind: "audio" }], derivatives: [], updatedAt: "", version: 0 }),
+      runFfmpeg: async (args) => { ffmpegArgs.push([...args]); await writeFile(String(args.at(-1)), Buffer.from("audio")); },
+      callback: async () => undefined,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.derivatives.map((item) => item.kind)).toEqual(["poster", "audio"]);
+    expect(ffmpegArgs).toHaveLength(1);
+    expect(ffmpegArgs[0]).toContain("0:a:0");
+    expect(objects.get("asset-browser/poster.webp")?.toString()).toBe("browser-poster");
   });
 
   it("returns ready with only a poster when the video has no audio stream", async () => {
@@ -57,7 +83,7 @@ describe("media worker", () => {
     }, {
       store,
       probe: async () => ({ assetId: "asset-2", status: "processing", streams: [{ streamId: "video", kind: "video", width: 1, height: 1 }], derivatives: [], updatedAt: "", version: 0 }),
-      runFfmpeg: async (args) => { await import("node:fs/promises").then(({ writeFile }) => writeFile(String(args.at(-1)), Buffer.from("poster"))); },
+      runFfmpeg: async (args) => { await writeFile(String(args.at(-1)), Buffer.from("poster")); },
       callback: async () => undefined,
     });
     expect(result.status).toBe("ready");
