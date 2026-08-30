@@ -3,12 +3,12 @@ import { createReadStream } from "node:fs";
 import { mkdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { isAbsolute, join, resolve } from "node:path";
-import { renderRuntimeProjectV3 } from "./render";
+import { renderRuntimeProjectV3 } from "../render/render";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
-import { prepareMediaJob, type MediaPrepareRequest } from "./media-worker";
+import { prepareMediaJob, type MediaPrepareRequest } from "../media/media-worker";
 
 const port = Number(process.env.EXPORT_RENDERER_PORT ?? 8787);
-const workspaceRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+const workspaceRoot = resolve(fileURLToPath(new URL("../../../..", import.meta.url)));
 const outputRoot = resolve(process.env.EXPORT_RENDERER_OUTPUT_ROOT ?? join(workspaceRoot, "tmp", "export-renderer"));
 
 async function readJson(request: IncomingMessage): Promise<unknown> {

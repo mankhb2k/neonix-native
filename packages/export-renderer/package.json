@@ -8,14 +8,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./contracts": "./src/contracts/index.ts",
-    "./server": "./src/server.ts",
+    "./server": "./src/api/server.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint src -c ../../eslint.package.mjs --max-warnings 0",
-    "start": "tsx src/server.ts",
+    "start": "tsx src/api/server.ts",
     "render:smoke": "tsx src/cli.ts"
   },
   "dependencies": {

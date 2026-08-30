@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { identityMatrix4, type PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { ExportRendererError } from "./errors";
+import { ExportRendererError } from "../errors";
 import { paintCommandsToSvg } from "./svg-rasterizer";
 
 const buffer: PaintCommandBuffer = {

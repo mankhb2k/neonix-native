@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { mkdir, stat } from "node:fs/promises";
 import { dirname } from "node:path";
-import { ExportRendererError } from "./errors";
+import { ExportRendererError } from "../errors";
 
 export async function encodeRgbaFramesToMp4(options: {
   ffmpegPath: string;

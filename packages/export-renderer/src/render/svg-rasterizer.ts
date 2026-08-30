@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { ExportRendererError } from "./errors";
+import { ExportRendererError } from "../errors";
 
 type Affine = { a: number; b: number; c: number; d: number; e: number; f: number };
 

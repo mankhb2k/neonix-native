@@ -6,7 +6,7 @@ import {
   type PaintCommandBuffer,
   type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
-import { ExportRendererError } from "./errors";
+import { ExportRendererError } from "../errors";
 import { encodeRgbaFramesToMp4 } from "./ffmpeg";
 import { paintCommandsToSvg, rasterizeSvgToRgba } from "./svg-rasterizer";
 import type { ExportRenderOptions, ExportRenderStats, RenderedFrame, RuntimeFrameEvaluator } from "./types";

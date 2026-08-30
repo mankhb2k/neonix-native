@@ -20,6 +20,22 @@ The pipeline above is the current visual baseline. It proves deterministic
 Runtime V3 frame output before the worker adds the workload-specific caches and
 native GPU passes described below.
 
+## Source layout
+
+```text
+src/
+├─ api/        HTTP server and route dispatch
+├─ media/      ffprobe, media preparation, and media resource helpers
+├─ render/     Runtime V3 rendering, SVG rasterization, and FFmpeg encoding
+├─ contracts/  shared render job schemas and types
+├─ cli.ts      local render smoke entrypoint
+└─ testing.ts  local Runtime V3 fixtures
+```
+
+The API layer only validates and dispatches requests. Media and visual render
+work stays in their respective modules so future endpoints do not duplicate
+processing logic.
+
 ## End-to-end export architecture
 
 Export Renderer is an offline consumer of the compiled runtime. It does not

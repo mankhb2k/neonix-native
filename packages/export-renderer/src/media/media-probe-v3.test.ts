@@ -5,7 +5,7 @@ import {
   MemoryMediaProbeStoreV3,
   runMediaDerivativeJobsV3,
   runMediaProbeJobV3,
-} from "./index";
+} from "../index";
 
 describe("media probe V3", () => {
   it("deduplicates probe jobs and persists lifecycle output", async () => {
