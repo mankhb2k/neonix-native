@@ -20,6 +20,9 @@ type ShapeOptions = {
   stroke?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
+  strokeJoin?: "miter" | "bevel" | "round";
+  strokeCap?: "butt" | "square" | "round";
+  strokeDash?: { array: number[]; offset?: number };
   frame?: RectangleLayer["frame"];
   transform?: RectangleLayer["transform"];
   opacity?: number;
@@ -94,9 +97,12 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
       ...(options.fillOpacity != null ? { fillOpacity: options.fillOpacity } : {}),
       ...(options.stroke ? { stroke: options.stroke } : {}),
       ...(options.strokeWidth != null ? { strokeWidth: options.strokeWidth } : {}),
-      ...(options.strokeOpacity != null
+    ...(options.strokeOpacity != null
         ? { strokeOpacity: options.strokeOpacity }
         : {}),
+      ...(options.strokeJoin ? { strokeJoin: options.strokeJoin } : {}),
+      ...(options.strokeCap ? { strokeCap: options.strokeCap } : {}),
+      ...(options.strokeDash ? { strokeDash: options.strokeDash } : {}),
     },
   };
 }
@@ -766,6 +772,45 @@ const PATH_LINE_PROJECT = project("preview-path-line-v2", [
   },
 ]);
 
+const SHAPE_STROKE_JOIN_PROJECT = project("preview-shape-stroke-join-v2", [
+  rectangle({
+    id: "shape-stroke-join",
+    order: 0,
+    fill: "#00aa88",
+    stroke: "#ff3366",
+    strokeWidth: 18,
+    strokeJoin: "round",
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } },
+  }),
+]);
+
+const SHAPE_STROKE_CAP_PROJECT = project("preview-shape-stroke-cap-v2", [
+  rectangle({
+    id: "shape-stroke-cap",
+    order: 0,
+    fill: "#00aa88",
+    stroke: "#ff3366",
+    strokeWidth: 18,
+    strokeCap: "round",
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } },
+  }),
+]);
+
+const SHAPE_STROKE_DASH_PROJECT = project("preview-shape-stroke-dash-v2", [
+  rectangle({
+    id: "shape-stroke-dash",
+    order: 0,
+    fill: "#00aa88",
+    stroke: "#ff3366",
+    strokeWidth: 18,
+    strokeDash: { array: [36, 18], offset: 6 },
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } },
+  }),
+]);
+
 const PATH_STROKE_VARIANTS_PROJECT = project("preview-path-stroke-variants-v2", [
   ...["miter", "bevel", "round"].map((strokeJoin, index) => ({
     id: `stroke-join-${strokeJoin}`,
@@ -856,7 +901,7 @@ const PATH_OPACITY_PROJECT = project("preview-path-opacity-v2", [{
   style: { fill: "#14b8a6", fillOpacity: 0.45, stroke: "#f8fafc", strokeWidth: 18, strokeOpacity: 0.7 },
 }]);
 
-const PATH_NONZERO_MULTI_PROJECT = project("preview-path-nonzero-multiple-contours-v2", [{
+const _PATH_NONZERO_MULTI_PROJECT = project("preview-path-nonzero-multiple-contours-v2", [{
   id: "nonzero-multiple-contours",
   type: "path",
   parentLayerId: null,
@@ -1271,7 +1316,7 @@ const PATH_NONZERO_STAR_PROJECT = pathStarProject(
   "nonzero",
 );
 
-const PATH_EVENODD_STAR_PROJECT = pathStarProject(
+const _PATH_EVENODD_STAR_PROJECT = pathStarProject(
   "preview-path-evenodd-star-v2",
   "evenodd",
   PATH_SIX_POINT_POLYGON,
@@ -1450,7 +1495,7 @@ const ROUNDED_RECTANGLE_PROJECT = project("preview-rounded-rectangle-v2", [
   }),
 ]);
 
-const ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
+const _ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
   "preview-rounded-rectangle-perspective-v2",
   [
     rectangle({
@@ -2170,6 +2215,9 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.stroke", label: "Shape / stroke", group: "Layers / Shape", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
   { id: "shape.stroke-width", label: "Shape / stroke width", group: "Layers / Shape", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },
   { id: "shape.stroke-opacity", label: "Shape / stroke opacity", group: "Layers / Shape", hint: "A shape carrying strokeOpacity independently from its fill.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
+  { id: "shape.stroke-join", label: "Shape / stroke join", group: "Layers / Shape", hint: "SVG-like strokeJoin on a primitive shape.", project: SHAPE_STROKE_JOIN_PROJECT },
+  { id: "shape.stroke-cap", label: "Shape / stroke cap", group: "Layers / Shape", hint: "SVG-like strokeCap on a primitive shape.", project: SHAPE_STROKE_CAP_PROJECT },
+  { id: "shape.stroke-dash", label: "Shape / stroke dash", group: "Layers / Shape", hint: "SVG-like strokeDash and offset on a primitive shape.", project: SHAPE_STROKE_DASH_PROJECT },
   { id: "shape.effects", label: "Shape / effects", group: "Layers / Shape", hint: "A shape carrying the optional V2 effects list.", project: BLUR_PROJECT },
   { id: "shape.rectangle-perspective", label: "Shape / rectangle perspective", group: "Layers / Shape", hint: "A rectangle shape evaluated through perspective geometry.", project: SHAPE_RECTANGLE_PERSPECTIVE_PROJECT },
   { id: "shape.ellipse-perspective", label: "Shape / ellipse perspective", group: "Layers / Shape", hint: "An ellipse shape evaluated through perspective geometry.", project: SHAPE_ELLIPSE_PERSPECTIVE_PROJECT },

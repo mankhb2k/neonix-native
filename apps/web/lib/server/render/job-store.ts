@@ -41,7 +41,7 @@ function repoRoot(): string {
 }
 
 export function buildRenderOutputKey(userId: string, jobId: string): string {
-  return userId + "/" + jobId + ".mp4";
+  return `${userId}/${jobId}.mp4`;
 }
 
 export function renderJobsRootDir(): string {

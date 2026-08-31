@@ -7,7 +7,7 @@ export {
   tessellateClosedPath,
   tessellatePathStroke,
   type PathStrokeOptions,
-} from "./geometry/path-tessellation";
+} from "./geometry/path";
 
 export {
   frameIndexAtTime,

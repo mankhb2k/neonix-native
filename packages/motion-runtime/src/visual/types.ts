@@ -73,6 +73,9 @@ export type VisualRuntimeShape = {
   stroke?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
+  strokeJoin?: PathStrokeJoin;
+  strokeCap?: PathStrokeCap;
+  strokeDash?: PathStrokeDash;
   effects?: RuntimeEffect[];
 };
 

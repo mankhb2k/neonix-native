@@ -125,6 +125,9 @@ export type PaintCommand =
       stroke?: string;
       strokeWidth?: number;
       strokeOpacity?: number;
+      strokeJoin?: "miter" | "bevel" | "round";
+      strokeCap?: "butt" | "square" | "round";
+      strokeDash?: { array: number[]; offset: number };
     }
   | {
       op: "drawSolid";

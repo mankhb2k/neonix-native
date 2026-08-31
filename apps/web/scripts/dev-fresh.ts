@@ -17,7 +17,7 @@ async function main(): Promise<void> {
 
   const exitCode = await new Promise<number>((resolveExit) => {
     child.once("error", (error) => {
-      console.error(error);
+      process.stderr.write(`${String(error)}\n`);
       resolveExit(1);
     });
     child.once("exit", (code, signal) => {

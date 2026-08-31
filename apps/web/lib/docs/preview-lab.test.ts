@@ -22,6 +22,9 @@ describe("Protocol V2 preview lab fixtures", () => {
       "shape.stroke",
       "shape.stroke-width",
       "shape.stroke-opacity",
+      "shape.stroke-join",
+      "shape.stroke-cap",
+      "shape.stroke-dash",
       "shape.effects",
       "shape.rectangle-perspective",
       "shape.ellipse-perspective",
@@ -198,7 +201,10 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(fixture.htmlCssSource?.html).toContain('id="compiler-solid"');
     expect(fixture.htmlCssSource?.html).toContain('id="compiler-rounded"');
     expect(fixture.project.layers).toEqual(expect.arrayContaining([
+      // Vitest's matcher API is intentionally untyped.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       expect.objectContaining({ id: "compiler-solid", type: "shape", style: { fill: "#14b8a6" } }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       expect.objectContaining({ id: "compiler-rounded", type: "shape", payload: expect.objectContaining({ cornerRadius: 48 }), style: expect.objectContaining({ stroke: "#e2e8f0", strokeWidth: 12 }) }),
     ]));
   });

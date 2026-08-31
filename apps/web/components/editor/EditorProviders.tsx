@@ -10,7 +10,7 @@ import {
 } from "react";
 import { EditorActionsContext, type EditorActions } from "@/hooks/editor/use-editor-actions";
 import { EditorStoreContext } from "@/hooks/editor/use-editor-store";
-import { PlaybackControllerContext, type PlaybackDiagnostic } from "@/hooks/editor/use-playback-controller";
+import { PlaybackControllerContext } from "@/hooks/editor/use-playback-controller";
 import {
   TransportStoreContext,
 } from "@/hooks/editor/use-transport-store";
@@ -126,14 +126,12 @@ export function EditorProviders({
   initialRevisionNo?: number;
 }) {
   const [document, setDocument] = useState(initialDocument);
-  const [playbackDiagnostics, setPlaybackDiagnostics] = useState<readonly PlaybackDiagnostic[]>([]);
   const transportStoreRef = useRef<TransportStoreApi | null>(null);
   if (!transportStoreRef.current) transportStoreRef.current = createTransportStore();
   const transportStore = transportStoreRef.current;
   const editorStoreRef = useRef<EditorStoreApi | null>(null);
   if (!editorStoreRef.current) editorStoreRef.current = createEditorStore(initialDocument);
   const editorStore = editorStoreRef.current;
-  const playbackDiagnosticIdRef = useRef(0);
   const playbackControllerRef = useRef<PlaybackControllerV3 | null>(null);
   // Child effects can register video elements before the provider's passive
   // effect creates the controller. Keep those registrations until then.
@@ -478,7 +476,7 @@ export function EditorProviders({
   );
   const playbackActions = useMemo(
     () => ({
-      playbackDiagnostics,
+      playbackDiagnostics: [] as const,
       playbackPlay,
       playbackPause,
       playbackSeek,
@@ -493,7 +491,6 @@ export function EditorProviders({
     [
       getPlaybackResourceStats,
       getPlaybackDiagnostics,
-      playbackDiagnostics,
       playbackPause,
       playbackPlay,
       playbackPreviewSeek,

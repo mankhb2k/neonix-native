@@ -485,7 +485,7 @@ test.describe("Protocol V2 atom preview", () => {
   });
 
   test("renders a Runtime-tessellated path through the shared Matrix4 projection", async ({ page }) => {
-    const caseId = "path.closed-fill.perspective";
+    const caseId = "path.geometry.closed-contour";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
     await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
       "data-backend",
@@ -542,7 +542,7 @@ test.describe("Protocol V2 atom preview", () => {
   });
 
   test("renders the five-point and six-point fill-rule path examples", async ({ page }) => {
-    const caseIds = ["path.fill-rule.nonzero", "path.fill-rule.evenodd"];
+    const caseIds = ["path.fill", "path.geometry.multiple-contours"];
     for (const caseId of caseIds) {
       await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
       await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
@@ -554,7 +554,7 @@ test.describe("Protocol V2 atom preview", () => {
       expect(pixels.fillPixels).toBeGreaterThan(10_000);
     }
 
-    await page.goto("/docs/preview?case=path.fill-rule.nonzero&backend=webgl2");
+    await page.goto("/docs/preview?case=path.fill&backend=webgl2");
     test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
     for (const caseId of caseIds) {
       await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
@@ -619,7 +619,7 @@ test.describe("Protocol V2 atom preview", () => {
   });
 
   test("renders a stroked path in WebGL2 and WebGPU", async ({ page }) => {
-    const caseId = "path.paint.stroke";
+    const caseId = "path.stroke";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
     await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
       "data-backend",
@@ -645,7 +645,7 @@ test.describe("Protocol V2 atom preview", () => {
   });
 
   test("renders open path caps and dashes", async ({ page }) => {
-    const caseId = "path.paint.stroke-cap-dash";
+    const caseId = "path.stroke-dash";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
     await expect(page.getByTestId("preview-v2-canvas")).toHaveAttribute(
       "data-backend",

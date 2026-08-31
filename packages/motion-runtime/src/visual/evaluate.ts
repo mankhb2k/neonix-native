@@ -243,6 +243,9 @@ export function evaluateVisualRuntimeProject(
         ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
         ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
         ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
+        ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
+        ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
+        ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
       });
     } else if (content.kind === "text") {
       commands.push({

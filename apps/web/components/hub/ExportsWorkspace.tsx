@@ -18,7 +18,7 @@ export function ExportsWorkspace() {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const response = await fetch("/api/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
+      const response = await globalThis.fetch("/api/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json() as { jobs?: ExportJob[] };
       if (active) setJobs(data.jobs ?? []);
@@ -127,7 +127,7 @@ export function ExportsWorkspace() {
               </div>
               <div className="text-right text-caption text-[var(--fg-muted)]">
                 <p className="m-0 font-medium text-[var(--fg-primary)]">{job.status} · {Math.round(job.progress * 100)}%</p>
-                <p className="mt-1 m-0">{job.metrics?.outputSizeInBytes ? Math.round(job.metrics.outputSizeInBytes / 1024 / 1024 * 100) / 100 + " MB" : "Awaiting metrics"}</p>
+                <p className="mt-1 m-0">{job.metrics?.outputSizeInBytes ? `${Math.round(job.metrics.outputSizeInBytes / 1024 / 1024 * 100) / 100} MB` : "Awaiting metrics"}</p>
               </div>
             </div>
           ))}

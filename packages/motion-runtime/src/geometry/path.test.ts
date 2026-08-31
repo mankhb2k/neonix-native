@@ -3,7 +3,15 @@ import {
   interpolatePathContours,
   tessellateClosedPath,
   tessellatePathStroke,
-} from "./path-tessellation";
+} from "./path";
+import {
+  canonicalizePathPoints,
+  dashContour,
+  flattenPathContourAny,
+  measureContour,
+  normalizePathDash,
+  sampleContourAtDistance,
+} from "./path";
 
 const outer = {
   id: "outer",
@@ -79,6 +87,42 @@ function meshContainsPoint(mesh: { vertices: number[]; indices: number[] }, x: n
 }
 
 describe("Path tessellation", () => {
+  it("normalizes SVG dash patterns and negative offsets", () => {
+    expect(normalizePathDash({ array: [10, 5, 2], offset: -4 })).toEqual({
+      pattern: [10, 5, 2, 10, 5, 2],
+      total: 34,
+      offset: 30,
+    });
+  });
+
+  it("measures closed contours including the closing edge", () => {
+    const measured = measureContour(flattenPathContourAny(outer));
+    expect(measured.length).toBe(400);
+    expect(sampleContourAtDistance(measured, 350)).toEqual({
+      point: { x: 0, y: 50 },
+      tangent: { x: 0, y: -1 },
+    });
+  });
+
+  it("keeps SVG dash runs continuous across segment boundaries", () => {
+    const measured = measureContour(flattenPathContourAny(outer));
+    const runs = dashContour(measured, { array: [150, 50], offset: 0 });
+    expect(runs).toHaveLength(2);
+    expect(runs[0]).toEqual([
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 50 },
+    ]);
+  });
+
+  it("canonicalizes SVG-like closed contours without a repeated closing point", () => {
+    expect(canonicalizePathPoints([
+      { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 }, { x: 0, y: 0 },
+    ], true)).toEqual([
+      { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }, { x: 0, y: 100 },
+    ]);
+  });
+
   it("resolves one closed triangle into local-plane triangles", () => {
     const mesh = tessellateClosedPath([
       {
@@ -159,6 +203,53 @@ describe("Path tessellation", () => {
     expect(bevel.indices.length).toBeGreaterThan(outer.segments.length * 6);
     expect(round.indices.length).toBeGreaterThan(butt.indices.length);
     expect(round.vertices.every(Number.isFinite)).toBe(true);
+  });
+
+  it("covers the miter apex continuously", () => {
+    const mesh = tessellatePathStroke([{
+      id: "miter-join",
+      start: { x: 40, y: 140 },
+      segments: [
+        { kind: "line", to: { x: 210, y: 20 } },
+        { kind: "line", to: { x: 380, y: 140 } },
+      ],
+      closed: false,
+    }], 28, { join: "miter", cap: "butt" });
+
+    expect(meshContainsPoint(mesh, 210, 4)).toBe(true);
+    expect(mesh.vertices.every(Number.isFinite)).toBe(true);
+  });
+
+  it("covers the outside sector of a round join without a vertex gap", () => {
+    const mesh = tessellatePathStroke([{
+      id: "round-join",
+      start: { x: 40, y: 140 },
+      segments: [
+        { kind: "line", to: { x: 210, y: 20 } },
+        { kind: "line", to: { x: 380, y: 140 } },
+      ],
+      closed: false,
+    }], 28, { join: "round", cap: "butt" });
+
+    expect(meshContainsPoint(mesh, 210, 8)).toBe(true);
+    expect(meshContainsPoint(mesh, 210, 7)).toBe(true);
+  });
+
+  it("approximates a round join with a fine circular arc", () => {
+    const mesh = tessellatePathStroke([{
+      id: "fine-round-join",
+      start: { x: 40, y: 140 },
+      segments: [
+        { kind: "line", to: { x: 210, y: 20 } },
+        { kind: "line", to: { x: 380, y: 140 } },
+      ],
+      closed: false,
+    }], 28, { join: "round", cap: "butt" });
+
+    // The outside arc is split into more than the old coarse 18-degree
+    // tessellation, preventing visible polygon facets in the GPU preview.
+    expect(mesh.indices.length).toBeGreaterThan(30);
+    expect(mesh.vertices.every(Number.isFinite)).toBe(true);
   });
 
   it("interpolates matching contour topology before tessellation", () => {

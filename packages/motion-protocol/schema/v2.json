@@ -1824,6 +1824,42 @@
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1
+                      },
+                      "strokeJoin": {
+                        "type": "string",
+                        "enum": [
+                          "miter",
+                          "bevel",
+                          "round"
+                        ]
+                      },
+                      "strokeCap": {
+                        "type": "string",
+                        "enum": [
+                          "butt",
+                          "square",
+                          "round"
+                        ]
+                      },
+                      "strokeDash": {
+                        "type": "object",
+                        "properties": {
+                          "array": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "minItems": 1
+                          },
+                          "offset": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          }
+                        },
+                        "required": [
+                          "array"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [

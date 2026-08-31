@@ -42,6 +42,8 @@ type PreviewStageProps = {
   onBackendReady?: (backend: PreviewBackendKind | null) => void;
   /** Keep the WebGL backbuffer only for capture/test scenarios. */
   preserveDrawingBuffer?: boolean;
+  /** Stable identifier for diagnostic pages with more than one renderer. */
+  testId?: string;
   onVideoElement?: (
     assetId: string,
     element: HTMLVideoElement,
@@ -60,6 +62,7 @@ export function PreviewStage({
   backend = "auto",
   onBackendReady,
   preserveDrawingBuffer = false,
+  testId = "preview-v2-canvas",
   onVideoElement,
 }: PreviewStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -83,6 +86,9 @@ export function PreviewStage({
   const timeRef = useRef(time);
   const frameRef = useRef<RuntimeFrameV3 | null>(frame ?? null);
   const isPlayingRef = useRef(isPlaying);
+  // The canvas is created imperatively. Track its availability so the
+  // compilation effect cannot miss it on the initial React effect pass.
+  const [canvasReadyToken, setCanvasReadyToken] = useState(0);
   const [resourceReadyToken, setResourceReadyToken] = useState(0);
   const [rendererError, setRendererError] = useState<string | null>(null);
   onBackendReadyRef.current = onBackendReady;
@@ -212,7 +218,7 @@ export function PreviewStage({
 
     onBackendReadyRef.current?.(null);
     const canvas = document.createElement("canvas");
-    canvas.dataset.testid = "preview-v2-canvas";
+    canvas.dataset.testid = testId;
     canvas.style.position = "absolute";
     canvas.style.left = "50%";
     canvas.style.top = "50%";
@@ -220,6 +226,7 @@ export function PreviewStage({
     host.replaceChildren(canvas);
     host.style.position = "relative";
     canvasRef.current = canvas;
+    setCanvasReadyToken((value) => value + 1);
 
     return () => {
       playbackFrameSinkReleaseRef.current?.();
@@ -238,7 +245,7 @@ export function PreviewStage({
       canvasRef.current = null;
       canvas.remove();
     };
-  }, [backend]);
+  }, [backend, testId]);
 
   useEffect(() => () => resourceRegistry.dispose(), [resourceRegistry]);
 
@@ -254,6 +261,7 @@ export function PreviewStage({
     const host = hostRef.current;
     const canvas = canvasRef.current;
     if (!host || !canvas) return undefined;
+    canvas.dataset.previewState = "loading-resources";
     projectRef.current = parsedProject;
     let cancelled = false;
     const resourceGeneration = ++resourceGenerationRef.current;
@@ -268,6 +276,7 @@ export function PreviewStage({
       const previousAssets = assetsRef.current;
       const previousResources = resourcesRef.current;
       const compiled = compileProtocol(parsedProject);
+      canvas.dataset.previewState = "compiling";
       const initialFrame = evaluateRuntimeProjectV3(
         compiled,
         frameIndexAtTime(timeRef.current, parsedProject.composition.fps),
@@ -288,6 +297,7 @@ export function PreviewStage({
       const runtime = prepared?.project ?? compiled;
       let renderer = rendererRef.current;
       if (!renderer) {
+        canvas.dataset.previewState = "creating-renderer";
         renderer = await createPreviewRenderer({
           canvas,
           backend,
@@ -304,6 +314,7 @@ export function PreviewStage({
         }
         rendererRef.current = renderer;
         canvas.dataset.backend = renderer.backend;
+        canvas.dataset.previewState = "ready";
         onBackendReadyRef.current?.(renderer.backend);
       } else {
         for (const assetId of previousAssets.keys()) renderer.removeAsset(assetId);
@@ -363,6 +374,7 @@ export function PreviewStage({
       );
     })().catch((err: unknown) => {
       if (!cancelled && resourceGeneration === resourceGenerationRef.current) {
+        if (canvasRef.current) canvasRef.current.dataset.previewState = "error";
         setRendererError(err instanceof Error ? err.message : String(err));
       }
     });
@@ -374,7 +386,7 @@ export function PreviewStage({
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
     };
-  }, [backend, externalPlayback, parsedProject, preserveDrawingBuffer, resourceRegistry]);
+  }, [backend, canvasReadyToken, externalPlayback, handleDecodedVideoFrame, parsedProject, preserveDrawingBuffer, resourceRegistry]);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -466,7 +478,7 @@ async function loadPreviewResources(
       if (asset.kind === "font") {
         const lease = await registry.acquire(key, async () => {
           // Asset URLs are resolved at runtime and may point to any configured origin.
-          const response = await fetch(asset.uri);
+          const response = await globalThis.fetch(asset.uri);
           if (!response.ok) throw new Error(`Unable to load font asset ${asset.id}`);
           const bytes = await response.arrayBuffer();
           if (!(await matchesIntegrity(bytes, asset.integrity))) {
@@ -629,24 +641,30 @@ async function primeVideoFrame(video: HTMLVideoElement): Promise<void> {
     cancelVideoFrameCallback?: (handle: number) => void;
   };
   if (typeof target.requestVideoFrameCallback !== "function") return;
-  const wasPaused = video.paused;
+  const videoElement = video;
+  const wasPaused = videoElement.paused;
   let callbackHandle: number | undefined;
   try {
     const frameReady = new Promise<void>((resolve) => {
-      callbackHandle = target.requestVideoFrameCallback?.(() => resolve());
+      const handle = target.requestVideoFrameCallback?.(() => {
+        resolve();
+      });
+      callbackHandle = handle;
     });
-    video.muted = true;
-    if (video.paused) await video.play();
+    videoElement.muted = true;
+    if (videoElement.paused) await videoElement.play();
     await Promise.race([
       frameReady,
-      new Promise<void>((resolve) => window.setTimeout(resolve, 1000)),
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 1000);
+      }),
     ]);
   } catch {
     // A browser may reject autoplay even for a muted detached element. The
     // regular loadeddata/seek path remains valid in that case.
   } finally {
     if (callbackHandle !== undefined) target.cancelVideoFrameCallback?.(callbackHandle);
-    if (wasPaused) video.pause();
+    if (wasPaused) videoElement.pause();
   }
 }
 

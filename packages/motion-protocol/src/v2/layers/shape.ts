@@ -72,6 +72,15 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
       stroke: V2ColorSchema.optional(),
       strokeWidth: V2PositiveNumberSchema.optional(),
       strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
+      strokeJoin: z.enum(["miter", "bevel", "round"]).optional(),
+      strokeCap: z.enum(["butt", "square", "round"]).optional(),
+      strokeDash: z
+        .object({
+          array: z.array(V2FiniteNumberSchema.positive()).min(1),
+          offset: V2FiniteNumberSchema.optional(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
 }).strict();

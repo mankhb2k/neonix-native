@@ -12,6 +12,7 @@ import {
   type RuntimeEffect,
   type VisualRuntimeNode,
   type VisualRuntimeProject,
+  type PathContour,
   type VisualRuntimeMask,
   identityMatrix4,
   interpolatePathContours,
@@ -25,6 +26,28 @@ import {
 import { isCompilerFeatureSupported } from "./capabilities";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
+function primitiveStrokeContour(shape: "rectangle" | "ellipse", width: number, height: number): PathContour {
+  if (shape === "rectangle") {
+    return {
+      id: "shape-stroke-contour",
+      start: { x: 0, y: 0 },
+      segments: [
+        { kind: "line", to: { x: width, y: 0 } },
+        { kind: "line", to: { x: width, y: height } },
+        { kind: "line", to: { x: 0, y: height } },
+        { kind: "line", to: { x: 0, y: 0 } },
+      ],
+      closed: true,
+    };
+  }
+  const segments: PathContour["segments"] = [];
+  const points = Array.from({ length: 32 }, (_, index) => {
+    const angle = (index * Math.PI * 2) / 32;
+    return { x: width / 2 + Math.cos(angle) * width / 2, y: height / 2 + Math.sin(angle) * height / 2 };
+  });
+  for (let index = 1; index <= points.length; index += 1) segments.push({ kind: "line", to: points[index % points.length]! });
+  return { id: "shape-stroke-contour", start: points[0]!, segments, closed: true };
+}
 /** Protocol V2 stores all authoring time values in milliseconds. */
 const MILLISECONDS_TO_SECONDS = 1 / 1000;
 const toRuntimeSeconds = (milliseconds: number): number => milliseconds * MILLISECONDS_TO_SECONDS;
@@ -561,6 +584,17 @@ function compileVisualRuntimeInternal(
         throw new Error(`Uncertified Protocol V2 atom: ${strokeOpacityCapability}`);
       }
     }
+    for (const property of ["strokeJoin", "strokeCap", "strokeDash"] as const) {
+      if (layer.style[property] !== undefined) {
+        if (layer.style.stroke === undefined) {
+          throw new Error(`Protocol V2 atom ${layer.id}: ${property} requires stroke`);
+        }
+        const capability = `${layer.type}.${layer.payload.shape}.${property}`;
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+    }
     if (layer.payload.cornerRadius !== undefined) {
       if (layer.payload.shape !== "rectangle") {
         throw new Error(`Protocol V2 atom ${layer.id}: cornerRadius requires rectangle`);
@@ -572,6 +606,14 @@ function compileVisualRuntimeInternal(
     }
 
     const effects = lowerEffects(layer.effects);
+    const advancedStroke = layer.style.stroke !== undefined && (
+      layer.style.strokeJoin !== undefined ||
+      layer.style.strokeCap !== undefined ||
+      layer.style.strokeDash !== undefined
+    );
+    const strokeContour = advancedStroke
+      ? primitiveStrokeContour(layer.payload.shape, layer.frame.width, layer.frame.height)
+      : undefined;
     return {
       id: layer.id,
         parentId: layer.parentLayerId,
@@ -584,7 +626,7 @@ function compileVisualRuntimeInternal(
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,
       content: {
-        kind: "shape" as const,
+        kind: advancedStroke ? "path" as const : "shape" as const,
         shape: layer.payload.shape,
         width: layer.frame.width,
         height: layer.frame.height,
@@ -611,10 +653,35 @@ function compileVisualRuntimeInternal(
               ...(layer.style.strokeOpacity !== undefined
                 ? { strokeOpacity: layer.style.strokeOpacity }
                 : {}),
+              ...(layer.style.strokeJoin ? { strokeJoin: layer.style.strokeJoin } : {}),
+              ...(layer.style.strokeCap ? { strokeCap: layer.style.strokeCap } : {}),
+              ...(layer.style.strokeDash
+                ? { strokeDash: { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 } }
+                : {}),
+            }
+          : {}),
+        ...(advancedStroke
+          ? {
+              contours: [strokeContour!],
+              fillRule: "nonzero" as const,
+              ...(layer.style.fill
+                ? { mesh: tessellateClosedPath([strokeContour!], "nonzero") }
+                : {}),
+              strokeMesh: tessellatePathStroke(
+                [strokeContour!],
+                layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
+                {
+                  join: layer.style.strokeJoin ?? "miter",
+                  cap: layer.style.strokeCap ?? "butt",
+                  dash: layer.style.strokeDash
+                    ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
+                    : undefined,
+                },
+              ),
             }
           : {}),
         ...(effects ? { effects } : {}),
-      },
+      } as VisualRuntimeNode["content"],
     };
   }).filter((node): node is VisualRuntimeNode => node !== null);
 

@@ -18,8 +18,7 @@ export async function compileAndPrepareRuntimeProjectV3(document: MotionProtocol
   const compiled = compileProtocol(document);
   if (!compiled.visual.nodes.some((node) => node.content.kind === "text")) return compiled;
   const moduleUrl = pathToFileURL(path.join(repoRoot(), "apps/web/public/vendor/harfbuzz/index.mjs")).href;
-  const loadModule = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<typeof import("harfbuzzjs")>;
-  const harfbuzz = await loadModule(moduleUrl);
+  const harfbuzz = await import(moduleUrl) as typeof import("harfbuzzjs");
   const prepared = await prepareRuntimeProjectV3Text(
     compiled,
     (font) => loadFont(font.uri),
