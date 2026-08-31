@@ -96,10 +96,26 @@ parity remains an end-to-end validation gate.
 
 Preview Lab exposes these cases under **HTML compiler / Phase 4**.
 
+## HTML compiler transform subset
+
+The compiler also lowers the basic CSS 2D transform functions used by the
+primitive preview fixtures: `translate`, `translateX/Y`, `scale`, `scaleX/Y`,
+`rotate`, `skew`, `skewX/Y` and their 3D-axis spelling where the Protocol V2
+transform fields can represent them. `transform-origin` resolves to the local
+`anchor` in frame units; angles normalize to degrees and lengths/percentages
+resolve against the element frame. The ordered `operations[]` list is retained
+in the output for downstream runtime composition, while the component fields
+remain populated for the current V2 compatibility contract.
+
+Unsupported transform functions or malformed arguments fail closed with a
+`css-transform-*` diagnostic. CSS transform ordering and matrix/perspective
+parity remain runtime Phase 5 work; these fixtures intentionally exercise one
+basic transform operation at a time.
+
 ## Explicitly deferred
 
 Flex/grid layout, margin collapsing, overflow clipping, images, masks, filters, text shaping,
-transforms, 3D, animation and transitions are later compiler phases. Unsupported
+advanced transform matrices, 3D context, animation and transitions are later compiler phases. Unsupported
 properties, selectors, text nodes and invalid values fail closed with a
 diagnostic; they are not silently ignored.
 

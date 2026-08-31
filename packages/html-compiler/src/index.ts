@@ -13,7 +13,7 @@ export function createHtmlCssSource(input: Partial<HtmlCssSource> = {}): HtmlCss
 class CompileError extends Error { constructor(readonly code: string, message: string, readonly source?: HtmlCompilerSourceLocation) { super(message); } }
 const fail = (code: string, message: string): never => { throw new CompileError(code, message); };
 function sourceLocation(text: string, offset: number, kind: "html" | "css"): HtmlCompilerSourceLocation { const safeOffset = Math.max(0, Math.min(offset, text.length)); const before = text.slice(0, safeOffset); const line = before.split("\n").length; const lastNewline = before.lastIndexOf("\n"); return { kind, offset: safeOffset, line, column: safeOffset - lastNewline }; }
-const SUPPORTED = new Set(["position", "left", "right", "top", "bottom", "width", "height", "min-width", "max-width", "min-height", "max-height", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "box-sizing", "background", "background-color", "color", "opacity", "font-size", "font-family", "display", "visibility", "z-index", "border", "border-width", "border-style", "border-color", "border-radius"]);
+const SUPPORTED = new Set(["position", "left", "right", "top", "bottom", "width", "height", "min-width", "max-width", "min-height", "max-height", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "box-sizing", "background", "background-color", "color", "opacity", "font-size", "font-family", "display", "visibility", "z-index", "border", "border-width", "border-style", "border-color", "border-radius", "transform", "transform-origin"]);
 const SUPPORTED_TAGS = new Set(["div", "span", "main", "section", "article", "header", "footer", "nav", "aside", "body"]);
 const INHERITED = new Set(["color", "font-size", "font-family"]);
 const EXPLICIT_ID = /^[A-Za-z][A-Za-z0-9_-]{0,199}$/;
@@ -208,6 +208,81 @@ function parseCornerRadius(style: Style, relative: number, fontSize: number, vie
   return radius;
 }
 
+type ParsedTransform = {
+  translate: { x: number; y: number; z: number };
+  scale: { x: number; y: number; z: number };
+  rotate: { x: number; y: number; z: number };
+  skew: { x: number; y: number };
+  anchor: { x: number; y: number; z: number };
+  operations?: NonNullable<MotionProtocolV2["layers"][number]["transform"]["operations"]>;
+};
+
+function transformNumber(value: string, property: string, relative: number, fontSize: number, viewport: { width: number; height: number }): number {
+  const parsed = calcExpression(value, property, relative, fontSize, 16, viewport).value;
+  if (!Number.isFinite(parsed)) fail("css-transform-value-invalid", `${property} requires a finite value: ${value}`);
+  return parsed;
+}
+
+function transformAngle(value: string, property: string): number {
+  const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))(deg|rad|turn)$/i);
+  if (!match) fail("css-transform-angle-invalid", `${property} requires an angle (deg, rad or turn): ${value}`);
+  const parsed = match as RegExpMatchArray;
+  const n = Number(parsed[1]); const unit = parsed[2]!.toLowerCase();
+  return unit === "rad" ? (n * 180) / Math.PI : unit === "turn" ? n * 360 : n;
+}
+
+function parseTransformOrigin(value: string | undefined, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): { x: number; y: number; z: number } {
+  if (value === undefined) return { x: width / 2, y: height / 2, z: 0 };
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 1 || tokens.length > 3) fail("css-transform-origin-invalid", `transform-origin expects one to three values: ${value}`);
+  const keywordX: Record<string, string> = { left: "0%", center: "50%", right: "100%" };
+  const keywordY: Record<string, string> = { top: "0%", center: "50%", bottom: "100%" };
+  const xValue = keywordX[tokens[0]!.toLowerCase()] ?? tokens[0]!;
+  const yValue = keywordY[tokens[1]?.toLowerCase() ?? "center"] ?? tokens[1] ?? "50%";
+  const x = transformNumber(xValue, "transform-origin", width, fontSize, viewport);
+  const y = transformNumber(yValue, "transform-origin", height, fontSize, viewport);
+  const z = tokens[2] === undefined ? 0 : transformNumber(tokens[2], "transform-origin", 1, fontSize, viewport);
+  return { x, y, z };
+}
+
+function parseTransform(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): ParsedTransform {
+  const identity: ParsedTransform = { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } };
+  const value = style.get("transform");
+  if (value === undefined || value.trim().toLowerCase() === "none") return identity;
+  const result: ParsedTransform = { ...identity, anchor: parseTransformOrigin(style.get("transform-origin"), width, height, fontSize, viewport), operations: [] };
+  const operationPattern = /([A-Za-z][\w-]*)\(([^()]*)\)/g; let cursor = 0; let match: RegExpExecArray | null;
+  while ((match = operationPattern.exec(value)) !== null) {
+    const parsedMatch = match as RegExpExecArray;
+    if (value.slice(cursor, parsedMatch.index).trim()) fail("css-transform-invalid", `Unsupported transform syntax near ${value.slice(cursor, parsedMatch.index)}`);
+    cursor = operationPattern.lastIndex;
+    const name = parsedMatch[1]!.toLowerCase(); const args = parsedMatch[2]!.split(/\s*,\s*|\s+/).filter(Boolean);
+    if (name === "translate" || name === "translate3d") {
+      if (args.length < 1 || args.length > 3) fail("css-transform-arguments-invalid", `${name} expects one to three values`);
+      const x = transformNumber(args[0]!, name, width, fontSize, viewport); const y = args[1] === undefined ? 0 : transformNumber(args[1], name, height, fontSize, viewport); const z = args[2] === undefined ? 0 : transformNumber(args[2], name, 1, fontSize, viewport);
+      result.translate.x += x; result.translate.y += y; result.translate.z += z; result.operations!.push({ type: "translate", value: { x, y, z } });
+    } else if (name === "translatex" || name === "translatey") {
+      if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one value`);
+      const x = name === "translatex" ? transformNumber(args[0]!, name, width, fontSize, viewport) : 0; const y = name === "translatey" ? transformNumber(args[0]!, name, height, fontSize, viewport) : 0;
+      result.translate.x += x; result.translate.y += y; result.operations!.push({ type: "translate", value: { x, y, z: 0 } });
+    } else if (name === "scale" || name === "scale3d") {
+      if (args.length < 1 || args.length > 3) fail("css-transform-arguments-invalid", `${name} expects one to three values`);
+      const x = Number(args[0]); const y = args[1] === undefined ? x : Number(args[1]); const z = args[2] === undefined ? 1 : Number(args[2]); if (![x, y, z].every(Number.isFinite)) fail("css-transform-value-invalid", `${name} requires numeric values`);
+      result.scale.x *= x; result.scale.y *= y; result.scale.z *= z; result.operations!.push({ type: "scale", value: { x, y, z } });
+    } else if (name === "scalex" || name === "scaley") {
+      if (args.length !== 1 || !Number.isFinite(Number(args[0]))) fail("css-transform-value-invalid", `${name} requires one numeric value`);
+      const x = name === "scalex" ? Number(args[0]) : 1; const y = name === "scaley" ? Number(args[0]) : 1; result.scale.x *= x; result.scale.y *= y; result.operations!.push({ type: "scale", value: { x, y, z: 1 } });
+    } else if (name === "rotate" || name === "rotatez" || name === "rotatex" || name === "rotatey") {
+      if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one angle`);
+      const angle = transformAngle(args[0]!, name); const x = name === "rotatex" ? angle : 0; const y = name === "rotatey" ? angle : 0; const z = name === "rotatex" || name === "rotatey" ? 0 : angle; result.rotate.x += x; result.rotate.y += y; result.rotate.z += z; result.operations!.push({ type: name === "rotatex" ? "rotateX" : name === "rotatey" ? "rotateY" : "rotateZ", value: angle });
+    } else if (name === "skew" || name === "skewx" || name === "skewy") {
+      if (args.length < 1 || args.length > 2) fail("css-transform-arguments-invalid", `${name} expects one or two angles`);
+      const x = name === "skewy" ? 0 : transformAngle(args[0]!, name); const y = name === "skewx" ? 0 : args[1] === undefined ? 0 : transformAngle(args[1]!, name); result.skew.x += x; result.skew.y += y; result.operations!.push({ type: "skew", value: { x, y } });
+    } else fail("css-transform-function-unsupported", `Unsupported transform function: ${name}`);
+  }
+  if (value.slice(cursor).trim()) fail("css-transform-invalid", `Unsupported transform syntax near ${value.slice(cursor)}`);
+  return result.operations!.length ? result : identity;
+}
+
 type Num = { value: number; unit: "px" | "%" | "number" };
 function calcExpression(expression: string, property: string, relative: number, fontSize: number, rootFontSize: number, viewport: { width: number; height: number }): Num {
   const text = expression.trim(); if (text === "auto") return { value: Number.NaN, unit: "px" }; const calc = text.match(/^calc\((.*)\)$/i)?.[1] ?? text;
@@ -242,12 +317,13 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
         const opacityValue = style.get("opacity"); const opacity = opacityValue === undefined ? 1 : Number(opacityValue); if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) fail("css-opacity-invalid", `opacity must be between 0 and 1: ${opacityValue}`);
         const parentId = parent?.tag === "body" ? null : (parent?.atomicId ?? null); const groupId = node.atomicId; const hasChildren = node.children.length > 0; const localX = parent?.children.length ? x - (origins.get(parent)?.x ?? parentX) : x; const localY = parent?.children.length ? y - (origins.get(parent)?.y ?? parentY) : y;
         const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {};
-        const backgroundValue = style.get("background") ?? style.get("background-color"); const paints = backgroundValue === undefined ? ["#00000000" as Paint] : parsePaintLayers(backgroundValue, "background"); const border = parseBorder(style, containingWidth, font, viewport); const cornerRadius = parseCornerRadius(style, containingWidth, font, viewport);
-        if (hasChildren) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: { translate: { x: localX, y: localY, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } }, opacity, ...state, timing: { start: 0, duration } });
+        const backgroundValue = style.get("background") ?? style.get("background-color"); const paints = backgroundValue === undefined ? ["#00000000" as Paint] : parsePaintLayers(backgroundValue, "background"); const border = parseBorder(style, containingWidth, font, viewport); const cornerRadius = parseCornerRadius(style, containingWidth, font, viewport); const parsedTransform = parseTransform(style, w, h, font, viewport);
+        const transformFor = (translateX: number, translateY: number, includeCssTransform: boolean) => ({ translate: { x: translateX + (includeCssTransform ? parsedTransform.translate.x : 0), y: translateY + (includeCssTransform ? parsedTransform.translate.y : 0), z: includeCssTransform ? parsedTransform.translate.z : 0 }, scale: includeCssTransform ? parsedTransform.scale : { x: 1, y: 1, z: 1 }, rotate: includeCssTransform ? parsedTransform.rotate : { x: 0, y: 0, z: 0 }, skew: includeCssTransform ? parsedTransform.skew : { x: 0, y: 0 }, anchor: includeCssTransform ? parsedTransform.anchor : { x: 0, y: 0, z: 0 }, ...(includeCssTransform && parsedTransform.operations?.length ? { operations: parsedTransform.operations } : {}) });
+        if (hasChildren) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration } });
         paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (hasChildren ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;
           const isLast = index === paints.length - 1;
-          layers.push({ id: paintId, type: "shape", parentLayerId: hasChildren ? groupId : parentId, order: Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) + index : layers.length, frame: { width: w, height: h }, transform: { translate: { x: hasChildren ? 0 : localX, y: hasChildren ? 0 : localY, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } }, opacity, ...state, timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius !== undefined ? { cornerRadius } : {}) }, style: { fill, ...(isLast && border.color ? { stroke: border.color } : {}), ...(isLast && border.width ? { strokeWidth: border.width } : {}) } });
+          layers.push({ id: paintId, type: "shape", parentLayerId: hasChildren ? groupId : parentId, order: Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) + index : layers.length, frame: { width: w, height: h }, transform: transformFor(hasChildren ? 0 : localX, hasChildren ? 0 : localY, !hasChildren), opacity, ...state, timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius !== undefined ? { cornerRadius } : {}) }, style: { fill, ...(isLast && border.color ? { stroke: border.color } : {}), ...(isLast && border.width ? { strokeWidth: border.width } : {}) } });
         });
       }
       const childX = x + padding[3]; const childY = y + padding[0]; let flowY = childY; node.children.forEach((child) => { const childStyle = styles.get(child) ?? style; const childPosition = childStyle.get("position") ?? "static"; layout(child, node, childX, flowY, Math.max(1, w - padding[1] - padding[3]), Math.max(1, h - padding[0] - padding[2]), style); if (childPosition !== "absolute") { const childOrigin = origins.get(child); const childSize = sizes.get(child); const childMargin = edges(childStyle, "margin", containingWidth, font, 16, viewport); flowY = (childOrigin?.y ?? flowY) + (childSize?.height ?? 0) + childMargin[2]; } });

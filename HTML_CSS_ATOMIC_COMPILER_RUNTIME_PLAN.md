@@ -804,6 +804,15 @@ nhận gradient linear/radial/conic với tối đa 8 stop, stroke và corner ge
 qua cùng một uniform contract; tests GPU kiểm tra packing và các backend dùng
 cùng semantic. Visual parity trên thiết bị thật vẫn là gate E2E cần chạy tiếp.
 
+### Trạng thái HTML transform preflight
+
+HTML compiler đã có subset 2D cho `translate`, `scale`, `rotate`, `skew` và
+`transform-origin`; mỗi fixture được đặt trong nhóm **Transforms & 3D** cùng
+preview Protocol hiện có. Output giữ cả component fields và `operations[]` để
+chuẩn bị cho Phase 5. Ordered transform composition và matrix/matrix3d chỉ
+được đánh dấu hoàn tất sau khi Motion Runtime dùng `operations[]` làm nguồn
+chính và có parity test hoán đổi thứ tự.
+
 ## 12. Tiêu chí hoàn thành giai đoạn
 
 Giai đoạn compiler/runtime atomic đầu tiên hoàn thành khi:

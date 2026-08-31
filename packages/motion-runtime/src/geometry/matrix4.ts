@@ -482,7 +482,22 @@ export type LocalTransform3D = {
   scale: Point3D;
   skew: { x: number; y: number };
   anchor: Point3D;
+  /** Optional canonical ordered Protocol V2 transform operations. */
+  operations?: Array<
+    | { type: "translate"; value: Point3D }
+    | { type: "rotateX" | "rotateY" | "rotateZ"; value: number }
+    | { type: "scale"; value: Point3D }
+    | { type: "skew"; value: { x: number; y: number } }
+    | { type: "perspective"; value: number }
+    | { type: "matrix"; value: readonly number[] }
+  >;
 };
+
+function localPerspectiveMatrix(distance: number): Matrix4 {
+  const matrix = identityMatrix4();
+  matrix[11] = -1 / Math.max(distance, GEOMETRY_EPSILON);
+  return matrix;
+}
 
 /**
  * Build a local 4×4 transform (node-local → parent space) from 3D parameters.
@@ -490,6 +505,39 @@ export type LocalTransform3D = {
  * Compose order: T(pos) · Rz · Ry · Rx · S · T(-anchor)
  */
 export function composeLocalMatrix4(t: LocalTransform3D): Matrix4 {
+  if (t.operations?.length) {
+    const operationTranslate = t.operations.reduce(
+      (sum, operation) => operation.type === "translate"
+        ? { x: sum.x + operation.value.x, y: sum.y + operation.value.y, z: sum.z + operation.value.z }
+        : sum,
+      { x: 0, y: 0, z: 0 },
+    );
+    let matrix = translationMatrix3D(
+      t.translate.x - operationTranslate.x,
+      t.translate.y - operationTranslate.y,
+      t.translate.z - operationTranslate.z,
+    );
+    matrix = multiplyMatrix4(matrix, translationMatrix3D(t.anchor.x, t.anchor.y, t.anchor.z));
+    for (const operation of t.operations) {
+      const operationMatrix = operation.type === "translate"
+        ? translationMatrix3D(operation.value.x, operation.value.y, operation.value.z)
+        : operation.type === "rotateX"
+          ? rotationMatrixX(operation.value)
+          : operation.type === "rotateY"
+            ? rotationMatrixY(operation.value)
+            : operation.type === "rotateZ"
+              ? rotationMatrixZ(operation.value)
+              : operation.type === "scale"
+                ? scaleMatrix3D(operation.value.x, operation.value.y, operation.value.z)
+                : operation.type === "skew"
+                  ? skewMatrix3D(operation.value.x, operation.value.y)
+                  : operation.type === "perspective"
+                    ? localPerspectiveMatrix(operation.value)
+                    : createMatrix4(operation.value as readonly number[]);
+      matrix = multiplyMatrix4(matrix, operationMatrix);
+    }
+    return multiplyMatrix4(matrix, translationMatrix3D(-t.anchor.x, -t.anchor.y, -t.anchor.z));
+  }
   const rotation = multiplyMatrix4(
     multiplyMatrix4(rotationMatrixZ(t.rotate.z), rotationMatrixY(t.rotate.y)),
     rotationMatrixX(t.rotate.x),

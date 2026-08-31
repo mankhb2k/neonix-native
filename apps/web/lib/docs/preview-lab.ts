@@ -2017,6 +2017,75 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
 }`,
     "Primitives",
   ),
+  htmlCompilerCase(
+    "html-compiler.transform.translate",
+    "HTML compiler / translate",
+    "CSS translate is lowered to a numeric local transform while preserving the element frame.",
+    `<div id="compiler-translate"></div>`,
+    `body { margin: 0; background: #081018; }
+#compiler-translate {
+  position: absolute;
+  left: 520px;
+  top: 300px;
+  width: 640px;
+  height: 360px;
+  background: #14b8a6;
+  transform: translate(180px, 90px);
+}`,
+    "Transforms & 3D",
+  ),
+  htmlCompilerCase(
+    "html-compiler.transform.scale-anchor",
+    "HTML compiler / scale + anchor",
+    "CSS scale and transform-origin become Protocol scale and a local anchor.",
+    `<div id="compiler-scale"></div>`,
+    `body { margin: 0; background: #081018; }
+#compiler-scale {
+  position: absolute;
+  left: 640px;
+  top: 280px;
+  width: 640px;
+  height: 360px;
+  background: #2563eb;
+  transform: scale(1.25, 0.75);
+  transform-origin: 25% 75%;
+}`,
+    "Transforms & 3D",
+  ),
+  htmlCompilerCase(
+    "html-compiler.transform.rotate",
+    "HTML compiler / rotate + anchor",
+    "CSS rotate is normalized to degrees and composed around the default center anchor.",
+    `<div id="compiler-rotate"></div>`,
+    `body { margin: 0; background: #081018; }
+#compiler-rotate {
+  position: absolute;
+  left: 720px;
+  top: 320px;
+  width: 480px;
+  height: 280px;
+  background: #7c3aed;
+  transform: rotate(18deg);
+}`,
+    "Transforms & 3D",
+  ),
+  htmlCompilerCase(
+    "html-compiler.transform.skew",
+    "HTML compiler / skew",
+    "CSS skewX is lowered to the Protocol skew vector in degrees.",
+    `<div id="compiler-skew"></div>`,
+    `body { margin: 0; background: #081018; }
+#compiler-skew {
+  position: absolute;
+  left: 600px;
+  top: 360px;
+  width: 720px;
+  height: 240px;
+  background: #f97316;
+  transform: skewX(12deg);
+}`,
+    "Transforms & 3D",
+  ),
   {
     id: "html-compiler.phase2.cascade",
     label: "HTML compiler / cascade + nested boxes",
@@ -3022,6 +3091,190 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
           skew: { x: 45, y: 0 },
         },
       }),
+      ]),
+  },
+  {
+    id: "rectangle.transform.operations.translate-rotate",
+    label: "Transform / operations translate → rotate",
+    group: "Transforms & 3D",
+    hint: "Canonical operations preserve translation before rotation instead of collapsing to a fixed component order.",
+    project: project("preview-rectangle-operations-translate-rotate-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#00aa88",
+        frame: { width: 180, height: 96 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 48, y: 0, z: 0 },
+          rotate: { x: 0, y: 0, z: 90 },
+          operations: [
+            { type: "translate", value: { x: 48, y: 0, z: 0 } },
+            { type: "rotateZ", value: 90 },
+          ],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.rotate-translate",
+    label: "Transform / operations rotate → translate",
+    group: "Transforms & 3D",
+    hint: "The reversed operation order produces a different world position and is rendered as its own regression fixture.",
+    project: project("preview-rectangle-operations-rotate-translate-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#ff3366",
+        frame: { width: 180, height: 96 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 48, y: 0, z: 0 },
+          rotate: { x: 0, y: 0, z: 90 },
+          operations: [
+            { type: "rotateZ", value: 90 },
+            { type: "translate", value: { x: 48, y: 0, z: 0 } },
+          ],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.rotate-x",
+    label: "Transform / operations rotate X",
+    group: "Transforms & 3D",
+    hint: "Explicit rotateX is represented as a canonical ordered operation.",
+    project: project("preview-rectangle-operations-rotate-x-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#f59e0b",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 840, y: 450, z: 120 },
+          rotate: { x: 28, y: 0, z: 0 },
+          operations: [{ type: "rotateX", value: 28 }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.rotate-y",
+    label: "Transform / operations rotate Y",
+    group: "Transforms & 3D",
+    hint: "Explicit rotateY is represented as a canonical ordered operation.",
+    project: project("preview-rectangle-operations-rotate-y-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#ef4444",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 840, y: 450, z: 120 },
+          rotate: { x: 0, y: 28, z: 0 },
+          operations: [{ type: "rotateY", value: 28 }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.rotate-z",
+    label: "Transform / operations rotate Z",
+    group: "Transforms & 3D",
+    hint: "Explicit rotateZ is represented as a canonical ordered operation.",
+    project: project("preview-rectangle-operations-rotate-z-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#22c55e",
+        frame: { width: 180, height: 96 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 840, y: 450, z: 0 },
+          rotate: { x: 0, y: 0, z: 28 },
+          operations: [{ type: "rotateZ", value: 28 }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.skew",
+    label: "Transform / operations skew",
+    group: "Transforms & 3D",
+    hint: "Two-axis skew is represented as one canonical ordered operation.",
+    project: project("preview-rectangle-operations-skew-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#06b6d4",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 840, y: 450, z: 0 },
+          skew: { x: 18, y: -12 },
+          operations: [{ type: "skew", value: { x: 18, y: -12 } }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.scale-z",
+    label: "Transform / scale Z",
+    group: "Transforms & 3D",
+    hint: "Three-dimensional scale is represented explicitly in the canonical scale vector and operation.",
+    project: project("preview-rectangle-scale-z-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#14b8a6",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 840, y: 450, z: 120 },
+          scale: { x: 1.2, y: 0.8, z: 1.5 },
+          operations: [{ type: "scale", value: { x: 1.2, y: 0.8, z: 1.5 } }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.perspective",
+    label: "Transform / perspective operation",
+    group: "Transforms & 3D",
+    hint: "Local perspective is encoded as an ordered transform operation rather than a global camera setting.",
+    project: project("preview-rectangle-perspective-operation-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#2563eb",
+        frame: { width: 320, height: 180 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 800, y: 420, z: 80 },
+          operations: [{ type: "perspective", value: 800 }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.matrix",
+    label: "Transform / matrix operation",
+    group: "Transforms & 3D",
+    hint: "A canonical 4×4 matrix operation is passed directly through Protocol V2 and composed by Runtime.",
+    project: project("preview-rectangle-matrix-operation-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#7c3aed",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          translate: { x: 720, y: 440, z: 0 },
+          operations: [{ type: "matrix", value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 120, 40, 0, 1] }],
+        },
+      }),
     ]),
   },
   {
@@ -3207,6 +3460,7 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
   if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
   if (item.id === "html-compiler.primitives.rectangle-rounded") return "Primitives";
+  if (item.id.startsWith("html-compiler.transform.")) return "Transforms & 3D";
   if (item.id.startsWith("primitive.shape.")) return "Primitives";
   if (item.id.startsWith("rectangle.rounded")) return "Primitives / rounded";
   if (

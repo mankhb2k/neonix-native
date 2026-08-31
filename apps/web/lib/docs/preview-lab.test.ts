@@ -14,6 +14,10 @@ describe("Protocol V2 preview lab fixtures", () => {
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
       "html-compiler.primitives.rectangle-rounded",
+      "html-compiler.transform.translate",
+      "html-compiler.transform.scale-anchor",
+      "html-compiler.transform.rotate",
+      "html-compiler.transform.skew",
       "html-compiler.phase2.cascade",
       "html-compiler.phase2.units-calc",
       "html-compiler.phase2.normalization",
@@ -98,6 +102,15 @@ describe("Protocol V2 preview lab fixtures", () => {
       "rectangle.mat4.anchor-outside-rotate-z",
       "rectangle.mat4.anchor-z-rotate-y-perspective",
       "rectangle.transform.skew",
+      "rectangle.transform.operations.translate-rotate",
+      "rectangle.transform.operations.rotate-translate",
+      "rectangle.transform.operations.rotate-x",
+      "rectangle.transform.operations.rotate-y",
+      "rectangle.transform.operations.rotate-z",
+      "rectangle.transform.operations.skew",
+      "rectangle.transform.scale-z",
+      "rectangle.transform.operations.perspective",
+      "rectangle.transform.operations.matrix",
       "rectangle.mat4.rotate-x-perspective",
       "rectangle.mat4.rotate-y-perspective",
       "rectangle.mat4.translate-z-perspective",
@@ -162,6 +175,29 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect.objectContaining({ id: "compiler-solid", type: "shape", style: { fill: "#14b8a6" } }),
       expect.objectContaining({ id: "compiler-rounded", type: "shape", payload: expect.objectContaining({ cornerRadius: 48 }), style: expect.objectContaining({ stroke: "#e2e8f0", strokeWidth: 12 }) }),
     ]));
+  });
+
+  it("exposes HTML compiler transform fixtures in the existing Transforms & 3D group", () => {
+    const transforms = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.transform."));
+    expect(transforms).toHaveLength(4);
+    expect(transforms.every((fixture) => fixture.group === "Transforms & 3D")).toBe(true);
+    expect(transforms.map((fixture) => fixture.project.layers[0]?.transform.operations?.[0]?.type)).toEqual([
+      "translate", "scale", "rotateZ", "skew",
+    ]);
+  });
+
+  it("includes JSON fixtures for every canonical transform operation", () => {
+    const translateRotate = previewLabCaseById("rectangle.transform.operations.translate-rotate");
+    const rotateTranslate = previewLabCaseById("rectangle.transform.operations.rotate-translate");
+    expect(translateRotate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["translate", "rotateZ"]);
+    expect(rotateTranslate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["rotateZ", "translate"]);
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-x").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateX", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-y").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateY", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-z").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateZ", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.skew").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "skew", value: { x: 18, y: -12 } });
+    expect(previewLabCaseById("rectangle.transform.scale-z").project.layers[0]?.transform.scale.z).toBe(1.5);
+    expect(previewLabCaseById("rectangle.transform.operations.perspective").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "perspective", value: 800 });
+    expect(previewLabCaseById("rectangle.transform.operations.matrix").project.layers[0]?.transform.operations?.[0].type).toBe("matrix");
   });
 
   it("includes explicit two-track mix examples for docs preview", () => {
