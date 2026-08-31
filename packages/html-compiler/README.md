@@ -16,11 +16,11 @@ HTML + CSS
 
 ## Supported in Phase 2
 
-- Nested empty HTML elements with `id` and `class` attributes.
+- Nested visual HTML/SVG elements with `id` and `class` attributes.
 - Tag allowlist: `div`, `span`, `main`, `section`, `article`, `header`,
-  `footer`, `nav`, `aside` and an optional `body` wrapper.
+  `footer`, `nav`, `aside`, `svg`, `g`, `path` and an optional `body` wrapper.
 - Tag, class, id, descendant and selector-list matching.
-- Specificity, source order and inherited `color`, `font-size` and `font-family`.
+- Specificity, source order and inherited text plus SVG paint properties.
 - CSS custom properties with nested references and `var()` fallbacks.
 - `px`, `%`, `em`, `rem`, `vw`, `vh`, `auto` and arithmetic `calc()`.
 - Absolute offsets, width/height, min/max constraints, margin, padding and
@@ -55,7 +55,8 @@ The tag name supplies the allowlist and default HTML structure; CSS paint,
 layout and compositing determine the lowering. Interactive/native tags such as
 `button`, `input`, `form`, `canvas`, `iframe`, `audio` and `script` are outside
 Phase 2 and return `html-tag-unsupported` rather than becoming a placeholder
-rectangle. Text, media and SVG tags are introduced in dedicated later phases.
+rectangle. Text and media remain dedicated later phases; SVG path lowering is
+supported below.
 
 The complete lowering matrix is:
 
@@ -68,7 +69,8 @@ The complete lowering matrix is:
 | Text content | `TextLayout` / `GlyphRun` | Deferred to text phase |
 | `img` | `image` | Deferred to image phase |
 | `video` | `video` | Deferred to media phase |
-| SVG | `group` / `path` / `shape` | Deferred to SVG/path phase |
+| SVG `<svg>/<g>` | `group` | Supported |
+| SVG `<path>` | `path` | Supported (`M/L/H/V/C/Z`) |
 
 Every emitted number is resolved for the fixed composition viewport (1920x1080
 by default). Protocol timing is milliseconds. Selectors, CSS variables, unit
@@ -96,6 +98,22 @@ parity remains an end-to-end validation gate.
 
 Preview Lab exposes these cases under **HTML compiler / Phase 4**.
 
+## SVG/path lowering
+
+`svg`, `g` and `path` are visual-only tags. An SVG container with children emits
+a `group`; each `<path>` emits one Protocol `path` layer with its source `id`
+or structural identity. The compiler accepts SVG `M`, `L`, `H`, `V`, `C` and
+`Z` commands, including relative forms and multiple contours. Unsupported
+commands fail closed with `svg-path-command-unsupported`.
+
+Path paint maps directly to the V2 path style: `fill`, `fill-opacity`,
+`fill-rule`, `stroke`, `stroke-width`, `stroke-opacity`, `stroke-linejoin`,
+`stroke-linecap`, `stroke-dasharray` and `stroke-dashoffset`. Missing fill and
+stroke use SVG's default black fill; `fill: none` is preserved as a stroke-only
+path. No path is rasterized or converted to a rectangle.
+The temporal `payload.morph` field is intentionally emitted by the animation
+compiler later; the static HTML/CSS slice covers geometry and paint only.
+
 ## HTML compiler transform subset
 
 The compiler also lowers the basic CSS 2D transform functions used by the
@@ -108,9 +126,9 @@ in the output for downstream runtime composition, while the component fields
 remain populated for the current V2 compatibility contract.
 
 Unsupported transform functions or malformed arguments fail closed with a
-`css-transform-*` diagnostic. CSS transform ordering and matrix/perspective
-parity remain runtime Phase 5 work; these fixtures intentionally exercise one
-basic transform operation at a time.
+`css-transform-*` diagnostic. CSS transform ordering is preserved in the
+Protocol `operations[]` list and composed by Motion Runtime; matrix and local
+perspective parsing remain a later HTML compiler slice.
 
 ## Explicitly deferred
 
@@ -135,11 +153,13 @@ motion compiler then owns Protocol V2 -> RuntimeProjectV3 lowering; this package
 does not perform runtime fallback or browser rendering.
 
 Tests live under `src/_test_` and cover cascade/inheritance, nested groups,
-variables/fallbacks, units, `calc()` and fail-closed diagnostics. The original
+variables/fallbacks, units, `calc()`, SVG/path contours and fail-closed diagnostics. The original
 Gold 01 rectangle test remains as the Phase 1 compatibility gate.
 
 Preview Lab exposes the normalization cases under **HTML compiler / Phase 2** and
-paint/border cases under **HTML compiler / Phase 4**.
+paint/border cases under **HTML compiler / Phase 4**. Path source/compiled
+fixtures are grouped under **Paths** and cover cubic contours, even-odd holes
+and stroke options.
 
 ## Normalization contract
 

@@ -18,6 +18,9 @@ describe("Protocol V2 preview lab fixtures", () => {
       "html-compiler.transform.scale-anchor",
       "html-compiler.transform.rotate",
       "html-compiler.transform.skew",
+      "html-compiler.path.svg-cubic",
+      "html-compiler.path.svg-evenodd",
+      "html-compiler.path.svg-stroke",
       "html-compiler.phase2.cascade",
       "html-compiler.phase2.units-calc",
       "html-compiler.phase2.normalization",
@@ -68,6 +71,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       "effect.blur.radius-40",
       "effect.blur.radius-256",
       "path.closed-fill.perspective",
+      "path.cubic-fill",
       "path.fill-rule.nonzero",
       "path.fill-rule.evenodd",
       "path.multiple-contours.donut",
@@ -186,6 +190,15 @@ describe("Protocol V2 preview lab fixtures", () => {
     ]);
   });
 
+  it("exposes one HTML compiler preview for each supported path source", () => {
+    const cases = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.path."));
+    expect(cases).toHaveLength(3);
+    expect(cases.every((fixture) => fixture.group === "Paths" && fixture.htmlCssSource?.html.includes("<svg"))).toBe(true);
+    expect(cases.map((fixture) => fixture.project.layers.find((layer) => layer.type === "path")?.type)).toEqual(["path", "path", "path"]);
+    const stroke = cases.find((fixture) => fixture.id.endsWith("svg-stroke"))?.project.layers.find((layer) => layer.type === "path");
+    expect(stroke).toMatchObject({ style: { stroke: "#f97316", strokeWidth: 20, strokeOpacity: 0.9, strokeJoin: "bevel", strokeCap: "round", strokeDash: { array: [64, 24], offset: 8 } } });
+  });
+
   it("includes JSON fixtures for every canonical transform operation", () => {
     const translateRotate = previewLabCaseById("rectangle.transform.operations.translate-rotate");
     const rotateTranslate = previewLabCaseById("rectangle.transform.operations.rotate-translate");
@@ -198,6 +211,13 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(previewLabCaseById("rectangle.transform.scale-z").project.layers[0]?.transform.scale.z).toBe(1.5);
     expect(previewLabCaseById("rectangle.transform.operations.perspective").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "perspective", value: 800 });
     expect(previewLabCaseById("rectangle.transform.operations.matrix").project.layers[0]?.transform.operations?.[0].type).toBe("matrix");
+  });
+
+  it("includes a JSON preview for cubic path geometry", () => {
+    const fixture = previewLabCaseById("path.cubic-fill");
+    const layer = fixture.project.layers[0];
+    expect(layer?.type).toBe("path");
+    expect(layer?.type === "path" && layer.payload.contours[0]?.segments.some((segment) => segment.kind === "cubic")).toBe(true);
   });
 
   it("includes explicit two-track mix examples for docs preview", () => {

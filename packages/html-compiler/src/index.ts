@@ -13,13 +13,13 @@ export function createHtmlCssSource(input: Partial<HtmlCssSource> = {}): HtmlCss
 class CompileError extends Error { constructor(readonly code: string, message: string, readonly source?: HtmlCompilerSourceLocation) { super(message); } }
 const fail = (code: string, message: string): never => { throw new CompileError(code, message); };
 function sourceLocation(text: string, offset: number, kind: "html" | "css"): HtmlCompilerSourceLocation { const safeOffset = Math.max(0, Math.min(offset, text.length)); const before = text.slice(0, safeOffset); const line = before.split("\n").length; const lastNewline = before.lastIndexOf("\n"); return { kind, offset: safeOffset, line, column: safeOffset - lastNewline }; }
-const SUPPORTED = new Set(["position", "left", "right", "top", "bottom", "width", "height", "min-width", "max-width", "min-height", "max-height", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "box-sizing", "background", "background-color", "color", "opacity", "font-size", "font-family", "display", "visibility", "z-index", "border", "border-width", "border-style", "border-color", "border-radius", "transform", "transform-origin"]);
-const SUPPORTED_TAGS = new Set(["div", "span", "main", "section", "article", "header", "footer", "nav", "aside", "body"]);
-const INHERITED = new Set(["color", "font-size", "font-family"]);
+const SUPPORTED = new Set(["position", "left", "right", "top", "bottom", "width", "height", "min-width", "max-width", "min-height", "max-height", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left", "padding", "padding-top", "padding-right", "padding-bottom", "padding-left", "box-sizing", "background", "background-color", "color", "opacity", "font-size", "font-family", "display", "visibility", "z-index", "border", "border-width", "border-style", "border-color", "border-radius", "transform", "transform-origin", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linejoin", "stroke-linecap", "stroke-dasharray", "stroke-dashoffset"]);
+const SUPPORTED_TAGS = new Set(["div", "span", "main", "section", "article", "header", "footer", "nav", "aside", "body", "svg", "g", "path"]);
+const INHERITED = new Set(["color", "font-size", "font-family", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linejoin", "stroke-linecap", "stroke-dasharray", "stroke-dashoffset"]);
 const EXPLICIT_ID = /^[A-Za-z][A-Za-z0-9_-]{0,199}$/;
 const CLASS_TOKEN = /^-?(?:[A-Za-z_]|[A-Za-z_][A-Za-z0-9_-]*)[A-Za-z0-9_-]*$/;
 
-type Node = { tag: string; id?: string; atomicId: string; structuralPath: string; classes: string[]; children: Node[]; parent: Node | null; order: number; style: Map<string, string> };
+type Node = { tag: string; id?: string; atomicId: string; structuralPath: string; classes: string[]; attributes: Map<string, string>; children: Node[]; parent: Node | null; order: number; style: Map<string, string> };
 type Rule = { selectors: string[]; declarations: Map<string, string>; order: number };
 type Style = Map<string, string>;
 
@@ -61,7 +61,7 @@ function parseRules(css: string): Rule[] {
 }
 
 function parseHtml(html: string): Node {
-  const root: Node = { tag: "root", atomicId: "dom", structuralPath: "dom", classes: [], children: [], parent: null, order: 0, style: new Map() }; const stack: Node[] = [root]; const explicitIds = new Set<string>(); let order = 0;
+  const root: Node = { tag: "root", atomicId: "dom", structuralPath: "dom", classes: [], attributes: new Map(), children: [], parent: null, order: 0, style: new Map() }; const stack: Node[] = [root]; const explicitIds = new Set<string>(); let order = 0;
   const token = /<!--[\s\S]*?-->|<\/?[A-Za-z][^>]*>|([^<]+)/g;
   for (const match of html.matchAll(token)) {
     if (match[1]?.trim()) fail("html-text-unsupported", "Phase 2 accepts empty elements; text layout is compiler Phase 3");
@@ -70,10 +70,11 @@ function parseHtml(html: string): Node {
     const matchTag = raw.match(/^<\s*([\w-]+)/); if (!matchTag) continue; const tag = matchTag[1]!.toLowerCase(); if (!SUPPORTED_TAGS.has(tag)) { throw new CompileError("html-tag-unsupported", `Phase 2 does not support <${tag}>`, sourceLocation(html, match.index ?? 0, "html")); }
     const id = raw.match(/(?:^|\s)id\s*=\s*["']([^"']+)["']/i)?.[1]; const dataAtomicId = raw.match(/\bdata-atomic-id\s*=\s*["']([^"']+)["']/i)?.[1]; const atomicId = dataAtomicId ?? id; if (atomicId) { if (!EXPLICIT_ID.test(atomicId)) fail("html-identity-invalid", `Atomic identity must match ${EXPLICIT_ID.source}: ${atomicId}`); if (explicitIds.has(atomicId)) fail("html-duplicate-atomic-id", `Duplicate atomic identity: ${atomicId}`); explicitIds.add(atomicId); }
     const classValue = raw.match(/\bclass\s*=\s*["']([^"']*)["']/i)?.[1] ?? ""; const classes = [...new Set(classValue.split(/\s+/).filter(Boolean))]; for (const className of classes) if (!CLASS_TOKEN.test(className)) fail("html-class-invalid", `Invalid class token: ${className}`);
+    const attributes = new Map<string, string>(); for (const attribute of raw.matchAll(/([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) attributes.set(attribute[1]!.toLowerCase(), attribute[2] ?? attribute[3] ?? "");
     const style = raw.match(/\bstyle\s*=\s*["'][^"']*["']/i); if (style) fail("html-inline-style-unsupported", "Inline style is reserved for a later compiler phase");
     if (/\bon[a-z]+\s*=\s*["']/i.test(raw)) { throw new CompileError("html-event-unsupported", "Event attributes are not part of the visual-only compiler", sourceLocation(html, match.index ?? 0, "html")); }
     const parent = stack[stack.length - 1]!; const structuralPath = `${parent.structuralPath}/${tag}:${parent.children.length}`;
-    const node: Node = { tag, id, atomicId: atomicId ?? structuralPath, structuralPath, classes, children: [], parent, order: order++, style: new Map() }; parent.children.push(node);
+    const node: Node = { tag, id, atomicId: atomicId ?? structuralPath, structuralPath, classes, attributes, children: [], parent, order: order++, style: new Map() }; parent.children.push(node);
     if (!/\/\s*>$/.test(raw) && !["meta", "link", "img", "br", "input"].includes(tag)) stack.push(node);
   }
   if (stack.length !== 1) fail("html-unclosed-tag", `Unclosed tag ${stack[stack.length - 1]!.tag}`); return root;
@@ -98,6 +99,102 @@ function computed(node: Node, rules: Rule[], parent: Style): Style {
 
 function parseColor(value: string, property: string): string {
   const v = value.trim().toLowerCase(); if (v === "transparent") return "#00000000"; if (/^#[0-9a-f]{3}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`; if (!/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(v)) fail("css-color-unsupported", `${property} must resolve to a hex color: ${value}`); return v;
+}
+
+type CompiledPathContour = Extract<MotionProtocolV2["layers"][number], { type: "path" }>["payload"]["contours"][number];
+type CompiledPathSegment = CompiledPathContour["segments"][number];
+type PathPoint = CompiledPathContour["start"];
+
+/** Parse the deterministic SVG path subset that maps directly to V2 contours. */
+function parseSvgPathData(value: string, property = "path d"): CompiledPathContour[] {
+  const tokens = [...value.matchAll(/[A-Za-z]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g)].map((match) => match[0]!);
+  if (tokens.length === 0) fail("svg-path-empty", `${property} must contain path data`);
+  const isCommand = (token: string | undefined): boolean => token !== undefined && /^[A-Za-z]$/.test(token);
+  const contours: CompiledPathContour[] = [];
+  let cursor: PathPoint = { x: 0, y: 0 };
+  let command: string | undefined;
+  let contour: { id: string; start: PathPoint; segments: CompiledPathSegment[]; closed: boolean } | undefined;
+  let contourIndex = 0;
+  let index = 0;
+  const readNumber = (): number => {
+    const token = tokens[index++];
+    if (token === undefined || isCommand(token)) fail("svg-path-invalid", `${property} contains an incomplete command`);
+    const number = Number(token); if (!Number.isFinite(number)) fail("svg-path-invalid", `${property} contains a non-finite coordinate`); return number;
+  };
+  const point = (x: number, y: number, relative: boolean): PathPoint => relative ? { x: cursor.x + x, y: cursor.y + y } : { x, y };
+  const finishContour = () => {
+    if (!contour) return;
+    if (contour.segments.length === 0) fail("svg-path-invalid", `${property} contour ${contour.id} has no segments`);
+    contours.push(contour as CompiledPathContour); contour = undefined;
+  };
+  while (index < tokens.length) {
+    if (isCommand(tokens[index])) command = tokens[index++];
+    if (!command) fail("svg-path-invalid", `${property} must begin with a command`);
+    const activeCommand = command!;
+    const relative = activeCommand === activeCommand.toLowerCase();
+    const kind = activeCommand.toUpperCase();
+    if (kind === "Z") {
+      if (!contour) fail("svg-path-invalid", `${property} close command has no contour`);
+      const activeContour = contour!;
+      if (cursor.x !== activeContour.start.x || cursor.y !== activeContour.start.y) activeContour.segments.push({ kind: "line", to: activeContour.start });
+      activeContour.closed = true; cursor = activeContour.start; command = undefined; continue;
+    }
+    if (!["M", "L", "H", "V", "C"].includes(kind)) fail("svg-path-command-unsupported", `${property} command ${command} is not supported; use M, L, H, V, C or Z`);
+    if (kind === "M") {
+      if (isCommand(tokens[index])) fail("svg-path-invalid", `${property} move command requires coordinates`);
+      const next = point(readNumber(), readNumber(), relative);
+      finishContour(); contour = { id: `contour-${contourIndex++}`, start: next, segments: [], closed: false }; cursor = next; command = relative ? "l" : "L"; continue;
+    }
+    if (!contour) fail("svg-path-invalid", `${property} drawing command has no initial move`);
+    const activeContour = contour!;
+    if (kind === "L") {
+      if (isCommand(tokens[index])) fail("svg-path-invalid", `${property} line command requires coordinates`);
+      const next = point(readNumber(), readNumber(), relative); activeContour.segments.push({ kind: "line", to: next }); cursor = next; continue;
+    }
+    if (kind === "H") {
+      const x = readNumber(); const next = relative ? { x: cursor.x + x, y: cursor.y } : { x, y: cursor.y }; activeContour.segments.push({ kind: "line", to: next }); cursor = next; continue;
+    }
+    if (kind === "V") {
+      const y = readNumber(); const next = relative ? { x: cursor.x, y: cursor.y + y } : { x: cursor.x, y }; activeContour.segments.push({ kind: "line", to: next }); cursor = next; continue;
+    }
+    if (isCommand(tokens[index])) fail("svg-path-invalid", `${property} cubic command requires six coordinates`);
+    const control1 = point(readNumber(), readNumber(), relative); const control2 = point(readNumber(), readNumber(), relative); const next = point(readNumber(), readNumber(), relative);
+    activeContour.segments.push({ kind: "cubic", control1, control2, to: next }); cursor = next;
+  }
+  finishContour();
+  return contours;
+}
+
+function parsePathNumber(value: string | undefined, property: string, positive = false): number | undefined {
+  if (value === undefined) return undefined;
+  const number = Number(value.trim().replace(/px$/i, ""));
+  if (!Number.isFinite(number) || (positive && number <= 0)) fail("css-path-value-invalid", `${property} must be ${positive ? "a positive " : "a finite "}number: ${value}`);
+  return number;
+}
+
+function parsePathDash(value: string | undefined): { array: number[]; offset?: number } | undefined {
+  if (value === undefined || value.trim().toLowerCase() === "none") return undefined;
+  const parts = value.split(/\s*,\s*|\s+/).filter(Boolean);
+  return { array: parts.map((part) => parsePathNumber(part, "stroke-dasharray", true)!) };
+}
+
+function parsePathStyle(node: Node, style: Style): { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number; strokeOpacity?: number; strokeJoin?: "miter" | "bevel" | "round"; strokeCap?: "butt" | "square" | "round"; strokeDash?: { array: number[]; offset?: number } } {
+  const fillValue = style.get("fill") ?? node.attributes.get("fill"); const strokeValue = style.get("stroke") ?? node.attributes.get("stroke");
+  const fill = fillValue === undefined || fillValue.toLowerCase() === "none" ? undefined : parseColor(fillValue, "fill");
+  const stroke = strokeValue === undefined || strokeValue.toLowerCase() === "none" ? undefined : parseColor(strokeValue, "stroke");
+  const fillOpacity = parsePathNumber(style.get("fill-opacity") ?? node.attributes.get("fill-opacity"), "fill-opacity");
+  const strokeWidth = parsePathNumber(style.get("stroke-width") ?? node.attributes.get("stroke-width"), "stroke-width", true);
+  const strokeOpacity = parsePathNumber(style.get("stroke-opacity") ?? node.attributes.get("stroke-opacity"), "stroke-opacity");
+  if (fillOpacity !== undefined && (fillOpacity < 0 || fillOpacity > 1)) fail("css-path-opacity-invalid", "fill-opacity must be between 0 and 1");
+  if (strokeOpacity !== undefined && (strokeOpacity < 0 || strokeOpacity > 1)) fail("css-path-opacity-invalid", "stroke-opacity must be between 0 and 1");
+  const strokeJoinValue = (style.get("stroke-linejoin") ?? node.attributes.get("stroke-linejoin"))?.toLowerCase();
+  const strokeCapValue = (style.get("stroke-linecap") ?? node.attributes.get("stroke-linecap"))?.toLowerCase();
+  if (strokeJoinValue !== undefined && !["miter", "bevel", "round"].includes(strokeJoinValue)) fail("css-path-stroke-join-invalid", `Unsupported stroke-linejoin: ${strokeJoinValue}`);
+  if (strokeCapValue !== undefined && !["butt", "square", "round"].includes(strokeCapValue)) fail("css-path-stroke-cap-invalid", `Unsupported stroke-linecap: ${strokeCapValue}`);
+  const dashValue = style.get("stroke-dasharray") ?? node.attributes.get("stroke-dasharray"); const dash = parsePathDash(dashValue);
+  const dashOffset = parsePathNumber(style.get("stroke-dashoffset") ?? node.attributes.get("stroke-dashoffset"), "stroke-dashoffset");
+  const strokeDash = dash ? { ...dash, ...(dashOffset === undefined ? {} : { offset: dashOffset }) } : undefined;
+  return { ...(fill === undefined ? {} : { fill }), ...(fillOpacity === undefined ? {} : { fillOpacity }), ...(stroke === undefined ? {} : { stroke }), ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(strokeOpacity === undefined ? {} : { strokeOpacity }), ...(strokeJoinValue === undefined ? {} : { strokeJoin: strokeJoinValue as "miter" | "bevel" | "round" }), ...(strokeCapValue === undefined ? {} : { strokeCap: strokeCapValue as "butt" | "square" | "round" }), ...(strokeDash === undefined ? {} : { strokeDash }) };
 }
 
 type GradientStop = { offset: number; color: string };
@@ -305,7 +402,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
   try {
     const composition = options.composition ?? {}; const width = composition.width ?? 1920; const height = composition.height ?? 1080; const fps = composition.fps ?? 30; const duration = composition.durationMs ?? 1000; const root = parseHtml(source.html); const rules = parseRules(source.css); const viewport = { width, height }; const body = root.children.find((node) => node.tag === "body"); const vars = new Map<string, string>(); for (const rule of rules) for (const [property, value] of rule.declarations) if (property.startsWith("--")) vars.set(property, value);
     const allNodes: Node[] = []; const visit = (node: Node) => { allNodes.push(node); node.children.forEach(visit); }; root.children.forEach(visit); const styles = new Map<Node, Style>();
-    const walkStyles = (node: Node, parent: Style) => { const style = computed(node, rules, parent); const scopedVars = new Map(vars); for (const [property, value] of style) if (property.startsWith("--")) scopedVars.set(property, value); for (const [property, value] of [...style]) { const resolved = resolveVar(value, scopedVars, new Set()); if (property === "background" || property === "background-color") parsePaintLayers(resolved, property); else if (property === "color" || property === "border-color") parseColor(resolved, property); style.set(property, resolved); } styles.set(node, style); node.children.forEach((child) => walkStyles(child, style)); }; if (body) walkStyles(body, new Map()); else root.children.forEach((child) => walkStyles(child, new Map()));
+     const walkStyles = (node: Node, parent: Style) => { const style = computed(node, rules, parent); const scopedVars = new Map(vars); for (const [property, value] of style) if (property.startsWith("--")) scopedVars.set(property, value); for (const [property, value] of [...style]) { const resolved = resolveVar(value, scopedVars, new Set()); if (property === "background" || property === "background-color") parsePaintLayers(resolved, property); else if (property === "color" || property === "border-color" || property === "fill" || property === "stroke") { if (!(property === "fill" || property === "stroke") || resolved.toLowerCase() !== "none") parseColor(resolved, property); } style.set(property, resolved); } styles.set(node, style); node.children.forEach((child) => walkStyles(child, style)); }; if (body) walkStyles(body, new Map()); else root.children.forEach((child) => walkStyles(child, new Map()));
     for (const node of allNodes) for (const [property, value] of styles.get(node) ?? []) if (property.startsWith("--")) vars.set(property, value);
     if (body && !styles.has(body)) styles.set(body, computed(body, rules, new Map())); const bodyStyle = body ? styles.get(body)! : new Map<string, string>(); const background = parseColor(bodyStyle.get("background-color") ?? bodyStyle.get("background") ?? "#081018", "body background");
     const layers: MotionProtocolV2["layers"] = []; const origins = new Map<Node, { x: number; y: number }>(); const sizes = new Map<Node, { width: number; height: number }>(); const layout = (node: Node, parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style) => {
@@ -317,14 +414,25 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
         const opacityValue = style.get("opacity"); const opacity = opacityValue === undefined ? 1 : Number(opacityValue); if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) fail("css-opacity-invalid", `opacity must be between 0 and 1: ${opacityValue}`);
         const parentId = parent?.tag === "body" ? null : (parent?.atomicId ?? null); const groupId = node.atomicId; const hasChildren = node.children.length > 0; const localX = parent?.children.length ? x - (origins.get(parent)?.x ?? parentX) : x; const localY = parent?.children.length ? y - (origins.get(parent)?.y ?? parentY) : y;
         const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {};
-        const backgroundValue = style.get("background") ?? style.get("background-color"); const paints = backgroundValue === undefined ? ["#00000000" as Paint] : parsePaintLayers(backgroundValue, "background"); const border = parseBorder(style, containingWidth, font, viewport); const cornerRadius = parseCornerRadius(style, containingWidth, font, viewport); const parsedTransform = parseTransform(style, w, h, font, viewport);
+         const backgroundValue = style.get("background") ?? style.get("background-color"); const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background"); const border = parseBorder(style, containingWidth, font, viewport); const cornerRadius = parseCornerRadius(style, containingWidth, font, viewport); const parsedTransform = parseTransform(style, w, h, font, viewport);
+         const isPath = node.tag === "path";
+         const pathContours = isPath ? parseSvgPathData(node.attributes.get("d") ?? "") : undefined;
+         const pathStyle = isPath ? parsePathStyle(node, style) : undefined;
+         const fillRuleValue = (style.get("fill-rule") ?? node.attributes.get("fill-rule") ?? "nonzero").toLowerCase();
+         if (isPath && !["nonzero", "evenodd"].includes(fillRuleValue)) fail("css-path-fill-rule-invalid", `Unsupported fill-rule: ${fillRuleValue}`);
         const transformFor = (translateX: number, translateY: number, includeCssTransform: boolean) => ({ translate: { x: translateX + (includeCssTransform ? parsedTransform.translate.x : 0), y: translateY + (includeCssTransform ? parsedTransform.translate.y : 0), z: includeCssTransform ? parsedTransform.translate.z : 0 }, scale: includeCssTransform ? parsedTransform.scale : { x: 1, y: 1, z: 1 }, rotate: includeCssTransform ? parsedTransform.rotate : { x: 0, y: 0, z: 0 }, skew: includeCssTransform ? parsedTransform.skew : { x: 0, y: 0 }, anchor: includeCssTransform ? parsedTransform.anchor : { x: 0, y: 0, z: 0 }, ...(includeCssTransform && parsedTransform.operations?.length ? { operations: parsedTransform.operations } : {}) });
-        if (hasChildren) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration } });
-        paints.forEach((fill, index) => {
+         if (isPath) {
+           const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
+           if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+         } else {
+           if (hasChildren) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration } });
+           paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (hasChildren ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;
           const isLast = index === paints.length - 1;
           layers.push({ id: paintId, type: "shape", parentLayerId: hasChildren ? groupId : parentId, order: Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) + index : layers.length, frame: { width: w, height: h }, transform: transformFor(hasChildren ? 0 : localX, hasChildren ? 0 : localY, !hasChildren), opacity, ...state, timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius !== undefined ? { cornerRadius } : {}) }, style: { fill, ...(isLast && border.color ? { stroke: border.color } : {}), ...(isLast && border.width ? { strokeWidth: border.width } : {}) } });
-        });
+           });
+         }
       }
       const childX = x + padding[3]; const childY = y + padding[0]; let flowY = childY; node.children.forEach((child) => { const childStyle = styles.get(child) ?? style; const childPosition = childStyle.get("position") ?? "static"; layout(child, node, childX, flowY, Math.max(1, w - padding[1] - padding[3]), Math.max(1, h - padding[0] - padding[2]), style); if (childPosition !== "absolute") { const childOrigin = origins.get(child); const childSize = sizes.get(child); const childMargin = edges(childStyle, "margin", containingWidth, font, 16, viewport); flowY = (childOrigin?.y ?? flowY) + (childSize?.height ?? 0) + childMargin[2]; } });
     };

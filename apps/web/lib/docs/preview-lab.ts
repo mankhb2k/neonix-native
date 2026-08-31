@@ -646,6 +646,32 @@ const PATH_PENTAGON_PERSPECTIVE_PROJECT = project(
   },
 );
 
+const PATH_CUBIC_PROJECT = project("preview-path-cubic-fill-v2", [
+  {
+    id: "cubic-fill",
+    type: "path",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 420, height: 280 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 390, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      contours: [{
+        id: "cubic-contour",
+        start: { x: 30, y: 210 },
+        segments: [
+          { kind: "cubic", control1: { x: 70, y: 20 }, control2: { x: 350, y: 20 }, to: { x: 390, y: 210 } },
+          { kind: "line", to: { x: 30, y: 210 } },
+        ],
+        closed: true,
+      }],
+      fillRule: "nonzero",
+    },
+    style: { fill: "#14b8a6", fillOpacity: 0.85 },
+  },
+]);
+
 const PATH_STROKE_PROJECT: MotionProtocolV2 = {
   ...PATH_PENTAGON_PERSPECTIVE_PROJECT,
   id: "preview-path-stroke-perspective-v2",
@@ -2086,6 +2112,36 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
 }`,
     "Transforms & 3D",
   ),
+  htmlCompilerCase(
+    "html-compiler.path.svg-cubic",
+    "HTML compiler / SVG cubic path",
+    "SVG M/L/C/Z commands lower directly to a Protocol path contour with fill and fill opacity.",
+    `<svg id="compiler-svg-cubic"><path id="compiler-cubic" d="M 20 180 C 90 10 330 10 400 180 L 400 240 L 20 240 Z" /></svg>`,
+    `body { margin: 0; background: #081018; }
+#compiler-svg-cubic { position: absolute; left: 240px; top: 280px; width: 480px; height: 300px; }
+#compiler-cubic { fill: #14b8a6; fill-opacity: .85; }`,
+    "Paths",
+  ),
+  htmlCompilerCase(
+    "html-compiler.path.svg-evenodd",
+    "HTML compiler / SVG evenodd contours",
+    "Multiple SVG subpaths and fill-rule are preserved as ordered V2 contours.",
+    `<svg id="compiler-svg-evenodd"><path id="compiler-evenodd" d="M 0 0 H 360 V 240 H 0 Z M 90 60 H 270 V 180 H 90 Z" /></svg>`,
+    `body { margin: 0; background: #081018; }
+#compiler-svg-evenodd { position: absolute; left: 240px; top: 280px; width: 480px; height: 300px; }
+#compiler-evenodd { fill: #2563eb; fill-rule: evenodd; }`,
+    "Paths",
+  ),
+  htmlCompilerCase(
+    "html-compiler.path.svg-stroke",
+    "HTML compiler / SVG stroke path",
+    "SVG stroke width, join, cap, opacity and dash fields map directly to the V2 path style contract.",
+    `<svg id="compiler-svg-stroke"><path id="compiler-stroke" d="M 40 150 C 140 20 340 280 440 150" /></svg>`,
+    `body { margin: 0; background: #081018; }
+#compiler-svg-stroke { position: absolute; left: 240px; top: 280px; width: 520px; height: 300px; }
+#compiler-stroke { fill: none; stroke: #f97316; stroke-width: 20px; stroke-opacity: .9; stroke-linejoin: bevel; stroke-linecap: round; stroke-dasharray: 64 24; stroke-dashoffset: 8; }`,
+    "Paths",
+  ),
   {
     id: "html-compiler.phase2.cascade",
     label: "HTML compiler / cascade + nested boxes",
@@ -2761,6 +2817,13 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     group: "Task 6 / Path embedded in 3D",
     hint: "Five arbitrary local-plane points are closed, tessellated, and rotated through the shared Matrix4 perspective path.",
     project: PATH_PENTAGON_PERSPECTIVE_PROJECT,
+  },
+  {
+    id: "path.cubic-fill",
+    label: "Path / cubic fill",
+    group: "Paths",
+    hint: "A cubic Bézier contour is flattened deterministically by Runtime before GPU drawing.",
+    project: PATH_CUBIC_PROJECT,
   },
   {
     id: "path.fill-rule.nonzero",
