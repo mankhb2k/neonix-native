@@ -13,6 +13,18 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
+      "shape.corner-radius",
+      "shape.solid-fill",
+      "shape.linear-gradient",
+      "shape.radial-gradient",
+      "shape.conic-gradient",
+      "shape.fill-opacity",
+      "shape.stroke",
+      "shape.stroke-width",
+      "shape.stroke-opacity",
+      "shape.effects",
+      "shape.rectangle-perspective",
+      "shape.ellipse-perspective",
       "html-compiler.primitives.rectangle-rounded",
       "html-compiler.transform.translate",
       "html-compiler.transform.scale-anchor",
@@ -70,13 +82,25 @@ describe("Protocol V2 preview lab fixtures", () => {
       "effect.blur.radius-4",
       "effect.blur.radius-40",
       "effect.blur.radius-256",
-      "path.closed-fill.perspective",
-      "path.cubic-fill",
-      "path.fill-rule.nonzero",
-      "path.fill-rule.evenodd",
-      "path.multiple-contours.donut",
-      "path.paint.stroke",
-      "path.paint.stroke-cap-dash",
+      "path.geometry.line",
+      "path.geometry.cubic",
+      "path.geometry.closed-contour",
+      "path.geometry.open-contour",
+      "path.geometry.multiple-contours",
+      "path.fill",
+      "path.fill-opacity",
+      "path.stroke",
+      "path.stroke-width",
+      "path.stroke-opacity",
+      "path.stroke-join.miter",
+      "path.stroke-join.bevel",
+      "path.stroke-join.round",
+      "path.stroke-cap.butt",
+      "path.stroke-cap.square",
+      "path.stroke-cap.round",
+      "path.stroke-dash",
+      "path.stroke-dash-offset",
+      "path.effects",
       "path.morph",
       "group.parent-transform",
       "group.isolation.opacity",
@@ -94,8 +118,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       "rectangle.paint.stroke-width-perspective",
       "rectangle.paint.opacity",
       "rectangle.paint.opacity-perspective",
-      "rectangle.rounded",
-      "rectangle.rounded-perspective",
       "rectangle.gradient.linear",
       "ellipse.gradient.radial",
       "rectangle.gradient.perspective",
@@ -166,12 +188,12 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect(fixture.htmlCssSource?.css).toBeTruthy();
       expect(fixture.project.formatVersion).toBe(2);
     }
-    const diagnostics = previewLabCaseById("html-compiler.phase2.diagnostics");
+    const diagnostics = previewLabCaseById("html-compiler.phase2.diagnostics", "html-compiler");
     expect(diagnostics.htmlCssSource).toBeDefined();
   });
 
   it("covers solid and rounded primitives with one HTML compiler fixture", () => {
-    const fixture = previewLabCaseById("html-compiler.primitives.rectangle-rounded");
+    const fixture = previewLabCaseById("html-compiler.primitives.rectangle-rounded", "html-compiler");
     expect(fixture.group).toBe("Primitives");
     expect(fixture.htmlCssSource?.html).toContain('id="compiler-solid"');
     expect(fixture.htmlCssSource?.html).toContain('id="compiler-rounded"');
@@ -213,8 +235,17 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(previewLabCaseById("rectangle.transform.operations.matrix").project.layers[0]?.transform.operations?.[0].type).toBe("matrix");
   });
 
+  it("represents shape stroke width with the required stroke color", () => {
+    const fixture = previewLabCaseById("shape.stroke-width");
+    const layer = fixture.project.layers[0];
+    expect(layer).toMatchObject({
+      type: "shape",
+      style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 24 },
+    });
+  });
+
   it("includes a JSON preview for cubic path geometry", () => {
-    const fixture = previewLabCaseById("path.cubic-fill");
+    const fixture = previewLabCaseById("path.geometry.cubic");
     const layer = fixture.project.layers[0];
     expect(layer?.type).toBe("path");
     expect(layer?.type === "path" && layer.payload.contours[0]?.segments.some((segment) => segment.kind === "cubic")).toBe(true);
@@ -232,25 +263,18 @@ describe("Protocol V2 preview lab fixtures", () => {
   it("organizes the sidebar by render concept instead of implementation task", () => {
     const groups = previewLabGroups();
     expect(groups.map((group) => group.label)).toEqual([
-      "Primitives",
-      "HTML compiler / Phase 2",
-      "HTML compiler / Phase 3",
-      "Primitives / rounded",
-      "Transforms & 3D",
-      "Groups",
-      "Paths",
-      "Paint / strokes",
-      "Paint / gradients",
-      "Paint / opacity",
-      "Images",
-      "Video",
-      "Audio",
-      "Text",
-      "Timing",
+      "Layers / Shape",
+      "Layers / Path",
+      "Layers / Image",
+      "Layers / Video",
+      "Layers / Text",
+      "Layers / Group",
+      "Transforms",
+      "Paint",
       "Effects",
-      "Compositing / blend modes",
-      "Compositing / masks & isolation",
       "Compositing",
+      "Timing",
+      "Audio",
     ]);
     expect(groups.every((group) => !group.label.toLowerCase().includes("task"))).toBe(true);
   });

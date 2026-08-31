@@ -56,10 +56,10 @@ ${source.html}
 </html>`;
 }
 
-export function PreviewLab() {
+export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-compiler" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selected = previewLabCaseById(searchParams.get("case"));
+  const selected = previewLabCaseById(searchParams.get("case"), variant);
   const backend: PreviewBackendPreference =
     searchParams.get("backend") === "webgpu"
       ? "webgpu"
@@ -71,18 +71,18 @@ export function PreviewLab() {
     Number.isFinite(requestedTime) && requestedTime >= 0
       ? requestedTime
       : (selected.previewTime ?? 0);
-  const groups = useMemo(() => previewLabGroups(), []);
+  const groups = useMemo(() => previewLabGroups(variant), [variant]);
   const json = JSON.stringify(selected.project, null, 2);
-  const [authoringMode, setAuthoringMode] = useState<AuthoringMode>("json");
+  const [authoringMode, setAuthoringMode] = useState<AuthoringMode>(variant === "html-compiler" ? "html-css" : "json");
   const htmlCssSource = selected.htmlCssSource ?? DEFAULT_HTML_CSS_SOURCE;
   const htmlCssDocument = htmlCssDocumentFromSource(htmlCssSource);
   const htmlCompile = useMemo(() => compileHtmlCss(htmlCssSource), [htmlCssSource]);
-  const sourceProject = selected.htmlCssSource && htmlCompile.protocol
+  const sourceProject = variant === "html-compiler" && selected.htmlCssSource && htmlCompile.protocol
     ? htmlCompile.protocol
-    : selected.id === "primitive.shape.rectangle" && htmlCompile.protocol
+    : variant === "html-compiler" && selected.id === "primitive.shape.rectangle" && htmlCompile.protocol
     ? htmlCompile.protocol
     : selected.project;
-  const sourceJson = selected.htmlCssSource || selected.id === "primitive.shape.rectangle"
+  const sourceJson = variant === "html-compiler" && (selected.htmlCssSource || selected.id === "primitive.shape.rectangle")
     ? JSON.stringify(htmlCompile.protocol ?? { diagnostics: htmlCompile.diagnostics }, null, 2)
     : json;
 
@@ -90,14 +90,14 @@ export function PreviewLab() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("case", id);
     params.delete("time");
-    router.replace(`/docs/preview?${params.toString()}`, { scroll: false });
+    router.replace(`${variant === "html-compiler" ? "/docs/preview/html-compiler" : "/docs/preview"}?${params.toString()}`, { scroll: false });
   }
 
   function selectBackend(next: PreviewBackendPreference) {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "auto") params.delete("backend");
     else params.set("backend", next);
-    router.replace(`/docs/preview?${params.toString()}`, { scroll: false });
+    router.replace(`${variant === "html-compiler" ? "/docs/preview/html-compiler" : "/docs/preview"}?${params.toString()}`, { scroll: false });
   }
 
   return (
@@ -167,7 +167,7 @@ export function PreviewLab() {
               <AudioFixturePreview fixture={selected.audioFixture} />
             ) : (
               <>
-                {selected.htmlCssSource && htmlCompile.status === "error" ? (
+                {variant === "html-compiler" && selected.htmlCssSource && htmlCompile.status === "error" ? (
                   <HtmlCompilerDiagnosticPreview diagnostics={htmlCompile.diagnostics} />
                 ) : (
                   <PreviewCaseRenderer
@@ -178,17 +178,19 @@ export function PreviewLab() {
                     onBackendChange={selectBackend}
                   />
                 )}
-                <HtmlCssPreview source={htmlCssSource} />
+                {variant === "html-compiler" ? <HtmlCssPreview source={htmlCssSource} /> : null}
               </>
             )}
           </div>
 
-          <AuthoringPanel
-            mode={authoringMode}
-            onModeChange={setAuthoringMode}
-            json={sourceJson}
-            document={htmlCssDocument}
-          />
+          {variant === "html-compiler" ? (
+            <AuthoringPanel mode={authoringMode} onModeChange={setAuthoringMode} json={sourceJson} document={htmlCssDocument} />
+          ) : (
+            <aside className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex" data-testid="preview-authoring-panel">
+              <div className="border-b border-white/10 px-3 py-2 text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">Atomic Protocol V2 JSON</div>
+              <CodePanel value={json} />
+            </aside>
+          )}
         </div>
       </section>
     </div>
@@ -208,7 +210,7 @@ function AuthoringPanel({
 }) {
   return (
     <aside
-      className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14]"
+      className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex"
       data-testid="preview-authoring-panel"
     >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
