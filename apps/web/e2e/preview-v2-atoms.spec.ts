@@ -917,7 +917,6 @@ test.describe("Protocol V2 atom preview", () => {
       "composite.blend.normal",
       "composite.blend.multiply",
       "composite.blend.screen",
-      "composite.blend.add",
     ] as const;
     const canvas = page.getByTestId("preview-v2-canvas");
     const webglSamples: number[][] = [];
@@ -1730,8 +1729,22 @@ test.describe("Protocol V2 atom preview", () => {
     expect(sidebarLayout.position).toBe("sticky");
     expect(sidebarLayout.height).toBeGreaterThan(600);
     await expect(page.getByTestId("preview-transport")).toBeVisible();
-    await expect(page.getByTestId("preview-timecode")).toHaveText("0:00 / 0:03");
-    await expect(page.getByText("Fixed frame")).toBeVisible();
+    await expect(page.getByTestId("preview-timecode")).toHaveText("0:00 / 0:01");
+  });
+
+  test("plays the runtime preview with a local clock and no playback engine", async ({
+    page,
+  }) => {
+    await page.goto("/docs/preview?case=primitive.shape.rectangle&backend=webgl2");
+    const play = page.getByTestId("preview-play-toggle");
+    const slider = page.getByTestId("preview-time-slider");
+    await expect(play).toHaveAttribute("aria-label", "Play runtime preview");
+    await expect(slider).toHaveValue("0");
+    await play.click();
+    await expect(play).toHaveAttribute("aria-label", "Pause runtime preview");
+    await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(0);
+    await play.click();
+    await expect(play).toHaveAttribute("aria-label", "Play runtime preview");
   });
 
   test("renders a V2 video preview at deterministic requested times", async ({

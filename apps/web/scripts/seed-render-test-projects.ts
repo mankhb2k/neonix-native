@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, import/order, no-console */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, import/order, no-console */
 
 import { loadEnvConfig } from "@next/env";
 import { createHash } from "node:crypto";
@@ -130,6 +130,9 @@ function text(input: {
 }) {
   const width = 1600;
   const height = 160;
+  const source = input.value.normalize("NFC");
+  const lineHeight = (input.size ?? 64) * 1.2;
+  const lines = source.split("\n");
   return {
     id: input.id,
     type: "text" as const,
@@ -140,19 +143,17 @@ function text(input: {
     opacity: 1,
     timing: { start: input.start, duration: input.duration },
     payload: {
-      text: input.value.normalize("NFC"),
-      fontAssetId: FONT_ID,
-      fontSize: input.size ?? 64,
-      lineHeight: (input.size ?? 64) * 1.2,
-      letterSpacing: 0,
-      align: "center" as const,
-      verticalAlign: "middle" as const,
-      wrap: "none" as const,
-      overflow: "visible" as const,
-      direction: "ltr" as const,
-      language: "en",
+      source: { text: source, language: "en" },
+      layout: {
+        lines: lines.map((_, index) => ({ id: `${input.id}-line-${index}`, baselineY: (index + 1) * lineHeight, runIds: [`${input.id}-run-${index}`] })),
+        runs: lines.map((line, index) => ({
+          id: `${input.id}-run-${index}`,
+          font: { assetId: FONT_ID, size: input.size ?? 64 },
+          fill: input.fill ?? "#ffffff",
+          glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * lineHeight, advance: { x: 0, y: 0 }, cluster: 0 }],
+        })),
+      },
     },
-    style: { fill: input.fill ?? "#ffffff" },
   };
 }
 

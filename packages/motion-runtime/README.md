@@ -4,6 +4,11 @@ Runtime V3 is the shared semantic layer used by Preview and Native Export. It
 receives a compiled `RuntimeProjectV3`, evaluates the project at a frame/time,
 and returns backend-neutral visual and audio plans.
 
+Runtime visual timing is expressed in seconds. Protocol V2 authoring timing is
+expressed in milliseconds; the compiler converts it once before creating the
+runtime project. Video and audio plans then use their native microsecond and
+sample domains respectively.
+
 Runtime does not parse authoring JSON and does not draw pixels itself. Preview
 and Export consume the same Runtime outputs and choose their own rendering and
 encoding technologies.

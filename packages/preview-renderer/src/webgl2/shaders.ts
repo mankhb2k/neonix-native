@@ -23,6 +23,9 @@ uniform vec4 u_gradient_start;
 uniform vec4 u_gradient_end;
 uniform vec4 u_gradient_params;
 uniform vec4 u_gradient_radius;
+uniform vec4 u_gradient_stops[8];
+uniform vec4 u_gradient_offsets[2];
+uniform vec4 u_gradient_meta;
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
 uniform int u_mode;
@@ -48,6 +51,24 @@ vec4 applyColorAdjust(vec4 source, vec4 effect) {
   float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
   color = mix(vec3(luma), color, effect.z);
   return vec4(clamp(applyHueRotate(color, effect.w), 0.0, 1.0), source.a);
+}
+float gradientOffset(int index) {
+  return index < 4 ? u_gradient_offsets[0][index] : u_gradient_offsets[1][index - 4];
+}
+vec4 sampleGradient(float t) {
+  float clamped = clamp(t, 0.0, 1.0);
+  int count = int(u_gradient_meta.x + 0.5);
+  vec4 result = u_gradient_stops[0];
+  for (int i = 0; i < 7; i++) {
+    if (i + 1 >= count) break;
+    float a = gradientOffset(i);
+    float b = gradientOffset(i + 1);
+    if (clamped <= b || i + 2 >= count) {
+      result = mix(u_gradient_stops[i], u_gradient_stops[i + 1], clamp((clamped - a) / max(b - a, 0.0001), 0.0, 1.0));
+      break;
+    }
+  }
+  return result;
 }
 void main() {
   float shapeAlpha = 1.0;
@@ -77,11 +98,14 @@ void main() {
       float extent = length(u_geometry.yz) * 0.5;
       vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
       gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
-    } else {
+    } else if (u_gradient_params.x < 2.5) {
       vec2 point = (v_uv - u_gradient_params.zw) * u_geometry.yz;
       gradientT = length(point) / max(u_gradient_radius.x * min(u_geometry.y, u_geometry.z), 0.0001);
+    } else {
+      vec2 point = v_uv - u_gradient_params.zw;
+      gradientT = fract(atan(point.y, point.x) / (2.0 * 3.14159265359) - u_gradient_params.y / (2.0 * 3.14159265359));
     }
-    source = mix(u_gradient_start, u_gradient_end, clamp(gradientT, 0.0, 1.0));
+    source = sampleGradient(gradientT);
   }
   if (u_mode == 0 && u_stroke_extent.x > 0.0 && u_stroke_extent.y > 0.0) {
     // Strokes are deliberately painted *inside* the layer frame. The old

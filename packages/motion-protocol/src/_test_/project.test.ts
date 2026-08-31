@@ -384,31 +384,74 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow();
   });
 
-  it("accepts a bounded projected drop-shadow without spread", () => {
+  it("accepts ordered box and alpha shadows with CSS spread/inset semantics", () => {
     const shadow = {
       ...RECTANGLE_PROJECT,
       layers: [{
         ...RECTANGLE_PROJECT.layers[0],
         effects: [{
-          id: "shadow",
-          type: "drop-shadow" as const,
-          x: 18,
-          y: 20,
+          id: "box-shadow",
+          type: "shadow" as const,
+          source: "box" as const,
+          offset: { x: 18, y: 20 },
           blur: 24,
-          color: "#ff3366",
-          opacity: 0.25,
+          spread: 4,
+          color: "#ff336640",
+          inset: false,
+        }, {
+          id: "drop-shadow",
+          type: "shadow" as const,
+          source: "alpha" as const,
+          offset: { x: 4, y: 8 },
+          blur: 12,
+          spread: 0,
+          color: "#00000080",
+          inset: false,
         }],
       }],
     };
     expect(MotionProtocolV2Schema.parse(shadow)).toEqual(shadow);
+    expect(MotionProtocolV2Schema.parse({
+      ...shadow,
+      layers: [{
+        ...shadow.layers[0],
+        tracks: [
+          {
+            id: "shadow-offset-x",
+            path: "effects.box-shadow.offset.x",
+            keyframes: [{ time: 0, value: { type: "number" as const, value: 18 } }],
+          },
+          {
+            id: "shadow-spread",
+            path: "effects.box-shadow.spread",
+            keyframes: [{ time: 0, value: { type: "number" as const, value: 4 } }],
+          },
+          {
+            id: "shadow-inset",
+            path: "effects.box-shadow.inset",
+            keyframes: [{ time: 0, value: { type: "boolean" as const, value: true } }],
+          },
+        ],
+      }],
+    }).layers[0]?.tracks).toHaveLength(3);
     expect(() => MotionProtocolV2Schema.parse({
       ...shadow,
       layers: [{ ...shadow.layers[0], effects: [{ ...shadow.layers[0].effects[0], blur: -1 }] }],
-    })).toThrow();
+    })).toThrow(/Number must be greater than or equal to 0/);
     expect(() => MotionProtocolV2Schema.parse({
       ...shadow,
-      layers: [{ ...shadow.layers[0], effects: [{ ...shadow.layers[0].effects[0], spread: 4 }] }],
-    })).toThrow();
+      layers: [{
+        ...shadow.layers[0],
+        effects: [{ ...shadow.layers[0].effects[1], spread: 4 }],
+      }],
+    })).toThrow(/expected 0/);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...shadow,
+      layers: [{
+        ...shadow.layers[0],
+        effects: [{ ...shadow.layers[0].effects[1], inset: true }],
+      }],
+    })).toThrow(/expected false/);
   });
 
   it("accepts a bounded outer glow without offset or spread", () => {
@@ -589,7 +632,7 @@ describe("Motion Protocol V2 schema", () => {
     })).toThrow(/selected source range/);
   });
 
-  it("accepts text only with an exact font asset and the locked MVP layout", () => {
+  it("accepts shaped glyph runs and validates every selected font asset", () => {
     const text = {
       ...RECTANGLE_PROJECT,
       id: "text-project-v2",
@@ -613,30 +656,61 @@ describe("Motion Protocol V2 schema", () => {
         opacity: 1,
         timing: { start: 0, duration: 1 },
         payload: {
-          text: "NeonVideo",
-          fontAssetId: "roboto-regular",
-          fontSize: 48,
-          lineHeight: 56,
-          letterSpacing: 0,
-          align: "center" as const,
-          verticalAlign: "middle" as const,
-          wrap: "none" as const,
-          overflow: "visible" as const,
-          direction: "ltr" as const,
-          language: "en",
+          source: { text: "NeonVideo", language: "en" },
+          layout: {
+            lines: [{ id: "headline-line", baselineY: 56, runIds: ["headline-run"] }],
+            runs: [{
+              id: "headline-run",
+              font: { assetId: "roboto-regular", size: 48, variations: { wght: 700 } },
+              fill: "#ffffff",
+              glyphs: [
+                { glyphId: 49, x: 64, y: 56, advance: { x: 30, y: 0 }, cluster: 0 },
+                { glyphId: 72, x: 94, y: 56, advance: { x: 24, y: 0 }, cluster: 1 },
+              ],
+            }],
+          },
         },
-        style: { fill: "#ffffff" },
       }],
     };
     expect(MotionProtocolV2Schema.parse(text)).toEqual(text);
+    expect(MotionProtocolV2Schema.parse({
+      ...text,
+      layers: [{
+        ...text.layers[0],
+        tracks: [
+          {
+            id: "headline-color",
+            path: "payload.layout.runs.headline-run.fill",
+            keyframes: [{ time: 0, value: { type: "color" as const, value: [1, 1, 1, 1] as const } }],
+          },
+          {
+            id: "headline-size",
+            path: "payload.layout.runs.headline-run.font.size",
+            keyframes: [{ time: 0, value: { type: "number" as const, value: 48 } }],
+          },
+        ],
+      }],
+    }).layers[0]?.tracks).toHaveLength(2);
     expect(() => MotionProtocolV2Schema.parse({
       ...text,
-      layers: [{ ...text.layers[0], payload: { ...text.layers[0].payload, fontAssetId: "missing" } }],
+      layers: [{
+        ...text.layers[0],
+        payload: {
+          ...text.layers[0].payload,
+          layout: {
+            ...text.layers[0].payload.layout,
+            runs: [{
+              ...text.layers[0].payload.layout.runs[0],
+              font: { ...text.layers[0].payload.layout.runs[0].font, assetId: "missing" },
+            }],
+          },
+        },
+      }],
     })).toThrow(/Unknown font asset/);
     expect(() => MotionProtocolV2Schema.parse({
       ...text,
       assets: [{ ...text.assets[0], kind: "image" as const, width: 10, height: 10 }],
-    })).toThrow(/Text layer must reference a font asset/);
+    })).toThrow(/Text glyph run must reference a font asset/);
   });
 
   it("requires one explicit view projection with complete parameters", () => {
@@ -782,11 +856,12 @@ describe("Motion Protocol V2 schema", () => {
       opacity: 1,
       composite: {
         blendMode: "normal" as const,
-        mask: {
+        masks: [{
           mode: "clip" as const,
           sourceLayerId: "clip-shape",
           sourceVisibility: "mask-only" as const,
-        },
+          composite: "add" as const,
+        }],
       },
       timing: RECTANGLE_PROJECT.layers[0].timing,
     };
@@ -801,11 +876,11 @@ describe("Motion Protocol V2 schema", () => {
       layers: [group, source],
     });
     expect(parsed.layers[0]).toMatchObject({
-      composite: { mask: { mode: "clip", sourceLayerId: "clip-shape", sourceVisibility: "mask-only" } },
+      composite: { masks: [{ mode: "clip", sourceLayerId: "clip-shape", sourceVisibility: "mask-only", composite: "add" }] },
     });
     expect(() => MotionProtocolV2Schema.parse({
       ...RECTANGLE_PROJECT,
-      layers: [{ ...group, composite: { ...group.composite, mask: { ...group.composite.mask, sourceLayerId: "missing" } } }, source],
+      layers: [{ ...group, composite: { ...group.composite, masks: [{ ...group.composite.masks[0], sourceLayerId: "missing" }] } }, source],
     })).toThrow(/direct child shape/);
   });
 
@@ -820,11 +895,12 @@ describe("Motion Protocol V2 schema", () => {
       opacity: 1,
       composite: {
         blendMode: "normal" as const,
-        mask: {
+        masks: [{
           mode: "inverse-alpha" as const,
           sourceLayerId: "inverse-source",
           sourceVisibility: "mask-only" as const,
-        },
+          composite: "add" as const,
+        }],
       },
       timing: RECTANGLE_PROJECT.layers[0].timing,
     };
@@ -839,7 +915,7 @@ describe("Motion Protocol V2 schema", () => {
       layers: [group, source],
     });
     expect(parsed.layers[0]).toMatchObject({
-      composite: { mask: { mode: "inverse-alpha", sourceLayerId: "inverse-source" } },
+      composite: { masks: [{ mode: "inverse-alpha", sourceLayerId: "inverse-source", composite: "add" }] },
     });
   });
 

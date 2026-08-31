@@ -6,7 +6,12 @@ export type GradientUniforms = {
   end: [number, number, number, number];
   params: [number, number, number, number];
   radius: [number, number, number, number];
+  stops: Float32Array;
+  offsets: Float32Array;
+  meta: [number, number, number, number];
 };
+
+export const MAX_GRADIENT_STOPS = 8;
 
 /** Pack one validated Runtime V2 Matrix4 into the GPU's float32 uniform layout. */
 export function packMatrix4F32(matrix: readonly number[]): Float32Array {
@@ -35,18 +40,45 @@ export function gradientUniforms(
     end: [0, 0, 0, 0],
     params: [0, 0, 0, 0],
     radius: [0, 0, 0, 0],
+    stops: new Float32Array(MAX_GRADIENT_STOPS * 4),
+    offsets: new Float32Array(MAX_GRADIENT_STOPS),
+    meta: [0, 0, 0, 0],
   };
   if (!fillPaint || fillPaint.type === "solid" || fillPaint.stops.length < 2) return empty;
-  const start = cssColorToRgba(fillPaint.stops[0]!.color);
-  const end = cssColorToRgba(fillPaint.stops[fillPaint.stops.length - 1]!.color);
+  const sourceStops = fillPaint.stops.slice(0, MAX_GRADIENT_STOPS);
+  const start = cssColorToRgba(sourceStops[0]!.color);
+  const end = cssColorToRgba(sourceStops[sourceStops.length - 1]!.color);
   start[3] *= alpha;
   end[3] *= alpha;
+  const stops = new Float32Array(MAX_GRADIENT_STOPS * 4);
+  const offsets = new Float32Array(MAX_GRADIENT_STOPS);
+  sourceStops.forEach((stop, index) => {
+    const color = cssColorToRgba(stop.color);
+    color[3] *= alpha;
+    stops.set(color, index * 4);
+    offsets[index] = stop.offset;
+  });
+  const meta: [number, number, number, number] = [sourceStops.length, 0, 0, 0];
   if (fillPaint.type === "linear-gradient") {
     return {
       start,
       end,
       params: [1, ((fillPaint.angle ?? 0) * Math.PI) / 180, 0, 0],
       radius: [0, 0, 0, 0],
+      stops,
+      offsets,
+      meta,
+    };
+  }
+  if (fillPaint.type === "conic-gradient") {
+    return {
+      start,
+      end,
+      params: [3, ((fillPaint.from ?? 0) * Math.PI) / 180, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
+      radius: [0, 0, 0, 0],
+      stops,
+      offsets,
+      meta,
     };
   }
   return {
@@ -54,6 +86,9 @@ export function gradientUniforms(
     end,
     params: [2, 0, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
     radius: [fillPaint.radius ?? 0.5, 0, 0, 0],
+    stops,
+    offsets,
+    meta,
   };
 }
 

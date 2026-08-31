@@ -24,7 +24,10 @@ export function buildRuntimeEffectProgram(
   let input: SurfaceRef = RUNTIME_EFFECT_SOURCE_SURFACE;
   const ops: RuntimeEffectOp[] = [];
   for (const effect of effects) {
-    if (effect.type === "drop-shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
+    if (effect.type === "shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
+      if (effect.type === "shadow" && (effect.spread !== 0 || effect.inset)) {
+        throw new Error(`Runtime shadow spread/inset is not lowered yet: ${effect.id}`);
+      }
       const alpha = `effect:${effect.id}:alpha`;
       const blurred = `effect:${effect.id}:blur`;
       const inner = `effect:${effect.id}:inner-alpha`;
@@ -37,19 +40,26 @@ export function buildRuntimeEffectProgram(
           kind: "blur",
           input: alpha,
           output: blurred,
-          radius: effect.type === "drop-shadow" ? effect.blur : effect.radius,
+          radius: effect.type === "shadow" ? effect.blur : effect.radius,
         },
       );
       if (effect.type === "inner-glow") {
         ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: alpha, blurred, output: inner });
       }
-      ops.push({ id: `${effect.id}:tint`, kind: "tint", input: effect.type === "inner-glow" ? inner : blurred, output: tinted, color: effect.color, opacity: effect.opacity });
-      if (effect.type === "drop-shadow") {
+      ops.push({
+        id: `${effect.id}:tint`,
+        kind: "tint",
+        input: effect.type === "inner-glow" ? inner : blurred,
+        output: tinted,
+        color: effect.color,
+        opacity: effect.type === "shadow" ? 1 : effect.opacity,
+      });
+      if (effect.type === "shadow") {
         const offset = `effect:${effect.id}:offset`;
         ops.push(
-          { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.x, y: effect.y },
-          { id: `${effect.id}:composite`, kind: "composite", backdrop: offset, source: input, output, mode: "source-over" },
-        );
+          { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.offset.x, y: effect.offset.y },
+         { id: `${effect.id}:composite`, kind: "composite", backdrop: offset, source: input, output, mode: "source-over" },
+       );
       } else if (effect.type === "outer-glow") {
         ops.push({ id: `${effect.id}:composite`, kind: "composite", backdrop: tinted, source: input, output, mode: "source-over" });
       } else {
@@ -57,6 +67,14 @@ export function buildRuntimeEffectProgram(
       }
       input = output;
       continue;
+    }
+    if (
+      effect.type === "grayscale" ||
+      effect.type === "sepia" ||
+      effect.type === "invert" ||
+      effect.type === "filter-opacity"
+    ) {
+      throw new Error(`Runtime semantic effect ${effect.type} is not lowered yet`);
     }
     const output = outputSurfaceFor(effect.id);
     const op: RuntimeEffectOp = effect.type === "noise"

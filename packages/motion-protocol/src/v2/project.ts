@@ -31,38 +31,58 @@ const COMMON_ENUM_PATHS = new Set([
   "composite.isolation",
 ]);
 
+const COMMON_BOOLEAN_PATHS = new Set(["enabled"]);
+
 function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]): Set<string> | null {
   if (COMMON_NUMBER_PATHS.has(path)) return new Set(["number"]);
   if (COMMON_ENUM_PATHS.has(path)) return new Set(["enum"]);
+  if (COMMON_BOOLEAN_PATHS.has(path)) return new Set(["boolean"]);
 
   const layerPaths: Record<string, Set<string>> = {
     shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity"]),
     path: new Set(["style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "payload.morph.progress"]),
-    text: new Set(["payload.fontSize", "payload.lineHeight", "payload.letterSpacing"]),
+    text: new Set(),
     image: new Set(["payload.crop.x", "payload.crop.y", "payload.crop.width", "payload.crop.height"]),
     video: new Set(["payload.trimStart", "payload.trimEnd"]),
     group: new Set(),
   };
   if (layerPaths[layer.type]?.has(path)) return new Set(["number"]);
 
-  const colorPaths = layer.type === "text"
+  if (layer.type === "text") {
+    const segments = path.split(".");
+    if (segments.length === 5
+      && segments[0] === "payload"
+      && segments[1] === "layout"
+      && segments[2] === "runs"
+      && segments[4] === "fill"
+      && layer.payload.layout.runs.some((run) => run.id === segments[3])) {
+      return new Set(["color"]);
+    }
+    if (segments.length === 6
+      && segments[0] === "payload"
+      && segments[1] === "layout"
+      && segments[2] === "runs"
+      && segments[4] === "font"
+      && segments[5] === "size"
+      && layer.payload.layout.runs.some((run) => run.id === segments[3])) {
+      return new Set(["number"]);
+    }
+  }
+
+  const colorPaths = layer.type === "shape"
     ? new Set(["style.fill"])
-    : layer.type === "shape"
+    : layer.type === "path"
       ? new Set(["style.fill", "style.stroke"])
-      : layer.type === "path"
-        ? new Set(["style.fill", "style.stroke"])
-        : new Set<string>();
+      : new Set<string>();
   if (colorPaths.has(path)) return new Set(["color"]);
 
-  const enumPaths = layer.type === "text"
-    ? new Set(["payload.align", "payload.verticalAlign"])
-    : layer.type === "image" || layer.type === "video"
+  const enumPaths = layer.type === "image" || layer.type === "video"
       ? new Set(["payload.fit"])
       : new Set<string>();
   if (enumPaths.has(path)) return new Set(["enum"]);
 
   const segments = path.split(".");
-  if (segments[0] !== "effects" || segments.length !== 3) return null;
+  if (segments[0] !== "effects" || segments.length < 3) return null;
   const effectId = segments[1]!;
   const effect = "effects" in layer
     ? layer.effects?.find((candidate) => candidate.id === effectId)
@@ -75,15 +95,17 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
     invert: ["amount"],
     "filter-opacity": ["amount"],
     blur: ["radius"],
-    "drop-shadow": ["x", "y", "blur", "opacity"],
+    shadow: ["blur", "spread", "offset.x", "offset.y"],
     "outer-glow": ["radius", "opacity"],
     "inner-glow": ["radius", "opacity"],
     noise: ["scale", "amount", "opacity", "seed"],
   };
-  if (effectNumberFields[effect.type]?.includes(segments[2]!)) return new Set(["number"]);
-  if ((effect.type === "drop-shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") && segments[2] === "color") {
+  const effectField = segments.slice(2).join(".");
+  if (effectNumberFields[effect.type]?.includes(effectField)) return new Set(["number"]);
+  if ((effect.type === "shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") && effectField === "color") {
     return new Set(["color"]);
   }
+  if (effect.type === "shadow" && effectField === "inset") return new Set(["boolean"]);
   return null;
 }
 
@@ -209,57 +231,58 @@ export const MotionProtocolV2Schema = z
           });
         }
       }
-      const mask = layer.composite?.mask;
-      if (mask) {
+      const masks = layer.composite?.masks;
+      if (masks) {
         if (layer.type !== "group") {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Clip mask is currently supported only on group layers",
-            path: ["layers", index, "composite", "mask"],
+            message: "Mask stack is currently supported only on group layers",
+            path: ["layers", index, "composite", "masks"],
           });
         }
-        if (mask.sourceLayerId === layer.id) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Clip mask source cannot be the masked group itself",
-            path: ["layers", index, "composite", "mask", "sourceLayerId"],
-          });
-        }
-        const source = layerById.get(mask.sourceLayerId);
-        const requiresShapeSource = mask.mode === "clip";
-        if (!source || source.parentLayerId !== layer.id || source.type === "group" || (requiresShapeSource && source.type !== "shape")) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: requiresShapeSource
-              ? "Clip mask source must be a direct child shape of the masked group"
-              : "Alpha mask source must be a direct drawable child of the masked group",
-            path: ["layers", index, "composite", "mask", "sourceLayerId"],
-          });
-        } else if (source.effects?.length || (source.composite?.blendMode ?? "normal") !== "normal") {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Mask source cannot have effects or a non-normal blend mode",
-            path: ["layers", index, "composite", "mask", "sourceLayerId"],
-          });
+        for (const [maskIndex, maskLayer] of masks.entries()) {
+          if (maskLayer.sourceLayerId === layer.id) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Mask source cannot be the masked group itself",
+              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
+            });
+          }
+          const source = layerById.get(maskLayer.sourceLayerId);
+          const requiresShapeSource = maskLayer.mode === "clip";
+          if (!source || source.parentLayerId !== layer.id || source.type === "group" || (requiresShapeSource && source.type !== "shape")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: requiresShapeSource
+                ? "Clip mask source must be a direct child shape of the masked group"
+                : "Alpha mask source must be a direct drawable child of the masked group",
+              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
+            });
+          } else if (source.effects?.length || (source.composite?.blendMode ?? "normal") !== "normal") {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Mask source cannot have effects or a non-normal blend mode",
+              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
+            });
+          }
         }
       }
       if (layer.type === "text") {
-        const assetIndex = (project.assets ?? []).findIndex(
-          (asset) => asset.id === layer.payload.fontAssetId,
-        );
-        const asset = assetIndex >= 0 ? project.assets?.[assetIndex] : undefined;
-        if (!asset) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Unknown font asset: ${layer.payload.fontAssetId}`,
-            path: ["layers", index, "payload", "fontAssetId"],
-          });
-        } else if (asset.kind !== "font") {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Text layer must reference a font asset: ${layer.payload.fontAssetId}`,
-            path: ["layers", index, "payload", "fontAssetId"],
-          });
+        for (const [runIndex, run] of layer.payload.layout.runs.entries()) {
+          const asset = project.assets.find((candidate) => candidate.id === run.font.assetId);
+          if (!asset) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Unknown font asset: ${run.font.assetId}`,
+              path: ["layers", index, "payload", "layout", "runs", runIndex, "font", "assetId"],
+            });
+          } else if (asset.kind !== "font") {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Text glyph run must reference a font asset: ${run.font.assetId}`,
+              path: ["layers", index, "payload", "layout", "runs", runIndex, "font", "assetId"],
+            });
+          }
         }
       }
       if (layer.type === "video" && layer.payload.audio) {

@@ -99,9 +99,10 @@ meaning through its own renderer and FFmpeg pipeline.
 ## Backends
 
 - `webgl2`: synchronous MVP backend for solid, rectangle/ellipse shape, image,
-  and video commands.
+  video, gradient and stroke commands.
 - `webgpu`: async-capable backend using an injected `GPUDevice` and the same
-  command stream.
+  command stream. Both native backends sample up to eight normalized gradient
+  stops per draw, including linear, radial and conic gradients.
 - `auto` (default): tries WebGPU first and falls back to WebGL2 when the browser
   cannot provide a usable adapter, device, or context.
 

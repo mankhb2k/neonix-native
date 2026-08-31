@@ -143,6 +143,14 @@ Protocol-derived catalog for development and fixtures.
 The compiler records references and timing metadata. It does not download,
 decode, or cache the media bytes.
 
+### Time-unit boundary
+
+Protocol V2 stores layer timing, keyframe time, media duration, trims, and
+fades in milliseconds. Runtime visual nodes use seconds, video instances use
+microseconds, and audio clips use sample positions. The compiler performs
+these conversions exactly once at this boundary; no runtime caller should
+reinterpret Protocol millisecond values.
+
 ### Step 5: Lower the video timeline
 
 Each visual video layer that has a resolvable video stream becomes a runtime
@@ -169,7 +177,8 @@ audio tracks for:
 - standalone Protocol audio clips;
 - embedded audio explicitly enabled on video layers.
 
-Audio lowering converts composition seconds to sample positions and preserves:
+Audio lowering converts Protocol milliseconds to composition sample positions
+and preserves:
 
 - source trim;
 - playback rate;

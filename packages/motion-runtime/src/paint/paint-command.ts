@@ -4,6 +4,7 @@
 
 import type {
   PaintFill,
+  PaintBlendMode,
   PaintTextGlyph,
   PaintTextLine,
   PathContour,
@@ -64,11 +65,7 @@ export type PaintCommand =
       alpha: number;
       visible: boolean;
       order: number;
-      blendMode?:
-        | "normal"
-        | "multiply"
-        | "screen"
-        | "add";
+      blendMode?: PaintBlendMode;
       /** 4×4 world matrix for perspective-3d projection (Phase 11). */
     }
   | {

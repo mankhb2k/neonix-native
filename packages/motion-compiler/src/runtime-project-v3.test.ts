@@ -30,7 +30,9 @@ describe("canonical compiler V3 projection", () => {
         nodes: expect.any(Array),
       },
     });
-    expect(runtime.audioTimeline.tracks.flatMap((track) => track.clips)).toHaveLength(2);
+    const clips = runtime.audioTimeline.tracks.flatMap((track) => track.clips);
+    expect(clips).toHaveLength(2);
+    expect(clips.map((clip) => clip.timelineDurationSamples)).toEqual([480_000, 480_000]);
   });
 
   it("keeps catalog durationSamples in the native 44.1 kHz source domain", () => {

@@ -160,6 +160,7 @@ Every layer has the following base fields:
     "anchor": { "x": 0, "y": 0, "z": 0 }
   },
   "opacity": 1,
+  "enabled": true,
   "backfaceVisibility": "visible",
   "timing": { "start": 0, "duration": 5000 }
 }
@@ -173,6 +174,7 @@ Every layer has the following base fields:
 | `frame` | Local width and height |
 | `transform` | Translate, scale, rotate, skew, anchor, and optional ordered operations |
 | `opacity` | Source opacity from `0` to `1`; default `1` |
+| `enabled` | Optional editor/runtime enable state; omitted means `true` |
 | `backfaceVisibility` | Optional `visible` or `hidden`; controls painting of the reverse side after accumulated 3D transforms |
 | `timing` | Composition-time start and duration in milliseconds |
 | `tracks` | Optional typed keyframe tracks sampled in local layer time (milliseconds) |
@@ -218,6 +220,11 @@ where transform order must be preserved, for 3D operations, perspective, or
 an arbitrary matrix. Most ordinary CSS animation tracks therefore continue to
 target properties such as `transform.translate.x`, `transform.scale`, or
 `opacity` rather than manipulating a matrix directly.
+
+`enabled` is an editor/runtime state, not a persisted copy of CSS `display` or
+`visibility`. A disabled layer remains in the protocol hierarchy but
+contributes no rendered output. It can also be targeted by a boolean track for
+discrete timeline enable/disable changes.
 
 ### 4.1 Local 3D contexts
 
@@ -300,11 +307,69 @@ defined by this package yet.
 | `path` | Contours with line/cubic segments; `fillRule`; optional morph | Fill, stroke, joins, caps, dash, and contour morph |
 | `image` | `assetId`; optional `fit`, normalized `crop` | Image asset placement |
 | `video` | `assetId`; optional `fit`, trim, audio, `framePolicy` | Video asset placement and source-time selection |
-| `text` | Text, font, size, line layout, alignment, language | Single-style LTR text with no wrapping |
+| `text` | Canonical `TextLayout`: visual lines, glyph runs, positioned glyphs | Runtime font/glyph rendering; CSS text semantics are resolved before Protocol V2 |
 
 Image and video `fit` can be `contain`, `cover`, `fill`, or `none`.
 
-### 5.1 Paint and gradients
+### 5.1 Text layout and glyph runs
+
+Text is render data, not a CSS text-layout command. A text layer contains one
+required `payload.layout`, which is a visual sequence of lines and glyph runs.
+Each run selects an exact font asset and optional resolved OpenType variation
+coordinates; each glyph has its glyph ID, local origin, and advance vector.
+
+```json
+{
+  "payload": {
+    "source": { "text": "Hello مرحبا", "language": "en" },
+    "layout": {
+      "lines": [
+        { "id": "line-1", "baselineY": 48, "runIds": ["latin", "arabic"] }
+      ],
+      "runs": [
+        {
+          "id": "latin",
+          "font": { "assetId": "inter", "size": 40, "variations": { "wght": 650 } },
+          "fill": "#ffffff",
+          "glyphs": [
+            { "glyphId": 43, "x": 0, "y": 48, "advance": { "x": 28, "y": 0 }, "cluster": 0 }
+          ]
+        },
+        {
+          "id": "arabic",
+          "font": { "assetId": "noto-arabic", "size": 40 },
+          "fill": "#00e5ff",
+          "glyphs": [
+            { "glyphId": 70, "x": 28, "y": 48, "advance": { "x": 24, "y": 0 }, "cluster": 6 }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+`lines[].runIds` defines visual paint order. Run IDs and line IDs are unique;
+every run must be referenced by exactly one line. This permits bidirectional
+text, font fallback, wrapping, and rich inline styles without adding CSS
+`white-space`, `direction`, `word-break`, or `font-family` syntax to Atomic.
+`payload.source` is optional editor metadata only: the runtime must render
+`layout`, never reshape its source string. `cluster` is an optional UTF-16
+offset into that metadata for editor selection/caret mapping.
+
+The text compiler/shaper owns cascade, font fallback, OpenType features,
+variation resolution, bidi, spacing, line breaking, wrapping, alignment, and
+rich spans. Text decoration is lowered to ordinary shape/path layers. The
+runtime owns glyph-outline lookup/caching, tessellation or atlas generation,
+and GPU drawing from the selected font asset + variation coordinates + glyph
+ID. Glyph outlines do not enter Protocol JSON.
+
+Run-level tracks use the stable run ID, for example
+`payload.layout.runs.latin.fill` (color) or
+`payload.layout.runs.latin.font.size` (number). Whole-text motion normally
+uses the shared layer transform and opacity tracks.
+
+### 5.2 Paint and gradients
 
 Paint is represented by the final source primitive, not by CSS `background`
 shorthand. A compiler may lower multiple background layers into an ordered
@@ -342,11 +407,20 @@ Optional compositing:
   "composite": {
     "blendMode": "normal",
     "isolation": "auto",
-    "mask": {
-      "mode": "clip",
-      "sourceLayerId": "mask-layer",
-      "sourceVisibility": "mask-only"
-    }
+    "masks": [
+      {
+        "mode": "alpha",
+        "sourceLayerId": "mask-a",
+        "sourceVisibility": "mask-only",
+        "composite": "add"
+      },
+      {
+        "mode": "alpha",
+        "sourceLayerId": "mask-b",
+        "sourceVisibility": "mask-only",
+        "composite": "intersect"
+      }
+    ]
   }
 }
 ```
@@ -358,6 +432,18 @@ Blend modes map 1:1 to the CSS Compositing and Blending Level 1 names:
 `add` value is not part of Protocol V2. `isolation` maps to CSS `isolation`
 and is `auto` or `isolate`. Mask modes are `clip`, `alpha`, `inverse-alpha`,
 and `luma`.
+
+Masking uses one canonical ordered `masks[]` stack. A single-mask case is
+represented by a one-item stack; each item carries a source, mask mode, and
+CSS `mask-composite` operator (`add`, `subtract`, `intersect`, or `exclude`).
+Mask position, size, repeat, origin, clip, and source-image resolution remain
+compiler responsibilities.
+
+The mask-composite operators are runtime compositing primitives. Runtime must
+actually evaluate each operator in stack order against the accumulated mask;
+they must not be treated as metadata or silently approximated by group nesting.
+Protocol V2 defines the semantic operation now; compiler/runtime support is a
+separate implementation step.
 
 `blendMode` is a runtime compositing primitive, not a compiler-only semantic:
 the runtime must evaluate the selected formula against the source and
@@ -374,12 +460,21 @@ Effects are ordered and have unique IDs. The current effect types are:
 | `invert` | `amount` (`0..1`) |
 | `filter-opacity` | `amount` (`0..1`); distinct from layer `opacity` |
 | `blur` | `radius` |
-| `drop-shadow` | `x`, `y`, `blur`, `color`, `opacity` |
+| `shadow` | `source` (`box` or `alpha`), `offset`, `blur`, signed `spread`, `color`, `inset` |
 | `outer-glow` | `radius`, `color`, `opacity` |
 | `inner-glow` | `radius`, `color`, `opacity` |
 | `noise` | `scale`, `amount`, `opacity`, `seed` |
 
 At most eight effects can be attached to one drawable layer.
+
+`shadow` is the canonical shadow atom. `source: "box"` represents CSS
+`box-shadow`: `spread` is signed and `inset` may be true or false. `source:
+"alpha"` represents CSS `filter: drop-shadow()`, so it requires
+`spread: 0` and `inset: false`. Shadow transparency is carried by the alpha
+component of `color`; there is no second shadow-opacity field. Multiple
+shadows are repeated in `effects[]` and retain list order. Runtime must derive
+each shadow from the original layer source surface, so one shadow does not
+become the input silhouette of the next shadow.
 
 The semantic filter effects map directly to CSS `grayscale()`, `sepia()`,
 `invert()`, and `opacity()`. `filter-opacity` is intentionally separate from
@@ -388,7 +483,7 @@ Protocol V2 keeps these names and normalized values readable for users and AI;
 compiler/runtime lowering to a color matrix is a later implementation step and
 is not part of this package. Effect order must be preserved, so color effects
 may only be fused when that does not move them across a spatial effect such as
-`blur` or `drop-shadow`.
+`blur` or `shadow`.
 
 ### 7. Audio
 

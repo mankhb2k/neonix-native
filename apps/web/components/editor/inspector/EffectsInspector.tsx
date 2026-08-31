@@ -17,7 +17,7 @@ type EffectsInspectorProps = {
 const EFFECT_OPTIONS: readonly { type: EffectType; label: string }[] = [
   { type: "color-adjust", label: "Color adjust" },
   { type: "blur", label: "Blur" },
-  { type: "drop-shadow", label: "Drop shadow" },
+  { type: "shadow", label: "Shadow" },
   { type: "outer-glow", label: "Outer glow" },
   { type: "inner-glow", label: "Inner glow" },
   { type: "noise", label: "Noise" },
@@ -33,8 +33,8 @@ function createEffect(type: EffectType, id: string): V2Effect {
       return { id, type, brightness: 0, contrast: 1, saturation: 1, hueRotate: 0 };
     case "blur":
       return { id, type, radius: 8 };
-    case "drop-shadow":
-      return { id, type, x: 0, y: 8, blur: 12, color: "#000000", opacity: 0.35 };
+    case "shadow":
+      return { id, type, source: "box", offset: { x: 0, y: 8 }, blur: 12, spread: 0, color: "#000000", inset: false };
     case "outer-glow":
       return { id, type, radius: 12, color: "#ffffff", opacity: 0.5 };
     case "inner-glow":
@@ -118,14 +118,18 @@ function EffectFields({ effect, onPatch }: { effect: V2Effect; onPatch: (patch: 
       );
     case "blur":
       return <NumberField label="Radius" value={effect.radius} min={0.001} max={256} onChange={(value) => onPatch({ radius: value })} />;
-    case "drop-shadow":
+    case "shadow":
       return (
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="X" value={effect.x} step={1} suffix="px" onChange={(value) => onPatch({ x: value })} />
-          <NumberField label="Y" value={effect.y} step={1} suffix="px" onChange={(value) => onPatch({ y: value })} />
+          <NumberField label="X" value={effect.offset.x} step={1} suffix="px" onChange={(value) => onPatch({ offset: { ...effect.offset, x: value } })} />
+          <NumberField label="Y" value={effect.offset.y} step={1} suffix="px" onChange={(value) => onPatch({ offset: { ...effect.offset, y: value } })} />
           <NumberField label="Blur" value={effect.blur} min={0} max={256} onChange={(value) => onPatch({ blur: value })} />
-          <PercentField label="Opacity" value={effect.opacity} onChange={(value) => onPatch({ opacity: value })} />
+          <NumberField label="Spread" value={effect.spread} step={1} suffix="px" onChange={(value) => onPatch({ spread: value })} />
           <ColorField label="Color" value={effect.color} onChange={(value) => onPatch({ color: value })} />
+          <label className="flex items-center justify-between gap-2 text-[11px] text-[var(--fg-muted)]">
+            <span>Inset</span>
+            <input type="checkbox" checked={effect.inset} onChange={(event) => onPatch({ inset: event.target.checked })} />
+          </label>
         </div>
       );
     case "outer-glow":

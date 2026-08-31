@@ -13,9 +13,12 @@ export const TEXTURE_BINDING = 0x04;
 export const TEXTURE_COPY_DST = 0x02;
 export const TEXTURE_RENDER_ATTACHMENT = 0x10;
 export const MSAA_SAMPLE_COUNT = 4;
-export type BlendMode = "normal" | "multiply" | "screen" | "add";
+export type BlendMode =
+  | "normal" | "darken" | "multiply" | "color-burn" | "lighten" | "screen"
+  | "color-dodge" | "overlay" | "soft-light" | "hard-light" | "difference"
+  | "exclusion" | "hue" | "saturation" | "color" | "luminosity";
 export const EFFECT_TEXTURE_FORMAT = "rgba16float";
-export const UNIFORM_FLOATS = 84;
+export const UNIFORM_FLOATS = 128;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 
 export function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {
@@ -44,12 +47,7 @@ export function createBackendObjects(
       { binding: 2, visibility: 2, sampler: { type: "filtering" } },
     ],
   });
-  const blend = blendMode === "add"
-    ? {
-        color: { srcFactor: "src-alpha", dstFactor: "one" },
-        alpha: { srcFactor: "one", dstFactor: "one" },
-      }
-    : blendMode === "multiply"
+  const blend = blendMode === "multiply"
       ? {
           color: { srcFactor: "dst", dstFactor: "one-minus-src-alpha" },
           alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },

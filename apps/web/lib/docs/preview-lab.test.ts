@@ -13,6 +13,20 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
+      "html-compiler.primitives.rectangle-rounded",
+      "html-compiler.phase2.cascade",
+      "html-compiler.phase2.units-calc",
+      "html-compiler.phase2.normalization",
+      "html-compiler.phase2.tags",
+      "html-compiler.phase2.diagnostics",
+      "html-compiler.phase3.block-flow",
+      "html-compiler.phase3.positioning",
+      "html-compiler.phase3.visibility-z-index",
+      "html-compiler.phase4.rounded-border",
+      "html-compiler.phase4.linear-gradient",
+      "html-compiler.phase4.radial-gradient",
+      "html-compiler.phase4.conic-gradient",
+      "html-compiler.phase4.background-layers",
       "image.fit.contain",
       "image.fit.cover",
       "image.crop",
@@ -20,11 +34,9 @@ describe("Protocol V2 preview lab fixtures", () => {
       "composite.blend.normal",
       "composite.blend.multiply",
       "composite.blend.screen",
-      "composite.blend.add",
       "composite.blend.stack.normal",
       "composite.blend.stack.multiply",
       "composite.blend.stack.screen",
-      "composite.blend.stack.add",
       "video.frame-seek",
       "video.trim",
       "video.frame-policy",
@@ -119,6 +131,39 @@ describe("Protocol V2 preview lab fixtures", () => {
     }
   });
 
+  it("exposes dedicated HTML compiler Phase 2 source/protocol previews", () => {
+    const cases = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.phase2."));
+    expect(cases).toHaveLength(5);
+    for (const fixture of cases) {
+      expect(fixture.htmlCssSource?.html).toBeTruthy();
+      expect(fixture.htmlCssSource?.css).toBeTruthy();
+      expect(fixture.project.formatVersion).toBe(2);
+      expect(fixture.project.layers.length).toBeGreaterThan(0);
+    }
+    const phase3 = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.phase3."));
+    expect(phase3).toHaveLength(3);
+    const phase4 = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.phase4."));
+    expect(phase4).toHaveLength(5);
+    for (const fixture of phase4) {
+      expect(fixture.htmlCssSource?.html).toBeTruthy();
+      expect(fixture.htmlCssSource?.css).toBeTruthy();
+      expect(fixture.project.formatVersion).toBe(2);
+    }
+    const diagnostics = previewLabCaseById("html-compiler.phase2.diagnostics");
+    expect(diagnostics.htmlCssSource).toBeDefined();
+  });
+
+  it("covers solid and rounded primitives with one HTML compiler fixture", () => {
+    const fixture = previewLabCaseById("html-compiler.primitives.rectangle-rounded");
+    expect(fixture.group).toBe("Primitives");
+    expect(fixture.htmlCssSource?.html).toContain('id="compiler-solid"');
+    expect(fixture.htmlCssSource?.html).toContain('id="compiler-rounded"');
+    expect(fixture.project.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "compiler-solid", type: "shape", style: { fill: "#14b8a6" } }),
+      expect.objectContaining({ id: "compiler-rounded", type: "shape", payload: expect.objectContaining({ cornerRadius: 48 }), style: expect.objectContaining({ stroke: "#e2e8f0", strokeWidth: 12 }) }),
+    ]));
+  });
+
   it("includes explicit two-track mix examples for docs preview", () => {
     const twoTracks = previewLabCaseById("audio.mix.two-tracks");
     const videoPlusMusic = previewLabCaseById("audio.mix.video-plus-music");
@@ -132,6 +177,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     const groups = previewLabGroups();
     expect(groups.map((group) => group.label)).toEqual([
       "Primitives",
+      "HTML compiler / Phase 2",
+      "HTML compiler / Phase 3",
       "Primitives / rounded",
       "Transforms & 3D",
       "Groups",
@@ -177,7 +224,7 @@ describe("Protocol V2 preview lab fixtures", () => {
         id: "clip-mask-group",
         type: "group",
         composite: {
-          mask: { mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only" },
+          masks: [{ mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
         },
       },
       { id: "clip-mask-ellipse", parentLayerId: "clip-mask-group", type: "shape" },
@@ -198,7 +245,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     const fixture = previewLabCaseById("composite.mask.alpha");
     expect(fixture.project.layers[0]).toMatchObject({
       id: "alpha-mask-group",
-      composite: { mask: { mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only" } },
+      composite: { masks: [{ mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
     });
     expect(fixture.project.layers[1]).toMatchObject({
       id: "alpha-mask-ellipse",
@@ -216,7 +263,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     const fixture = previewLabCaseById("composite.mask.inverse-alpha");
     expect(fixture.project.layers[0]).toMatchObject({
       id: "inverse-alpha-mask-group",
-      composite: { mask: { mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only" } },
+      composite: { masks: [{ mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
     });
     const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
     expect(buffer.commands).toContainEqual(expect.objectContaining({
@@ -230,7 +277,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     const fixture = previewLabCaseById("composite.mask.luma");
     expect(fixture.project.layers[0]).toMatchObject({
       id: "luma-mask-group",
-      composite: { mask: { mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only" } },
+      composite: { masks: [{ mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
     });
     expect(fixture.project.layers[1]).toMatchObject({ style: { fill: "#808080" } });
     const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });

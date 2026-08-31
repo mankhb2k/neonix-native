@@ -71,6 +71,7 @@ The detailed protocol and renderer contract is documented in
 | Package | Responsibility |
 | --- | --- |
 | [`motion-protocol`](packages/motion-protocol) | Strict Protocol V2 schemas, asset/layer vocabulary, and capability ledgers. |
+| [`html-compiler`](packages/html-compiler) | HTML/CSS authoring source boundary; future cascade/layout/paint lowering into Atomic Protocol V2. |
 | [`motion-compiler`](packages/motion-compiler) | Validates and lowers Protocol V2 into Runtime V2 IR. |
 | [`motion-runtime`](packages/motion-runtime) | Deterministic visual frame evaluation, Matrix4 transforms, paint commands, and audio mix plans. |
 | [`editor-core`](packages/editor-core) | Framework-independent document commands, selection, timeline projection, and interaction algorithms. |

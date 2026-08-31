@@ -10,7 +10,6 @@ import {
   type Matrix4,
   type RuntimeVisualProjectV3,
   type RuntimeEffect,
-  evaluateVisualRuntimeProject,
   type VisualRuntimeNode,
   type VisualRuntimeProject,
   type VisualRuntimeMask,
@@ -26,6 +25,17 @@ import {
 import { isCompilerFeatureSupported } from "./capabilities";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
+/** Protocol V2 stores all authoring time values in milliseconds. */
+const MILLISECONDS_TO_SECONDS = 1 / 1000;
+const toRuntimeSeconds = (milliseconds: number): number => milliseconds * MILLISECONDS_TO_SECONDS;
+type ProtocolLayer = MotionProtocolV2["layers"][number];
+type ProtocolEffect = NonNullable<
+  ProtocolLayer extends infer Layer
+    ? Layer extends { effects?: infer Effects }
+      ? Effects
+      : never
+    : never
+>[number];
 
 function viewProjectionMatrix4(project: MotionProtocolV2): {
   worldToClipMatrix: Matrix4;
@@ -71,36 +81,24 @@ const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
 const DEFAULT_PATH_STROKE_WIDTH = 1;
 
 function lowerEffects(
-  effects: Array<{
-    id: string;
-    type: "color-adjust" | "blur" | "drop-shadow" | "outer-glow" | "inner-glow" | "noise";
-    brightness?: number;
-    contrast?: number;
-    saturation?: number;
-    hueRotate?: number;
-    radius?: number;
-    x?: number;
-    y?: number;
-    blur?: number;
-    color?: string;
-    opacity?: number;
-    scale?: number;
-    amount?: number;
-    seed?: number;
-  }> | undefined,
+  effects: ProtocolEffect[] | undefined,
 ): RuntimeEffect[] | undefined {
   if (!effects?.length) return undefined;
   // Preserve authoring order. A later effect always receives the prior result.
   return effects.map((effect) => {
     const capability = effect.type === "blur"
       ? "effect.blur"
-      : effect.type === "drop-shadow"
-        ? "effect.drop-shadow"
+      : effect.type === "shadow"
+        ? "effect.shadow"
         : effect.type === "outer-glow"
           ? "effect.outer-glow"
           : effect.type === "inner-glow"
             ? "effect.inner-glow"
-          : effect.type === "noise" ? "effect.noise" : "effect.color-adjust";
+            : effect.type === "noise"
+              ? "effect.noise"
+              : effect.type === "color-adjust"
+                ? "effect.color-adjust"
+                : `effect.${effect.type}`;
     if (!isV2AtomCertified(capability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
     }
@@ -108,7 +106,7 @@ function lowerEffects(
   });
 }
 
-function lowerBlendMode(layer: MotionProtocolV2["layers"][number]): "normal" | "multiply" | "screen" | "add" {
+function lowerBlendMode(layer: ProtocolLayer): VisualRuntimeNode["blendMode"] {
   const blendMode = layer.composite?.blendMode ?? "normal";
   const capability = `composite.blend.${blendMode}`;
   if (!isV2AtomCertified(capability)) {
@@ -121,8 +119,15 @@ function lowerMask(
   layer: MotionProtocolV2["layers"][number],
   layersById: ReadonlyMap<string, MotionProtocolV2["layers"][number]>,
 ): VisualRuntimeMask | undefined {
-  const mask = layer.composite?.mask;
-  if (!mask) return undefined;
+  const masks = layer.composite?.masks;
+  if (!masks?.length) return undefined;
+  if (masks.length > 1) {
+    throw new Error(`Protocol V2 multi-mask runtime lowering is not implemented yet: ${layer.id}`);
+  }
+  const mask = masks[0]!;
+  if (mask.composite !== "add") {
+    throw new Error(`Protocol V2 mask composite operator is not implemented yet: ${mask.composite}`);
+  }
   if (layer.type !== "group") {
     throw new Error(`Protocol V2 mask must target a group: ${layer.id}`);
   }
@@ -134,7 +139,7 @@ function lowerMask(
   if (!source || source.parentLayerId !== layer.id || source.type === "group" || (mask.mode === "clip" && source.type !== "shape")) {
     throw new Error(`Protocol V2 ${mask.mode} mask source is invalid: ${layer.id}`);
   }
-  return { mode: mask.mode, sourceId: source.id };
+  return { mode: mask.mode, sourceId: source.id, composite: mask.composite };
 }
 
 type LayerContext = {
@@ -171,10 +176,10 @@ function compileVisualRuntimeInternal(
           visible: true,
           timing: { start: 0, duration: Number.POSITIVE_INFINITY },
         };
-    const start = parentContext.timing.start + layer.timing.start;
+    const start = parentContext.timing.start + toRuntimeSeconds(layer.timing.start);
     const end = Math.min(
       parentContext.timing.start + parentContext.timing.duration,
-      start + layer.timing.duration,
+      start + toRuntimeSeconds(layer.timing.duration),
     );
     const context: LayerContext = {
       localMatrix,
@@ -183,7 +188,7 @@ function compileVisualRuntimeInternal(
       // preserves group nodes so it can flatten their subtree and apply that
       // alpha exactly once at the compositing boundary.
       opacity: layer.opacity,
-      visible: parentContext.visible && layer.opacity > 0 && end > start,
+      visible: parentContext.visible && layer.enabled !== false && layer.opacity > 0 && end > start,
       timing: { start, duration: Math.max(0, end - start) },
     };
     contextCache.set(layer.id, context);
@@ -192,6 +197,24 @@ function compileVisualRuntimeInternal(
 
   const nodes = project.layers.map((layer): VisualRuntimeNode | null => {
     const context = resolveLayerContext(layer);
+    for (const capability of [
+      ...(layer.enabled !== undefined ? ["layer.enabled"] : []),
+      ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
+    ]) {
+      if (!isV2AtomCertified(capability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+      }
+    }
+    if (layer.type === "group" && layer.render3d) {
+      for (const capability of [
+        "group.render3d.transformStyle",
+        ...(layer.render3d.perspective ? ["group.render3d.perspective"] : []),
+      ]) {
+        if (!isV2AtomCertified(capability)) {
+          throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+        }
+      }
+    }
     const blendMode = lowerBlendMode(layer);
     if (layer.type === "group") {
       for (const capability of [
@@ -213,6 +236,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        backfaceVisibility: layer.backfaceVisibility,
         ...(mask ? { mask } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -221,6 +245,7 @@ function compileVisualRuntimeInternal(
           kind: "group",
           width: layer.frame.width,
           height: layer.frame.height,
+          ...(layer.render3d ? { render3d: layer.render3d } : {}),
         },
       };
     }
@@ -248,6 +273,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -293,6 +319,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -303,14 +330,14 @@ function compileVisualRuntimeInternal(
           width: layer.frame.width,
           height: layer.frame.height,
           ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
-          trimStart: layer.payload.trimStart ?? 0,
+          trimStart: toRuntimeSeconds(layer.payload.trimStart ?? 0),
           ...(layer.payload.trimEnd !== undefined
-            ? { trimEnd: layer.payload.trimEnd }
+            ? { trimEnd: toRuntimeSeconds(layer.payload.trimEnd) }
             : asset?.kind === "video" && asset.duration !== undefined
-              ? { trimEnd: asset.duration }
+              ? { trimEnd: toRuntimeSeconds(asset.duration) }
               : {}),
           ...(asset?.kind === "video" && asset.duration !== undefined
-            ? { sourceDuration: asset.duration }
+            ? { sourceDuration: toRuntimeSeconds(asset.duration) }
             : {}),
           sourceFps,
           // Native video audio is never an output path. Embedded audio is
@@ -322,22 +349,25 @@ function compileVisualRuntimeInternal(
       };
     }
     if (layer.type === "text") {
+      const firstRun = layer.payload.layout.runs[0]!;
+      const sourceText = layer.payload.source?.text ?? "";
+      const textFontAssetId = firstRun.font.assetId;
+      const textLineHeight = layer.frame.height / Math.max(1, layer.payload.layout.lines.length);
       for (const capability of [
         "text.transform",
         "text.timing",
         "text.opacity",
         "text.order",
         "text.font",
-        layer.payload.text.includes("\n") ? "text.layout.multiline" : "text.layout.singleLine",
-        "text.align",
-        "text.verticalAlign",
+        layer.payload.layout.lines.length > 1 ? "text.layout.multiline" : "text.layout.singleLine",
+        "text.layout.glyphs",
         "text.fill",
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
       }
-      const asset = project.assets?.find((candidate) => candidate.id === layer.payload.fontAssetId);
+      const asset = project.assets?.find((candidate) => candidate.id === textFontAssetId);
       if (asset?.kind !== "font") {
         throw new Error(`Protocol V2 text layer ${layer.id} references a non-font asset`);
       }
@@ -349,25 +379,26 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
         content: {
           kind: "text" as const,
-          text: layer.payload.text,
-          fontAssetId: layer.payload.fontAssetId,
+          text: sourceText,
+          fontAssetId: textFontAssetId,
           fontUri: asset.uri,
           fontIntegrity: asset.integrity,
-          fontSize: layer.payload.fontSize,
-          lineHeight: layer.payload.lineHeight,
-          letterSpacing: layer.payload.letterSpacing,
-          align: layer.payload.align,
-          verticalAlign: layer.payload.verticalAlign,
-          wrap: layer.payload.wrap,
-          overflow: layer.payload.overflow,
-          direction: layer.payload.direction,
-          language: layer.payload.language,
-          fill: layer.style.fill,
+          fontSize: firstRun.font.size,
+          lineHeight: textLineHeight,
+          letterSpacing: 0,
+          align: "left",
+          verticalAlign: "top",
+          wrap: "none",
+          overflow: "visible",
+          direction: "ltr",
+          language: layer.payload.source?.language ?? "und",
+          fill: firstRun.fill,
           width: layer.frame.width,
           height: layer.frame.height,
           ...(effects ? { effects } : {}),
@@ -448,6 +479,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -547,6 +579,7 @@ function compileVisualRuntimeInternal(
       timing: context.timing,
       opacity: context.opacity,
       blendMode,
+      backfaceVisibility: layer.backfaceVisibility,
       visible: context.visible,
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,

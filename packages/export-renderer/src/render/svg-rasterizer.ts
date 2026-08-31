@@ -121,7 +121,7 @@ export function paintCommandsToSvg(buffer: PaintCommandBuffer): string {
       pending = null;
       continue;
     }
-    body.push(`<g transform="${transform(pending.matrix4)}" opacity="${opacity(pending.alpha)}"${pending.blendMode && pending.blendMode !== "normal" ? ` style="mix-blend-mode:${pending.blendMode === "add" ? "plus-lighter" : pending.blendMode}"` : ""}>${draw(drawCommand)}</g>`);
+    body.push(`<g transform="${transform(pending.matrix4)}" opacity="${opacity(pending.alpha)}"${pending.blendMode && pending.blendMode !== "normal" ? ` style="mix-blend-mode:${pending.blendMode}"` : ""}>${draw(drawCommand)}</g>`);
     pending = null;
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${first.width}" height="${first.height}" viewBox="0 0 ${first.width} ${first.height}">${body.join("")}</svg>`;

@@ -5,6 +5,7 @@ import {
   V2IdSchema,
   V2NonNegativeNumberSchema,
 } from "./common";
+import { V2Vec2Schema } from "./transform";
 
 /**
  * Atomic render operators are ordered and apply to the already-rasterized
@@ -74,18 +75,43 @@ export const V2BlurEffectSchema = z
   })
   .strict();
 
-/** Projected screen-space shadow. `blur` is Gaussian sigma in output pixels. */
-export const V2DropShadowEffectSchema = z
+/**
+ * CSS box-shadow and filter drop-shadow share one readable atomic. `source`
+ * keeps their geometry semantics explicit: box shadows use the layer border
+ * box, while alpha shadows use the layer's rendered alpha silhouette.
+ */
+export const V2ShadowSourceSchema = z.enum(["box", "alpha"]);
+
+const V2ShadowEffectObjectSchema = z
   .object({
     id: V2IdSchema,
-    type: z.literal("drop-shadow"),
-    x: V2FiniteNumberSchema,
-    y: V2FiniteNumberSchema,
+    type: z.literal("shadow"),
+    source: V2ShadowSourceSchema,
+    offset: V2Vec2Schema,
+    /** Gaussian blur radius in the layer's resolved rendering units. */
     blur: V2NonNegativeNumberSchema.max(256),
+    /** Signed expansion/contraction applied before blur; CSS spread semantics. */
+    spread: V2FiniteNumberSchema,
     color: V2ColorSchema,
-    opacity: V2FiniteNumberSchema.min(0).max(1),
+    /** Inside-only shadow; valid for box shadows and false for alpha shadows. */
+    inset: z.boolean(),
   })
   .strict();
+
+const V2BoxShadowEffectSchema = V2ShadowEffectObjectSchema.extend({
+  source: z.literal("box"),
+}).strict();
+
+const V2AlphaShadowEffectSchema = V2ShadowEffectObjectSchema.extend({
+  source: z.literal("alpha"),
+  spread: z.literal(0),
+  inset: z.literal(false),
+}).strict();
+
+export const V2ShadowEffectSchema = z.discriminatedUnion("source", [
+  V2BoxShadowEffectSchema,
+  V2AlphaShadowEffectSchema,
+]);
 
 /** Projected screen-space halo derived from the final layer alpha. */
 export const V2OuterGlowEffectSchema = z
@@ -126,14 +152,14 @@ export const V2NoiseEffectSchema = z
   })
   .strict();
 
-export const V2EffectSchema = z.discriminatedUnion("type", [
+export const V2EffectSchema = z.union([
   V2ColorAdjustEffectSchema,
   V2GrayscaleEffectSchema,
   V2SepiaEffectSchema,
   V2InvertEffectSchema,
   V2FilterOpacityEffectSchema,
   V2BlurEffectSchema,
-  V2DropShadowEffectSchema,
+  V2ShadowEffectSchema,
   V2OuterGlowEffectSchema,
   V2InnerGlowEffectSchema,
   V2NoiseEffectSchema,
@@ -162,7 +188,8 @@ export type V2SepiaEffect = z.infer<typeof V2SepiaEffectSchema>;
 export type V2InvertEffect = z.infer<typeof V2InvertEffectSchema>;
 export type V2FilterOpacityEffect = z.infer<typeof V2FilterOpacityEffectSchema>;
 export type V2BlurEffect = z.infer<typeof V2BlurEffectSchema>;
-export type V2DropShadowEffect = z.infer<typeof V2DropShadowEffectSchema>;
+export type V2ShadowSource = z.infer<typeof V2ShadowSourceSchema>;
+export type V2ShadowEffect = z.infer<typeof V2ShadowEffectSchema>;
 export type V2OuterGlowEffect = z.infer<typeof V2OuterGlowEffectSchema>;
 export type V2InnerGlowEffect = z.infer<typeof V2InnerGlowEffectSchema>;
 export type V2NoiseEffect = z.infer<typeof V2NoiseEffectSchema>;

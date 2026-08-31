@@ -402,6 +402,7 @@ type VisualLayerBaseV2 = {
     anchor: { x: number; y: number; z: number };
   };
   opacity: number; // 0..1, default 1
+  enabled?: boolean; // editor/runtime state, omitted means true
   timing: { start: number; duration: number }; // composition milliseconds
   tracks?: TrackV2[]; // typed keyframes in local milliseconds
   composite?: {
@@ -411,11 +412,12 @@ type VisualLayerBaseV2 = {
       | "soft-light" | "hard-light" | "difference" | "exclusion"
       | "hue" | "saturation" | "color" | "luminosity";
     isolation?: "auto" | "isolate";
-    mask?: {
+    masks?: Array<{
       mode: "clip" | "alpha" | "inverse-alpha" | "luma";
       sourceLayerId: string;
       sourceVisibility: "mask-only";
-    };
+      composite: "add" | "subtract" | "intersect" | "exclude";
+    }>;
   };
   effects?: EffectV2[];
 };
@@ -433,9 +435,19 @@ implicit camera. Masking is group-local: its source must be a direct drawable
 child; `clip` requires a shape source, while alpha, inverse-alpha, and luma can
 use a drawable source. Mask sources are emitted as `mask-only`.
 
+The ordered `masks[]` form represents CSS multi-mask composition. Its
+`add`, `subtract`, `intersect`, and `exclude` operators are runtime atoms and
+must be evaluated against the accumulated mask in order; group nesting is not
+an implicit substitute.
+
 Blend modes use the CSS canonical names in Protocol V2 and are evaluated by
 the runtime against source and backdrop pixels; they are not lowered to a
 color matrix. `isolation` is a separate compositing boundary.
+
+`enabled` is an editor/runtime state rather than CSS `display` or
+`visibility`. CSS display/visibility resolution remains a compiler concern;
+the protocol keeps a layer when an editor needs a discrete enable/disable
+state or track.
 
 Each layer may carry an optional `tracks[]` list. A track addresses one
 animatable leaf property with a typed dot-separated path and strictly ordered
@@ -454,11 +466,17 @@ The following is the entire currently defined V2 visual layer vocabulary.
 | `path` | `payload.contours[]` with line/cubic segments, `fillRule`, optional topology-matched `morph`; fill/stroke style | Nonzero/evenodd fills, multiple contours/holes, fixed-width strokes, miter/bevel/round joins, butt/square/round caps, dash array/offset, and morph interpolation before tessellation |
 | `image` | `payload.assetId`, optional `fit` and normalized `crop` | Image asset lookup, `contain`, `cover`, `fill`, `none`, crop, plus shared transform/timing/opacity/order |
 | `video` | `payload.assetId`, optional `fit`, `trimStart`, `trimEnd`, `audio`, `framePolicy` | Deterministic media-time selection; `floor`, `round`, or `ceil` frame policy; trim, embedded-audio intent, fit, and shared fields |
-| `text` | NFC `text`, `fontAssetId`, font size, line height, letter spacing, alignment, vertical alignment, language, fill | Explicit font asset, single-style LTR text, no-wrap/visible overflow layout, single or newline-separated lines, left/center/right and top/middle/bottom alignment, solid fill, plus shared fields |
+| `text` | Required `payload.layout`: visual lines, glyph runs, positioned glyphs; optional source metadata | Exact font asset/variation instance per run, visual glyph paint order, bidi/fallback/wrapping/rich spans already resolved, plus shared fields |
 
-`text` intentionally does **not** accept RTL, variable-font axes, rich text,
-word wrapping, clipping, gradient fill, or text stroke. Those are not hidden
-fallback behaviors.
+Text accepts no CSS text-layout syntax such as `white-space`, `direction`,
+`font-family`, `word-break`, or inline markup. The text compiler/shaper
+resolves those inputs to positioned glyphs before emitting V2. `runs[]` carries
+the exact font asset, optional variation coordinates, fill, and glyph IDs;
+`lines[].runIds` determines visual paint order. The optional `source` object is
+editor metadata only and never controls rendering. Runtime receives the chosen
+font instance and glyph IDs, then performs glyph-outline lookup/cache,
+tessellation or atlas generation, and drawing. It does not rerun CSS text
+layout. Text decoration is lowered to regular shape/path layers.
 
 ### 3.4 Effects
 
@@ -474,7 +492,7 @@ eight effects with unique ids may be attached to a drawable.
 | `invert` | amount (`0..1`) | CSS invert semantic filter |
 | `filter-opacity` | amount (`0..1`) | CSS opacity filter, distinct from layer opacity |
 | `blur` | radius | Gaussian spatial blur in output pixels |
-| `drop-shadow` | x, y, blur, color, opacity | Alpha-derived projected shadow |
+| `shadow` | source (`box` or `alpha`), offset, blur, signed spread, color, inset | CSS box-shadow or alpha-derived filter drop-shadow |
 | `outer-glow` | radius, color, opacity | Alpha-derived exterior glow |
 | `inner-glow` | radius, color, opacity | Alpha-derived interior glow |
 | `noise` | scale, amount, opacity, seed | Deterministic seeded grain |
@@ -483,10 +501,17 @@ Spatial effects and group compositing create explicit isolated/offscreen
 surfaces in Runtime IR. Preview/export render those surfaces; they do not
 recalculate a source layer's transforms.
 
+`shadow` is the single canonical shadow atom. `source: "box"` is CSS
+`box-shadow` and permits signed `spread` plus `inset`; `source: "alpha"` is
+CSS `filter: drop-shadow()` and requires `spread: 0` and `inset: false`.
+Multiple shadow entries retain `effects[]` order, but each entry samples the
+original layer source surface rather than the previously generated shadow.
+Alpha belongs in `color`, including its `#RRGGBBAA` component.
+
 Semantic color filters remain readable in Protocol V2. A later
 compiler/runtime stage may lower contiguous color-filter runs to a fused
 Mat4x5 color matrix, but effect order must remain unchanged across spatial
-effects such as `blur` and `drop-shadow`.
+effects such as `blur` and `shadow`.
 
 ### 3.5 Audio atomic design
 

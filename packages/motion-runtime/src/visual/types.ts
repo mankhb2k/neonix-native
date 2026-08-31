@@ -19,7 +19,7 @@ export type VisualRuntimeComposition = {
   width: number;
   height: number;
   fps: number;
-  /** Compiler V2 emits the max visual/audio end time. */
+  /** Runtime time in seconds; the V2 compiler converts protocol milliseconds. */
   duration?: number;
   background?: string;
   graphId: string;
@@ -31,16 +31,34 @@ export type VisualRuntimeView = {
 };
 
 export type VisualRuntimeTiming = {
+  /** Runtime time values in seconds; Protocol V2 authoring values are ms. */
   start: number;
   duration: number;
 };
 
-export type VisualRuntimeBlendMode = "normal" | "multiply" | "screen" | "add";
+export type VisualRuntimeBlendMode =
+  | "normal"
+  | "darken"
+  | "multiply"
+  | "color-burn"
+  | "lighten"
+  | "screen"
+  | "color-dodge"
+  | "overlay"
+  | "soft-light"
+  | "hard-light"
+  | "difference"
+  | "exclusion"
+  | "hue"
+  | "saturation"
+  | "color"
+  | "luminosity";
 
 /** Runtime-normalized group mask relation. */
 export type VisualRuntimeMask = {
   mode: "clip" | "alpha" | "inverse-alpha" | "luma";
   sourceId: string;
+  composite?: "add" | "subtract" | "intersect" | "exclude";
 };
 
 export type VisualRuntimeShape = {
@@ -144,6 +162,11 @@ export type VisualRuntimeGroup = {
   kind: "group";
   width: number;
   height: number;
+  /** Runtime marker for CSS transform-style/perspective subtree handling. */
+  render3d?: {
+    transformStyle: "flat" | "preserve-3d";
+    perspective?: { distance: number; origin: { x: number; y: number } };
+  };
 };
 
 export type VisualRuntimeNode = {
@@ -155,6 +178,8 @@ export type VisualRuntimeNode = {
   opacity: number;
   /** Omitted only for older in-memory Runtime test fixtures; Compiler V2 emits it. */
   blendMode?: VisualRuntimeBlendMode;
+  /** Compiler-preserved CSS backface-visibility state. */
+  backfaceVisibility?: "visible" | "hidden";
   mask?: VisualRuntimeMask;
   visible: boolean;
   localMatrix: Matrix4;

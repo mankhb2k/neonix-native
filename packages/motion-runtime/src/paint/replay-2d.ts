@@ -6,7 +6,7 @@
 
 import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
-import type { PaintFill } from "./paint-types";
+import type { PaintBlendMode, PaintFill } from "./paint-types";
 
 export type ReplayGradient = {
   addColorStop(offset: number, color: string): void;
@@ -125,6 +125,11 @@ export type Canvas2DReplayContext = {
     y1: number,
     r1: number,
   ): ReplayGradient;
+  createConicGradient?(
+    startAngle: number,
+    x: number,
+    y: number,
+  ): ReplayGradient;
   fillStyle: ReplayFillStyle;
   strokeStyle: ReplayFillStyle;
   font: string;
@@ -186,23 +191,30 @@ function applyFill(
     ctx.fillStyle = gradient;
     return;
   }
+  if (fillPaint?.type === "conic-gradient" && fillPaint.stops.length) {
+    if (!ctx.createConicGradient) {
+      throw new Error("Canvas2D replay requires createConicGradient for conic-gradient paint");
+    }
+    const startAngle = ((fillPaint.from ?? 0) * Math.PI) / 180;
+    const cx = (fillPaint.cx ?? 0.5) * width;
+    const cy = (fillPaint.cy ?? 0.5) * height;
+    const gradient = ctx.createConicGradient(startAngle, cx, cy);
+    for (const stop of fillPaint.stops) {
+      gradient.addColorStop(stop.offset, stop.color);
+    }
+    ctx.fillStyle = gradient;
+    return;
+  }
   ctx.fillStyle = hexColor(
     fill ?? (fillPaint?.type === "solid" ? fillPaint.color : undefined),
   );
 }
 
 function blendOp(
-  mode:
-    | "normal"
-    | "multiply"
-    | "screen"
-    | "add"
-    | undefined,
+  mode: PaintBlendMode | undefined,
 ): string {
-  if (mode === "multiply") return "multiply";
-  if (mode === "screen") return "screen";
-  if (mode === "add") return "lighter";
-  return "source-over";
+  if (!mode || mode === "normal") return "source-over";
+  return mode;
 }
 
 function strokePathContours(

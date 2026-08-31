@@ -7,7 +7,7 @@ const MUSIC_ASSET: V2AudioAsset = {
   kind: "audio",
   uri: "/api/docs/audio",
   mimeType: "audio/mpeg",
-  duration: 124.551837,
+  duration: 124_551.837,
   sampleRate: 44100,
   channels: 2,
 };
@@ -19,28 +19,35 @@ const VIDEO_AUDIO_ASSET: V2VideoAsset = {
   mimeType: "video/mp4",
   width: 1920,
   height: 1080,
-  duration: 60.5,
+  duration: 60_500,
   fps: 30,
   audio: {
     uri: "/api/docs/audio",
     mimeType: "audio/mpeg",
-    duration: 60.5,
+    duration: 60_500,
     sampleRate: 48000,
     channels: 2,
   },
 };
 
 function clip(id: string, overrides: Partial<V2AudioClip> = {}): V2AudioClip {
+  const { timing, trim, fadeIn, fadeOut, ...otherOverrides } = overrides;
   return {
     id,
     assetId: MUSIC_ASSET.id,
-    timing: { start: 0, duration: 4 },
-    trim: { start: 0 },
+    timing: timing
+      ? { start: timing.start * 1000, duration: timing.duration * 1000 }
+      : { start: 0, duration: 4000 },
+    trim: trim
+      ? { start: trim.start * 1000, ...(trim.end === undefined ? {} : { end: trim.end * 1000 }) }
+      : { start: 0 },
     playbackRate: 1,
     enabled: true,
     gainDb: 0,
     pan: 0,
-    ...overrides,
+    ...otherOverrides,
+    ...(fadeIn ? { fadeIn: { ...fadeIn, duration: fadeIn.duration * 1000 } } : {}),
+    ...(fadeOut ? { fadeOut: { ...fadeOut, duration: fadeOut.duration * 1000 } } : {}),
   };
 }
 

@@ -13,12 +13,16 @@ export {
   V2IsolationModeSchema,
   V2CompositeSchema,
   V2MaskModeSchema,
-  V2MaskSchema,
+  V2MaskCompositeOperatorSchema,
+  V2MaskLayerSchema,
+  V2MaskStackSchema,
   type V2Frame,
   type V2BlendMode,
   type V2IsolationMode,
   type V2MaskMode,
-  type V2Mask,
+  type V2MaskCompositeOperator,
+  type V2MaskLayer,
+  type V2MaskStack,
 } from "./base";
 export {
   V2AnimatableValueSchema,
@@ -46,7 +50,22 @@ export {
   type V2GradientStop,
   type V2ShapeLayer,
 } from "./shape";
-export { V2TextLayerSchema, type V2TextLayer } from "./text";
+export {
+  V2TextFontInstanceSchema,
+  V2PositionedGlyphSchema,
+  V2GlyphRunSchema,
+  V2TextLineSchema,
+  V2TextLayoutSchema,
+  V2TextSourceSchema,
+  V2TextLayerSchema,
+  type V2TextFontInstance,
+  type V2PositionedGlyph,
+  type V2GlyphRun,
+  type V2TextLine,
+  type V2TextLayout,
+  type V2TextSource,
+  type V2TextLayer,
+} from "./text";
 export { V2PathContourSchema, V2PathLayerSchema, type V2PathLayer } from "./path";
 export { V2VideoFramePolicySchema, V2VideoLayerSchema, type V2VideoFramePolicy, type V2VideoLayer } from "./video";
 export {

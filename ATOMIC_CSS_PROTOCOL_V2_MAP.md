@@ -41,7 +41,7 @@ semantics thuộc high-level compiler.
 | SVG path | path | path | ✅ |
 | clip-path | mask / path | mask | ✅ |
 | simple alpha/luma mask | mask | mask | ✅ |
-| multi-mask composite | compositing op | cần kiểm tra | ⚠️ |
+| multi-mask composite | compositing op | `composite.masks[].composite` (`add` / `subtract` / `intersect` / `exclude`) | ✅ protocol; runtime pending |
 | blur | effect | blur | ✅ |
 | brightness | effect | color-adjust | ✅ |
 | contrast | effect | color-adjust | ✅ |
@@ -51,17 +51,18 @@ semantics thuộc high-level compiler.
 | sepia | semantic effect → color matrix | `effects[].type: "sepia"` | ✅ protocol |
 | invert | semantic effect → color matrix | `effects[].type: "invert"` | ✅ protocol |
 | filter opacity | ordered effect chain | `effects[].type: "filter-opacity"` | ✅ protocol |
-| basic box shadow | effect | `drop-shadow` | ✅ |
-| shadow spread | effect | thiếu | ⚠️ |
-| inset shadow | effect | chưa tương đương | ⚠️ |
+| basic box shadow | effect | `shadow` với `source: "box"` | ✅ protocol |
+| shadow spread | effect | `shadow.spread` (signed) | ✅ protocol |
+| inset shadow | effect | `shadow.inset` | ✅ protocol |
+| filter `drop-shadow()` | effect | `shadow` với `source: "alpha"`, `spread: 0`, `inset: false` | ✅ protocol |
 | mix-blend-mode | blend operation | `composite.blendMode` (CSS canonical enum) | ✅ protocol |
 | isolation | compositing boundary | `composite.isolation` | ✅ protocol |
-| text CSS layout | glyph positions | compiler | ✅ concept |
-| basic text rendering | glyph / text primitive | text | ✅ |
-| wrapping | glyph layout output | Atomic hiện chưa đủ | ⚠️ |
-| bidi | glyph runs | Atomic hiện chưa đủ | ⚠️ |
-| rich inline style | multiple glyph runs | Atomic hiện chưa đủ | ⚠️ |
-| variable font | resolved font instance / glyphs | partial | ⚠️ |
+| text CSS layout | visual lines + positioned glyphs | text compiler/shaper → `payload.layout` | ✅ protocol |
+| basic text rendering | glyph ID + selected font instance | `GlyphRun.glyphs[]` + `font` | ✅ protocol |
+| wrapping | resolved line/run output | `layout.lines[]` / `runIds` | ✅ protocol |
+| bidi | visually ordered glyph runs | `layout.lines[].runIds` | ✅ protocol |
+| rich inline style | multiple glyph runs | `layout.runs[]` | ✅ protocol |
+| variable font | resolved font instance / glyphs | `run.font.variations` | ✅ protocol |
 
 Gradient protocol note: `linear-gradient`, `radial-gradient`, and
 `conic-gradient` accept at least two normalized color stops. Stop offsets are

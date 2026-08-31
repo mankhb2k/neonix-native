@@ -6,6 +6,7 @@
 import type { RuntimeEffectProgram } from "../visual/effect-program";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
+import type { PaintBlendMode } from "./paint-types";
 
 export type PaintTransformState = {
   key: string;
@@ -13,7 +14,7 @@ export type PaintTransformState = {
   alpha: number;
   visible: boolean;
   order: number;
-  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
+  blendMode?: PaintBlendMode;
 };
 
 export type PaintLayerScope = {

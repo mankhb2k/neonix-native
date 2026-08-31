@@ -387,17 +387,19 @@ export function SchemaInspector() {
     const fonts = document.assets
       .filter((asset) => asset.kind === "font")
       .map((asset) => ({ value: asset.id, label: asset.family }));
-    if (selected?.type === "text" && !fonts.some((option) => option.value === selected.payload.fontAssetId)) {
-      fonts.unshift({ value: selected.payload.fontAssetId, label: selected.payload.fontAssetId });
+    const fontAssetId = selected?.type === "text" ? selected.payload.layout.runs[0]?.font.assetId : undefined;
+    if (fontAssetId && !fonts.some((option) => option.value === fontAssetId)) {
+      fonts.unshift({ value: fontAssetId, label: fontAssetId });
     }
     return fonts;
   }, [document.assets, selected]);
   const languageOptions = useMemo(() => {
-    if (selected?.type !== "text" || SHIPPED_TEXT_LANGUAGES.some((option) => option.value === selected.payload.language)) {
+    const language = selected?.type === "text" ? (selected.payload.source?.language ?? "und") : undefined;
+    if (selected?.type !== "text" || SHIPPED_TEXT_LANGUAGES.some((option) => option.value === language)) {
       return SHIPPED_TEXT_LANGUAGES;
     }
     // Keep imported/custom protocol documents editable without silently rewriting their language.
-    return [{ value: selected.payload.language, label: `${selected.payload.language} (custom)` }, ...SHIPPED_TEXT_LANGUAGES];
+    return [{ value: language!, label: `${language} (custom)` }, ...SHIPPED_TEXT_LANGUAGES];
   }, [selected]);
 
   const patchLayer = (patch: LayerPatch) => {
@@ -591,11 +593,23 @@ export function SchemaInspector() {
           value={selected.composite?.blendMode ?? "normal"}
           options={[
             { value: "normal", label: "Normal" },
+            { value: "darken", label: "Darken" },
             { value: "multiply", label: "Multiply" },
+            { value: "color-burn", label: "Color burn" },
+            { value: "lighten", label: "Lighten" },
             { value: "screen", label: "Screen" },
-            { value: "add", label: "Add" },
+            { value: "color-dodge", label: "Color dodge" },
+            { value: "overlay", label: "Overlay" },
+            { value: "soft-light", label: "Soft light" },
+            { value: "hard-light", label: "Hard light" },
+            { value: "difference", label: "Difference" },
+            { value: "exclusion", label: "Exclusion" },
+            { value: "hue", label: "Hue" },
+            { value: "saturation", label: "Saturation" },
+            { value: "color", label: "Color" },
+            { value: "luminosity", label: "Luminosity" },
           ]}
-          onChange={(value) => patchLayer({ composite: { blendMode: value as "normal" | "multiply" | "screen" | "add" } })}
+          onChange={(value) => patchLayer({ composite: { blendMode: value as NonNullable<NonNullable<(typeof selected)>["composite"]>["blendMode"] } })}
         />
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">Stack</span>
@@ -622,19 +636,19 @@ export function SchemaInspector() {
       <div className="order-6">
       {selected.type === "text" ? (
         <InspectorSection label="Text" open={openSections.text ?? false} onToggle={() => toggle("text")}>
-          <TextAreaField label="Content" value={selected.payload.text} onCommit={(value) => patchLayer({ payload: { text: value } })} />
-          <InspectorSelect label="Font" value={selected.payload.fontAssetId} options={fontOptions} onChange={(value) => patchLayer({ payload: { fontAssetId: value } })} />
+          <TextAreaField label="Content" value={selected.payload.source?.text ?? ""} onCommit={(value) => patchLayer({ payload: { source: { text: value.normalize("NFC"), language: selected.payload.source?.language ?? "und" } } })} />
+          <InspectorSelect
+            label="Font"
+            value={selected.payload.layout.runs[0]?.font.assetId ?? ""}
+            options={fontOptions}
+            onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, font: { ...run.font, assetId: value } })) } } })}
+          />
           <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Font size" step={1} integer suffix="px" value={selected.payload.fontSize} onChange={(value) => patchLayer({ payload: { fontSize: Math.max(0.001, value) } })} />
-            <NumberField label="Line height" step={1} integer suffix="px" value={selected.payload.lineHeight} onChange={(value) => patchLayer({ payload: { lineHeight: Math.max(0.001, value) } })} />
+            <NumberField label="Font size" step={1} integer suffix="px" value={selected.payload.layout.runs[0]?.font.size ?? 1} onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, font: { ...run.font, size: Math.max(0.001, value) } })) } } })} />
+            <ReadonlyField label="Lines" value={String(selected.payload.layout.lines.length)} />
           </div>
-          <NumberField label="Letter spacing" suffix="px" value={selected.payload.letterSpacing} onChange={(value) => patchLayer({ payload: { letterSpacing: value } })} />
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <InspectorSelect label="Align" value={selected.payload.align} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }]} onChange={(value) => patchLayer({ payload: { align: value as "left" | "center" | "right" } })} />
-            <InspectorSelect label="Vertical" value={selected.payload.verticalAlign} options={[{ value: "top", label: "Top" }, { value: "middle", label: "Middle" }, { value: "bottom", label: "Bottom" }]} onChange={(value) => patchLayer({ payload: { verticalAlign: value as "top" | "middle" | "bottom" } })} />
-          </div>
-          <InspectorSelect label="Language" value={selected.payload.language} options={languageOptions} onChange={(value) => patchLayer({ payload: { language: value } })} />
-          <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
+          <InspectorSelect label="Language" value={selected.payload.source?.language ?? "und"} options={languageOptions} onChange={(value) => patchLayer({ payload: { source: { text: selected.payload.source?.text ?? "", language: value } } })} />
+          <ColorField label="Fill" value={selected.payload.layout.runs[0]?.fill ?? "#ffffff"} onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, fill: value })) } } })} />
         </InspectorSection>
       ) : null}
 
@@ -752,10 +766,11 @@ export function SchemaInspector() {
       {selected.type === "group" ? (
         <InspectorSection label="Group" className="order-9" open={openSections.group ?? false} onToggle={() => toggle("group")}>
           <ReadonlyField label="Parent" value={selected.parentLayerId ?? "Root"} />
-          {selected.composite?.mask ? (
+          {selected.composite?.masks?.[0] ? (
             <>
-              <InspectorSelect label="Mask mode" value={selected.composite.mask.mode} options={[{ value: "clip", label: "Clip" }, { value: "alpha", label: "Alpha" }, { value: "inverse-alpha", label: "Inverse alpha" }, { value: "luma", label: "Luma" }]} onChange={(value) => patchLayer({ composite: { mask: { mode: value as "clip" | "alpha" | "inverse-alpha" | "luma" } } })} />
-              <InspectorSelect label="Mask source" value={selected.composite.mask.sourceLayerId} options={document.layers.filter((layer) => layer.parentLayerId === selected.id).map((layer) => ({ value: layer.id, label: layer.id }))} onChange={(value) => patchLayer({ composite: { mask: { sourceLayerId: value } } })} />
+              <InspectorSelect label="Mask mode" value={selected.composite.masks[0].mode} options={[{ value: "clip", label: "Clip" }, { value: "alpha", label: "Alpha" }, { value: "inverse-alpha", label: "Inverse alpha" }, { value: "luma", label: "Luma" }]} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, mode: value as "clip" | "alpha" | "inverse-alpha" | "luma" } : mask) } })} />
+              <InspectorSelect label="Mask source" value={selected.composite.masks[0].sourceLayerId} options={document.layers.filter((layer) => layer.parentLayerId === selected.id).map((layer) => ({ value: layer.id, label: layer.id }))} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, sourceLayerId: value } : mask) } })} />
+              <InspectorSelect label="Mask composite" value={selected.composite.masks[0].composite} options={[{ value: "add", label: "Add" }, { value: "subtract", label: "Subtract" }, { value: "intersect", label: "Intersect" }, { value: "exclude", label: "Exclude" }]} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, composite: value as "add" | "subtract" | "intersect" | "exclude" } : mask) } })} />
             </>
           ) : (
             <ActionButton
@@ -763,7 +778,7 @@ export function SchemaInspector() {
               disabled={!document.layers.some((layer) => layer.parentLayerId === selected.id)}
               onClick={() => {
                 const child = document.layers.find((layer) => layer.parentLayerId === selected.id);
-                if (child) patchLayer({ composite: { mask: { mode: "alpha", sourceLayerId: child.id, sourceVisibility: "mask-only" } } });
+                if (child) patchLayer({ composite: { masks: [{ mode: "alpha", sourceLayerId: child.id, sourceVisibility: "mask-only", composite: "add" }] } });
               }}
             />
           )}

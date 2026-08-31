@@ -128,6 +128,9 @@ export function createWebGL2Backend(
   const gradientEndLocation = gl.getUniformLocation(programHandle, "u_gradient_end");
   const gradientParamsLocation = gl.getUniformLocation(programHandle, "u_gradient_params");
   const gradientRadiusLocation = gl.getUniformLocation(programHandle, "u_gradient_radius");
+  const gradientStopsLocation = gl.getUniformLocation(programHandle, "u_gradient_stops[0]");
+  const gradientOffsetsLocation = gl.getUniformLocation(programHandle, "u_gradient_offsets[0]");
+  const gradientMetaLocation = gl.getUniformLocation(programHandle, "u_gradient_meta");
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
@@ -487,6 +490,9 @@ export function createWebGL2Backend(
         gl.uniform4fv(gradientEndLocation, gradients.end);
         gl.uniform4fv(gradientParamsLocation, gradients.params);
         gl.uniform4fv(gradientRadiusLocation, gradients.radius);
+        gl.uniform4fv(gradientStopsLocation, gradients.stops);
+        gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
+        gl.uniform4fv(gradientMetaLocation, gradients.meta);
         const stroke = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];

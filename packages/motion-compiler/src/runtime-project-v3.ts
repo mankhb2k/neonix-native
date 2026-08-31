@@ -18,6 +18,9 @@ import {
 } from "./compiler";
 
 const RATE = 48000 as const;
+/** Protocol V2 stores all authoring time values in milliseconds. */
+const MILLISECONDS_TO_SECONDS = 1 / 1000;
+const toRuntimeSeconds = (milliseconds: number): number => milliseconds * MILLISECONDS_TO_SECONDS;
 
 function mediaIdAliases(id: string): readonly string[] {
   return id.startsWith("asset-") ? [id, id.slice("asset-".length)] : [id, `asset-${id}`];
@@ -87,9 +90,9 @@ export function compileProtocol(
           source: { mediaId: asset.mediaId, streamId: stream.streamId },
           timelineStartUs: Math.round(node.timing.start * 1e6),
           timelineDurationUs: Math.round(node.timing.duration * 1e6),
-          sourceStartUs: Math.round((layer.payload.trimStart ?? 0) * 1e6),
+          sourceStartUs: Math.round(toRuntimeSeconds(layer.payload.trimStart ?? 0) * 1e6),
           ...(layer.payload.trimEnd !== undefined
-            ? { sourceEndUs: Math.round(layer.payload.trimEnd * 1e6) }
+            ? { sourceEndUs: Math.round(toRuntimeSeconds(layer.payload.trimEnd) * 1e6) }
             : {}),
           playbackRate: 1,
           framePolicy: layer.payload.framePolicy ?? "floor" as const,
@@ -151,7 +154,7 @@ function buildMediaCatalog(protocol: MotionProtocolV2): RuntimeMediaCatalogV3 {
           video: [{
             streamId: `${asset.id}:video`,
             resource: resource(`${asset.id}:video:original`, "original", asset.uri, asset.mimeType, asset.integrity),
-            durationUs: Math.round((asset.duration ?? 0) * 1e6),
+            durationUs: Math.round(toRuntimeSeconds(asset.duration ?? 0) * 1e6),
             width: asset.width ?? 1,
             height: asset.height ?? 1,
             frameRate: asset.fps ?? protocol.composition.fps,
@@ -162,7 +165,7 @@ function buildMediaCatalog(protocol: MotionProtocolV2): RuntimeMediaCatalogV3 {
                   streamId: `${asset.id}:audio`,
                   resource: resource(`${asset.id}:audio:proxy`, "audio-proxy", asset.audio.uri, asset.audio.mimeType, asset.audio.integrity),
                   durationSamples: secondsToSamples(
-                    asset.audio.duration ?? asset.duration ?? 0,
+                    toRuntimeSeconds(asset.audio.duration ?? asset.duration ?? 0),
                     asset.audio.sampleRate ?? RATE,
                   ),
                   sampleRate: asset.audio.sampleRate ?? RATE,
@@ -179,7 +182,7 @@ function buildMediaCatalog(protocol: MotionProtocolV2): RuntimeMediaCatalogV3 {
             streamId: `${asset.id}:audio`,
             resource: resource(`${asset.id}:audio:original`, "original", asset.uri, asset.mimeType, asset.integrity),
             durationSamples: secondsToSamples(
-              asset.duration ?? 0,
+              toRuntimeSeconds(asset.duration ?? 0),
               asset.sampleRate ?? RATE,
             ),
             sampleRate: asset.sampleRate ?? RATE,
@@ -247,6 +250,7 @@ function compileAudioTimeline(
         `embedded-audio:${layer.id}`,
         catalog,
         { kind: "video", authoringId: layer.id },
+        "runtime-seconds",
       )],
     }];
   });
@@ -259,6 +263,7 @@ function audioClip(
   trackId: string,
   catalog: RuntimeMediaCatalogV3,
   origin: { kind: "video" | "standalone-audio"; authoringId: string },
+  timingUnit: "protocol-milliseconds" | "runtime-seconds" = "protocol-milliseconds",
 ) {
   const asset = findMediaAsset(catalog, clip.assetId);
   const stream = asset?.audio?.[0];
@@ -273,21 +278,27 @@ function audioClip(
     clipId: clip.id,
     trackId,
     source: { mediaId: asset.mediaId, streamId: stream.streamId },
-    timelineStartSample: secondsToSamples(clip.timing.start, RATE),
-    timelineDurationSamples: secondsToSamples(clip.timing.duration, RATE),
-    sourceStartSample: secondsToSamples(clip.trim.start, stream.sampleRate),
+    timelineStartSample: secondsToSamples(
+      timingUnit === "protocol-milliseconds" ? toRuntimeSeconds(clip.timing.start) : clip.timing.start,
+      RATE,
+    ),
+    timelineDurationSamples: secondsToSamples(
+      timingUnit === "protocol-milliseconds" ? toRuntimeSeconds(clip.timing.duration) : clip.timing.duration,
+      RATE,
+    ),
+    sourceStartSample: secondsToSamples(toRuntimeSeconds(clip.trim.start), stream.sampleRate),
     ...(clip.trim.end !== undefined
-      ? { sourceEndSample: secondsToSamples(clip.trim.end, stream.sampleRate) }
+      ? { sourceEndSample: secondsToSamples(toRuntimeSeconds(clip.trim.end), stream.sampleRate) }
       : {}),
     playbackRate: clip.playbackRate,
     gainLinear: gain(clip.gainDb),
     pan: clip.pan,
     muted: !clip.enabled,
     ...(clip.fadeIn
-      ? { fadeIn: { durationSamples: secondsToSamples(clip.fadeIn.duration, RATE), curve: clip.fadeIn.curve } satisfies RuntimeAudioFadeV3 }
+      ? { fadeIn: { durationSamples: secondsToSamples(toRuntimeSeconds(clip.fadeIn.duration), RATE), curve: clip.fadeIn.curve } satisfies RuntimeAudioFadeV3 }
       : {}),
     ...(clip.fadeOut
-      ? { fadeOut: { durationSamples: secondsToSamples(clip.fadeOut.duration, RATE), curve: clip.fadeOut.curve } satisfies RuntimeAudioFadeV3 }
+      ? { fadeOut: { durationSamples: secondsToSamples(toRuntimeSeconds(clip.fadeOut.duration), RATE), curve: clip.fadeOut.curve } satisfies RuntimeAudioFadeV3 }
       : {}),
     origin,
   };

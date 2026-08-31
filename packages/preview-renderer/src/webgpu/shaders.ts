@@ -10,6 +10,9 @@ struct Uniforms {
   gradientEnd: vec4<f32>,
   gradientParams: vec4<f32>,
   gradientRadius: vec4<f32>,
+  gradientStops: array<vec4<f32>, 8>,
+  gradientOffsets: array<vec4<f32>, 2>,
+  gradientMeta: vec4<f32>,
   colorAdjustMeta: vec4<f32>,
   colorAdjust0: vec4<f32>,
   colorAdjust1: vec4<f32>,
@@ -40,6 +43,26 @@ fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
   let luma = dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
   color = mix(vec3<f32>(luma), color, effect.z);
   return vec4<f32>(clamp(applyHueRotate(color, effect.w), vec3<f32>(0.0), vec3<f32>(1.0)), source.a);
+}
+fn gradientOffset(index: u32) -> f32 {
+  if (index < 4u) { return uniforms.gradientOffsets[0][index]; }
+  return uniforms.gradientOffsets[1][index - 4u];
+}
+fn sampleGradient(t: f32) -> vec4<f32> {
+  let clamped = clamp(t, 0.0, 1.0);
+  let count = u32(uniforms.gradientMeta.x);
+  var result = uniforms.gradientStops[0];
+  if (count <= 1u) { return result; }
+  for (var i = 0u; i < 7u; i = i + 1u) {
+    if (i + 1u >= count) { break; }
+    let a = gradientOffset(i);
+    let b = gradientOffset(i + 1u);
+    if (clamped <= b || i + 2u >= count) {
+      result = mix(uniforms.gradientStops[i], uniforms.gradientStops[i + 1u], clamp((clamped - a) / max(b - a, 0.0001), 0.0, 1.0));
+      break;
+    }
+  }
+  return result;
 }
 @vertex fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
@@ -74,11 +97,14 @@ fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
       let extent = length(uniforms.geometry.yz) * 0.5;
       let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
       gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
-    } else {
+    } else if (uniforms.gradientParams.x < 2.5) {
       let point = (input.uv - uniforms.gradientParams.zw) * uniforms.geometry.yz;
       gradientT = length(point) / max(uniforms.gradientRadius.x * min(uniforms.geometry.y, uniforms.geometry.z), 0.0001);
+    } else {
+      let point = input.uv - uniforms.gradientParams.zw;
+      gradientT = fract(atan2(point.y, point.x) / (2.0 * 3.14159265359) - uniforms.gradientParams.y / (2.0 * 3.14159265359));
     }
-    source = mix(uniforms.gradientStart, uniforms.gradientEnd, clamp(gradientT, 0.0, 1.0));
+    source = sampleGradient(gradientT);
   }
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
     // Keep the complete stroke inside the layer frame. This avoids clipping

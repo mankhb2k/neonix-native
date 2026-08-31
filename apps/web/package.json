@@ -27,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@motionvideo/editor-core": "workspace:*",
+    "@motionvideo/html-compiler": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-mcp": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",

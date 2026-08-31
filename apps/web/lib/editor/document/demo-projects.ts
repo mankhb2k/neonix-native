@@ -21,6 +21,23 @@ function transform(
   };
 }
 
+function textPayload(text: string) {
+  const source = text.normalize("NFC");
+  const lines = source.split("\n");
+  return {
+    source: { text: source, language: "vi" },
+    layout: {
+      lines: lines.map((_, index) => ({ id: `line-${index}`, baselineY: (index + 1) * 86, runIds: [`run-${index}`] })),
+      runs: lines.map((line, index) => ({
+        id: `run-${index}`,
+        font: { assetId: "font-roboto-regular", size: 72 },
+        fill: "#f7e7bd",
+        glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * 86, advance: { x: 0, y: 0 }, cluster: 0 }],
+      })),
+    },
+  };
+}
+
 function shapeLayer(input: {
   id: string;
   order: number;
@@ -60,20 +77,7 @@ function historyTextLayer(input: {
     transform: transform({ x: 240, y: 450, z: 0 }, { width: 1440, height: 180 }),
     opacity: 1,
     timing: { start: input.start, duration: input.duration },
-    payload: {
-      text: input.text.normalize("NFC"),
-      fontAssetId: "font-roboto-regular",
-      fontSize: 72,
-      lineHeight: 86,
-      letterSpacing: 0,
-      align: "center",
-      verticalAlign: "middle",
-      wrap: "none",
-      overflow: "visible",
-      direction: "ltr",
-      language: "vi",
-    },
-    style: { fill: "#f7e7bd" },
+    payload: textPayload(input.text),
   };
 }
 

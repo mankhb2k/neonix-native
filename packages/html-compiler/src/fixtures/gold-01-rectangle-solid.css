@@ -1,0 +1,10 @@
+body { margin: 0; background: #081018; }
+#gold-01 {
+  position: absolute;
+  left: 480px;
+  top: 270px;
+  width: 960px;
+  height: 540px;
+  background: #14b8a6;
+  opacity: 1;
+}

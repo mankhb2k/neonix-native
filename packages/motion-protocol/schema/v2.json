@@ -661,6 +661,9 @@
                     "maximum": 1,
                     "default": 1
                   },
+                  "enabled": {
+                    "type": "boolean"
+                  },
                   "backfaceVisibility": {
                     "type": "string",
                     "enum": [
@@ -700,32 +703,47 @@
                           "isolate"
                         ]
                       },
-                      "mask": {
-                        "type": "object",
-                        "properties": {
-                          "mode": {
-                            "type": "string",
-                            "enum": [
-                              "clip",
-                              "alpha",
-                              "inverse-alpha",
-                              "luma"
-                            ]
+                      "masks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "enum": [
+                                "clip",
+                                "alpha",
+                                "inverse-alpha",
+                                "luma"
+                              ]
+                            },
+                            "sourceLayerId": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "sourceVisibility": {
+                              "type": "string",
+                              "const": "mask-only",
+                              "default": "mask-only"
+                            },
+                            "composite": {
+                              "type": "string",
+                              "enum": [
+                                "add",
+                                "subtract",
+                                "intersect",
+                                "exclude"
+                              ]
+                            }
                           },
-                          "sourceLayerId": {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                          },
-                          "sourceVisibility": {
-                            "type": "string",
-                            "const": "mask-only",
-                            "default": "mask-only"
-                          }
+                          "required": [
+                            "mode",
+                            "sourceLayerId",
+                            "composite"
+                          ],
+                          "additionalProperties": false
                         },
-                        "required": [
-                          "mode",
-                          "sourceLayerId"
-                        ],
-                        "additionalProperties": false
+                        "minItems": 1,
+                        "maxItems": 8
                       }
                     },
                     "additionalProperties": false
@@ -1167,6 +1185,9 @@
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
                   },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
+                  },
                   "backfaceVisibility": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
                   },
@@ -1344,45 +1365,95 @@
                           "additionalProperties": false
                         },
                         {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "shadow"
+                                },
+                                "source": {
+                                  "type": "string",
+                                  "const": "box"
+                                },
+                                "offset": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
+                                },
+                                "blur": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 256
+                                },
+                                "spread": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "color": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                                },
+                                "inset": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "type",
+                                "source",
+                                "offset",
+                                "blur",
+                                "spread",
+                                "color",
+                                "inset"
+                              ],
+                              "additionalProperties": false
                             },
-                            "type": {
-                              "type": "string",
-                              "const": "drop-shadow"
-                            },
-                            "x": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                            },
-                            "y": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                            },
-                            "blur": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 256
-                            },
-                            "color": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                            },
-                            "opacity": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                },
+                                "type": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects/items/anyOf/6/anyOf/0/properties/type"
+                                },
+                                "source": {
+                                  "type": "string",
+                                  "const": "alpha"
+                                },
+                                "offset": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
+                                },
+                                "blur": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects/items/anyOf/6/anyOf/0/properties/blur"
+                                },
+                                "spread": {
+                                  "type": "number",
+                                  "const": 0
+                                },
+                                "color": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                                },
+                                "inset": {
+                                  "type": "boolean",
+                                  "const": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "type",
+                                "source",
+                                "offset",
+                                "blur",
+                                "spread",
+                                "color",
+                                "inset"
+                              ],
+                              "additionalProperties": false
                             }
-                          },
-                          "required": [
-                            "id",
-                            "type",
-                            "x",
-                            "y",
-                            "blur",
-                            "color",
-                            "opacity"
-                          ],
-                          "additionalProperties": false
+                          ]
                         },
                         {
                           "type": "object",
@@ -1581,6 +1652,9 @@
                   },
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
                   "backfaceVisibility": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
@@ -1792,6 +1866,9 @@
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
                   },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
+                  },
                   "backfaceVisibility": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
                   },
@@ -1814,79 +1891,144 @@
                   "payload": {
                     "type": "object",
                     "properties": {
-                      "text": {
-                        "type": "string"
+                      "source": {
+                        "type": "object",
+                        "properties": {
+                          "text": {
+                            "type": "string"
+                          },
+                          "language": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 35
+                          }
+                        },
+                        "required": [
+                          "text"
+                        ],
+                        "additionalProperties": false
                       },
-                      "fontAssetId": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                      },
-                      "fontSize": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                      },
-                      "lineHeight": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                      },
-                      "letterSpacing": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                      },
-                      "align": {
-                        "type": "string",
-                        "enum": [
-                          "left",
-                          "center",
-                          "right"
-                        ]
-                      },
-                      "verticalAlign": {
-                        "type": "string",
-                        "enum": [
-                          "top",
-                          "middle",
-                          "bottom"
-                        ]
-                      },
-                      "wrap": {
-                        "type": "string",
-                        "const": "none"
-                      },
-                      "overflow": {
-                        "type": "string",
-                        "const": "visible"
-                      },
-                      "direction": {
-                        "type": "string",
-                        "const": "ltr"
-                      },
-                      "language": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 35
+                      "layout": {
+                        "type": "object",
+                        "properties": {
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                },
+                                "baselineY": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "runIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                  },
+                                  "minItems": 1
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "baselineY",
+                                "runIds"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "minItems": 1
+                          },
+                          "runs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                },
+                                "font": {
+                                  "type": "object",
+                                  "properties": {
+                                    "assetId": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                    },
+                                    "size": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                    },
+                                    "variations": {
+                                      "type": "object",
+                                      "additionalProperties": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "propertyNames": {
+                                        "pattern": "^[ -~]{4}$"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "assetId",
+                                    "size"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "fill": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                                },
+                                "glyphs": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "glyphId": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      },
+                                      "x": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "y": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "advance": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
+                                      },
+                                      "cluster": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                      }
+                                    },
+                                    "required": [
+                                      "glyphId",
+                                      "x",
+                                      "y",
+                                      "advance"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "minItems": 1
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "font",
+                                "fill",
+                                "glyphs"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "minItems": 1
+                          }
+                        },
+                        "required": [
+                          "lines",
+                          "runs"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "required": [
-                      "text",
-                      "fontAssetId",
-                      "fontSize",
-                      "lineHeight",
-                      "letterSpacing",
-                      "align",
-                      "verticalAlign",
-                      "wrap",
-                      "overflow",
-                      "direction",
-                      "language"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "style": {
-                    "type": "object",
-                    "properties": {
-                      "fill": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                      }
-                    },
-                    "required": [
-                      "fill"
+                      "layout"
                     ],
                     "additionalProperties": false
                   }
@@ -1899,8 +2041,7 @@
                   "transform",
                   "timing",
                   "type",
-                  "payload",
-                  "style"
+                  "payload"
                 ],
                 "additionalProperties": false
               },
@@ -1924,6 +2065,9 @@
                   },
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
                   "backfaceVisibility": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
@@ -2169,6 +2313,9 @@
                   },
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
                   "backfaceVisibility": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"

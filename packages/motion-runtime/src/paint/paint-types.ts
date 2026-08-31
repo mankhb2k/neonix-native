@@ -1,9 +1,28 @@
 /** Backend-neutral paint data owned by the V2 runtime contract. */
 
+export type PaintBlendMode =
+  | "normal"
+  | "darken"
+  | "multiply"
+  | "color-burn"
+  | "lighten"
+  | "screen"
+  | "color-dodge"
+  | "overlay"
+  | "soft-light"
+  | "hard-light"
+  | "difference"
+  | "exclusion"
+  | "hue"
+  | "saturation"
+  | "color"
+  | "luminosity";
+
 export type PaintFillSolid = { type: "solid"; color: string };
 export type PaintFillGradient = {
-  type: "linear-gradient" | "radial-gradient";
+  type: "linear-gradient" | "radial-gradient" | "conic-gradient";
   angle?: number;
+  from?: number;
   cx?: number;
   cy?: number;
   radius?: number;
@@ -78,20 +97,45 @@ export type RuntimeColorAdjustEffect = {
   hueRotate: number;
 };
 
+export type RuntimeGrayscaleEffect = {
+  id: string;
+  type: "grayscale";
+  amount: number;
+};
+
+export type RuntimeSepiaEffect = {
+  id: string;
+  type: "sepia";
+  amount: number;
+};
+
+export type RuntimeInvertEffect = {
+  id: string;
+  type: "invert";
+  amount: number;
+};
+
+export type RuntimeFilterOpacityEffect = {
+  id: string;
+  type: "filter-opacity";
+  amount: number;
+};
+
 export type RuntimeBlurEffect = {
   id: string;
   type: "blur";
   radius: number;
 };
 
-export type RuntimeDropShadowEffect = {
+export type RuntimeShadowEffect = {
   id: string;
-  type: "drop-shadow";
-  x: number;
-  y: number;
+  type: "shadow";
+  source: "box" | "alpha";
+  offset: { x: number; y: number };
   blur: number;
+  spread: number;
   color: string;
-  opacity: number;
+  inset: boolean;
 };
 
 export type RuntimeOuterGlowEffect = {
@@ -124,7 +168,11 @@ export type RuntimeNoiseEffect = {
 export type RuntimeEffect =
   | RuntimeBlurEffect
   | RuntimeColorAdjustEffect
-  | RuntimeDropShadowEffect
+  | RuntimeGrayscaleEffect
+  | RuntimeSepiaEffect
+  | RuntimeInvertEffect
+  | RuntimeFilterOpacityEffect
+  | RuntimeShadowEffect
   | RuntimeOuterGlowEffect
   | RuntimeInnerGlowEffect
   | RuntimeNoiseEffect;

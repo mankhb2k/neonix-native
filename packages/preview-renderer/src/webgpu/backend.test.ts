@@ -18,7 +18,7 @@ describe("WebGPU preview backend", () => {
     const device = {
       queue: {
         writeBuffer(buffer: WebGPUBufferLike, _offset: number, data: ArrayBufferView) {
-          if (bufferSizes.get(buffer) !== 336) return;
+          if (bufferSizes.get(buffer) !== 512) return;
           const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
           uniformWrites.push(Array.from(new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4)));
         },
@@ -211,11 +211,11 @@ describe("WebGPU preview backend", () => {
     expect(uniformWrites[0]![29]).toBeCloseTo(11);
     expect(uniformWrites[0]![31]).toBe(1);
     expect(uniformWrites[0]![36]).toBe(0);
-    expect(uniformWrites[0]![64]).toBe(1);
-    expect(uniformWrites[0]![68]).toBeCloseTo(-0.1);
-    expect(uniformWrites[0]![69]).toBeCloseTo(1.2);
-    expect(uniformWrites[0]![70]).toBeCloseTo(0.5);
-    expect(uniformWrites[0]![71]).toBeCloseTo(Math.PI / 2);
+    expect(uniformWrites[0]![108]).toBe(1);
+    expect(uniformWrites[0]![112]).toBeCloseTo(-0.1);
+    expect(uniformWrites[0]![113]).toBeCloseTo(1.2);
+    expect(uniformWrites[0]![114]).toBeCloseTo(0.5);
+    expect(uniformWrites[0]![115]).toBeCloseTo(Math.PI / 2);
     expect(uniformWrites[1]![36]).toBe(1);
     expect(renderPasses[0]).toMatchObject({
       colorAttachments: [

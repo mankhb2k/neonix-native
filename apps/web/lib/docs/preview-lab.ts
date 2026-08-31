@@ -3,6 +3,11 @@ import {
   type MotionProtocolV2,
   type V2AudioFixture,
 } from "@motionvideo/motion-protocol/v2";
+import {
+  compileHtmlCss,
+  createHtmlCssSource,
+  type HtmlCssSource,
+} from "@motionvideo/html-compiler";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 type RectangleLayer = Extract<V2Layer, { type: "shape" }>;
@@ -29,6 +34,45 @@ const IDENTITY_TRANSFORM: RectangleLayer["transform"] = {
   skew: { x: 0, y: 0 },
   anchor: { x: 0, y: 0, z: 0 },
 };
+
+/** Preview fixtures are authored in readable seconds and normalized at the
+ * Protocol V2 boundary, whose canonical timing unit is milliseconds. */
+function normalizeLayerTiming(layer: V2Layer): V2Layer {
+  const timing = {
+    start: layer.timing.start * 1000,
+    duration: layer.timing.duration * 1000,
+  };
+  if (layer.type !== "video") return { ...layer, timing };
+  return {
+    ...layer,
+    timing,
+    payload: {
+      ...layer.payload,
+      ...(layer.payload.trimStart !== undefined
+        ? { trimStart: layer.payload.trimStart * 1000 }
+        : {}),
+      ...(layer.payload.trimEnd !== undefined
+        ? { trimEnd: layer.payload.trimEnd * 1000 }
+        : {}),
+    },
+  };
+}
+
+function normalizeAssetTiming(asset: MotionProtocolV2["assets"][number]): MotionProtocolV2["assets"][number] {
+  if (asset.kind === "image" || asset.kind === "font") return asset;
+  return {
+    ...asset,
+    ...(asset.duration !== undefined ? { duration: asset.duration * 1000 } : {}),
+    ...(asset.kind === "video" && asset.audio
+      ? {
+          audio: {
+            ...asset.audio,
+            ...(asset.audio.duration !== undefined ? { duration: asset.audio.duration * 1000 } : {}),
+          },
+        }
+      : {}),
+  };
+}
 
 function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): RectangleLayer {
   return {
@@ -91,8 +135,8 @@ function project(
       colorSpace: "srgb",
       view,
     },
-    assets,
-    layers,
+    assets: assets.map(normalizeAssetTiming),
+    layers: layers.map(normalizeLayerTiming),
     audio: { sampleRate: 48000, tracks: [] },
   };
 }
@@ -170,7 +214,7 @@ const IMAGE_MISSING_ASSET_PROJECT = imageProject(
 );
 
 function imageBlendProject(
-  blendMode: "normal" | "multiply" | "screen" | "add",
+  blendMode: "normal" | "multiply" | "screen",
 ): MotionProtocolV2 {
   return project(
     `preview-image-blend-${blendMode}-v2`,
@@ -214,10 +258,9 @@ function imageBlendProject(
 const IMAGE_BLEND_NORMAL_PROJECT = imageBlendProject("normal");
 const IMAGE_BLEND_MULTIPLY_PROJECT = imageBlendProject("multiply");
 const IMAGE_BLEND_SCREEN_PROJECT = imageBlendProject("screen");
-const IMAGE_BLEND_ADD_PROJECT = imageBlendProject("add");
 
 function imageStackBlendProject(
-  blendMode: "normal" | "multiply" | "screen" | "add",
+  blendMode: "normal" | "multiply" | "screen",
 ): MotionProtocolV2 {
   return project(
     `preview-image-stack-blend-${blendMode}-v2`,
@@ -254,7 +297,6 @@ function imageStackBlendProject(
 const IMAGE_STACK_BLEND_NORMAL_PROJECT = imageStackBlendProject("normal");
 const IMAGE_STACK_BLEND_MULTIPLY_PROJECT = imageStackBlendProject("multiply");
 const IMAGE_STACK_BLEND_SCREEN_PROJECT = imageStackBlendProject("screen");
-const IMAGE_STACK_BLEND_ADD_PROJECT = imageStackBlendProject("add");
 
 const CLIP_MASK_PROJECT = project(
   "preview-clip-mask-v2",
@@ -269,7 +311,7 @@ const CLIP_MASK_PROJECT = project(
       opacity: 1,
       composite: {
         blendMode: "normal",
-        mask: { mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only" },
+        masks: [{ mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
       },
       timing: { start: 0, duration: 3 },
     },
@@ -314,7 +356,7 @@ const ALPHA_MASK_PROJECT = project(
       opacity: 1,
       composite: {
         blendMode: "normal",
-        mask: { mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only" },
+        masks: [{ mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
       },
       timing: { start: 0, duration: 3 },
     },
@@ -359,7 +401,7 @@ const INVERSE_ALPHA_MASK_PROJECT = project(
       opacity: 1,
       composite: {
         blendMode: "normal",
-        mask: { mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only" },
+        masks: [{ mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
       },
       timing: { start: 0, duration: 3 },
     },
@@ -404,7 +446,7 @@ const LUMA_MASK_PROJECT = project(
       opacity: 1,
       composite: {
         blendMode: "normal",
-        mask: { mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only" },
+        masks: [{ mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
       },
       timing: { start: 0, duration: 3 },
     },
@@ -903,7 +945,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       opacity: 1,
       composite: {
         blendMode: "normal",
-        mask: { mode: "alpha", sourceLayerId: "nested-mask-ellipse", sourceVisibility: "mask-only" },
+        masks: [{ mode: "alpha", sourceLayerId: "nested-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
       },
       timing: { start: 0, duration: 3 },
     },
@@ -1358,13 +1400,31 @@ function textLayer(options: {
   id: string;
   order: number;
   text: string;
-  align: TextLayer["payload"]["align"];
-  verticalAlign: TextLayer["payload"]["verticalAlign"];
+  align: "left" | "center" | "right";
+  verticalAlign: "top" | "middle" | "bottom";
   transform: TextLayer["transform"];
   frame?: { width: number; height: number };
   fontSize?: number;
   lineHeight?: number;
 }): TextLayer {
+  const fontSize = options.fontSize ?? 96;
+  const lineHeight = options.lineHeight ?? 120;
+  const lines = options.text.split("\n");
+  const runs = lines.map((line, index) => ({
+    id: `${options.id}-run-${index}`,
+    font: {
+      assetId: PREVIEW_ROBOTO_REGULAR_FONT.id,
+      size: fontSize,
+    },
+    fill: "#f8fafc",
+    glyphs: [{
+      glyphId: line.codePointAt(0) ?? 0,
+      x: 0,
+      y: index * lineHeight,
+      advance: { x: 0, y: 0 },
+      cluster: 0,
+    }],
+  }));
   return {
     id: options.id,
     type: "text",
@@ -1375,19 +1435,16 @@ function textLayer(options: {
     opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
-      text: options.text,
-      fontAssetId: PREVIEW_ROBOTO_REGULAR_FONT.id,
-      fontSize: options.fontSize ?? 96,
-      lineHeight: options.lineHeight ?? 120,
-      letterSpacing: 1,
-      align: options.align,
-      verticalAlign: options.verticalAlign,
-      wrap: "none",
-      overflow: "visible",
-      direction: "ltr",
-      language: "vi",
+      source: { text: options.text.normalize("NFC"), language: "vi" },
+      layout: {
+        lines: lines.map((_, index) => ({
+          id: `${options.id}-line-${index}`,
+          baselineY: (index + 1) * lineHeight,
+          runIds: [`${options.id}-run-${index}`],
+        })),
+        runs,
+      },
     },
-    style: { fill: "#f8fafc" },
   };
 }
 
@@ -1568,12 +1625,13 @@ const DROP_SHADOW_PROJECT = project("preview-effect-drop-shadow-v2", [
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
     effects: [{
       id: "pink-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 24,
-      color: "#ff3366",
-      opacity: 0.65,
+      spread: 0,
+      color: "#ff3366a6",
+      inset: false,
     }],
   }),
 ]);
@@ -1594,12 +1652,13 @@ const DROP_SHADOW_NEGATIVE_PROJECT = project("preview-effect-drop-shadow-negativ
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
     effects: [{
       id: "blue-shadow-up-left",
-      type: "drop-shadow",
-      x: -24,
-      y: -28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: -24, y: -28 },
       blur: 24,
-      color: "#3366ff",
-      opacity: 0.65,
+      spread: 0,
+      color: "#3366ffa6",
+      inset: false,
     }],
   }),
 ]);
@@ -1613,12 +1672,13 @@ const DROP_SHADOW_ZERO_BLUR_PROJECT = project("preview-effect-drop-shadow-zero-b
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
     effects: [{
       id: "crisp-pink-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 0,
-      color: "#ff3366",
-      opacity: 0.65,
+      spread: 0,
+      color: "#ff3366a6",
+      inset: false,
     }],
   }),
 ]);
@@ -1632,12 +1692,13 @@ const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alph
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
     effects: [{
       id: "half-alpha-blue-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 0,
+      spread: 0,
       color: "#3366ff80",
-      opacity: 1,
+      inset: false,
     }],
   }),
   rectangle({
@@ -1648,12 +1709,13 @@ const DROP_SHADOW_ALPHA_COLOR_PROJECT = project("preview-effect-drop-shadow-alph
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
     effects: [{
       id: "opaque-blue-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 0,
+      spread: 0,
       color: "#3366ff",
-      opacity: 1,
+      inset: false,
     }],
   }),
 ]);
@@ -1668,12 +1730,13 @@ const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 300, y: 330, z: 0 } },
     effects: [{
       id: "fill-only-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 0,
-      color: "#ff3366",
-      opacity: 0.75,
+      spread: 0,
+      color: "#ff3366bf",
+      inset: false,
     }],
   }),
   rectangle({
@@ -1687,12 +1750,13 @@ const DROP_SHADOW_STROKE_PROJECT = project("preview-effect-drop-shadow-stroke-v2
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 1260, y: 330, z: 0 } },
     effects: [{
       id: "fill-and-stroke-shadow",
-      type: "drop-shadow",
-      x: 24,
-      y: 28,
+      type: "shadow",
+      source: "alpha",
+      offset: { x: 24, y: 28 },
       blur: 0,
-      color: "#ff3366",
-      opacity: 0.75,
+      spread: 0,
+      color: "#ff3366bf",
+      inset: false,
     }],
   }),
 ]);
@@ -1896,9 +1960,15 @@ export type PreviewLabCase = {
   group: string;
   hint: string;
   project: MotionProtocolV2;
+  htmlCssSource?: HtmlCssSource;
   previewTime?: number;
   audioFixture?: V2AudioFixture;
 };
+
+function htmlCompilerCase(id: string, label: string, hint: string, html: string, css: string, group = "HTML compiler / Phase 4"): PreviewLabCase {
+  const htmlCssSource = createHtmlCssSource({ html, css });
+  return { id, label, group, hint, project: compileHtmlCss(htmlCssSource).protocol ?? RECTANGLE_PROJECT, htmlCssSource };
+}
 
 export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
@@ -1915,6 +1985,452 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     hint: "Parametric ellipse with antialiased coverage inside its frame.",
     project: ELLIPSE_PROJECT,
   },
+  htmlCompilerCase(
+    "html-compiler.primitives.rectangle-rounded",
+    "HTML compiler / rectangle + rounded",
+    "One source fixture covers both primitive paint lowering and the rounded-rectangle corner/stroke contract.",
+    `<div id="compiler-solid"></div>
+<div id="compiler-rounded"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#compiler-solid {
+  position: absolute;
+  left: 240px;
+  top: 300px;
+  width: 640px;
+  height: 360px;
+  background: #14b8a6;
+}
+
+#compiler-rounded {
+  position: absolute;
+  left: 1040px;
+  top: 300px;
+  width: 640px;
+  height: 360px;
+  background: #2563eb;
+  border: 12px solid #e2e8f0;
+  border-radius: 48px;
+}`,
+    "Primitives",
+  ),
+  {
+    id: "html-compiler.phase2.cascade",
+    label: "HTML compiler / cascade + nested boxes",
+    group: "HTML compiler / Phase 2",
+    hint: "Selector specificity and nested box geometry are lowered to Protocol V2 groups and shape layers.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<div id="phase2-card" class="card"><div id="phase2-child" class="child"></div></div>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+.card {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: #112233;
+}
+
+#phase2-card {
+  left: 480px;
+  background: #123456;
+}
+
+.child {
+  width: 50%;
+  height: 50%;
+  margin: 24px;
+  background: #14b8a6;
+}`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div id="phase2-card" class="card"><div id="phase2-child" class="child"></div></div>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+.card {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: #112233;
+}
+
+#phase2-card {
+  left: 480px;
+  background: #123456;
+}
+
+.child {
+  width: 50%;
+  height: 50%;
+  margin: 24px;
+  background: #14b8a6;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.phase2.units-calc",
+    label: "HTML compiler / units + calc",
+    group: "HTML compiler / Phase 2",
+    hint: "Viewport units, percentages, rem and calc() resolve to numeric frame and translate values.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<div id="phase2-units"></div>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+:root {
+  --surface: #224466;
+}
+
+#phase2-units {
+  position: absolute;
+  left: 10vw;
+  top: calc(50% - 20px);
+  width: calc(50% - 24px);
+  height: 2rem;
+  padding: 10px 20px;
+  background: var(--surface);
+}`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div id="phase2-units"></div>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+:root {
+  --surface: #224466;
+}
+
+#phase2-units {
+  position: absolute;
+  left: 10vw;
+  top: calc(50% - 20px);
+  width: calc(50% - 24px);
+  height: 2rem;
+  padding: 10px 20px;
+  background: var(--surface);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.phase2.normalization",
+    label: "HTML compiler / identity + color normalization",
+    group: "HTML compiler / Phase 2",
+    hint: "data-atomic-id, class tokens, shorthand colors and nested layer IDs follow the normalization contract.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<div data-atomic-id="normalize-card" class="card card"><span></span></div>`,
+      css: `.card {
+  position: absolute;
+  left: 600px;
+  top: 300px;
+  width: 720px;
+  height: 420px;
+  background: #AbC;
+}
+
+.card span {
+  width: 180px;
+  height: 96px;
+  margin: 24px;
+  background: transparent;
+}`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div data-atomic-id="normalize-card" class="card card"><span></span></div>`,
+      css: `.card {
+  position: absolute;
+  left: 600px;
+  top: 300px;
+  width: 720px;
+  height: 420px;
+  background: #AbC;
+}
+
+.card span {
+  width: 180px;
+  height: 96px;
+  margin: 24px;
+  background: transparent;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.phase2.tags",
+    label: "HTML compiler / supported tags",
+    group: "HTML compiler / Phase 2",
+    hint: "Semantic container tags use the same visual-role lowering: nested groups plus shape paint for resolved backgrounds.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<main>
+  <section>
+    <article>
+      <div id="tag-card" data-atomic-id="tag-card"></div>
+    </article>
+  </section>
+</main>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+main {
+  margin: 0;
+}
+
+section {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: #172554;
+}
+
+article {
+  width: 720px;
+  height: 400px;
+  margin: 48px;
+  background: #1e3a8a;
+}
+
+#tag-card {
+  width: 480px;
+  height: 240px;
+  margin: 80px;
+  background: #14b8a6;
+}`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<main>
+  <section>
+    <article>
+      <div id="tag-card" data-atomic-id="tag-card"></div>
+    </article>
+  </section>
+</main>`,
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+main {
+  margin: 0;
+}
+
+section {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: #172554;
+}
+
+article {
+  width: 720px;
+  height: 400px;
+  margin: 48px;
+  background: #1e3a8a;
+}
+
+#tag-card {
+  width: 480px;
+  height: 240px;
+  margin: 80px;
+  background: #14b8a6;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.phase2.diagnostics",
+    label: "HTML compiler / source diagnostics",
+    group: "HTML compiler / Phase 2",
+    hint: "Unsupported visual source reports a deterministic HTML diagnostic with line and column instead of entering the runtime.",
+    project: RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div id="diagnostic-box" onclick="run()"></div>`,
+      css: `#diagnostic-box {
+  width: 480px;
+  height: 240px;
+  background: #14b8a6;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.phase3.block-flow",
+    label: "HTML compiler / block flow",
+    group: "HTML compiler / Phase 3",
+    hint: "Static block children are placed in vertical flow with margins and deterministic parent groups.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<main>
+  <div id="flow-a"></div>
+  <div id="flow-b"></div>
+  <div id="flow-c"></div>
+</main>`,
+      css: `body { margin: 0; background: #081018; }
+main { position: absolute; left: 480px; top: 120px; width: 960px; height: 840px; background: #172554; padding: 40px; }
+main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<main>
+  <div id="flow-a"></div>
+  <div id="flow-b"></div>
+  <div id="flow-c"></div>
+</main>`,
+      css: `body { margin: 0; background: #081018; }
+main { position: absolute; left: 480px; top: 120px; width: 960px; height: 840px; background: #172554; padding: 40px; }
+main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
+    }),
+  },
+  {
+    id: "html-compiler.phase3.positioning",
+    label: "HTML compiler / relative + absolute",
+    group: "HTML compiler / Phase 3",
+    hint: "Relative offsets and an absolute child resolve against the positioned parent containing block.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<div id="position-parent"><div id="position-child"></div></div>`,
+      css: `body { margin: 0; background: #081018; }
+#position-parent { position: relative; left: 480px; top: 240px; width: 960px; height: 600px; background: #172554; }
+#position-child { position: absolute; left: 240px; top: 160px; width: 480px; height: 280px; background: #14b8a6; }`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div id="position-parent"><div id="position-child"></div></div>`,
+      css: `body { margin: 0; background: #081018; }
+#position-parent { position: relative; left: 480px; top: 240px; width: 960px; height: 600px; background: #172554; }
+#position-child { position: absolute; left: 240px; top: 160px; width: 480px; height: 280px; background: #14b8a6; }`,
+    }),
+  },
+  {
+    id: "html-compiler.phase3.visibility-z-index",
+    label: "HTML compiler / visibility + z-index",
+    group: "HTML compiler / Phase 3",
+    hint: "Hidden layers remain in layout while numeric z-index determines sibling paint order.",
+    project: compileHtmlCss(createHtmlCssSource({
+      html: `<div id="stack-back"></div><div id="stack-front"></div><div id="stack-hidden"></div>`,
+      css: `body { margin: 0; background: #081018; }
+#stack-back { position: absolute; left: 560px; top: 300px; width: 800px; height: 420px; background: #1e3a8a; z-index: 0; }
+#stack-front { position: absolute; left: 760px; top: 420px; width: 640px; height: 300px; background: #14b8a6; z-index: 2; }
+#stack-hidden { position: absolute; left: 600px; top: 260px; width: 120px; height: 120px; background: #ff3366; visibility: hidden; z-index: 3; }`,
+    })).protocol ?? RECTANGLE_PROJECT,
+    htmlCssSource: createHtmlCssSource({
+      html: `<div id="stack-back"></div><div id="stack-front"></div><div id="stack-hidden"></div>`,
+      css: `body { margin: 0; background: #081018; }
+#stack-back { position: absolute; left: 560px; top: 300px; width: 800px; height: 420px; background: #1e3a8a; z-index: 0; }
+#stack-front { position: absolute; left: 760px; top: 420px; width: 640px; height: 300px; background: #14b8a6; z-index: 2; }
+#stack-hidden { position: absolute; left: 600px; top: 260px; width: 120px; height: 120px; background: #ff3366; visibility: hidden; z-index: 3; }`,
+    }),
+  },
+  htmlCompilerCase(
+    "html-compiler.phase4.rounded-border",
+    "HTML compiler / rounded rectangle + border",
+    "Uniform border-radius and solid border lower directly to rectangle cornerRadius/stroke atoms.",
+    `<div id="phase4-rounded"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#phase4-rounded {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: #14b8a6;
+  border: 16px solid #e2e8f0;
+  border-radius: 72px;
+}`,
+  ),
+  htmlCompilerCase(
+    "html-compiler.phase4.linear-gradient",
+    "HTML compiler / linear gradient",
+    "A CSS linear-gradient with three stops becomes a normalized Protocol gradient paint.",
+    `<div id="phase4-linear"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#phase4-linear {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: linear-gradient(90deg, #14b8a6 0%, #2563eb 50%, #7c3aed 100%);
+}`,
+  ),
+  htmlCompilerCase(
+    "html-compiler.phase4.radial-gradient",
+    "HTML compiler / radial gradient",
+    "Radial center and multi-stop colors are resolved to normalized cx/cy/stops values.",
+    `<div id="phase4-radial"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#phase4-radial {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: radial-gradient(circle at 35% 40%, #ffffff 0%, #14b8a6 45%, #172554 100%);
+}`,
+  ),
+  htmlCompilerCase(
+    "html-compiler.phase4.conic-gradient",
+    "HTML compiler / conic gradient",
+    "Conic CSS paint is emitted as a first-class Protocol primitive; renderer capability is reported separately.",
+    `<div id="phase4-conic"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#phase4-conic {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: conic-gradient(from 45deg at 50% 50%, #14b8a6 0%, #2563eb 50%, #7c3aed 100%);
+}`,
+  ),
+  htmlCompilerCase(
+    "html-compiler.phase4.background-layers",
+    "HTML compiler / background layers",
+    "Top-level comma-separated background paints retain deterministic ordered paint layer identities.",
+    `<div id="phase4-layers"></div>`,
+    `body {
+  margin: 0;
+  background: #081018;
+}
+
+#phase4-layers {
+  position: absolute;
+  left: 480px;
+  top: 240px;
+  width: 960px;
+  height: 600px;
+  background: linear-gradient(135deg, #14b8a6, #2563eb), #172554;
+}`,
+  ),
   {
     id: "image.fit.contain",
     label: "Image / contain",
@@ -1965,13 +2481,6 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     project: IMAGE_BLEND_SCREEN_PROJECT,
   },
   {
-    id: "composite.blend.add",
-    label: "Blend / add",
-    group: "Task 12 / Blend modes",
-    hint: "The local example image adds its light to the same backdrop with clamped additive GPU compositing.",
-    project: IMAGE_BLEND_ADD_PROJECT,
-  },
-  {
     id: "composite.blend.stack.normal",
     label: "Blend stack / normal",
     group: "Task 12 / Blend modes",
@@ -1991,13 +2500,6 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     group: "Task 12 / Blend modes",
     hint: "Only the upper snow image owns screen, so its black background is neutral and the bright snow remains over the lower image.",
     project: IMAGE_STACK_BLEND_SCREEN_PROJECT,
-  },
-  {
-    id: "composite.blend.stack.add",
-    label: "Blend stack / add",
-    group: "Task 12 / Blend modes",
-    hint: "Only the upper snow image owns add and contributes light over the lower image without changing layer ownership.",
-    project: IMAGE_STACK_BLEND_ADD_PROJECT,
   },
   {
     id: "video.frame-seek",
@@ -2679,6 +3181,8 @@ export const PREVIEW_LAB_DEFAULT_CASE = "primitive.shape.rectangle";
 
 const PREVIEW_LAB_GROUP_ORDER = [
   "Primitives",
+  "HTML compiler / Phase 2",
+  "HTML compiler / Phase 3",
   "Primitives / rounded",
   "Transforms & 3D",
   "Groups",
@@ -2700,6 +3204,9 @@ const PREVIEW_LAB_GROUP_ORDER = [
 type PreviewLabGroupLabel = (typeof PREVIEW_LAB_GROUP_ORDER)[number];
 
 function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
+  if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
+  if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
+  if (item.id === "html-compiler.primitives.rectangle-rounded") return "Primitives";
   if (item.id.startsWith("primitive.shape.")) return "Primitives";
   if (item.id.startsWith("rectangle.rounded")) return "Primitives / rounded";
   if (

@@ -45,6 +45,23 @@ function rootOrder(document: MotionProtocolV2): string[] {
     .map((layer) => layer.id);
 }
 
+function textPayload(text: string) {
+  const source = text.normalize("NFC");
+  const lines = source.split("\n");
+  return {
+    source: { text: source, language: "vi" },
+    layout: {
+      lines: lines.map((_, index) => ({ id: `line-${index}`, baselineY: (index + 1) * 86, runIds: [`run-${index}`] })),
+      runs: lines.map((line, index) => ({
+        id: `run-${index}`,
+        font: { assetId: DEFAULT_FONT_ASSET.id, size: 72 },
+        fill: "#f7e7bd",
+        glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * 86, advance: { x: 0, y: 0 }, cluster: 0 }],
+      })),
+    },
+  };
+}
+
 function insertionIndex(document: MotionProtocolV2, placement?: PlacementTarget): number {
   const ids = rootOrder(document);
   if (placement?.track === "main") return 0;
@@ -113,20 +130,7 @@ function layerForPayload(
       type: "text",
       frame: { width: Math.min(1440, document.composition.width - 80), height: 180 },
       transform: transform(40, (document.composition.height - 180) / 2, Math.min(1440, document.composition.width - 80), 180),
-      payload: {
-        text: payload.text.normalize("NFC"),
-        fontAssetId: DEFAULT_FONT_ASSET.id,
-        fontSize: 72,
-        lineHeight: 86,
-        letterSpacing: 0,
-        align: "center",
-        verticalAlign: "middle",
-        wrap: "none",
-        overflow: "visible",
-        direction: "ltr",
-        language: "vi",
-      },
-      style: { fill: "#f7e7bd" },
+      payload: textPayload(payload.text),
     };
   }
   if (payload.kind === "asset") {

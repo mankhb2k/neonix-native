@@ -145,6 +145,48 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* App scrollbars — compact cyan treatment used throughout the editor/docs UI. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, 0.18);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 252, 0.32);
+}
+
+[data-surface="editor"] aside.editor-panel,
+[data-surface="editor"] aside.editor-panel * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+}
+
+[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb:hover,
+[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 252, 0.45);
+}
+
 body:has([data-surface="editor"]) {
   overflow: hidden;
 }
@@ -175,46 +217,4 @@ body:has([data-surface="editor"]) {
   [data-surface="editor"].editor-shell-grid > aside.editor-panel {
     display: none;
   }
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(125, 211, 252, 0.18);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 211, 252, 0.32);
-}
-
-/* Sidebar + inspector: same thin gutter so JSON / Properties match. */
-[data-surface="editor"] aside.editor-panel,
-[data-surface="editor"] aside.editor-panel * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
-}
-
-[data-surface="editor"] aside.editor-panel::-webkit-scrollbar,
-[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb,
-[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb {
-  background: rgba(125, 211, 252, 0.28);
-  border-radius: 999px;
-}
-
-[data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb:hover,
-[data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 211, 252, 0.45);
 }

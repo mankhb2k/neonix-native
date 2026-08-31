@@ -472,7 +472,7 @@ ${FENCE}json
 {
   "effects": [
     { "type": "blur", "radius": 24 },
-    { "type": "drop-shadow", "offset": { "x": 18, "y": 20 }, "blur": 16, "color": "#000000", "opacity": 0.25 }
+    { "type": "shadow", "source": "alpha", "offset": { "x": 18, "y": 20 }, "blur": 16, "spread": 0, "color": "#00000040", "inset": false }
   ],
   "composite": { "opacity": 1, "blendMode": "normal" }
 }

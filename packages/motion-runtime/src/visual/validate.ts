@@ -205,6 +205,9 @@ export function validateVisualRuntimeProject(
         current = nodeById.get(current)?.parentId ?? null;
       }
     }
+    if (node.backfaceVisibility !== undefined && node.backfaceVisibility !== "visible" && node.backfaceVisibility !== "hidden") {
+      diagnostics.push({ severity: "error", code: "runtime_v2_backface_visibility", message: "Runtime V2 backfaceVisibility is invalid", nodeId: node.id });
+    }
     if (!matrixIs4x4(node.localMatrix) || !matrixIs4x4(node.worldMatrix)) {
       diagnostics.push({
         severity: "error",
@@ -354,11 +357,31 @@ export function validateVisualRuntimeProject(
         nodeId: node.id,
       });
     }
-    if (node.blendMode !== undefined && !["normal", "multiply", "screen", "add"].includes(node.blendMode)) {
+    if (
+      node.blendMode !== undefined &&
+      ![
+        "normal",
+        "darken",
+        "multiply",
+        "color-burn",
+        "lighten",
+        "screen",
+        "color-dodge",
+        "overlay",
+        "soft-light",
+        "hard-light",
+        "difference",
+        "exclusion",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity",
+      ].includes(node.blendMode)
+    ) {
       diagnostics.push({
         severity: "error",
         code: "runtime_v2_blend_mode",
-        message: "Runtime V2 blendMode must be normal, multiply, screen, or add",
+        message: "Runtime V2 blendMode must be a CSS canonical blend mode",
         nodeId: node.id,
       });
     }

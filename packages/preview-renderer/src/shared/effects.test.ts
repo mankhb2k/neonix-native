@@ -57,7 +57,7 @@ describe("EffectPassPlan", () => {
 
   it("recognizes the immutable-source branching program for one drop shadow", () => {
     const program = buildRuntimeEffectProgram([
-      { id: "shadow", type: "drop-shadow", x: 18, y: 20, blur: 24, color: "#ff3366", opacity: 0.25 },
+      { id: "shadow", type: "shadow", source: "alpha", offset: { x: 18, y: 20 }, blur: 24, spread: 0, color: "#ff336640", inset: false },
     ]);
     const plan = buildEffectPassPlan(program!);
 
@@ -66,7 +66,7 @@ describe("EffectPassPlan", () => {
     expect(plan.shadow).toMatchObject({
       alphaMask: { input: "source", output: "effect:shadow:alpha" },
       blur: { radius: 24 },
-      tint: { color: "#ff3366", opacity: 0.25 },
+      tint: { color: "#ff336640", opacity: 1 },
       offset: { x: 18, y: 20 },
       composite: { source: "source", mode: "source-over" },
     });
@@ -109,7 +109,7 @@ describe("EffectPassPlan", () => {
   it("diagnoses a mixed linear and branching program until that graph is implemented", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade", type: "color-adjust", brightness: 0, contrast: 1.1, saturation: 1, hueRotate: 0 },
-      { id: "shadow", type: "drop-shadow", x: 18, y: 20, blur: 24, color: "#ff3366", opacity: 0.25 },
+      { id: "shadow", type: "shadow", source: "alpha", offset: { x: 18, y: 20 }, blur: 24, spread: 0, color: "#ff336640", inset: false },
     ]);
     const plan = buildEffectPassPlan(program!);
 
