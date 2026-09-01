@@ -153,6 +153,9 @@ export type PaintCommand =
       key: string;
       layerId: string;
       contours: PathContour[];
+      /** Local frame used to resolve gradient coordinates for path paint. */
+      width?: number;
+      height?: number;
       /** Runtime-resolved local-plane mesh. GPU backends must not tessellate contours. */
       mesh?: PathMesh;
       strokeMesh?: PathStrokeMesh;

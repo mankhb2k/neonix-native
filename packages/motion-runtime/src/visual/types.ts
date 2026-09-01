@@ -88,6 +88,7 @@ export type VisualRuntimePath = {
   strokeMesh?: PathStrokeMesh;
   fillRule: "nonzero" | "evenodd";
   fill?: string;
+  fillPaint?: PaintFill;
   fillOpacity?: number;
   stroke?: string;
   strokeWidth?: number;

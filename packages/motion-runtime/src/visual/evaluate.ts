@@ -226,10 +226,13 @@ export function evaluateVisualRuntimeProject(
         key: node.id,
         layerId: node.id,
         contours: content.contours,
+        width: content.width,
+        height: content.height,
         mesh: content.mesh,
         ...(content.strokeMesh ? { strokeMesh: content.strokeMesh } : {}),
         fillRule: content.fillRule,
         ...(content.fill ? { fill: content.fill } : {}),
+        ...(content.fillPaint ? { fillPaint: content.fillPaint } : {}),
         ...(content.fillOpacity != null
           ? { fillOpacity: content.fillOpacity }
           : {}),
@@ -240,9 +243,6 @@ export function evaluateVisualRuntimeProject(
         ...(content.strokeOpacity != null
           ? { strokeOpacity: content.strokeOpacity }
           : {}),
-        ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
-        ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
-        ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
         ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
         ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
         ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),

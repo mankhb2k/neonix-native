@@ -26,10 +26,33 @@ import {
 import { isCompilerFeatureSupported } from "./capabilities";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
-function primitiveStrokeContour(shape: "rectangle" | "ellipse", width: number, height: number): PathContour {
+type ShapePayload = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>["payload"];
+function primitivePathContour(payload: ShapePayload, width: number, height: number): PathContour {
+  const { shape } = payload;
   if (shape === "rectangle") {
+    // SVG copies the supplied radius to the missing axis. Explicit zero is
+    // preserved, so rx="0" and ry="8" intentionally produce square corners.
+    const radiusX = Math.min(payload.rx ?? payload.cornerRadius ?? payload.ry ?? 0, width / 2);
+    const radiusY = Math.min(payload.ry ?? payload.cornerRadius ?? payload.rx ?? 0, height / 2);
+    if (radiusX > 0 || radiusY > 0) {
+      return {
+        id: "shape-contour",
+        start: { x: radiusX, y: 0 },
+        segments: [
+          { kind: "line", to: { x: width - radiusX, y: 0 } },
+          { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: width, y: radiusY } },
+          { kind: "line", to: { x: width, y: height - radiusY } },
+          { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: width - radiusX, y: height } },
+          { kind: "line", to: { x: radiusX, y: height } },
+          { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: 0, y: height - radiusY } },
+          { kind: "line", to: { x: 0, y: radiusY } },
+          { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: radiusX, y: 0 } },
+        ],
+        closed: true,
+      };
+    }
     return {
-      id: "shape-stroke-contour",
+      id: "shape-contour",
       start: { x: 0, y: 0 },
       segments: [
         { kind: "line", to: { x: width, y: 0 } },
@@ -40,13 +63,25 @@ function primitiveStrokeContour(shape: "rectangle" | "ellipse", width: number, h
       closed: true,
     };
   }
-  const segments: PathContour["segments"] = [];
-  const points = Array.from({ length: 32 }, (_, index) => {
-    const angle = (index * Math.PI * 2) / 32;
-    return { x: width / 2 + Math.cos(angle) * width / 2, y: height / 2 + Math.sin(angle) * height / 2 };
-  });
-  for (let index = 1; index <= points.length; index += 1) segments.push({ kind: "line", to: points[index % points.length]! });
-  return { id: "shape-stroke-contour", start: points[0]!, segments, closed: true };
+  if (shape === "line") {
+    return { id: "shape-contour", start: payload.start!, segments: [{ kind: "line", to: payload.end! }], closed: false };
+  }
+  if (shape === "polyline" || shape === "polygon") {
+    const points = payload.points!;
+    return { id: "shape-contour", start: points[0]!, segments: points.slice(1).map((point) => ({ kind: "line" as const, to: point })), closed: shape === "polygon" };
+  }
+  const radiusX = width / 2;
+  const radiusY = height / 2;
+  const center = { x: radiusX, y: radiusY };
+  return {
+    id: "shape-contour",
+    start: { x: center.x + radiusX, y: center.y },
+    segments: [
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: center.x - radiusX, y: center.y } },
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: center.x + radiusX, y: center.y } },
+    ],
+    closed: true,
+  };
 }
 /** Protocol V2 stores all authoring time values in milliseconds. */
 const MILLISECONDS_TO_SECONDS = 1 / 1000;
@@ -450,9 +485,6 @@ function compileVisualRuntimeInternal(
       if (hasFill && !isV2AtomCertified("path.fill")) {
         throw new Error("Uncertified Protocol V2 atom: path.fill");
       }
-      if (hasFill && contours.some((contour) => !contour.closed)) {
-        throw new Error(`Protocol V2 atom ${layer.id}: fill requires closed contours`);
-      }
       if (layer.style.fillOpacity !== undefined && !isV2AtomCertified("path.fillOpacity")) {
         throw new Error("Uncertified Protocol V2 atom: path.fillOpacity");
       }
@@ -546,7 +578,8 @@ function compileVisualRuntimeInternal(
         },
       };
     }
-    const fillCapability = `${layer.type}.${layer.payload.shape}.fill`;
+    const shapeCapabilityName = layer.payload.shape;
+    const fillCapability = `${layer.type}.${shapeCapabilityName}.fill`;
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
     }
@@ -606,14 +639,7 @@ function compileVisualRuntimeInternal(
     }
 
     const effects = lowerEffects(layer.effects);
-    const advancedStroke = layer.style.stroke !== undefined && (
-      layer.style.strokeJoin !== undefined ||
-      layer.style.strokeCap !== undefined ||
-      layer.style.strokeDash !== undefined
-    );
-    const strokeContour = advancedStroke
-      ? primitiveStrokeContour(layer.payload.shape, layer.frame.width, layer.frame.height)
-      : undefined;
+    const shapeContour = primitivePathContour(layer.payload, layer.frame.width, layer.frame.height);
     return {
       id: layer.id,
         parentId: layer.parentLayerId,
@@ -626,23 +652,15 @@ function compileVisualRuntimeInternal(
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,
       content: {
-        kind: advancedStroke ? "path" as const : "shape" as const,
-        shape: layer.payload.shape,
+        kind: "path" as const,
         width: layer.frame.width,
         height: layer.frame.height,
-        fill: typeof layer.style.fill === "string"
-          ? layer.style.fill
-          : layer.style.fill.stops[0]!.color,
-        ...(gradientFill ? { fillPaint: gradientFill } : {}),
-        ...(layer.payload.cornerRadius !== undefined
-          ? {
-              cornerRadius: Math.min(
-                layer.payload.cornerRadius,
-                layer.frame.width / 2,
-                layer.frame.height / 2,
-              ),
-            }
+        contours: [shapeContour],
+        fillRule: "nonzero" as const,
+        ...(layer.style.fill
+          ? { fill: typeof layer.style.fill === "string" ? layer.style.fill : layer.style.fill.stops[0]!.color }
           : {}),
+        ...(gradientFill ? { fillPaint: gradientFill } : {}),
         ...(layer.style.fillOpacity !== undefined
           ? { fillOpacity: layer.style.fillOpacity }
           : {}),
@@ -660,15 +678,13 @@ function compileVisualRuntimeInternal(
                 : {}),
             }
           : {}),
-        ...(advancedStroke
+        ...(layer.style.fill && layer.payload.shape !== "line"
+          ? { mesh: tessellateClosedPath([shapeContour], "nonzero") }
+          : {}),
+        ...(layer.style.stroke
           ? {
-              contours: [strokeContour!],
-              fillRule: "nonzero" as const,
-              ...(layer.style.fill
-                ? { mesh: tessellateClosedPath([strokeContour!], "nonzero") }
-                : {}),
               strokeMesh: tessellatePathStroke(
-                [strokeContour!],
+                [shapeContour],
                 layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
                 {
                   join: layer.style.strokeJoin ?? "miter",

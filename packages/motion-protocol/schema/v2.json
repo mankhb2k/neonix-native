@@ -1682,11 +1682,47 @@
                         "type": "string",
                         "enum": [
                           "rectangle",
-                          "ellipse"
+                          "circle",
+                          "ellipse",
+                          "line",
+                          "polyline",
+                          "polygon"
                         ]
                       },
                       "cornerRadius": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                      },
+                      "rx": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                      },
+                      "ry": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                      },
+                      "start": {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          },
+                          "y": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          }
+                        },
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "end": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/payload/properties/start"
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/payload/properties/start"
+                        },
+                        "minItems": 2
                       }
                     },
                     "required": [
@@ -1862,9 +1898,6 @@
                         "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "fill"
-                    ],
                     "additionalProperties": false
                   }
                 },
@@ -2179,6 +2212,27 @@
                                     "properties": {
                                       "kind": {
                                         "type": "string",
+                                        "const": "quadratic"
+                                      },
+                                      "control": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
+                                      },
+                                      "to": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "control",
+                                      "to"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
                                         "const": "cubic"
                                       },
                                       "control1": {
@@ -2195,6 +2249,54 @@
                                       "kind",
                                       "control1",
                                       "control2",
+                                      "to"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "const": "arc"
+                                      },
+                                      "radii": {
+                                        "type": "object",
+                                        "properties": {
+                                          "x": {
+                                            "type": "number",
+                                            "minimum": 0
+                                          },
+                                          "y": {
+                                            "type": "number",
+                                            "minimum": 0
+                                          }
+                                        },
+                                        "required": [
+                                          "x",
+                                          "y"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "rotation": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "largeArc": {
+                                        "type": "boolean"
+                                      },
+                                      "sweep": {
+                                        "type": "boolean"
+                                      },
+                                      "to": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/4/properties/payload/properties/contours/items/properties/start"
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "radii",
+                                      "rotation",
+                                      "largeArc",
+                                      "sweep",
                                       "to"
                                     ],
                                     "additionalProperties": false

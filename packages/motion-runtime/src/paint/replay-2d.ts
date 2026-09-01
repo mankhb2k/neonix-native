@@ -7,6 +7,7 @@
 import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
 import type { PaintBlendMode, PaintFill } from "./paint-types";
+import { flattenPathContourAny } from "../geometry/path/flatten";
 
 export type ReplayGradient = {
   addColorStop(offset: number, color: string): void;
@@ -84,6 +85,12 @@ export type Canvas2DReplayContext = {
   fillText(text: string, x: number, y: number, maxWidth?: number): void;
   moveTo(x: number, y: number): void;
   lineTo(x: number, y: number): void;
+  quadraticCurveTo(
+    cpx: number,
+    cpy: number,
+    x: number,
+    y: number,
+  ): void;
   bezierCurveTo(
     cp1x: number,
     cp1y: number,
@@ -223,10 +230,22 @@ function strokePathContours(
 ): void {
   ctx.beginPath();
   for (const contour of contours) {
+    const hasArc = contour.segments.some((segment) => segment.kind === "arc");
+    if (hasArc) {
+      const flattened = flattenPathContourAny(contour);
+      ctx.moveTo(flattened.points[0]!.x, flattened.points[0]!.y);
+      for (const point of flattened.points.slice(1)) {
+        ctx.lineTo(point.x, point.y);
+      }
+      if (contour.closed) ctx.closePath();
+      continue;
+    }
     ctx.moveTo(contour.start.x, contour.start.y);
     for (const segment of contour.segments) {
       if (segment.kind === "line") ctx.lineTo(segment.to.x, segment.to.y);
-      else {
+      else if (segment.kind === "quadratic") {
+        ctx.quadraticCurveTo(segment.control.x, segment.control.y, segment.to.x, segment.to.y);
+      } else if (segment.kind === "cubic") {
         ctx.bezierCurveTo(
           segment.control1.x,
           segment.control1.y,
@@ -435,9 +454,11 @@ export function replayPaintCommands2D(
         ctx.stroke();
       }
     } else if (cmd.op === "drawPath") {
+      const pathWidth = cmd.width ?? cmd.mesh?.bounds.width ?? 200;
+      const pathHeight = cmd.height ?? cmd.mesh?.bounds.height ?? 200;
       strokePathContours(ctx, cmd.contours);
       if (cmd.fill || cmd.fillPaint) {
-        applyFill(ctx, cmd.fill, cmd.fillPaint, 200, 200);
+        applyFill(ctx, cmd.fill, cmd.fillPaint, pathWidth, pathHeight);
         ctx.globalAlpha = cmd.fillOpacity ?? 1;
         ctx.fill(cmd.fillRule);
       }

@@ -467,11 +467,6 @@ export function createWebGPUBackend(
         drawCalls += 1;
       } else if (command.op === "drawPath") {
         const maskMode = ensureClipMaskPass(command.key);
-        if (maskMode === "clip") {
-          skippedCommands += 1;
-          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
-          continue;
-        }
         if (!activeEffectScope?.plan.requiresOffscreen && layerScopes.length === 0) ensureStagePass();
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
@@ -481,12 +476,14 @@ export function createWebGPUBackend(
           skippedCommands += 1;
           continue;
         }
+        const pathWidth = command.width ?? command.mesh?.bounds.width ?? 1;
+        const pathHeight = command.height ?? command.mesh?.bounds.height ?? 1;
         const meshes = [
           command.fill && command.mesh
-            ? { mesh: command.mesh, color: cssColorToRgba(command.fill), opacity: command.fillOpacity ?? 1 }
+            ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
             : null,
-          command.stroke && command.strokeMesh
-            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1 }
+          !maskMode && command.stroke && command.strokeMesh
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: undefined }
             : null,
         ].filter((entry) => entry !== null).map((entry) => entry!);
         if (meshes.length === 0) {
@@ -500,6 +497,8 @@ export function createWebGPUBackend(
           for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
             vertexData[index * 4] = pathDraw.mesh.vertices[index * 2]!;
             vertexData[index * 4 + 1] = pathDraw.mesh.vertices[index * 2 + 1]!;
+            vertexData[index * 4 + 2] = pathDraw.mesh.vertices[index * 2]! / pathWidth;
+            vertexData[index * 4 + 3] = pathDraw.mesh.vertices[index * 2 + 1]! / pathHeight;
           }
           const vertexBuffer = device.createBuffer({ size: vertexData.byteLength, usage: BUFFER_VERTEX | BUFFER_COPY_DST });
           const indexData = new Uint32Array(pathDraw.mesh.indices);
@@ -511,17 +510,22 @@ export function createWebGPUBackend(
           const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
           transientBuffers.add(uniform);
           const data = new Float32Array(UNIFORM_FLOATS);
-          pathDraw.color[3] *= transform.alpha * pathDraw.opacity;
+          const color = [...pathDraw.color];
+          color[3] *= transform.alpha * pathDraw.opacity;
           writeMatrix4(data, 0, projection);
           writeMatrix4(data, 16, packMatrix4F32(transform.matrix4));
-          data.set(pathDraw.color, 32);
+          data.set(color, 32);
           data.set([0, 0, 0, 0], 36);
           data.set([0, 0, 0, 0], 40);
-          data.set([0, 0, 0, 0], 44);
-          data.set([0, 0, 0, 0], 48);
-          data.set([0, 0, 0, 0], 52);
-          data.set([0, 0, 0, 0], 56);
-          data.set([0, 0, 0, 0], 60);
+          data.set([0, pathWidth, pathHeight, 0], 44);
+          const gradients = gradientUniforms(pathDraw.fillPaint, transform.alpha * pathDraw.opacity);
+          data.set(gradients.start, 48);
+          data.set(gradients.end, 52);
+          data.set(gradients.params, 56);
+          data.set(gradients.radius, 60);
+          data.set(gradients.stops, 64);
+          data.set(gradients.offsets, 96);
+          data.set(gradients.meta, 104);
           data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 108);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });

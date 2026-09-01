@@ -44,10 +44,19 @@ export type PathContour = {
   start: PathPoint;
   segments: Array<
     | { kind: "line"; to: PathPoint }
+    | { kind: "quadratic"; control: PathPoint; to: PathPoint }
     | {
         kind: "cubic";
         control1: PathPoint;
         control2: PathPoint;
+        to: PathPoint;
+      }
+    | {
+        kind: "arc";
+        radii: { x: number; y: number };
+        rotation: number;
+        largeArc: boolean;
+        sweep: boolean;
         to: PathPoint;
       }
   >;

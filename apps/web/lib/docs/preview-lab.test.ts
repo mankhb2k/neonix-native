@@ -13,7 +13,15 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
+      "shape.circle",
+      "shape.line",
+      "shape.polyline",
+      "shape.polyline-fill",
+      "shape.polygon",
       "shape.corner-radius",
+      "shape.rectangle-rx",
+      "shape.rectangle-ry",
+      "shape.rectangle-rx-ry",
       "shape.solid-fill",
       "shape.linear-gradient",
       "shape.radial-gradient",
@@ -87,6 +95,9 @@ describe("Protocol V2 preview lab fixtures", () => {
       "effect.blur.radius-256",
       "path.geometry.line",
       "path.geometry.cubic",
+      "path.geometry.quadratic",
+      "path.geometry.arc",
+      "path.geometry.arc-closed",
       "path.geometry.closed-contour",
       "path.geometry.open-contour",
       "path.geometry.multiple-contours",
@@ -173,6 +184,21 @@ describe("Protocol V2 preview lab fixtures", () => {
     }
   });
 
+  it("lowers every Shape fixture to a Runtime drawPath command", () => {
+    for (const fixture of PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("shape."))) {
+      const buffer = compileProtocolToPaintCommands(fixture.project, { time: fixture.previewTime ?? 0 });
+      const path = buffer.commands.find((command) => command.op === "drawPath");
+      expect(path, fixture.id).toBeDefined();
+      expect(path?.op === "drawPath" && path.contours).toHaveLength(1);
+    }
+
+    const openFilledPolyline = compileProtocolToPaintCommands(
+      previewLabCaseById("shape.polyline-fill").project,
+      { time: 0 },
+    ).commands.find((command) => command.op === "drawPath");
+    expect(openFilledPolyline?.op === "drawPath" && openFilledPolyline.mesh).toBeDefined();
+  });
+
   it("exposes dedicated HTML compiler Phase 2 source/protocol previews", () => {
     const cases = PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler.phase2."));
     expect(cases).toHaveLength(5);
@@ -250,11 +276,34 @@ describe("Protocol V2 preview lab fixtures", () => {
     });
   });
 
-  it("includes a JSON preview for cubic path geometry", () => {
-    const fixture = previewLabCaseById("path.geometry.cubic");
-    const layer = fixture.project.layers[0];
-    expect(layer?.type).toBe("path");
-    expect(layer?.type === "path" && layer.payload.contours[0]?.segments.some((segment) => segment.kind === "cubic")).toBe(true);
+  it("includes JSON previews for SVG quadratic and arc geometry", () => {
+    const cubic = previewLabCaseById("path.geometry.cubic").project.layers[0];
+    const quadratic = previewLabCaseById("path.geometry.quadratic").project.layers[0];
+    const arc = previewLabCaseById("path.geometry.arc").project.layers[0];
+    const closedArc = previewLabCaseById("path.geometry.arc-closed").project.layers[0];
+    expect(cubic?.type).toBe("path");
+    expect(quadratic?.type).toBe("path");
+    expect(arc?.type).toBe("path");
+    expect(closedArc?.type).toBe("path");
+    expect(quadratic?.type === "path" && quadratic.payload.contours[0]?.segments.some((segment) => segment.kind === "quadratic")).toBe(true);
+    expect(arc?.type === "path" && arc.payload.contours[0]?.segments.some((segment) => segment.kind === "arc")).toBe(true);
+    expect(closedArc?.type === "path" && closedArc.payload.contours[0]?.closed).toBe(true);
+  });
+
+  it("keeps stroke examples on the same five-sided contour", () => {
+    const stroke = previewLabCaseById("path.stroke").project.layers[0];
+    const strokeWidth = previewLabCaseById("path.stroke-width").project.layers[0];
+    expect(stroke?.type === "path" && stroke.style.strokeWidth).toBe(4);
+    expect(strokeWidth?.type === "path" && strokeWidth.style.strokeWidth).toBe(18);
+    expect(stroke?.type === "path" && stroke.payload.contours[0]?.segments).toHaveLength(5);
+    expect(strokeWidth?.type === "path" && strokeWidth.payload.contours[0]?.segments).toHaveLength(5);
+  });
+
+  it("makes stroke opacity visible as an isolated preview property", () => {
+    const strokeOpacity = previewLabCaseById("path.stroke-opacity").project.layers[0];
+    expect(strokeOpacity?.type === "path" && strokeOpacity.style.stroke).toBe("#38bdf8");
+    expect(strokeOpacity?.type === "path" && strokeOpacity.style.strokeOpacity).toBe(0.35);
+    expect(strokeOpacity?.type === "path" && strokeOpacity.payload.contours[0]?.segments).toHaveLength(5);
   });
 
   it("includes explicit two-track mix examples for docs preview", () => {

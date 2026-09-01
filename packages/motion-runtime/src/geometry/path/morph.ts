@@ -12,7 +12,9 @@ export function interpolatePathContours(base: PathContour[], target: PathContour
       const next = other.segments[segmentIndex]!;
       if (segment.kind !== next.kind) throw new Error(`Path morph segment topology mismatch at ${contour.id}`);
       if (segment.kind === "line" && next.kind === "line") return { kind: "line" as const, to: interpolatePoint(segment.to, next.to, progress) };
+      if (segment.kind === "quadratic" && next.kind === "quadratic") return { kind: "quadratic" as const, control: interpolatePoint(segment.control, next.control, progress), to: interpolatePoint(segment.to, next.to, progress) };
       if (segment.kind === "cubic" && next.kind === "cubic") return { kind: "cubic" as const, control1: interpolatePoint(segment.control1, next.control1, progress), control2: interpolatePoint(segment.control2, next.control2, progress), to: interpolatePoint(segment.to, next.to, progress) };
+      if (segment.kind === "arc" && next.kind === "arc") return { kind: "arc" as const, radii: { x: segment.radii.x + (next.radii.x - segment.radii.x) * progress, y: segment.radii.y + (next.radii.y - segment.radii.y) * progress }, rotation: segment.rotation + (next.rotation - segment.rotation) * progress, largeArc: progress < 0.5 ? segment.largeArc : next.largeArc, sweep: progress < 0.5 ? segment.sweep : next.sweep, to: interpolatePoint(segment.to, next.to, progress) };
       throw new Error(`Path morph segment topology mismatch at ${contour.id}`);
     });
     return { id: contour.id, start: interpolatePoint(contour.start, other.start, progress), segments, closed: contour.closed };

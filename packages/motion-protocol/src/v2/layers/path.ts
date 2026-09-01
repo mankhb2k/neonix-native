@@ -15,11 +15,22 @@ const V2PathPointSchema = z
 
 const V2PathSegmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("line"), to: V2PathPointSchema }).strict(),
+  z.object({ kind: z.literal("quadratic"), control: V2PathPointSchema, to: V2PathPointSchema }).strict(),
   z
     .object({
       kind: z.literal("cubic"),
       control1: V2PathPointSchema,
       control2: V2PathPointSchema,
+      to: V2PathPointSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("arc"),
+      radii: z.object({ x: V2FiniteNumberSchema.nonnegative(), y: V2FiniteNumberSchema.nonnegative() }).strict(),
+      rotation: V2FiniteNumberSchema,
+      largeArc: z.boolean(),
+      sweep: z.boolean(),
       to: V2PathPointSchema,
     })
     .strict(),

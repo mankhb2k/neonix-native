@@ -508,11 +508,6 @@ export function createWebGL2Backend(
         drawCalls += 1;
       } else if (command.op === "drawPath") {
         const maskMode = bindClipMaskTarget(command.key);
-        if (maskMode === "clip") {
-          skippedCommands += 1;
-          pushDiagnostic({ severity: "error", code: "preview_clip_mask_source_invalid", message: "Clip-mask sources must render as a rectangle or ellipse shape", key: command.key, layerId: command.layerId });
-          continue;
-        }
         if (activeEffectScope && !activeEffectScope.plan.supported) {
           skippedCommands += 1;
           continue;
@@ -521,12 +516,14 @@ export function createWebGL2Backend(
           skippedCommands += 1;
           continue;
         }
+        const pathWidth = command.width ?? command.mesh?.bounds.width ?? 1;
+        const pathHeight = command.height ?? command.mesh?.bounds.height ?? 1;
         const meshes = [
           command.fill && command.mesh
-            ? { mesh: command.mesh, color: cssColorToRgba(command.fill), opacity: command.fillOpacity ?? 1 }
+            ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
             : null,
-          command.stroke && command.strokeMesh
-            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1 }
+          !maskMode && command.stroke && command.strokeMesh
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: undefined }
             : null,
         ].filter((entry) => entry !== null).map((entry) => entry!);
         if (meshes.length === 0) {
@@ -541,24 +538,31 @@ export function createWebGL2Backend(
         gl.uniform1i(modeLocation, 0);
         gl.uniform1i(shapeLocation, 0);
         gl.uniform2f(strokeExtentLocation, 0, 0);
-        gl.uniform3f(geometryLocation, 0, 0, 0);
-        gl.uniform4f(gradientStartLocation, 0, 0, 0, 0);
-        gl.uniform4f(gradientEndLocation, 0, 0, 0, 0);
-        gl.uniform4f(gradientParamsLocation, 0, 0, 0, 0);
-        gl.uniform4f(gradientRadiusLocation, 0, 0, 0, 0);
+        gl.uniform3f(geometryLocation, 0, pathWidth, pathHeight);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
-        setColorAdjust(sourceColorAdjust());
+        setColorAdjust(maskMode ? undefined : sourceColorAdjust());
         for (const pathDraw of meshes) {
           const vertexData = new Float32Array(pathDraw.mesh.vertices.length * 2);
           for (let index = 0; index < pathDraw.mesh.vertices.length / 2; index += 1) {
             vertexData[index * 4] = pathDraw.mesh.vertices[index * 2]!;
             vertexData[index * 4 + 1] = pathDraw.mesh.vertices[index * 2 + 1]!;
+            vertexData[index * 4 + 2] = pathDraw.mesh.vertices[index * 2]! / pathWidth;
+            vertexData[index * 4 + 3] = pathDraw.mesh.vertices[index * 2 + 1]! / pathHeight;
           }
           gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pathIndexBuffer);
           gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(pathDraw.mesh.indices), gl.DYNAMIC_DRAW);
-          pathDraw.color[3] *= transform.alpha * pathDraw.opacity;
-          gl.uniform4fv(colorLocation, pathDraw.color);
+          const color = [...pathDraw.color];
+          color[3] *= transform.alpha * pathDraw.opacity;
+          gl.uniform4fv(colorLocation, color);
+          const gradients = gradientUniforms(pathDraw.fillPaint, transform.alpha * pathDraw.opacity);
+          gl.uniform4fv(gradientStartLocation, gradients.start);
+          gl.uniform4fv(gradientEndLocation, gradients.end);
+          gl.uniform4fv(gradientParamsLocation, gradients.params);
+          gl.uniform4fv(gradientRadiusLocation, gradients.radius);
+          gl.uniform4fv(gradientStopsLocation, gradients.stops);
+          gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
+          gl.uniform4fv(gradientMetaLocation, gradients.meta);
           gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
           gl.drawElements(gl.TRIANGLES, pathDraw.mesh.indices.length, gl.UNSIGNED_INT, 0);
           drawCalls += 1;

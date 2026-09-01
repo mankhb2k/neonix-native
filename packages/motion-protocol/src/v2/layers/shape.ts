@@ -8,6 +8,11 @@ import {
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
 
+const V2ShapePointSchema = z.object({
+  x: V2FiniteNumberSchema,
+  y: V2FiniteNumberSchema,
+}).strict();
+
 export const V2GradientStopSchema = z
   .object({
     offset: V2FiniteNumberSchema.min(0).max(1),
@@ -61,13 +66,38 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   effects: V2EffectListSchema.optional(),
   payload: z
     .object({
-      shape: z.union([z.literal("rectangle"), z.literal("ellipse")]),
+      shape: z.enum(["rectangle", "circle", "ellipse", "line", "polyline", "polygon"]),
       cornerRadius: V2NonNegativeNumberSchema.optional(),
+      rx: V2NonNegativeNumberSchema.optional(),
+      ry: V2NonNegativeNumberSchema.optional(),
+      start: V2ShapePointSchema.optional(),
+      end: V2ShapePointSchema.optional(),
+      points: z.array(V2ShapePointSchema).min(2).optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((payload, ctx) => {
+      if (payload.shape !== "rectangle" && payload.cornerRadius !== undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "cornerRadius requires rectangle", path: ["cornerRadius"] });
+      }
+      if (payload.shape !== "rectangle" && (payload.rx !== undefined || payload.ry !== undefined)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "rx/ry require rectangle", path: ["rx"] });
+      }
+      if (payload.shape === "line" && (!payload.start || !payload.end)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "line requires start and end", path: ["start"] });
+      }
+      if ((payload.shape === "polyline" || payload.shape === "polygon") && !payload.points) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${payload.shape} requires points`, path: ["points"] });
+      }
+      if (payload.shape !== "line" && (payload.start !== undefined || payload.end !== undefined)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "start/end require line", path: ["start"] });
+      }
+      if (payload.shape !== "polyline" && payload.shape !== "polygon" && payload.points !== undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "points require polyline or polygon", path: ["points"] });
+      }
+    }),
   style: z
     .object({
-      fill: z.union([V2ColorSchema, V2GradientFillSchema]),
+      fill: z.union([V2ColorSchema, V2GradientFillSchema]).optional(),
       fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
       stroke: V2ColorSchema.optional(),
       strokeWidth: V2PositiveNumberSchema.optional(),

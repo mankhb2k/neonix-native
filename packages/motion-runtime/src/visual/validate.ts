@@ -393,7 +393,9 @@ export function validateVisualRuntimeProject(
         !source ||
         source.parentId !== node.id ||
         source.content.kind === "group" ||
-        (node.mask.mode === "clip" && source.content.kind !== "shape")
+        // Compiler V2 lowers protocol shapes to path geometry, so clip masks
+        // sourced from a Shape are validated at the runtime path boundary.
+        (node.mask.mode === "clip" && source.content.kind !== "path")
       ) {
         diagnostics.push({
           severity: "error",

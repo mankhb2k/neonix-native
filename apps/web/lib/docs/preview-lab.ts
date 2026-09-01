@@ -14,9 +14,11 @@ type RectangleLayer = Extract<V2Layer, { type: "shape" }>;
 type ShapeOptions = {
   id: string;
   order: number;
-  fill: RectangleLayer["style"]["fill"];
+  fill?: RectangleLayer["style"]["fill"];
   fillOpacity?: number;
   cornerRadius?: number;
+  rx?: number;
+  ry?: number;
   stroke?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
@@ -28,6 +30,9 @@ type ShapeOptions = {
   opacity?: number;
   timing?: RectangleLayer["timing"];
   effects?: RectangleLayer["effects"];
+  start?: { x: number; y: number };
+  end?: { x: number; y: number };
+  points?: Array<{ x: number; y: number }>;
 };
 
 const IDENTITY_TRANSFORM: RectangleLayer["transform"] = {
@@ -77,7 +82,7 @@ function normalizeAssetTiming(asset: MotionProtocolV2["assets"][number]): Motion
   };
 }
 
-function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): RectangleLayer {
+function shapeLayer(options: ShapeOptions, shape: RectangleLayer["payload"]["shape"]): RectangleLayer {
   return {
     id: options.id,
     type: "shape",
@@ -91,9 +96,14 @@ function shapeLayer(options: ShapeOptions, shape: "rectangle" | "ellipse"): Rect
     payload: {
       shape,
       ...(options.cornerRadius != null ? { cornerRadius: options.cornerRadius } : {}),
+      ...(options.rx != null ? { rx: options.rx } : {}),
+      ...(options.ry != null ? { ry: options.ry } : {}),
+      ...(options.start ? { start: options.start } : {}),
+      ...(options.end ? { end: options.end } : {}),
+      ...(options.points ? { points: options.points } : {}),
     },
     style: {
-      fill: options.fill,
+      ...(options.fill ? { fill: options.fill } : {}),
       ...(options.fillOpacity != null ? { fillOpacity: options.fillOpacity } : {}),
       ...(options.stroke ? { stroke: options.stroke } : {}),
       ...(options.strokeWidth != null ? { strokeWidth: options.strokeWidth } : {}),
@@ -121,6 +131,17 @@ const ORTHOGRAPHIC_VIEW: MotionProtocolV2["composition"]["view"] = {
     translate: { x: 0, y: 0, z: 0 },
     rotate: { x: 0, y: 0, z: 0 },
   },
+};
+
+function basicShapeProject(id: string, shape: RectangleLayer["payload"]["shape"], options: ShapeOptions): MotionProtocolV2 {
+  return project(id, [shapeLayer(options, shape)]);
+}
+
+const SVG_BASIC_SHAPE_PROJECTS = {
+  circle: basicShapeProject("preview-shape-circle-v2", "circle", { id: "shape-circle", order: 0, frame: { width: 220, height: 220 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 850, y: 420, z: 0 } }, fill: "#38bdf8" }),
+  line: basicShapeProject("preview-shape-line-v2", "line", { id: "shape-line", order: 0, frame: { width: 960, height: 540 }, start: { x: 280, y: 380 }, end: { x: 680, y: 160 }, stroke: "#f97316", strokeWidth: 24, strokeCap: "round" }),
+  polyline: basicShapeProject("preview-shape-polyline-v2", "polyline", { id: "shape-polyline", order: 0, frame: { width: 960, height: 540 }, points: [{ x: 180, y: 350 }, { x: 330, y: 160 }, { x: 480, y: 350 }, { x: 630, y: 160 }, { x: 780, y: 350 }], stroke: "#22c55e", strokeWidth: 20, strokeJoin: "round", strokeCap: "round" }),
+  polygon: basicShapeProject("preview-shape-polygon-v2", "polygon", { id: "shape-polygon", order: 0, frame: { width: 960, height: 540 }, points: [{ x: 480, y: 100 }, { x: 700, y: 220 }, { x: 620, y: 410 }, { x: 340, y: 410 }, { x: 260, y: 220 }], fill: "#00aa88", stroke: "#ff3366", strokeWidth: 14, strokeJoin: "round" }),
 };
 
 function project(
@@ -704,6 +725,28 @@ const PATH_STROKE_PROJECT: MotionProtocolV2 = {
   }),
 };
 
+const PATH_STROKE_4PX_PROJECT: MotionProtocolV2 = {
+  ...PATH_STROKE_PROJECT,
+  layers: PATH_STROKE_PROJECT.layers.map((layer) => {
+    if (layer.type !== "path") return layer;
+    return {
+      ...layer,
+      style: { ...layer.style, strokeWidth: 4 },
+    };
+  }),
+};
+
+const PATH_STROKE_OPACITY_PROJECT: MotionProtocolV2 = {
+  ...PATH_STROKE_PROJECT,
+  layers: PATH_STROKE_PROJECT.layers.map((layer) => {
+    if (layer.type !== "path") return layer;
+    return {
+      ...layer,
+      style: { ...layer.style, stroke: "#38bdf8", strokeOpacity: 0.35 },
+    };
+  }),
+};
+
 const PATH_OPEN_STROKE_PROJECT = project(
   "preview-path-open-stroke-v2",
   [
@@ -769,6 +812,80 @@ const PATH_LINE_PROJECT = project("preview-path-line-v2", [
       fillRule: "nonzero",
     },
     style: { stroke: "#ff3366", strokeWidth: 4, strokeCap: "butt" },
+  },
+]);
+
+const PATH_QUADRATIC_PROJECT = project("preview-path-quadratic-stroke-v2", [
+  {
+    id: "quadratic-stroke",
+    type: "path",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 620, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 660, y: 360, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      contours: [{
+        id: "quadratic-contour",
+        start: { x: 40, y: 260 },
+        segments: [
+          { kind: "quadratic", control: { x: 310, y: -20 }, to: { x: 580, y: 260 } },
+        ],
+        closed: false,
+      }],
+      fillRule: "nonzero",
+    },
+    style: { stroke: "#38bdf8", strokeWidth: 24, strokeCap: "round" },
+  },
+]);
+
+const PATH_ARC_PROJECT = project("preview-path-arc-v2", [
+  {
+    id: "arc-stroke",
+    type: "path",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 620, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 660, y: 360, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      contours: [{
+        id: "arc-contour",
+        start: { x: 40, y: 220 },
+        segments: [{ kind: "arc", radii: { x: 290, y: 180 }, rotation: 0, largeArc: false, sweep: true, to: { x: 580, y: 220 } }],
+        closed: false,
+      }],
+      fillRule: "nonzero",
+    },
+    style: { stroke: "#a78bfa", strokeWidth: 24, strokeCap: "round" },
+  },
+]);
+
+const PATH_ARC_CLOSED_PROJECT = project("preview-path-arc-closed-v2", [
+  {
+    id: "arc-closed",
+    type: "path",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 620, height: 360 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 660, y: 360, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: {
+      contours: [{
+        id: "arc-closed-contour",
+        start: { x: 580, y: 180 },
+        segments: [
+          { kind: "arc", radii: { x: 270, y: 140 }, rotation: 0, largeArc: false, sweep: true, to: { x: 40, y: 180 } },
+          { kind: "arc", radii: { x: 270, y: 140 }, rotation: 0, largeArc: false, sweep: true, to: { x: 580, y: 180 } },
+        ],
+        closed: true,
+      }],
+      fillRule: "nonzero",
+    },
+    style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 16, strokeJoin: "round" },
   },
 ]);
 
@@ -1559,6 +1676,51 @@ const CONIC_GRADIENT_PROJECT = project("preview-conic-gradient-v2", [
   rectangle({ id: "shape-conic-gradient", order: 0, fill: CONIC_GRADIENT_FILL, frame: { width: 320, height: 180 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } } }),
 ]);
 
+const SHAPE_RX_PROJECT = project("preview-shape-rectangle-rx-v2", [
+  rectangle({
+    id: "rectangle-rx",
+    order: 0,
+    fill: "#00aa88",
+    rx: 64,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const SHAPE_RY_PROJECT = project("preview-shape-rectangle-ry-v2", [
+  rectangle({
+    id: "rectangle-ry",
+    order: 0,
+    fill: "#00aa88",
+    ry: 44,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const SHAPE_RX_RY_PROJECT = project("preview-shape-rectangle-rx-ry-v2", [
+  rectangle({
+    id: "rectangle-rx-ry",
+    order: 0,
+    fill: "#00aa88",
+    rx: 72,
+    ry: 28,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const SHAPE_POLYLINE_FILL_PROJECT = project("preview-shape-polyline-fill-v2", [
+  shapeLayer({
+    id: "polyline-fill",
+    order: 0,
+    fill: "#00aa88",
+    frame: { width: 320, height: 220 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 400, z: 0 } },
+    points: [{ x: 20, y: 20 }, { x: 280, y: 40 }, { x: 210, y: 190 }, { x: 60, y: 160 }],
+  }, "polyline"),
+]);
+
 const LINEAR_GRADIENT_PROJECT = project("preview-linear-gradient-v2", [
   rectangle({
     id: "linear-gradient",
@@ -2206,7 +2368,15 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     hint: "Parametric ellipse with antialiased coverage inside its frame.",
     project: ELLIPSE_PROJECT,
   },
+  { id: "shape.circle", label: "Shape / circle", group: "Layers / Shape", hint: "SVG circle normalized to an equal-width ellipse primitive.", project: SVG_BASIC_SHAPE_PROJECTS.circle },
+  { id: "shape.line", label: "Shape / line", group: "Layers / Shape", hint: "SVG line represented as an open stroked geometry.", project: SVG_BASIC_SHAPE_PROJECTS.line },
+  { id: "shape.polyline", label: "Shape / polyline", group: "Layers / Shape", hint: "SVG polyline represented as an open multi-segment geometry.", project: SVG_BASIC_SHAPE_PROJECTS.polyline },
+  { id: "shape.polyline-fill", label: "Shape / polyline fill", group: "Layers / Shape", hint: "An open SVG polyline filled with the implicit closing edge used by SVG fill.", project: SHAPE_POLYLINE_FILL_PROJECT },
+  { id: "shape.polygon", label: "Shape / polygon", group: "Layers / Shape", hint: "SVG polygon represented as a closed filled geometry.", project: SVG_BASIC_SHAPE_PROJECTS.polygon },
   { id: "shape.corner-radius", label: "Shape / corner radius", group: "Layers / Shape", hint: "A rectangle with explicit cornerRadius geometry.", project: ROUNDED_RECTANGLE_PROJECT },
+  { id: "shape.rectangle-rx", label: "Shape / rectangle rx", group: "Layers / Shape", hint: "SVG rectangle with a single rx value; the missing ry axis follows SVG radius normalization.", project: SHAPE_RX_PROJECT },
+  { id: "shape.rectangle-ry", label: "Shape / rectangle ry", group: "Layers / Shape", hint: "SVG rectangle with a single ry value; the missing rx axis follows SVG radius normalization.", project: SHAPE_RY_PROJECT },
+  { id: "shape.rectangle-rx-ry", label: "Shape / rectangle rx + ry", group: "Layers / Shape", hint: "SVG rectangle with independent horizontal and vertical corner radii.", project: SHAPE_RX_RY_PROJECT },
   { id: "shape.solid-fill", label: "Shape / solid fill", group: "Layers / Shape", hint: "A shape carrying a solid color fill value.", project: RECTANGLE_PROJECT },
   { id: "shape.linear-gradient", label: "Shape / linear gradient", group: "Layers / Shape", hint: "A shape carrying a linear gradient fill value.", project: LINEAR_GRADIENT_PROJECT },
   { id: "shape.radial-gradient", label: "Shape / radial gradient", group: "Layers / Shape", hint: "A shape carrying a radial gradient fill value.", project: RADIAL_GRADIENT_PROJECT },
@@ -3023,14 +3193,17 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
   },
   { id: "path.geometry.line", label: "Path / line", group: "Layers / Path", hint: "A single open line segment rendered as a solid 4px stroke.", project: PATH_LINE_PROJECT },
   { id: "path.geometry.cubic", label: "Path / cubic", group: "Layers / Path", hint: "A cubic segment with control points.", project: PATH_CUBIC_PROJECT },
+  { id: "path.geometry.quadratic", label: "Path / quadratic", group: "Layers / Path", hint: "An SVG quadratic Bézier segment with one control point.", project: PATH_QUADRATIC_PROJECT },
+  { id: "path.geometry.arc", label: "Path / elliptical arc", group: "Layers / Path", hint: "An SVG endpoint-parameterized elliptical arc, flattened only at the GPU geometry boundary.", project: PATH_ARC_PROJECT },
+  { id: "path.geometry.arc-closed", label: "Path / closed elliptical arc", group: "Layers / Path", hint: "Two SVG elliptical arcs forming a closed ellipse contour with independent fill and stroke.", project: PATH_ARC_CLOSED_PROJECT },
   { id: "path.geometry.closed-contour", label: "Path / closed contour", group: "Layers / Path", hint: "A closed contour suitable for fill tessellation.", project: PATH_PENTAGON_PERSPECTIVE_PROJECT },
   { id: "path.geometry.open-contour", label: "Path / open contour", group: "Layers / Path", hint: "An open contour rendered as stroke only.", project: PATH_OPEN_STROKE_PROJECT },
   { id: "path.geometry.multiple-contours", label: "Path / multiple contours", group: "Layers / Path", hint: "Two independent contours in one path payload.", project: PATH_NONZERO_DONUT_PROJECT },
   { id: "path.fill", label: "Path / fill", group: "Layers / Path", hint: "A path carrying a solid fill.", project: PATH_NONZERO_STAR_PROJECT },
   { id: "path.fill-opacity", label: "Path / fill opacity", group: "Layers / Path", hint: "A path carrying fillOpacity.", project: PATH_OPACITY_PROJECT },
-  { id: "path.stroke", label: "Path / stroke", group: "Layers / Path", hint: "A path carrying stroke paint.", project: PATH_STROKE_PROJECT },
+  { id: "path.stroke", label: "Path / stroke", group: "Layers / Path", hint: "The same five-sided path with a 4px stroke.", project: PATH_STROKE_4PX_PROJECT },
   { id: "path.stroke-width", label: "Path / stroke width", group: "Layers / Path", hint: "A path carrying strokeWidth.", project: PATH_STROKE_PROJECT },
-  { id: "path.stroke-opacity", label: "Path / stroke opacity", group: "Layers / Path", hint: "A path carrying strokeOpacity.", project: PATH_STROKE_PROJECT },
+  { id: "path.stroke-opacity", label: "Path / stroke opacity", group: "Layers / Path", hint: "The five-sided path uses a contrasting blue stroke at 35% opacity.", project: PATH_STROKE_OPACITY_PROJECT },
   { id: "path.stroke-join.miter", label: "Path / stroke join miter", group: "Layers / Path", hint: "Miter join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
   { id: "path.stroke-join.bevel", label: "Path / stroke join bevel", group: "Layers / Path", hint: "Bevel join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
   { id: "path.stroke-join.round", label: "Path / stroke join round", group: "Layers / Path", hint: "Round join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
@@ -3735,10 +3908,6 @@ export function previewLabCaseById(
   );
 }
 
-export function previewLabGroups(): Array<{
-  label: string;
-  cases: PreviewLabCase[];
-}>
 export function previewLabGroups(variant: "json" | "html-compiler" = "json"): Array<{
   label: string;
   cases: PreviewLabCase[];

@@ -15,7 +15,7 @@ test.describe("Path rendering parity lab", () => {
     await page.goto("/debug/path-rendering");
     await expect(page.getByTestId("path-rendering-lab")).toBeVisible();
     await expect(page.getByLabel("SVG reference")).toBeVisible();
-    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash"]) {
+    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash", "quadratic-round", "arc-round", "arc-closed"]) {
       const measurements = await selectCase(page, id) as Array<{ backend: string; backgroundHoles: number; probes: Array<{ actual: string; expected: string }> }>;
       const webgl = measurements.find((entry) => entry.backend === "webgl2");
       expect(webgl).toBeDefined();

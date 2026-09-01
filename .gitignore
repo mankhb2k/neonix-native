@@ -28,9 +28,4 @@ blob-report
 playwright/.cache
 .next.bak*
 apps/web/.next.bak*
-/konva
-/remotion
-/clipkit
-/pixijs
-/html-to-video
-/shortcut
+/resvg

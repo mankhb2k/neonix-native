@@ -165,6 +165,47 @@ describe("Path tessellation", () => {
     expect(mesh.indices.length).toBeGreaterThan(6);
   });
 
+  it("flattens quadratic commands before tessellation", () => {
+    const contour = {
+      id: "quadratic",
+      start: { x: 0, y: 100 },
+      segments: [
+        { kind: "quadratic" as const, control: { x: 100, y: -80 }, to: { x: 200, y: 100 } },
+        { kind: "line" as const, to: { x: 0, y: 100 } },
+      ],
+      closed: true as const,
+    };
+    const flattened = flattenPathContourAny(contour);
+    const mesh = tessellateClosedPath([contour]);
+
+    expect(flattened.points.length).toBeGreaterThan(2);
+    expect(flattened.points[0]).toEqual({ x: 0, y: 100 });
+    expect(mesh.indices.length).toBeGreaterThan(6);
+    expect(mesh.vertices.every(Number.isFinite)).toBe(true);
+  });
+
+  it("flattens SVG endpoint-parameterized arcs with exact endpoints", () => {
+    const contour = {
+      id: "arc",
+      start: { x: 220, y: 270 },
+      segments: [
+        { kind: "arc" as const, radii: { x: 220, y: 150 }, rotation: 0, largeArc: false, sweep: true, to: { x: 740, y: 270 } },
+        { kind: "line" as const, to: { x: 220, y: 270 } },
+      ],
+      closed: true as const,
+    };
+    const flattened = flattenPathContourAny(contour);
+    const mesh = tessellateClosedPath([contour]);
+
+    expect(flattened.points.length).toBeGreaterThan(10);
+    expect(flattened.points[0]).toEqual({ x: 220, y: 270 });
+    // Canonical closed contours intentionally omit the repeated closing point;
+    // the arc endpoint must still be exact before the closing edge is implied.
+    expect(flattened.points.at(-1)).toEqual({ x: 740, y: 270 });
+    expect(mesh.indices.length).toBeGreaterThan(6);
+    expect(mesh.vertices.every(Number.isFinite)).toBe(true);
+  });
+
   it("resolves nonzero winding and evenodd parity across nested contours", () => {
     const nonzeroHole = tessellateClosedPath([outer, innerOppositeWinding], "nonzero");
     const evenoddHole = tessellateClosedPath([outer, innerSameWinding], "evenodd");
@@ -174,6 +215,25 @@ describe("Path tessellation", () => {
     expect(meshContainsPoint(nonzeroHole, 50, 50)).toBe(false);
     expect(meshContainsPoint(evenoddHole, 50, 50)).toBe(false);
     expect(meshContainsPoint(nonzeroFilled, 50, 50)).toBe(true);
+  });
+
+  it("implicitly closes an open contour for SVG fill without changing stroke openness", () => {
+    const openContour = {
+      id: "open-fill",
+      start: { x: 10, y: 10 },
+      segments: [
+        { kind: "line" as const, to: { x: 90, y: 10 } },
+        { kind: "line" as const, to: { x: 50, y: 90 } },
+      ],
+      closed: false as const,
+    };
+
+    const fill = tessellateClosedPath([openContour]);
+    const stroke = tessellatePathStroke([openContour], 8, { cap: "butt" });
+
+    expect(meshContainsPoint(fill, 50, 35)).toBe(true);
+    expect(fill.bounds).toEqual({ x: 10, y: 10, width: 80, height: 80 });
+    expect(stroke.bounds).not.toEqual(fill.bounds);
   });
 
   it("distinguishes nonzero and evenodd at a five-point self-intersection", () => {
@@ -267,5 +327,27 @@ describe("Path tessellation", () => {
     expect(midpoint.start).toEqual({ x: 55, y: 5 });
     expect(midpoint.segments).toHaveLength(fivePointStar.segments.length);
     expect(() => interpolatePathContours([fivePointStar], [outer], 0.5)).toThrow(/topology mismatch/);
+  });
+
+  it("interpolates quadratic and arc geometry without changing command topology", () => {
+    const quadratic = {
+      id: "quadratic",
+      start: { x: 0, y: 100 },
+      segments: [{ kind: "quadratic" as const, control: { x: 100, y: 0 }, to: { x: 200, y: 100 } }],
+      closed: false as const,
+    };
+    const arc = {
+      id: "arc",
+      start: { x: 0, y: 100 },
+      segments: [{ kind: "arc" as const, radii: { x: 100, y: 80 }, rotation: 0, largeArc: false, sweep: true, to: { x: 200, y: 100 } }],
+      closed: false as const,
+    };
+    const quadraticTarget = { ...quadratic, segments: [{ kind: "quadratic" as const, control: { x: 100, y: 200 }, to: { x: 300, y: 100 } }] };
+    const arcTarget = { ...arc, segments: [{ kind: "arc" as const, radii: { x: 140, y: 120 }, rotation: 30, largeArc: true, sweep: false, to: { x: 240, y: 100 } }] };
+    const quadraticMidpoint = interpolatePathContours([quadratic], [quadraticTarget], 0.5)[0]!;
+    const arcMidpoint = interpolatePathContours([arc], [arcTarget], 0.5)[0]!;
+
+    expect(quadraticMidpoint.segments[0]).toEqual({ kind: "quadratic", control: { x: 100, y: 100 }, to: { x: 250, y: 100 } });
+    expect(arcMidpoint.segments[0]).toEqual({ kind: "arc", radii: { x: 120, y: 100 }, rotation: 15, largeArc: true, sweep: false, to: { x: 220, y: 100 } });
   });
 });

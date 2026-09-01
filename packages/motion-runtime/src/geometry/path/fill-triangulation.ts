@@ -22,7 +22,8 @@ function appendTrapezoid(vertices: number[], indices: number[], left: Crossing, 
 
 export function tessellateFillContours(contours: CanonicalContour[], fillRule: PathFillRule = "nonzero"): PathMesh {
   if (contours.length === 0) throw new Error("Path V2 requires at least one contour");
-  if (contours.some((contour) => !contour.closed)) throw new Error("Filled path contours must be closed");
+  // SVG fill semantics implicitly close each subpath. `closed` is retained
+  // for stroke caps/joins, but does not gate the fill operation.
   const edges = contours.flatMap(edgesFor);
   const yValues = [...new Set(contours.flatMap((contour) => contour.points.map((point) => point.y)))].sort((a, b) => a - b);
   const vertices: number[] = []; const indices: number[] = [];
