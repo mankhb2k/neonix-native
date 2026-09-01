@@ -74,6 +74,7 @@ export function PreviewStage({
   const resourceRegistryRef = useRef<PreviewResourceRegistry | null>(null);
   if (!resourceRegistryRef.current) resourceRegistryRef.current = new PreviewResourceRegistry();
   const resourceRegistry = resourceRegistryRef.current;
+  const resourceRegistryDisposeRef = useRef<number | null>(null);
   const runtimeRef = useRef<RuntimeProjectV3 | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
   const onBackendReadyRef = useRef(onBackendReady);
@@ -247,7 +248,23 @@ export function PreviewStage({
     };
   }, [backend, testId]);
 
-  useEffect(() => () => resourceRegistry.dispose(), [resourceRegistry]);
+  useEffect(() => {
+    // React Strict Mode performs an effect cleanup followed by a setup during
+    // development. Do not dispose the registry synchronously in that probe:
+    // the ref survives the probe and would otherwise keep a disposed registry
+    // for the real resource-loading effect. A macrotask still disposes it on a
+    // genuine unmount, while the next setup cancels the probe cleanup.
+    if (resourceRegistryDisposeRef.current !== null) {
+      window.clearTimeout(resourceRegistryDisposeRef.current);
+      resourceRegistryDisposeRef.current = null;
+    }
+    return () => {
+      resourceRegistryDisposeRef.current = window.setTimeout(() => {
+        resourceRegistry.dispose();
+        resourceRegistryDisposeRef.current = null;
+      }, 0);
+    };
+  }, [resourceRegistry]);
 
   // Recompile and repaint the existing renderer for document edits. Resource
   // loading may be asynchronous, so the previous frame remains visible until

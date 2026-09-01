@@ -3400,7 +3400,11 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         id: "rectangle",
         order: 0,
         fill: "#00aa88",
-        transform: { ...IDENTITY_TRANSFORM, translate: { x: 48, y: 32, z: 0 } },
+        frame: { width: 320, height: 180 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          operations: [{ type: "translate", x: 800, y: 450 }],
+        },
       }),
     ]),
   },
@@ -3414,11 +3418,11 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         id: "rectangle",
         order: 0,
         fill: "#00aa88",
-        frame: { width: 64, height: 48 },
+        frame: { width: 320, height: 180 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 32, y: 32, z: 0 },
-          scale: { x: 2, y: 1.5, z: 1 },
+          translate: { x: 640, y: 405, z: 0 },
+          operations: [{ type: "scale", x: 2, y: 1.5 }],
         },
       }),
     ]),
@@ -3437,8 +3441,8 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         transform: {
           ...IDENTITY_TRANSFORM,
           translate: { x: 160, y: 90, z: 0 },
-          scale: { x: 2, y: 2, z: 1 },
-          anchor: { x: 32, y: 24, z: 0 },
+          operations: [{ type: "scale", x: 2, y: 2 }],
+          extensions: { anchor: { x: 32, y: 24, z: 0 } },
         },
       }),
     ]),
@@ -3453,12 +3457,11 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         id: "rectangle",
         order: 0,
         fill: "#00aa88",
-        frame: { width: 80, height: 40 },
+        frame: { width: 320, height: 180 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 160, y: 90, z: 0 },
-          rotate: { x: 0, y: 0, z: 90 },
-          anchor: { x: 40, y: 20, z: 0 },
+          translate: { x: 800, y: 450, z: 0 },
+          operations: [{ type: "rotate", angle: 90, center: { x: 160, y: 90 } }],
         },
       }),
     ]),
@@ -3477,8 +3480,8 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         transform: {
           ...IDENTITY_TRANSFORM,
           translate: { x: 360, y: 260, z: 0 },
-          rotate: { x: 0, y: 0, z: 28 },
-          anchor: { x: 220, y: 120, z: 0 },
+          operations: [{ type: "extension", name: "motion.rotateZ", value: 28 }],
+          extensions: { anchor: { x: 220, y: 120, z: 0 } },
         },
       }),
     ]),
@@ -3499,8 +3502,8 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
           transform: {
             ...IDENTITY_TRANSFORM,
             translate: { x: 800, y: 420, z: 220 },
-            rotate: { x: 0, y: 28, z: 0 },
-            anchor: { x: 160, y: 90, z: 0 },
+            operations: [{ type: "extension", name: "motion.rotateY", value: 28 }],
+            extensions: { anchor: { x: 160, y: 90, z: 0 } },
           },
         }),
       ],
@@ -3523,11 +3526,11 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         id: "rectangle",
         order: 0,
         fill: "#00aa88",
-        frame: { width: 80, height: 40 },
+        frame: { width: 320, height: 180 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 40, y: 50, z: 0 },
-          skew: { x: 45, y: 0 },
+          translate: { x: 710, y: 450, z: 0 },
+          operations: [{ type: "skewX", angle: 45 }],
         },
       }),
       ]),
@@ -3545,11 +3548,9 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 180, height: 96 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 48, y: 0, z: 0 },
-          rotate: { x: 0, y: 0, z: 90 },
           operations: [
-            { type: "translate", value: { x: 48, y: 0, z: 0 } },
-            { type: "rotateZ", value: 90 },
+            { type: "translate", x: 48, y: 0 },
+            { type: "rotate", angle: 90 },
           ],
         },
       }),
@@ -3568,11 +3569,9 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 180, height: 96 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 48, y: 0, z: 0 },
-          rotate: { x: 0, y: 0, z: 90 },
           operations: [
-            { type: "rotateZ", value: 90 },
-            { type: "translate", value: { x: 48, y: 0, z: 0 } },
+            { type: "rotate", angle: 90 },
+            { type: "translate", x: 48, y: 0 },
           ],
         },
       }),
@@ -3591,9 +3590,10 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 240, height: 140 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 840, y: 450, z: 120 },
-          rotate: { x: 28, y: 0, z: 0 },
-          operations: [{ type: "rotateX", value: 28 }],
+          operations: [
+            { type: "extension", name: "motion.rotateX", value: 28 },
+            { type: "extension", name: "motion.translate3d", value: { x: 840, y: 450, z: 120 } },
+          ],
         },
       }),
     ]),
@@ -3611,9 +3611,10 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 240, height: 140 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 840, y: 450, z: 120 },
-          rotate: { x: 0, y: 28, z: 0 },
-          operations: [{ type: "rotateY", value: 28 }],
+          operations: [
+            { type: "extension", name: "motion.rotateY", value: 28 },
+            { type: "extension", name: "motion.translate3d", value: { x: 840, y: 450, z: 120 } },
+          ],
         },
       }),
     ]),
@@ -3631,9 +3632,10 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 180, height: 96 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 840, y: 450, z: 0 },
-          rotate: { x: 0, y: 0, z: 28 },
-          operations: [{ type: "rotateZ", value: 28 }],
+          operations: [
+            { type: "extension", name: "motion.rotateZ", value: 28 },
+            { type: "translate", x: 840, y: 450 },
+          ],
         },
       }),
     ]),
@@ -3651,9 +3653,11 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 240, height: 140 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 840, y: 450, z: 0 },
-          skew: { x: 18, y: -12 },
-          operations: [{ type: "skew", value: { x: 18, y: -12 } }],
+          operations: [
+            { type: "skewX", angle: 18 },
+            { type: "skewY", angle: -12 },
+            { type: "translate", x: 840, y: 450 },
+          ],
         },
       }),
     ]),
@@ -3671,9 +3675,10 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 240, height: 140 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 840, y: 450, z: 120 },
-          scale: { x: 1.2, y: 0.8, z: 1.5 },
-          operations: [{ type: "scale", value: { x: 1.2, y: 0.8, z: 1.5 } }],
+          operations: [
+            { type: "extension", name: "motion.scale3d", value: { x: 1.2, y: 0.8, z: 1.5 } },
+            { type: "extension", name: "motion.translate3d", value: { x: 840, y: 450, z: 120 } },
+          ],
         },
       }),
     ]),
@@ -3691,15 +3696,17 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 320, height: 180 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 800, y: 420, z: 80 },
-          operations: [{ type: "perspective", value: 800 }],
+          operations: [
+            { type: "extension", name: "motion.perspective", value: 800 },
+            { type: "extension", name: "motion.translate3d", value: { x: 800, y: 420, z: 80 } },
+          ],
         },
       }),
     ]),
   },
   {
     id: "rectangle.transform.operations.matrix",
-    label: "Transform / matrix operation",
+    label: "Transform / SVG matrix",
     group: "Transforms & 3D",
     hint: "A canonical 4×4 matrix operation is passed directly through Protocol V2 and composed by Runtime.",
     project: project("preview-rectangle-matrix-operation-v2", [
@@ -3710,8 +3717,25 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
         frame: { width: 240, height: 140 },
         transform: {
           ...IDENTITY_TRANSFORM,
-          translate: { x: 720, y: 440, z: 0 },
-          operations: [{ type: "matrix", value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 120, 40, 0, 1] }],
+          operations: [{ type: "matrix", values: [1, 0, 0, 1, 720, 440] }],
+        },
+      }),
+    ]),
+  },
+  {
+    id: "rectangle.transform.operations.matrix4",
+    label: "Transform / matrix4 extension",
+    group: "Transforms & 3D",
+    hint: "The explicit motion.matrix4 extension carries the runtime's column-major 4Ã—4 matrix.",
+    project: project("preview-rectangle-matrix4-operation-v2", [
+      rectangle({
+        id: "rectangle",
+        order: 0,
+        fill: "#a855f7",
+        frame: { width: 240, height: 140 },
+        transform: {
+          ...IDENTITY_TRANSFORM,
+          operations: [{ type: "extension", name: "motion.matrix4", value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 720, 440, 0, 1] }],
         },
       }),
     ]),
@@ -3879,7 +3903,8 @@ const PREVIEW_LAB_GROUP_ORDER = [
   "Layers / Video",
   "Layers / Text",
   "Layers / Group",
-  "Transforms",
+  "Transforms / Core",
+  "Transforms / Extension",
   "Paint / Fill",
   "Paint / Stroke",
   "Paint / Gradient",
@@ -3893,6 +3918,21 @@ const PREVIEW_LAB_GROUP_ORDER = [
 ] as const;
 
 type PreviewLabGroupLabel = (typeof PREVIEW_LAB_GROUP_ORDER)[number];
+
+const TRANSFORM_EXTENSION_CASES = new Set([
+  "rectangle.transform.anchor",
+  "rectangle.mat4.anchor-outside-rotate-z",
+  "rectangle.mat4.anchor-z-rotate-y-perspective",
+  "rectangle.transform.operations.rotate-x",
+  "rectangle.transform.operations.rotate-y",
+  "rectangle.transform.operations.rotate-z",
+  "rectangle.transform.scale-z",
+  "rectangle.transform.operations.perspective",
+  "rectangle.transform.operations.matrix4",
+  "rectangle.mat4.rotate-x-perspective",
+  "rectangle.mat4.rotate-y-perspective",
+  "rectangle.mat4.translate-z-perspective",
+]);
 
 const PAINT_FILL_CASES = new Set([
   "shape.solid-fill",
@@ -3929,20 +3969,16 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
   if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
   if (item.id === "html-compiler.primitives.rectangle-rounded") return "Layers / Shape";
-  if (item.id.startsWith("html-compiler.transform.")) return "Transforms";
+  if (item.id.startsWith("html-compiler.transform.")) return "Transforms / Core";
   if (PAINT_PATTERN_CASES.has(item.id)) return "Paint / Pattern";
   if (PAINT_GRADIENT_CASES.has(item.id)) return "Paint / Gradient";
   if (PAINT_STROKE_CASES.has(item.id)) return "Paint / Stroke";
   if (PAINT_FILL_CASES.has(item.id)) return "Paint / Fill";
   if (item.id === "shape.effects") return "Effects";
   if (item.id.startsWith("primitive.shape.") || item.id.startsWith("shape.")) return "Layers / Shape";
-  if (
-    item.id.startsWith("rectangle.transform.") ||
-    item.id.startsWith("rectangle.mat4.") ||
-    item.id.startsWith("matrix4.")
-  ) {
-    return "Transforms";
-  }
+  if (TRANSFORM_EXTENSION_CASES.has(item.id)) return "Transforms / Extension";
+  if (item.id.startsWith("rectangle.transform.")) return "Transforms / Core";
+  if (item.id.startsWith("rectangle.mat4.") || item.id.startsWith("matrix4.")) return "Transforms / Extension";
   if (item.id.startsWith("group.isolation.")) {
     return "Compositing";
   }

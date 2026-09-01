@@ -482,15 +482,21 @@ export type LocalTransform3D = {
   scale: Point3D;
   skew: { x: number; y: number };
   anchor: Point3D;
-  /** Optional canonical ordered Protocol V2 transform operations. */
+  /** Optional ordered SVG transform list plus explicit motion extensions. */
   operations?: Array<
-    | { type: "translate"; value: Point3D }
-    | { type: "rotateX" | "rotateY" | "rotateZ"; value: number }
-    | { type: "scale"; value: Point3D }
-    | { type: "skew"; value: { x: number; y: number } }
-    | { type: "perspective"; value: number }
-    | { type: "matrix"; value: readonly number[] }
+    | { type: "translate"; x: number; y: number }
+    | { type: "scale"; x: number; y: number }
+    | { type: "rotate"; angle: number; center?: { x: number; y: number } }
+    | { type: "skewX" | "skewY"; angle: number }
+    | { type: "matrix"; values: readonly number[] }
+    | { type: "extension"; name: "motion.translate3d"; value: Point3D }
+    | { type: "extension"; name: "motion.scale3d"; value: Point3D }
+    | { type: "extension"; name: "motion.rotateX" | "motion.rotateY" | "motion.rotateZ"; value: number }
+    | { type: "extension"; name: "motion.perspective"; value: number }
+    | { type: "extension"; name: "motion.matrix4"; value: readonly number[] }
   >;
+  /** Explicit motion extension pivot. Falls back to the compatibility field. */
+  extensions?: { anchor?: Point3D };
 };
 
 function localPerspectiveMatrix(distance: number): Matrix4 {
@@ -506,37 +512,19 @@ function localPerspectiveMatrix(distance: number): Matrix4 {
  */
 export function composeLocalMatrix4(t: LocalTransform3D): Matrix4 {
   if (t.operations?.length) {
-    const operationTranslate = t.operations.reduce(
-      (sum, operation) => operation.type === "translate"
-        ? { x: sum.x + operation.value.x, y: sum.y + operation.value.y, z: sum.z + operation.value.z }
-        : sum,
-      { x: 0, y: 0, z: 0 },
-    );
-    let matrix = translationMatrix3D(
-      t.translate.x - operationTranslate.x,
-      t.translate.y - operationTranslate.y,
-      t.translate.z - operationTranslate.z,
-    );
-    matrix = multiplyMatrix4(matrix, translationMatrix3D(t.anchor.x, t.anchor.y, t.anchor.z));
+    const anchor = t.extensions?.anchor ?? t.anchor;
+    let matrix = identityMatrix4();
     for (const operation of t.operations) {
-      const operationMatrix = operation.type === "translate"
-        ? translationMatrix3D(operation.value.x, operation.value.y, operation.value.z)
-        : operation.type === "rotateX"
-          ? rotationMatrixX(operation.value)
-          : operation.type === "rotateY"
-            ? rotationMatrixY(operation.value)
-            : operation.type === "rotateZ"
-              ? rotationMatrixZ(operation.value)
-              : operation.type === "scale"
-                ? scaleMatrix3D(operation.value.x, operation.value.y, operation.value.z)
-                : operation.type === "skew"
-                  ? skewMatrix3D(operation.value.x, operation.value.y)
-                  : operation.type === "perspective"
-                    ? localPerspectiveMatrix(operation.value)
-                    : createMatrix4(operation.value as readonly number[]);
-      matrix = multiplyMatrix4(matrix, operationMatrix);
+      matrix = multiplyMatrix4(matrix, transformOperationMatrix(operation));
     }
-    return multiplyMatrix4(matrix, translationMatrix3D(-t.anchor.x, -t.anchor.y, -t.anchor.z));
+    const pivoted = multiplyMatrix4(
+      multiplyMatrix4(translationMatrix3D(anchor.x, anchor.y, anchor.z), matrix),
+      translationMatrix3D(-anchor.x, -anchor.y, -anchor.z),
+    );
+    return multiplyMatrix4(
+      translationMatrix3D(t.translate.x, t.translate.y, t.translate.z),
+      pivoted,
+    );
   }
   const rotation = multiplyMatrix4(
     multiplyMatrix4(rotationMatrixZ(t.rotate.z), rotationMatrixY(t.rotate.y)),
@@ -556,6 +544,57 @@ export function composeLocalMatrix4(t: LocalTransform3D): Matrix4 {
     matrix,
     translationMatrix3D(-t.anchor.x, -t.anchor.y, -t.anchor.z),
   );
+}
+
+type OrderedTransformOperation = NonNullable<LocalTransform3D["operations"]>[number];
+
+function transformOperationMatrix(operation: OrderedTransformOperation): Matrix4 {
+  if (operation.type === "translate") return translationMatrix3D(operation.x, operation.y, 0);
+  if (operation.type === "scale") return scaleMatrix3D(operation.x, operation.y, 1);
+  if (operation.type === "rotate") return rotateAroundPoint(operation.angle, operation.center);
+  if (operation.type === "skewX") return skewMatrix3D(operation.angle, 0);
+  if (operation.type === "skewY") return skewMatrix3D(0, operation.angle);
+  if (operation.type === "matrix") return svgMatrixToMatrix4(operation.values);
+  if (operation.type !== "extension") {
+    throw new Error(`Unsupported transform operation: ${operation.type}`);
+  }
+  if (operation.name === "motion.translate3d") {
+    return translationMatrix3D(operation.value.x, operation.value.y, operation.value.z);
+  }
+  if (operation.name === "motion.scale3d") {
+    return scaleMatrix3D(operation.value.x, operation.value.y, operation.value.z);
+  }
+  if (operation.name === "motion.rotateX") return rotationMatrixX(operation.value);
+  if (operation.name === "motion.rotateY") return rotationMatrixY(operation.value);
+  if (operation.name === "motion.rotateZ") return rotationMatrixZ(operation.value);
+  if (operation.name === "motion.perspective") return localPerspectiveMatrix(operation.value);
+  return createMatrix4(operation.value as readonly number[]);
+}
+
+function rotateAroundPoint(
+  angle: number,
+  center: { x: number; y: number } | undefined,
+): Matrix4 {
+  const rotation = rotationMatrixZ(angle);
+  if (!center) return rotation;
+  return multiplyMatrix4(
+    multiplyMatrix4(translationMatrix3D(center.x, center.y, 0), rotation),
+    translationMatrix3D(-center.x, -center.y, 0),
+  );
+}
+
+/** Convert SVG matrix(a,b,c,d,e,f) to the runtime's column-major Matrix4. */
+function svgMatrixToMatrix4(values: readonly number[]): Matrix4 {
+  if (values.length !== 6 || values.some((value) => !Number.isFinite(value))) {
+    throw new Error("SVG transform matrix requires six finite values");
+  }
+  const [a, b, c, d, e, f] = values;
+  return createMatrix4([
+    a!, b!, 0, 0,
+    c!, d!, 0, 0,
+    0, 0, 1, 0,
+    e!, f!, 0, 1,
+  ]);
 }
 
 // ── Convert to plain array (for serialization / paint contract) ──────

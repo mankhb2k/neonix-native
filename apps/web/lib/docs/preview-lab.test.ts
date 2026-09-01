@@ -153,6 +153,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       "rectangle.transform.scale-z",
       "rectangle.transform.operations.perspective",
       "rectangle.transform.operations.matrix",
+      "rectangle.transform.operations.matrix4",
       "rectangle.mat4.rotate-x-perspective",
       "rectangle.mat4.rotate-y-perspective",
       "rectangle.mat4.translate-z-perspective",
@@ -242,7 +243,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(transforms).toHaveLength(4);
     expect(transforms.every((fixture) => fixture.group === "Transforms & 3D")).toBe(true);
     expect(transforms.map((fixture) => fixture.project.layers[0]?.transform.operations?.[0]?.type)).toEqual([
-      "translate", "scale", "rotateZ", "skew",
+      "translate", "scale", "rotate", "skewX",
     ]);
   });
 
@@ -258,15 +259,16 @@ describe("Protocol V2 preview lab fixtures", () => {
   it("includes JSON fixtures for every canonical transform operation", () => {
     const translateRotate = previewLabCaseById("rectangle.transform.operations.translate-rotate");
     const rotateTranslate = previewLabCaseById("rectangle.transform.operations.rotate-translate");
-    expect(translateRotate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["translate", "rotateZ"]);
-    expect(rotateTranslate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["rotateZ", "translate"]);
-    expect(previewLabCaseById("rectangle.transform.operations.rotate-x").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateX", value: 28 });
-    expect(previewLabCaseById("rectangle.transform.operations.rotate-y").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateY", value: 28 });
-    expect(previewLabCaseById("rectangle.transform.operations.rotate-z").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "rotateZ", value: 28 });
-    expect(previewLabCaseById("rectangle.transform.operations.skew").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "skew", value: { x: 18, y: -12 } });
-    expect(previewLabCaseById("rectangle.transform.scale-z").project.layers[0]?.transform.scale.z).toBe(1.5);
-    expect(previewLabCaseById("rectangle.transform.operations.perspective").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "perspective", value: 800 });
-    expect(previewLabCaseById("rectangle.transform.operations.matrix").project.layers[0]?.transform.operations?.[0].type).toBe("matrix");
+    expect(translateRotate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["translate", "rotate"]);
+    expect(rotateTranslate.project.layers[0]?.transform.operations?.map((operation) => operation.type)).toEqual(["rotate", "translate"]);
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-x").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "extension", name: "motion.rotateX", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-y").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "extension", name: "motion.rotateY", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.rotate-z").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "extension", name: "motion.rotateZ", value: 28 });
+    expect(previewLabCaseById("rectangle.transform.operations.skew").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "skewX", angle: 18 });
+    expect(previewLabCaseById("rectangle.transform.scale-z").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "extension", name: "motion.scale3d", value: { x: 1.2, y: 0.8, z: 1.5 } });
+    expect(previewLabCaseById("rectangle.transform.operations.perspective").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "extension", name: "motion.perspective", value: 800 });
+    expect(previewLabCaseById("rectangle.transform.operations.matrix").project.layers[0]?.transform.operations?.[0]).toEqual({ type: "matrix", values: [1, 0, 0, 1, 720, 440] });
+    expect(previewLabCaseById("rectangle.transform.operations.matrix4").project.layers[0]?.transform.operations?.[0]).toEqual(expect.objectContaining({ type: "extension", name: "motion.matrix4" }));
   });
 
   it("represents shape stroke width with the required stroke color", () => {
@@ -326,7 +328,8 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Layers / Video",
       "Layers / Text",
       "Layers / Group",
-      "Transforms",
+      "Transforms / Core",
+      "Transforms / Extension",
       "Paint / Fill",
       "Paint / Stroke",
       "Paint / Gradient",

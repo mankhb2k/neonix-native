@@ -18,15 +18,15 @@ describe("Protocol V2 transform operations", () => {
     const transform = V2TransformSchema.parse({
       ...legacyComponents,
       operations: [
-        { type: "translate", value: { x: 100, y: 0, z: 0 } },
-        { type: "rotateZ", value: 30 },
-        { type: "scale", value: { x: 1.2, y: 1.2, z: 1 } },
+        { type: "translate", x: 100, y: 0 },
+        { type: "rotate", angle: 30 },
+        { type: "scale", x: 1.2, y: 1.2 },
       ],
     });
 
     expect(transform.operations?.map((operation) => operation.type)).toEqual([
       "translate",
-      "rotateZ",
+      "rotate",
       "scale",
     ]);
   });
@@ -35,14 +35,14 @@ describe("Protocol V2 transform operations", () => {
     const matrix = Array.from({ length: 16 }, (_, index) => index);
     expect(V2Mat4Schema.parse(matrix)).toEqual(matrix);
     expect(
-      V2TransformOperationSchema.parse({ type: "matrix", value: matrix }),
-    ).toEqual({ type: "matrix", value: matrix });
+      V2TransformOperationSchema.parse({ type: "extension", name: "motion.matrix4", value: matrix }),
+    ).toEqual({ type: "extension", name: "motion.matrix4", value: matrix });
   });
 
   it("rejects malformed matrices and invalid perspective", () => {
     expect(() => V2Mat4Schema.parse([1, 2, 3])).toThrow();
     expect(() =>
-      V2TransformOperationSchema.parse({ type: "perspective", value: 0 }),
+      V2TransformOperationSchema.parse({ type: "extension", name: "motion.perspective", value: 0 }),
     ).toThrow();
   });
 });

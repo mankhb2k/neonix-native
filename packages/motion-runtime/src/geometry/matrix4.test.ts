@@ -134,18 +134,16 @@ describe("Canonical local Matrix4 composition", () => {
   it("uses ordered operations and distinguishes translate-rotate order", () => {
     const translateRotate = composeLocalMatrix4({
       ...identityTransform,
-      translate: { x: 10, y: 0, z: 0 },
       operations: [
-        { type: "translate", value: { x: 10, y: 0, z: 0 } },
-        { type: "rotateZ", value: 90 },
+        { type: "translate", x: 10, y: 0 },
+        { type: "rotate", angle: 90 },
       ],
     });
     const rotateTranslate = composeLocalMatrix4({
       ...identityTransform,
-      translate: { x: 10, y: 0, z: 0 },
       operations: [
-        { type: "rotateZ", value: 90 },
-        { type: "translate", value: { x: 10, y: 0, z: 0 } },
+        { type: "rotate", angle: 90 },
+        { type: "translate", x: 10, y: 0 },
       ],
     });
     const first = transformPoint3D(translateRotate, 0, 0, 0)!;
@@ -159,12 +157,12 @@ describe("Canonical local Matrix4 composition", () => {
   it("evaluates perspective and matrix operations", () => {
     const perspective = composeLocalMatrix4({
       ...identityTransform,
-      operations: [{ type: "perspective", value: 800 }],
+      operations: [{ type: "extension", name: "motion.perspective", value: 800 }],
     });
     expect(perspective[11]).toBeCloseTo(-1 / 800, 12);
     const matrix = composeLocalMatrix4({
       ...identityTransform,
-      operations: [{ type: "matrix", value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 24, 12, 0, 1] }],
+      operations: [{ type: "extension", name: "motion.matrix4", value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 24, 12, 0, 1] }],
     });
     expect(transformPoint3D(matrix, 0, 0, 0)).toMatchObject({ x: 24, y: 12 });
   });

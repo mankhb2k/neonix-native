@@ -1322,17 +1322,17 @@ test.describe("Protocol V2 atom preview", () => {
       return readWebGLPixel(page, "preview-v2-canvas", x, y);
     }
 
-    await expect(pixel("rectangle.transform.translate", 96, 64)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.translate", 960, 540)).resolves.toEqual(
       [0, 170, 136, 255],
     );
-    await expect(pixel("rectangle.transform.translate", 20, 20)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.translate", 700, 400)).resolves.toEqual(
       [16, 24, 32, 255],
     );
 
-    await expect(pixel("rectangle.transform.scale", 150, 100)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.scale", 960, 540)).resolves.toEqual(
       [0, 170, 136, 255],
     );
-    await expect(pixel("rectangle.transform.scale", 161, 100)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.scale", 630, 400)).resolves.toEqual(
       [16, 24, 32, 255],
     );
 
@@ -1343,10 +1343,10 @@ test.describe("Protocol V2 atom preview", () => {
       [16, 24, 32, 255],
     );
 
-    await expect(pixel("rectangle.transform.rotate", 200, 110)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.rotate", 960, 540)).resolves.toEqual(
       [0, 170, 136, 255],
     );
-    await expect(pixel("rectangle.transform.rotate", 170, 110)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.rotate", 800, 300)).resolves.toEqual(
       [16, 24, 32, 255],
     );
 
@@ -1364,10 +1364,10 @@ test.describe("Protocol V2 atom preview", () => {
     );
     expect(perspective).toEqual([0, 170, 136, 255]);
 
-    await expect(pixel("rectangle.transform.skew", 100, 70)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.skew", 960, 540)).resolves.toEqual(
       [0, 170, 136, 255],
     );
-    await expect(pixel("rectangle.transform.skew", 45, 85)).resolves.toEqual(
+    await expect(pixel("rectangle.transform.skew", 700, 400)).resolves.toEqual(
       [16, 24, 32, 255],
     );
 
