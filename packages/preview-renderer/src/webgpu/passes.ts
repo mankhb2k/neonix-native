@@ -1,8 +1,9 @@
 import { CLIP_MASK_POST_SHADER, INNER_GLOW_POST_SHADER, POST_SHADER } from "./shaders";
 import { MSAA_SAMPLE_COUNT } from "./resources";
 import type { WebGPUDeviceLike, WebGPURenderPipelineLike } from "../shared/types";
+import type { BlendMode } from "./resources";
 
-export function createPostObjects(device: WebGPUDeviceLike, format: string, sampleCount = 1, premultiplied = false): {
+export function createPostObjects(device: WebGPUDeviceLike, format: string, sampleCount = 1, premultiplied = false, blendMode: BlendMode = "normal"): {
   pipeline: WebGPURenderPipelineLike;
   layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
 } {
@@ -28,7 +29,11 @@ export function createPostObjects(device: WebGPUDeviceLike, format: string, samp
         format,
         ...(premultiplied ? {
           blend: {
-            color: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+            color: blendMode === "multiply"
+              ? { srcFactor: "dst", dstFactor: "one-minus-src-alpha" }
+              : blendMode === "screen"
+                ? { srcFactor: "one", dstFactor: "one-minus-src" }
+                : { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
             alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
           },
         } : {}),

@@ -406,21 +406,7 @@ Optional compositing:
 {
   "composite": {
     "blendMode": "normal",
-    "isolation": "auto",
-    "masks": [
-      {
-        "mode": "alpha",
-        "sourceLayerId": "mask-a",
-        "sourceVisibility": "mask-only",
-        "composite": "add"
-      },
-      {
-        "mode": "alpha",
-        "sourceLayerId": "mask-b",
-        "sourceVisibility": "mask-only",
-        "composite": "intersect"
-      }
-    ]
+    "isolation": "auto"
   }
 }
 ```
@@ -430,20 +416,14 @@ Blend modes map 1:1 to the CSS Compositing and Blending Level 1 names:
 `color-dodge`, `overlay`, `soft-light`, `hard-light`, `difference`,
 `exclusion`, `hue`, `saturation`, `color`, and `luminosity`. The non-CSS
 `add` value is not part of Protocol V2. `isolation` maps to CSS `isolation`
-and is `auto` or `isolate`. Mask modes are `clip`, `alpha`, `inverse-alpha`,
-and `luma`.
+and is `auto` or `isolate`. SVG masking is referenced by layer-level
+`clipPath` and `mask` IDs. `clipPath` uses geometric coverage; `mask` uses
+`alpha` or `luminance` coverage.
 
-Masking uses one canonical ordered `masks[]` stack. A single-mask case is
-represented by a one-item stack; each item carries a source, mask mode, and
-CSS `mask-composite` operator (`add`, `subtract`, `intersect`, or `exclude`).
+When both references are present, the compiler emits separate coverage
+surfaces and the runtime applies the clip path before the alpha/luminance mask.
 Mask position, size, repeat, origin, clip, and source-image resolution remain
 compiler responsibilities.
-
-The mask-composite operators are runtime compositing primitives. Runtime must
-actually evaluate each operator in stack order against the accumulated mask;
-they must not be treated as metadata or silently approximated by group nesting.
-Protocol V2 defines the semantic operation now; compiler/runtime support is a
-separate implementation step.
 
 `blendMode` is a runtime compositing primitive, not a compiler-only semantic:
 the runtime must evaluate the selected formula against the source and

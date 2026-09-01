@@ -41,7 +41,7 @@ semantics thuộc high-level compiler.
 | SVG path | path | path | ✅ |
 | clip-path | mask / path | mask | ✅ |
 | simple alpha/luma mask | mask | mask | ✅ |
-| multi-mask composite | compositing op | `composite.masks[].composite` (`add` / `subtract` / `intersect` / `exclude`) | ✅ protocol; runtime pending |
+| clip + mask composition | ordered coverage passes | `clipPath` + `mask` references on the layer | ✅ protocol/runtime |
 | blur | effect | blur | ✅ |
 | brightness | effect | color-adjust | ✅ |
 | contrast | effect | color-adjust | ✅ |

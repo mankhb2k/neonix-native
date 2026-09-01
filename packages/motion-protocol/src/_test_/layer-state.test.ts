@@ -26,4 +26,10 @@ describe("Protocol V2 editor layer state", () => {
     const parsed = V2LayerBaseSchema.parse(baseLayer);
     expect(parsed).not.toHaveProperty("enabled");
   });
+
+  it("uses SVG visibility as a separate semantic from editor enabled state", () => {
+    expect(V2LayerBaseSchema.parse(baseLayer)).not.toHaveProperty("visibility");
+    expect(V2LayerBaseSchema.parse({ ...baseLayer, visibility: "hidden" }).visibility).toBe("hidden");
+    expect(V2LayerBaseSchema.parse({ ...baseLayer, visibility: "collapse" }).visibility).toBe("collapse");
+  });
 });

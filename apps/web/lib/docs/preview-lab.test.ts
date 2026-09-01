@@ -143,15 +143,18 @@ describe("Protocol V2 preview lab fixtures", () => {
       "group.nested-transform",
       "group.explicit-isolation",
       "group.disabled",
+      "group.visibility.hidden",
       "group.timing",
       "group.effects",
       "group.isolation.opacity",
       "group.isolation.nested",
-      "composite.mask.nested",
-      "composite.mask.clip",
-      "composite.mask.alpha",
-      "composite.mask.inverse-alpha",
-      "composite.mask.luma",
+      "composite.blend.group.multiply",
+      "composite.blend.group.screen",
+      "clip.svg.user-space",
+      "clip.svg.object-bounding-box",
+      "mask.svg.alpha",
+      "mask.svg.luminance",
+      "clip-mask.svg.combined",
       "rectangle.transform.translate",
       "rectangle.transform.scale",
       "rectangle.transform.anchor",
@@ -229,6 +232,30 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(allPaths).toHaveLength(4);
     expect(allPaths.at(-1)?.op === "drawPath" && allPaths.at(-1)?.paintOrder).toEqual(["fill"]);
     expect(start.commands.some((command) => command.key?.includes(":marker:end:"))).toBe(true);
+  });
+
+  it("lowers semantic SVG clipPath and mask definitions into mask surfaces", () => {
+    for (const id of [
+      "clip.svg.user-space",
+      "clip.svg.object-bounding-box",
+      "mask.svg.alpha",
+      "mask.svg.luminance",
+    ]) {
+      const buffer = compileProtocolToPaintCommands(previewLabCaseById(id).project, { time: 0 });
+      const layer = buffer.commands.find((command) => command.op === "beginLayer");
+      const coverageLength = id.startsWith("clip.svg.")
+        ? layer?.op === "beginLayer" && layer.clipPath?.sourceKeys?.length
+        : layer?.op === "beginLayer" && layer.mask?.sourceKeys?.length;
+      expect(coverageLength, id).toBeGreaterThan(0);
+      expect(buffer.commands.some((command) => command.key?.includes(":clipPath:") || command.key?.includes(":mask:"))).toBe(true);
+    }
+  });
+
+  it("lowers combined clipPath and mask into separate coverage inputs", () => {
+    const buffer = compileProtocolToPaintCommands(previewLabCaseById("clip-mask.svg.combined").project, { time: 0 });
+    const layer = buffer.commands.find((command) => command.op === "beginLayer");
+    expect(layer?.op === "beginLayer" && layer.clipPath?.sourceKeys?.length).toBeGreaterThan(0);
+    expect(layer?.op === "beginLayer" && layer.mask?.sourceKeys?.length).toBeGreaterThan(0);
   });
 
   it("exposes dedicated HTML compiler Phase 2 source/protocol previews", () => {
@@ -365,6 +392,8 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Paint / Pattern",
       "Paint / Order",
       "Paint / Markers",
+      "Clip",
+      "Mask",
       "Effects",
       "Compositing",
       "Timing",
@@ -396,77 +425,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       },
     ]);
     expect(fixture.project.layers[0]).not.toHaveProperty("composite");
-  });
-
-  it("keeps the clip source structural and mask-only inside its group", () => {
-    const fixture = previewLabCaseById("composite.mask.clip");
-    expect(fixture.project.layers).toMatchObject([
-      {
-        id: "clip-mask-group",
-        type: "group",
-        composite: {
-          masks: [{ mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-        },
-      },
-      { id: "clip-mask-ellipse", parentLayerId: "clip-mask-group", type: "shape" },
-      { id: "clip-mask-content", parentLayerId: "clip-mask-group", type: "image" },
-    ]);
-    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "clip-mask-group",
-      isolation: true,
-      offscreen: true,
-      compositeAlpha: 1,
-      mask: { mode: "clip", sourceKey: "clip-mask-ellipse", sourceVisibility: "mask-only" },
-    }));
-  });
-
-  it("preserves source alpha for an alpha mask", () => {
-    const fixture = previewLabCaseById("composite.mask.alpha");
-    expect(fixture.project.layers[0]).toMatchObject({
-      id: "alpha-mask-group",
-      composite: { masks: [{ mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
-    });
-    expect(fixture.project.layers[1]).toMatchObject({
-      id: "alpha-mask-ellipse",
-      style: { fillOpacity: 0.45 },
-    });
-    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "alpha-mask-group",
-      mask: { mode: "alpha", sourceKey: "alpha-mask-ellipse", sourceVisibility: "mask-only" },
-    }));
-  });
-
-  it("inverts a mask-only source alpha without exposing the source", () => {
-    const fixture = previewLabCaseById("composite.mask.inverse-alpha");
-    expect(fixture.project.layers[0]).toMatchObject({
-      id: "inverse-alpha-mask-group",
-      composite: { masks: [{ mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
-    });
-    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "inverse-alpha-mask-group",
-      mask: { mode: "inverse-alpha", sourceKey: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only" },
-    }));
-  });
-
-  it("uses source luminance as mask coverage", () => {
-    const fixture = previewLabCaseById("composite.mask.luma");
-    expect(fixture.project.layers[0]).toMatchObject({
-      id: "luma-mask-group",
-      composite: { masks: [{ mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }] },
-    });
-    expect(fixture.project.layers[1]).toMatchObject({ style: { fill: "#808080" } });
-    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "luma-mask-group",
-      mask: { mode: "luma", sourceKey: "luma-mask-ellipse", sourceVisibility: "mask-only" },
-    }));
   });
 
   it("keeps nested isolation scopes balanced in runtime paint commands", () => {
@@ -522,6 +480,28 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(fixture.project.layers).toHaveLength(2);
   });
 
+  it("lowers SVG visibility hidden without removing the semantic subtree", () => {
+    const fixture = previewLabCaseById("group.visibility.hidden");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(fixture.project.layers[0]).toMatchObject({ type: "group", visibility: "hidden" });
+    expect(fixture.project.layers).toHaveLength(2);
+    expect(buffer.commands.some((command) => command.key === "visibility-hidden-leaf")).toBe(false);
+  });
+
+  it("flattens group blend modes before compositing them with the backdrop", () => {
+    for (const id of ["composite.blend.group.multiply", "composite.blend.group.screen"] as const) {
+      const fixture = previewLabCaseById(id);
+      const groupId = fixture.project.layers.find((layer) => layer.type === "group")!.id;
+      expect(compileProtocolToPaintCommands(fixture.project, { time: 0 }).commands).toContainEqual(expect.objectContaining({
+        op: "beginLayer",
+        key: groupId,
+        isolation: true,
+        offscreen: true,
+        blendMode: id.endsWith("multiply") ? "multiply" : "screen",
+      }));
+    }
+  });
+
   it("intersects group timing with descendant timing", () => {
     const fixture = previewLabCaseById("group.timing");
     const buffer = compileProtocolToPaintCommands(fixture.project, { time: 1 });
@@ -540,23 +520,4 @@ describe("Protocol V2 preview lab fixtures", () => {
     }));
   });
 
-  it("embeds a mask group inside an outer isolation scope", () => {
-    const fixture = previewLabCaseById("composite.mask.nested");
-    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "nested-mask-outer-group",
-      isolation: true,
-      offscreen: true,
-      compositeAlpha: 0.75,
-    }));
-    expect(buffer.commands).toContainEqual(expect.objectContaining({
-      op: "beginLayer",
-      key: "nested-mask-inner-group",
-      isolation: true,
-      offscreen: true,
-      compositeAlpha: 1,
-      mask: { mode: "alpha", sourceKey: "nested-mask-ellipse", sourceVisibility: "mask-only" },
-    }));
-  });
 });

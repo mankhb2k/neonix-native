@@ -32,7 +32,6 @@
     "@motionvideo/motion-mcp": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/patterns": "workspace:*",
     "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/preview-renderer": "workspace:*",
     "@motionvideo/export-renderer": "workspace:*",

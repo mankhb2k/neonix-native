@@ -119,7 +119,9 @@ export function decodePaintCommandBuffer(
           layerId: cmd.layerId,
           isolation: Boolean(cmd.isolation),
           offscreen: Boolean(cmd.offscreen),
+          ...(cmd.blendMode ? { blendMode: cmd.blendMode } : {}),
           ...(cmd.effectProgram ? { effectProgram: cmd.effectProgram } : {}),
+          ...(cmd.clipPath ? { clipPath: cmd.clipPath } : {}),
           ...(cmd.mask ? { mask: cmd.mask } : {}),
           children: [],
         };

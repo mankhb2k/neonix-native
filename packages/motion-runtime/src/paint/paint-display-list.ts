@@ -6,7 +6,7 @@
 import type { RuntimeEffectProgram } from "../visual/effect-program";
 import type { PaintDrawCommand, RenderDiagnostic } from "./paint-command";
 import type { PAINT_COMMAND_VERSION } from "./paint-buffer";
-import type { PaintBlendMode } from "./paint-types";
+import type { PaintBlendMode, PaintMaskMode } from "./paint-types";
 
 export type PaintTransformState = {
   key: string;
@@ -23,11 +23,16 @@ export type PaintLayerScope = {
   layerId?: string;
   isolation: boolean;
   offscreen: boolean;
+  blendMode?: PaintBlendMode;
   effectProgram?: RuntimeEffectProgram;
-  mask?: {
-    mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
+  clipPath?: {
     sourceKey: string;
-    sourceVisibility?: "mask-only" | "content-and-mask";
+    sourceKeys?: string[];
+  };
+  mask?: {
+    mode: PaintMaskMode;
+    sourceKey: string;
+    sourceKeys?: string[];
   };
   children: PaintDisplayNode[];
 };

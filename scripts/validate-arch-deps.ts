@@ -80,7 +80,6 @@ function workspacePackages(root: string): PkgMeta[] {
 
 const CORE_PACKAGES = new Set([
   "@motionvideo/motion-protocol",
-  "@motionvideo/patterns",
   "@motionvideo/motion-compiler",
   "@motionvideo/motion-runtime",
   "@motionvideo/editor-core",

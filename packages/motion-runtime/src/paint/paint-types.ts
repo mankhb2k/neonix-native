@@ -18,6 +18,9 @@ export type PaintBlendMode =
   | "color"
   | "luminosity";
 
+/** SVG mask semantics supported by the native paint backends. */
+export type PaintMaskMode = "clip" | "alpha" | "luma";
+
 export type PaintOrderItem = "fill" | "stroke" | "markers";
 export type PaintOrder = PaintOrderItem[];
 

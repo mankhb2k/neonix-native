@@ -5,6 +5,7 @@
 import type {
   PaintFill,
   PaintBlendMode,
+  PaintMaskMode,
   PaintTextGlyph,
   PaintTextLine,
   PathContour,
@@ -52,12 +53,18 @@ export type PaintCommand =
       offscreen?: boolean;
       /** Apply once when an isolated subtree is composited back to its parent. */
       compositeAlpha?: number;
+      /** Blend the flattened subtree against its parent surface. */
+      blendMode?: PaintBlendMode;
       /** Runtime-only ordered effect graph for this compositing scope. */
       effectProgram?: RuntimeEffectProgram;
-      mask?: {
-        mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
+      clipPath?: {
         sourceKey: string;
-        sourceVisibility?: "mask-only" | "content-and-mask";
+        sourceKeys?: string[];
+      };
+      mask?: {
+        mode: PaintMaskMode;
+        sourceKey: string;
+        sourceKeys?: string[];
       };
     }
   | { op: "endLayer"; key: string }

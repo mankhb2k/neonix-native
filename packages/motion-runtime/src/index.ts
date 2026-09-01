@@ -66,6 +66,7 @@ export type {
   VisualRuntimeComposition,
   VisualRuntimeFrame,
   VisualRuntimeMask,
+  VisualRuntimeClipPath,
   VisualRuntimeNode,
   VisualRuntimeProject,
   VisualRuntimeTextLayout,

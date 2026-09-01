@@ -403,6 +403,7 @@ type VisualLayerBaseV2 = {
   };
   opacity: number; // 0..1, default 1
   enabled?: boolean; // editor/runtime state, omitted means true
+  visibility?: "visible" | "hidden" | "collapse"; // SVG presentation property
   timing: { start: number; duration: number }; // composition milliseconds
   tracks?: TrackV2[]; // typed keyframes in local milliseconds
   composite?: {
@@ -412,12 +413,6 @@ type VisualLayerBaseV2 = {
       | "soft-light" | "hard-light" | "difference" | "exclusion"
       | "hue" | "saturation" | "color" | "luminosity";
     isolation?: "auto" | "isolate";
-    masks?: Array<{
-      mode: "clip" | "alpha" | "inverse-alpha" | "luma";
-      sourceLayerId: string;
-      sourceVisibility: "mask-only";
-      composite: "add" | "subtract" | "intersect" | "exclude";
-    }>;
   };
   effects?: EffectV2[];
 };
@@ -429,25 +424,21 @@ scene is an XY plane at `z = 0` under orthographic projection; the same model
 also supports 3D translation, X/Y rotation, perspective, and a 3D anchor.
 `order`, not `translate.z`, remains the deterministic paint order.
 
-Groups create hierarchy and can carry transform, timing, opacity, blend, and
-mask relationships. A group does not draw, clip to its frame, or become an
-implicit camera. Masking is group-local: its source must be a direct drawable
-child; `clip` requires a shape source, while alpha, inverse-alpha, and luma can
-use a drawable source. Mask sources are emitted as `mask-only`.
-
-The ordered `masks[]` form represents CSS multi-mask composition. Its
-`add`, `subtract`, `intersect`, and `exclude` operators are runtime atoms and
-must be evaluated against the accumulated mask in order; group nesting is not
-an implicit substitute.
+Groups create hierarchy and can carry transform, timing, opacity, visibility,
+blend, isolation, clipPath, and mask relationships. A group does not draw,
+clip to its frame, or become an implicit camera. Mask definitions are kept in
+project definition tables and emitted as runtime-only coverage sources.
+`clipPath` produces geometric coverage; `mask` produces alpha or luminance
+coverage. When both are present, the runtime applies both coverage operations
+to the isolated group surface.
 
 Blend modes use the CSS canonical names in Protocol V2 and are evaluated by
 the runtime against source and backdrop pixels; they are not lowered to a
 color matrix. `isolation` is a separate compositing boundary.
 
-`enabled` is an editor/runtime state rather than CSS `display` or
-`visibility`. CSS display/visibility resolution remains a compiler concern;
-the protocol keeps a layer when an editor needs a discrete enable/disable
-state or track.
+`enabled` is an editor/runtime state rather than CSS `display`. `visibility`
+is the SVG presentation property and is preserved in JSON; the compiler
+normalizes `hidden` and `collapse` to a non-painting runtime node.
 
 Each layer may carry an optional `tracks[]` list. A track addresses one
 animatable leaf property with a typed dot-separated path and strictly ordered
@@ -461,7 +452,7 @@ The following is the entire currently defined V2 visual layer vocabulary.
 
 | Atom | JSON payload and style | Certified atomic behavior |
 | --- | --- | --- |
-| `group` | No drawable payload; uses the shared layer fields | Parent/child transforms, nested timing, inherited opacity, sibling order, CSS blend modes, isolation, and clip/alpha/inverse-alpha/luma masks |
+| `group` | No drawable payload; uses the shared layer fields | Parent/child transforms, nested timing, inherited opacity/visibility, sibling order, CSS blend modes, isolation, and clipPath/alpha/luminance masks |
 | `shape` | `payload.shape: "rectangle"` or `"ellipse"`; optional rectangle `cornerRadius`; `style.fill`, opacity, optional stroke/width/opacity | Solid and multi-stop linear/radial/conic gradients, fill/stroke opacity, rectangle corner radius, 3D transform, timing, opacity, and ordering |
 | `path` | `payload.contours[]` with line/cubic segments, `fillRule`, optional topology-matched `morph`; fill/stroke style | Nonzero/evenodd fills, multiple contours/holes, fixed-width strokes, miter/bevel/round joins, butt/square/round caps, dash array/offset, and morph interpolation before tessellation |
 | `image` | `payload.assetId`, optional `fit` and normalized `crop` | Image asset lookup, `contain`, `cover`, `fill`, `none`, crop, plus shared transform/timing/opacity/order |

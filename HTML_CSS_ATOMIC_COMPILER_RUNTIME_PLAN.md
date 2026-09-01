@@ -245,7 +245,7 @@ Mục tiêu: trước khi thêm compiler HTML, toàn repo phải dùng đúng m�
 Việc cần làm:
 
 - Thay toàn bộ consumer `composite.mask` cũ bằng canonical
-  `composite.masks[]`.
+  layer-level `clipPath` and `mask` references.
 - Xóa blend `add` khỏi compiler/runtime/editor capability; dùng enum CSS
   canonical.
 - Đồng bộ effect cũ `drop-shadow` sang `shadow`.
@@ -263,8 +263,9 @@ Exit gate:
 
 Trạng thái triển khai (Phase 0):
 
-- Đã hard-cut các consumer chính sang `composite.masks[]`, CSS blend enum và
-  effect `shadow`; không còn đường đọc `composite.mask` trong compiler/editor.
+- Đã hard-cut các consumer chính sang layer-level `clipPath`/`mask`, CSS blend
+  enum và effect `shadow`; không còn đường đọc mask composite legacy trong
+  compiler/editor.
 - Text fixture/editor đã dùng `payload.source` + `payload.layout`; Runtime IR
   giữ layout authority riêng để hoàn thiện ở phase text compiler.
 - `enabled`, `render3d` và `backfaceVisibility` được compiler bảo toàn sang
@@ -501,14 +502,14 @@ Atomic output:
 - asset metadata + image layer;
 - resolved image frame/crop/fit;
 - path contours;
-- canonical một-item `composite.masks[]`.
+- layer-level `clipPath`/`mask` references.
 
 Runtime:
 
 - deterministic asset sampling;
 - path tessellation;
 - alpha/luma coverage;
-- mask-only source không paint ra scene.
+- mask/clip source không paint ra scene.
 
 ### Phase 7 — Filters và shadows
 
@@ -549,7 +550,7 @@ CSS input:
 - toàn bộ CSS blend mode canonical trong Protocol;
 - isolation auto/isolate;
 - ordered multi-mask;
-- mask composite add/subtract/intersect/exclude.
+- layer-level clipPath + alpha/luminance mask coverage.
 
 Motion compiler/runtime:
 
@@ -658,9 +659,9 @@ phải fail diagnostic trong MVP.
 | Flex/grid/box model | Snapshot frame/hierarchy | Lower nodes | World geometry/order | 3 |
 | Solid/gradients/border | Paint/path atoms | Paint resources | Sample/draw | 4 |
 | 2D transform/opacity | Semantic fields/operations | Matrix IR | Compose/sample | 5 |
-| Image/SVG/clip | Assets/path/masks[] | Resource/mask IR | Texture/path/mask | 6 |
+| Image/SVG/clip | Assets/path/clipPath/mask | Resource/coverage IR | Texture/path/mask | 6 |
 | Filters/shadows | Ordered effects | Effect program | Execute chain | 7 |
-| Blend/isolation/masks | Canonical composite | Offscreen/composite IR | Pixel operators | 8 |
+| Blend/isolation/masks | Canonical composite | Offscreen/composite IR | Pixel coverage operators | 8 |
 | Text | Glyph layout | Glyph resources | Glyph paint/cache | 9 |
 | 3D | operations/render3d | Matrix/context IR | Projection/flatten/cull | 10 |
 | Animation/transition | Tracks ms | Track bindings | Time sampling | 11 |
@@ -762,7 +763,7 @@ Nếu một slice quá lớn, capability giữ pending cho tới PR cuối.
 
 ## 11. Thứ tự backlog đầu tiên
 
-1. Hoàn tất Phase 0, đặc biệt lỗi `composite.mask` hiện tại.
+1. Hoàn tất Phase 0, đặc biệt hard-cut layer-level `clipPath`/`mask`.
 2. Tạo fixture contract và một solid rectangle.
 3. Nối Preview dùng JSON từ `compileHtmlCss()`.
 4. Tạo Chromium reference + runtime diff harness.

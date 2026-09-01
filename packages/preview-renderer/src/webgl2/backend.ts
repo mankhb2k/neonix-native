@@ -378,7 +378,7 @@ export function createWebGL2Backend(
     let projection = webglClipSpaceProjection(worldToClipMatrixForPaint(firstCommand));
     const physicalWidth = Math.max(1, Math.round(width * dpr));
     const physicalHeight = Math.max(1, Math.round(height * dpr));
-    const compositeIsolation = (source: WebGLTexture, target: EffectTarget | null, compositeAlpha: number) => {
+    const compositeIsolation = (source: WebGLTexture, target: EffectTarget | null, compositeAlpha: number, blendMode: BlendMode = "normal") => {
       const root = effectLevels[0];
       if (!root) throw new Error("preview-renderer: isolation target is unavailable");
       gl.useProgram(blurProgramHandle);
@@ -398,7 +398,8 @@ export function createWebGL2Backend(
       drawCalls += 1;
       gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
       gl.viewport(0, 0, physicalWidth, physicalHeight);
-      blendPremultiplied(gl);
+      if (blendMode === "normal") blendPremultiplied(gl);
+      else blend(gl, blendMode);
       gl.bindTexture(gl.TEXTURE_2D, root.a.texture);
       gl.uniform4f(blurPostParamsLocation, 0, 0, 0, 1);
       gl.uniform1f(blurCompositeAlphaLocation, compositeAlpha);
@@ -407,26 +408,32 @@ export function createWebGL2Backend(
       gl.useProgram(programHandle);
       gl.bindVertexArray(vao);
     };
-    type LayerSurface = { content: EffectTarget; mask?: EffectTarget };
+    type LayerSurface = { content: EffectTarget; mask?: EffectTarget; clip?: EffectTarget };
     type LayerScope = {
       key: string;
       layerId?: string;
       surface: LayerSurface;
       parentTarget: EffectTarget | null;
-      target: "content" | "mask";
-      mode?: "clip" | "alpha" | "inverse-alpha" | "luma";
+      target: "content" | "mask" | "clip";
+      mode?: "clip" | "alpha" | "luma";
       sourceKey?: string;
+      sourceKeys?: string[];
+      clipSourceKey?: string;
+      clipSourceKeys?: string[];
       compositeAlpha: number;
+      blendMode: BlendMode;
     };
     const isLayerMaskMode = (mode: string): mode is NonNullable<LayerScope["mode"]> =>
-      mode === "clip" || mode === "alpha" || mode === "inverse-alpha" || mode === "luma";
+      mode === "clip" || mode === "alpha" || mode === "luma";
     const layerScopes: LayerScope[] = [];
-    const bindClipMaskTarget = (sourceKey: string) => {
+    const bindClipMaskTarget = (sourceKey: string): "mask" | "clip" | null => {
       const scope = layerScopes.at(-1);
       if (!scope) return null;
-      const isMaskSource = scope.sourceKey === sourceKey && scope.surface.mask;
-      const target = isMaskSource ? scope.surface.mask! : scope.surface.content;
-      scope.target = isMaskSource ? "mask" : "content";
+      const isMaskSource = Boolean(scope.surface.mask && (scope.sourceKeys?.includes(sourceKey) ?? scope.sourceKey === sourceKey));
+      const isClipSource = Boolean(scope.surface.clip && (scope.clipSourceKeys?.includes(sourceKey) ?? scope.clipSourceKey === sourceKey));
+      const target = isMaskSource ? scope.surface.mask! : isClipSource ? scope.surface.clip! : scope.surface.content;
+      const targetKind = isMaskSource ? "mask" : isClipSource ? "clip" : "content";
+      scope.target = targetKind;
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
       gl.viewport(0, 0, physicalWidth, physicalHeight);
       // A layer surface can still be bound on texture unit 0 after allocation.
@@ -435,14 +442,14 @@ export function createWebGL2Backend(
       // texture again before issuing the draw.
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, null);
-      return isMaskSource ? scope.mode ?? null : null;
+      return targetKind === "content" ? null : targetKind;
     };
     const compositeClipMask = (
       content: WebGLTexture,
       coverage: WebGLTexture,
       target: EffectTarget | null,
       compositeAlpha: number,
-      mode: "clip" | "alpha" | "inverse-alpha" | "luma",
+      mode: "clip" | "alpha" | "luma",
     ) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
       gl.viewport(0, 0, physicalWidth, physicalHeight);
@@ -456,7 +463,7 @@ export function createWebGL2Backend(
       gl.bindTexture(gl.TEXTURE_2D, coverage);
       gl.uniform1i(clipMaskCoverageLocation, 1);
       gl.uniform1f(clipMaskCompositeAlphaLocation, compositeAlpha);
-      gl.uniform1f(clipMaskInvertLocation, mode === "inverse-alpha" ? 1 : 0);
+      gl.uniform1f(clipMaskInvertLocation, 0);
       gl.uniform1f(clipMaskLumaLocation, mode === "luma" ? 1 : 0);
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       drawCalls += 1;
@@ -492,10 +499,10 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "info", code: "preview_op_pending", message: "polygon shape is pending in the native preview backend", key: command.key, layerId: command.layerId });
           continue;
         }
-        const maskMode = bindClipMaskTarget(command.key);
-        const isMaskSource = maskMode !== null;
-        const isClipMaskSource = maskMode === "clip";
-        blend(gl, isMaskSource ? "normal" : currentBlend);
+        const coverageKind = bindClipMaskTarget(command.key);
+        const isCoverageSource = coverageKind !== null;
+        const isClipMaskSource = coverageKind === "clip";
+        blend(gl, isCoverageSource ? "normal" : currentBlend);
         bindVertexBuffer(quadBuffer);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
@@ -535,7 +542,7 @@ export function createWebGL2Backend(
         gl.uniform4fv(strokeColorLocation, stroke);
         gl.uniform2f(strokeExtentLocation, strokeWidth / command.width, strokeWidth / command.height);
         gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
-        setColorAdjust(isMaskSource ? undefined : sourceColorAdjust());
+        setColorAdjust(isCoverageSource ? undefined : sourceColorAdjust());
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
         drawCalls += 1;
       } else if (command.op === "drawPath") {
@@ -911,9 +918,12 @@ export function createWebGL2Backend(
         const surface: LayerSurface = {
           content: createLayerTarget(physicalWidth, physicalHeight),
           ...(command.mask ? { mask: createLayerTarget(physicalWidth, physicalHeight) } : {}),
+          ...(command.clipPath ? { clip: createLayerTarget(physicalWidth, physicalHeight) } : {}),
         };
         const parent = layerScopes.at(-1);
-        const parentTarget = parent ? (parent.target === "mask" ? parent.surface.mask! : parent.surface.content) : null;
+        const parentTarget = parent
+          ? parent.target === "mask" ? parent.surface.mask! : parent.target === "clip" ? parent.surface.clip! : parent.surface.content
+          : null;
         gl.bindFramebuffer(gl.FRAMEBUFFER, surface.content.framebuffer);
         gl.viewport(0, 0, physicalWidth, physicalHeight);
         gl.clearColor(0, 0, 0, 0);
@@ -923,14 +933,21 @@ export function createWebGL2Backend(
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.bindFramebuffer(gl.FRAMEBUFFER, surface.content.framebuffer);
         }
+        if (surface.clip) {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, surface.clip.framebuffer);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, surface.content.framebuffer);
+        }
         layerScopes.push({
           key: command.key,
           layerId: command.layerId,
           surface,
           parentTarget,
           target: "content",
-          ...(command.mask && isLayerMaskMode(command.mask.mode) ? { mode: command.mask.mode, sourceKey: command.mask.sourceKey } : {}),
+          ...(command.mask && isLayerMaskMode(command.mask.mode) ? { mode: command.mask.mode, sourceKey: command.mask.sourceKey, ...(command.mask.sourceKeys ? { sourceKeys: command.mask.sourceKeys } : {}) } : {}),
+          ...(command.clipPath ? { clipSourceKey: command.clipPath.sourceKey, ...(command.clipPath.sourceKeys ? { clipSourceKeys: command.clipPath.sourceKeys } : {}) } : {}),
           compositeAlpha: command.compositeAlpha,
+          blendMode: command.blendMode ?? "normal",
         });
       } else if (command.op === "endLayer") {
         const scope = layerScopes.pop();
@@ -939,9 +956,22 @@ export function createWebGL2Backend(
           continue;
         }
         if (scope.surface.mask && scope.mode && scope.sourceKey) {
-          compositeClipMask(scope.surface.content.texture, scope.surface.mask.texture, scope.parentTarget, scope.compositeAlpha, scope.mode);
+          if (scope.surface.clip && scope.clipSourceKey) {
+            const root = effectLevels[0];
+            if (!root) throw new Error("preview-renderer: mask target is unavailable");
+            gl.bindFramebuffer(gl.FRAMEBUFFER, root.a.framebuffer);
+            gl.viewport(0, 0, physicalWidth, physicalHeight);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            compositeClipMask(scope.surface.content.texture, scope.surface.mask.texture, root.a, 1, scope.mode);
+            compositeClipMask(root.a.texture, scope.surface.clip.texture, scope.parentTarget, scope.compositeAlpha, "clip");
+          } else {
+            compositeClipMask(scope.surface.content.texture, scope.surface.mask.texture, scope.parentTarget, scope.compositeAlpha, scope.mode);
+          }
+        } else if (scope.surface.clip && scope.clipSourceKey) {
+          compositeClipMask(scope.surface.content.texture, scope.surface.clip.texture, scope.parentTarget, scope.compositeAlpha, "clip");
         } else {
-          compositeIsolation(scope.surface.content.texture, scope.parentTarget, scope.compositeAlpha);
+          compositeIsolation(scope.surface.content.texture, scope.parentTarget, scope.compositeAlpha, scope.blendMode);
         }
         gl.bindFramebuffer(gl.FRAMEBUFFER, scope.parentTarget?.framebuffer ?? null);
         gl.viewport(0, 0, physicalWidth, physicalHeight);
@@ -952,6 +982,10 @@ export function createWebGL2Backend(
         if (scope.surface.mask) {
           gl.deleteTexture(scope.surface.mask.texture);
           gl.deleteFramebuffer(scope.surface.mask.framebuffer);
+        }
+        if (scope.surface.clip) {
+          gl.deleteTexture(scope.surface.clip.texture);
+          gl.deleteFramebuffer(scope.surface.clip.framebuffer);
         }
       } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });

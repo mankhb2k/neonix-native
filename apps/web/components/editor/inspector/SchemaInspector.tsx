@@ -767,22 +767,8 @@ export function SchemaInspector() {
       {selected.type === "group" ? (
         <InspectorSection label="Group" className="order-9" open={openSections.group ?? false} onToggle={() => toggle("group")}>
           <ReadonlyField label="Parent" value={selected.parentLayerId ?? "Root"} />
-          {selected.composite?.masks?.[0] ? (
-            <>
-              <InspectorSelect label="Mask mode" value={selected.composite.masks[0].mode} options={[{ value: "clip", label: "Clip" }, { value: "alpha", label: "Alpha" }, { value: "inverse-alpha", label: "Inverse alpha" }, { value: "luma", label: "Luma" }]} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, mode: value as "clip" | "alpha" | "inverse-alpha" | "luma" } : mask) } })} />
-              <InspectorSelect label="Mask source" value={selected.composite.masks[0].sourceLayerId} options={document.layers.filter((layer) => layer.parentLayerId === selected.id).map((layer) => ({ value: layer.id, label: layer.id }))} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, sourceLayerId: value } : mask) } })} />
-              <InspectorSelect label="Mask composite" value={selected.composite.masks[0].composite} options={[{ value: "add", label: "Add" }, { value: "subtract", label: "Subtract" }, { value: "intersect", label: "Intersect" }, { value: "exclude", label: "Exclude" }]} onChange={(value) => patchLayer({ composite: { masks: selected.composite!.masks!.map((mask, index) => index === 0 ? { ...mask, composite: value as "add" | "subtract" | "intersect" | "exclude" } : mask) } })} />
-            </>
-          ) : (
-            <ActionButton
-              label="Add mask"
-              disabled={!document.layers.some((layer) => layer.parentLayerId === selected.id)}
-              onClick={() => {
-                const child = document.layers.find((layer) => layer.parentLayerId === selected.id);
-                if (child) patchLayer({ composite: { masks: [{ mode: "alpha", sourceLayerId: child.id, sourceVisibility: "mask-only", composite: "add" }] } });
-              }}
-            />
-          )}
+          {selected.clipPath ? <ReadonlyField label="clipPath" value={selected.clipPath} /> : null}
+          {selected.mask ? <ReadonlyField label="mask" value={selected.mask} /> : null}
         </InspectorSection>
       ) : null}
       </div>

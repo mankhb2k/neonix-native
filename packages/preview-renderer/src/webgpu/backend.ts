@@ -76,9 +76,19 @@ export function createWebGPUBackend(
   const postObjects = createPostObjects(device, format);
   const postMsaaObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT);
   const postMsaaPremultipliedObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT, true);
+  const postMsaaPremultipliedBlendObjects = new Map<BlendMode, ReturnType<typeof createPostObjects>>([
+    ["normal", postMsaaPremultipliedObjects],
+    ["multiply", createPostObjects(device, format, MSAA_SAMPLE_COUNT, true, "multiply")],
+    ["screen", createPostObjects(device, format, MSAA_SAMPLE_COUNT, true, "screen")],
+  ]);
   const clipMaskPostMsaaObjects = createClipMaskPostObjects(device, format);
   const effectPostObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const effectPostPremultipliedObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true);
+  const effectPostPremultipliedBlendObjects = new Map<BlendMode, ReturnType<typeof createPostObjects>>([
+    ["normal", effectPostPremultipliedObjects],
+    ["multiply", createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true, "multiply")],
+    ["screen", createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true, "screen")],
+  ]);
   const innerGlowPostObjects = createInnerGlowPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const clipMaskPostEffectObjects = createClipMaskPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const assets = new Map(options.assets ?? []);
@@ -300,12 +310,12 @@ export function createWebGPUBackend(
       content: WebGPUTextureLike,
       coverage: WebGPUTextureLike,
       compositeAlpha: number,
-      mode: "clip" | "alpha" | "inverse-alpha" | "luma",
+      mode: "clip" | "alpha" | "luma",
       pipelineObjects = clipMaskPostMsaaObjects,
     ) => {
       const uniform = device.createBuffer({ size: 16, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
       transientBuffers.add(uniform);
-      device.queue.writeBuffer(uniform, 0, new Float32Array([compositeAlpha, mode === "inverse-alpha" ? 1 : 0, mode === "luma" ? 1 : 0, 0]));
+      device.queue.writeBuffer(uniform, 0, new Float32Array([compositeAlpha, 0, mode === "luma" ? 1 : 0, 0]));
       const bindGroup = device.createBindGroup({
         layout: pipelineObjects.layout,
         entries: [
@@ -331,19 +341,23 @@ export function createWebGPUBackend(
     let pass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]> | null = beginStagePass(stages[stageIndex]);
     let activeObjects = objects;
     let activeEffectScope: { key: string; layerId?: string; plan: EffectPassPlan } | null = null;
-    type LayerSurface = { content: WebGPUTextureLike; mask?: WebGPUTextureLike };
+    type LayerSurface = { content: WebGPUTextureLike; mask?: WebGPUTextureLike; clip?: WebGPUTextureLike };
     type LayerScope = {
       key: string;
       layerId?: string;
       surface: LayerSurface;
       parentTarget: WebGPUTextureLike | null;
-      target: "content" | "mask";
-      mode?: "clip" | "alpha" | "inverse-alpha" | "luma";
+      target: "content" | "mask" | "clip";
+      mode?: "clip" | "alpha" | "luma";
       sourceKey?: string;
+      sourceKeys?: string[];
+      clipSourceKey?: string;
+      clipSourceKeys?: string[];
       compositeAlpha: number;
+      blendMode: BlendMode;
     };
     const isLayerMaskMode = (mode: string): mode is NonNullable<LayerScope["mode"]> =>
-      mode === "clip" || mode === "alpha" || mode === "inverse-alpha" || mode === "luma";
+      mode === "clip" || mode === "alpha" || mode === "luma";
     const layerScopes: LayerScope[] = [];
     const sourceColorAdjust = () =>
       activeEffectScope?.plan.requiresOffscreen
@@ -362,21 +376,25 @@ export function createWebGPUBackend(
     const ensureClipMaskPass = (sourceKey: string) => {
       const scope = layerScopes.at(-1);
       if (!scope) return null;
-      const target = scope.sourceKey === sourceKey && scope.surface.mask ? "mask" : "content";
+      const target = scope.surface.mask && (scope.sourceKeys?.includes(sourceKey) ?? scope.sourceKey === sourceKey)
+        ? "mask"
+        : scope.surface.clip && (scope.clipSourceKeys?.includes(sourceKey) ?? scope.clipSourceKey === sourceKey)
+          ? "clip"
+          : "content";
       if (scope.target === target && pass) return target === "mask" ? scope.mode ?? null : null;
       closePass();
-      const targetTexture = target === "mask" ? scope.surface.mask! : scope.surface.content;
+      const targetTexture = target === "mask" ? scope.surface.mask! : target === "clip" ? scope.surface.clip! : scope.surface.content;
       pass = encoder.beginRenderPass({
         colorAttachments: [{
           view: targetTexture.createView(),
           clearValue: { r: 0, g: 0, b: 0, a: 0 },
-          loadOp: target === "mask" ? "clear" : "load",
+          loadOp: target === "content" ? "load" : "clear",
           storeOp: "store",
         }],
       });
       scope.target = target;
       activeObjects = singleSampleObjects;
-      return target === "mask" ? scope.mode ?? null : null;
+      return target === "content" ? null : target;
     };
     const objectsForTransform = (nextTransform: Extract<PaintCommand, { op: "setTransform" }>) => {
       const mode = nextTransform.blendMode ?? "normal";
@@ -863,11 +881,12 @@ export function createWebGPUBackend(
         }
         const parent = layerScopes.at(-1);
         const parentTarget = parent
-          ? parent.target === "mask" ? parent.surface.mask! : parent.surface.content
+          ? parent.target === "mask" ? parent.surface.mask! : parent.target === "clip" ? parent.surface.clip! : parent.surface.content
           : null;
         const surface: LayerSurface = {
           content: createLayerTexture(physicalWidth, physicalHeight),
           ...(command.mask ? { mask: createLayerTexture(physicalWidth, physicalHeight) } : {}),
+          ...(command.clipPath ? { clip: createLayerTexture(physicalWidth, physicalHeight) } : {}),
         };
         closePass();
         pass = encoder.beginRenderPass({
@@ -882,7 +901,11 @@ export function createWebGPUBackend(
           target: "content",
           mode: command.mask && isLayerMaskMode(command.mask.mode) ? command.mask.mode : undefined,
           sourceKey: command.mask?.sourceKey,
+          sourceKeys: command.mask?.sourceKeys,
+          clipSourceKey: command.clipPath?.sourceKey,
+          clipSourceKeys: command.clipPath?.sourceKeys,
           compositeAlpha: command.compositeAlpha,
+          blendMode: command.blendMode ?? "normal",
         });
       } else if (command.op === "endLayer") {
         const scope = layerScopes.at(-1);
@@ -905,7 +928,23 @@ export function createWebGPUBackend(
           post(decodePass, scope.surface.content, [0, 0, 0, -1], effectPostObjects);
           decodePass.end();
           drawCalls += 1;
-          if (scope.parentTarget) {
+          if (scope.surface.clip && scope.clipSourceKey) {
+            const maskPass = encoder.beginRenderPass({
+              colorAttachments: [{ view: root.a.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+            });
+            postClipMask(maskPass, root.b, scope.surface.mask, 1, scope.mode, clipMaskPostEffectObjects);
+            maskPass.end();
+            if (scope.parentTarget) {
+              const compositePass = beginTargetPass(scope.parentTarget);
+              postClipMask(compositePass, root.a, scope.surface.clip, scope.compositeAlpha, "clip", clipMaskPostEffectObjects);
+              compositePass.end();
+            } else {
+              stageIndex = stageIndex === 0 ? 1 : 0;
+              const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
+              postClipMask(compositePass, root.a, scope.surface.clip, scope.compositeAlpha, "clip");
+              compositePass.end();
+            }
+          } else if (scope.parentTarget) {
             const compositePass = beginTargetPass(scope.parentTarget);
             postClipMask(compositePass, root.b, scope.surface.mask, scope.compositeAlpha, scope.mode, clipMaskPostEffectObjects);
             compositePass.end();
@@ -913,6 +952,24 @@ export function createWebGPUBackend(
             stageIndex = stageIndex === 0 ? 1 : 0;
             const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
             postClipMask(compositePass, root.b, scope.surface.mask, scope.compositeAlpha, scope.mode);
+            compositePass.end();
+          }
+          drawCalls += 1;
+        } else if (scope.surface.clip && scope.clipSourceKey) {
+          const decodePass = encoder.beginRenderPass({
+            colorAttachments: [{ view: root.a.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          });
+          post(decodePass, scope.surface.content, [0, 0, 0, -1], effectPostObjects);
+          decodePass.end();
+          drawCalls += 1;
+          if (scope.parentTarget) {
+            const compositePass = beginTargetPass(scope.parentTarget);
+            postClipMask(compositePass, root.a, scope.surface.clip, scope.compositeAlpha, "clip", clipMaskPostEffectObjects);
+            compositePass.end();
+          } else {
+            stageIndex = stageIndex === 0 ? 1 : 0;
+            const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
+            postClipMask(compositePass, root.a, scope.surface.clip, scope.compositeAlpha, "clip");
             compositePass.end();
           }
           drawCalls += 1;
@@ -925,20 +982,21 @@ export function createWebGPUBackend(
           drawCalls += 1;
           if (scope.parentTarget) {
             const compositePass = beginTargetPass(scope.parentTarget);
-            post(compositePass, root.a, [0, 0, 0, 1], effectPostPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            post(compositePass, root.a, [0, 0, 0, 1], effectPostPremultipliedBlendObjects.get(scope.blendMode) ?? effectPostPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
             compositePass.end();
           } else {
             stageIndex = stageIndex === 0 ? 1 : 0;
             const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
-            post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedBlendObjects.get(scope.blendMode) ?? postMsaaPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
             compositePass.end();
           }
           drawCalls += 1;
         }
         transientLayerTextures.push(scope.surface.content);
         if (scope.surface.mask) transientLayerTextures.push(scope.surface.mask);
+        if (scope.surface.clip) transientLayerTextures.push(scope.surface.clip);
         activeObjects = layerScopes.length === 0 ? objects : singleSampleObjects;
-      } else if (command.op === "beginLayer" && (command.isolation || command.mask)) {
+      } else if (command.op === "beginLayer" && (command.isolation || command.mask || command.clipPath)) {
         pushDiagnostic({ severity: "info", code: "preview_compositing_pending", message: "Isolation and mask scopes are pending in the native preview backend", key: command.key, layerId: command.layerId });
       }
     }

@@ -26,6 +26,8 @@ import {
 import {
   parseMotionProtocol,
   type MotionProtocolV2,
+  type V2Mask,
+  type V2SvgDefinitionNode,
 } from "@motionvideo/motion-protocol";
 import { isCompilerFeatureSupported } from "./capabilities";
 import { canonicalizePaint } from "./paint";
@@ -358,31 +360,260 @@ function lowerBlendMode(layer: ProtocolLayer): VisualRuntimeNode["blendMode"] {
   return blendMode;
 }
 
-function lowerMask(
-  layer: MotionProtocolV2["layers"][number],
-  layersById: ReadonlyMap<string, MotionProtocolV2["layers"][number]>,
-): VisualRuntimeMask | undefined {
-  const masks = layer.composite?.masks;
-  if (!masks?.length) return undefined;
-  if (masks.length > 1) {
-    throw new Error(`Protocol V2 multi-mask runtime lowering is not implemented yet: ${layer.id}`);
+type Affine2D = [number, number, number, number, number, number];
+type DefinitionDrawable = {
+  contours: PathContour[];
+  fillRule: "nonzero" | "evenodd";
+  fill?: string;
+  fillPaint?: PaintFill;
+  fillOpacity?: number;
+  stroke?: string;
+  strokePaint?: PaintFill;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+};
+
+const IDENTITY_AFFINE: Affine2D = [1, 0, 0, 1, 0, 0];
+
+function multiplyAffine(left: Affine2D, right: Affine2D): Affine2D {
+  return [
+    left[0] * right[0] + left[2] * right[1],
+    left[1] * right[0] + left[3] * right[1],
+    left[0] * right[2] + left[2] * right[3],
+    left[1] * right[2] + left[3] * right[3],
+    left[0] * right[4] + left[2] * right[5] + left[4],
+    left[1] * right[4] + left[3] * right[5] + left[5],
+  ];
+}
+
+function affinePoint(matrix: Affine2D, point: { x: number; y: number }): { x: number; y: number } {
+  return {
+    x: matrix[0] * point.x + matrix[2] * point.y + matrix[4],
+    y: matrix[1] * point.x + matrix[3] * point.y + matrix[5],
+  };
+}
+
+function definitionTransformMatrix(
+  operations: NonNullable<V2SvgDefinitionNode["transform"]> | undefined,
+): Affine2D {
+  let matrix = IDENTITY_AFFINE;
+  for (const operation of operations ?? []) {
+    let next: Affine2D;
+    if (operation.type === "translate") next = [1, 0, 0, 1, operation.x, operation.y];
+    else if (operation.type === "scale") next = [operation.x, 0, 0, operation.y, 0, 0];
+    else if (operation.type === "rotate") {
+      const radians = (operation.angle * Math.PI) / 180;
+      const rotation: Affine2D = [Math.cos(radians), Math.sin(radians), -Math.sin(radians), Math.cos(radians), 0, 0];
+      if (operation.center) {
+        next = multiplyAffine(
+          multiplyAffine([1, 0, 0, 1, operation.center.x, operation.center.y], rotation),
+          [1, 0, 0, 1, -operation.center.x, -operation.center.y],
+        );
+      } else next = rotation;
+    } else if (operation.type === "skewX") {
+      next = [1, 0, Math.tan((operation.angle * Math.PI) / 180), 1, 0, 0];
+    } else if (operation.type === "skewY") {
+      next = [1, Math.tan((operation.angle * Math.PI) / 180), 0, 1, 0, 0];
+    } else {
+      next = operation.values;
+    }
+    matrix = multiplyAffine(matrix, next);
   }
-  const mask = masks[0]!;
-  if (mask.composite !== "add") {
-    throw new Error(`Protocol V2 mask composite operator is not implemented yet: ${mask.composite}`);
+  return matrix;
+}
+
+function transformContour(contour: PathContour, matrix: Affine2D): PathContour {
+  const point = (value: { x: number; y: number }) => affinePoint(matrix, value);
+  return {
+    ...contour,
+    start: point(contour.start),
+    segments: contour.segments.map((segment) => {
+      if (segment.kind === "line") return { ...segment, to: point(segment.to) };
+      if (segment.kind === "quadratic") return { ...segment, control: point(segment.control), to: point(segment.to) };
+      if (segment.kind === "cubic") return { ...segment, control1: point(segment.control1), control2: point(segment.control2), to: point(segment.to) };
+      return { ...segment, radii: { x: segment.radii.x, y: segment.radii.y }, to: point(segment.to) };
+    }),
+  };
+}
+
+function definitionRectContour(x: number, y: number, width: number, height: number, rx = 0, ry = rx): PathContour {
+  const radiusX = Math.min(Math.max(0, rx), width / 2);
+  const radiusY = Math.min(Math.max(0, ry), height / 2);
+  if (radiusX === 0 && radiusY === 0) {
+    return {
+      id: "definition-rect",
+      start: { x, y },
+      segments: [
+        { kind: "line", to: { x: x + width, y } },
+        { kind: "line", to: { x: x + width, y: y + height } },
+        { kind: "line", to: { x, y: y + height } },
+      ],
+      closed: true,
+    };
   }
-  if (layer.type !== "group") {
-    throw new Error(`Protocol V2 mask must target a group: ${layer.id}`);
+  return {
+    id: "definition-rounded-rect",
+    start: { x: x + radiusX, y },
+    segments: [
+      { kind: "line", to: { x: x + width - radiusX, y } },
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: x + width, y: y + radiusY } },
+      { kind: "line", to: { x: x + width, y: y + height - radiusY } },
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: x + width - radiusX, y: y + height } },
+      { kind: "line", to: { x: x + radiusX, y: y + height } },
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x, y: y + height - radiusY } },
+      { kind: "line", to: { x, y: y + radiusY } },
+      { kind: "arc", radii: { x: radiusX, y: radiusY }, rotation: 0, largeArc: false, sweep: true, to: { x: x + radiusX, y } },
+    ],
+    closed: true,
+  };
+}
+
+function definitionNodeContour(node: V2SvgDefinitionNode): PathContour | undefined {
+  if (node.type === "path") return undefined;
+  if (node.type === "rect") return definitionRectContour(node.x, node.y, node.width, node.height, node.rx, node.ry);
+  if (node.type === "circle") return definitionRectContour(node.cx - node.r, node.cy - node.r, node.r * 2, node.r * 2, node.r, node.r);
+  if (node.type === "ellipse") return definitionRectContour(node.cx - node.rx, node.cy - node.ry, node.rx * 2, node.ry * 2, node.rx, node.ry);
+  if (node.type === "line") return { id: "definition-line", start: { x: node.x1, y: node.y1 }, segments: [{ kind: "line", to: { x: node.x2, y: node.y2 } }], closed: false };
+  if (node.type === "polyline") return { id: "definition-polyline", start: node.points[0]!, segments: node.points.slice(1).map((to) => ({ kind: "line" as const, to })), closed: false };
+  if (node.type === "polygon") return { id: "definition-polygon", start: node.points[0]!, segments: node.points.slice(1).map((to) => ({ kind: "line" as const, to })), closed: true };
+  return undefined;
+}
+
+function lowerDefinitionDrawables(
+  nodes: readonly V2SvgDefinitionNode[],
+  inherited: Affine2D,
+  mask: V2Mask,
+  targetWidth: number,
+  targetHeight: number,
+): DefinitionDrawable[] {
+  const unitMatrix: Affine2D = mask.maskContentUnits === "objectBoundingBox"
+    ? [targetWidth, 0, 0, targetHeight, 0, 0]
+    : IDENTITY_AFFINE;
+  const rootMatrix = multiplyAffine(
+    inherited,
+    multiplyAffine(unitMatrix, definitionTransformMatrix(mask.transform)),
+  );
+  const visit = (node: V2SvgDefinitionNode, parentMatrix: Affine2D, parentOpacity: number): DefinitionDrawable[] => {
+    const matrix = multiplyAffine(parentMatrix, definitionTransformMatrix(node.transform));
+    const opacity = parentOpacity * (node.type === "group" ? node.opacity ?? 1 : 1);
+    if (node.type === "group") return node.children.flatMap((child) => visit(child, matrix, opacity));
+    const rawContour = node.type === "path"
+      ? undefined
+      : definitionNodeContour(node);
+    const contours = node.type === "path"
+      ? node.contours.map((contour) => transformContour(contour, matrix))
+      : rawContour
+        ? [transformContour(rawContour, matrix)]
+        : [];
+    if (contours.length === 0) return [];
+    const fill = node.fill === undefined ? undefined : paintColor(node.fill);
+    const stroke = node.stroke === undefined ? undefined : paintColor(node.stroke);
+    return [{
+      contours,
+      fillRule: node.type === "path" ? node.fillRule ?? "nonzero" : "nonzero",
+      ...(fill ? { fill, fillPaint: runtimePaint(node.fill, targetWidth, targetHeight) } : {}),
+      ...(node.fillOpacity !== undefined ? { fillOpacity: node.fillOpacity * opacity } : {}),
+      ...(stroke ? { stroke, strokePaint: runtimePaint(node.stroke, targetWidth, targetHeight) } : {}),
+      ...(node.strokeWidth !== undefined ? { strokeWidth: node.strokeWidth } : {}),
+      ...(node.strokeOpacity !== undefined ? { strokeOpacity: node.strokeOpacity * opacity } : {}),
+    }];
+  };
+  return nodes.flatMap((node) => visit(node, rootMatrix, 1));
+}
+
+function lowerSemanticMask(
+  layer: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  project: MotionProtocolV2,
+  context: LayerContext,
+): { clipPath?: NonNullable<VisualRuntimeNode["clipPath"]>; mask?: VisualRuntimeMask; nodes: VisualRuntimeNode[] } {
+  if (layer.clipPath === undefined && layer.mask === undefined) return { nodes: [] };
+  if (layer.clipPath !== undefined) {
+    if (!isV2AtomCertified("clipPath.definition")) throw new Error("Uncertified Protocol V2 atom: clipPath.definition");
+    const definition = project.clipPaths?.find((candidate) => candidate.id === layer.clipPath);
+    if (!definition) throw new Error(`Unknown clipPath reference: ${layer.clipPath}`);
+    if (definition.clipPathUnits === "objectBoundingBox" && !isV2AtomCertified("clipPath.objectBoundingBox")) {
+      throw new Error("Uncertified Protocol V2 atom: clipPath.objectBoundingBox");
+    }
+    const maskDefinition = { ...definition, maskContentUnits: "userSpaceOnUse" as const } as unknown as V2Mask;
+    const objectBoxMatrix: Affine2D = definition.clipPathUnits === "objectBoundingBox"
+      ? [layer.frame.width, 0, 0, layer.frame.height, 0, 0]
+      : IDENTITY_AFFINE;
+    const drawables = lowerDefinitionDrawables(definition.children, objectBoxMatrix, maskDefinition, layer.frame.width, layer.frame.height);
+    const sourceIds = drawables.map((_, index) => `${layer.id}:clipPath:${definition.id}:${index}`);
+    const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, true));
+    if (!nodes.length) throw new Error(`clipPath ${definition.id} has no renderable geometry`);
+    const clipPath = { sourceId: sourceIds[0]!, sourceIds };
+    if (layer.mask === undefined) return { clipPath, nodes };
+    const mask = project.masks?.find((candidate) => candidate.id === layer.mask);
+    if (!mask) throw new Error(`Unknown mask reference: ${layer.mask}`);
+    if (!isV2AtomCertified("mask.definition")) throw new Error("Uncertified Protocol V2 atom: mask.definition");
+    if (mask.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
+      throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
+    }
+    const maskDrawables = lowerDefinitionDrawables(mask.children, IDENTITY_AFFINE, mask, layer.frame.width, layer.frame.height);
+    const maskSourceIds = maskDrawables.map((_, index) => `${layer.id}:mask:${mask.id}:${index}`);
+    const maskNodes = maskDrawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, maskSourceIds[index]!, false));
+    if (!maskNodes.length) throw new Error(`mask ${mask.id} has no renderable geometry`);
+    return {
+      clipPath,
+      mask: { mode: mask.maskType === "luminance" ? "luma" : "alpha", sourceId: maskSourceIds[0]!, sourceIds: maskSourceIds },
+      nodes: [...nodes, ...maskNodes],
+    };
   }
-  const capability = `mask.${mask.mode}`;
-  if (!isV2AtomCertified(capability)) {
-    throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+  const definition = project.masks?.find((candidate) => candidate.id === layer.mask);
+  if (!definition) throw new Error(`Unknown mask reference: ${layer.mask}`);
+  if (!isV2AtomCertified("mask.definition")) throw new Error("Uncertified Protocol V2 atom: mask.definition");
+  if (definition.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
+    throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
   }
-  const source = layersById.get(mask.sourceLayerId);
-  if (!source || source.parentLayerId !== layer.id || source.type === "group" || (mask.mode === "clip" && source.type !== "shape")) {
-    throw new Error(`Protocol V2 ${mask.mode} mask source is invalid: ${layer.id}`);
-  }
-  return { mode: mask.mode, sourceId: source.id, composite: mask.composite };
+  const drawables = lowerDefinitionDrawables(definition.children, IDENTITY_AFFINE, definition, layer.frame.width, layer.frame.height);
+  const sourceIds = drawables.map((_, index) => `${layer.id}:mask:${definition.id}:${index}`);
+  const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, false));
+  if (!nodes.length) throw new Error(`mask ${definition.id} has no renderable geometry`);
+  return { mask: { mode: definition.maskType === "luminance" ? "luma" : "alpha", sourceId: sourceIds[0]!, sourceIds }, nodes };
+}
+
+function definitionRuntimeNode(
+  target: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  context: LayerContext,
+  drawable: DefinitionDrawable,
+  id: string,
+  clip: boolean,
+): VisualRuntimeNode {
+  const hasFillableContour = drawable.contours.some((contour) => contour.closed && contour.segments.length >= 2);
+  const fill = clip
+    ? hasFillableContour ? "#ffffff" : undefined
+    : drawable.fill ?? (!drawable.stroke && hasFillableContour ? "#000000" : undefined);
+  const fillPaint = clip ? undefined : drawable.fillPaint;
+  const stroke = clip ? undefined : drawable.stroke;
+  const strokePaint = clip ? undefined : drawable.strokePaint;
+  const strokeWidth = clip ? undefined : drawable.strokeWidth;
+  const fillOpacity = clip ? 1 : drawable.fillOpacity;
+  const strokeOpacity = clip ? undefined : drawable.strokeOpacity;
+  const mesh = fill ? tessellateClosedPath(drawable.contours, drawable.fillRule) : undefined;
+  const strokeMesh = stroke && strokeWidth
+    ? tessellatePathStroke(drawable.contours, strokeWidth, { join: "miter", cap: "butt" })
+    : undefined;
+  return {
+    id,
+    parentId: target.id,
+    order: -1,
+    timing: context.timing,
+    opacity: 1,
+    blendMode: "normal",
+    visible: context.visible,
+    localMatrix: identityMatrix4(),
+    worldMatrix: context.worldMatrix,
+    content: {
+      kind: "path",
+      width: target.frame.width,
+      height: target.frame.height,
+      contours: drawable.contours,
+      fillRule: drawable.fillRule,
+      ...(fill ? { fill, ...(fillPaint ? { fillPaint } : {}), fillOpacity, ...(mesh ? { mesh } : {}) } : {}),
+      ...(stroke && strokeWidth ? { stroke, ...(strokePaint ? { strokePaint } : {}), strokeWidth, ...(strokeOpacity !== undefined ? { strokeOpacity } : {}), ...(strokeMesh ? { strokeMesh } : {}) } : {}),
+    },
+  };
 }
 
 type LayerContext = {
@@ -404,6 +635,7 @@ function compileVisualRuntimeInternal(
   const projection = viewProjectionMatrix4(project);
   const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
   const contextCache = new Map<string, LayerContext>();
+  const semanticMaskNodes: VisualRuntimeNode[] = [];
 
   const resolveLayerContext = (layer: MotionProtocolV2["layers"][number]): LayerContext => {
     const cached = contextCache.get(layer.id);
@@ -431,17 +663,23 @@ function compileVisualRuntimeInternal(
       // preserves group nodes so it can flatten their subtree and apply that
       // alpha exactly once at the compositing boundary.
       opacity: layer.opacity,
-      visible: parentContext.visible && layer.enabled !== false && layer.opacity > 0 && end > start,
+      visible:
+        parentContext.visible &&
+        layer.enabled !== false &&
+        (layer.visibility ?? "visible") === "visible" &&
+        layer.opacity > 0 &&
+        end > start,
       timing: { start, duration: Math.max(0, end - start) },
     };
     contextCache.set(layer.id, context);
     return context;
   };
 
-  const nodes = project.layers.map((layer): VisualRuntimeNode | null => {
+  const compiledLayerNodes = project.layers.map((layer): VisualRuntimeNode | null => {
     const context = resolveLayerContext(layer);
     for (const capability of [
       ...(layer.enabled !== undefined ? ["layer.enabled"] : []),
+      ...(layer.visibility !== undefined ? ["layer.visibility"] : []),
       ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
     ]) {
       if (!isV2AtomCertified(capability)) {
@@ -475,7 +713,10 @@ function compileVisualRuntimeInternal(
         }
       }
       if (context.timing.duration <= 0) return null;
-      const mask = lowerMask(layer, layerById);
+      const semanticMask = lowerSemanticMask(layer, project, context);
+      semanticMaskNodes.push(...semanticMask.nodes);
+      const clipPath = semanticMask.clipPath;
+      const mask = semanticMask.mask;
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -484,6 +725,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...(clipPath ? { clipPath } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         ...(mask ? { mask } : {}),
         visible: context.visible,
@@ -969,6 +1211,7 @@ function compileVisualRuntimeInternal(
       } as VisualRuntimeNode["content"],
     };
   }).filter((node): node is VisualRuntimeNode => node !== null);
+  const nodes = [...compiledLayerNodes, ...semanticMaskNodes];
 
   const visualDuration = nodes.reduce(
     (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),

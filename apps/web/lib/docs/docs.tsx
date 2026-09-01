@@ -480,7 +480,7 @@ ${FENCE}
 
 ## Masks
 
-Clip, alpha, inverse-alpha, luma, nested masks, and isolation describe coverage relationships. They are not high-level layout features.
+Clip paths, alpha/luminance masks, and isolation describe coverage and compositing relationships. They are not high-level layout features.
 
 ## Paint and composite opacity
 

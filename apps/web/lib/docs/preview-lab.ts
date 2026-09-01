@@ -3,6 +3,8 @@ import {
   type MotionProtocolV2,
   type V2Marker,
   type V2AudioFixture,
+  type V2ClipPath,
+  type V2Mask,
 } from "@motionvideo/motion-protocol/v2";
 import {
   compileHtmlCss,
@@ -396,186 +398,6 @@ const IMAGE_STACK_BLEND_NORMAL_PROJECT = imageStackBlendProject("normal");
 const IMAGE_STACK_BLEND_MULTIPLY_PROJECT = imageStackBlendProject("multiply");
 const IMAGE_STACK_BLEND_SCREEN_PROJECT = imageStackBlendProject("screen");
 
-const CLIP_MASK_PROJECT = project(
-  "preview-clip-mask-v2",
-  [
-    {
-      id: "clip-mask-group",
-      type: "group",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 1,
-      composite: {
-        blendMode: "normal",
-        masks: [{ mode: "clip", sourceLayerId: "clip-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-      },
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "clip-mask-ellipse",
-      type: "shape",
-      parentLayerId: "clip-mask-group",
-      order: 1,
-      frame: { width: 660, height: 560 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: { shape: "ellipse" },
-      style: { fill: "#ffffff" },
-    },
-    {
-      id: "clip-mask-content",
-      type: "image",
-      parentLayerId: "clip-mask-group",
-      order: 2,
-      frame: { width: 960, height: 740 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
-    },
-  ],
-  ORTHOGRAPHIC_VIEW,
-  [PREVIEW_IMAGE_ASSET],
-);
-
-const ALPHA_MASK_PROJECT = project(
-  "preview-alpha-mask-v2",
-  [
-    {
-      id: "alpha-mask-group",
-      type: "group",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 1,
-      composite: {
-        blendMode: "normal",
-        masks: [{ mode: "alpha", sourceLayerId: "alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-      },
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "alpha-mask-ellipse",
-      type: "shape",
-      parentLayerId: "alpha-mask-group",
-      order: 1,
-      frame: { width: 660, height: 560 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: { shape: "ellipse" },
-      style: { fill: "#ffffff", fillOpacity: 0.45 },
-    },
-    {
-      id: "alpha-mask-content",
-      type: "image",
-      parentLayerId: "alpha-mask-group",
-      order: 2,
-      frame: { width: 960, height: 740 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
-    },
-  ],
-  ORTHOGRAPHIC_VIEW,
-  [PREVIEW_IMAGE_ASSET],
-);
-
-const INVERSE_ALPHA_MASK_PROJECT = project(
-  "preview-inverse-alpha-mask-v2",
-  [
-    {
-      id: "inverse-alpha-mask-group",
-      type: "group",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 1,
-      composite: {
-        blendMode: "normal",
-        masks: [{ mode: "inverse-alpha", sourceLayerId: "inverse-alpha-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-      },
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "inverse-alpha-mask-ellipse",
-      type: "shape",
-      parentLayerId: "inverse-alpha-mask-group",
-      order: 1,
-      frame: { width: 660, height: 560 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: { shape: "ellipse" },
-      style: { fill: "#ffffff" },
-    },
-    {
-      id: "inverse-alpha-mask-content",
-      type: "image",
-      parentLayerId: "inverse-alpha-mask-group",
-      order: 2,
-      frame: { width: 960, height: 740 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
-    },
-  ],
-  ORTHOGRAPHIC_VIEW,
-  [PREVIEW_IMAGE_ASSET],
-);
-
-const LUMA_MASK_PROJECT = project(
-  "preview-luma-mask-v2",
-  [
-    {
-      id: "luma-mask-group",
-      type: "group",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 1,
-      composite: {
-        blendMode: "normal",
-        masks: [{ mode: "luma", sourceLayerId: "luma-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-      },
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "luma-mask-ellipse",
-      type: "shape",
-      parentLayerId: "luma-mask-group",
-      order: 1,
-      frame: { width: 660, height: 560 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: { shape: "ellipse" },
-      style: { fill: "#808080" },
-    },
-    {
-      id: "luma-mask-content",
-      type: "image",
-      parentLayerId: "luma-mask-group",
-      order: 2,
-      frame: { width: 960, height: 740 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
-    },
-  ],
-  ORTHOGRAPHIC_VIEW,
-  [PREVIEW_IMAGE_ASSET],
-);
-
 const PREVIEW_VIDEO_ASSET = {
   id: "preview-video-v2",
   kind: "video" as const,
@@ -841,6 +663,117 @@ const SHAPE_PAINT_ORDER_PROJECT = (paintOrder: ["fill" | "stroke" | "markers", "
     style: { ...layer.style, paintOrder },
   })),
 );
+
+const SVG_CLIP_PATH: V2ClipPath = {
+  id: "clip-main",
+  clipPathUnits: "userSpaceOnUse",
+  transform: [{ type: "translate", x: 0, y: 0 }],
+  children: [{
+    type: "ellipse",
+    cx: 960,
+    cy: 540,
+    rx: 360,
+    ry: 260,
+  }],
+};
+
+const SVG_CLIP_PATH_OBJECT_BOX: V2ClipPath = {
+  id: "clip-object-box",
+  clipPathUnits: "objectBoundingBox",
+  children: [{
+    type: "path",
+    contours: [{
+      id: "clip-star",
+      start: { x: 0.5, y: 0 },
+      segments: [
+        { kind: "line", to: { x: 0.62, y: 0.36 } },
+        { kind: "line", to: { x: 1, y: 0.36 } },
+        { kind: "line", to: { x: 0.7, y: 0.58 } },
+        { kind: "line", to: { x: 0.82, y: 1 } },
+        { kind: "line", to: { x: 0.5, y: 0.76 } },
+        { kind: "line", to: { x: 0.18, y: 1 } },
+        { kind: "line", to: { x: 0.3, y: 0.58 } },
+        { kind: "line", to: { x: 0, y: 0.36 } },
+        { kind: "line", to: { x: 0.38, y: 0.36 } },
+      ],
+      closed: true,
+    }],
+  }],
+};
+
+const SVG_ALPHA_MASK: V2Mask = {
+  id: "mask-alpha",
+  maskUnits: "objectBoundingBox",
+  maskContentUnits: "userSpaceOnUse",
+  maskType: "alpha",
+  children: [{
+    type: "ellipse",
+    cx: 960,
+    cy: 540,
+    rx: 360,
+    ry: 260,
+    fill: "#ffffff",
+    fillOpacity: 0.55,
+  }],
+};
+
+const SVG_LUMINANCE_MASK: V2Mask = {
+  id: "mask-luminance",
+  maskUnits: "objectBoundingBox",
+  maskContentUnits: "userSpaceOnUse",
+  maskType: "luminance",
+  children: [{
+    type: "ellipse",
+    cx: 960,
+    cy: 540,
+    rx: 360,
+    ry: 260,
+    fill: "#808080",
+  }],
+};
+
+function semanticMaskProject(
+  id: string,
+  definition: V2ClipPath | V2Mask,
+  kind: "clip" | "mask",
+): MotionProtocolV2 {
+  const base = project(id, [{
+    id: `${kind}-group`,
+    type: "group",
+    parentLayerId: null,
+    order: 0,
+    frame: { width: 1920, height: 1080 },
+    transform: IDENTITY_TRANSFORM,
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    ...(kind === "clip" ? { clipPath: definition.id } : { mask: definition.id }),
+  }, {
+    id: `${kind}-content`,
+    type: "image",
+    parentLayerId: `${kind}-group`,
+    order: 0,
+    frame: { width: 960, height: 740 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
+    opacity: 1,
+    timing: { start: 0, duration: 3 },
+    payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
+  }], ORTHOGRAPHIC_VIEW, [PREVIEW_IMAGE_ASSET]);
+  return kind === "clip"
+    ? { ...base, clipPaths: [definition as V2ClipPath] }
+    : { ...base, masks: [definition as V2Mask] };
+}
+
+const SVG_CLIP_PATH_PROJECT = semanticMaskProject("preview-svg-clip-path-v2", SVG_CLIP_PATH, "clip");
+const SVG_CLIP_PATH_OBJECT_BOX_PROJECT = semanticMaskProject("preview-svg-clip-object-box-v2", SVG_CLIP_PATH_OBJECT_BOX, "clip");
+const SVG_ALPHA_MASK_PROJECT = semanticMaskProject("preview-svg-mask-alpha-v2", SVG_ALPHA_MASK, "mask");
+const SVG_LUMINANCE_MASK_PROJECT = semanticMaskProject("preview-svg-mask-luminance-v2", SVG_LUMINANCE_MASK, "mask");
+const SVG_CLIP_AND_ALPHA_MASK_PROJECT: MotionProtocolV2 = {
+  ...semanticMaskProject("preview-svg-clip-and-alpha-mask-v2", SVG_CLIP_PATH, "clip"),
+  layers: semanticMaskProject("preview-svg-clip-and-alpha-mask-v2", SVG_CLIP_PATH, "clip").layers.map((layer) =>
+    layer.id === "clip-group" ? { ...layer, mask: SVG_ALPHA_MASK.id } : layer,
+  ),
+  masks: [SVG_ALPHA_MASK],
+};
 
 const PAINT_ORDER_FILL_STROKE_PATH_PROJECT = PATH_PAINT_ORDER_PROJECT(["fill", "stroke"]);
 const PAINT_ORDER_STROKE_FILL_PATH_PROJECT = PATH_PAINT_ORDER_PROJECT(["stroke", "fill"]);
@@ -1575,6 +1508,74 @@ const GROUP_DISABLED_PROJECT = project(
   ],
 );
 
+const GROUP_VISIBILITY_HIDDEN_PROJECT = project(
+  "preview-group-visibility-hidden-v2",
+  [
+    {
+      id: "visibility-hidden-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      visibility: "hidden",
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "visibility-hidden-leaf",
+        order: 1,
+        frame: { width: 420, height: 280 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 400, z: 0 } },
+        fill: "#ef4444",
+      }),
+      parentLayerId: "visibility-hidden-group",
+    },
+  ],
+);
+
+function groupBlendProject(blendMode: "normal" | "multiply" | "screen"): MotionProtocolV2 {
+  return project(
+    `preview-group-blend-${blendMode}-v2`,
+    [
+      {
+        ...rectangle({
+          id: "group-blend-backdrop",
+          order: 0,
+          frame: { width: 560, height: 360 },
+          transform: { ...IDENTITY_TRANSFORM, translate: { x: 680, y: 360, z: 0 } },
+          fill: "#f97316",
+        }),
+      },
+      {
+        id: `group-blend-${blendMode}`,
+        type: "group",
+        parentLayerId: null,
+        order: 1,
+        frame: { width: 1920, height: 1080 },
+        transform: IDENTITY_TRANSFORM,
+        opacity: 1,
+        composite: { blendMode },
+        timing: { start: 0, duration: 3 },
+      },
+      {
+        ...rectangle({
+          id: `group-blend-${blendMode}-leaf`,
+          order: 2,
+          frame: { width: 560, height: 360 },
+          transform: { ...IDENTITY_TRANSFORM, translate: { x: 820, y: 460, z: 0 } },
+          fill: "#2563eb",
+        }),
+        parentLayerId: `group-blend-${blendMode}`,
+      },
+    ],
+  );
+}
+
+const GROUP_BLEND_MULTIPLY_PROJECT = groupBlendProject("multiply");
+const GROUP_BLEND_SCREEN_PROJECT = groupBlendProject("screen");
+
 const GROUP_TIMING_PROJECT = project(
   "preview-group-timing-v2",
   [
@@ -1627,61 +1628,6 @@ const GROUP_EFFECT_PROJECT = project(
       parentLayerId: "effect-group",
     },
   ],
-);
-
-const NESTED_MASK_ISOLATION_PROJECT = project(
-  "preview-nested-mask-isolation-v2",
-  [
-    {
-      id: "nested-mask-outer-group",
-      type: "group",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 0.75,
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "nested-mask-inner-group",
-      type: "group",
-      parentLayerId: "nested-mask-outer-group",
-      order: 1,
-      frame: { width: 1920, height: 1080 },
-      transform: IDENTITY_TRANSFORM,
-      opacity: 1,
-      composite: {
-        blendMode: "normal",
-        masks: [{ mode: "alpha", sourceLayerId: "nested-mask-ellipse", sourceVisibility: "mask-only", composite: "add" }],
-      },
-      timing: { start: 0, duration: 3 },
-    },
-    {
-      id: "nested-mask-ellipse",
-      type: "shape",
-      parentLayerId: "nested-mask-inner-group",
-      order: 2,
-      frame: { width: 660, height: 560 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 630, y: 260, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: { shape: "ellipse" },
-      style: { fill: "#ffffff" },
-    },
-    {
-      id: "nested-mask-content",
-      type: "image",
-      parentLayerId: "nested-mask-inner-group",
-      order: 3,
-      frame: { width: 960, height: 740 },
-      transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
-      opacity: 1,
-      timing: { start: 0, duration: 3 },
-      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
-    },
-  ],
-  ORTHOGRAPHIC_VIEW,
-  [PREVIEW_IMAGE_ASSET],
 );
 
 const PATH_DONUT_OUTER = {
@@ -3698,6 +3644,13 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     project: GROUP_DISABLED_PROJECT,
   },
   {
+    id: "group.visibility.hidden",
+    label: "Group / visibility hidden",
+    group: "Layers / Group",
+    hint: "SVG visibility hidden preserves the group and its geometry in the document but suppresses painting for the complete subtree.",
+    project: GROUP_VISIBILITY_HIDDEN_PROJECT,
+  },
+  {
     id: "group.timing",
     label: "Group / timing window",
     group: "Layers / Group",
@@ -3727,39 +3680,53 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     project: NESTED_ISOLATION_PROJECT,
   },
   {
-    id: "composite.mask.nested",
-    label: "Composite / nested mask",
-    group: "Task 12 / Nested masks and isolation",
-    hint: "An alpha-masked inner group is composited into an isolated outer group before the result reaches the stage.",
-    project: NESTED_MASK_ISOLATION_PROJECT,
+    id: "composite.blend.group.multiply",
+    label: "Blend group / multiply",
+    group: "Compositing",
+    hint: "The group is flattened to an offscreen surface before SVG/CSS multiply blending against the backdrop.",
+    project: GROUP_BLEND_MULTIPLY_PROJECT,
   },
   {
-    id: "composite.mask.clip",
-    label: "Composite / ellipse clip mask",
-    group: "Task 12 / Clip mask",
-    hint: "A mask-only ellipse contributes alpha coverage to its direct group sibling; the image remains visible only inside that projected shape.",
-    project: CLIP_MASK_PROJECT,
+    id: "composite.blend.group.screen",
+    label: "Blend group / screen",
+    group: "Compositing",
+    hint: "The group is flattened to an offscreen surface before SVG/CSS screen blending against the backdrop.",
+    project: GROUP_BLEND_SCREEN_PROJECT,
   },
   {
-    id: "composite.mask.alpha",
-    label: "Composite / alpha mask",
-    group: "Task 12 / Alpha mask",
-    hint: "The mask-only ellipse preserves 45% source alpha, so the same image is partially composited instead of binary-clipped.",
-    project: ALPHA_MASK_PROJECT,
+    id: "clip.svg.user-space",
+    label: "Clip / clipPath userSpaceOnUse",
+    group: "Clip",
+    hint: "SVG clipPath geometry is resolved in user space and applied as binary geometric coverage.",
+    project: SVG_CLIP_PATH_PROJECT,
   },
   {
-    id: "composite.mask.inverse-alpha",
-    label: "Composite / inverse alpha mask",
-    group: "Task 12 / Inverse alpha mask",
-    hint: "The opaque mask-only ellipse removes image coverage at its projected center while leaving the image visible outside the ellipse.",
-    project: INVERSE_ALPHA_MASK_PROJECT,
+    id: "clip.svg.object-bounding-box",
+    label: "Clip / clipPath objectBoundingBox",
+    group: "Clip",
+    hint: "SVG clipPath geometry is authored in normalized object-bounding-box coordinates and lowered to the target group frame.",
+    project: SVG_CLIP_PATH_OBJECT_BOX_PROJECT,
   },
   {
-    id: "composite.mask.luma",
-    label: "Composite / luma mask",
-    group: "Task 12 / Luma mask",
-    hint: "An opaque gray ellipse contributes linear luminance as coverage, proving that the mask color affects image opacity.",
-    project: LUMA_MASK_PROJECT,
+    id: "mask.svg.alpha",
+    label: "Mask / alpha",
+    group: "Mask",
+    hint: "SVG mask-type alpha uses the mask content alpha channel as coverage.",
+    project: SVG_ALPHA_MASK_PROJECT,
+  },
+  {
+    id: "mask.svg.luminance",
+    label: "Mask / luminance",
+    group: "Mask",
+    hint: "SVG mask-type luminance converts the mask content color to coverage.",
+    project: SVG_LUMINANCE_MASK_PROJECT,
+  },
+  {
+    id: "clip-mask.svg.combined",
+    label: "Clip + mask / combined",
+    group: "Mask",
+    hint: "SVG clipPath and alpha mask remain separate semantic references and are applied as ordered coverage passes.",
+    project: SVG_CLIP_AND_ALPHA_MASK_PROJECT,
   },
   {
     id: "rectangle.transform.translate",
@@ -4282,6 +4249,8 @@ const PREVIEW_LAB_GROUP_ORDER = [
   "Paint / Pattern",
   "Paint / Order",
   "Paint / Markers",
+  "Clip",
+  "Mask",
   "Effects",
   "Compositing",
   "Timing",
@@ -4361,6 +4330,8 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (PAINT_PATTERN_CASES.has(item.id)) return "Paint / Pattern";
   if (PAINT_ORDER_CASES.has(item.id)) return "Paint / Order";
   if (PAINT_MARKER_CASES.has(item.id)) return "Paint / Markers";
+  if (item.id.startsWith("clip.svg.")) return "Clip";
+  if (item.id.startsWith("mask.svg.")) return "Mask";
   if (PAINT_GRADIENT_CASES.has(item.id)) return "Paint / Gradient";
   if (PAINT_STROKE_CASES.has(item.id)) return "Paint / Stroke";
   if (PAINT_FILL_CASES.has(item.id)) return "Paint / Fill";
@@ -4381,7 +4352,7 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("text.")) return "Layers / Text";
   if (item.id.startsWith("rectangle.timing")) return "Timing";
   if (item.id.startsWith("effect.")) return "Effects";
-  if (item.id.startsWith("composite.blend.") || item.id.startsWith("composite.mask.")) return "Compositing";
+  if (item.id.startsWith("composite.blend.")) return "Compositing";
   if (item.id === "rectangle.opacity" || item.id === "rectangle.order") {
     return "Compositing";
   }

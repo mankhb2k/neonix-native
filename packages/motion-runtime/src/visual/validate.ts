@@ -430,16 +430,15 @@ export function validateVisualRuntimeProject(
       });
     }
     if (node.mask !== undefined) {
-      const source = nodeById.get(node.mask.sourceId);
+      const sourceIds = node.mask.sourceIds ?? [node.mask.sourceId];
+      const sources = sourceIds.map((sourceId) => nodeById.get(sourceId));
       if (
         node.content.kind !== "group" ||
-        !["clip", "alpha", "inverse-alpha", "luma"].includes(node.mask.mode) ||
-        !source ||
-        source.parentId !== node.id ||
-        source.content.kind === "group" ||
+        !["clip", "alpha", "luma"].includes(node.mask.mode) ||
+        sources.some((source) => !source || source.parentId !== node.id || source.content.kind === "group") ||
         // Compiler V2 lowers protocol shapes to path geometry, so clip masks
         // sourced from a Shape are validated at the runtime path boundary.
-        (node.mask.mode === "clip" && source.content.kind !== "path")
+        sources.some((source) => node.mask!.mode === "clip" && source!.content.kind !== "path")
       ) {
         diagnostics.push({
           severity: "error",

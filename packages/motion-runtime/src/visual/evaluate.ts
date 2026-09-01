@@ -399,12 +399,11 @@ export function evaluateVisualRuntimeProject(
     const effectProgram = buildRuntimeEffectProgram(node.content.effects);
     const needsIsolation =
       node.opacity < 1 ||
+      node.clipPath !== undefined ||
       node.mask !== undefined ||
       node.isolation === "isolate" ||
+      node.blendMode !== undefined && node.blendMode !== "normal" ||
       effectProgram !== undefined;
-    if ((node.blendMode ?? "normal") !== "normal") {
-      throw new Error(`Runtime V2 group blend modes are not certified yet: ${node.id}`);
-    }
     if (needsIsolation && !effectProgram && childrenOf(node.id).some(subtreeHasEffects)) {
       throw new Error(`Runtime V2 cannot place effects inside an isolated group yet: ${node.id}`);
     }
@@ -416,13 +415,22 @@ export function evaluateVisualRuntimeProject(
         isolation: true,
         offscreen: true,
         compositeAlpha: node.opacity,
+        blendMode: node.blendMode,
         ...(effectProgram ? { effectProgram } : {}),
+        ...(node.clipPath
+          ? {
+              clipPath: {
+                sourceKey: node.clipPath.sourceId,
+                ...(node.clipPath.sourceIds ? { sourceKeys: node.clipPath.sourceIds } : {}),
+              },
+            }
+          : {}),
         ...(node.mask
           ? {
               mask: {
                 mode: node.mask.mode,
                 sourceKey: node.mask.sourceId,
-                sourceVisibility: "mask-only" as const,
+                ...(node.mask.sourceIds ? { sourceKeys: node.mask.sourceIds } : {}),
               },
             }
           : {}),

@@ -789,34 +789,9 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
-  test("composites a nested alpha mask inside an isolated group", async ({ page }) => {
-    const caseId = "composite.mask.nested";
-    const canvas = page.getByTestId("preview-v2-canvas");
-    const background = [16, 24, 32, 255];
-    await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
-    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
-    await expect(canvas).not.toHaveAttribute("data-diagnostics", /mask|isolation|layer|pending/);
-    await expect(canvas).toHaveAttribute("data-draw-calls", "5");
-    const webglInside = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
-    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
-    expect(webglInside).not.toEqual(background);
-    expect(webglOutside).toEqual(background);
-
-    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
-    await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
-    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
-    await expect(canvas).not.toHaveAttribute("data-diagnostics", /mask|isolation|layer|pending/);
-    await expect(canvas).toHaveAttribute("data-draw-calls", "6");
-    const webgpuInside = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
-    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
-    for (let channel = 0; channel < 4; channel += 1) {
-      expect(Math.abs(webgpuInside[channel]! - webglInside[channel]!)).toBeLessThanOrEqual(2);
-      expect(Math.abs(webgpuOutside[channel]! - webglOutside[channel]!)).toBeLessThanOrEqual(2);
-    }
-  });
 
   test("clips a group through a mask-only ellipse in both native backends", async ({ page }) => {
-    const caseId = "composite.mask.clip";
+    const caseId = "clip.svg.user-space";
     const canvas = page.getByTestId("preview-v2-canvas");
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
     await expect(canvas).toHaveAttribute("data-backend", "webgl2");
@@ -847,9 +822,9 @@ test.describe("Protocol V2 atom preview", () => {
       (total, channel, index) => total + Math.abs(channel - background[index]!),
       0,
     );
-    await page.goto("/docs/preview?case=composite.mask.clip&backend=webgl2");
+    await page.goto("/docs/preview?case=clip.svg.user-space&backend=webgl2");
     const clipCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
-    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgl2");
+    await page.goto("/docs/preview?case=mask.svg.alpha&backend=webgl2");
     await expect(canvas).toHaveAttribute("data-backend", "webgl2");
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /alpha|mask|pending/);
     const alphaCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
@@ -859,7 +834,7 @@ test.describe("Protocol V2 atom preview", () => {
     expect(distanceFromBackground(alphaCenter)).toBeLessThan(distanceFromBackground(clipCenter));
 
     test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
-    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgpu");
+    await page.goto("/docs/preview?case=mask.svg.alpha&backend=webgpu");
     await expect(canvas).toHaveAttribute("data-backend", "webgpu");
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /alpha|mask|pending/);
     const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
@@ -870,30 +845,6 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
-  test("inverts an alpha-mask source in both native backends", async ({ page }) => {
-    const canvas = page.getByTestId("preview-v2-canvas");
-    const background = [16, 24, 32, 255];
-    await page.goto("/docs/preview?case=composite.mask.inverse-alpha&backend=webgl2");
-    await expect(canvas).toHaveAttribute("data-backend", "webgl2");
-    await expect(canvas).not.toHaveAttribute("data-diagnostics", /inverse|mask|pending/);
-    await expect(canvas).toHaveAttribute("data-draw-calls", "3");
-    const webglCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
-    const webglOutside = await readWebGLPixel(page, "preview-v2-canvas", 500, 220);
-    expect(webglCenter).toEqual(background);
-    expect(webglOutside).not.toEqual(background);
-
-    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
-    await page.goto("/docs/preview?case=composite.mask.inverse-alpha&backend=webgpu");
-    await expect(canvas).toHaveAttribute("data-backend", "webgpu");
-    await expect(canvas).not.toHaveAttribute("data-diagnostics", /inverse|mask|pending/);
-    await expect(canvas).toHaveAttribute("data-draw-calls", "4");
-    const webgpuCenter = await readPresentedPixel(page, "preview-v2-canvas", 960, 540);
-    const webgpuOutside = await readPresentedPixel(page, "preview-v2-canvas", 500, 220);
-    for (let channel = 0; channel < 4; channel += 1) {
-      expect(Math.abs(webgpuCenter[channel]! - webglCenter[channel]!)).toBeLessThanOrEqual(2);
-      expect(Math.abs(webgpuOutside[channel]! - webglOutside[channel]!)).toBeLessThanOrEqual(2);
-    }
-  });
 
   test("uses source luminance as mask coverage in both native backends", async ({ page }) => {
     const canvas = page.getByTestId("preview-v2-canvas");
@@ -902,10 +853,10 @@ test.describe("Protocol V2 atom preview", () => {
       (total, channel, index) => total + Math.abs(channel - background[index]!),
       0,
     );
-    await page.goto("/docs/preview?case=composite.mask.alpha&backend=webgl2");
+    await page.goto("/docs/preview?case=mask.svg.alpha&backend=webgl2");
     await expect(canvas).toHaveAttribute("data-backend", "webgl2");
     const alphaCenter = await readWebGLPixel(page, "preview-v2-canvas", 960, 540);
-    await page.goto("/docs/preview?case=composite.mask.luma&backend=webgl2");
+    await page.goto("/docs/preview?case=mask.svg.luminance&backend=webgl2");
     await expect(canvas).toHaveAttribute("data-backend", "webgl2");
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /luma|mask|pending/);
     await expect(canvas).toHaveAttribute("data-draw-calls", "3");
@@ -916,7 +867,7 @@ test.describe("Protocol V2 atom preview", () => {
     expect(distanceFromBackground(lumaCenter)).toBeLessThan(distanceFromBackground(alphaCenter));
 
     test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
-    await page.goto("/docs/preview?case=composite.mask.luma&backend=webgpu");
+    await page.goto("/docs/preview?case=mask.svg.luminance&backend=webgpu");
     await expect(canvas).toHaveAttribute("data-backend", "webgpu");
     await expect(canvas).not.toHaveAttribute("data-diagnostics", /luma|mask|pending/);
     await expect(canvas).toHaveAttribute("data-draw-calls", "4");

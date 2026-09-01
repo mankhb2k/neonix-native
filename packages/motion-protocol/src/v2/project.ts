@@ -5,6 +5,8 @@ import { V2AssetListSchema } from "./assets";
 import { V2AudioDomainSchema } from "./audio";
 import { V2LayerListSchema } from "./layers";
 import { V2MarkerListSchema } from "./markers";
+import { V2ClipPathListSchema } from "./clip";
+import { V2MaskListSchema } from "./mask";
 import type { MotionProtocolV2 } from "./types";
 
 const COMMON_NUMBER_PATHS = new Set([
@@ -30,6 +32,7 @@ const COMMON_NUMBER_PATHS = new Set([
 const COMMON_ENUM_PATHS = new Set([
   "composite.blendMode",
   "composite.isolation",
+  "visibility",
 ]);
 
 const COMMON_BOOLEAN_PATHS = new Set(["enabled"]);
@@ -120,12 +123,16 @@ export const MotionProtocolV2Schema = z
     composition: V2CompositionSchema,
     assets: V2AssetListSchema,
     markers: V2MarkerListSchema.optional(),
+    clipPaths: V2ClipPathListSchema.optional(),
+    masks: V2MaskListSchema.optional(),
     layers: V2LayerListSchema,
     audio: V2AudioDomainSchema,
   })
   .strict()
   .superRefine((project, ctx) => {
     const markerIds = new Set((project.markers ?? []).map((marker) => marker.id));
+    const clipPathIds = new Set((project.clipPaths ?? []).map((clipPath) => clipPath.id));
+    const maskIds = new Set((project.masks ?? []).map((mask) => mask.id));
     const ids = new Set<string>();
     const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
@@ -197,6 +204,12 @@ export const MotionProtocolV2Schema = z
           }
         }
       }
+      if (layer.clipPath !== undefined && !clipPathIds.has(layer.clipPath)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown clipPath reference: ${layer.clipPath}`, path: ["layers", index, "clipPath"] });
+      }
+      if (layer.mask !== undefined && !maskIds.has(layer.mask)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown mask reference: ${layer.mask}`, path: ["layers", index, "mask"] });
+      }
       if (layer.parentLayerId !== null) {
         const parent = layerById.get(layer.parentLayerId);
         if (!parent) {
@@ -246,42 +259,6 @@ export const MotionProtocolV2Schema = z
             message: `Track keyframe time cannot exceed layer duration: ${track.path}`,
             path: ["layers", index, "tracks", trackIndex, "keyframes"],
           });
-        }
-      }
-      const masks = layer.composite?.masks;
-      if (masks) {
-        if (layer.type !== "group") {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Mask stack is currently supported only on group layers",
-            path: ["layers", index, "composite", "masks"],
-          });
-        }
-        for (const [maskIndex, maskLayer] of masks.entries()) {
-          if (maskLayer.sourceLayerId === layer.id) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Mask source cannot be the masked group itself",
-              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
-            });
-          }
-          const source = layerById.get(maskLayer.sourceLayerId);
-          const requiresShapeSource = maskLayer.mode === "clip";
-          if (!source || source.parentLayerId !== layer.id || source.type === "group" || (requiresShapeSource && source.type !== "shape")) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: requiresShapeSource
-                ? "Clip mask source must be a direct child shape of the masked group"
-                : "Alpha mask source must be a direct drawable child of the masked group",
-              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
-            });
-          } else if (source.effects?.length || (source.composite?.blendMode ?? "normal") !== "normal") {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Mask source cannot have effects or a non-normal blend mode",
-              path: ["layers", index, "composite", "masks", maskIndex, "sourceLayerId"],
-            });
-          }
         }
       }
       if (layer.type === "text") {

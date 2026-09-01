@@ -2,6 +2,7 @@ import type { Matrix4 } from "../geometry/matrix4";
 import type { PaintCommandBuffer } from "../paint/paint-buffer";
 import type {
   PaintFill,
+  PaintMaskMode,
   PaintOrder,
   PaintTextGlyph,
   PaintTextLine,
@@ -57,9 +58,16 @@ export type VisualRuntimeBlendMode =
 
 /** Runtime-normalized group mask relation. */
 export type VisualRuntimeMask = {
-  mode: "clip" | "alpha" | "inverse-alpha" | "luma";
+  mode: PaintMaskMode;
   sourceId: string;
-  composite?: "add" | "subtract" | "intersect" | "exclude";
+  /** Multiple SVG definition children can contribute to one mask surface. */
+  sourceIds?: string[];
+};
+
+/** Runtime-normalized SVG clipPath coverage relation. */
+export type VisualRuntimeClipPath = {
+  sourceId: string;
+  sourceIds?: string[];
 };
 
 export type VisualRuntimeShape = {
@@ -198,6 +206,7 @@ export type VisualRuntimeNode = {
   isolation?: "auto" | "isolate";
   /** Compiler-preserved CSS backface-visibility state. */
   backfaceVisibility?: "visible" | "hidden";
+  clipPath?: VisualRuntimeClipPath;
   mask?: VisualRuntimeMask;
   visible: boolean;
   localMatrix: Matrix4;
