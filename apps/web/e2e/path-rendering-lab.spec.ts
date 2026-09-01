@@ -3,9 +3,10 @@ import { expect, test } from "@playwright/test";
 async function selectCase(page: import("@playwright/test").Page, id: string): Promise<unknown[]> {
   await page.locator("select").selectOption(id);
   await expect(page.getByTestId("path-debug-webgl2")).toHaveAttribute("data-backend", "webgl2", { timeout: 30_000 });
+  await expect(page.getByTestId("path-debug-webgpu")).toHaveAttribute("data-backend", "webgpu", { timeout: 30_000 });
   await expect.poll(async () => {
     const text = await page.getByTestId("path-rendering-measurements").textContent();
-    return text?.includes("webgl2") ?? false;
+    return (text?.includes("webgl2") ?? false) && (text?.includes("webgpu") ?? false);
   }).toBe(true);
   return JSON.parse(await page.getByTestId("path-rendering-measurements").textContent() ?? "[]") as unknown[];
 }
@@ -15,7 +16,7 @@ test.describe("Path rendering parity lab", () => {
     await page.goto("/debug/path-rendering");
     await expect(page.getByTestId("path-rendering-lab")).toBeVisible();
     await expect(page.getByLabel("SVG reference")).toBeVisible();
-    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash", "quadratic-round", "arc-round", "arc-closed"]) {
+    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash", "quadratic-round", "arc-round", "arc-closed", "filter-fe-gaussian-blur", "filter-fe-gaussian-blur-4", "filter-fe-gaussian-blur-40", "filter-fe-gaussian-blur-256", "filter-fe-drop-shadow", "filter-fe-outer-glow", "filter-fe-inner-glow", "filter-fe-color-matrix-saturate", "filter-fe-color-matrix-hue"]) {
       const measurements = await selectCase(page, id) as Array<{ backend: string; backgroundHoles: number; probes: Array<{ actual: string; expected: string }> }>;
       const webgl = measurements.find((entry) => entry.backend === "webgl2");
       expect(webgl).toBeDefined();

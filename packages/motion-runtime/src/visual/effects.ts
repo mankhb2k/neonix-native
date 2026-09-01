@@ -105,6 +105,7 @@ export function buildRuntimeEffectProgram(
           contrast: effect.contrast,
           saturation: effect.saturation,
           hueRotate: effect.hueRotate,
+          colorInterpolationFilters: effect.colorInterpolationFilters,
         };
     input = output;
     ops.push(op);

@@ -26,6 +26,8 @@ import {
 import {
   parseMotionProtocol,
   type MotionProtocolV2,
+  type V2Filter,
+  type V2FilterPrimitive,
   type V2Mask,
   type V2SvgDefinitionNode,
 } from "@motionvideo/motion-protocol";
@@ -349,6 +351,123 @@ function lowerEffects(
     }
     return { ...effect } as RuntimeEffect;
   });
+}
+
+function filterResultName(primitive: V2FilterPrimitive, index: number): string {
+  return primitive.result ?? `result${index + 1}`;
+}
+
+function filterInputName(
+  primitive: V2FilterPrimitive,
+  index: number,
+  primitives: readonly V2FilterPrimitive[],
+): string {
+  return primitive.in ?? (index === 0 ? "SourceGraphic" : filterResultName(primitives[index - 1]!, index - 1));
+}
+
+function isotropicFilterRadius(filter: V2Filter, primitive: V2FilterPrimitive): number {
+  if (primitive.type !== "feGaussianBlur" && primitive.type !== "feDropShadow") return 0;
+  const deviation = primitive.stdDeviation;
+  if (deviation.x !== deviation.y) {
+    throw new Error(`SVG filter ${filter.id} requires isotropic stdDeviation for runtime parity: ${primitive.id}`);
+  }
+  return deviation.x;
+}
+
+type SvgGaussianBlur = Extract<V2FilterPrimitive, { type: "feGaussianBlur" }>;
+type SvgFlood = Extract<V2FilterPrimitive, { type: "feFlood" }>;
+type SvgComposite = Extract<V2FilterPrimitive, { type: "feComposite" }>;
+type SvgMerge = Extract<V2FilterPrimitive, { type: "feMerge" }>;
+
+/** Lower the SVG filter graph to the backend-neutral effect program. */
+function lowerSvgFilter(filter: V2Filter): RuntimeEffect[] {
+  const primitives = filter.primitives;
+  const effects: RuntimeEffect[] = [];
+  const resultOf = (primitive: V2FilterPrimitive, index: number) => filterResultName(primitive, index);
+
+  const outerGlow = primitives.length === 4
+    && primitives[0]?.type === "feGaussianBlur"
+    && primitives[1]?.type === "feFlood"
+    && primitives[2]?.type === "feComposite"
+    && primitives[3]?.type === "feMerge";
+  if (outerGlow) {
+    const blur = primitives[0] as SvgGaussianBlur;
+    const flood = primitives[1] as SvgFlood;
+    const composite = primitives[2] as SvgComposite;
+    const merge = primitives[3] as SvgMerge;
+    if (
+      filterInputName(blur, 0, primitives) !== "SourceAlpha" ||
+      composite.in !== resultOf(flood, 1) ||
+      composite.in2 !== resultOf(blur, 0) ||
+      composite.operator !== "in" ||
+      merge.nodes.length !== 2 ||
+      merge.nodes[0]!.in !== resultOf(composite, 2) ||
+      merge.nodes[1]!.in !== "SourceGraphic"
+    ) throw new Error(`Unsupported SVG outer glow graph: ${filter.id}`);
+    effects.push({ id: filter.id, type: "outer-glow", radius: isotropicFilterRadius(filter, blur), color: flood.color, opacity: flood.opacity ?? 1 });
+    return effects;
+  }
+
+  const innerGlow = primitives.length === 5
+    && primitives[0]?.type === "feGaussianBlur"
+    && primitives[1]?.type === "feComposite"
+    && primitives[2]?.type === "feFlood"
+    && primitives[3]?.type === "feComposite"
+    && primitives[4]?.type === "feMerge";
+  if (innerGlow) {
+    const blur = primitives[0] as SvgGaussianBlur;
+    const edge = primitives[1] as SvgComposite;
+    const flood = primitives[2] as SvgFlood;
+    const tint = primitives[3] as SvgComposite;
+    const merge = primitives[4] as SvgMerge;
+    if (
+      filterInputName(blur, 0, primitives) !== "SourceAlpha" ||
+      edge.in !== "SourceAlpha" ||
+      edge.in2 !== resultOf(blur, 0) ||
+      edge.operator !== "out" ||
+      tint.in !== resultOf(flood, 2) ||
+      tint.in2 !== resultOf(edge, 1) ||
+      tint.operator !== "in" ||
+      merge.nodes.length !== 2 ||
+      merge.nodes[0]!.in !== resultOf(tint, 3) ||
+      merge.nodes[1]!.in !== "SourceGraphic"
+    ) throw new Error(`Unsupported SVG inner glow graph: ${filter.id}`);
+    effects.push({ id: filter.id, type: "inner-glow", radius: isotropicFilterRadius(filter, blur), color: flood.color, opacity: flood.opacity ?? 1 });
+    return effects;
+  }
+
+  let previousResult = "SourceGraphic";
+  for (const [index, primitive] of primitives.entries()) {
+    const input = filterInputName(primitive, index, primitives);
+    if (input !== previousResult) {
+      throw new Error(`SVG filter ${filter.id} is not a linear runtime graph at primitive ${primitive.id}`);
+    }
+    const id = `${filter.id}:${primitive.id}`;
+    if (primitive.type === "feGaussianBlur") {
+      effects.push({ id, type: "blur", radius: isotropicFilterRadius(filter, primitive) });
+    } else if (primitive.type === "feDropShadow") {
+      effects.push({ id, type: "shadow", source: input === "SourceAlpha" ? "alpha" : "box", offset: { x: primitive.dx, y: primitive.dy }, blur: isotropicFilterRadius(filter, primitive), spread: 0, color: primitive.floodColor, inset: false });
+    } else if (primitive.type === "feColorMatrix" && primitive.kind === "saturate") {
+      effects.push({ id, type: "color-adjust", brightness: 0, contrast: 1, saturation: primitive.values?.[0] ?? 1, hueRotate: 0, colorInterpolationFilters: primitive.colorInterpolationFilters ?? filter.colorInterpolationFilters });
+    } else if (primitive.type === "feColorMatrix" && primitive.kind === "hueRotate") {
+      effects.push({ id, type: "color-adjust", brightness: 0, contrast: 1, saturation: 1, hueRotate: primitive.values?.[0] ?? 0, colorInterpolationFilters: primitive.colorInterpolationFilters ?? filter.colorInterpolationFilters });
+    } else {
+      throw new Error(`SVG filter primitive ${primitive.type} is not executable by the current GPU runtime: ${primitive.id}`);
+    }
+    previousResult = filterResultName(primitive, index);
+  }
+  return effects;
+}
+
+function lowerLayerEffects(layer: ProtocolLayer, project: MotionProtocolV2): RuntimeEffect[] | undefined {
+  const semantic = layer.filter === undefined
+    ? undefined
+    : lowerSvgFilter(project.filters?.find((filter) => filter.id === layer.filter)
+      ?? (() => { throw new Error(`Unknown SVG filter reference: ${layer.filter}`); })());
+  const effects = "effects" in layer ? lowerEffects(layer.effects) : undefined;
+  if (!semantic) return effects;
+  if (!effects) return semantic;
+  return [...semantic, ...effects];
 }
 
 function lowerBlendMode(layer: ProtocolLayer): VisualRuntimeNode["blendMode"] {
@@ -681,6 +800,7 @@ function compileVisualRuntimeInternal(
       ...(layer.enabled !== undefined ? ["layer.enabled"] : []),
       ...(layer.visibility !== undefined ? ["layer.visibility"] : []),
       ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
+      ...(layer.filter !== undefined ? ["filter.svg.graph"] : []),
     ]) {
       if (!isV2AtomCertified(capability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -698,7 +818,7 @@ function compileVisualRuntimeInternal(
     }
     const blendMode = lowerBlendMode(layer);
     const isolation = layer.composite?.isolation;
-    const groupEffects = layer.type === "group" ? lowerEffects(layer.effects) : undefined;
+    const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
     if (layer.type === "group") {
       for (const capability of [
         "group.transform",
@@ -760,7 +880,7 @@ function compileVisualRuntimeInternal(
       if (asset && asset.kind !== "image") {
         throw new Error(`Protocol V2 image layer ${layer.id} references a non-image asset`);
       }
-      const effects = lowerEffects(layer.effects);
+      const effects = lowerLayerEffects(layer, project);
       const imageAsset = asset?.kind === "image" ? asset : undefined;
       const intrinsicWidth = imageAsset?.width ?? layer.frame.width;
       const intrinsicHeight = imageAsset?.height ?? layer.frame.height;
@@ -820,7 +940,7 @@ function compileVisualRuntimeInternal(
       const sourceFps = asset?.kind === "video" && asset.fps !== undefined
         ? asset.fps
         : project.composition.fps;
-      const effects = lowerEffects(layer.effects);
+      const effects = lowerLayerEffects(layer, project);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -881,7 +1001,7 @@ function compileVisualRuntimeInternal(
       if (asset?.kind !== "font") {
         throw new Error(`Protocol V2 text layer ${layer.id} references a non-font asset`);
       }
-      const effects = lowerEffects(layer.effects);
+      const effects = lowerLayerEffects(layer, project);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -1001,7 +1121,7 @@ function compileVisualRuntimeInternal(
       if (pathStrokePaintCapability && !isV2AtomCertified(pathStrokePaintCapability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${pathStrokePaintCapability}`);
       }
-      const effects = lowerEffects(layer.effects);
+      const effects = lowerLayerEffects(layer, project);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -1140,7 +1260,7 @@ function compileVisualRuntimeInternal(
       }
     }
 
-    const effects = lowerEffects(layer.effects);
+    const effects = lowerLayerEffects(layer, project);
     const paintOrder = lowerPaintOrder(layer.style.paintOrder);
     const shapeContour = primitivePathContour(layer.payload, layer.frame.width, layer.frame.height);
     const markers = lowerMarkers(project.markers, layer.style, [shapeContour], layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH);

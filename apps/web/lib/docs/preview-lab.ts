@@ -216,7 +216,7 @@ const PREVIEW_SVG_IMAGE_ASSET = {
 const PREVIEW_SNOW_ASSET = {
   id: "preview-snow-v2",
   kind: "image" as const,
-  uri: "/docs/tuyet-roi.jpg",
+  uri: "/preview/image/tuyet-roi.jpg",
   mimeType: "image/jpeg",
   width: 430,
   height: 296,
@@ -401,7 +401,7 @@ const IMAGE_STACK_BLEND_SCREEN_PROJECT = imageStackBlendProject("screen");
 const PREVIEW_VIDEO_ASSET = {
   id: "preview-video-v2",
   kind: "video" as const,
-  uri: "/docs/example-video.mp4",
+  uri: "/preview/video/demo-video.mp4",
   mimeType: "video/mp4",
   width: 1920,
   height: 1080,
@@ -2125,7 +2125,7 @@ type TextLayer = Extract<V2Layer, { type: "text" }>;
 const PREVIEW_ROBOTO_REGULAR_FONT = {
   id: "preview-roboto-regular-v2",
   kind: "font" as const,
-  uri: "/fonts/Roboto-Regular.ttf",
+  uri: "/preview/font/Roboto-Regular.ttf",
   mimeType: "font/ttf" as const,
   family: "Roboto",
   weight: 400,

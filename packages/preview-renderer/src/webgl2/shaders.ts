@@ -33,6 +33,7 @@ uniform vec4 u_pattern_meta;
 uniform vec4 u_pattern_transform[2];
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
+uniform vec4 u_color_adjust_space;
 uniform int u_mode;
 uniform int u_shape;
 in vec2 v_uv;
@@ -40,6 +41,16 @@ out vec4 outColor;
 float roundedBoxDistance(vec2 point, vec2 halfSize, float radius) {
   vec2 q = abs(point) - (halfSize - vec2(radius));
   return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
+vec3 srgbToLinear(vec3 color) {
+  vec3 low = color / 12.92;
+  vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+  return mix(low, high, step(vec3(0.04045), color));
+}
+vec3 linearToSrgb(vec3 color) {
+  vec3 low = color * 12.92;
+  vec3 high = 1.055 * pow(max(color, vec3(0.0)), vec3(1.0 / 2.4)) - vec3(0.055);
+  return mix(low, high, step(vec3(0.0031308), max(color, vec3(0.0))));
 }
 vec3 applyHueRotate(vec3 color, float angle) {
   float c = cos(angle);
@@ -50,12 +61,15 @@ vec3 applyHueRotate(vec3 color, float angle) {
     color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072)
   );
 }
-vec4 applyColorAdjust(vec4 source, vec4 effect) {
-  vec3 color = clamp(source.rgb + vec3(effect.x), 0.0, 1.0);
+vec4 applyColorAdjust(vec4 source, vec4 effect, float colorSpace) {
+  vec3 color = colorSpace > 0.5 ? srgbToLinear(source.rgb) : source.rgb;
+  color = clamp(color + vec3(effect.x), 0.0, 1.0);
   color = clamp((color - vec3(0.5)) * effect.y + vec3(0.5), 0.0, 1.0);
   float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
   color = mix(vec3(luma), color, effect.z);
-  return vec4(clamp(applyHueRotate(color, effect.w), 0.0, 1.0), source.a);
+  if (colorSpace > 0.5) color = linearToSrgb(applyHueRotate(color, effect.w));
+  else color = applyHueRotate(color, effect.w);
+  return vec4(clamp(color, 0.0, 1.0), source.a);
 }
 float gradientOffset(int index) {
   return index < 4 ? u_gradient_offsets[0][index] : u_gradient_offsets[1][index - 4];
@@ -210,10 +224,10 @@ void main() {
     }
     source = mix(source, u_stroke_color, clamp(strokeMix, 0.0, 1.0));
   }
-  if (u_color_adjust_meta.x > 0.5) source = applyColorAdjust(source, u_color_adjust[0]);
-  if (u_color_adjust_meta.x > 1.5) source = applyColorAdjust(source, u_color_adjust[1]);
-  if (u_color_adjust_meta.x > 2.5) source = applyColorAdjust(source, u_color_adjust[2]);
-  if (u_color_adjust_meta.x > 3.5) source = applyColorAdjust(source, u_color_adjust[3]);
+  if (u_color_adjust_meta.x > 0.5) source = applyColorAdjust(source, u_color_adjust[0], u_color_adjust_space.x);
+  if (u_color_adjust_meta.x > 1.5) source = applyColorAdjust(source, u_color_adjust[1], u_color_adjust_space.y);
+  if (u_color_adjust_meta.x > 2.5) source = applyColorAdjust(source, u_color_adjust[2], u_color_adjust_space.z);
+  if (u_color_adjust_meta.x > 3.5) source = applyColorAdjust(source, u_color_adjust[3], u_color_adjust_space.w);
   outColor = vec4(source.rgb, source.a * shapeAlpha * (u_mode == 1 ? u_color.a : 1.0));
 }`;
 
@@ -236,6 +250,7 @@ uniform vec4 u_noise_params;
 uniform float u_composite_alpha;
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
+uniform vec4 u_color_adjust_space;
 in vec2 v_uv;
 out vec4 outColor;
 vec3 srgbToLinear(vec3 color) {
@@ -269,13 +284,16 @@ vec3 applyPostHueRotate(vec3 color, float angle) {
     color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072)
   );
 }
-vec4 applyPostColorAdjust(vec4 source, vec4 effect) {
+vec4 applyPostColorAdjust(vec4 source, vec4 effect, float colorSpace) {
   if (source.a <= 0.000001) return vec4(0.0);
   vec3 color = clamp(source.rgb / source.a + vec3(effect.x), 0.0, 1.0);
+  if (colorSpace <= 0.5) color = linearToSrgb(color);
   color = clamp((color - vec3(0.5)) * effect.y + vec3(0.5), 0.0, 1.0);
   float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
   color = mix(vec3(luma), color, effect.z);
-  return vec4(applyPostHueRotate(color, effect.w) * source.a, source.a);
+  color = applyPostHueRotate(color, effect.w);
+  if (colorSpace <= 0.5) color = srgbToLinear(color);
+  return vec4(clamp(color, 0.0, 1.0) * source.a, source.a);
 }
 float noiseHash(vec2 point) {
   vec3 value = fract(vec3(point.x, point.y, point.x + point.y) * 0.1031);
@@ -315,10 +333,10 @@ void main() {
     }
     color /= totalWeight;
   }
-  if (u_color_adjust_meta.x > 0.5) color = applyPostColorAdjust(color, u_color_adjust[0]);
-  if (u_color_adjust_meta.x > 1.5) color = applyPostColorAdjust(color, u_color_adjust[1]);
-  if (u_color_adjust_meta.x > 2.5) color = applyPostColorAdjust(color, u_color_adjust[2]);
-  if (u_color_adjust_meta.x > 3.5) color = applyPostColorAdjust(color, u_color_adjust[3]);
+  if (u_color_adjust_meta.x > 0.5) color = applyPostColorAdjust(color, u_color_adjust[0], u_color_adjust_space.x);
+  if (u_color_adjust_meta.x > 1.5) color = applyPostColorAdjust(color, u_color_adjust[1], u_color_adjust_space.y);
+  if (u_color_adjust_meta.x > 2.5) color = applyPostColorAdjust(color, u_color_adjust[2], u_color_adjust_space.z);
+  if (u_color_adjust_meta.x > 3.5) color = applyPostColorAdjust(color, u_color_adjust[3], u_color_adjust_space.w);
   color = applyPostNoise(color);
   outColor = u_post_params.w > 0.5 ? encodePremultiplied(color * u_composite_alpha) : color;
 }`;

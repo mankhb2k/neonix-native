@@ -15,7 +15,7 @@ const MUSIC_ASSET: V2AudioAsset = {
 const VIDEO_AUDIO_ASSET: V2VideoAsset = {
   id: "example-video-audio-source",
   kind: "video",
-  uri: "/docs/example-video.mp4",
+  uri: "/preview/video/demo-video.mp4",
   mimeType: "video/mp4",
   width: 1920,
   height: 1080,

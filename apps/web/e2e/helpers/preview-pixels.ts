@@ -25,18 +25,14 @@ export async function readWebGLPixel(
       }
       const gl = node.getContext("webgl2");
       if (!gl) throw new Error("WebGL2 context is not available");
-      if (
-        point.x < 0 ||
-        point.y < 0 ||
-        point.x >= node.width ||
-        point.y >= node.height
-      ) {
-        throw new Error(`Pixel ${point.x},${point.y} is outside the canvas`);
-      }
+      const logicalWidth = Number(node.dataset.logicalWidth) || node.width;
+      const logicalHeight = Number(node.dataset.logicalHeight) || node.height;
+      const nativeX = Math.max(0, Math.min(node.width - 1, Math.round(point.x * node.width / logicalWidth)));
+      const nativeY = Math.max(0, Math.min(node.height - 1, Math.round(point.y * node.height / logicalHeight)));
       const pixel = new Uint8Array(4);
       gl.readPixels(
-        point.x,
-        node.height - point.y - 1,
+        nativeX,
+        node.height - nativeY - 1,
         1,
         1,
         gl.RGBA,
@@ -60,14 +56,10 @@ export async function readPresentedPixel(
       if (!(node instanceof HTMLCanvasElement)) {
         throw new Error(`Expected ${point.testId} to be a canvas`);
       }
-      if (
-        point.x < 0 ||
-        point.y < 0 ||
-        point.x >= node.width ||
-        point.y >= node.height
-      ) {
-        throw new Error(`Pixel ${point.x},${point.y} is outside the canvas`);
-      }
+      const logicalWidth = Number(node.dataset.logicalWidth) || node.width;
+      const logicalHeight = Number(node.dataset.logicalHeight) || node.height;
+      const nativeX = Math.max(0, Math.min(node.width - 1, Math.round(point.x * node.width / logicalWidth)));
+      const nativeY = Math.max(0, Math.min(node.height - 1, Math.round(point.y * node.height / logicalHeight)));
       const image = new Image();
       image.src = node.toDataURL("image/png");
       await image.decode();
@@ -77,7 +69,7 @@ export async function readPresentedPixel(
       const context = capture.getContext("2d", { willReadFrequently: true });
       if (!context) throw new Error("2D readback context is not available");
       context.drawImage(image, 0, 0);
-      const pixel = context.getImageData(point.x, point.y, 1, 1).data;
+      const pixel = context.getImageData(nativeX, nativeY, 1, 1).data;
       return [pixel[0]!, pixel[1]!, pixel[2]!, pixel[3]!] as RgbaPixel;
     },
     { testId, x, y },

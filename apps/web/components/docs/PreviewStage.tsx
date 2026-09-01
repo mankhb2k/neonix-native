@@ -283,6 +283,7 @@ export function PreviewStage({
     let cancelled = false;
     const resourceGeneration = ++resourceGenerationRef.current;
     const devicePixelRatio = window.devicePixelRatio || 1;
+    const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio);
 
     void (async () => {
       const resources = await loadPreviewResources(parsedProject, resourceRegistry, resourceGeneration);
@@ -320,7 +321,7 @@ export function PreviewStage({
           backend,
           width: parsedProject.composition.width,
           height: parsedProject.composition.height,
-          devicePixelRatio,
+          devicePixelRatio: initialRenderDpr,
           preserveDrawingBuffer,
           assets: resources.assets,
         });
@@ -330,6 +331,7 @@ export function PreviewStage({
           return;
         }
         rendererRef.current = renderer;
+        canvas.dataset.rendererDpr = String(initialRenderDpr);
         canvas.dataset.backend = renderer.backend;
         canvas.dataset.previewState = "ready";
         onBackendReadyRef.current?.(renderer.backend);
@@ -413,15 +415,17 @@ export function PreviewStage({
     const update = () => {
       const devicePixelRatio = window.devicePixelRatio || 1;
       const renderer = rendererRef.current;
+      const renderDpr = canvasRenderDpr(host, parsed.composition.width, parsed.composition.height, devicePixelRatio);
       if (
         renderer &&
-        Number(canvas.dataset.devicePixelRatio) !== devicePixelRatio
+        Math.abs(Number(canvas.dataset.rendererDpr) - renderDpr) > 0.0001
       ) {
         renderer.resize(
           parsed.composition.width,
           parsed.composition.height,
-          devicePixelRatio,
+          renderDpr,
         );
+        canvas.dataset.rendererDpr = String(renderDpr);
         const requestId = ++paintRequestRef.current;
         void paintFrame(
           renderer,
@@ -818,15 +822,29 @@ function applyCanvasLayout(
   height: number,
   devicePixelRatio: number,
 ): void {
-  const scale = Math.min(host.clientWidth / width, host.clientHeight / height);
+  const scale = canvasCssScale(host, width, height);
   const targetCanvas = canvas;
-  targetCanvas.style.width = `${width}px`;
-  targetCanvas.style.height = `${height}px`;
-  targetCanvas.style.transform = `translate(-50%, -50%) scale(${Math.max(0.08, scale)})`;
+  targetCanvas.style.width = `${width * scale}px`;
+  targetCanvas.style.height = `${height * scale}px`;
+  targetCanvas.style.transform = "translate(-50%, -50%)";
   targetCanvas.dataset.devicePixelRatio = String(devicePixelRatio);
   targetCanvas.dataset.logicalWidth = String(width);
   targetCanvas.dataset.logicalHeight = String(height);
   targetCanvas.dataset.backingWidth = String(targetCanvas.width);
   targetCanvas.dataset.backingHeight = String(targetCanvas.height);
-  targetCanvas.dataset.cssScale = String(Math.max(0.08, scale));
+  targetCanvas.dataset.cssScale = String(scale);
+  targetCanvas.dataset.renderDpr = String(scale * devicePixelRatio);
+}
+
+function canvasCssScale(host: HTMLDivElement, width: number, height: number): number {
+  return Math.max(0.08, Math.min(host.clientWidth / width, host.clientHeight / height));
+}
+
+function canvasRenderDpr(
+  host: HTMLDivElement,
+  width: number,
+  height: number,
+  devicePixelRatio: number,
+): number {
+  return canvasCssScale(host, width, height) * devicePixelRatio;
 }

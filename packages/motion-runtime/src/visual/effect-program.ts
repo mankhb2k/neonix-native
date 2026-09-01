@@ -12,6 +12,8 @@ export type RuntimeColorAdjustEffectOp = {
   contrast: number;
   saturation: number;
   hueRotate: number;
+  /** SVG color-interpolation-filters semantic for this color operation. */
+  colorInterpolationFilters?: "sRGB" | "linearRGB";
 };
 
 export type RuntimeBlurEffectOp = {

@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { buildRuntimeEffectProgram } from "@motionvideo/motion-runtime";
-import { buildEffectPassPlan } from "./effects";
+import { buildEffectPassPlan, colorAdjustUniforms } from "./effects";
 
 describe("EffectPassPlan", () => {
+  it("packs SVG color interpolation space without changing hue angle semantics", () => {
+    const uniforms = colorAdjustUniforms([
+      { id: "svg-linear", kind: "color-adjust", input: "source", output: "result", brightness: 0, contrast: 1, saturation: 1, hueRotate: 120, colorInterpolationFilters: "linearRGB" },
+      { id: "runtime-srgb", kind: "color-adjust", input: "result", output: "result2", brightness: 0, contrast: 1, saturation: 1, hueRotate: 90 },
+    ]);
+
+    expect(uniforms[0]).toBe(2);
+    expect(uniforms[7]).toBeCloseTo(120 * Math.PI / 180);
+    expect(uniforms[11]).toBeCloseTo(90 * Math.PI / 180);
+    expect(Array.from(uniforms.subarray(20, 24))).toEqual([1, 0, 0, 0]);
+  });
+
   it("preserves color-adjust -> blur -> color-adjust order", () => {
     const program = buildRuntimeEffectProgram([
       { id: "grade-before", type: "color-adjust", brightness: -0.1, contrast: 1.1, saturation: 0.8, hueRotate: 0 },

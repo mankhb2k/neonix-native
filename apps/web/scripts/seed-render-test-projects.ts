@@ -12,7 +12,7 @@ const TEST_PREFIX = "[Render test]";
 const FONT_ID = "font-roboto-regular";
 // Keep the built-in font same-origin so local preview and the deployed app
 // resolve the exact public asset without depending on a cross-origin app host.
-const FONT_URI = "/fonts/Roboto-Regular.ttf";
+const FONT_URI = "/preview/font/Roboto-Regular.ttf";
 const FONT_INTEGRITY = "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459";
 
 type DbAsset = {

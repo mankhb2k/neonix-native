@@ -63,6 +63,7 @@ export function createWebGPUBackend(
   context.configure({ device, format, alphaMode: "premultiplied" });
   const objects = createBackendObjects(device, format);
   const singleSampleObjects = createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1);
+  const effectMsaaObjects = createBackendObjects(device, EFFECT_TEXTURE_FORMAT, MSAA_SAMPLE_COUNT);
   const blendObjects = new Map<BlendMode, ReturnType<typeof createBackendObjects>>([
     ["normal", objects],
     ["multiply", createBackendObjects(device, format, MSAA_SAMPLE_COUNT, "multiply")],
@@ -72,6 +73,11 @@ export function createWebGPUBackend(
     ["normal", singleSampleObjects],
     ["multiply", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1, "multiply")],
     ["screen", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, 1, "screen")],
+  ]);
+  const effectMsaaBlendObjects = new Map<BlendMode, ReturnType<typeof createBackendObjects>>([
+    ["normal", effectMsaaObjects],
+    ["multiply", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, MSAA_SAMPLE_COUNT, "multiply")],
+    ["screen", createBackendObjects(device, EFFECT_TEXTURE_FORMAT, MSAA_SAMPLE_COUNT, "screen")],
   ]);
   const postObjects = createPostObjects(device, format);
   const postMsaaObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT);
@@ -119,6 +125,7 @@ export function createWebGPUBackend(
   let stageTextures: [WebGPUTextureLike, WebGPUTextureLike] | null = null;
   type EffectLevel = { width: number; height: number; a: WebGPUTextureLike; b: WebGPUTextureLike };
   let effectSourceTexture: WebGPUTextureLike | null = null;
+  let effectSourceMsaaTexture: WebGPUTextureLike | null = null;
   let effectLevels: EffectLevel[] = [];
   let createLayerTexture: ((targetWidth: number, targetHeight: number) => WebGPUTextureLike) | null = null;
   let stageWidth = 0;
@@ -208,11 +215,13 @@ export function createWebGPUBackend(
 
   const disposeEffectTargets = () => {
     effectSourceTexture?.destroy?.();
+    effectSourceMsaaTexture?.destroy?.();
     for (const level of effectLevels) {
       level.a.destroy?.();
       level.b.destroy?.();
     }
     effectSourceTexture = null;
+    effectSourceMsaaTexture = null;
     effectLevels = [];
     effectWidth = 0;
     effectHeight = 0;
@@ -250,6 +259,12 @@ export function createWebGPUBackend(
     });
     createLayerTexture = (layerWidth, layerHeight) => createEffectTexture(layerWidth, layerHeight);
     effectSourceTexture = createEffectTexture(nextWidth, nextHeight);
+    effectSourceMsaaTexture = device.createTexture({
+      size: { width: nextWidth, height: nextHeight },
+      format: EFFECT_TEXTURE_FORMAT,
+      usage: TEXTURE_RENDER_ATTACHMENT,
+      sampleCount: MSAA_SAMPLE_COUNT,
+    });
     let levelWidth = nextWidth;
     let levelHeight = nextHeight;
     for (let level = 0; level < 9; level += 1) {
@@ -290,14 +305,14 @@ export function createWebGPUBackend(
       shadow?: { color: readonly [number, number, number, number]; offsetX: number; offsetY: number; compositeAlpha?: number },
       noiseEffect?: { scale: number; amount: number; opacity: number; seed: number },
     ) => {
-      const uniform = device.createBuffer({ size: 144, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      const uniform = device.createBuffer({ size: 160, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
       transientBuffers.add(uniform);
-      const data = new Float32Array(36);
+      const data = new Float32Array(40);
       data.set(params, 0);
       data.set(colorAdjustUniforms(adjustments), 4);
-      data.set(shadow?.color ?? [0, 0, 0, 0], 24);
-      data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, shadow?.compositeAlpha ?? 1, 0], 28);
-      data.set([noiseEffect?.scale ?? 0, noiseEffect?.amount ?? 0, noiseEffect?.opacity ?? 0, noiseEffect?.seed ?? 0], 32);
+      data.set(shadow?.color ?? [0, 0, 0, 0], 28);
+      data.set([shadow?.offsetX ?? 0, shadow?.offsetY ?? 0, shadow?.compositeAlpha ?? 1, 0], 32);
+      data.set([noiseEffect?.scale ?? 0, noiseEffect?.amount ?? 0, noiseEffect?.opacity ?? 0, noiseEffect?.seed ?? 0], 36);
       device.queue.writeBuffer(uniform, 0, data);
       const bindGroup = device.createBindGroup({ layout: postPipeline.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: texture.createView() }, { binding: 2, resource: objects.sampler }] });
       nextPass.setPipeline(postPipeline.pipeline);
@@ -400,7 +415,9 @@ export function createWebGPUBackend(
       const mode = nextTransform.blendMode ?? "normal";
       const table = activeObjects === singleSampleObjects
         ? singleSampleBlendObjects
-        : blendObjects;
+        : activeObjects === effectMsaaObjects
+          ? effectMsaaBlendObjects
+          : blendObjects;
       return table.get(mode) ?? table.get("normal")!;
     };
     let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
@@ -707,9 +724,9 @@ export function createWebGPUBackend(
         ensureEffectTargets(physicalWidth, physicalHeight);
         closePass();
         pass = encoder.beginRenderPass({
-          colorAttachments: [{ view: effectSourceTexture!.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          colorAttachments: [{ view: effectSourceMsaaTexture!.createView(), resolveTarget: effectSourceTexture!.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "discard" }],
         });
-        activeObjects = singleSampleObjects;
+        activeObjects = effectMsaaObjects;
       } else if (command.op === "endLayer" && activeEffectScope) {
         const scope = activeEffectScope;
         if (!scope || scope.key !== command.key) {
@@ -1072,6 +1089,7 @@ export function createWebGPUBackend(
     dispose() {
       objects.vertexBuffer.destroy?.();
       singleSampleObjects.vertexBuffer.destroy?.();
+      effectMsaaObjects.vertexBuffer.destroy?.();
       whiteTexture.destroy?.();
       msaaTexture?.destroy?.();
       msaaTexture = null;

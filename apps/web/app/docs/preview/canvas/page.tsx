@@ -10,7 +10,7 @@ export default function PreviewCanvasReferencePage() {
         Browser-native SVG reference for comparing joins, dashes and rectangle strokes with the runtime canvas.
       </p>
       <Image
-        src="/verification/path-stroke-semantics.svg"
+        src="/preview/svg/path-stroke-semantics.svg"
         alt="SVG reference showing miter join, dashed closed path, and rectangle stroke"
         width={1920}
         height={1080}

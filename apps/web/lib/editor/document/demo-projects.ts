@@ -144,7 +144,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
       {
         id: "font-roboto-regular",
         kind: "font",
-        uri: "/fonts/Roboto-Regular.ttf",
+        uri: "/preview/font/Roboto-Regular.ttf",
         mimeType: "font/ttf",
         family: "Roboto",
         weight: 400,
@@ -154,7 +154,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
       {
         id: "three-kingdoms-atmosphere",
         kind: "image",
-        uri: "/docs/tuyet-roi.jpg",
+        uri: "/preview/image/tuyet-roi.jpg",
         mimeType: "image/jpeg",
         width: 1920,
         height: 1080,

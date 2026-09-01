@@ -46,6 +46,7 @@ export function createWebGL2Backend(
   }) as WebGL2RenderingContext | null;
   if (!context) throw new Error("preview-renderer: WebGL2 is not available");
   const gl = context;
+  const effectMsaaSampleCount = Math.max(1, Math.min(4, Number(gl.getParameter(gl.MAX_SAMPLES)) || 1));
   const canvas = options.canvas;
   const assets = new Map(options.assets ?? []);
   const textures = new Map<string, WebGLTexture>();
@@ -156,6 +157,7 @@ export function createWebGL2Backend(
   };
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
+  const colorAdjustSpaceLocation = gl.getUniformLocation(programHandle, "u_color_adjust_space");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
   const blurPostParamsLocation = gl.getUniformLocation(blurProgramHandle, "u_post_params");
   const blurShadowColorLocation = gl.getUniformLocation(blurProgramHandle, "u_shadow_color");
@@ -164,6 +166,7 @@ export function createWebGL2Backend(
   const blurCompositeAlphaLocation = gl.getUniformLocation(blurProgramHandle, "u_composite_alpha");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
+  const blurColorAdjustSpaceLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_space");
   const setPatternUniforms = (gradients: ReturnType<typeof gradientUniforms>) => {
     gl.uniform4fv(patternGeometryLocation, gradients.patternGeometry);
     gl.uniform4fv(patternColorsLocation, gradients.patternColors);
@@ -181,12 +184,14 @@ export function createWebGL2Backend(
   const setColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
     const uniforms = colorAdjustUniforms(adjustments);
     gl.uniform4fv(colorAdjustMetaLocation, uniforms.subarray(0, 4));
-    gl.uniform4fv(colorAdjustLocation, uniforms.subarray(4));
+    gl.uniform4fv(colorAdjustLocation, uniforms.subarray(4, 20));
+    gl.uniform4fv(colorAdjustSpaceLocation, uniforms.subarray(20, 24));
   };
   const setPostColorAdjust = (adjustments: EffectPassPlan["sourceColorAdjust"] | undefined) => {
     const uniforms = colorAdjustUniforms(adjustments);
     gl.uniform4fv(blurColorAdjustMetaLocation, uniforms.subarray(0, 4));
-    gl.uniform4fv(blurColorAdjustLocation, uniforms.subarray(4));
+    gl.uniform4fv(blurColorAdjustLocation, uniforms.subarray(4, 20));
+    gl.uniform4fv(blurColorAdjustSpaceLocation, uniforms.subarray(20, 24));
   };
   let width = (options.width ?? canvas.width) || 1;
   let height = (options.height ?? canvas.height) || 1;
@@ -194,8 +199,10 @@ export function createWebGL2Backend(
   let effectWidth = 0;
   let effectHeight = 0;
   type EffectTarget = { texture: WebGLTexture; framebuffer: WebGLFramebuffer };
+  type EffectMsaaTarget = { renderbuffer: WebGLRenderbuffer; framebuffer: WebGLFramebuffer };
   type EffectLevel = { width: number; height: number; a: EffectTarget; b: EffectTarget };
   let effectSourceTarget: EffectTarget | null = null;
+  let effectSourceMsaaTarget: EffectMsaaTarget | null = null;
   let effectLevels: EffectLevel[] = [];
   let createLayerTarget: ((targetWidth: number, targetHeight: number) => EffectTarget) | null = null;
   let lastStats: PreviewRenderStats = {
@@ -286,6 +293,10 @@ export function createWebGL2Backend(
       gl.deleteTexture(effectSourceTarget.texture);
       gl.deleteFramebuffer(effectSourceTarget.framebuffer);
     }
+    if (effectSourceMsaaTarget) {
+      gl.deleteRenderbuffer(effectSourceMsaaTarget.renderbuffer);
+      gl.deleteFramebuffer(effectSourceMsaaTarget.framebuffer);
+    }
     for (const level of effectLevels) {
       gl.deleteTexture(level.a.texture);
       gl.deleteTexture(level.b.texture);
@@ -293,6 +304,7 @@ export function createWebGL2Backend(
       gl.deleteFramebuffer(level.b.framebuffer);
     }
     effectSourceTarget = null;
+    effectSourceMsaaTarget = null;
     effectLevels = [];
     effectWidth = 0;
     effectHeight = 0;
@@ -334,8 +346,22 @@ export function createWebGL2Backend(
       }
       return { texture, framebuffer };
     };
+    const createMsaaTarget = (targetLevelWidth: number, targetLevelHeight: number): EffectMsaaTarget => {
+      const renderbuffer = gl.createRenderbuffer();
+      const framebuffer = gl.createFramebuffer();
+      if (!renderbuffer || !framebuffer) throw new Error("preview-renderer: unable to allocate WebGL MSAA effect target");
+      gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, effectMsaaSampleCount, gl.RGBA8, targetLevelWidth, targetLevelHeight);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, renderbuffer);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        throw new Error("preview-renderer: incomplete WebGL MSAA effect framebuffer");
+      }
+      return { renderbuffer, framebuffer };
+    };
     createLayerTarget = (targetWidth, targetHeight) => createTarget(targetWidth, targetHeight, false);
     effectSourceTarget = createTarget(targetWidth, targetHeight, false);
+    effectSourceMsaaTarget = createMsaaTarget(targetWidth, targetHeight);
     let levelWidth = targetWidth;
     let levelHeight = targetHeight;
     for (let level = 0; level < 9; level += 1) {
@@ -736,7 +762,7 @@ export function createWebGL2Backend(
         activeEffectScope = { key: command.key, layerId: command.layerId, plan, blend: currentBlend };
         if (!plan.requiresOffscreen || !plan.supported) continue;
         ensureEffectTargets(physicalWidth, physicalHeight);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, effectSourceTarget!.framebuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, effectSourceMsaaTarget!.framebuffer);
         gl.viewport(0, 0, physicalWidth, physicalHeight);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -755,6 +781,23 @@ export function createWebGL2Backend(
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           activeEffectScope = null;
           continue;
+        }
+        if (effectSourceMsaaTarget) {
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, effectSourceMsaaTarget.framebuffer);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, effectSourceTarget.framebuffer);
+          gl.blitFramebuffer(
+            0,
+            0,
+            physicalWidth,
+            physicalHeight,
+            0,
+            0,
+            physicalWidth,
+            physicalHeight,
+            gl.COLOR_BUFFER_BIT,
+            gl.NEAREST,
+          );
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         }
         gl.useProgram(blurProgramHandle);
         gl.bindVertexArray(blurVao);

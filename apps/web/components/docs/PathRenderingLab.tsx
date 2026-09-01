@@ -5,11 +5,25 @@ import { useEffect, useMemo, useState } from "react";
 import { PreviewStage } from "@/components/docs/PreviewStage";
 import { PATH_RENDERING_FIXTURES, pathRenderingFixtureById, type PathRenderingFixture } from "@/lib/docs/path-rendering-fixtures";
 
-type Measurement = { backend: string; bounds: string; paintedPixels: number; backgroundHoles: number; probes: Array<{ name: string; actual: string; expected: string }> };
+type Measurement = { backend: string; nativeWidth: number; nativeHeight: number; cssWidth: number; cssHeight: number; bounds: string; paintedPixels: number; backgroundHoles: number; probes: Array<{ name: string; actual: string; expected: string }> };
 
 function SvgReference({ fixture }: { fixture: PathRenderingFixture }) {
+  const filter = fixture.svgFilter;
+  const filterId = filter?.id;
+  const stdDeviation = filter?.stdDeviation ?? 12;
+  const filterRegion = filter?.kind === "blur" && stdDeviation >= 128
+    ? { x: "-100%", y: "-100%", width: "300%", height: "300%" }
+    : { x: "-20%", y: "-20%", width: "140%", height: "140%" };
   return <svg viewBox="0 0 960 540" className="h-full w-full bg-[#101820]" aria-label="SVG reference">
-    {fixture.svg.map((item) => <path key={item.d} d={item.d} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} />)}
+    {filter ? <defs><filter id={filterId} {...filterRegion}>
+      {filter.kind === "blur" && <feGaussianBlur in="SourceGraphic" stdDeviation={stdDeviation} />}
+      {filter.kind === "drop-shadow" && <feDropShadow in="SourceGraphic" dx="18" dy="20" stdDeviation="12" floodColor="#ff3366" floodOpacity="0.8" />}
+      {filter.kind === "saturate" && <feColorMatrix in="SourceGraphic" type="saturate" values="0.25" />}
+      {filter.kind === "hue-rotate" && <feColorMatrix in="SourceGraphic" type="hueRotate" values="120" />}
+      {filter.kind === "outer-glow" && <><feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blurred" /><feFlood floodColor="#00e5ff" floodOpacity="0.75" result="color" /><feComposite in="color" in2="blurred" operator="in" result="glow" /><feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge></>}
+      {filter.kind === "inner-glow" && <><feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blurred" /><feComposite in="SourceAlpha" in2="blurred" operator="out" result="edge" /><feFlood floodColor="#ff3366" floodOpacity="0.8" result="color" /><feComposite in="color" in2="edge" operator="in" result="glow" /><feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge></>}
+    </filter></defs> : null}
+    {fixture.svg.map((item) => <path key={item.d} d={item.d} filter={filterId ? `url(#${filterId})` : undefined} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} />)}
   </svg>;
 }
 
@@ -23,6 +37,9 @@ async function measureCanvas(canvas: HTMLCanvasElement, fixture: PathRenderingFi
   if (!context) throw new Error("2D measurement context is unavailable");
   context.drawImage(image, 0, 0);
   const data = context.getImageData(0, 0, copy.width, copy.height).data;
+  const logicalWidth = Number(canvas.dataset.logicalWidth) || copy.width;
+  const logicalHeight = Number(canvas.dataset.logicalHeight) || copy.height;
+  const rect = canvas.getBoundingClientRect();
   const isBackground = (x: number, y: number) => {
     const offset = (y * copy.width + x) * 4;
     return Math.abs(data[offset] - 16) < 5 && Math.abs(data[offset + 1] - 24) < 5 && Math.abs(data[offset + 2] - 32) < 5;
@@ -33,10 +50,12 @@ async function measureCanvas(canvas: HTMLCanvasElement, fixture: PathRenderingFi
     paintedPixels += 1; left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y);
   }
   const probes = fixture.probes.map((probe) => {
-    const background = isBackground(probe.x, probe.y);
+    const x = Math.max(0, Math.min(copy.width - 1, Math.round(probe.x * copy.width / logicalWidth)));
+    const y = Math.max(0, Math.min(copy.height - 1, Math.round(probe.y * copy.height / logicalHeight)));
+    const background = isBackground(x, y);
     return { name: probe.name, actual: background ? "background" : "paint", expected: probe.expected };
   });
-  return { backend: canvas.dataset.backend ?? "pending", bounds: right < 0 ? "none" : `${left},${top} → ${right},${bottom}`, paintedPixels, backgroundHoles: probes.filter((probe) => probe.expected === "paint" && probe.actual === "background").length, probes };
+  return { backend: canvas.dataset.backend ?? "pending", nativeWidth: copy.width, nativeHeight: copy.height, cssWidth: Math.round(rect.width), cssHeight: Math.round(rect.height), bounds: right < 0 ? "none" : `${left},${top} → ${right},${bottom}`, paintedPixels, backgroundHoles: probes.filter((probe) => probe.expected === "paint" && probe.actual === "background").length, probes };
 }
 
 export function PathRenderingLab() {

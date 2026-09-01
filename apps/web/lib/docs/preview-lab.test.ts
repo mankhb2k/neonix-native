@@ -402,6 +402,16 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(groups.every((group) => !group.label.toLowerCase().includes("task"))).toBe(true);
   });
 
+  it("keeps local preview assets under the preview public root", () => {
+    const localUris = PREVIEW_LAB_CASES
+      .flatMap((item) => item.project.assets)
+      .map((asset) => asset.uri)
+      .filter((uri) => uri.startsWith("/") && !uri.startsWith("/api/"));
+
+    expect(localUris.length).toBeGreaterThan(0);
+    expect(localUris.every((uri) => uri.startsWith("/preview/"))).toBe(true);
+  });
+
   it("does not expose removed legacy rectangle paint fixtures", () => {
     const legacyPaintIds = PREVIEW_LAB_CASES
       .map((item) => item.id)

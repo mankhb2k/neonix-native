@@ -7,6 +7,7 @@ import { V2LayerListSchema } from "./layers";
 import { V2MarkerListSchema } from "./markers";
 import { V2ClipPathListSchema } from "./clip";
 import { V2MaskListSchema } from "./mask";
+import { V2FilterListSchema } from "./filter";
 import type { MotionProtocolV2 } from "./types";
 
 const COMMON_NUMBER_PATHS = new Set([
@@ -125,6 +126,7 @@ export const MotionProtocolV2Schema = z
     markers: V2MarkerListSchema.optional(),
     clipPaths: V2ClipPathListSchema.optional(),
     masks: V2MaskListSchema.optional(),
+    filters: V2FilterListSchema.optional(),
     layers: V2LayerListSchema,
     audio: V2AudioDomainSchema,
   })
@@ -133,6 +135,7 @@ export const MotionProtocolV2Schema = z
     const markerIds = new Set((project.markers ?? []).map((marker) => marker.id));
     const clipPathIds = new Set((project.clipPaths ?? []).map((clipPath) => clipPath.id));
     const maskIds = new Set((project.masks ?? []).map((mask) => mask.id));
+    const filterIds = new Set((project.filters ?? []).map((filter) => filter.id));
     const ids = new Set<string>();
     const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
@@ -209,6 +212,9 @@ export const MotionProtocolV2Schema = z
       }
       if (layer.mask !== undefined && !maskIds.has(layer.mask)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown mask reference: ${layer.mask}`, path: ["layers", index, "mask"] });
+      }
+      if (layer.filter !== undefined && !filterIds.has(layer.filter)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown filter reference: ${layer.filter}`, path: ["layers", index, "filter"] });
       }
       if (layer.parentLayerId !== null) {
         const parent = layerById.get(layer.parentLayerId);

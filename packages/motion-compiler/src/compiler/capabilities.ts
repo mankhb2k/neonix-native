@@ -50,6 +50,7 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "effect.outer-glow",
   "effect.inner-glow",
   "effect.noise",
+  "filter.svg.graph",
   "shape.rectangle.fill",
   "shape.rectangle.gradient",
   "shape.rectangle.pattern",

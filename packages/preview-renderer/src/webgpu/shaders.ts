@@ -22,6 +22,7 @@ struct Uniforms {
   colorAdjust1: vec4<f32>,
   colorAdjust2: vec4<f32>,
   colorAdjust3: vec4<f32>,
+  colorAdjustSpace: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
@@ -34,6 +35,17 @@ fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32
   let q = abs(point) - (halfSize - vec2<f32>(radius, radius));
   return length(max(q, vec2<f32>(0.0, 0.0))) + min(max(q.x, q.y), 0.0) - radius;
 }
+fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
+  let low = color / vec3<f32>(12.92);
+  let high = pow((color + vec3<f32>(0.055)) / vec3<f32>(1.055), vec3<f32>(2.4));
+  return select(low, high, color >= vec3<f32>(0.04045));
+}
+fn linearToSrgb(color: vec3<f32>) -> vec3<f32> {
+  let positive = max(color, vec3<f32>(0.0));
+  let low = positive * vec3<f32>(12.92);
+  let high = vec3<f32>(1.055) * pow(positive, vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+  return select(low, high, positive >= vec3<f32>(0.0031308));
+}
 fn applyHueRotate(color: vec3<f32>, angle: f32) -> vec3<f32> {
   let c = cos(angle);
   let s = sin(angle);
@@ -43,12 +55,15 @@ fn applyHueRotate(color: vec3<f32>, angle: f32) -> vec3<f32> {
     color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072),
   );
 }
-fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
-  var color = clamp(source.rgb + vec3<f32>(effect.x), vec3<f32>(0.0), vec3<f32>(1.0));
+fn applyColorAdjust(source: vec4<f32>, effect: vec4<f32>, colorSpace: f32) -> vec4<f32> {
+  var color = select(source.rgb, srgbToLinear(source.rgb), colorSpace > 0.5);
+  color = clamp(color + vec3<f32>(effect.x), vec3<f32>(0.0), vec3<f32>(1.0));
   color = clamp((color - vec3<f32>(0.5)) * effect.y + vec3<f32>(0.5), vec3<f32>(0.0), vec3<f32>(1.0));
   let luma = dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
   color = mix(vec3<f32>(luma), color, effect.z);
-  return vec4<f32>(clamp(applyHueRotate(color, effect.w), vec3<f32>(0.0), vec3<f32>(1.0)), source.a);
+  color = applyHueRotate(color, effect.w);
+  color = select(color, linearToSrgb(color), colorSpace > 0.5);
+  return vec4<f32>(clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)), source.a);
 }
 fn gradientOffset(index: u32) -> f32 {
   if (index < 4u) { return uniforms.gradientOffsets[0][index]; }
@@ -199,10 +214,10 @@ fn samplePattern(point: vec2<f32>) -> vec4<f32> {
     }
     source = mix(source, uniforms.media, clamp(strokeMix, 0.0, 1.0));
   }
-  if (uniforms.colorAdjustMeta.x > 0.5) { source = applyColorAdjust(source, uniforms.colorAdjust0); }
-  if (uniforms.colorAdjustMeta.x > 1.5) { source = applyColorAdjust(source, uniforms.colorAdjust1); }
-  if (uniforms.colorAdjustMeta.x > 2.5) { source = applyColorAdjust(source, uniforms.colorAdjust2); }
-  if (uniforms.colorAdjustMeta.x > 3.5) { source = applyColorAdjust(source, uniforms.colorAdjust3); }
+  if (uniforms.colorAdjustMeta.x > 0.5) { source = applyColorAdjust(source, uniforms.colorAdjust0, uniforms.colorAdjustSpace.x); }
+  if (uniforms.colorAdjustMeta.x > 1.5) { source = applyColorAdjust(source, uniforms.colorAdjust1, uniforms.colorAdjustSpace.y); }
+  if (uniforms.colorAdjustMeta.x > 2.5) { source = applyColorAdjust(source, uniforms.colorAdjust2, uniforms.colorAdjustSpace.z); }
+  if (uniforms.colorAdjustMeta.x > 3.5) { source = applyColorAdjust(source, uniforms.colorAdjust3, uniforms.colorAdjustSpace.w); }
   return vec4<f32>(source.rgb, source.a * shapeAlpha * select(1.0, uniforms.color.a, uniforms.params.y > 0.5 && uniforms.params.y < 1.5));
 }`;
 
@@ -214,6 +229,7 @@ struct PostUniforms {
   colorAdjust1: vec4<f32>,
   colorAdjust2: vec4<f32>,
   colorAdjust3: vec4<f32>,
+  colorAdjustSpace: vec4<f32>,
   shadowColor: vec4<f32>,
   shadowOffset: vec4<f32>,
   noiseParams: vec4<f32>,
@@ -257,10 +273,10 @@ struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: v
     }
     color /= totalWeight;
   }
-  if (uniforms.colorAdjustMeta.x > 0.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust0); }
-  if (uniforms.colorAdjustMeta.x > 1.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust1); }
-  if (uniforms.colorAdjustMeta.x > 2.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust2); }
-  if (uniforms.colorAdjustMeta.x > 3.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust3); }
+  if (uniforms.colorAdjustMeta.x > 0.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust0, uniforms.colorAdjustSpace.x); }
+  if (uniforms.colorAdjustMeta.x > 1.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust1, uniforms.colorAdjustSpace.y); }
+  if (uniforms.colorAdjustMeta.x > 2.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust2, uniforms.colorAdjustSpace.z); }
+  if (uniforms.colorAdjustMeta.x > 3.5) { color = applyPostColorAdjust(color, uniforms.colorAdjust3, uniforms.colorAdjustSpace.w); }
   if (color.a > 0.000001 && uniforms.noiseParams.x > 0.0) {
     let resolution = vec2<f32>(textureDimensions(imageTexture));
     let cell = floor(input.uv * resolution / max(uniforms.noiseParams.x, 0.25));
@@ -304,13 +320,17 @@ fn applyPostHueRotate(color: vec3<f32>, angle: f32) -> vec3<f32> {
     color.r * (0.213 - c * 0.213 - s * 0.787) + color.g * (0.715 - c * 0.715 + s * 0.715) + color.b * (0.072 + c * 0.928 + s * 0.072),
   );
 }
-fn applyPostColorAdjust(source: vec4<f32>, effect: vec4<f32>) -> vec4<f32> {
+fn applyPostColorAdjust(source: vec4<f32>, effect: vec4<f32>, colorSpace: f32) -> vec4<f32> {
   if (source.a <= 0.000001) { return vec4<f32>(0.0); }
-  var color = clamp(source.rgb / source.a + vec3<f32>(effect.x), vec3<f32>(0.0), vec3<f32>(1.0));
+  var color = source.rgb / source.a;
+  color = select(linearToSrgb(color), color, colorSpace > 0.5);
+  color = clamp(color + vec3<f32>(effect.x), vec3<f32>(0.0), vec3<f32>(1.0));
   color = clamp((color - vec3<f32>(0.5)) * effect.y + vec3<f32>(0.5), vec3<f32>(0.0), vec3<f32>(1.0));
   let luma = dot(color, vec3<f32>(0.2126, 0.7152, 0.0722));
   color = mix(vec3<f32>(luma), color, effect.z);
-  return vec4<f32>(applyPostHueRotate(color, effect.w) * source.a, source.a);
+  color = applyPostHueRotate(color, effect.w);
+  color = select(srgbToLinear(color), color, colorSpace > 0.5);
+  return vec4<f32>(clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * source.a, source.a);
 }
 fn noiseHash(point: vec2<f32>) -> f32 {
   var value = fract(vec3<f32>(point.x, point.y, point.x + point.y) * 0.1031);

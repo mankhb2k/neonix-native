@@ -636,7 +636,7 @@ describe("Motion Protocol V2 schema", () => {
       assets: [{
         id: "clip",
         kind: "video" as const,
-        uri: "/docs/example-video.mp4",
+        uri: "/preview/video/demo-video.mp4",
         mimeType: "video/mp4",
         width: 1920,
         height: 1080,
@@ -684,7 +684,7 @@ describe("Motion Protocol V2 schema", () => {
       assets: [{
         id: "roboto-regular",
         kind: "font" as const,
-        uri: "/fonts/Roboto-Regular.ttf",
+        uri: "/preview/font/Roboto-Regular.ttf",
         mimeType: "font/ttf" as const,
         family: "Roboto",
         weight: 400,

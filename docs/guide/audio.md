@@ -63,7 +63,7 @@ to the `video` asset id.
 {
   "id": "video-with-audio",
   "kind": "video",
-  "uri": "/docs/example-video.mp4",
+  "uri": "/preview/video/demo-video.mp4",
   "mimeType": "video/mp4",
   "width": 1920,
   "height": 1080,

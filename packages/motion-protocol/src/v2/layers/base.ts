@@ -74,6 +74,8 @@ export const V2LayerBaseSchema = z
     clipPath: V2IdSchema.optional(),
     /** SVG presentation reference resolved against project mask definitions. */
     mask: V2IdSchema.optional(),
+    /** SVG filter reference resolved against project filter definitions. */
+    filter: V2IdSchema.optional(),
     composite: V2CompositeSchema.optional(),
     timing: V2TimingSchema,
     /** Optional local property tracks; omitted for static layers. */

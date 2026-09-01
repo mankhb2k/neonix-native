@@ -6,6 +6,7 @@ import {
   V2InvertEffectSchema,
   V2SepiaEffectSchema,
 } from "../v2/effects";
+import { V2FilterSchema } from "../v2/filter";
 
 describe("Protocol V2 semantic CSS filter effects", () => {
   it("accepts grayscale, sepia, invert, and filter-opacity", () => {
@@ -41,5 +42,35 @@ describe("Protocol V2 semantic CSS filter effects", () => {
     expect(() =>
       V2FilterOpacityEffectSchema.parse({ id: "bad", type: "filter-opacity", amount: -0.1 }),
     ).toThrow();
+  });
+
+  it("accepts SVG filter graph primitives with explicit inputs and results", () => {
+    const filter = {
+      id: "outer-glow",
+      filterUnits: "objectBoundingBox",
+      primitiveUnits: "userSpaceOnUse",
+      colorInterpolationFilters: "linearRGB",
+      primitives: [
+        { id: "blur", type: "feGaussianBlur", in: "SourceAlpha", stdDeviation: { x: 12, y: 12 }, result: "blurred" },
+        { id: "color", type: "feFlood", color: "#00e5ff", opacity: 0.75, result: "flooded" },
+        { id: "composite", type: "feComposite", in: "flooded", in2: "blurred", operator: "in", result: "glow" },
+        { id: "merge", type: "feMerge", nodes: [{ in: "glow" }, { in: "SourceGraphic" }] },
+      ],
+    } as const;
+    expect(V2FilterSchema.parse(filter)).toEqual(filter);
+  });
+
+  it("rejects duplicate SVG filter results and malformed convolution kernels", () => {
+    expect(() => V2FilterSchema.parse({
+      id: "duplicate-result",
+      primitives: [
+        { id: "a", type: "feFlood", color: "#000000", result: "same" },
+        { id: "b", type: "feFlood", color: "#ffffff", result: "same" },
+      ],
+    })).toThrow(/Duplicate filter result/);
+    expect(() => V2FilterSchema.parse({
+      id: "bad-convolve",
+      primitives: [{ id: "kernel", type: "feConvolveMatrix", order: { x: 3, y: 3 }, kernelMatrix: [1] }],
+    })).toThrow(/kernelMatrix length/);
   });
 });

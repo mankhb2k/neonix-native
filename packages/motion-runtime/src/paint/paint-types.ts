@@ -204,6 +204,8 @@ export type RuntimeColorAdjustEffect = {
   contrast: number;
   saturation: number;
   hueRotate: number;
+  /** SVG color-interpolation-filters semantic for this color operation. */
+  colorInterpolationFilters?: "sRGB" | "linearRGB";
 };
 
 export type RuntimeGrayscaleEffect = {

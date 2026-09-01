@@ -2003,6 +2003,1181 @@
           },
           "maxItems": 256
         },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/id"
+              },
+              "x": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "number",
+                          "px",
+                          "percent"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "unit"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "y": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+              },
+              "width": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+              },
+              "height": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+              },
+              "filterUnits": {
+                "type": "string",
+                "enum": [
+                  "objectBoundingBox",
+                  "userSpaceOnUse"
+                ],
+                "default": "objectBoundingBox"
+              },
+              "primitiveUnits": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/filterUnits",
+                "default": "userSpaceOnUse"
+              },
+              "colorInterpolationFilters": {
+                "type": "string",
+                "enum": [
+                  "sRGB",
+                  "linearRGB"
+                ],
+                "default": "linearRGB"
+              },
+              "primitives": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "region": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+                            },
+                            "y": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+                            },
+                            "width": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+                            },
+                            "height": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/x"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feBlend"
+                        },
+                        "in2": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "normal",
+                            "multiply",
+                            "screen",
+                            "darken",
+                            "lighten",
+                            "overlay",
+                            "color-dodge",
+                            "color-burn",
+                            "hard-light",
+                            "soft-light",
+                            "difference",
+                            "exclusion",
+                            "hue",
+                            "saturation",
+                            "color",
+                            "luminosity"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "in2"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feColorMatrix"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "matrix",
+                            "saturate",
+                            "hueRotate",
+                            "luminanceToAlpha"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feComponentTransfer"
+                        },
+                        "functions": {
+                          "type": "object",
+                          "properties": {
+                            "r": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "identity"
+                                    }
+                                  },
+                                  "required": [
+                                    "type"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "table"
+                                    },
+                                    "values": {
+                                      "type": "array",
+                                      "items": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "values"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "discrete"
+                                    },
+                                    "values": {
+                                      "type": "array",
+                                      "items": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "values"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "linear"
+                                    },
+                                    "slope": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    },
+                                    "intercept": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "slope",
+                                    "intercept"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "gamma"
+                                    },
+                                    "amplitude": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    },
+                                    "exponent": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    },
+                                    "offset": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "amplitude",
+                                    "exponent",
+                                    "offset"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            "g": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/2/properties/functions/properties/r"
+                            },
+                            "b": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/2/properties/functions/properties/r"
+                            },
+                            "a": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/2/properties/functions/properties/r"
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "functions"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feComposite"
+                        },
+                        "in2": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "operator": {
+                          "type": "string",
+                          "enum": [
+                            "over",
+                            "in",
+                            "out",
+                            "atop",
+                            "xor",
+                            "arithmetic"
+                          ]
+                        },
+                        "k1": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "k2": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "k3": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "k4": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "in2"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feConvolveMatrix"
+                        },
+                        "order": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            },
+                            "y": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "kernelMatrix": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          },
+                          "minItems": 1
+                        },
+                        "divisor": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "bias": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "target": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "y": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "edgeMode": {
+                          "type": "string",
+                          "enum": [
+                            "duplicate",
+                            "wrap",
+                            "none"
+                          ]
+                        },
+                        "preserveAlpha": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "order",
+                        "kernelMatrix"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feDisplacementMap"
+                        },
+                        "in2": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "scale": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "xChannelSelector": {
+                          "type": "string",
+                          "enum": [
+                            "R",
+                            "G",
+                            "B",
+                            "A"
+                          ]
+                        },
+                        "yChannelSelector": {
+                          "type": "string",
+                          "enum": [
+                            "R",
+                            "G",
+                            "B",
+                            "A"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "in2",
+                        "scale"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feDropShadow"
+                        },
+                        "dx": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "dy": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "stdDeviation": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "y": {
+                              "type": "number",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "floodColor": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                        },
+                        "floodOpacity": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "dx",
+                        "dy",
+                        "stdDeviation",
+                        "floodColor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feFlood"
+                        },
+                        "color": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                        },
+                        "opacity": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "color"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feGaussianBlur"
+                        },
+                        "stdDeviation": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/6/properties/stdDeviation"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "stdDeviation"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feImage"
+                        },
+                        "href": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "href"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feMerge"
+                        },
+                        "nodes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "in": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                              }
+                            },
+                            "required": [
+                              "in"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minItems": 1
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "nodes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feMorphology"
+                        },
+                        "operator": {
+                          "type": "string",
+                          "enum": [
+                            "erode",
+                            "dilate"
+                          ]
+                        },
+                        "radius": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "y": {
+                              "type": "number",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "radius"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feOffset"
+                        },
+                        "dx": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "dy": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "dx",
+                        "dy"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feTile"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feTurbulence"
+                        },
+                        "baseFrequency": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "y": {
+                              "type": "number",
+                              "minimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "numOctaves": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "seed": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "stitchTiles": {
+                          "type": "boolean"
+                        },
+                        "noiseType": {
+                          "type": "string",
+                          "enum": [
+                            "fractalNoise",
+                            "turbulence"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "baseFrequency"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feDiffuseLighting"
+                        },
+                        "surfaceScale": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "diffuseConstant": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "kernelUnitLength": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "y": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "lightingColor": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                        },
+                        "light": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "const": "feDistantLight"
+                                },
+                                "azimuth": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "elevation": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "azimuth",
+                                "elevation"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "const": "fePointLight"
+                                },
+                                "x": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "y": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "z": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "x",
+                                "y",
+                                "z"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "const": "feSpotLight"
+                                },
+                                "x": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "y": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "z": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "pointsAtX": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "pointsAtY": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "pointsAtZ": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                },
+                                "specularExponent": {
+                                  "type": "number",
+                                  "minimum": 0
+                                },
+                                "limitingConeAngle": {
+                                  "type": "number",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "x",
+                                "y",
+                                "z",
+                                "pointsAtX",
+                                "pointsAtY",
+                                "pointsAtZ"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "surfaceScale",
+                        "diffuseConstant",
+                        "light"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                        },
+                        "in": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/in"
+                        },
+                        "result": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/result"
+                        },
+                        "region": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/region"
+                        },
+                        "colorInterpolationFilters": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/colorInterpolationFilters"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "feSpecularLighting"
+                        },
+                        "surfaceScale": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                        },
+                        "specularConstant": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "specularExponent": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "kernelUnitLength": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "y": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "lightingColor": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                        },
+                        "light": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/15/properties/light"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "surfaceScale",
+                        "specularConstant",
+                        "specularExponent",
+                        "light"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 128
+              }
+            },
+            "required": [
+              "id",
+              "primitives"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 256
+        },
         "layers": {
           "type": "array",
           "items": {
@@ -2346,6 +3521,9 @@
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
                   "mask": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
                   "composite": {
@@ -3197,6 +4375,9 @@
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
                   },
+                  "filter": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
+                  },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
                   },
@@ -3328,6 +4509,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "filter": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
@@ -3525,6 +4709,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "filter": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
@@ -3735,6 +4922,9 @@
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
                   },
+                  "filter": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
+                  },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
                   },
@@ -3924,6 +5114,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "filter": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"

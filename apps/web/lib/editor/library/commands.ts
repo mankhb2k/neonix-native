@@ -6,7 +6,7 @@ import type { V2Asset, MotionProtocolV2 } from "@motionvideo/motion-protocol/v2"
 export const DEFAULT_FONT_ASSET: V2Asset = {
   id: "font-roboto-regular",
   kind: "font",
-  uri: "/fonts/Roboto-Regular.ttf",
+  uri: "/preview/font/Roboto-Regular.ttf",
   mimeType: "font/ttf",
   family: "Roboto",
   weight: 400,

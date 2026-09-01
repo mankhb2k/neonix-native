@@ -111,6 +111,20 @@ export {
   type V2Effect,
 } from "./effects";
 export {
+  V2FilterLengthSchema,
+  V2FilterUnitsSchema,
+  V2FilterColorInterpolationSchema,
+  V2FilterInputSchema,
+  V2FilterPrimitiveSchema,
+  V2FilterSchema,
+  V2FilterListSchema,
+  type V2FilterLength,
+  type V2FilterInput,
+  type V2FilterPrimitive,
+  type V2Filter,
+  type V2FilterList,
+} from "./filter";
+export {
   V2PaintTransformSchema,
   V2GradientStopSchema,
   V2GradientFillSchema,

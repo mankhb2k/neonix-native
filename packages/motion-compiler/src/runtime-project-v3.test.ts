@@ -3,6 +3,7 @@ import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
 import type { RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
 import {
   compileProtocol,
+  compileProtocolToPaintCommands,
   COMPILER_SUPPORTED_FEATURES,
   isCompilerFeatureSupported,
 } from "./index";
@@ -85,10 +86,96 @@ describe("canonical compiler V3 projection", () => {
     }
   });
 
+  it("lowers SVG filter graph primitives to the runtime effect program", () => {
+    const project = filterProject({
+      id: "outer-glow",
+      primitives: [
+        { id: "blur", type: "feGaussianBlur", in: "SourceAlpha", stdDeviation: { x: 12, y: 12 }, result: "blurred" },
+        { id: "color", type: "feFlood", color: "#00e5ff", opacity: 0.75, result: "color" },
+        { id: "composite", type: "feComposite", in: "color", in2: "blurred", operator: "in", result: "glow" },
+        { id: "merge", type: "feMerge", nodes: [{ in: "glow" }, { in: "SourceGraphic" }] },
+      ],
+    });
+    const buffer = compileProtocolToPaintCommands(project);
+    const beginLayer = buffer.commands.find((command) => command.op === "beginLayer");
+    expect(beginLayer).toMatchObject({
+      effectProgram: {
+        ops: [
+          { kind: "alpha-mask" },
+          { kind: "blur" },
+          { kind: "tint" },
+          { kind: "composite" },
+        ],
+      },
+    });
+  });
+
+  it("preserves SVG linearRGB for color-matrix operations", () => {
+    const project = filterProject({
+      id: "hue-rotate",
+      primitives: [
+        { id: "hue", type: "feColorMatrix", in: "SourceGraphic", kind: "hueRotate", values: [120] },
+      ],
+    });
+    const buffer = compileProtocolToPaintCommands(project);
+    const beginLayer = buffer.commands.find((command) => command.op === "beginLayer");
+    expect(beginLayer).toMatchObject({
+      effectProgram: { ops: [{ kind: "color-adjust", hueRotate: 120, colorInterpolationFilters: "linearRGB" }] },
+    });
+  });
+
 });
 
 function fixtureProject(id: string) {
   const fixture = V2_AUDIO_FIXTURES.find((item) => item.id === id);
   if (!fixture) throw new Error(`${id} fixture is missing`);
   return fixture.project;
+}
+
+function filterProject(filter: { id: string; primitives: unknown[] }) {
+  return {
+    format: "motion-protocol" as const,
+    formatVersion: 2 as const,
+    id: "svg-filter-project",
+    composition: {
+      width: 960,
+      height: 540,
+      fps: 30,
+      background: "#101820",
+      colorSpace: "srgb" as const,
+      view: {
+        projection: { kind: "orthographic" as const, zoom: 1, near: 1, far: 4000 },
+        transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
+      },
+    },
+    assets: [],
+    filters: [filter],
+    layers: [{
+      id: "filtered-path",
+      type: "path" as const,
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 960, height: 540 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+        rotate: { x: 0, y: 0, z: 0 },
+        skew: { x: 0, y: 0 },
+        anchor: { x: 0, y: 0, z: 0 },
+      },
+      opacity: 1,
+      timing: { start: 0, duration: 3000 },
+      filter: filter.id,
+      payload: {
+        contours: [{ id: "contour", start: { x: 200, y: 100 }, segments: [
+          { kind: "line" as const, to: { x: 700, y: 100 } },
+          { kind: "line" as const, to: { x: 700, y: 400 } },
+          { kind: "line" as const, to: { x: 200, y: 400 } },
+        ], closed: true }],
+        fillRule: "nonzero" as const,
+      },
+      style: { fill: "#00aa88" },
+    }],
+    audio: { sampleRate: 48000 as const, tracks: [] },
+  };
 }

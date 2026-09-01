@@ -1,5 +1,5 @@
-/** Four color-adjust operators fit one inline pixel-local effect pass. */
-export const COLOR_ADJUST_UNIFORM_FLOATS = 20;
+/** Four color-adjust operators plus one color-space flag per operator. */
+export const COLOR_ADJUST_UNIFORM_FLOATS = 24;
 
 export function colorAdjustUniforms(
   adjustments: readonly RuntimeColorAdjustEffectOp[] | undefined,
@@ -14,6 +14,7 @@ export function colorAdjustUniforms(
       [effect.brightness, effect.contrast, effect.saturation, effect.hueRotate * Math.PI / 180],
       offset,
     );
+    uniforms[20 + index] = effect.colorInterpolationFilters === "linearRGB" ? 1 : 0;
   }
   return uniforms;
 }

@@ -7,6 +7,7 @@ export default defineConfig({
     environment: "happy-dom",
     include: [
       "lib/docs/preview-lab.test.ts",
+      "lib/docs/path-rendering-fixtures.test.ts",
       "lib/docs/docs-v2.test.ts",
       "lib/editor/__tests__/*.test.ts",
       "lib/editor/playback/*.test.ts",
