@@ -233,18 +233,20 @@ export function validateVisualRuntimeProject(
       if (!node.content.assetId.trim()) {
         diagnostics.push({ severity: "error", code: "runtime_v2_image_asset", message: "Runtime V2 image assetId must be non-empty", nodeId: node.id });
       }
-      if (node.content.fit && !["contain", "cover", "fill", "none"].includes(node.content.fit)) {
-        diagnostics.push({ severity: "error", code: "runtime_v2_image_fit", message: "Runtime V2 image fit is invalid", nodeId: node.id });
+      if (![node.content.x, node.content.y, node.content.width, node.content.height].every(Number.isFinite) || node.content.width <= 0 || node.content.height <= 0) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_image_viewport", message: "Runtime V2 image viewport must have finite x/y and positive width/height", nodeId: node.id });
       }
-      if (node.content.crop) {
-        const crop = node.content.crop;
-        if (
-          ![crop.x, crop.y, crop.width, crop.height].every(Number.isFinite) ||
-          crop.x < 0 || crop.y < 0 || crop.width <= 0 || crop.height <= 0 ||
-          crop.x + crop.width > 1 || crop.y + crop.height > 1
-        ) {
-          diagnostics.push({ severity: "error", code: "runtime_v2_image_crop", message: "Runtime V2 image crop must be a normalized rectangle inside the asset", nodeId: node.id });
+      const aspect = node.content.preserveAspectRatio;
+      if (aspect) {
+        if (aspect.align && !["none", "xMinYMin", "xMidYMin", "xMaxYMin", "xMinYMid", "xMidYMid", "xMaxYMid", "xMinYMax", "xMidYMax", "xMaxYMax"].includes(aspect.align)) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_image_aspect_align", message: "Runtime V2 image preserveAspectRatio align is invalid", nodeId: node.id });
         }
+        if (aspect.meetOrSlice && !["meet", "slice"].includes(aspect.meetOrSlice)) {
+          diagnostics.push({ severity: "error", code: "runtime_v2_image_aspect_mode", message: "Runtime V2 image preserveAspectRatio mode is invalid", nodeId: node.id });
+        }
+      }
+      if (node.content.imageRendering && !["auto", "optimizeQuality", "optimizeSpeed", "smooth", "high-quality", "crisp-edges", "pixelated"].includes(node.content.imageRendering)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_image_rendering", message: "Runtime V2 image imageRendering is invalid", nodeId: node.id });
       }
     }
     if (node.content.kind === "video") {

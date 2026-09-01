@@ -42,7 +42,7 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
     shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity"]),
     path: new Set(["style.fillOpacity", "style.strokeWidth", "style.strokeOpacity", "payload.morph.progress"]),
     text: new Set(),
-    image: new Set(["payload.crop.x", "payload.crop.y", "payload.crop.width", "payload.crop.height"]),
+    image: new Set(["payload.x", "payload.y", "payload.width", "payload.height"]),
     video: new Set(["payload.trimStart", "payload.trimEnd"]),
     group: new Set(),
   };
@@ -76,8 +76,10 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
       : new Set<string>();
   if (colorPaths.has(path)) return new Set(["color"]);
 
-  const enumPaths = layer.type === "image" || layer.type === "video"
-      ? new Set(["payload.fit"])
+  const enumPaths = layer.type === "image"
+      ? new Set(["payload.preserveAspectRatio.align", "payload.preserveAspectRatio.meetOrSlice", "payload.imageRendering"])
+      : layer.type === "video"
+        ? new Set(["payload.fit"])
       : new Set<string>();
   if (enumPaths.has(path)) return new Set(["enum"]);
 
@@ -283,6 +285,16 @@ export const MotionProtocolV2Schema = z
               path: ["layers", index, "payload", "layout", "runs", runIndex, "font", "assetId"],
             });
           }
+        }
+      }
+      if (layer.type === "image") {
+        const source = project.assets.find((asset) => asset.id === layer.payload.assetId);
+        if (source && source.kind !== "image") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Image layer must reference an image asset: ${layer.payload.assetId}`,
+            path: ["layers", index, "payload", "assetId"],
+          });
         }
       }
       if (layer.type === "video" && layer.payload.audio) {

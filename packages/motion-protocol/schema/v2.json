@@ -1572,46 +1572,60 @@
                       "assetId": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/id"
                       },
-                      "fit": {
-                        "type": "string",
-                        "enum": [
-                          "contain",
-                          "cover",
-                          "fill",
-                          "none"
-                        ]
+                      "x": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
                       },
-                      "crop": {
+                      "y": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                      },
+                      "width": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                      },
+                      "height": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                      },
+                      "preserveAspectRatio": {
                         "type": "object",
                         "properties": {
-                          "x": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1
+                          "defer": {
+                            "type": "boolean"
                           },
-                          "y": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1
+                          "align": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "xMinYMin",
+                              "xMidYMin",
+                              "xMaxYMin",
+                              "xMinYMid",
+                              "xMidYMid",
+                              "xMaxYMid",
+                              "xMinYMax",
+                              "xMidYMax",
+                              "xMaxYMax"
+                            ]
                           },
-                          "width": {
-                            "type": "number",
-                            "exclusiveMinimum": 0,
-                            "maximum": 1
-                          },
-                          "height": {
-                            "type": "number",
-                            "exclusiveMinimum": 0,
-                            "maximum": 1
+                          "meetOrSlice": {
+                            "type": "string",
+                            "enum": [
+                              "meet",
+                              "slice"
+                            ]
                           }
                         },
-                        "required": [
-                          "x",
-                          "y",
-                          "width",
-                          "height"
-                        ],
                         "additionalProperties": false
+                      },
+                      "imageRendering": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "optimizeQuality",
+                          "optimizeSpeed",
+                          "smooth",
+                          "high-quality",
+                          "crisp-edges",
+                          "pixelated"
+                        ]
                       }
                     },
                     "required": [
@@ -3068,7 +3082,13 @@
                         "$ref": "#/definitions/MotionProtocolV2/properties/id"
                       },
                       "fit": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/payload/properties/fit"
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover",
+                          "fill",
+                          "none"
+                        ]
                       },
                       "trimStart": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"

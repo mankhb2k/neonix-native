@@ -22,7 +22,7 @@ export {
   webglClipSpaceProjection,
 } from "./math";
 export { cssColorToRgba } from "./shared/color";
-export { mediaLayout, type MediaLayout } from "./media";
+export { imageLayout, mediaLayout, type MediaLayout } from "./media";
 export {
   buildEffectPassPlan,
   type EffectPassPlan,

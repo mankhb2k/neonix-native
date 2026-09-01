@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { V2IdSchema, V2MillisecondsSchema, V2PositiveMillisecondsSchema } from "../common";
 import { V2LayerBaseSchema } from "./base";
-import { V2ImageFitSchema } from "./image";
 import { V2EffectListSchema } from "../effects";
 import { V2EmbeddedVideoAudioSchema } from "../audio";
 
+export const V2VideoFitSchema = z.enum(["contain", "cover", "fill", "none"]);
 export const V2VideoFramePolicySchema = z.enum(["floor", "round", "ceil"]);
 
 export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
@@ -14,7 +14,7 @@ export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
   payload: z
     .object({
       assetId: V2IdSchema,
-      fit: V2ImageFitSchema.optional(),
+      fit: V2VideoFitSchema.optional(),
       /** Source trim positions in milliseconds. */
       trimStart: V2MillisecondsSchema.optional(),
       trimEnd: V2PositiveMillisecondsSchema.optional(),
@@ -34,4 +34,5 @@ export const V2VideoLayerSchema = V2LayerBaseSchema.extend({
   });
 
 export type V2VideoFramePolicy = z.infer<typeof V2VideoFramePolicySchema>;
+export type V2VideoFit = z.infer<typeof V2VideoFitSchema>;
 export type V2VideoLayer = z.infer<typeof V2VideoLayerSchema>;

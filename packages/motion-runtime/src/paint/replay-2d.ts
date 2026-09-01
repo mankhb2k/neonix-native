@@ -6,7 +6,14 @@
 
 import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
-import type { PaintBlendMode, PaintFill, PaintPatternContent } from "./paint-types";
+import type {
+  PaintBlendMode,
+  PaintFill,
+  PaintPatternContent,
+  RenderImageAlign,
+  RenderImagePreserveAspectRatio,
+  RenderImageRendering,
+} from "./paint-types";
 import { flattenPathContourAny } from "../geometry/path/flatten";
 
 export type ReplayGradient = {
@@ -103,6 +110,7 @@ export type Canvas2DReplayContext = {
     y: number,
   ): void;
   closePath(): void;
+  clip?(): void;
   drawImage(
     image: Replay2DImageSource,
     dx: number,
@@ -149,17 +157,11 @@ export type Canvas2DReplayContext = {
   globalAlpha: number;
   globalCompositeOperation: string;
   lineWidth: number;
+  imageSmoothingEnabled?: boolean;
 };
 
 export type ReplayPaint2DOptions = {
   getImage?: (uri: string, assetId: string) => Replay2DImageSource | null;
-};
-
-type MediaCrop = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 };
 
 function hexColor(color: string | undefined, fallback = "#ffffff"): string {
@@ -431,13 +433,12 @@ function imageSize(
   return { width, height };
 }
 
-function drawFittedMedia(
+function drawFittedVideo(
   ctx: Canvas2DReplayContext,
   image: Replay2DImageSource,
   frameWidth: number,
   frameHeight: number,
   fit: "contain" | "cover" | "fill" | "none" | undefined,
-  crop?: MediaCrop,
 ): void {
   const size = imageSize(image);
   if (!size) {
@@ -445,68 +446,77 @@ function drawFittedMedia(
     return;
   }
 
-  let sourceX = 0;
-  let sourceY = 0;
-  let sourceWidth = size.width;
-  let sourceHeight = size.height;
-
-  if (crop) {
-    sourceX = crop.x * size.width;
-    sourceY = crop.y * size.height;
-    sourceWidth = crop.width * size.width;
-    sourceHeight = crop.height * size.height;
-  }
-
   if (fit === "none") {
-    ctx.drawImage(
-      image,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      0,
-      0,
-      sourceWidth,
-      sourceHeight,
-    );
+    ctx.drawImage(image, 0, 0, size.width, size.height);
     return;
   }
-
   if (fit === "fill" || !fit) {
-    ctx.drawImage(
-      image,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      0,
-      0,
-      frameWidth,
-      frameHeight,
-    );
+    ctx.drawImage(image, 0, 0, frameWidth, frameHeight);
     return;
   }
 
-  const scale =
-    fit === "cover"
-      ? Math.max(frameWidth / sourceWidth, frameHeight / sourceHeight)
-      : Math.min(frameWidth / sourceWidth, frameHeight / sourceHeight);
-  const drawWidth = sourceWidth * scale;
-  const drawHeight = sourceHeight * scale;
-  const drawX = (frameWidth - drawWidth) / 2;
-  const drawY = (frameHeight - drawHeight) / 2;
-
+  const scale = fit === "cover"
+    ? Math.max(frameWidth / size.width, frameHeight / size.height)
+    : Math.min(frameWidth / size.width, frameHeight / size.height);
+  const drawWidth = size.width * scale;
+  const drawHeight = size.height * scale;
   ctx.drawImage(
     image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    drawX,
-    drawY,
+    (frameWidth - drawWidth) / 2,
+    (frameHeight - drawHeight) / 2,
     drawWidth,
     drawHeight,
   );
+}
+
+function imageAlignFactors(align: RenderImageAlign): { x: number; y: number } {
+  return {
+    x: align.includes("xMin") ? 0 : align.includes("xMax") ? 1 : 0.5,
+    y: align.includes("YMin") ? 0 : align.includes("YMax") ? 1 : 0.5,
+  };
+}
+
+function drawSvgImage(
+  ctx: Canvas2DReplayContext,
+  image: Replay2DImageSource,
+  x: number,
+  y: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  preserveAspectRatio?: RenderImagePreserveAspectRatio,
+  imageRendering?: RenderImageRendering,
+): void {
+  const smoothing = imageRendering !== "optimizeSpeed" && imageRendering !== "crisp-edges" && imageRendering !== "pixelated";
+  if (ctx.imageSmoothingEnabled !== undefined) ctx.imageSmoothingEnabled = smoothing;
+  const size = imageSize(image);
+  if (!size) {
+    ctx.drawImage(image, x, y, viewportWidth, viewportHeight);
+    return;
+  }
+
+  const align = preserveAspectRatio?.align ?? "xMidYMid";
+  if (align === "none") {
+    ctx.drawImage(image, x, y, viewportWidth, viewportHeight);
+    return;
+  }
+
+  const slice = preserveAspectRatio?.meetOrSlice === "slice";
+  const scale = slice
+    ? Math.max(viewportWidth / size.width, viewportHeight / size.height)
+    : Math.min(viewportWidth / size.width, viewportHeight / size.height);
+  const drawWidth = size.width * scale;
+  const drawHeight = size.height * scale;
+  const factors = imageAlignFactors(align);
+  const drawX = x + (viewportWidth - drawWidth) * factors.x;
+  const drawY = y + (viewportHeight - drawHeight) * factors.y;
+
+  if (slice && ctx.clip) {
+    ctx.beginPath();
+    ctx.rect(x, y, viewportWidth, viewportHeight);
+    ctx.clip();
+  }
+
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
 }
 
 /**
@@ -641,14 +651,20 @@ export function replayPaintCommands2D(
       const image =
         uri && options?.getImage ? options.getImage(uri, cmd.assetId) : null;
       if (image) {
-        drawFittedMedia(
-          ctx,
-          image,
-          cmd.width,
-          cmd.height,
-          cmd.fit,
-          cmd.op === "drawImage" ? cmd.crop : undefined,
-        );
+        if (cmd.op === "drawImage") {
+          drawSvgImage(
+            ctx,
+            image,
+            cmd.x,
+            cmd.y,
+            cmd.width,
+            cmd.height,
+            cmd.preserveAspectRatio,
+            cmd.imageRendering,
+          );
+        } else {
+          drawFittedVideo(ctx, image, cmd.width, cmd.height, cmd.fit);
+        }
       } else {
         ctx.fillStyle = "#334155";
         ctx.fillRect(0, 0, cmd.width, cmd.height);

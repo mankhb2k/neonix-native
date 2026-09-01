@@ -1,7 +1,6 @@
 import type {
   PaintCommandBuffer,
   RenderMediaFit,
-  RenderNormalizedRect,
   RuntimeFrameV3,
 } from "@motionvideo/motion-runtime";
 
@@ -181,5 +180,4 @@ export type WebGPURenderPassEncoderLike = {
 
 export type PreviewMediaDraw = {
   fit?: RenderMediaFit;
-  crop?: RenderNormalizedRect;
 };

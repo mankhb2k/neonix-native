@@ -7,7 +7,7 @@ import {
   webglClipSpaceProjection,
 } from "./math";
 import { cssColorToRgba } from "./shared/color";
-import { mediaLayout } from "./media";
+import { imageLayout, mediaLayout } from "./media";
 
 describe("preview-renderer primitives", () => {
   it("packs only finite canonical Matrix4 values", () => {
@@ -66,14 +66,23 @@ describe("preview-renderer primitives", () => {
     expect(adapted[14]).toBeCloseTo(2 * canonical[14] - canonical[15], 7);
   });
 
-  it("keeps media fit and crop in the backend-neutral layout", () => {
-    const layout = mediaLayout(100, 100, 200, 100, "cover", undefined);
+  it("keeps video media fit in the backend-neutral layout", () => {
+    const layout = mediaLayout(100, 100, 200, 100, "cover");
     expect(layout.width).toBe(100);
     expect(layout.height).toBe(100);
     expect(layout.uv.width).toBe(0.5);
     expect(layout.uv.height).toBe(1);
 
-    const cropped = mediaLayout(100, 50, 200, 100, "fill", { x: 0.25, y: 0, width: 0.5, height: 1 });
-    expect(cropped.uv).toEqual({ x: 0.25, y: 0, width: 0.5, height: 1 });
+  });
+
+  it("resolves SVG image preserveAspectRatio meet and slice", () => {
+    const meet = imageLayout(100, 100, 200, 100, 0, 0, { align: "xMidYMid", meetOrSlice: "meet" });
+    expect(meet).toMatchObject({ x: 0, y: 25, width: 100, height: 50 });
+    expect(meet.uv).toEqual({ x: 0, y: 0, width: 1, height: 1 });
+
+    const slice = imageLayout(100, 100, 200, 100, 4, 8, { align: "xMidYMid", meetOrSlice: "slice" });
+    expect(slice).toMatchObject({ x: 4, y: 8, width: 100, height: 100 });
+    expect(slice.uv.x).toBe(0.25);
+    expect(slice.uv.width).toBe(0.5);
   });
 });

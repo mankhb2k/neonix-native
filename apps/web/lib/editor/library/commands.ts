@@ -135,7 +135,7 @@ function layerForPayload(
   }
   if (payload.kind === "asset") {
     if (payload.asset.kind === "image") {
-      return { ...base, type: "image", payload: { assetId: payload.asset.id, fit: "contain" } };
+      return { ...base, type: "image", payload: { assetId: payload.asset.id, width, height, preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "meet" } } };
     }
     if (payload.asset.kind === "video") {
       // The video element is muted by the playback adapter. Embedded audio is

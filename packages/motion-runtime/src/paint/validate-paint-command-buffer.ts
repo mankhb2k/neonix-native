@@ -286,7 +286,7 @@ export function validatePaintCommandBuffer(
           });
         }
         if (
-          (cmd.op === "drawImage" || cmd.op === "drawVideo") &&
+          cmd.op === "drawVideo" &&
           !isFit(cmd.fit)
         ) {
           issues.push({
@@ -296,26 +296,24 @@ export function validatePaintCommandBuffer(
             key: cmd.key,
           });
         }
-        if (cmd.op === "drawImage" && cmd.crop) {
-          const { x, y, width, height } = cmd.crop;
-          const cropOk =
-            isFiniteNumber(x) &&
-            isFiniteNumber(y) &&
-            isFiniteNumber(width) &&
-            isFiniteNumber(height) &&
-            x >= 0 &&
-            y >= 0 &&
-            width > 0 &&
-            height > 0 &&
-            x + width <= 1 &&
-            y + height <= 1;
-          if (!cropOk) {
+        if (cmd.op === "drawImage") {
+          if (!isFiniteNumber(cmd.x) || !isFiniteNumber(cmd.y) || !isFiniteNumber(cmd.width) || !isFiniteNumber(cmd.height) || cmd.width <= 0 || cmd.height <= 0) {
             issues.push({
               severity: "error",
-              code: "invalid_media_crop",
-              message: `Invalid crop window for "${cmd.key}"`,
+              code: "invalid_image_viewport",
+              message: `Invalid image viewport for "${cmd.key}"`,
               key: cmd.key,
             });
+          }
+          const aspect = cmd.preserveAspectRatio;
+          if (aspect?.align && !["none", "xMinYMin", "xMidYMin", "xMaxYMin", "xMinYMid", "xMidYMid", "xMaxYMid", "xMinYMax", "xMidYMax", "xMaxYMax"].includes(aspect.align)) {
+            issues.push({ severity: "error", code: "invalid_image_aspect_align", message: `Invalid image preserveAspectRatio align for "${cmd.key}"`, key: cmd.key });
+          }
+          if (aspect?.meetOrSlice && !["meet", "slice"].includes(aspect.meetOrSlice)) {
+            issues.push({ severity: "error", code: "invalid_image_aspect_mode", message: `Invalid image preserveAspectRatio mode for "${cmd.key}"`, key: cmd.key });
+          }
+          if (cmd.imageRendering && !["auto", "optimizeQuality", "optimizeSpeed", "smooth", "high-quality", "crisp-edges", "pixelated"].includes(cmd.imageRendering)) {
+            issues.push({ severity: "error", code: "invalid_image_rendering", message: `Invalid image-rendering value for "${cmd.key}"`, key: cmd.key });
           }
         }
         if (cmd.op === "drawVideo" && !isFiniteNumber(cmd.mediaTime)) {

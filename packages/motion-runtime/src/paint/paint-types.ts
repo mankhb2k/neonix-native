@@ -84,13 +84,37 @@ export type PaintFill = PaintFillNone | PaintFillSolid | PaintFillGradient | Pai
 export type Paint = PaintFill;
 
 export type RenderMediaFit = "contain" | "cover" | "fill" | "none";
+export type RenderImageAlign =
+  | "none"
+  | "xMinYMin"
+  | "xMidYMin"
+  | "xMaxYMin"
+  | "xMinYMid"
+  | "xMidYMid"
+  | "xMaxYMid"
+  | "xMinYMax"
+  | "xMidYMax"
+  | "xMaxYMax";
+export type RenderImagePreserveAspectRatio = {
+  defer?: boolean;
+  align?: RenderImageAlign;
+  meetOrSlice?: "meet" | "slice";
+};
+export type RenderImageRendering =
+  | "auto"
+  | "optimizeQuality"
+  | "optimizeSpeed"
+  | "smooth"
+  | "high-quality"
+  | "crisp-edges"
+  | "pixelated";
+/** Normalized texture coordinates used by backend-neutral preview layouts. */
 export type RenderNormalizedRect = {
   x: number;
   y: number;
   width: number;
   height: number;
 };
-
 export type PathPoint = { x: number; y: number };
 export type PathContour = {
   id: string;

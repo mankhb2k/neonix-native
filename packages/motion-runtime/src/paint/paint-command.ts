@@ -10,8 +10,9 @@ import type {
   PathContour,
   PathMesh,
   PathStrokeMesh,
+  RenderImagePreserveAspectRatio,
+  RenderImageRendering,
   RenderMediaFit,
-  RenderNormalizedRect,
 } from "./paint-types";
 import type { RuntimeEffectProgram } from "../visual/effect-program";
 
@@ -145,10 +146,12 @@ export type PaintCommand =
       layerId: string;
       assetId: string;
       uri?: string;
+      x: number;
+      y: number;
       width: number;
       height: number;
-      fit?: RenderMediaFit;
-      crop?: RenderNormalizedRect;
+      preserveAspectRatio?: RenderImagePreserveAspectRatio;
+      imageRendering?: RenderImageRendering;
     }
   | {
       op: "drawPath";

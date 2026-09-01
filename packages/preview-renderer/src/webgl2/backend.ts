@@ -7,7 +7,7 @@ import {
   webglClipSpaceProjection,
 } from "../math";
 import { cssColorToRgba } from "../shared/color";
-import { mediaLayout } from "../media";
+import { imageLayout, mediaLayout } from "../media";
 import { createTextAtlas, type TextAtlas } from "../text-atlas";
 import { buildEffectPassPlan, colorAdjustUniforms, type EffectPassPlan } from "../shared/effects";
 import { blurPyramidPlan } from "../shared/blur";
@@ -634,7 +634,9 @@ export function createWebGL2Backend(
         }
         blend(gl, maskMode ? "normal" : currentBlend);
         bindVertexBuffer(quadBuffer);
-        const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
+        const layout = command.op === "drawImage"
+          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio)
+          : mediaLayout(command.width, command.height, asset.width, asset.height, command.fit);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, layout.x, layout.y, layout.width, layout.height));
@@ -651,6 +653,11 @@ export function createWebGL2Backend(
         gl.uniform4f(uvRectLocation, layout.uv.x, layout.uv.y, layout.uv.width, layout.uv.height);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
+        if (command.op === "drawImage") {
+          const nearest = command.imageRendering === "optimizeSpeed" || command.imageRendering === "crisp-edges" || command.imageRendering === "pixelated";
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearest ? gl.NEAREST : gl.LINEAR);
+        }
         gl.uniform1i(textureLocation, 0);
         setColorAdjust(sourceColorAdjust());
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);

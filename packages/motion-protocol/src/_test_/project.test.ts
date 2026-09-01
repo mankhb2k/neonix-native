@@ -549,7 +549,7 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
   });
 
-  it("accepts an image asset reference with fit and normalized crop", () => {
+  it("accepts an image asset reference with SVG viewport semantics", () => {
     const image = {
       ...RECTANGLE_PROJECT,
       id: "image-project-v2",
@@ -572,16 +572,20 @@ describe("Motion Protocol V2 schema", () => {
         timing: { start: 0, duration: 1 },
         payload: {
           assetId: "photo",
-          fit: "cover" as const,
-          crop: { x: 0.25, y: 0, width: 0.5, height: 1 },
+          x: 10,
+          y: 20,
+          width: 320,
+          height: 240,
+          preserveAspectRatio: { align: "xMidYMid" as const, meetOrSlice: "slice" as const },
+          imageRendering: "optimizeQuality" as const,
         },
       }],
     };
     expect(MotionProtocolV2Schema.parse(image)).toEqual(image);
     expect(() => MotionProtocolV2Schema.parse({
       ...image,
-      layers: [{ ...image.layers[0], payload: { assetId: "photo", crop: { x: 0.75, y: 0, width: 0.5, height: 1 } } }],
-    })).toThrow(/crop x \+ width/);
+      layers: [{ ...image.layers[0], payload: { assetId: "photo", width: 0 } }],
+    })).toThrow();
   });
 
   it("accepts a video asset with trim, mute, and frame policy", () => {

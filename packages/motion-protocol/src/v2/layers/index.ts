@@ -41,7 +41,16 @@ export {
   type V2TrackList,
 } from "../animation";
 export { V2GroupLayerSchema, type V2GroupLayer } from "./group";
-export { V2ImageFitSchema, V2ImageLayerSchema, type V2ImageFit, type V2ImageLayer } from "./image";
+export {
+  V2ImageAlignSchema,
+  V2ImagePreserveAspectRatioSchema,
+  V2ImageRenderingSchema,
+  V2ImageLayerSchema,
+  type V2ImageAlign,
+  type V2ImagePreserveAspectRatio,
+  type V2ImageRendering,
+  type V2ImageLayer,
+} from "./image";
 export {
   V2ShapeLayerSchema,
   type V2ShapeLayer,
@@ -69,7 +78,7 @@ export {
   V2PathLayerSchema,
   type V2PathLayer,
 } from "./path";
-export { V2VideoFramePolicySchema, V2VideoLayerSchema, type V2VideoFramePolicy, type V2VideoLayer } from "./video";
+export { V2VideoFitSchema, V2VideoFramePolicySchema, V2VideoLayerSchema, type V2VideoFit, type V2VideoFramePolicy, type V2VideoLayer } from "./video";
 export {
   V2BackfaceVisibilitySchema,
   V2PerspectiveContextSchema,

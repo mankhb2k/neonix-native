@@ -9,7 +9,8 @@ type Op =
   | { op: "fillRect"; x: number; y: number; w: number; h: number; fill: unknown }
   | { op: "fillText"; text: string }
   | { op: "ellipse" }
-  | { op: "rect" };
+  | { op: "rect" }
+  | { op: "drawImage"; args: number[] };
 
 function createMockCtx() {
   const ops: Op[] = [];
@@ -44,7 +45,9 @@ function createMockCtx() {
     lineTo() {},
     bezierCurveTo() {},
     closePath() {},
-    drawImage() {},
+    drawImage(...args: unknown[]) {
+      ops.push({ op: "drawImage", args: args.slice(1) as number[] });
+    },
     createLinearGradient() {
       return {
         addColorStop() {},
@@ -153,5 +156,40 @@ describe("replayPaintCommands2D", () => {
       diagnostics: [],
     });
     expect(ops.some((o) => o.op === "ellipse")).toBe(false);
+  });
+
+  it("replays SVG preserveAspectRatio slice with the image viewport origin", () => {
+    const { ctx, ops } = createMockCtx();
+    replayPaintCommands2D(ctx, {
+      commands: [
+        { op: "beginFrame", width: 200, height: 160, graphId: "g", frame: 0, time: 0 },
+        {
+          op: "setTransform",
+          key: "image",
+          matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+          alpha: 1,
+          visible: true,
+          order: 0,
+        },
+        {
+          op: "drawImage",
+          key: "image",
+          layerId: "image",
+          assetId: "photo",
+          uri: "/photo.jpg",
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 100,
+          preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "slice" },
+        },
+        { op: "endFrame" },
+      ],
+      diagnostics: [],
+    }, {
+      getImage: () => ({ width: 200, height: 100 }),
+    });
+    const draw = ops.find((op) => op.op === "drawImage") as { op: "drawImage"; args: number[] } | undefined;
+    expect(draw?.args).toEqual([-40, 20, 200, 100]);
   });
 });

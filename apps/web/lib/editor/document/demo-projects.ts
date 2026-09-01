@@ -233,7 +233,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
         transform: transform({ x: 0, y: 0, z: 0 }, { width: 1920, height: 1080 }),
         opacity: 0.22,
         timing: { start: 0, duration: 60 },
-        payload: { assetId: "three-kingdoms-atmosphere", fit: "cover" },
+        payload: { assetId: "three-kingdoms-atmosphere", width: 1920, height: 1080, preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "slice" } },
       },
       ...eventLayers,
     ],

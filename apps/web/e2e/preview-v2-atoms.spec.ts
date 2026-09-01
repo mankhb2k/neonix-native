@@ -973,11 +973,14 @@ test.describe("Protocol V2 atom preview", () => {
     }
   });
 
-  test("renders Image Atom contain, cover, and crop through both backends", async ({ page }) => {
+  test("renders Image semantic viewport cases through both backends", async ({ page }) => {
     const cases = [
-      { id: "image.fit.contain", center: [960, 540] as const, background: [740, 540] as const },
-      { id: "image.fit.cover", center: [960, 540] as const, background: [680, 540] as const },
-      { id: "image.crop", center: [960, 540] as const, background: [780, 540] as const },
+      { id: "image.preserve-aspect-ratio.meet", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.preserve-aspect-ratio.slice", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.preserve-aspect-ratio.none", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.preserve-aspect-ratio.alignment", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.image-rendering.pixelated", center: [960, 540] as const, background: [680, 540] as const },
+      { id: "image.nested-svg", center: [960, 540] as const, background: [680, 540] as const },
     ];
 
     for (const fixture of cases) {
@@ -999,7 +1002,7 @@ test.describe("Protocol V2 atom preview", () => {
       ]);
     }
 
-    await page.goto("/docs/preview?case=image.fit.contain&backend=webgl2");
+    await page.goto("/docs/preview?case=image.preserve-aspect-ratio.meet&backend=webgl2");
     test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
     for (const fixture of cases) {
       await page.goto(`/docs/preview?case=${fixture.id}&backend=webgpu`);

@@ -6,7 +6,7 @@ import {
   gradientUniforms,
 } from "../math";
 import { cssColorToRgba } from "../shared/color";
-import { mediaLayout } from "../media";
+import { imageLayout, mediaLayout } from "../media";
 import { createTextAtlas, type TextAtlas } from "../text-atlas";
 import { buildEffectPassPlan, colorAdjustUniforms, type EffectPassPlan } from "../shared/effects";
 import { blurPyramidPlan } from "../shared/blur";
@@ -587,7 +587,9 @@ export function createWebGPUBackend(
         const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
         transientBuffers.add(uniform);
         const data = new Float32Array(UNIFORM_FLOATS);
-        const layout = mediaLayout(command.width, command.height, asset.width, asset.height, command.fit, command.op === "drawImage" ? command.crop : undefined);
+        const layout = command.op === "drawImage"
+          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio)
+          : mediaLayout(command.width, command.height, asset.width, asset.height, command.fit);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);
         writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, layout.x, layout.y, layout.width, layout.height));
@@ -604,7 +606,10 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 60);
         data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
         device.queue.writeBuffer(uniform, 0, data);
-        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: whiteTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
+        const imageSampler = command.op === "drawImage" && (command.imageRendering === "optimizeSpeed" || command.imageRendering === "crisp-edges" || command.imageRendering === "pixelated")
+          ? drawObjects.nearestSampler
+          : drawObjects.sampler;
+        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: imageSampler }, { binding: 3, resource: whiteTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
         pass!.setPipeline(drawObjects.pipeline);
         pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
         pass!.setBindGroup(0, bindGroup);

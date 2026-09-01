@@ -15,8 +15,9 @@ import type { PaintDrawCommand } from "./paint-command";
 import type {
   PaintFill,
   PathContour,
+  RenderImagePreserveAspectRatio,
+  RenderImageRendering,
   RenderMediaFit,
-  RenderNormalizedRect,
 } from "./paint-types";
 
 // ── Resource descriptor (frame-invariant) ─────────────────────────────
@@ -101,11 +102,14 @@ export type PaintFrameProperty = {
   /** Width/height in world-space (may change e.g. text wrapping). */
   width: number;
   height: number;
+  x?: number;
+  y?: number;
   /** Optional dynamic fill override. */
   fill?: string;
   fillPaint?: PaintFill;
   fit?: RenderMediaFit;
-  crop?: RenderNormalizedRect;
+  preserveAspectRatio?: RenderImagePreserveAspectRatio;
+  imageRendering?: RenderImageRendering;
   mediaTime?: number;
   mediaVisible?: boolean;
 };
@@ -201,8 +205,11 @@ export function extractPaintFrameProperty(
   if ("fit" in cmd) {
     base.fit = (cmd as { fit?: RenderMediaFit }).fit;
   }
-  if ("crop" in cmd) {
-    base.crop = (cmd as { crop?: RenderNormalizedRect }).crop;
+  if (cmd.op === "drawImage") {
+    base.x = cmd.x;
+    base.y = cmd.y;
+    base.preserveAspectRatio = cmd.preserveAspectRatio;
+    base.imageRendering = cmd.imageRendering;
   }
   if ("mediaTime" in cmd) {
     base.mediaTime = (cmd as { mediaTime?: number }).mediaTime;

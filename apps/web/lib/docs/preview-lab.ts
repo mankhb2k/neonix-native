@@ -175,10 +175,33 @@ function project(
 const PREVIEW_IMAGE_ASSET = {
   id: "preview-image-v2",
   kind: "image" as const,
-  uri: "/docs/example1-1.jpg",
+  uri: "/preview/image/photo-landscape.jpg",
   mimeType: "image/jpeg",
-  width: 1920,
-  height: 1920,
+  width: 1600,
+  height: 900,
+};
+
+const PREVIEW_PORTRAIT_IMAGE_ASSET = {
+  id: "preview-image-portrait-v2",
+  kind: "image" as const,
+  uri: "/preview/image/photo-portrait.jpg",
+  mimeType: "image/jpeg",
+};
+
+const PREVIEW_ALPHA_IMAGE_ASSET = {
+  id: "preview-image-alpha-v2",
+  kind: "image" as const,
+  uri: "/preview/image/img-alpha.png",
+  mimeType: "image/png",
+};
+
+const PREVIEW_SVG_IMAGE_ASSET = {
+  id: "preview-image-svg-v2",
+  kind: "image" as const,
+  uri: "/preview/svg/demo-svg-viewbox.svg",
+  mimeType: "image/svg+xml",
+  width: 160,
+  height: 180,
 };
 
 const PREVIEW_SNOW_ASSET = {
@@ -192,7 +215,19 @@ const PREVIEW_SNOW_ASSET = {
 
 function imageProject(
   id: string,
-  payload: { assetId: string; fit?: "contain" | "cover" | "fill" | "none"; crop?: { x: number; y: number; width: number; height: number } },
+  payload: {
+    assetId: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    preserveAspectRatio?: {
+      defer?: boolean;
+      align?: "none" | "xMinYMin" | "xMidYMin" | "xMaxYMin" | "xMinYMid" | "xMidYMid" | "xMaxYMid" | "xMinYMax" | "xMidYMax" | "xMaxYMax";
+      meetOrSlice?: "meet" | "slice";
+    };
+    imageRendering?: "auto" | "optimizeQuality" | "optimizeSpeed" | "smooth" | "high-quality" | "crisp-edges" | "pixelated";
+  },
   frame: { width: number; height: number },
   translate: { x: number; y: number },
   assets: NonNullable<MotionProtocolV2["assets"]> = [PREVIEW_IMAGE_ASSET],
@@ -216,24 +251,49 @@ function imageProject(
 }
 
 const IMAGE_CONTAIN_PROJECT = imageProject(
-  "preview-image-contain-v2",
-  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "contain" },
+  "preview-image-preserve-aspect-ratio-meet-v2",
+  { assetId: PREVIEW_IMAGE_ASSET.id, width: 480, height: 360, preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "meet" } },
   { width: 480, height: 360 },
   { x: 720, y: 360 },
 );
 
 const IMAGE_COVER_PROJECT = imageProject(
-  "preview-image-cover-v2",
-  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+  "preview-image-preserve-aspect-ratio-slice-v2",
+  { assetId: PREVIEW_PORTRAIT_IMAGE_ASSET.id, width: 480, height: 360, preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "slice" } },
   { width: 480, height: 360 },
   { x: 720, y: 360 },
+  [PREVIEW_PORTRAIT_IMAGE_ASSET],
 );
 
 const IMAGE_CROP_PROJECT = imageProject(
-  "preview-image-crop-v2",
-  { assetId: PREVIEW_IMAGE_ASSET.id, fit: "fill", crop: { x: 0.5, y: 0, width: 0.5, height: 1 } },
+  "preview-image-preserve-aspect-ratio-none-v2",
+  { assetId: PREVIEW_IMAGE_ASSET.id, width: 320, height: 240, preserveAspectRatio: { align: "none" } },
   { width: 320, height: 240 },
   { x: 800, y: 420 },
+);
+
+const IMAGE_ALIGNMENT_PROJECT = imageProject(
+  "preview-image-preserve-aspect-ratio-alignment-v2",
+  { assetId: PREVIEW_PORTRAIT_IMAGE_ASSET.id, width: 480, height: 360, preserveAspectRatio: { align: "xMinYMin", meetOrSlice: "meet" } },
+  { width: 480, height: 360 },
+  { x: 720, y: 360 },
+  [PREVIEW_PORTRAIT_IMAGE_ASSET],
+);
+
+const IMAGE_RENDERING_PROJECT = imageProject(
+  "preview-image-rendering-pixelated-v2",
+  { assetId: PREVIEW_ALPHA_IMAGE_ASSET.id, width: 320, height: 240, imageRendering: "pixelated" },
+  { width: 320, height: 240 },
+  { x: 800, y: 420 },
+  [PREVIEW_ALPHA_IMAGE_ASSET],
+);
+
+const IMAGE_SVG_PROJECT = imageProject(
+  "preview-image-nested-svg-v2",
+  { assetId: PREVIEW_SVG_IMAGE_ASSET.id, width: 320, height: 360, preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "meet" } },
+  { width: 320, height: 360 },
+  { x: 800, y: 360 },
+  [PREVIEW_SVG_IMAGE_ASSET],
 );
 
 const IMAGE_MISSING_ASSET_PROJECT = imageProject(
@@ -278,7 +338,7 @@ function imageBlendProject(
         opacity: 1,
         composite: { blendMode },
         timing: { start: 0, duration: 3 },
-        payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+        payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 640, 640),
       },
     ],
     ORTHOGRAPHIC_VIEW,
@@ -305,7 +365,7 @@ function imageStackBlendProject(
         transform: { ...IDENTITY_TRANSFORM, translate: { x: 520, y: 100, z: 0 } },
         opacity: 1,
         timing: { start: 0, duration: 3 },
-        payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+        payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 880, 880),
       },
       {
         id: `blend-stack-snow-${blendMode}`,
@@ -317,7 +377,7 @@ function imageStackBlendProject(
         opacity: 1,
         composite: { blendMode },
         timing: { start: 0, duration: 3 },
-        payload: { assetId: PREVIEW_SNOW_ASSET.id, fit: "cover" },
+        payload: imagePayload(PREVIEW_SNOW_ASSET.id, 880, 880),
       },
     ],
     ORTHOGRAPHIC_VIEW,
@@ -367,7 +427,7 @@ const CLIP_MASK_PROJECT = project(
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
       timing: { start: 0, duration: 3 },
-      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
     },
   ],
   ORTHOGRAPHIC_VIEW,
@@ -412,7 +472,7 @@ const ALPHA_MASK_PROJECT = project(
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
       timing: { start: 0, duration: 3 },
-      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
     },
   ],
   ORTHOGRAPHIC_VIEW,
@@ -457,7 +517,7 @@ const INVERSE_ALPHA_MASK_PROJECT = project(
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
       timing: { start: 0, duration: 3 },
-      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
     },
   ],
   ORTHOGRAPHIC_VIEW,
@@ -502,7 +562,7 @@ const LUMA_MASK_PROJECT = project(
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
       timing: { start: 0, duration: 3 },
-      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
     },
   ],
   ORTHOGRAPHIC_VIEW,
@@ -1298,7 +1358,7 @@ const NESTED_MASK_ISOLATION_PROJECT = project(
       transform: { ...IDENTITY_TRANSFORM, translate: { x: 480, y: 170, z: 0 } },
       opacity: 1,
       timing: { start: 0, duration: 3 },
-      payload: { assetId: PREVIEW_IMAGE_ASSET.id, fit: "cover" },
+      payload: imagePayload(PREVIEW_IMAGE_ASSET.id, 960, 740),
     },
   ],
   ORTHOGRAPHIC_VIEW,
@@ -2974,30 +3034,51 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
 }`,
   ),
   {
-    id: "image.fit.contain",
-    label: "Image / contain",
-    group: "Task 8 / Image",
-    hint: "A local 1:1 photo is contained inside a 4:3 frame, leaving deterministic side letterbox regions.",
+    id: "image.preserve-aspect-ratio.meet",
+    label: "Image / preserveAspectRatio meet",
+    group: "Layers / Image",
+    hint: "SVG preserveAspectRatio meet keeps the complete landscape image inside its viewport.",
     project: IMAGE_CONTAIN_PROJECT,
   },
   {
-    id: "image.fit.cover",
-    label: "Image / cover",
-    group: "Task 8 / Image",
-    hint: "The square photo covers the 4:3 frame and crops its vertical edges through the backend-neutral UV layout.",
+    id: "image.preserve-aspect-ratio.slice",
+    label: "Image / preserveAspectRatio slice",
+    group: "Layers / Image",
+    hint: "SVG preserveAspectRatio slice covers the viewport and clips overflow at its rectangular image viewport.",
     project: IMAGE_COVER_PROJECT,
   },
   {
-    id: "image.crop",
-    label: "Image / crop",
-    group: "Task 8 / Image",
-    hint: "A normalized crop selects the right half of the local photo through backend-neutral UV coordinates.",
+    id: "image.preserve-aspect-ratio.none",
+    label: "Image / preserveAspectRatio none",
+    group: "Layers / Image",
+    hint: "SVG preserveAspectRatio none stretches the complete source image to the viewport.",
     project: IMAGE_CROP_PROJECT,
+  },
+  {
+    id: "image.preserve-aspect-ratio.alignment",
+    label: "Image / preserveAspectRatio alignment",
+    group: "Layers / Image",
+    hint: "SVG preserveAspectRatio alignment uses xMinYMin, making the meet letterbox deterministic at the top-left.",
+    project: IMAGE_ALIGNMENT_PROJECT,
+  },
+  {
+    id: "image.image-rendering.pixelated",
+    label: "Image / image-rendering pixelated",
+    group: "Layers / Image",
+    hint: "The image-rendering presentation attribute selects a pixelated sampling policy for a transparent PNG.",
+    project: IMAGE_RENDERING_PROJECT,
+  },
+  {
+    id: "image.nested-svg",
+    label: "Image / nested SVG",
+    group: "Layers / Image",
+    hint: "An SVG resource used by an image layer keeps its own intrinsic viewport and preserveAspectRatio behavior.",
+    project: IMAGE_SVG_PROJECT,
   },
   {
     id: "image.missing-asset",
     label: "Image / missing asset",
-    group: "Task 8 / Image",
+    group: "Layers / Image",
     hint: "An unresolved asset remains a valid V2 command and reports a deterministic missing-asset diagnostic.",
     project: IMAGE_MISSING_ASSET_PROJECT,
   },
@@ -3896,6 +3977,15 @@ export function previewLabCaseById(
     cases.find((item) => item.id === defaultCase) ??
     cases[0]
   );
+}
+
+function imagePayload(
+  assetId: string,
+  width: number,
+  height: number,
+  preserveAspectRatio = { align: "xMidYMid" as const, meetOrSlice: "slice" as const },
+) {
+  return { assetId, width, height, preserveAspectRatio };
 }
 
 export function previewLabGroups(variant: "json" | "html-compiler" = "json"): Array<{

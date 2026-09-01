@@ -273,7 +273,7 @@ Examples:
 ```text
 shape.rectangle.fill
 shape.rectangle.gradient
-image.crop
+image.preserveAspectRatio
 video.trim
 text.font
 path.morph

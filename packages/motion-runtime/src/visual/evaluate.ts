@@ -280,10 +280,12 @@ export function evaluateVisualRuntimeProject(
         layerId: node.id,
         assetId: content.assetId,
         ...(content.uri ? { uri: content.uri } : {}),
+        x: content.x,
+        y: content.y,
         width: content.width,
         height: content.height,
-        ...(content.fit ? { fit: content.fit } : {}),
-        ...(content.crop ? { crop: content.crop } : {}),
+        ...(content.preserveAspectRatio ? { preserveAspectRatio: content.preserveAspectRatio } : {}),
+        ...(content.imageRendering ? { imageRendering: content.imageRendering } : {}),
       });
     } else if (content.kind === "video") {
       const media = resolveVideoMedia(content, Math.max(0, time - node.timing.start));

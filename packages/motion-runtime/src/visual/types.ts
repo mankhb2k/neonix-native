@@ -11,7 +11,6 @@ import type {
   PathStrokeJoin,
   PathStrokeMesh,
   RenderMediaFit,
-  RenderNormalizedRect,
   RuntimeEffect,
 } from "../paint/paint-types";
 
@@ -107,10 +106,12 @@ export type VisualRuntimeImage = {
   kind: "image";
   assetId: string;
   uri?: string;
+  x: number;
+  y: number;
   width: number;
   height: number;
-  fit?: RenderMediaFit;
-  crop?: RenderNormalizedRect;
+  preserveAspectRatio?: import("../paint/paint-types").RenderImagePreserveAspectRatio;
+  imageRendering?: import("../paint/paint-types").RenderImageRendering;
   effects?: RuntimeEffect[];
 };
 

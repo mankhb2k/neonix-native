@@ -340,15 +340,30 @@ function compileVisualRuntimeInternal(
         "image.opacity",
         "image.order",
         "image.asset",
-        "image.fit",
-        "image.crop",
+        "image.viewport",
+        "image.preserveAspectRatio",
+        "image.imageRendering",
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
       }
       const asset = project.assets?.find((candidate) => candidate.id === layer.payload.assetId);
+      if (asset && asset.kind !== "image") {
+        throw new Error(`Protocol V2 image layer ${layer.id} references a non-image asset`);
+      }
       const effects = lowerEffects(layer.effects);
+      const imageAsset = asset?.kind === "image" ? asset : undefined;
+      const intrinsicWidth = imageAsset?.width ?? layer.frame.width;
+      const intrinsicHeight = imageAsset?.height ?? layer.frame.height;
+      const width = layer.payload.width
+        ?? (layer.payload.height !== undefined && imageAsset?.width && imageAsset.height
+          ? layer.payload.height * imageAsset.width / imageAsset.height
+          : intrinsicWidth);
+      const height = layer.payload.height
+        ?? (layer.payload.width !== undefined && imageAsset?.width && imageAsset.height
+          ? layer.payload.width * imageAsset.height / imageAsset.width
+          : intrinsicHeight);
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -364,10 +379,12 @@ function compileVisualRuntimeInternal(
           kind: "image" as const,
           assetId: layer.payload.assetId,
           ...(asset?.uri ? { uri: asset.uri } : {}),
-          width: layer.frame.width,
-          height: layer.frame.height,
-          ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
-          ...(layer.payload.crop ? { crop: layer.payload.crop } : {}),
+          x: layer.payload.x ?? 0,
+          y: layer.payload.y ?? 0,
+          width,
+          height,
+          ...(layer.payload.preserveAspectRatio ? { preserveAspectRatio: layer.payload.preserveAspectRatio } : {}),
+          ...(layer.payload.imageRendering ? { imageRendering: layer.payload.imageRendering } : {}),
           ...(effects ? { effects } : {}),
         },
       };

@@ -167,7 +167,7 @@ function imageLayer(input: { id: string; order: number; assetId: string; start: 
     transform: transform(input.x, input.y, input.width, input.height),
     opacity: input.opacity ?? 1,
     timing: { start: input.start, duration: input.duration },
-    payload: { assetId: input.assetId, fit: "cover" as const },
+    payload: { assetId: input.assetId, width: input.width, height: input.height, preserveAspectRatio: { align: "xMidYMid" as const, meetOrSlice: "slice" as const } },
   };
 }
 

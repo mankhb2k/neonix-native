@@ -666,7 +666,8 @@ export function SchemaInspector() {
       {selected.type === "image" ? (
         <InspectorSection label="Media" open={openSections.media ?? false} onToggle={() => toggle("media")}>
           <ReadonlyField label="Asset" value={document.assets.find((asset) => asset.id === selected.payload.assetId)?.uri ?? selected.payload.assetId} />
-          <InspectorSelect label="Fit" value={selected.payload.fit ?? "contain"} options={[{ value: "contain", label: "Contain" }, { value: "cover", label: "Cover" }, { value: "fill", label: "Fill" }, { value: "none", label: "None" }]} onChange={(value) => patchLayer({ payload: { fit: value as "contain" | "cover" | "fill" | "none" } })} />
+          <InspectorSelect label="Alignment" value={selected.payload.preserveAspectRatio?.align ?? "xMidYMid"} options={[{ value: "none", label: "None" }, { value: "xMinYMin", label: "Top left" }, { value: "xMidYMid", label: "Center" }, { value: "xMaxYMax", label: "Bottom right" }]} onChange={(value) => patchLayer({ payload: { preserveAspectRatio: { ...selected.payload.preserveAspectRatio, align: value as "none" | "xMinYMin" | "xMidYMid" | "xMaxYMax" } } })} />
+          <InspectorSelect label="Aspect mode" value={selected.payload.preserveAspectRatio?.meetOrSlice ?? "meet"} options={[{ value: "meet", label: "Meet" }, { value: "slice", label: "Slice" }]} onChange={(value) => patchLayer({ payload: { preserveAspectRatio: { ...selected.payload.preserveAspectRatio, meetOrSlice: value as "meet" | "slice" } } })} />
         </InspectorSection>
       ) : null}
 

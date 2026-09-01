@@ -174,7 +174,7 @@ Patterns, presets, templates, and components may be useful high-level concepts. 
 | Shape | Rectangle, ellipse, and other certified primitives |
 | Path | Contours, fill rules, stroke, and morphable geometry |
 | Text | Content, font reference, layout frame, and glyph intent |
-| Image | Asset reference and fit/crop behavior |
+| Image | SVG image viewport, preserveAspectRatio, and rendering behavior |
 | Video | Asset reference and deterministic frame selection |
 | Frame | Local width and height |
 | Transform | Matrix4 inputs such as translate, rotate, scale, anchor, skew |
