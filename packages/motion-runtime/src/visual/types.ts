@@ -171,6 +171,8 @@ export type VisualRuntimeGroup = {
   kind: "group";
   width: number;
   height: number;
+  /** Runtime-lowered SVG filter/effect list for the complete subtree. */
+  effects?: RuntimeEffect[];
   /** Runtime marker for CSS transform-style/perspective subtree handling. */
   render3d?: {
     transformStyle: "flat" | "preserve-3d";
@@ -187,6 +189,8 @@ export type VisualRuntimeNode = {
   opacity: number;
   /** Omitted only for older in-memory Runtime test fixtures; Compiler V2 emits it. */
   blendMode?: VisualRuntimeBlendMode;
+  /** SVG/CSS isolation semantic preserved through the compiler boundary. */
+  isolation?: "auto" | "isolate";
   /** Compiler-preserved CSS backface-visibility state. */
   backfaceVisibility?: "visible" | "hidden";
   mask?: VisualRuntimeMask;

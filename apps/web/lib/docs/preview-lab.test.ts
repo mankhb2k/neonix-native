@@ -129,7 +129,13 @@ describe("Protocol V2 preview lab fixtures", () => {
       "path.stroke-dash-offset",
       "path.effects",
       "path.morph",
+      "group.basic",
       "group.parent-transform",
+      "group.nested-transform",
+      "group.explicit-isolation",
+      "group.disabled",
+      "group.timing",
+      "group.effects",
       "group.isolation.opacity",
       "group.isolation.nested",
       "composite.mask.nested",
@@ -449,6 +455,51 @@ describe("Protocol V2 preview lab fixtures", () => {
       { op: "endLayer", key: "nested-inner-group" },
       { op: "endLayer", key: "nested-outer-group" },
     ]);
+  });
+
+  it("lowers a basic group as a balanced hierarchy scope", () => {
+    const fixture = previewLabCaseById("group.basic");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(buffer.commands).toContainEqual({ op: "beginGroup", key: "basic-group", layerId: "basic-group" });
+    expect(buffer.commands).toContainEqual({ op: "endGroup", key: "basic-group" });
+    expect(buffer.commands.filter((command) => command.op === "drawPath")).toHaveLength(2);
+  });
+
+  it("preserves explicit SVG isolation even at full opacity", () => {
+    const fixture = previewLabCaseById("group.explicit-isolation");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(buffer.commands).toContainEqual(expect.objectContaining({
+      op: "beginLayer",
+      key: "explicit-isolation-group",
+      isolation: true,
+      offscreen: true,
+      compositeAlpha: 1,
+    }));
+  });
+
+  it("keeps disabled group descendants semantic but emits no paint", () => {
+    const fixture = previewLabCaseById("group.disabled");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(buffer.commands.some((command) => command.key === "disabled-group-leaf")).toBe(false);
+    expect(fixture.project.layers).toHaveLength(2);
+  });
+
+  it("intersects group timing with descendant timing", () => {
+    const fixture = previewLabCaseById("group.timing");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 1 });
+    expect(buffer.commands.some((command) => command.key === "timed-group-leaf")).toBe(true);
+    expect(buffer.commands.some((command) => command.key === "timed-group")).toBe(true);
+  });
+
+  it("lowers effects attached to the complete group subtree", () => {
+    const fixture = previewLabCaseById("group.effects");
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(buffer.commands).toContainEqual(expect.objectContaining({
+      op: "beginLayer",
+      key: "effect-group",
+      effectProgram: expect.objectContaining({ requiresOffscreen: true }),
+      offscreen: true,
+    }));
   });
 
   it("embeds a mask group inside an outer isolation scope", () => {

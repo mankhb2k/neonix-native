@@ -387,6 +387,14 @@ export function validateVisualRuntimeProject(
         nodeId: node.id,
       });
     }
+    if (node.isolation !== undefined && !["auto", "isolate"].includes(node.isolation)) {
+      diagnostics.push({
+        severity: "error",
+        code: "runtime_v2_isolation",
+        message: "Runtime V2 isolation must be auto or isolate",
+        nodeId: node.id,
+      });
+    }
     if (node.mask !== undefined) {
       const source = nodeById.get(node.mask.sourceId);
       if (

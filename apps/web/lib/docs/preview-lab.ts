@@ -1310,6 +1310,185 @@ const NESTED_ISOLATION_PROJECT = project(
   ORTHOGRAPHIC_VIEW,
 );
 
+const GROUP_BASIC_PROJECT = project(
+  "preview-group-basic-v2",
+  [
+    {
+      id: "basic-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "basic-group-back",
+        order: 1,
+        frame: { width: 360, height: 240 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 680, y: 390, z: 0 } },
+        fill: "#00aa88",
+      }),
+      parentLayerId: "basic-group",
+    },
+    {
+      ...rectangle({
+        id: "basic-group-front",
+        order: 2,
+        frame: { width: 220, height: 160 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 850, y: 500, z: 0 } },
+        fill: "#ff3366",
+      }),
+      parentLayerId: "basic-group",
+    },
+  ],
+);
+
+const GROUP_NESTED_TRANSFORM_PROJECT = project(
+  "preview-group-nested-transform-v2",
+  [
+    {
+      id: "transform-outer-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 440, y: 250, z: 0 }, rotate: { x: 0, y: 0, z: -8 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      id: "transform-inner-group",
+      type: "group",
+      parentLayerId: "transform-outer-group",
+      order: 1,
+      frame: { width: 720, height: 520 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 120, z: 0 }, rotate: { x: 0, y: 0, z: 16 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "transform-nested-leaf",
+        order: 2,
+        frame: { width: 360, height: 240 },
+        fill: "#38bdf8",
+      }),
+      parentLayerId: "transform-inner-group",
+    },
+  ],
+);
+
+const GROUP_EXPLICIT_ISOLATION_PROJECT = project(
+  "preview-group-explicit-isolation-v2",
+  [
+    {
+      id: "explicit-isolation-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      composite: { blendMode: "normal", isolation: "isolate" },
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "explicit-isolation-leaf",
+        order: 1,
+        frame: { width: 420, height: 280 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 400, z: 0 } },
+        fill: "#f97316",
+      }),
+      parentLayerId: "explicit-isolation-group",
+    },
+  ],
+);
+
+const GROUP_DISABLED_PROJECT = project(
+  "preview-group-disabled-v2",
+  [
+    {
+      id: "disabled-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      enabled: false,
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "disabled-group-leaf",
+        order: 1,
+        frame: { width: 420, height: 280 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 400, z: 0 } },
+        fill: "#ef4444",
+      }),
+      parentLayerId: "disabled-group",
+    },
+  ],
+);
+
+const GROUP_TIMING_PROJECT = project(
+  "preview-group-timing-v2",
+  [
+    {
+      id: "timed-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      timing: { start: 0.5, duration: 1 },
+    },
+    {
+      ...rectangle({
+        id: "timed-group-leaf",
+        order: 1,
+        frame: { width: 420, height: 280 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 400, z: 0 } },
+        fill: "#a855f7",
+        timing: { start: 0, duration: 3 },
+      }),
+      parentLayerId: "timed-group",
+    },
+  ],
+);
+
+const GROUP_EFFECT_PROJECT = project(
+  "preview-group-effect-v2",
+  [
+    {
+      id: "effect-group",
+      type: "group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1920, height: 1080 },
+      transform: IDENTITY_TRANSFORM,
+      opacity: 1,
+      effects: [{ id: "group-soften", type: "blur", radius: 18 }],
+      timing: { start: 0, duration: 3 },
+    },
+    {
+      ...rectangle({
+        id: "effect-group-leaf",
+        order: 1,
+        frame: { width: 420, height: 280 },
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 400, z: 0 } },
+        fill: "#14b8a6",
+      }),
+      parentLayerId: "effect-group",
+    },
+  ],
+);
+
 const NESTED_MASK_ISOLATION_PROJECT = project(
   "preview-nested-mask-isolation-v2",
   [
@@ -3335,23 +3514,66 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
   { id: "path.effects", label: "Path / effects", group: "Layers / Path", hint: "A path carrying the optional effects list.", project: PATH_STROKE_PROJECT },
   { id: "path.morph", label: "Path / morph", group: "Layers / Path", hint: "Matching contour topology is interpolated at progress 0.5.", project: PATH_MORPH_PROJECT },
   {
+    id: "group.basic",
+    label: "Group / basic subtree",
+    group: "Layers / Group",
+    hint: "A semantic SVG group preserves child order while the runtime emits one hierarchy scope.",
+    project: GROUP_BASIC_PROJECT,
+  },
+  {
     id: "group.parent-transform",
     label: "Group / parent transform",
-    group: "Task 7 / Group and Parent Transform",
+    group: "Layers / Group",
     hint: "A non-rendering Group inherits Matrix4 translation, X/Y rotation, opacity, timing, and child ordering into two rectangle leaves.",
     project: GROUP_PARENT_TRANSFORM_PROJECT,
   },
   {
+    id: "group.nested-transform",
+    label: "Group / nested transform",
+    group: "Layers / Group",
+    hint: "Nested SVG groups compose local transforms into one world transform at the runtime boundary.",
+    project: GROUP_NESTED_TRANSFORM_PROJECT,
+  },
+  {
+    id: "group.explicit-isolation",
+    label: "Group / explicit isolation",
+    group: "Layers / Group",
+    hint: "The SVG isolation semantic creates an offscreen group surface even when group opacity is 1.",
+    project: GROUP_EXPLICIT_ISOLATION_PROJECT,
+  },
+  {
+    id: "group.disabled",
+    label: "Group / disabled",
+    group: "Layers / Group",
+    hint: "A disabled group suppresses its complete subtree without removing semantic child nodes.",
+    project: GROUP_DISABLED_PROJECT,
+  },
+  {
+    id: "group.timing",
+    label: "Group / timing window",
+    group: "Layers / Group",
+    hint: "The compiler intersects a group's active window with every descendant timing window.",
+    project: GROUP_TIMING_PROJECT,
+    previewTime: 1,
+  },
+  {
+    id: "group.effects",
+    label: "Group / subtree effect",
+    group: "Layers / Group",
+    hint: "An SVG-like effect is applied after the complete group subtree has been rendered to a surface.",
+    project: GROUP_EFFECT_PROJECT,
+  },
+  {
     id: "group.isolation.opacity",
     label: "Group / isolated opacity",
-    group: "Task 12 / Isolation boundary",
+    group: "Compositing",
     hint: "Two opaque children are flattened after Matrix4 projection; the front-only and overlap pixels receive the group opacity exactly once.",
     project: GROUP_ISOLATION_OPACITY_PROJECT,
   },
   {
     id: "group.isolation.nested",
     label: "Group / nested isolation",
-    group: "Task 12 / Nested masks and isolation",
+    group: "Compositing",
     hint: "Two isolated group surfaces are composited from the inner opacity boundary to the outer opacity boundary.",
     project: NESTED_ISOLATION_PROJECT,
   },
@@ -3982,7 +4204,7 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("group.isolation.")) {
     return "Compositing";
   }
-  if (item.id === "group.parent-transform") return "Layers / Group";
+  if (item.id.startsWith("group.") && !item.id.startsWith("group.isolation.")) return "Layers / Group";
   if (item.id.startsWith("group.")) return "Compositing";
   if (item.id.startsWith("path.")) return "Layers / Path";
   if (item.id.startsWith("image.")) return "Layers / Image";

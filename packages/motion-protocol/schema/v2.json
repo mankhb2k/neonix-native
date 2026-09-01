@@ -1292,88 +1292,6 @@
                     "type": "string",
                     "const": "group"
                   },
-                  "render3d": {
-                    "type": "object",
-                    "properties": {
-                      "transformStyle": {
-                        "type": "string",
-                        "enum": [
-                          "flat",
-                          "preserve-3d"
-                        ],
-                        "default": "flat"
-                      },
-                      "perspective": {
-                        "type": "object",
-                        "properties": {
-                          "distance": {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                          },
-                          "origin": {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
-                          }
-                        },
-                        "required": [
-                          "distance",
-                          "origin"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                },
-                "required": [
-                  "id",
-                  "parentLayerId",
-                  "order",
-                  "frame",
-                  "transform",
-                  "timing",
-                  "type"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                  },
-                  "parentLayerId": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
-                  },
-                  "order": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
-                  },
-                  "frame": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
-                  },
-                  "transform": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform"
-                  },
-                  "opacity": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
-                  },
-                  "enabled": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
-                  },
-                  "backfaceVisibility": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
-                  },
-                  "composite": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
-                  },
-                  "timing": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing"
-                  },
-                  "tracks": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/tracks"
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "image"
-                  },
                   "effects": {
                     "type": "array",
                     "items": {
@@ -1587,7 +1505,7 @@
                                   "$ref": "#/definitions/MotionProtocolV2/properties/id"
                                 },
                                 "type": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects/items/anyOf/6/anyOf/0/properties/type"
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects/items/anyOf/6/anyOf/0/properties/type"
                                 },
                                 "source": {
                                   "type": "string",
@@ -1597,7 +1515,7 @@
                                   "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
                                 },
                                 "blur": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects/items/anyOf/6/anyOf/0/properties/blur"
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects/items/anyOf/6/anyOf/0/properties/blur"
                                 },
                                 "spread": {
                                   "type": "number",
@@ -1736,6 +1654,91 @@
                     },
                     "maxItems": 8
                   },
+                  "render3d": {
+                    "type": "object",
+                    "properties": {
+                      "transformStyle": {
+                        "type": "string",
+                        "enum": [
+                          "flat",
+                          "preserve-3d"
+                        ],
+                        "default": "flat"
+                      },
+                      "perspective": {
+                        "type": "object",
+                        "properties": {
+                          "distance": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                          },
+                          "origin": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform/properties/skew"
+                          }
+                        },
+                        "required": [
+                          "distance",
+                          "origin"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "parentLayerId",
+                  "order",
+                  "frame",
+                  "transform",
+                  "timing",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "parentLayerId": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/parentLayerId"
+                  },
+                  "order": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/order"
+                  },
+                  "frame": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/frame"
+                  },
+                  "transform": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/transform"
+                  },
+                  "opacity": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "enabled": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
+                  },
+                  "backfaceVisibility": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/backfaceVisibility"
+                  },
+                  "composite": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
+                  },
+                  "timing": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/timing"
+                  },
+                  "tracks": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/tracks"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "image"
+                  },
+                  "effects": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
+                  },
                   "payload": {
                     "type": "object",
                     "properties": {
@@ -1857,7 +1860,7 @@
                     "const": "shape"
                   },
                   "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
                   },
                   "payload": {
                     "type": "object",
@@ -2874,7 +2877,7 @@
                     "const": "text"
                   },
                   "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
                   },
                   "payload": {
                     "type": "object",
@@ -3074,7 +3077,7 @@
                     "const": "path"
                   },
                   "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
                   },
                   "payload": {
                     "type": "object",
@@ -3243,7 +3246,7 @@
                     "const": "video"
                   },
                   "effects": {
-                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/1/properties/effects"
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/effects"
                   },
                   "payload": {
                     "type": "object",

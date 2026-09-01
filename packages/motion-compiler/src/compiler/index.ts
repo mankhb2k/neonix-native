@@ -299,12 +299,16 @@ function compileVisualRuntimeInternal(
       }
     }
     const blendMode = lowerBlendMode(layer);
+    const isolation = layer.composite?.isolation;
+    const groupEffects = layer.type === "group" ? lowerEffects(layer.effects) : undefined;
     if (layer.type === "group") {
       for (const capability of [
         "group.transform",
         "group.timing",
         "group.opacity",
         "group.order",
+        ...(layer.effects ? ["group.effects"] : []),
+        ...(isolation ? ["group.isolation"] : []),
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
@@ -319,6 +323,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        ...(isolation ? { isolation } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         ...(mask ? { mask } : {}),
         visible: context.visible,
@@ -328,6 +333,7 @@ function compileVisualRuntimeInternal(
           kind: "group",
           width: layer.frame.width,
           height: layer.frame.height,
+          ...(groupEffects ? { effects: groupEffects } : {}),
           ...(layer.render3d ? { render3d: layer.render3d } : {}),
         },
       };
@@ -371,6 +377,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        ...(isolation ? { isolation } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -419,6 +426,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        ...(isolation ? { isolation } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -479,6 +487,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        ...(isolation ? { isolation } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -588,6 +597,7 @@ function compileVisualRuntimeInternal(
         timing: context.timing,
         opacity: context.opacity,
         blendMode,
+        ...(isolation ? { isolation } : {}),
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -713,6 +723,7 @@ function compileVisualRuntimeInternal(
       timing: context.timing,
       opacity: context.opacity,
       blendMode,
+      ...(isolation ? { isolation } : {}),
       backfaceVisibility: layer.backfaceVisibility,
       visible: context.visible,
       localMatrix: context.localMatrix,

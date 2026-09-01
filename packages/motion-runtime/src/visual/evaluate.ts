@@ -127,7 +127,7 @@ export function evaluateVisualRuntimeProject(
     stableNodeOrder(childrenByParent.get(parentId) ?? []);
   const subtreeHasEffects = (node: VisualRuntimeNode): boolean => {
     if (node.content.kind !== "group") return (node.content.effects?.length ?? 0) > 0;
-    return childrenOf(node.id).some(subtreeHasEffects);
+    return (node.content.effects?.length ?? 0) > 0 || childrenOf(node.id).some(subtreeHasEffects);
   };
   const subtreeHasActiveDrawable = (node: VisualRuntimeNode): boolean => {
     if (!nodeIsActive(node, time)) return false;
@@ -343,11 +343,16 @@ export function evaluateVisualRuntimeProject(
       return;
     }
     if (!subtreeHasActiveDrawable(node)) return;
-    const needsIsolation = node.opacity < 1 || node.mask !== undefined;
+    const effectProgram = buildRuntimeEffectProgram(node.content.effects);
+    const needsIsolation =
+      node.opacity < 1 ||
+      node.mask !== undefined ||
+      node.isolation === "isolate" ||
+      effectProgram !== undefined;
     if ((node.blendMode ?? "normal") !== "normal") {
       throw new Error(`Runtime V2 group blend modes are not certified yet: ${node.id}`);
     }
-    if (needsIsolation && subtreeHasEffects(node)) {
+    if (needsIsolation && !effectProgram && childrenOf(node.id).some(subtreeHasEffects)) {
       throw new Error(`Runtime V2 cannot place effects inside an isolated group yet: ${node.id}`);
     }
     if (needsIsolation) {
@@ -358,6 +363,7 @@ export function evaluateVisualRuntimeProject(
         isolation: true,
         offscreen: true,
         compositeAlpha: node.opacity,
+        ...(effectProgram ? { effectProgram } : {}),
         ...(node.mask
           ? {
               mask: {

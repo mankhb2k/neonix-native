@@ -4,6 +4,8 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "group.timing",
   "group.opacity",
   "group.order",
+  "group.effects",
+  "group.isolation",
   "layer.enabled",
   "layer.backfaceVisibility",
   "group.render3d.transformStyle",

@@ -176,11 +176,11 @@ export function validatePaintCommandBuffer(
               });
             }
           }
-          if (cmd.offscreen !== cmd.effectProgram.requiresOffscreen) {
+          if (cmd.effectProgram.requiresOffscreen && !cmd.offscreen) {
             issues.push({
               severity: "error",
               code: "effect_program_offscreen_mismatch",
-              message: `Layer "${cmd.key}" offscreen must match effectProgram.requiresOffscreen`,
+              message: `Layer "${cmd.key}" must use an offscreen target for its effectProgram`,
               key: cmd.key,
             });
           }
