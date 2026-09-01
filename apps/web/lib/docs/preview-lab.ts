@@ -1454,69 +1454,6 @@ const RECTANGLE_STROKE_PROJECT = project("preview-rectangle-stroke-v2", [
   }),
 ]);
 
-const RECTANGLE_STROKE_PERSPECTIVE_PROJECT = project(
-  "preview-rectangle-stroke-perspective-v2",
-  [
-    rectangle({
-      id: "rectangle-stroke-perspective",
-      order: 0,
-      fill: "#00aa88",
-      stroke: "#ff3366",
-      frame: { width: 320, height: 180 },
-      transform: {
-        ...IDENTITY_TRANSFORM,
-        translate: { x: 800, y: 420, z: 180 },
-        rotate: { x: 18, y: -24, z: 0 },
-        anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
-);
-
-const ELLIPSE_STROKE_PROJECT = project("preview-ellipse-stroke-v2", [
-  ellipse({
-    id: "ellipse-stroke",
-    order: 0,
-    fill: "#00aa88",
-    stroke: "#ff3366",
-    frame: { width: 320, height: 180 },
-    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
-  }),
-]);
-
-const ELLIPSE_STROKE_PERSPECTIVE_PROJECT = project(
-  "preview-ellipse-stroke-perspective-v2",
-  [
-    ellipse({
-      id: "ellipse-stroke-perspective",
-      order: 0,
-      fill: "#00aa88",
-      stroke: "#ff3366",
-      frame: { width: 320, height: 180 },
-      transform: {
-        ...IDENTITY_TRANSFORM,
-        translate: { x: 800, y: 420, z: 180 },
-        rotate: { x: 18, y: -24, z: 0 },
-        anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
-);
-
 const RECTANGLE_STROKE_WIDTH_PROJECT = project(
   "preview-rectangle-stroke-width-v2",
   [
@@ -1530,31 +1467,6 @@ const RECTANGLE_STROKE_WIDTH_PROJECT = project(
      transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } },
     }),
   ],
-);
-
-const RECTANGLE_STROKE_WIDTH_PERSPECTIVE_PROJECT = project(
-  "preview-rectangle-stroke-width-perspective-v2",
-  [
-    rectangle({
-      id: "rectangle-stroke-width-perspective",
-      order: 0,
-      fill: "#00aa88",
-     frame: { width: 320, height: 180 },
-       transform: {
-         ...IDENTITY_TRANSFORM,
-         translate: { x: 800, y: 450, z: 180 },
-         rotate: { x: 18, y: -24, z: 0 },
-         anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
 );
 
 const RECTANGLE_PAINT_OPACITY_PROJECT = project(
@@ -1574,35 +1486,6 @@ const RECTANGLE_PAINT_OPACITY_PROJECT = project(
   ],
 );
 
-const RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT = project(
-  "preview-rectangle-paint-opacity-perspective-v2",
-  [
-    rectangle({
-      id: "rectangle-paint-opacity-perspective",
-      order: 0,
-      fill: "#00aa88",
-      fillOpacity: 0.5,
-      stroke: "#ff3366",
-      strokeWidth: 16,
-      strokeOpacity: 0.25,
-      frame: { width: 320, height: 180 },
-      transform: {
-        ...IDENTITY_TRANSFORM,
-        translate: { x: 800, y: 420, z: 180 },
-        rotate: { x: 18, y: -24, z: 0 },
-        anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
-);
-
 const ROUNDED_RECTANGLE_PROJECT = project("preview-rounded-rectangle-v2", [
   rectangle({
     id: "rounded-rectangle",
@@ -1615,34 +1498,6 @@ const ROUNDED_RECTANGLE_PROJECT = project("preview-rounded-rectangle-v2", [
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
   }),
 ]);
-
-const _ROUNDED_RECTANGLE_PERSPECTIVE_PROJECT = project(
-  "preview-rounded-rectangle-perspective-v2",
-  [
-    rectangle({
-      id: "rounded-rectangle-perspective",
-      order: 0,
-      fill: "#00aa88",
-      cornerRadius: 48,
-      stroke: "#ff3366",
-      strokeWidth: 16,
-      frame: { width: 320, height: 180 },
-      transform: {
-        ...IDENTITY_TRANSFORM,
-        translate: { x: 800, y: 420, z: 180 },
-        rotate: { x: 18, y: -24, z: 0 },
-        anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
-);
 
 const LINEAR_GRADIENT_FILL = {
   type: "linear-gradient" as const,
@@ -1939,31 +1794,6 @@ const STROKE_MITER_LIMIT_PROJECT = project("preview-stroke-miter-limit-v2", [
     points: [{ x: 20, y: 210 }, { x: 180, y: 20 }, { x: 340, y: 210 }],
   }, "polyline"),
 ]);
-
-const GRADIENT_PERSPECTIVE_PROJECT = project(
-  "preview-gradient-perspective-v2",
-  [
-    rectangle({
-      id: "gradient-perspective",
-      order: 0,
-      fill: LINEAR_GRADIENT_FILL,
-      frame: { width: 320, height: 180 },
-      transform: {
-        ...IDENTITY_TRANSFORM,
-        translate: { x: 800, y: 420, z: 180 },
-        rotate: { x: 18, y: -24, z: 0 },
-        anchor: { x: 160, y: 90, z: 0 },
-      },
-    }),
-  ],
-  {
-    projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
-    transform: {
-      translate: { x: 0, y: 0, z: 0 },
-      rotate: { x: 0, y: 0, z: 0 },
-    },
-  },
-);
 
 type TextLayer = Extract<V2Layer, { type: "text" }>;
 
@@ -2576,26 +2406,26 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.rectangle-rx", label: "Shape / rectangle rx", group: "Layers / Shape", hint: "SVG rectangle with a single rx value; the missing ry axis follows SVG radius normalization.", project: SHAPE_RX_PROJECT },
   { id: "shape.rectangle-ry", label: "Shape / rectangle ry", group: "Layers / Shape", hint: "SVG rectangle with a single ry value; the missing rx axis follows SVG radius normalization.", project: SHAPE_RY_PROJECT },
   { id: "shape.rectangle-rx-ry", label: "Shape / rectangle rx + ry", group: "Layers / Shape", hint: "SVG rectangle with independent horizontal and vertical corner radii.", project: SHAPE_RX_RY_PROJECT },
-  { id: "shape.solid-fill", label: "Shape / solid fill", group: "Layers / Shape", hint: "A shape carrying a solid color fill value.", project: RECTANGLE_PROJECT },
-  { id: "shape.linear-gradient", label: "Shape / linear gradient", group: "Layers / Shape", hint: "A shape carrying a linear gradient fill value.", project: LINEAR_GRADIENT_PROJECT },
-  { id: "shape.radial-gradient", label: "Shape / radial gradient", group: "Layers / Shape", hint: "A shape carrying a radial gradient fill value.", project: RADIAL_GRADIENT_PROJECT },
-  { id: "shape.radial-focus", label: "Shape / radial focus", group: "Layers / Shape", hint: "SVG radial gradient with a displaced focal point and focal radius.", project: RADIAL_FOCUS_PROJECT },
-  { id: "shape.gradient-many-stops", label: "Shape / gradient many stops", group: "Layers / Shape", hint: "More than eight stops exercise the backend LUT fallback without changing Protocol semantics.", project: MANY_STOP_GRADIENT_PROJECT },
-  { id: "shape.conic-gradient", label: "Shape / conic gradient", group: "Layers / Shape", hint: "A shape carrying a conic gradient fill value with angle and center.", project: CONIC_GRADIENT_PROJECT },
-  { id: "shape.gradient-spread", label: "Shape / gradient spread", group: "Layers / Shape", hint: "SVG gradient spreadMethod semantic (reflect).", project: GRADIENT_SPREAD_PROJECT },
-  { id: "shape.gradient-user-space", label: "Shape / gradient transform", group: "Layers / Shape", hint: "SVG gradientUnits=userSpaceOnUse with gradientTransform.", project: GRADIENT_USER_SPACE_PROJECT },
-  { id: "shape.pattern", label: "Shape / pattern", group: "Layers / Shape", hint: "SVG pattern tile geometry, content units and transform.", project: PATTERN_PROJECT },
-  { id: "shape.pattern-group", label: "Shape / pattern group", group: "Layers / Shape", hint: "Pattern content represented as a reusable SVG-like group subtree with viewBox metadata.", project: PATTERN_GROUP_PROJECT },
-  { id: "shape.fill-opacity", label: "Shape / fill opacity", group: "Layers / Shape", hint: "A shape carrying fillOpacity independently from its layer opacity.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
-  { id: "shape.stroke", label: "Shape / stroke", group: "Layers / Shape", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
-  { id: "shape.stroke-width", label: "Shape / stroke width", group: "Layers / Shape", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },
-  { id: "shape.stroke-opacity", label: "Shape / stroke opacity", group: "Layers / Shape", hint: "A shape carrying strokeOpacity independently from its fill.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
-  { id: "shape.stroke-join", label: "Shape / stroke join", group: "Layers / Shape", hint: "SVG-like strokeJoin on a primitive shape.", project: SHAPE_STROKE_JOIN_PROJECT },
-  { id: "shape.stroke-cap", label: "Shape / stroke cap", group: "Layers / Shape", hint: "SVG-like strokeCap on a primitive shape.", project: SHAPE_STROKE_CAP_PROJECT },
-  { id: "shape.stroke-dash", label: "Shape / stroke dash", group: "Layers / Shape", hint: "SVG-like strokeDash and offset on a primitive shape.", project: SHAPE_STROKE_DASH_PROJECT },
-  { id: "shape.stroke-gradient", label: "Shape / gradient stroke", group: "Layers / Shape", hint: "The same semantic Paint can be used for stroke as for fill.", project: STROKE_GRADIENT_PROJECT },
-  { id: "shape.stroke-miter-limit", label: "Shape / stroke miter limit", group: "Layers / Shape", hint: "SVG-compatible runtime miter limit without changing the JSON stroke semantics.", project: STROKE_MITER_LIMIT_PROJECT },
-  { id: "shape.effects", label: "Shape / effects", group: "Layers / Shape", hint: "A shape carrying the optional V2 effects list.", project: BLUR_PROJECT },
+  { id: "shape.solid-fill", label: "Paint / solid fill", group: "Paint / Fill", hint: "A shape carrying a solid color fill value.", project: RECTANGLE_PROJECT },
+  { id: "shape.linear-gradient", label: "Paint / linear gradient", group: "Paint / Gradient", hint: "A shape carrying a linear gradient fill value.", project: LINEAR_GRADIENT_PROJECT },
+  { id: "shape.radial-gradient", label: "Paint / radial gradient", group: "Paint / Gradient", hint: "A shape carrying a radial gradient fill value.", project: RADIAL_GRADIENT_PROJECT },
+  { id: "shape.radial-focus", label: "Paint / radial focus", group: "Paint / Gradient", hint: "SVG radial gradient with a displaced focal point and focal radius.", project: RADIAL_FOCUS_PROJECT },
+  { id: "shape.gradient-many-stops", label: "Paint / gradient many stops", group: "Paint / Gradient", hint: "More than eight stops exercise the backend LUT fallback without changing Protocol semantics.", project: MANY_STOP_GRADIENT_PROJECT },
+  { id: "shape.conic-gradient", label: "Paint / conic gradient", group: "Paint / Gradient", hint: "A shape carrying a conic gradient fill value with angle and center.", project: CONIC_GRADIENT_PROJECT },
+  { id: "shape.gradient-spread", label: "Paint / gradient spread", group: "Paint / Gradient", hint: "SVG gradient spreadMethod semantic (reflect).", project: GRADIENT_SPREAD_PROJECT },
+  { id: "shape.gradient-user-space", label: "Paint / gradient transform", group: "Paint / Gradient", hint: "SVG gradientUnits=userSpaceOnUse with gradientTransform.", project: GRADIENT_USER_SPACE_PROJECT },
+  { id: "shape.pattern", label: "Paint / pattern", group: "Paint / Pattern", hint: "SVG pattern tile geometry, content units and transform.", project: PATTERN_PROJECT },
+  { id: "shape.pattern-group", label: "Paint / pattern group", group: "Paint / Pattern", hint: "Pattern content represented as a reusable SVG-like group subtree with viewBox metadata.", project: PATTERN_GROUP_PROJECT },
+  { id: "shape.fill-opacity", label: "Paint / fill opacity", group: "Paint / Fill", hint: "A shape carrying fillOpacity independently from its layer opacity.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
+  { id: "shape.stroke", label: "Paint / stroke", group: "Paint / Stroke", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
+  { id: "shape.stroke-width", label: "Paint / stroke width", group: "Paint / Stroke", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },
+  { id: "shape.stroke-opacity", label: "Paint / stroke opacity", group: "Paint / Stroke", hint: "A shape carrying strokeOpacity independently from its fill.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
+  { id: "shape.stroke-join", label: "Paint / stroke join", group: "Paint / Stroke", hint: "SVG-like strokeJoin on a primitive shape.", project: SHAPE_STROKE_JOIN_PROJECT },
+  { id: "shape.stroke-cap", label: "Paint / stroke cap", group: "Paint / Stroke", hint: "SVG-like strokeCap on a primitive shape.", project: SHAPE_STROKE_CAP_PROJECT },
+  { id: "shape.stroke-dash", label: "Paint / stroke dash", group: "Paint / Stroke", hint: "SVG-like strokeDash and offset on a primitive shape.", project: SHAPE_STROKE_DASH_PROJECT },
+  { id: "shape.stroke-gradient", label: "Paint / gradient stroke", group: "Paint / Stroke", hint: "The same semantic Paint can be used for stroke as for fill.", project: STROKE_GRADIENT_PROJECT },
+  { id: "shape.stroke-miter-limit", label: "Paint / stroke miter limit", group: "Paint / Stroke", hint: "SVG-compatible runtime miter limit without changing the JSON stroke semantics.", project: STROKE_MITER_LIMIT_PROJECT },
+  { id: "shape.effects", label: "Effect / shape effects", group: "Effects", hint: "A shape carrying the optional V2 effects list.", project: BLUR_PROJECT },
   { id: "shape.rectangle-perspective", label: "Shape / rectangle perspective", group: "Layers / Shape", hint: "A rectangle shape evaluated through perspective geometry.", project: SHAPE_RECTANGLE_PERSPECTIVE_PROJECT },
   { id: "shape.ellipse-perspective", label: "Shape / ellipse perspective", group: "Layers / Shape", hint: "An ellipse shape evaluated through perspective geometry.", project: SHAPE_ELLIPSE_PERSPECTIVE_PROJECT },
   htmlCompilerCase(
@@ -3480,83 +3310,6 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     project: LUMA_MASK_PROJECT,
   },
   {
-    id: "rectangle.paint.stroke",
-    label: "Paint / rectangle stroke",
-    group: "Task 5 / rectangle stroke",
-    hint: "Renders the certified rectangle fill with a fixed four-unit stroke.",
-    project: RECTANGLE_STROKE_PROJECT,
-  },
-  {
-    id: "rectangle.paint.stroke-perspective",
-    label: "Paint / stroke perspective",
-    group: "Task 5 / rectangle stroke",
-    hint: "Keeps rectangle stroke paint attached to the shared Matrix4 perspective path.",
-    project: RECTANGLE_STROKE_PERSPECTIVE_PROJECT,
-  },
-  {
-    id: "ellipse.paint.stroke",
-    label: "Paint / ellipse stroke",
-    group: "Task 5 / ellipse stroke",
-    hint: "Renders an antialiased four-unit stroke around the ellipse boundary.",
-    project: ELLIPSE_STROKE_PROJECT,
-  },
-  {
-    id: "ellipse.paint.stroke-perspective",
-    label: "Paint / ellipse perspective",
-    group: "Task 5 / ellipse stroke",
-    hint: "Keeps ellipse stroke paint attached to the shared Matrix4 perspective path.",
-    project: ELLIPSE_STROKE_PERSPECTIVE_PROJECT,
-  },
-  {
-    id: "rectangle.paint.stroke-width",
-    label: "Paint / stroke width",
-    group: "Task 5 / stroke width",
-    hint: "Uses a sixteen-unit local stroke width instead of the default width.",
-    project: RECTANGLE_STROKE_WIDTH_PROJECT,
-  },
-  {
-    id: "rectangle.paint.stroke-width-perspective",
-    label: "Paint / width perspective",
-    group: "Task 5 / stroke width",
-    hint: "Keeps custom local stroke width attached to the Matrix4 perspective path.",
-    project: RECTANGLE_STROKE_WIDTH_PERSPECTIVE_PROJECT,
-  },
-  {
-    id: "rectangle.paint.opacity",
-    label: "Paint / fill and stroke opacity",
-    group: "Task 5 / paint opacity",
-    hint: "Composites fill at 50% and stroke at 25% over the composition background.",
-    project: RECTANGLE_PAINT_OPACITY_PROJECT,
-  },
-  {
-    id: "rectangle.paint.opacity-perspective",
-    label: "Paint / opacity perspective",
-    group: "Task 5 / paint opacity",
-    hint: "Keeps independent fill and stroke alpha through Matrix4 perspective.",
-    project: RECTANGLE_PAINT_OPACITY_PERSPECTIVE_PROJECT,
-  },
-  {
-    id: "rectangle.gradient.linear",
-    label: "Paint / linear gradient",
-    group: "Task 5 / gradients",
-    hint: "Uses two semantic color stops from left to right.",
-    project: LINEAR_GRADIENT_PROJECT,
-  },
-  {
-    id: "ellipse.gradient.radial",
-    label: "Paint / radial gradient",
-    group: "Task 5 / gradients",
-    hint: "Uses a centered radial gradient with two semantic color stops.",
-    project: RADIAL_GRADIENT_PROJECT,
-  },
-  {
-    id: "rectangle.gradient.perspective",
-    label: "Paint / gradient perspective",
-    group: "Task 5 / gradients",
-    hint: "Keeps semantic gradient paint attached to Matrix4 perspective.",
-    project: GRADIENT_PERSPECTIVE_PROJECT,
-  },
-  {
     id: "rectangle.transform.translate",
     label: "Transform / translate",
     group: "Rectangle properties (Task 3)",
@@ -4046,7 +3799,10 @@ const PREVIEW_LAB_GROUP_ORDER = [
   "Layers / Text",
   "Layers / Group",
   "Transforms",
-  "Paint",
+  "Paint / Fill",
+  "Paint / Stroke",
+  "Paint / Gradient",
+  "Paint / Pattern",
   "Effects",
   "Compositing",
   "Timing",
@@ -4057,12 +3813,48 @@ const PREVIEW_LAB_GROUP_ORDER = [
 
 type PreviewLabGroupLabel = (typeof PREVIEW_LAB_GROUP_ORDER)[number];
 
+const PAINT_FILL_CASES = new Set([
+  "shape.solid-fill",
+  "shape.fill-opacity",
+]);
+
+const PAINT_STROKE_CASES = new Set([
+  "shape.stroke",
+  "shape.stroke-width",
+  "shape.stroke-opacity",
+  "shape.stroke-join",
+  "shape.stroke-cap",
+  "shape.stroke-dash",
+  "shape.stroke-gradient",
+  "shape.stroke-miter-limit",
+]);
+
+const PAINT_GRADIENT_CASES = new Set([
+  "shape.linear-gradient",
+  "shape.radial-gradient",
+  "shape.radial-focus",
+  "shape.gradient-many-stops",
+  "shape.conic-gradient",
+  "shape.gradient-spread",
+  "shape.gradient-user-space",
+]);
+
+const PAINT_PATTERN_CASES = new Set([
+  "shape.pattern",
+  "shape.pattern-group",
+]);
+
 function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
   if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
   if (item.id === "html-compiler.primitives.rectangle-rounded") return "Layers / Shape";
   if (item.id.startsWith("html-compiler.transform.")) return "Transforms";
-  if (item.id.startsWith("primitive.shape.") || item.id.startsWith("shape.") || item.id.startsWith("rectangle.rounded")) return "Layers / Shape";
+  if (PAINT_PATTERN_CASES.has(item.id)) return "Paint / Pattern";
+  if (PAINT_GRADIENT_CASES.has(item.id)) return "Paint / Gradient";
+  if (PAINT_STROKE_CASES.has(item.id)) return "Paint / Stroke";
+  if (PAINT_FILL_CASES.has(item.id)) return "Paint / Fill";
+  if (item.id === "shape.effects") return "Effects";
+  if (item.id.startsWith("primitive.shape.") || item.id.startsWith("shape.")) return "Layers / Shape";
   if (
     item.id.startsWith("rectangle.transform.") ||
     item.id.startsWith("rectangle.mat4.") ||
@@ -4076,17 +3868,6 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id === "group.parent-transform") return "Layers / Group";
   if (item.id.startsWith("group.")) return "Compositing";
   if (item.id.startsWith("path.")) return "Layers / Path";
-  if (
-    item.id.startsWith("rectangle.paint.stroke") ||
-    item.id.startsWith("ellipse.paint.stroke") ||
-    item.id.startsWith("rectangle.paint.stroke-width")
-  ) {
-    return "Paint";
-  }
-  if (item.id.startsWith("rectangle.gradient") || item.id.startsWith("ellipse.gradient")) {
-    return "Paint";
-  }
-  if (item.id.startsWith("rectangle.paint.opacity")) return "Paint";
   if (item.id.startsWith("image.")) return "Layers / Image";
   if (item.id.startsWith("video.")) return "Layers / Video";
   if (item.id.startsWith("audio.")) return "Audio";

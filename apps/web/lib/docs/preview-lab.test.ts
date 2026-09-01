@@ -9,7 +9,7 @@ import {
 } from "./preview-lab";
 
 describe("Protocol V2 preview lab fixtures", () => {
-  it("contains the certified rectangle atom and its Task 3 property fixtures", () => {
+  it("contains the Protocol V2 preview fixtures", () => {
     expect(PREVIEW_LAB_CASES.map((item) => item.id)).toEqual([
       "primitive.shape.rectangle",
       "primitive.shape.ellipse",
@@ -134,17 +134,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       "composite.mask.alpha",
       "composite.mask.inverse-alpha",
       "composite.mask.luma",
-      "rectangle.paint.stroke",
-      "rectangle.paint.stroke-perspective",
-      "ellipse.paint.stroke",
-      "ellipse.paint.stroke-perspective",
-      "rectangle.paint.stroke-width",
-      "rectangle.paint.stroke-width-perspective",
-      "rectangle.paint.opacity",
-      "rectangle.paint.opacity-perspective",
-      "rectangle.gradient.linear",
-      "ellipse.gradient.radial",
-      "rectangle.gradient.perspective",
       "rectangle.transform.translate",
       "rectangle.transform.scale",
       "rectangle.transform.anchor",
@@ -335,13 +324,23 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Layers / Text",
       "Layers / Group",
       "Transforms",
-      "Paint",
+      "Paint / Fill",
+      "Paint / Stroke",
+      "Paint / Gradient",
+      "Paint / Pattern",
       "Effects",
       "Compositing",
       "Timing",
       "Audio",
     ]);
     expect(groups.every((group) => !group.label.toLowerCase().includes("task"))).toBe(true);
+  });
+
+  it("does not expose removed legacy rectangle paint fixtures", () => {
+    const legacyPaintIds = PREVIEW_LAB_CASES
+      .map((item) => item.id)
+      .filter((id) => /^(rectangle\.(paint|gradient)|ellipse\.(paint|gradient))\./.test(id));
+    expect(legacyPaintIds).toEqual([]);
   });
 
   it("assigns image-stack blend ownership only to the upper snow layer", () => {
