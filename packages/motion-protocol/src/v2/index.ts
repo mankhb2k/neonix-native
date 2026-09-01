@@ -73,6 +73,7 @@ export {
   V2GradientFillSchema,
   V2PatternContentSchema,
   V2PatternFillSchema,
+  V2PatternViewBoxSchema,
   V2PaintServerSchema,
   V2PaintSchema,
   type V2PaintTransform,
@@ -80,9 +81,17 @@ export {
   type V2GradientFill,
   type V2PatternContent,
   type V2PatternFill,
+  type V2PatternViewBox,
   type V2PaintServer,
   type V2Paint,
 } from "./paint";
+export {
+  V2PathPointSchema,
+  V2PathSegmentSchema,
+  type V2PathPoint,
+  type V2PathSegment,
+  type V2PathContour,
+} from "./path-geometry";
 export {
   V2FrameSchema,
   V2LayerBaseSchema,

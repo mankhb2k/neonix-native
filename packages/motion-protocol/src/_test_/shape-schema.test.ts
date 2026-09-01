@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { V2GradientFillSchema, V2ShapeLayerSchema } from "../v2/layers/shape";
+import { V2PaintSchema } from "../v2/paint";
 
 const gradientStops = [
   { offset: 0, color: "#ff0000" },
@@ -61,13 +62,28 @@ describe("Protocol V2 paint gradient schema", () => {
     expect(shape.style.fill).toMatchObject({ type: "conic-gradient" });
   });
 
-  it("rejects fewer than two stops and descending offsets", () => {
-    expect(() =>
-      V2GradientFillSchema.parse({
-        type: "linear-gradient",
-        stops: [{ offset: 0, color: "#fff" }],
-      }),
-    ).toThrow();
+  it("accepts zero and one stop using SVG's none/solid semantics", () => {
+    expect(V2GradientFillSchema.parse({ type: "linear-gradient", stops: [] })).toMatchObject({ stops: [] });
+    expect(V2GradientFillSchema.parse({ type: "linear-gradient", stops: [{ offset: 0.5, color: "#ffffff", stopOpacity: 0.35 }] })).toMatchObject({
+      stops: [{ offset: 0.5, stopOpacity: 0.35 }],
+    });
+  });
+
+  it("accepts SVG pattern viewBox and group content", () => {
+    expect(V2PaintSchema.parse({
+      type: "pattern",
+      width: 32,
+      height: 32,
+      viewBox: { x: 0, y: 0, width: 32, height: 32, align: "xMidYMid", meetOrSlice: "meet" },
+      content: [{
+        type: "group",
+        opacity: 0.8,
+        children: [{ type: "circle", cx: 16, cy: 16, radius: 8, fill: "#ffffff" }],
+      }],
+    })).toMatchObject({ type: "pattern", viewBox: { width: 32 }, content: [{ type: "group" }] });
+  });
+
+  it("rejects descending offsets", () => {
     expect(() =>
       V2GradientFillSchema.parse({
         type: "conic-gradient",

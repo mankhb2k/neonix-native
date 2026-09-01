@@ -3,45 +3,17 @@ import { V2FiniteNumberSchema } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
+import {
+  V2PathContourSchema,
+  V2PathPointSchema,
+  V2PathSegmentSchema,
+} from "../path-geometry";
 
-const V2PathPointSchema = z
-  .object({
-    x: V2FiniteNumberSchema,
-    y: V2FiniteNumberSchema,
-  })
-  .strict();
-
-const V2PathSegmentSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("line"), to: V2PathPointSchema }).strict(),
-  z.object({ kind: z.literal("quadratic"), control: V2PathPointSchema, to: V2PathPointSchema }).strict(),
-  z
-    .object({
-      kind: z.literal("cubic"),
-      control1: V2PathPointSchema,
-      control2: V2PathPointSchema,
-      to: V2PathPointSchema,
-    })
-    .strict(),
-  z
-    .object({
-      kind: z.literal("arc"),
-      radii: z.object({ x: V2FiniteNumberSchema.nonnegative(), y: V2FiniteNumberSchema.nonnegative() }).strict(),
-      rotation: V2FiniteNumberSchema,
-      largeArc: z.boolean(),
-      sweep: z.boolean(),
-      to: V2PathPointSchema,
-    })
-    .strict(),
-]);
-
-export const V2PathContourSchema = z
-  .object({
-    id: z.string().min(1).max(200),
-    start: V2PathPointSchema,
-    segments: z.array(V2PathSegmentSchema).min(1),
-    closed: z.boolean(),
-  })
-  .strict();
+export {
+  V2PathContourSchema,
+  V2PathPointSchema,
+  V2PathSegmentSchema,
+} from "../path-geometry";
 
 const V2PathMorphSchema = z
   .object({

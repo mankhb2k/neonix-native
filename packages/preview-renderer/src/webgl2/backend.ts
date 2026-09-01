@@ -131,10 +131,29 @@ export function createWebGL2Backend(
   const gradientStopsLocation = gl.getUniformLocation(programHandle, "u_gradient_stops[0]");
   const gradientOffsetsLocation = gl.getUniformLocation(programHandle, "u_gradient_offsets[0]");
   const gradientMetaLocation = gl.getUniformLocation(programHandle, "u_gradient_meta");
+  const gradientLutLocation = gl.getUniformLocation(programHandle, "u_gradient_lut");
   const patternGeometryLocation = gl.getUniformLocation(programHandle, "u_pattern_geometry[0]");
   const patternColorsLocation = gl.getUniformLocation(programHandle, "u_pattern_colors[0]");
   const patternMetaLocation = gl.getUniformLocation(programHandle, "u_pattern_meta");
   const patternTransformLocation = gl.getUniformLocation(programHandle, "u_pattern_transform[0]");
+  const gradientLutTexture = gl.createTexture();
+  if (!gradientLutTexture) throw new Error("preview-renderer: unable to create gradient LUT texture");
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, gradientLutTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+  gl.useProgram(programHandle);
+  gl.uniform1i(gradientLutLocation, 2);
+  const setGradientLut = (gradients: ReturnType<typeof gradientUniforms>) => {
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, gradientLutTexture);
+    if (gradients.lut) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, gradients.lut);
+    }
+  };
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
@@ -496,6 +515,7 @@ export function createWebGL2Backend(
           command.op === "drawShape" ? command.fillPaint : undefined,
           transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
         );
+        color[3] *= gradients.solidOpacity ?? 1;
         gl.uniform4fv(gradientStartLocation, gradients.start);
         gl.uniform4fv(gradientEndLocation, gradients.end);
         gl.uniform4fv(gradientParamsLocation, gradients.params);
@@ -503,6 +523,7 @@ export function createWebGL2Backend(
         gl.uniform4fv(gradientStopsLocation, gradients.stops);
         gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
         gl.uniform4fv(gradientMetaLocation, gradients.meta);
+        setGradientLut(gradients);
         setPatternUniforms(gradients);
         const stroke = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
@@ -567,6 +588,7 @@ export function createWebGL2Backend(
           color[3] *= transform.alpha * pathDraw.opacity;
           gl.uniform4fv(colorLocation, color);
           const gradients = gradientUniforms(pathDraw.fillPaint, transform.alpha * pathDraw.opacity);
+          color[3] *= gradients.solidOpacity ?? 1;
           gl.uniform4fv(gradientStartLocation, gradients.start);
           gl.uniform4fv(gradientEndLocation, gradients.end);
           gl.uniform4fv(gradientParamsLocation, gradients.params);
@@ -574,6 +596,7 @@ export function createWebGL2Backend(
           gl.uniform4fv(gradientStopsLocation, gradients.stops);
           gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
           gl.uniform4fv(gradientMetaLocation, gradients.meta);
+          setGradientLut(gradients);
           setPatternUniforms(gradients);
           gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
           gl.drawElements(gl.TRIANGLES, pathDraw.mesh.indices.length, gl.UNSIGNED_INT, 0);
@@ -976,6 +999,7 @@ export function createWebGL2Backend(
     diagnostics,
     dispose() {
       for (const texture of textures.values()) gl.deleteTexture(texture);
+      gl.deleteTexture(gradientLutTexture);
       textures.clear();
       textureSizes.clear();
       uploadedAssetRevisions.clear();

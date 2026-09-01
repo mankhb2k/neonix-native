@@ -1664,6 +1664,33 @@ const RADIAL_GRADIENT_FILL = {
   ],
 };
 
+const RADIAL_FOCUS_GRADIENT_FILL = {
+  type: "radial-gradient" as const,
+  cx: 0.5,
+  cy: 0.5,
+  fx: 0.28,
+  fy: 0.34,
+  radius: 0.62,
+  fr: 0.08,
+  stops: [
+    { offset: 0, color: "#ffffff", stopOpacity: 1 },
+    { offset: 0.45, color: "#14b8a6", stopOpacity: 0.9 },
+    { offset: 1, color: "#172554", stopOpacity: 1 },
+  ],
+};
+
+const MANY_STOP_GRADIENT_FILL = {
+  type: "linear-gradient" as const,
+  x1: 0,
+  y1: 0,
+  x2: 1,
+  y2: 0,
+  stops: Array.from({ length: 12 }, (_, index) => ({
+    offset: index / 11,
+    color: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e", "#ef4444"][index]!,
+  })),
+};
+
 const CONIC_GRADIENT_FILL = {
   type: "conic-gradient" as const,
   from: 45,
@@ -1718,6 +1745,26 @@ const CHECKER_PATTERN_FILL = {
     { type: "rect" as const, x: 0, y: 0, width: 24, height: 24, fill: "#14b8a6" },
     { type: "rect" as const, x: 24, y: 24, width: 24, height: 24, fill: "#14b8a6" },
     { type: "circle" as const, cx: 24, cy: 24, radius: 8, fill: "#f8fafc" },
+  ],
+};
+
+const PATTERN_GROUP_FILL = {
+  type: "pattern" as const,
+  x: 0,
+  y: 0,
+  width: 64,
+  height: 64,
+  patternUnits: "userSpaceOnUse" as const,
+  patternContentUnits: "userSpaceOnUse" as const,
+  viewBox: { x: 0, y: 0, width: 64, height: 64, align: "xMidYMid" as const, meetOrSlice: "meet" as const },
+  content: [
+    {
+      type: "group" as const,
+      children: [
+        { type: "rect" as const, x: 0, y: 0, width: 32, height: 32, fill: "#14b8a6" },
+        { type: "circle" as const, cx: 48, cy: 48, radius: 12, fill: "#f8fafc", fillOpacity: 0.9 },
+      ],
+    },
   ],
 };
 
@@ -1790,6 +1837,26 @@ const RADIAL_GRADIENT_PROJECT = project("preview-radial-gradient-v2", [
   }),
 ]);
 
+const RADIAL_FOCUS_PROJECT = project("preview-radial-focus-v2", [
+  ellipse({
+    id: "radial-focus",
+    order: 0,
+    fill: RADIAL_FOCUS_GRADIENT_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const MANY_STOP_GRADIENT_PROJECT = project("preview-many-stop-gradient-v2", [
+  rectangle({
+    id: "many-stop-gradient",
+    order: 0,
+    fill: MANY_STOP_GRADIENT_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
 const GRADIENT_SPREAD_PROJECT = project("preview-gradient-spread-v2", [
   rectangle({
     id: "gradient-spread",
@@ -1815,6 +1882,16 @@ const PATTERN_PROJECT = project("preview-pattern-v2", [
     id: "pattern",
     order: 0,
     fill: CHECKER_PATTERN_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const PATTERN_GROUP_PROJECT = project("preview-pattern-group-v2", [
+  rectangle({
+    id: "pattern-group",
+    order: 0,
+    fill: PATTERN_GROUP_FILL,
     frame: { width: 320, height: 180 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
   }),
@@ -2502,10 +2579,13 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.solid-fill", label: "Shape / solid fill", group: "Layers / Shape", hint: "A shape carrying a solid color fill value.", project: RECTANGLE_PROJECT },
   { id: "shape.linear-gradient", label: "Shape / linear gradient", group: "Layers / Shape", hint: "A shape carrying a linear gradient fill value.", project: LINEAR_GRADIENT_PROJECT },
   { id: "shape.radial-gradient", label: "Shape / radial gradient", group: "Layers / Shape", hint: "A shape carrying a radial gradient fill value.", project: RADIAL_GRADIENT_PROJECT },
+  { id: "shape.radial-focus", label: "Shape / radial focus", group: "Layers / Shape", hint: "SVG radial gradient with a displaced focal point and focal radius.", project: RADIAL_FOCUS_PROJECT },
+  { id: "shape.gradient-many-stops", label: "Shape / gradient many stops", group: "Layers / Shape", hint: "More than eight stops exercise the backend LUT fallback without changing Protocol semantics.", project: MANY_STOP_GRADIENT_PROJECT },
   { id: "shape.conic-gradient", label: "Shape / conic gradient", group: "Layers / Shape", hint: "A shape carrying a conic gradient fill value with angle and center.", project: CONIC_GRADIENT_PROJECT },
   { id: "shape.gradient-spread", label: "Shape / gradient spread", group: "Layers / Shape", hint: "SVG gradient spreadMethod semantic (reflect).", project: GRADIENT_SPREAD_PROJECT },
   { id: "shape.gradient-user-space", label: "Shape / gradient transform", group: "Layers / Shape", hint: "SVG gradientUnits=userSpaceOnUse with gradientTransform.", project: GRADIENT_USER_SPACE_PROJECT },
   { id: "shape.pattern", label: "Shape / pattern", group: "Layers / Shape", hint: "SVG pattern tile geometry, content units and transform.", project: PATTERN_PROJECT },
+  { id: "shape.pattern-group", label: "Shape / pattern group", group: "Layers / Shape", hint: "Pattern content represented as a reusable SVG-like group subtree with viewBox metadata.", project: PATTERN_GROUP_PROJECT },
   { id: "shape.fill-opacity", label: "Shape / fill opacity", group: "Layers / Shape", hint: "A shape carrying fillOpacity independently from its layer opacity.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
   { id: "shape.stroke", label: "Shape / stroke", group: "Layers / Shape", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
   { id: "shape.stroke-width", label: "Shape / stroke width", group: "Layers / Shape", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },

@@ -33,8 +33,10 @@ describe("gradient GPU uniforms", () => {
     expect(uniforms.meta[0]).toBe(2);
   });
 
-  it("caps GPU packing at the deterministic maximum", () => {
+  it("uses a LUT fallback instead of losing stops beyond the uniform budget", () => {
     const stops = Array.from({ length: MAX_GRADIENT_STOPS + 2 }, (_, index) => ({ offset: index / (MAX_GRADIENT_STOPS + 1), color: "#ffffff" }));
-    expect(gradientUniforms({ type: "linear-gradient", stops }, 1).meta[0]).toBe(MAX_GRADIENT_STOPS);
+    const uniforms = gradientUniforms({ type: "linear-gradient", stops }, 1);
+    expect(uniforms.meta[0]).toBe(0);
+    expect(uniforms.lut).toHaveLength(256 * 4);
   });
 });

@@ -62,7 +62,13 @@ export {
   type V2TextSource,
   type V2TextLayer,
 } from "./text";
-export { V2PathContourSchema, V2PathLayerSchema, type V2PathLayer } from "./path";
+export {
+  V2PathContourSchema,
+  V2PathPointSchema,
+  V2PathSegmentSchema,
+  V2PathLayerSchema,
+  type V2PathLayer,
+} from "./path";
 export { V2VideoFramePolicySchema, V2VideoLayerSchema, type V2VideoFramePolicy, type V2VideoLayer } from "./video";
 export {
   V2BackfaceVisibilitySchema,

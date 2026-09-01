@@ -18,10 +18,11 @@ export type PaintBlendMode =
   | "color"
   | "luminosity";
 
-export type PaintFillSolid = { type: "solid"; color: string };
+export type PaintFillNone = { type: "none" };
+export type PaintFillSolid = { type: "solid"; color: string; opacity?: number };
 export type PaintTransform = { a: number; b: number; c: number; d: number; e: number; f: number };
 export type PaintGradientCommon = {
-  stops: Array<{ offset: number; color: string }>;
+  stops: Array<{ offset: number; color: string; stopOpacity?: number }>;
   spreadMethod?: "pad" | "reflect" | "repeat";
   gradientUnits?: "objectBoundingBox" | "userSpaceOnUse";
   gradientTransform?: PaintTransform;
@@ -37,12 +38,35 @@ export type PaintFillGradient = {
   cx?: number;
   cy?: number;
   radius?: number;
+  radiusX?: number;
+  radiusY?: number;
   fx?: number;
   fy?: number;
+  fr?: number;
 } & PaintGradientCommon;
+export type PaintPatternViewBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  align?: string;
+  meetOrSlice?: "meet" | "slice";
+};
+export type PaintPatternStyle = {
+  fill?: PaintFill;
+  fillOpacity?: number;
+  stroke?: PaintFill;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+};
 export type PaintPatternContent =
-  | { type: "rect"; x: number; y: number; width: number; height: number; fill: string; opacity?: number }
-  | { type: "circle"; cx: number; cy: number; radius: number; fill: string; opacity?: number };
+  | ({ type: "rect"; x: number; y: number; width: number; height: number; rx?: number; ry?: number } & PaintPatternStyle)
+  | ({ type: "circle"; cx: number; cy: number; radius: number } & PaintPatternStyle)
+  | ({ type: "ellipse"; cx: number; cy: number; rx: number; ry: number } & PaintPatternStyle)
+  | ({ type: "line"; x1: number; y1: number; x2: number; y2: number } & PaintPatternStyle)
+  | ({ type: "polyline" | "polygon"; points: Array<{ x: number; y: number }> } & PaintPatternStyle)
+  | ({ type: "path"; contours: PathContour[]; fillRule?: "nonzero" | "evenodd" } & PaintPatternStyle)
+  | { type: "group"; transform?: PaintTransform; opacity?: number; children: PaintPatternContent[] };
 export type PaintFillPattern = {
   type: "pattern";
   x: number;
@@ -51,10 +75,12 @@ export type PaintFillPattern = {
   height: number;
   patternUnits?: "objectBoundingBox" | "userSpaceOnUse";
   patternContentUnits?: "objectBoundingBox" | "userSpaceOnUse";
+  patternTransform?: PaintTransform;
   transform?: PaintTransform;
+  viewBox?: PaintPatternViewBox;
   content: PaintPatternContent[];
 };
-export type PaintFill = PaintFillSolid | PaintFillGradient | PaintFillPattern;
+export type PaintFill = PaintFillNone | PaintFillSolid | PaintFillGradient | PaintFillPattern;
 export type Paint = PaintFill;
 
 export type RenderMediaFit = "contain" | "cover" | "fill" | "none";

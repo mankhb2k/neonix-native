@@ -98,6 +98,7 @@ export function createWebGPUBackend(
     { width: 1, height: 1 },
   );
   const transientBuffers = new Set<WebGPUBufferLike>();
+  const transientGradientTextures = new Set<WebGPUTextureLike>();
   const diagnostics: PreviewDiagnostic[] = [];
   let width = (options.width ?? options.canvas.width) || 1;
   let height = (options.height ?? options.canvas.height) || 1;
@@ -393,6 +394,13 @@ export function createWebGPUBackend(
     let drawCalls = 0;
     let skippedCommands = 0;
     const transientLayerTextures: WebGPUTextureLike[] = [];
+    const gradientTextureFor = (lut: Uint8Array | undefined): WebGPUTextureLike => {
+      if (!lut) return whiteTexture;
+      const texture = device.createTexture({ size: { width: 256, height: 1 }, format: "rgba8unorm", usage: TEXTURE_BINDING | TEXTURE_COPY_DST });
+      device.queue.writeTexture?.({ texture }, lut, { bytesPerRow: 256 * 4, rowsPerImage: 1 }, { width: 256, height: 1 });
+      transientGradientTextures.add(texture);
+      return texture;
+    };
     for (const command of buffer.commands) {
       if (command.op === "beginFrame") {
         projection = worldToClipMatrixForPaint(command);
@@ -450,6 +458,7 @@ export function createWebGPUBackend(
           command.op === "drawShape" ? command.fillPaint : undefined,
           transform.alpha * (command.op === "drawShape" ? command.fillOpacity ?? 1 : 1),
         );
+        color[3] *= gradients.solidOpacity ?? 1;
         data.set(gradients.start, 48);
         data.set(gradients.end, 52);
         data.set(gradients.params, 56);
@@ -463,7 +472,8 @@ export function createWebGPUBackend(
         data.set(gradients.patternTransform, 176);
         data.set(colorAdjustUniforms(isMaskSource ? undefined : sourceColorAdjust()), 184);
         device.queue.writeBuffer(uniform, 0, data);
-        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+        const gradientTexture = gradientTextureFor(gradients.lut);
+        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: gradientTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
         pass!.setPipeline(drawObjects.pipeline);
         pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
         pass!.setBindGroup(0, bindGroup);
@@ -523,6 +533,7 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 40);
           data.set([0, pathWidth, pathHeight, 0], 44);
           const gradients = gradientUniforms(pathDraw.fillPaint, transform.alpha * pathDraw.opacity);
+          color[3] *= gradients.solidOpacity ?? 1;
           data.set(gradients.start, 48);
           data.set(gradients.end, 52);
           data.set(gradients.params, 56);
@@ -536,7 +547,8 @@ export function createWebGPUBackend(
           data.set(gradients.patternTransform, 176);
           data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
           device.queue.writeBuffer(uniform, 0, data);
-          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+          const gradientTexture = gradientTextureFor(gradients.lut);
+          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: gradientTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
           pass!.setPipeline(drawObjects.pathPipeline);
           pass!.setVertexBuffer(0, vertexBuffer);
           pass!.setIndexBuffer(indexBuffer, "uint32");
@@ -592,7 +604,7 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 60);
         data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
         device.queue.writeBuffer(uniform, 0, data);
-        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+        const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: whiteTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
         pass!.setPipeline(drawObjects.pipeline);
         pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
         pass!.setBindGroup(0, bindGroup);
@@ -647,7 +659,7 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 60);
           data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
           device.queue.writeBuffer(uniform, 0, data);
-          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
+          const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: whiteTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
           pass!.setPipeline(drawObjects.pipeline);
           pass!.setVertexBuffer(0, drawObjects.vertexBuffer);
           pass!.setBindGroup(0, bindGroup);
@@ -941,15 +953,19 @@ export function createWebGPUBackend(
     device.queue.submit([encoder.finish()]);
     const submittedLayerTextures = [...transientLayerTextures];
     const submittedBuffers = [...transientBuffers];
+    const submittedGradientTextures = [...transientGradientTextures];
     transientBuffers.clear();
+    transientGradientTextures.clear();
     if (device.queue.onSubmittedWorkDone) {
       void device.queue.onSubmittedWorkDone().then(() => {
         for (const texture of submittedLayerTextures) texture.destroy?.();
         for (const buffer of submittedBuffers) buffer.destroy?.();
+        for (const texture of submittedGradientTextures) texture.destroy?.();
       });
     } else {
       for (const texture of submittedLayerTextures) texture.destroy?.();
       for (const buffer of submittedBuffers) transientBuffers.add(buffer);
+      for (const texture of submittedGradientTextures) texture.destroy?.();
     }
     lastStats = { backend: "webgpu", drawCalls, skippedCommands, frameTimeMs: performance.now() - started, textureUploads, videoTextureUploads, diagnostics: [...diagnostics] };
     return lastStats;
@@ -998,6 +1014,8 @@ export function createWebGPUBackend(
       disposeRenderTargets();
       for (const buffer of transientBuffers) buffer.destroy?.();
       transientBuffers.clear();
+      for (const texture of transientGradientTextures) texture.destroy?.();
+      transientGradientTextures.clear();
       for (const texture of textures.values()) texture.destroy?.();
       textures.clear();
       textureSizes.clear();

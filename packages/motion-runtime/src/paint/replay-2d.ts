@@ -6,7 +6,7 @@
 
 import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
-import type { PaintBlendMode, PaintFill } from "./paint-types";
+import type { PaintBlendMode, PaintFill, PaintPatternContent } from "./paint-types";
 import { flattenPathContourAny } from "../geometry/path/flatten";
 
 export type ReplayGradient = {
@@ -63,6 +63,7 @@ export type Canvas2DReplayContext = {
     f: number,
   ): void;
   fillRect(x: number, y: number, w: number, h: number): void;
+  clearRect(x: number, y: number, w: number, h: number): void;
   beginPath(): void;
   rect(x: number, y: number, w: number, h: number): void;
   ellipse(
@@ -92,6 +93,7 @@ export type Canvas2DReplayContext = {
     x: number,
     y: number,
   ): void;
+  transform?(a: number, b: number, c: number, d: number, e: number, f: number): void;
   bezierCurveTo(
     cp1x: number,
     cp1y: number,
@@ -165,6 +167,27 @@ function hexColor(color: string | undefined, fallback = "#ffffff"): string {
   return color.startsWith("#") ? color : fallback;
 }
 
+function paintPoint(
+  x: number,
+  y: number,
+  transform: { a: number; b: number; c: number; d: number; e: number; f: number } | undefined,
+): { x: number; y: number } {
+  if (!transform) return { x, y };
+  return {
+    x: transform.a * x + transform.c * y + transform.e,
+    y: transform.b * x + transform.d * y + transform.f,
+  };
+}
+
+function gradientStopColor(color: string, opacity = 1): string {
+  const hex = color.startsWith("#") ? color.slice(1) : color;
+  if (/^[0-9a-f]{6}$/i.test(hex) || /^[0-9a-f]{8}$/i.test(hex)) {
+    const alpha = (hex.length === 8 ? Number.parseInt(hex.slice(6, 8), 16) / 255 : 1) * opacity;
+    return `rgba(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)}, ${alpha})`;
+  }
+  return color;
+}
+
 function applyFill(
   ctx: Canvas2DReplayContext,
   fill: string | undefined,
@@ -172,30 +195,44 @@ function applyFill(
   width: number,
   height: number,
 ): void {
+  if (fillPaint?.type === "none") {
+    ctx.fillStyle = "#00000000";
+    return;
+  }
   if (fillPaint?.type === "linear-gradient" && fillPaint.stops.length) {
+    const units = fillPaint.gradientUnits ?? "objectBoundingBox";
     const angle = ((fillPaint.angle ?? 0) * Math.PI) / 180;
-    const extent = Math.hypot(width, height) / 2;
-    const dx = Math.cos(angle) * extent;
-    const dy = Math.sin(angle) * extent;
+    const startX = fillPaint.x1 ?? (fillPaint.angle === undefined ? 0 : 0.5 - Math.cos(angle) * 0.5);
+    const startY = fillPaint.y1 ?? (fillPaint.angle === undefined ? 0 : 0.5 - Math.sin(angle) * 0.5);
+    const endX = fillPaint.x2 ?? (fillPaint.angle === undefined ? 1 : 0.5 + Math.cos(angle) * 0.5);
+    const endY = fillPaint.y2 ?? (fillPaint.angle === undefined ? 0 : 0.5 + Math.sin(angle) * 0.5);
+    const scaleX = units === "objectBoundingBox" ? width : 1;
+    const scaleY = units === "objectBoundingBox" ? height : 1;
+    const start = paintPoint(startX * scaleX, startY * scaleY, fillPaint.gradientTransform);
+    const end = paintPoint(endX * scaleX, endY * scaleY, fillPaint.gradientTransform);
     const gradient = ctx.createLinearGradient(
-      width / 2 - dx,
-      height / 2 - dy,
-      width / 2 + dx,
-      height / 2 + dy,
+      start.x,
+      start.y,
+      end.x,
+      end.y,
     );
     for (const stop of fillPaint.stops) {
-      gradient.addColorStop(stop.offset, stop.color);
+      gradient.addColorStop(stop.offset, gradientStopColor(stop.color, stop.stopOpacity ?? 1));
     }
     ctx.fillStyle = gradient;
     return;
   }
   if (fillPaint?.type === "radial-gradient" && fillPaint.stops.length) {
-    const cx = (fillPaint.cx ?? 0.5) * width;
-    const cy = (fillPaint.cy ?? 0.5) * height;
-    const r = (fillPaint.radius ?? 0.5) * Math.min(width, height);
-    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    const units = fillPaint.gradientUnits ?? "objectBoundingBox";
+    const scaleX = units === "objectBoundingBox" ? width : 1;
+    const scaleY = units === "objectBoundingBox" ? height : 1;
+    const center = paintPoint((fillPaint.cx ?? 0.5) * scaleX, (fillPaint.cy ?? 0.5) * scaleY, fillPaint.gradientTransform);
+    const focus = paintPoint((fillPaint.fx ?? fillPaint.cx ?? 0.5) * scaleX, (fillPaint.fy ?? fillPaint.cy ?? 0.5) * scaleY, fillPaint.gradientTransform);
+    const r = (fillPaint.radius ?? 0.5) * Math.min(scaleX, scaleY);
+    const fr = (fillPaint.fr ?? 0) * Math.min(scaleX, scaleY);
+    const gradient = ctx.createRadialGradient(focus.x, focus.y, fr, center.x, center.y, r);
     for (const stop of fillPaint.stops) {
-      gradient.addColorStop(stop.offset, stop.color);
+      gradient.addColorStop(stop.offset, gradientStopColor(stop.color, stop.stopOpacity ?? 1));
     }
     ctx.fillStyle = gradient;
     return;
@@ -209,7 +246,7 @@ function applyFill(
     const cy = (fillPaint.cy ?? 0.5) * height;
     const gradient = ctx.createConicGradient(startAngle, cx, cy);
     for (const stop of fillPaint.stops) {
-      gradient.addColorStop(stop.offset, stop.color);
+      gradient.addColorStop(stop.offset, gradientStopColor(stop.color, stop.stopOpacity ?? 1));
     }
     ctx.fillStyle = gradient;
     return;
@@ -243,30 +280,23 @@ function applyFill(
     if (tile) {
       tile.width = tileWidth;
       tile.height = tileHeight;
-      const tileContext = tile.getContext("2d");
+      const tileContext = tile.getContext("2d") as Canvas2DReplayContext | null;
       if (tileContext) {
         tileContext.clearRect(0, 0, tileWidth, tileHeight);
         for (const content of fillPaint.content) {
-          tileContext.fillStyle = content.fill;
-          tileContext.globalAlpha = content.opacity ?? 1;
-          if (content.type === "rect") {
-            const x = fillPaint.patternContentUnits === "objectBoundingBox" ? content.x * tileWidth : content.x;
-            const y = fillPaint.patternContentUnits === "objectBoundingBox" ? content.y * tileHeight : content.y;
-            const w = fillPaint.patternContentUnits === "objectBoundingBox" ? content.width * tileWidth : content.width;
-            const h = fillPaint.patternContentUnits === "objectBoundingBox" ? content.height * tileHeight : content.height;
-            tileContext.fillRect(x, y, w, h);
-          } else {
-            const x = fillPaint.patternContentUnits === "objectBoundingBox" ? content.cx * tileWidth : content.cx;
-            const y = fillPaint.patternContentUnits === "objectBoundingBox" ? content.cy * tileHeight : content.cy;
-            const radius = fillPaint.patternContentUnits === "objectBoundingBox" ? content.radius * Math.min(tileWidth, tileHeight) : content.radius;
-            tileContext.beginPath();
-            tileContext.arc(x, y, radius, 0, Math.PI * 2);
-            tileContext.fill();
-          }
+          drawPatternNode(
+            tileContext,
+            content,
+            tileWidth,
+            tileHeight,
+            fillPaint.patternContentUnits === "objectBoundingBox",
+            1,
+          );
         }
         const pattern = ctx.createPattern?.(tile, "repeat");
         if (pattern) {
-          if (fillPaint.transform && pattern.setTransform) pattern.setTransform(fillPaint.transform);
+          const patternTransform = fillPaint.patternTransform ?? fillPaint.transform;
+          if (patternTransform && pattern.setTransform) pattern.setTransform(patternTransform);
           ctx.fillStyle = pattern;
           return;
         }
@@ -276,6 +306,73 @@ function applyFill(
   ctx.fillStyle = hexColor(
     fill ?? (fillPaint?.type === "solid" ? fillPaint.color : undefined),
   );
+}
+
+function drawPatternNode(
+  ctx: Canvas2DReplayContext,
+  node: PaintPatternContent,
+  tileWidth: number,
+  tileHeight: number,
+  objectBoundingBox: boolean,
+  inheritedOpacity: number,
+): void {
+  if (node.type === "group") {
+    ctx.save();
+    const transform = node.transform;
+    if (transform && ctx.transform) {
+      ctx.transform(transform.a, transform.b, transform.c, transform.d, transform.e, transform.f);
+    }
+    for (const child of node.children) {
+      drawPatternNode(ctx, child, tileWidth, tileHeight, objectBoundingBox, inheritedOpacity * (node.opacity ?? 1));
+    }
+    ctx.restore();
+    return;
+  }
+
+  const scaleX = objectBoundingBox ? tileWidth : 1;
+  const scaleY = objectBoundingBox ? tileHeight : 1;
+  const sx = (value: number) => value * scaleX;
+  const sy = (value: number) => value * scaleY;
+  const paint = node.fill;
+  const paintColor = paint?.type === "solid" ? paint.color : undefined;
+
+  ctx.save();
+  ctx.globalAlpha = inheritedOpacity * (node.fillOpacity ?? 1) * (paint?.type === "solid" ? paint.opacity ?? 1 : 1);
+  if (node.fill || paintColor) applyFill(ctx, paintColor, paint, tileWidth, tileHeight);
+  ctx.beginPath();
+
+  if (node.type === "rect") {
+    const x = sx(node.x);
+    const y = sy(node.y);
+    const width = sx(node.width);
+    const height = sy(node.height);
+    const rx = sx(node.rx ?? 0);
+    if (rx > 0 && ctx.roundRect) ctx.roundRect(x, y, width, height, Math.min(rx, width / 2, height / 2));
+    else ctx.rect(x, y, width, height);
+  } else if (node.type === "circle") {
+    ctx.ellipse(sx(node.cx), sy(node.cy), sx(node.radius), sy(node.radius), 0, 0, Math.PI * 2);
+  } else if (node.type === "ellipse") {
+    ctx.ellipse(sx(node.cx), sy(node.cy), sx(node.rx), sy(node.ry), 0, 0, Math.PI * 2);
+  } else if (node.type === "line") {
+    ctx.moveTo(sx(node.x1), sy(node.y1));
+    ctx.lineTo(sx(node.x2), sy(node.y2));
+  } else if (node.type === "polyline" || node.type === "polygon") {
+    ctx.moveTo(sx(node.points[0]!.x), sy(node.points[0]!.y));
+    for (const point of node.points.slice(1)) ctx.lineTo(sx(point.x), sy(point.y));
+    if (node.type === "polygon") ctx.closePath();
+  } else if (node.type === "path") {
+    strokePathContours(ctx, node.contours);
+  }
+
+  if (node.fill || paintColor) ctx.fill(node.type === "path" ? node.fillRule ?? "nonzero" : "nonzero");
+  if (node.stroke) {
+    const strokeColor = node.stroke.type === "solid" ? node.stroke.color : undefined;
+    applyFill(ctx, strokeColor, node.stroke, tileWidth, tileHeight);
+    ctx.globalAlpha = inheritedOpacity * (node.strokeOpacity ?? 1) * (node.stroke.type === "solid" ? node.stroke.opacity ?? 1 : 1);
+    ctx.lineWidth = node.strokeWidth ?? 1;
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function blendOp(

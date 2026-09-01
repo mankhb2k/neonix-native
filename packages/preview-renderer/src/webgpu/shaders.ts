@@ -26,6 +26,8 @@ struct Uniforms {
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var imageTexture: texture_2d<f32>;
 @group(0) @binding(2) var imageSampler: sampler;
+@group(0) @binding(3) var gradientLutTexture: texture_2d<f32>;
+@group(0) @binding(4) var gradientLutSampler: sampler;
 struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
 struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
 fn roundedBoxDistance(point: vec2<f32>, halfSize: vec2<f32>, radius: f32) -> f32 {
@@ -59,6 +61,7 @@ fn sampleGradient(t: f32) -> vec4<f32> {
     let reflected = fract(t * 0.5) * 2.0;
     clamped = select(reflected, 2.0 - reflected, reflected > 1.0);
   }
+  if (uniforms.gradientMeta.w > 0.5) { return textureSample(gradientLutTexture, gradientLutSampler, vec2<f32>(clamped, 0.5)); }
   let count = u32(uniforms.gradientMeta.x);
   var result = uniforms.gradientStops[0];
   if (count <= 1u) { return result; }
@@ -146,9 +149,14 @@ fn samplePattern(point: vec2<f32>) -> vec4<f32> {
     } else if (uniforms.gradientParams.x < 2.5) {
       let point = patternPoint(input.uv * uniforms.geometry.yz);
       var center = uniforms.gradientStart.xy;
-      if (uniforms.gradientMeta.z < 0.5) { center = center * uniforms.geometry.yz; }
-      let radialRadius = uniforms.gradientRadius.x * select(1.0, min(uniforms.geometry.y, uniforms.geometry.z), uniforms.gradientMeta.z < 0.5);
-      gradientT = distance(point, center) / max(radialRadius, 0.0001);
+      var focus = uniforms.gradientStart.zw;
+      var radialRadii = uniforms.gradientRadius.xy;
+      if (uniforms.gradientMeta.z < 0.5) {
+        center = center * uniforms.geometry.yz;
+        focus = focus * uniforms.geometry.yz;
+        radialRadii = radialRadii * uniforms.geometry.yz;
+      }
+      gradientT = distance((point - focus) / max(radialRadii, vec2<f32>(0.0001, 0.0001)), vec2<f32>(0.0, 0.0)) + uniforms.gradientRadius.z;
     } else {
       var point = patternPoint(input.uv * uniforms.geometry.yz);
       var center = uniforms.gradientStart.xy;

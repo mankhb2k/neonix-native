@@ -26,6 +26,7 @@ uniform vec4 u_gradient_radius;
 uniform vec4 u_gradient_stops[8];
 uniform vec4 u_gradient_offsets[2];
 uniform vec4 u_gradient_meta;
+uniform sampler2D u_gradient_lut;
 uniform vec4 u_pattern_geometry[8];
 uniform vec4 u_pattern_colors[8];
 uniform vec4 u_pattern_meta;
@@ -66,6 +67,7 @@ vec4 sampleGradient(float t) {
     float reflected = fract(t * 0.5) * 2.0;
     clamped = reflected > 1.0 ? 2.0 - reflected : reflected;
   }
+  if (u_gradient_meta.w > 0.5) return texture(u_gradient_lut, vec2(clamped, 0.5));
   int count = int(u_gradient_meta.x + 0.5);
   vec4 result = u_gradient_stops[0];
   for (int i = 0; i < 7; i++) {
@@ -155,9 +157,14 @@ void main() {
     } else if (u_gradient_params.x < 2.5) {
       vec2 point = patternPoint(v_uv * u_geometry.yz);
       vec2 center = u_gradient_start.xy;
-      if (u_gradient_meta.z < 0.5) center *= u_geometry.yz;
-      float radialRadius = u_gradient_radius.x * (u_gradient_meta.z < 0.5 ? min(u_geometry.y, u_geometry.z) : 1.0);
-      gradientT = length(point - center) / max(radialRadius, 0.0001);
+      vec2 focus = u_gradient_start.zw;
+      vec2 radialRadii = u_gradient_radius.xy;
+      if (u_gradient_meta.z < 0.5) {
+        center *= u_geometry.yz;
+        focus *= u_geometry.yz;
+        radialRadii *= u_geometry.yz;
+      }
+      gradientT = length((point - focus) / max(radialRadii, vec2(0.0001))) + u_gradient_radius.z;
     } else {
       vec2 point = patternPoint(v_uv * u_geometry.yz);
       vec2 center = u_gradient_start.xy;

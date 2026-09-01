@@ -38,6 +38,7 @@ export function createBackendObjects(
   layout: ReturnType<WebGPUDeviceLike["createBindGroupLayout"]>;
   vertexBuffer: ReturnType<WebGPUDeviceLike["createBuffer"]>;
   sampler: ReturnType<WebGPUDeviceLike["createSampler"]>;
+  gradientSampler: ReturnType<WebGPUDeviceLike["createSampler"]>;
 } {
   const shader = device.createShaderModule({ code: SHADER });
   const layout = device.createBindGroupLayout({
@@ -45,6 +46,8 @@ export function createBackendObjects(
       { binding: 0, visibility: 3, buffer: { type: "uniform" } },
       { binding: 1, visibility: 2, texture: { sampleType: "float" } },
       { binding: 2, visibility: 2, sampler: { type: "filtering" } },
+      { binding: 3, visibility: 2, texture: { sampleType: "float" } },
+      { binding: 4, visibility: 2, sampler: { type: "filtering" } },
     ],
   });
   const blend = blendMode === "multiply"
@@ -89,7 +92,8 @@ export function createBackendObjects(
   const vertexBuffer = device.createBuffer({ size: 64, usage: BUFFER_VERTEX | BUFFER_COPY_DST });
   device.queue.writeBuffer(vertexBuffer, 0, new Float32Array([0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1]));
   const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
-  return { pipeline, pathPipeline, layout, vertexBuffer, sampler };
+  const gradientSampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+  return { pipeline, pathPipeline, layout, vertexBuffer, sampler, gradientSampler };
 }
 
 

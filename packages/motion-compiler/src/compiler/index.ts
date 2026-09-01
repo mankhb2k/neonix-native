@@ -25,31 +25,25 @@ import {
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
 import { isCompilerFeatureSupported } from "./capabilities";
+import { canonicalizePaint } from "./paint";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
 type ShapePayload = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>["payload"];
 type ProtocolPaint = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>['style']['fill'];
 
-function runtimePaint(paint: ProtocolPaint | undefined): PaintFill | undefined {
-  if (paint === undefined) return undefined;
-  if (typeof paint === "string") return { type: "solid", color: paint };
-  if (paint.type === "pattern") {
-    return {
-      ...paint,
-      x: paint.x ?? 0,
-      y: paint.y ?? 0,
-      patternUnits: paint.patternUnits ?? "objectBoundingBox",
-      patternContentUnits: paint.patternContentUnits ?? "userSpaceOnUse",
-    } as PaintFill;
-  }
-  return paint as PaintFill;
+function runtimePaint(paint: ProtocolPaint | undefined, width: number, height: number): PaintFill | undefined {
+  return canonicalizePaint(paint, width, height);
 }
 
 function paintColor(paint: ProtocolPaint | undefined): string | undefined {
   if (typeof paint === "string") return paint;
+  if (paint?.type === "none") return "#00000000";
   if (paint?.type === "solid") return paint.color;
-  if (paint && "stops" in paint) return paint.stops[0]?.color;
-  if (paint?.type === "pattern") return paint.content[0]?.fill;
+  if (paint && "stops" in paint) return paint.stops[0]?.color ?? "#00000000";
+  if (paint?.type === "pattern") {
+    const fill = paint.content[0] && "fill" in paint.content[0] ? paint.content[0].fill : undefined;
+    return typeof fill === "string" ? fill : fill?.type === "solid" ? fill.color : "#00000000";
+  }
   return undefined;
 }
 
@@ -557,8 +551,8 @@ function compileVisualRuntimeInternal(
       const strokeDash = layer.style.strokeDash
         ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
         : undefined;
-      const fillPaint = runtimePaint(layer.style.fill);
-      const strokePaint = runtimePaint(layer.style.stroke);
+      const fillPaint = runtimePaint(layer.style.fill, layer.frame.width, layer.frame.height);
+      const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height);
       const fillColorValue = paintColor(layer.style.fill);
       const strokeColorValue = paintColor(layer.style.stroke);
       const pathPaintCapability = paintCapability("path", layer.style.fill);
@@ -632,8 +626,8 @@ function compileVisualRuntimeInternal(
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
     }
-    const fillPaint = runtimePaint(layer.style.fill);
-    const strokePaint = runtimePaint(layer.style.stroke);
+    const fillPaint = runtimePaint(layer.style.fill, layer.frame.width, layer.frame.height);
+    const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height);
     const gradientCapability = paintCapability("shape", layer.style.fill);
     if (gradientCapability && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`)) {
       throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`);

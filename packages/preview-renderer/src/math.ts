@@ -2,6 +2,7 @@ import type { Matrix4, PaintCommand, PaintFill } from "@motionvideo/motion-runti
 import { cssColorToRgba } from "./shared/color";
 
 export type GradientUniforms = {
+  solidOpacity?: number;
   start: [number, number, number, number];
   end: [number, number, number, number];
   params: [number, number, number, number];
@@ -13,9 +14,64 @@ export type GradientUniforms = {
   patternColors: Float32Array;
   patternMeta: [number, number, number, number];
   patternTransform: Float32Array;
+  /** Optional 256-sample fallback for gradients larger than the uniform budget. */
+  lut?: Uint8Array;
 };
 
 export const MAX_GRADIENT_STOPS = 8;
+
+function sampleGradientCpu(
+  stops: Array<{ offset: number; color: string; stopOpacity?: number }>,
+  value: number,
+  spreadMethod: "pad" | "reflect" | "repeat" | undefined,
+): [number, number, number, number] {
+  let t = value;
+  if (spreadMethod === "repeat") t = t - Math.floor(t);
+  else if (spreadMethod === "reflect") {
+    const reflected = (t - Math.floor(t / 2) * 2 + 2) % 2;
+    t = reflected > 1 ? 2 - reflected : reflected;
+  } else t = Math.min(1, Math.max(0, t));
+  if (stops.length === 0) return [0, 0, 0, 0];
+  if (stops.length === 1 || t <= stops[0]!.offset) {
+    const color = cssColorToRgba(stops[0]!.color);
+    color[3] *= stops[0]!.stopOpacity ?? 1;
+    return color;
+  }
+  for (let index = 1; index < stops.length; index += 1) {
+    const left = stops[index - 1]!;
+    const right = stops[index]!;
+    if (t <= right.offset || index === stops.length - 1) {
+      const amount = Math.min(1, Math.max(0, (t - left.offset) / Math.max(right.offset - left.offset, 0.000001)));
+      const a = cssColorToRgba(left.color);
+      const b = cssColorToRgba(right.color);
+      const leftAlpha = a[3] * (left.stopOpacity ?? 1);
+      const rightAlpha = b[3] * (right.stopOpacity ?? 1);
+      return [
+        a[0] + (b[0] - a[0]) * amount,
+        a[1] + (b[1] - a[1]) * amount,
+        a[2] + (b[2] - a[2]) * amount,
+        leftAlpha + (rightAlpha - leftAlpha) * amount,
+      ];
+    }
+  }
+  return cssColorToRgba(stops[stops.length - 1]!.color);
+}
+
+function gradientLut(
+  stops: Array<{ offset: number; color: string; stopOpacity?: number }>,
+  spreadMethod: "pad" | "reflect" | "repeat" | undefined,
+  alpha: number,
+): Uint8Array {
+  const output = new Uint8Array(256 * 4);
+  for (let index = 0; index < 256; index += 1) {
+    const color = sampleGradientCpu(stops, index / 255, spreadMethod);
+    output[index * 4] = Math.round(color[0] * 255);
+    output[index * 4 + 1] = Math.round(color[1] * 255);
+    output[index * 4 + 2] = Math.round(color[2] * 255);
+    output[index * 4 + 3] = Math.round(color[3] * alpha * 255);
+  }
+  return output;
+}
 
 /** Pack one validated Runtime V2 Matrix4 into the GPU's float32 uniform layout. */
 export function packMatrix4F32(matrix: readonly number[]): Float32Array {
@@ -40,6 +96,7 @@ export function gradientUniforms(
   alpha: number,
 ): GradientUniforms {
   const empty: GradientUniforms = {
+    solidOpacity: 1,
     start: [0, 0, 0, 0],
     end: [0, 0, 0, 0],
     params: [0, 0, 0, 0],
@@ -52,43 +109,57 @@ export function gradientUniforms(
     patternMeta: [0, 0, 0, 0],
     patternTransform: new Float32Array([1, 0, 0, 1, 0, 0, 0, 0]),
   };
-  if (!fillPaint || fillPaint.type === "solid") return empty;
+  if (!fillPaint) return empty;
+  if (fillPaint.type === "none") return { ...empty, solidOpacity: 0 };
+  if (fillPaint.type === "solid") return { ...empty, solidOpacity: fillPaint.opacity ?? 1 };
   if (fillPaint.type === "pattern") {
     const patternGeometry = new Float32Array(32);
     const patternColors = new Float32Array(32);
-    fillPaint.content.slice(0, MAX_GRADIENT_STOPS).forEach((content, index) => {
+    let packedCount = 0;
+    for (const content of fillPaint.content) {
+      if (packedCount >= MAX_GRADIENT_STOPS) break;
+      if (content.type !== "rect" && content.type !== "circle") continue;
+      if (!content.fill) continue;
+      const index = packedCount++;
       if (content.type === "rect") patternGeometry.set([content.x, content.y, content.width, content.height], index * 4);
       else patternGeometry.set([content.cx, content.cy, content.radius, -1], index * 4);
-      const color = cssColorToRgba(content.fill);
-      color[3] *= alpha * (content.opacity ?? 1);
+      const contentPaint = content.fill;
+      const contentColor = typeof contentPaint === "string"
+        ? contentPaint
+        : contentPaint?.type === "solid"
+          ? contentPaint.color
+          : undefined;
+      const color = cssColorToRgba(contentColor);
+      color[3] *= alpha * (content.fillOpacity ?? 1) * (contentPaint?.type === "solid" ? contentPaint.opacity ?? 1 : 1);
       patternColors.set(color, index * 4);
-    });
-    const transform = fillPaint.transform ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+    }
+    const transform = fillPaint.patternTransform ?? fillPaint.transform ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
     return {
       ...empty,
       params: [4, 0, 0, 0],
       radius: [fillPaint.x ?? 0, fillPaint.y ?? 0, fillPaint.width, fillPaint.height],
       patternGeometry,
       patternColors,
-      patternMeta: [Math.min(fillPaint.content.length, MAX_GRADIENT_STOPS), fillPaint.patternUnits === "userSpaceOnUse" ? 1 : 0, fillPaint.patternContentUnits === "objectBoundingBox" ? 1 : 0, 0],
+      patternMeta: [packedCount, fillPaint.patternUnits === "userSpaceOnUse" ? 1 : 0, fillPaint.patternContentUnits === "objectBoundingBox" ? 1 : 0, 0],
       patternTransform: new Float32Array([transform.a, transform.b, transform.c, transform.d, transform.e, transform.f, 0, 0]),
     };
   }
   if (fillPaint.stops.length < 2) return empty;
   const sourceStops = fillPaint.stops.slice(0, MAX_GRADIENT_STOPS);
+  const useLut = fillPaint.stops.length > MAX_GRADIENT_STOPS;
   const stops = new Float32Array(MAX_GRADIENT_STOPS * 4);
   const offsets = new Float32Array(MAX_GRADIENT_STOPS);
   sourceStops.forEach((stop, index) => {
     const color = cssColorToRgba(stop.color);
-    color[3] *= alpha;
+    color[3] *= alpha * (stop.stopOpacity ?? 1);
     stops.set(color, index * 4);
     offsets[index] = stop.offset;
   });
   const meta: [number, number, number, number] = [
-    sourceStops.length,
+    useLut ? 0 : sourceStops.length,
     fillPaint.spreadMethod === "reflect" ? 1 : fillPaint.spreadMethod === "repeat" ? 2 : 0,
     fillPaint.gradientUnits === "userSpaceOnUse" ? 1 : 0,
-    0,
+    useLut ? 1 : 0,
   ];
   const transform = fillPaint.gradientTransform ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   const transformData = new Float32Array([transform.a, transform.b, transform.c, transform.d, transform.e, transform.f, 0, 0]);
@@ -103,6 +174,7 @@ export function gradientUniforms(
       end: [endX, endY, 0, 0],
       params: [1, angle, 0, 0],
       radius: [0, 0, 0, 0],
+      solidOpacity: 1,
       stops,
       offsets,
       meta,
@@ -110,6 +182,7 @@ export function gradientUniforms(
       patternColors: empty.patternColors,
       patternMeta: empty.patternMeta,
       patternTransform: transformData,
+      ...(useLut ? { lut: gradientLut(fillPaint.stops, fillPaint.spreadMethod, alpha) } : {}),
     };
   }
   if (fillPaint.type === "conic-gradient") {
@@ -118,6 +191,7 @@ export function gradientUniforms(
       end: [0, 0, 0, 0],
       params: [3, ((fillPaint.from ?? 0) * Math.PI) / 180, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
       radius: [0, 0, 0, 0],
+      solidOpacity: 1,
       stops,
       offsets,
       meta,
@@ -125,13 +199,15 @@ export function gradientUniforms(
       patternColors: empty.patternColors,
       patternMeta: empty.patternMeta,
       patternTransform: transformData,
+      ...(useLut ? { lut: gradientLut(fillPaint.stops, fillPaint.spreadMethod, alpha) } : {}),
     };
   }
   return {
     start: [fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5, fillPaint.fx ?? fillPaint.cx ?? 0.5, fillPaint.fy ?? fillPaint.cy ?? 0.5],
     end: [fillPaint.radius ?? 0.5, 0, 0, 0],
     params: [2, 0, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
-    radius: [fillPaint.radius ?? 0.5, 0, 0, 0],
+    radius: [fillPaint.radiusX ?? fillPaint.radius ?? 0.5, fillPaint.radiusY ?? fillPaint.radius ?? 0.5, fillPaint.fr ?? 0, 0],
+    solidOpacity: 1,
     stops,
     offsets,
     meta,
@@ -139,6 +215,7 @@ export function gradientUniforms(
     patternColors: empty.patternColors,
     patternMeta: empty.patternMeta,
     patternTransform: transformData,
+    ...(useLut ? { lut: gradientLut(fillPaint.stops, fillPaint.spreadMethod, alpha) } : {}),
   };
 }
 
