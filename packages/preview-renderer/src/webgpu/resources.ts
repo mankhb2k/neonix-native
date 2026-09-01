@@ -18,7 +18,7 @@ export type BlendMode =
   | "color-dodge" | "overlay" | "soft-light" | "hard-light" | "difference"
   | "exclusion" | "hue" | "saturation" | "color" | "luminosity";
 export const EFFECT_TEXTURE_FORMAT = "rgba16float";
-export const UNIFORM_FLOATS = 128;
+export const UNIFORM_FLOATS = 208;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
 
 export function webgpuContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGPUContextLike | null {

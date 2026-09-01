@@ -43,11 +43,7 @@ export {
 export { V2GroupLayerSchema, type V2GroupLayer } from "./group";
 export { V2ImageFitSchema, V2ImageLayerSchema, type V2ImageFit, type V2ImageLayer } from "./image";
 export {
-  V2GradientFillSchema,
-  V2GradientStopSchema,
   V2ShapeLayerSchema,
-  type V2GradientFill,
-  type V2GradientStop,
   type V2ShapeLayer,
 } from "./shape";
 export {

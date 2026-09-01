@@ -8,6 +8,7 @@ function appendRun(vertices: number[], indices: number[], points: PathPoint[], c
   if (points.length < 2) return;
   const join = options.join ?? "miter";
   const cap = options.cap ?? "butt";
+  const miterLimit = options.miterLimit ?? 4;
   const segmentCount = closed ? points.length : points.length - 1;
   for (let index = 0; index < segmentCount; index += 1) {
     const start = points[index]!;
@@ -20,7 +21,7 @@ function appendRun(vertices: number[], indices: number[], points: PathPoint[], c
     appendTriangle(vertices, indices, add2(expandedStart, normal), add2(expandedEnd, scale2(normal, -1)), add2(expandedStart, scale2(normal, -1)));
   }
   for (let index = closed ? 0 : 1; index < (closed ? points.length : points.length - 1); index += 1) {
-    appendJoin(vertices, indices, points[(index + points.length - 1) % points.length]!, points[index % points.length]!, points[(index + 1) % points.length]!, halfWidth, join);
+    appendJoin(vertices, indices, points[(index + points.length - 1) % points.length]!, points[index % points.length]!, points[(index + 1) % points.length]!, halfWidth, join, miterLimit);
   }
   if (!closed) {
     appendRoundCap(vertices, indices, points[0]!, unit2(sub2(points[1]!, points[0]!)), halfWidth, cap, true);

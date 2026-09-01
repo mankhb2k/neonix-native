@@ -13,6 +13,7 @@ import {
   type VisualRuntimeNode,
   type VisualRuntimeProject,
   type PathContour,
+  type PaintFill,
   type VisualRuntimeMask,
   identityMatrix4,
   interpolatePathContours,
@@ -27,6 +28,36 @@ import { isCompilerFeatureSupported } from "./capabilities";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
 type ShapePayload = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>["payload"];
+type ProtocolPaint = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>['style']['fill'];
+
+function runtimePaint(paint: ProtocolPaint | undefined): PaintFill | undefined {
+  if (paint === undefined) return undefined;
+  if (typeof paint === "string") return { type: "solid", color: paint };
+  if (paint.type === "pattern") {
+    return {
+      ...paint,
+      x: paint.x ?? 0,
+      y: paint.y ?? 0,
+      patternUnits: paint.patternUnits ?? "objectBoundingBox",
+      patternContentUnits: paint.patternContentUnits ?? "userSpaceOnUse",
+    } as PaintFill;
+  }
+  return paint as PaintFill;
+}
+
+function paintColor(paint: ProtocolPaint | undefined): string | undefined {
+  if (typeof paint === "string") return paint;
+  if (paint?.type === "solid") return paint.color;
+  if (paint && "stops" in paint) return paint.stops[0]?.color;
+  if (paint?.type === "pattern") return paint.content[0]?.fill;
+  return undefined;
+}
+
+function paintCapability(layerType: "shape" | "path", paint: ProtocolPaint | undefined): string | undefined {
+  if (!paint || typeof paint === "string" || paint.type === "solid") return undefined;
+  return paint.type === "pattern" ? `${layerType}.pattern` : `${layerType}.gradient`;
+}
+
 function primitivePathContour(payload: ShapePayload, width: number, height: number): PathContour {
   const { shape } = payload;
   if (shape === "rectangle") {
@@ -526,6 +557,18 @@ function compileVisualRuntimeInternal(
       const strokeDash = layer.style.strokeDash
         ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
         : undefined;
+      const fillPaint = runtimePaint(layer.style.fill);
+      const strokePaint = runtimePaint(layer.style.stroke);
+      const fillColorValue = paintColor(layer.style.fill);
+      const strokeColorValue = paintColor(layer.style.stroke);
+      const pathPaintCapability = paintCapability("path", layer.style.fill);
+      if (pathPaintCapability && !isV2AtomCertified(pathPaintCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${pathPaintCapability}`);
+      }
+      const pathStrokePaintCapability = paintCapability("path", layer.style.stroke);
+      if (pathStrokePaintCapability && !isV2AtomCertified(pathStrokePaintCapability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${pathStrokePaintCapability}`);
+      }
       const effects = lowerEffects(layer.effects);
       return {
         id: layer.id,
@@ -546,12 +589,14 @@ function compileVisualRuntimeInternal(
           ...(hasFill
             ? {
                 mesh: tessellateClosedPath(contours, layer.payload.fillRule),
-                fill: layer.style.fill!,
+                fill: fillColorValue!,
+                ...(fillPaint ? { fillPaint } : {}),
               }
             : {}),
           ...(layer.style.stroke !== undefined
             ? {
-                stroke: layer.style.stroke,
+                stroke: strokeColorValue!,
+                ...(strokePaint ? { strokePaint } : {}),
                 strokeWidth,
                 strokeMesh: tessellatePathStroke(
                   contours,
@@ -559,11 +604,15 @@ function compileVisualRuntimeInternal(
                   {
                     join: strokeJoin,
                     cap: strokeCap,
+                    miterLimit: layer.style.strokeMiterLimit,
                     dash: strokeDash,
                   },
                 ),
                 ...(layer.style.strokeOpacity !== undefined
                   ? { strokeOpacity: layer.style.strokeOpacity }
+                  : {}),
+                ...(layer.style.strokeMiterLimit !== undefined
+                  ? { strokeMiterLimit: layer.style.strokeMiterLimit }
                   : {}),
                 strokeJoin,
                 strokeCap,
@@ -583,9 +632,15 @@ function compileVisualRuntimeInternal(
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
     }
-    const gradientFill = typeof layer.style.fill === "object" ? layer.style.fill : null;
-    if (gradientFill && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.gradient`)) {
-      throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.gradient`);
+    const fillPaint = runtimePaint(layer.style.fill);
+    const strokePaint = runtimePaint(layer.style.stroke);
+    const gradientCapability = paintCapability("shape", layer.style.fill);
+    if (gradientCapability && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`)) {
+      throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`);
+    }
+    const strokePaintCapability = paintCapability("shape", layer.style.stroke);
+    if (strokePaintCapability && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.${strokePaintCapability.split(".").at(-1)}`)) {
+      throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.${strokePaintCapability.split(".").at(-1)}`);
     }
     if (layer.style.stroke !== undefined) {
       const strokeCapability = `${layer.type}.${layer.payload.shape}.stroke`;
@@ -658,18 +713,21 @@ function compileVisualRuntimeInternal(
         contours: [shapeContour],
         fillRule: "nonzero" as const,
         ...(layer.style.fill
-          ? { fill: typeof layer.style.fill === "string" ? layer.style.fill : layer.style.fill.stops[0]!.color }
+          ? { fill: paintColor(layer.style.fill)!, ...(fillPaint ? { fillPaint } : {}) }
           : {}),
-        ...(gradientFill ? { fillPaint: gradientFill } : {}),
         ...(layer.style.fillOpacity !== undefined
           ? { fillOpacity: layer.style.fillOpacity }
           : {}),
         ...(layer.style.stroke !== undefined
           ? {
-              stroke: layer.style.stroke,
+              stroke: paintColor(layer.style.stroke)!,
+              ...(strokePaint ? { strokePaint } : {}),
               strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
               ...(layer.style.strokeOpacity !== undefined
                 ? { strokeOpacity: layer.style.strokeOpacity }
+                : {}),
+              ...(layer.style.strokeMiterLimit !== undefined
+                ? { strokeMiterLimit: layer.style.strokeMiterLimit }
                 : {}),
               ...(layer.style.strokeJoin ? { strokeJoin: layer.style.strokeJoin } : {}),
               ...(layer.style.strokeCap ? { strokeCap: layer.style.strokeCap } : {}),
@@ -689,6 +747,7 @@ function compileVisualRuntimeInternal(
                 {
                   join: layer.style.strokeJoin ?? "miter",
                   cap: layer.style.strokeCap ?? "butt",
+                  miterLimit: layer.style.strokeMiterLimit,
                   dash: layer.style.strokeDash
                     ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
                     : undefined,

@@ -18,5 +18,6 @@ export type PathFillRule = "nonzero" | "evenodd";
 export type PathStrokeOptions = {
   join?: import("../../paint/paint-types").PathStrokeJoin;
   cap?: import("../../paint/paint-types").PathStrokeCap;
+  miterLimit?: number;
   dash?: import("../../paint/paint-types").PathStrokeDash;
 };

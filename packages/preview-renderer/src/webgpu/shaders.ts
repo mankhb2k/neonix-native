@@ -13,6 +13,10 @@ struct Uniforms {
   gradientStops: array<vec4<f32>, 8>,
   gradientOffsets: array<vec4<f32>, 2>,
   gradientMeta: vec4<f32>,
+  patternGeometry: array<vec4<f32>, 8>,
+  patternColors: array<vec4<f32>, 8>,
+  patternMeta: vec4<f32>,
+  patternTransform: array<vec4<f32>, 2>,
   colorAdjustMeta: vec4<f32>,
   colorAdjust0: vec4<f32>,
   colorAdjust1: vec4<f32>,
@@ -49,7 +53,12 @@ fn gradientOffset(index: u32) -> f32 {
   return uniforms.gradientOffsets[1][index - 4u];
 }
 fn sampleGradient(t: f32) -> vec4<f32> {
-  let clamped = clamp(t, 0.0, 1.0);
+  var clamped = clamp(t, 0.0, 1.0);
+  if (uniforms.gradientMeta.y > 1.5) { clamped = fract(t); }
+  else if (uniforms.gradientMeta.y > 0.5) {
+    let reflected = fract(t * 0.5) * 2.0;
+    clamped = select(reflected, 2.0 - reflected, reflected > 1.0);
+  }
   let count = u32(uniforms.gradientMeta.x);
   var result = uniforms.gradientStops[0];
   if (count <= 1u) { return result; }
@@ -61,6 +70,41 @@ fn sampleGradient(t: f32) -> vec4<f32> {
       result = mix(uniforms.gradientStops[i], uniforms.gradientStops[i + 1u], clamp((clamped - a) / max(b - a, 0.0001), 0.0, 1.0));
       break;
     }
+  }
+  return result;
+}
+fn patternPoint(point: vec2<f32>) -> vec2<f32> {
+  let transform = uniforms.patternTransform[0];
+  let translation = uniforms.patternTransform[1].xy;
+  let determinant = transform.x * transform.w - transform.y * transform.z;
+  if (abs(determinant) < 0.00001) { return point; }
+  let shifted = point - translation;
+  return vec2<f32>((transform.w * shifted.x - transform.z * shifted.y) / determinant, (-transform.y * shifted.x + transform.x * shifted.y) / determinant);
+}
+fn positiveModulo(value: f32, size: f32) -> f32 { return value - floor(value / size) * size; }
+fn samplePattern(point: vec2<f32>) -> vec4<f32> {
+  let tileOrigin = uniforms.gradientRadius.xy;
+  var tileSize = uniforms.gradientRadius.zw;
+  if (uniforms.patternMeta.y < 0.5) { tileSize = tileSize * uniforms.geometry.yz; }
+  tileSize = max(tileSize, vec2<f32>(0.0001, 0.0001));
+  let local = patternPoint(point);
+  let tilePoint = vec2<f32>(positiveModulo(local.x - tileOrigin.x, tileSize.x), positiveModulo(local.y - tileOrigin.y, tileSize.y));
+  var result = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+  let count = u32(uniforms.patternMeta.x);
+  for (var i = 0u; i < 8u; i = i + 1u) {
+    if (i >= count) { break; }
+    let geometry = uniforms.patternGeometry[i];
+    var hit = false;
+    if (geometry.w < -0.5) {
+      let center = select(geometry.xy, geometry.xy * tileSize, uniforms.patternMeta.z > 0.5);
+      let radius = select(geometry.z, geometry.z * min(tileSize.x, tileSize.y), uniforms.patternMeta.z > 0.5);
+      hit = distance(tilePoint, center) <= radius;
+    } else {
+      let origin = select(geometry.xy, geometry.xy * tileSize, uniforms.patternMeta.z > 0.5);
+      let size = select(geometry.zw, geometry.zw * tileSize, uniforms.patternMeta.z > 0.5);
+      hit = tilePoint.x >= origin.x && tilePoint.y >= origin.y && tilePoint.x <= origin.x + size.x && tilePoint.y <= origin.y + size.y;
+    }
+    if (hit) { result = uniforms.patternColors[i]; }
   }
   return result;
 }
@@ -93,18 +137,29 @@ fn sampleGradient(t: f32) -> vec4<f32> {
   if (uniforms.params.y <= 0.5 && uniforms.gradientParams.x > 0.5) {
     var gradientT = 0.0;
     if (uniforms.gradientParams.x < 1.5) {
-      let direction = vec2<f32>(cos(uniforms.gradientParams.y), sin(uniforms.gradientParams.y));
-      let extent = length(uniforms.geometry.yz) * 0.5;
-      let point = (input.uv - vec2<f32>(0.5, 0.5)) * uniforms.geometry.yz;
-      gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
+      let point = patternPoint(input.uv * uniforms.geometry.yz);
+      var gradientStart = uniforms.gradientStart.xy;
+      var gradientEnd = uniforms.gradientEnd.xy;
+      if (uniforms.gradientMeta.z < 0.5) { gradientStart = gradientStart * uniforms.geometry.yz; gradientEnd = gradientEnd * uniforms.geometry.yz; }
+      let direction = gradientEnd - gradientStart;
+      gradientT = dot(point - gradientStart, direction) / max(dot(direction, direction), 0.0001);
     } else if (uniforms.gradientParams.x < 2.5) {
-      let point = (input.uv - uniforms.gradientParams.zw) * uniforms.geometry.yz;
-      gradientT = length(point) / max(uniforms.gradientRadius.x * min(uniforms.geometry.y, uniforms.geometry.z), 0.0001);
+      let point = patternPoint(input.uv * uniforms.geometry.yz);
+      var center = uniforms.gradientStart.xy;
+      if (uniforms.gradientMeta.z < 0.5) { center = center * uniforms.geometry.yz; }
+      let radialRadius = uniforms.gradientRadius.x * select(1.0, min(uniforms.geometry.y, uniforms.geometry.z), uniforms.gradientMeta.z < 0.5);
+      gradientT = distance(point, center) / max(radialRadius, 0.0001);
     } else {
-      let point = input.uv - uniforms.gradientParams.zw;
+      var point = patternPoint(input.uv * uniforms.geometry.yz);
+      var center = uniforms.gradientStart.xy;
+      if (uniforms.gradientMeta.z < 0.5) { center = center * uniforms.geometry.yz; }
+      point = point - center;
       gradientT = fract(atan2(point.y, point.x) / (2.0 * 3.14159265359) - uniforms.gradientParams.y / (2.0 * 3.14159265359));
     }
     source = sampleGradient(gradientT);
+  }
+  if (uniforms.params.y <= 0.5 && uniforms.gradientParams.x > 3.5) {
+    source = samplePattern(input.uv * uniforms.geometry.yz);
   }
   if (uniforms.params.y <= 0.5 && uniforms.params.z > 0.0 && uniforms.params.w > 0.0) {
     // Keep the complete stroke inside the layer frame. This avoids clipping

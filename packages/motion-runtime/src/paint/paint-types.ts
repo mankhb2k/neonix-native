@@ -19,16 +19,43 @@ export type PaintBlendMode =
   | "luminosity";
 
 export type PaintFillSolid = { type: "solid"; color: string };
+export type PaintTransform = { a: number; b: number; c: number; d: number; e: number; f: number };
+export type PaintGradientCommon = {
+  stops: Array<{ offset: number; color: string }>;
+  spreadMethod?: "pad" | "reflect" | "repeat";
+  gradientUnits?: "objectBoundingBox" | "userSpaceOnUse";
+  gradientTransform?: PaintTransform;
+};
 export type PaintFillGradient = {
   type: "linear-gradient" | "radial-gradient" | "conic-gradient";
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
   angle?: number;
   from?: number;
   cx?: number;
   cy?: number;
   radius?: number;
-  stops: Array<{ offset: number; color: string }>;
+  fx?: number;
+  fy?: number;
+} & PaintGradientCommon;
+export type PaintPatternContent =
+  | { type: "rect"; x: number; y: number; width: number; height: number; fill: string; opacity?: number }
+  | { type: "circle"; cx: number; cy: number; radius: number; fill: string; opacity?: number };
+export type PaintFillPattern = {
+  type: "pattern";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  patternUnits?: "objectBoundingBox" | "userSpaceOnUse";
+  patternContentUnits?: "objectBoundingBox" | "userSpaceOnUse";
+  transform?: PaintTransform;
+  content: PaintPatternContent[];
 };
-export type PaintFill = PaintFillSolid | PaintFillGradient;
+export type PaintFill = PaintFillSolid | PaintFillGradient | PaintFillPattern;
+export type Paint = PaintFill;
 
 export type RenderMediaFit = "contain" | "cover" | "fill" | "none";
 export type RenderNormalizedRect = {

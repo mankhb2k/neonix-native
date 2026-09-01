@@ -71,8 +71,10 @@ export type VisualRuntimeShape = {
   fillOpacity?: number;
   cornerRadius?: number;
   stroke?: string;
+  strokePaint?: PaintFill;
   strokeWidth?: number;
   strokeOpacity?: number;
+  strokeMiterLimit?: number;
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
@@ -91,8 +93,10 @@ export type VisualRuntimePath = {
   fillPaint?: PaintFill;
   fillOpacity?: number;
   stroke?: string;
+  strokePaint?: PaintFill;
   strokeWidth?: number;
   strokeOpacity?: number;
+  strokeMiterLimit?: number;
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;

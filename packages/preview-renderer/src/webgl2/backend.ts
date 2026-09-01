@@ -131,6 +131,10 @@ export function createWebGL2Backend(
   const gradientStopsLocation = gl.getUniformLocation(programHandle, "u_gradient_stops[0]");
   const gradientOffsetsLocation = gl.getUniformLocation(programHandle, "u_gradient_offsets[0]");
   const gradientMetaLocation = gl.getUniformLocation(programHandle, "u_gradient_meta");
+  const patternGeometryLocation = gl.getUniformLocation(programHandle, "u_pattern_geometry[0]");
+  const patternColorsLocation = gl.getUniformLocation(programHandle, "u_pattern_colors[0]");
+  const patternMetaLocation = gl.getUniformLocation(programHandle, "u_pattern_meta");
+  const patternTransformLocation = gl.getUniformLocation(programHandle, "u_pattern_transform[0]");
   const colorAdjustMetaLocation = gl.getUniformLocation(programHandle, "u_color_adjust_meta");
   const colorAdjustLocation = gl.getUniformLocation(programHandle, "u_color_adjust[0]");
   const blurTextureLocation = gl.getUniformLocation(blurProgramHandle, "u_texture");
@@ -141,6 +145,12 @@ export function createWebGL2Backend(
   const blurCompositeAlphaLocation = gl.getUniformLocation(blurProgramHandle, "u_composite_alpha");
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
+  const setPatternUniforms = (gradients: ReturnType<typeof gradientUniforms>) => {
+    gl.uniform4fv(patternGeometryLocation, gradients.patternGeometry);
+    gl.uniform4fv(patternColorsLocation, gradients.patternColors);
+    gl.uniform4fv(patternMetaLocation, gradients.patternMeta);
+    gl.uniform4fv(patternTransformLocation, gradients.patternTransform);
+  };
   const innerGlowSourceLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_source");
   const innerGlowBlurredLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_blurred");
   const innerGlowTintLocation = gl.getUniformLocation(innerGlowProgramHandle, "u_tint");
@@ -493,6 +503,7 @@ export function createWebGL2Backend(
         gl.uniform4fv(gradientStopsLocation, gradients.stops);
         gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
         gl.uniform4fv(gradientMetaLocation, gradients.meta);
+        setPatternUniforms(gradients);
         const stroke = !isClipMaskSource && command.op === "drawShape" && (command.shape === "rectangle" || command.shape === "ellipse") && command.stroke
           ? cssColorToRgba(command.stroke)
           : [0, 0, 0, 0];
@@ -523,7 +534,7 @@ export function createWebGL2Backend(
             ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
             : null,
           !maskMode && command.stroke && command.strokeMesh
-            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: undefined }
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: command.strokePaint }
             : null,
         ].filter((entry) => entry !== null).map((entry) => entry!);
         if (meshes.length === 0) {
@@ -563,6 +574,7 @@ export function createWebGL2Backend(
           gl.uniform4fv(gradientStopsLocation, gradients.stops);
           gl.uniform4fv(gradientOffsetsLocation, gradients.offsets);
           gl.uniform4fv(gradientMetaLocation, gradients.meta);
+          setPatternUniforms(gradients);
           gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
           gl.drawElements(gl.TRIANGLES, pathDraw.mesh.indices.length, gl.UNSIGNED_INT, 0);
           drawCalls += 1;

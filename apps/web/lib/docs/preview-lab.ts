@@ -19,9 +19,10 @@ type ShapeOptions = {
   cornerRadius?: number;
   rx?: number;
   ry?: number;
-  stroke?: string;
+  stroke?: RectangleLayer["style"]["stroke"];
   strokeWidth?: number;
   strokeOpacity?: number;
+  strokeMiterLimit?: number;
   strokeJoin?: "miter" | "bevel" | "round";
   strokeCap?: "butt" | "square" | "round";
   strokeDash?: { array: number[]; offset?: number };
@@ -107,8 +108,11 @@ function shapeLayer(options: ShapeOptions, shape: RectangleLayer["payload"]["sha
       ...(options.fillOpacity != null ? { fillOpacity: options.fillOpacity } : {}),
       ...(options.stroke ? { stroke: options.stroke } : {}),
       ...(options.strokeWidth != null ? { strokeWidth: options.strokeWidth } : {}),
-    ...(options.strokeOpacity != null
+      ...(options.strokeOpacity != null
         ? { strokeOpacity: options.strokeOpacity }
+        : {}),
+      ...(options.strokeMiterLimit != null
+        ? { strokeMiterLimit: options.strokeMiterLimit }
         : {}),
       ...(options.strokeJoin ? { strokeJoin: options.strokeJoin } : {}),
       ...(options.strokeCap ? { strokeCap: options.strokeCap } : {}),
@@ -1672,6 +1676,51 @@ const CONIC_GRADIENT_FILL = {
   ],
 };
 
+const LINEAR_GRADIENT_SPREAD_FILL = {
+  type: "linear-gradient" as const,
+  x1: 0,
+  y1: 0,
+  x2: 1,
+  y2: 0,
+  spreadMethod: "reflect" as const,
+  gradientUnits: "objectBoundingBox" as const,
+  stops: [
+    { offset: 0, color: "#ff3366" },
+    { offset: 1, color: "#2563eb" },
+  ],
+};
+
+const USER_SPACE_GRADIENT_FILL = {
+  type: "linear-gradient" as const,
+  x1: 0,
+  y1: 0,
+  x2: 320,
+  y2: 180,
+  gradientUnits: "userSpaceOnUse" as const,
+  gradientTransform: { a: 0.866, b: 0.5, c: -0.5, d: 0.866, e: 40, f: 0 },
+  stops: [
+    { offset: 0, color: "#14b8a6" },
+    { offset: 0.5, color: "#2563eb" },
+    { offset: 1, color: "#f97316" },
+  ],
+};
+
+const CHECKER_PATTERN_FILL = {
+  type: "pattern" as const,
+  x: 0,
+  y: 0,
+  width: 48,
+  height: 48,
+  patternUnits: "userSpaceOnUse" as const,
+  patternContentUnits: "userSpaceOnUse" as const,
+  transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+  content: [
+    { type: "rect" as const, x: 0, y: 0, width: 24, height: 24, fill: "#14b8a6" },
+    { type: "rect" as const, x: 24, y: 24, width: 24, height: 24, fill: "#14b8a6" },
+    { type: "circle" as const, cx: 24, cy: 24, radius: 8, fill: "#f8fafc" },
+  ],
+};
+
 const CONIC_GRADIENT_PROJECT = project("preview-conic-gradient-v2", [
   rectangle({ id: "shape-conic-gradient", order: 0, fill: CONIC_GRADIENT_FILL, frame: { width: 320, height: 180 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 450, z: 0 } } }),
 ]);
@@ -1739,6 +1788,79 @@ const RADIAL_GRADIENT_PROJECT = project("preview-radial-gradient-v2", [
     frame: { width: 320, height: 180 },
     transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
   }),
+]);
+
+const GRADIENT_SPREAD_PROJECT = project("preview-gradient-spread-v2", [
+  rectangle({
+    id: "gradient-spread",
+    order: 0,
+    fill: LINEAR_GRADIENT_SPREAD_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const GRADIENT_USER_SPACE_PROJECT = project("preview-gradient-user-space-v2", [
+  rectangle({
+    id: "gradient-user-space",
+    order: 0,
+    fill: USER_SPACE_GRADIENT_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const PATTERN_PROJECT = project("preview-pattern-v2", [
+  rectangle({
+    id: "pattern",
+    order: 0,
+    fill: CHECKER_PATTERN_FILL,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const PATH_GRADIENT_PROJECT = {
+  ...PATH_NONZERO_STAR_PROJECT,
+  id: "preview-path-gradient-v2",
+  layers: PATH_NONZERO_STAR_PROJECT.layers.map((layer) =>
+    layer.type === "path" ? { ...layer, style: { ...layer.style, fill: LINEAR_GRADIENT_FILL } } : layer,
+  ),
+};
+
+const PATH_PATTERN_PROJECT = {
+  ...PATH_NONZERO_STAR_PROJECT,
+  id: "preview-path-pattern-v2",
+  layers: PATH_NONZERO_STAR_PROJECT.layers.map((layer) =>
+    layer.type === "path" ? { ...layer, style: { ...layer.style, fill: CHECKER_PATTERN_FILL } } : layer,
+  ),
+};
+
+const STROKE_GRADIENT_PROJECT = project("preview-stroke-gradient-v2", [
+  rectangle({
+    id: "stroke-gradient",
+    order: 0,
+    fill: "#101820",
+    stroke: LINEAR_GRADIENT_FILL,
+    strokeWidth: 18,
+    frame: { width: 320, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 800, y: 420, z: 0 } },
+  }),
+]);
+
+const STROKE_MITER_LIMIT_PROJECT = project("preview-stroke-miter-limit-v2", [
+  shapeLayer({
+    id: "stroke-miter-limit",
+    order: 0,
+    fill: "#101820",
+    stroke: "#f97316",
+    strokeWidth: 18,
+    strokeJoin: "miter",
+    strokeMiterLimit: 2,
+    frame: { width: 360, height: 240 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 780, y: 380, z: 0 } },
+    points: [{ x: 20, y: 210 }, { x: 180, y: 20 }, { x: 340, y: 210 }],
+  }, "polyline"),
 ]);
 
 const GRADIENT_PERSPECTIVE_PROJECT = project(
@@ -2381,6 +2503,9 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.linear-gradient", label: "Shape / linear gradient", group: "Layers / Shape", hint: "A shape carrying a linear gradient fill value.", project: LINEAR_GRADIENT_PROJECT },
   { id: "shape.radial-gradient", label: "Shape / radial gradient", group: "Layers / Shape", hint: "A shape carrying a radial gradient fill value.", project: RADIAL_GRADIENT_PROJECT },
   { id: "shape.conic-gradient", label: "Shape / conic gradient", group: "Layers / Shape", hint: "A shape carrying a conic gradient fill value with angle and center.", project: CONIC_GRADIENT_PROJECT },
+  { id: "shape.gradient-spread", label: "Shape / gradient spread", group: "Layers / Shape", hint: "SVG gradient spreadMethod semantic (reflect).", project: GRADIENT_SPREAD_PROJECT },
+  { id: "shape.gradient-user-space", label: "Shape / gradient transform", group: "Layers / Shape", hint: "SVG gradientUnits=userSpaceOnUse with gradientTransform.", project: GRADIENT_USER_SPACE_PROJECT },
+  { id: "shape.pattern", label: "Shape / pattern", group: "Layers / Shape", hint: "SVG pattern tile geometry, content units and transform.", project: PATTERN_PROJECT },
   { id: "shape.fill-opacity", label: "Shape / fill opacity", group: "Layers / Shape", hint: "A shape carrying fillOpacity independently from its layer opacity.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
   { id: "shape.stroke", label: "Shape / stroke", group: "Layers / Shape", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
   { id: "shape.stroke-width", label: "Shape / stroke width", group: "Layers / Shape", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },
@@ -2388,6 +2513,8 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.stroke-join", label: "Shape / stroke join", group: "Layers / Shape", hint: "SVG-like strokeJoin on a primitive shape.", project: SHAPE_STROKE_JOIN_PROJECT },
   { id: "shape.stroke-cap", label: "Shape / stroke cap", group: "Layers / Shape", hint: "SVG-like strokeCap on a primitive shape.", project: SHAPE_STROKE_CAP_PROJECT },
   { id: "shape.stroke-dash", label: "Shape / stroke dash", group: "Layers / Shape", hint: "SVG-like strokeDash and offset on a primitive shape.", project: SHAPE_STROKE_DASH_PROJECT },
+  { id: "shape.stroke-gradient", label: "Shape / gradient stroke", group: "Layers / Shape", hint: "The same semantic Paint can be used for stroke as for fill.", project: STROKE_GRADIENT_PROJECT },
+  { id: "shape.stroke-miter-limit", label: "Shape / stroke miter limit", group: "Layers / Shape", hint: "SVG-compatible runtime miter limit without changing the JSON stroke semantics.", project: STROKE_MITER_LIMIT_PROJECT },
   { id: "shape.effects", label: "Shape / effects", group: "Layers / Shape", hint: "A shape carrying the optional V2 effects list.", project: BLUR_PROJECT },
   { id: "shape.rectangle-perspective", label: "Shape / rectangle perspective", group: "Layers / Shape", hint: "A rectangle shape evaluated through perspective geometry.", project: SHAPE_RECTANGLE_PERSPECTIVE_PROJECT },
   { id: "shape.ellipse-perspective", label: "Shape / ellipse perspective", group: "Layers / Shape", hint: "An ellipse shape evaluated through perspective geometry.", project: SHAPE_ELLIPSE_PERSPECTIVE_PROJECT },
@@ -3200,6 +3327,8 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
   { id: "path.geometry.open-contour", label: "Path / open contour", group: "Layers / Path", hint: "An open contour rendered as stroke only.", project: PATH_OPEN_STROKE_PROJECT },
   { id: "path.geometry.multiple-contours", label: "Path / multiple contours", group: "Layers / Path", hint: "Two independent contours in one path payload.", project: PATH_NONZERO_DONUT_PROJECT },
   { id: "path.fill", label: "Path / fill", group: "Layers / Path", hint: "A path carrying a solid fill.", project: PATH_NONZERO_STAR_PROJECT },
+  { id: "path.gradient", label: "Path / gradient paint", group: "Layers / Path", hint: "A path uses the same semantic gradient paint as a shape.", project: PATH_GRADIENT_PROJECT },
+  { id: "path.pattern", label: "Path / pattern paint", group: "Layers / Path", hint: "A path uses an SVG-like pattern tile as its fill paint.", project: PATH_PATTERN_PROJECT },
   { id: "path.fill-opacity", label: "Path / fill opacity", group: "Layers / Path", hint: "A path carrying fillOpacity.", project: PATH_OPACITY_PROJECT },
   { id: "path.stroke", label: "Path / stroke", group: "Layers / Path", hint: "The same five-sided path with a 4px stroke.", project: PATH_STROKE_4PX_PROJECT },
   { id: "path.stroke-width", label: "Path / stroke width", group: "Layers / Path", hint: "A path carrying strokeWidth.", project: PATH_STROKE_PROJECT },

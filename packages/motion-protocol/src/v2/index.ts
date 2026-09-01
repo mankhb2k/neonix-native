@@ -68,6 +68,22 @@ export {
   type V2Effect,
 } from "./effects";
 export {
+  V2PaintTransformSchema,
+  V2GradientStopSchema,
+  V2GradientFillSchema,
+  V2PatternContentSchema,
+  V2PatternFillSchema,
+  V2PaintServerSchema,
+  V2PaintSchema,
+  type V2PaintTransform,
+  type V2GradientStop,
+  type V2GradientFill,
+  type V2PatternContent,
+  type V2PatternFill,
+  type V2PaintServer,
+  type V2Paint,
+} from "./paint";
+export {
   V2FrameSchema,
   V2LayerBaseSchema,
   V2BlendModeSchema,

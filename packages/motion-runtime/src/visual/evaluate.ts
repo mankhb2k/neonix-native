@@ -237,11 +237,15 @@ export function evaluateVisualRuntimeProject(
           ? { fillOpacity: content.fillOpacity }
           : {}),
         ...(content.stroke ? { stroke: content.stroke } : {}),
+        ...(content.strokePaint ? { strokePaint: content.strokePaint } : {}),
         ...(content.strokeWidth != null
           ? { strokeWidth: content.strokeWidth }
           : {}),
         ...(content.strokeOpacity != null
           ? { strokeOpacity: content.strokeOpacity }
+          : {}),
+        ...(content.strokeMiterLimit != null
+          ? { strokeMiterLimit: content.strokeMiterLimit }
           : {}),
         ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
         ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
@@ -313,11 +317,15 @@ export function evaluateVisualRuntimeProject(
           ? { cornerRadius: content.cornerRadius }
           : {}),
         ...(content.stroke ? { stroke: content.stroke } : {}),
+        ...(content.strokePaint ? { strokePaint: content.strokePaint } : {}),
         ...(content.strokeWidth != null
           ? { strokeWidth: content.strokeWidth }
           : {}),
         ...(content.strokeOpacity != null
           ? { strokeOpacity: content.strokeOpacity }
+          : {}),
+        ...(content.strokeMiterLimit != null
+          ? { strokeMiterLimit: content.strokeMiterLimit }
           : {}),
       });
     }

@@ -1,8 +1,6 @@
 import { z } from "zod";
-import {
-  V2ColorSchema,
-  V2FiniteNumberSchema,
-} from "../common";
+import { V2FiniteNumberSchema } from "../common";
+import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
 
@@ -64,11 +62,12 @@ export const V2PathLayerSchema = V2LayerBaseSchema.extend({
     .strict(),
   style: z
     .object({
-      fill: V2ColorSchema.optional(),
+      fill: V2PaintSchema.optional(),
       fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
-      stroke: V2ColorSchema.optional(),
+      stroke: V2PaintSchema.optional(),
       strokeWidth: V2FiniteNumberSchema.positive().optional(),
       strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
+      strokeMiterLimit: V2FiniteNumberSchema.positive().optional(),
       strokeJoin: z.enum(["miter", "bevel", "round"]).optional(),
       strokeCap: z.enum(["butt", "square", "round"]).optional(),
       strokeDash: z

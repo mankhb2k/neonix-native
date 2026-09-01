@@ -657,7 +657,7 @@ export function SchemaInspector() {
           {typeof selected.style.fill === "string" ? (
             <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
           ) : null}
-          {selected.style.stroke ? <ColorField label="Stroke" value={selected.style.stroke} onChange={(value) => patchLayer({ style: { stroke: value } })} /> : null}
+          {typeof selected.style.stroke === "string" ? <ColorField label="Stroke" value={selected.style.stroke as string} onChange={(value) => patchLayer({ style: { stroke: value } })} /> : null}
           {selected.style.stroke ? <NumberField label="Stroke width" step={1} integer suffix="px" value={selected.style.strokeWidth ?? 1} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
           {!selected.style.stroke ? <ActionButton label="Add stroke" onClick={() => patchLayer({ style: { stroke: "#ffffff", strokeWidth: 1 } })} /> : null}
         </InspectorSection>

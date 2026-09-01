@@ -26,6 +26,10 @@ uniform vec4 u_gradient_radius;
 uniform vec4 u_gradient_stops[8];
 uniform vec4 u_gradient_offsets[2];
 uniform vec4 u_gradient_meta;
+uniform vec4 u_pattern_geometry[8];
+uniform vec4 u_pattern_colors[8];
+uniform vec4 u_pattern_meta;
+uniform vec4 u_pattern_transform[2];
 uniform vec4 u_color_adjust_meta;
 uniform vec4 u_color_adjust[4];
 uniform int u_mode;
@@ -57,6 +61,11 @@ float gradientOffset(int index) {
 }
 vec4 sampleGradient(float t) {
   float clamped = clamp(t, 0.0, 1.0);
+  if (u_gradient_meta.y > 1.5) clamped = fract(t);
+  else if (u_gradient_meta.y > 0.5) {
+    float reflected = fract(t * 0.5) * 2.0;
+    clamped = reflected > 1.0 ? 2.0 - reflected : reflected;
+  }
   int count = int(u_gradient_meta.x + 0.5);
   vec4 result = u_gradient_stops[0];
   for (int i = 0; i < 7; i++) {
@@ -67,6 +76,49 @@ vec4 sampleGradient(float t) {
       result = mix(u_gradient_stops[i], u_gradient_stops[i + 1], clamp((clamped - a) / max(b - a, 0.0001), 0.0, 1.0));
       break;
     }
+  }
+  return result;
+}
+vec2 patternPoint(vec2 point) {
+  vec2 translation = u_pattern_transform[1].xy;
+  mat2 linear = mat2(u_pattern_transform[0].xy, u_pattern_transform[0].zw);
+  vec2 shifted = point - translation;
+  float determinant = linear[0][0] * linear[1][1] - linear[0][1] * linear[1][0];
+  if (abs(determinant) < 0.00001) return point;
+  return inverse(linear) * shifted;
+}
+float positiveModulo(float value, float size) {
+  return value - floor(value / size) * size;
+}
+vec4 samplePattern(vec2 point) {
+  vec2 tileOrigin = u_gradient_radius.xy;
+  vec2 tileSize = u_gradient_radius.zw;
+  if (u_pattern_meta.y < 0.5) tileSize *= u_geometry.yz;
+  tileSize = max(tileSize, vec2(0.0001));
+  vec2 local = patternPoint(point);
+  vec2 tilePoint = vec2(positiveModulo(local.x - tileOrigin.x, tileSize.x), positiveModulo(local.y - tileOrigin.y, tileSize.y));
+  vec4 result = vec4(0.0);
+  int count = int(u_pattern_meta.x + 0.5);
+  for (int i = 0; i < 8; i++) {
+    if (i >= count) break;
+    vec4 geometry = u_pattern_geometry[i];
+    vec2 contentPoint = tilePoint;
+    vec4 content = geometry;
+    if (u_pattern_meta.z > 0.5) {
+      contentPoint /= tileSize;
+      content = geometry;
+    }
+    bool hit = false;
+    if (geometry.w < -0.5) {
+      vec2 center = u_pattern_meta.z > 0.5 ? geometry.xy * tileSize : geometry.xy;
+      float radius = u_pattern_meta.z > 0.5 ? geometry.z * min(tileSize.x, tileSize.y) : geometry.z;
+      hit = distance(contentPoint, center) <= radius;
+    } else {
+      vec2 origin = u_pattern_meta.z > 0.5 ? geometry.xy * tileSize : geometry.xy;
+      vec2 size = u_pattern_meta.z > 0.5 ? geometry.zw * tileSize : geometry.zw;
+      hit = contentPoint.x >= origin.x && contentPoint.y >= origin.y && contentPoint.x <= origin.x + size.x && contentPoint.y <= origin.y + size.y;
+    }
+    if (hit) result = u_pattern_colors[i];
   }
   return result;
 }
@@ -94,18 +146,29 @@ void main() {
   if (u_mode == 0 && u_gradient_params.x > 0.5) {
     float gradientT;
     if (u_gradient_params.x < 1.5) {
-      vec2 direction = vec2(cos(u_gradient_params.y), sin(u_gradient_params.y));
-      float extent = length(u_geometry.yz) * 0.5;
-      vec2 point = (v_uv - vec2(0.5)) * u_geometry.yz;
-      gradientT = dot(point, direction) / max(2.0 * extent, 0.0001) + 0.5;
+      vec2 point = patternPoint(v_uv * u_geometry.yz);
+      vec2 gradientStart = u_gradient_start.xy;
+      vec2 gradientEnd = u_gradient_end.xy;
+      if (u_gradient_meta.z < 0.5) { gradientStart *= u_geometry.yz; gradientEnd *= u_geometry.yz; }
+      vec2 direction = gradientEnd - gradientStart;
+      gradientT = dot(point - gradientStart, direction) / max(dot(direction, direction), 0.0001);
     } else if (u_gradient_params.x < 2.5) {
-      vec2 point = (v_uv - u_gradient_params.zw) * u_geometry.yz;
-      gradientT = length(point) / max(u_gradient_radius.x * min(u_geometry.y, u_geometry.z), 0.0001);
+      vec2 point = patternPoint(v_uv * u_geometry.yz);
+      vec2 center = u_gradient_start.xy;
+      if (u_gradient_meta.z < 0.5) center *= u_geometry.yz;
+      float radialRadius = u_gradient_radius.x * (u_gradient_meta.z < 0.5 ? min(u_geometry.y, u_geometry.z) : 1.0);
+      gradientT = length(point - center) / max(radialRadius, 0.0001);
     } else {
-      vec2 point = v_uv - u_gradient_params.zw;
+      vec2 point = patternPoint(v_uv * u_geometry.yz);
+      vec2 center = u_gradient_start.xy;
+      if (u_gradient_meta.z < 0.5) center *= u_geometry.yz;
+      point -= center;
       gradientT = fract(atan(point.y, point.x) / (2.0 * 3.14159265359) - u_gradient_params.y / (2.0 * 3.14159265359));
     }
     source = sampleGradient(gradientT);
+  }
+  if (u_mode == 0 && u_gradient_params.x > 3.5) {
+    source = samplePattern(v_uv * u_geometry.yz);
   }
   if (u_mode == 0 && u_stroke_extent.x > 0.0 && u_stroke_extent.y > 0.0) {
     // Strokes are deliberately painted *inside* the layer frame. The old

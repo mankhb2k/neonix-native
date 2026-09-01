@@ -123,8 +123,10 @@ export type PaintCommand =
       cornerRadius?: number;
       points?: Array<{ x: number; y: number }>;
       stroke?: string;
+      strokePaint?: PaintFill;
       strokeWidth?: number;
       strokeOpacity?: number;
+      strokeMiterLimit?: number;
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
@@ -163,9 +165,11 @@ export type PaintCommand =
       fill?: string;
       fillPaint?: PaintFill;
       stroke?: string;
+      strokePaint?: PaintFill;
       strokeWidth?: number;
       fillOpacity?: number;
       strokeOpacity?: number;
+      strokeMiterLimit?: number;
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };

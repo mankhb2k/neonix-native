@@ -13,7 +13,8 @@ export type ReplayGradient = {
   addColorStop(offset: number, color: string): void;
 };
 
-export type ReplayFillStyle = string | ReplayGradient;
+export type ReplayPattern = ReplayGradient & { setTransform?(transform: unknown): void };
+export type ReplayFillStyle = string | ReplayGradient | ReplayPattern;
 
 export type Replay2DImageSource = unknown;
 
@@ -137,6 +138,7 @@ export type Canvas2DReplayContext = {
     x: number,
     y: number,
   ): ReplayGradient;
+  createPattern?(source: Replay2DImageSource, repetition: "repeat" | "repeat-x" | "repeat-y" | "no-repeat"): ReplayPattern | null;
   fillStyle: ReplayFillStyle;
   strokeStyle: ReplayFillStyle;
   font: string;
@@ -211,6 +213,65 @@ function applyFill(
     }
     ctx.fillStyle = gradient;
     return;
+  }
+  if (fillPaint?.type === "pattern") {
+    const canvasFactory = globalThis as typeof globalThis & {
+      OffscreenCanvas?: new (width: number, height: number) => {
+        width: number;
+        height: number;
+        getContext(kind: "2d"): {
+          clearRect(x: number, y: number, w: number, h: number): void;
+          fillRect(x: number, y: number, w: number, h: number): void;
+          arc(x: number, y: number, radius: number, start: number, end: number): void;
+          beginPath(): void;
+          fill(): void;
+          fillStyle: string;
+          globalAlpha: number;
+        } | null;
+      };
+      document?: { createElement(name: "canvas"): {
+        width: number;
+        height: number;
+        getContext(kind: "2d"): any;
+      } };
+    };
+    const tileWidth = Math.max(1, Math.ceil(fillPaint.patternUnits === "objectBoundingBox" ? fillPaint.width * width : fillPaint.width));
+    const tileHeight = Math.max(1, Math.ceil(fillPaint.patternUnits === "objectBoundingBox" ? fillPaint.height * height : fillPaint.height));
+    const tile = canvasFactory.OffscreenCanvas
+      ? new canvasFactory.OffscreenCanvas(tileWidth, tileHeight)
+      : canvasFactory.document?.createElement("canvas");
+    if (tile) {
+      tile.width = tileWidth;
+      tile.height = tileHeight;
+      const tileContext = tile.getContext("2d");
+      if (tileContext) {
+        tileContext.clearRect(0, 0, tileWidth, tileHeight);
+        for (const content of fillPaint.content) {
+          tileContext.fillStyle = content.fill;
+          tileContext.globalAlpha = content.opacity ?? 1;
+          if (content.type === "rect") {
+            const x = fillPaint.patternContentUnits === "objectBoundingBox" ? content.x * tileWidth : content.x;
+            const y = fillPaint.patternContentUnits === "objectBoundingBox" ? content.y * tileHeight : content.y;
+            const w = fillPaint.patternContentUnits === "objectBoundingBox" ? content.width * tileWidth : content.width;
+            const h = fillPaint.patternContentUnits === "objectBoundingBox" ? content.height * tileHeight : content.height;
+            tileContext.fillRect(x, y, w, h);
+          } else {
+            const x = fillPaint.patternContentUnits === "objectBoundingBox" ? content.cx * tileWidth : content.cx;
+            const y = fillPaint.patternContentUnits === "objectBoundingBox" ? content.cy * tileHeight : content.cy;
+            const radius = fillPaint.patternContentUnits === "objectBoundingBox" ? content.radius * Math.min(tileWidth, tileHeight) : content.radius;
+            tileContext.beginPath();
+            tileContext.arc(x, y, radius, 0, Math.PI * 2);
+            tileContext.fill();
+          }
+        }
+        const pattern = ctx.createPattern?.(tile, "repeat");
+        if (pattern) {
+          if (fillPaint.transform && pattern.setTransform) pattern.setTransform(fillPaint.transform);
+          ctx.fillStyle = pattern;
+          return;
+        }
+      }
+    }
   }
   ctx.fillStyle = hexColor(
     fill ?? (fillPaint?.type === "solid" ? fillPaint.color : undefined),
@@ -449,7 +510,10 @@ export function replayPaintCommands2D(
       ctx.fill();
       if (cmd.op === "drawShape" && cmd.stroke) {
         ctx.globalAlpha = layerAlpha * (cmd.strokeOpacity ?? 1);
-        ctx.strokeStyle = cmd.stroke;
+        if (cmd.strokePaint) {
+          applyFill(ctx, cmd.stroke, cmd.strokePaint, cmd.width, cmd.height);
+          ctx.strokeStyle = ctx.fillStyle;
+        } else ctx.strokeStyle = cmd.stroke;
         ctx.lineWidth = cmd.strokeWidth ?? 1;
         ctx.stroke();
       }
@@ -464,7 +528,10 @@ export function replayPaintCommands2D(
       }
       if (cmd.stroke) {
         ctx.globalAlpha = cmd.strokeOpacity ?? 1;
-        ctx.strokeStyle = cmd.stroke;
+        if (cmd.strokePaint) {
+          applyFill(ctx, cmd.stroke, cmd.strokePaint, pathWidth, pathHeight);
+          ctx.strokeStyle = ctx.fillStyle;
+        } else ctx.strokeStyle = cmd.stroke;
         ctx.lineWidth = cmd.strokeWidth ?? 1;
         ctx.stroke();
       }

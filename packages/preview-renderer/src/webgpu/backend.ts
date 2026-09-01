@@ -457,7 +457,11 @@ export function createWebGPUBackend(
         data.set(gradients.stops, 64);
         data.set(gradients.offsets, 96);
         data.set(gradients.meta, 104);
-        data.set(colorAdjustUniforms(isMaskSource ? undefined : sourceColorAdjust()), 108);
+        data.set(gradients.patternGeometry, 108);
+        data.set(gradients.patternColors, 140);
+        data.set(gradients.patternMeta, 172);
+        data.set(gradients.patternTransform, 176);
+        data.set(colorAdjustUniforms(isMaskSource ? undefined : sourceColorAdjust()), 184);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
         pass!.setPipeline(drawObjects.pipeline);
@@ -483,7 +487,7 @@ export function createWebGPUBackend(
             ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
             : null,
           !maskMode && command.stroke && command.strokeMesh
-            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: undefined }
+            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: command.strokePaint }
             : null,
         ].filter((entry) => entry !== null).map((entry) => entry!);
         if (meshes.length === 0) {
@@ -526,7 +530,11 @@ export function createWebGPUBackend(
           data.set(gradients.stops, 64);
           data.set(gradients.offsets, 96);
           data.set(gradients.meta, 104);
-          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 108);
+          data.set(gradients.patternGeometry, 108);
+          data.set(gradients.patternColors, 140);
+          data.set(gradients.patternMeta, 172);
+          data.set(gradients.patternTransform, 176);
+          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }] });
           pass!.setPipeline(drawObjects.pathPipeline);
@@ -582,7 +590,7 @@ export function createWebGPUBackend(
         data.set([0, 0, 0, 0], 52);
         data.set([0, 0, 0, 0], 56);
         data.set([0, 0, 0, 0], 60);
-        data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 108);
+        data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
         device.queue.writeBuffer(uniform, 0, data);
         const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
         pass!.setPipeline(drawObjects.pipeline);
@@ -637,7 +645,7 @@ export function createWebGPUBackend(
           data.set([0, 0, 0, 0], 52);
           data.set([0, 0, 0, 0], 56);
           data.set([0, 0, 0, 0], 60);
-          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 108);
+          data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
           device.queue.writeBuffer(uniform, 0, data);
           const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: image.createView() }, { binding: 2, resource: drawObjects.sampler }] });
           pass!.setPipeline(drawObjects.pipeline);

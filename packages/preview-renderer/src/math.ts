@@ -9,6 +9,10 @@ export type GradientUniforms = {
   stops: Float32Array;
   offsets: Float32Array;
   meta: [number, number, number, number];
+  patternGeometry: Float32Array;
+  patternColors: Float32Array;
+  patternMeta: [number, number, number, number];
+  patternTransform: Float32Array;
 };
 
 export const MAX_GRADIENT_STOPS = 8;
@@ -43,13 +47,35 @@ export function gradientUniforms(
     stops: new Float32Array(MAX_GRADIENT_STOPS * 4),
     offsets: new Float32Array(MAX_GRADIENT_STOPS),
     meta: [0, 0, 0, 0],
+    patternGeometry: new Float32Array(32),
+    patternColors: new Float32Array(32),
+    patternMeta: [0, 0, 0, 0],
+    patternTransform: new Float32Array([1, 0, 0, 1, 0, 0, 0, 0]),
   };
-  if (!fillPaint || fillPaint.type === "solid" || fillPaint.stops.length < 2) return empty;
+  if (!fillPaint || fillPaint.type === "solid") return empty;
+  if (fillPaint.type === "pattern") {
+    const patternGeometry = new Float32Array(32);
+    const patternColors = new Float32Array(32);
+    fillPaint.content.slice(0, MAX_GRADIENT_STOPS).forEach((content, index) => {
+      if (content.type === "rect") patternGeometry.set([content.x, content.y, content.width, content.height], index * 4);
+      else patternGeometry.set([content.cx, content.cy, content.radius, -1], index * 4);
+      const color = cssColorToRgba(content.fill);
+      color[3] *= alpha * (content.opacity ?? 1);
+      patternColors.set(color, index * 4);
+    });
+    const transform = fillPaint.transform ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+    return {
+      ...empty,
+      params: [4, 0, 0, 0],
+      radius: [fillPaint.x ?? 0, fillPaint.y ?? 0, fillPaint.width, fillPaint.height],
+      patternGeometry,
+      patternColors,
+      patternMeta: [Math.min(fillPaint.content.length, MAX_GRADIENT_STOPS), fillPaint.patternUnits === "userSpaceOnUse" ? 1 : 0, fillPaint.patternContentUnits === "objectBoundingBox" ? 1 : 0, 0],
+      patternTransform: new Float32Array([transform.a, transform.b, transform.c, transform.d, transform.e, transform.f, 0, 0]),
+    };
+  }
+  if (fillPaint.stops.length < 2) return empty;
   const sourceStops = fillPaint.stops.slice(0, MAX_GRADIENT_STOPS);
-  const start = cssColorToRgba(sourceStops[0]!.color);
-  const end = cssColorToRgba(sourceStops[sourceStops.length - 1]!.color);
-  start[3] *= alpha;
-  end[3] *= alpha;
   const stops = new Float32Array(MAX_GRADIENT_STOPS * 4);
   const offsets = new Float32Array(MAX_GRADIENT_STOPS);
   sourceStops.forEach((stop, index) => {
@@ -58,37 +84,61 @@ export function gradientUniforms(
     stops.set(color, index * 4);
     offsets[index] = stop.offset;
   });
-  const meta: [number, number, number, number] = [sourceStops.length, 0, 0, 0];
+  const meta: [number, number, number, number] = [
+    sourceStops.length,
+    fillPaint.spreadMethod === "reflect" ? 1 : fillPaint.spreadMethod === "repeat" ? 2 : 0,
+    fillPaint.gradientUnits === "userSpaceOnUse" ? 1 : 0,
+    0,
+  ];
+  const transform = fillPaint.gradientTransform ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  const transformData = new Float32Array([transform.a, transform.b, transform.c, transform.d, transform.e, transform.f, 0, 0]);
   if (fillPaint.type === "linear-gradient") {
+    const angle = ((fillPaint.angle ?? 0) * Math.PI) / 180;
+    const startX = fillPaint.x1 ?? 0.5 - Math.cos(angle) * 0.5;
+    const startY = fillPaint.y1 ?? 0.5 - Math.sin(angle) * 0.5;
+    const endX = fillPaint.x2 ?? 0.5 + Math.cos(angle) * 0.5;
+    const endY = fillPaint.y2 ?? 0.5 + Math.sin(angle) * 0.5;
     return {
-      start,
-      end,
-      params: [1, ((fillPaint.angle ?? 0) * Math.PI) / 180, 0, 0],
+      start: [startX, startY, 0, 0],
+      end: [endX, endY, 0, 0],
+      params: [1, angle, 0, 0],
       radius: [0, 0, 0, 0],
       stops,
       offsets,
       meta,
+      patternGeometry: empty.patternGeometry,
+      patternColors: empty.patternColors,
+      patternMeta: empty.patternMeta,
+      patternTransform: transformData,
     };
   }
   if (fillPaint.type === "conic-gradient") {
     return {
-      start,
-      end,
+      start: [fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5, 0, 0],
+      end: [0, 0, 0, 0],
       params: [3, ((fillPaint.from ?? 0) * Math.PI) / 180, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
       radius: [0, 0, 0, 0],
       stops,
       offsets,
       meta,
+      patternGeometry: empty.patternGeometry,
+      patternColors: empty.patternColors,
+      patternMeta: empty.patternMeta,
+      patternTransform: transformData,
     };
   }
   return {
-    start,
-    end,
+    start: [fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5, fillPaint.fx ?? fillPaint.cx ?? 0.5, fillPaint.fy ?? fillPaint.cy ?? 0.5],
+    end: [fillPaint.radius ?? 0.5, 0, 0, 0],
     params: [2, 0, fillPaint.cx ?? 0.5, fillPaint.cy ?? 0.5],
     radius: [fillPaint.radius ?? 0.5, 0, 0, 0],
     stops,
     offsets,
     meta,
+    patternGeometry: empty.patternGeometry,
+    patternColors: empty.patternColors,
+    patternMeta: empty.patternMeta,
+    patternTransform: transformData,
   };
 }
 
