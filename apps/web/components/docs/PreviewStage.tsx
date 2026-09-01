@@ -369,6 +369,13 @@ export function PreviewStage({
         ...(prepared?.diagnostics.map((diagnostic) => diagnostic.code) ?? []),
       ];
       setRendererError(null);
+      applyCanvasLayout(
+        host,
+        canvas,
+        parsedProject.composition.width,
+        parsedProject.composition.height,
+        devicePixelRatio,
+      );
       if (!externalPlayback) {
         const requestId = ++paintRequestRef.current;
         void paintFrame(
@@ -384,13 +391,6 @@ export function PreviewStage({
           preparationDiagnosticsRef.current,
         );
       }
-      applyCanvasLayout(
-        host,
-        canvas,
-        parsedProject.composition.width,
-        parsedProject.composition.height,
-        devicePixelRatio,
-      );
     })().catch((err: unknown) => {
       if (!cancelled && resourceGeneration === resourceGenerationRef.current) {
         if (canvasRef.current) canvasRef.current.dataset.previewState = "error";
@@ -416,6 +416,13 @@ export function PreviewStage({
       const devicePixelRatio = window.devicePixelRatio || 1;
       const renderer = rendererRef.current;
       const renderDpr = canvasRenderDpr(host, parsed.composition.width, parsed.composition.height, devicePixelRatio);
+      applyCanvasLayout(
+        host,
+        canvas,
+        parsed.composition.width,
+        parsed.composition.height,
+        devicePixelRatio,
+      );
       if (
         renderer &&
         Math.abs(Number(canvas.dataset.rendererDpr) - renderDpr) > 0.0001
@@ -440,13 +447,6 @@ export function PreviewStage({
           preparationDiagnosticsRef.current,
         );
       }
-      applyCanvasLayout(
-        host,
-        canvas,
-        parsed.composition.width,
-        parsed.composition.height,
-        devicePixelRatio,
-      );
     };
     update();
     const observer = new ResizeObserver(update);
@@ -731,11 +731,17 @@ function paintFrame(
     frameOverride != null && Math.abs(frameOverride.time - renderTime) < 1e-6
       ? frameOverride
       : null;
+  const canvasScale = renderer.canvas instanceof HTMLCanvasElement
+    ? Number(renderer.canvas.dataset.cssScale)
+    : Number.NaN;
+  const evaluationOptions = Number.isFinite(canvasScale) && canvasScale > 0
+    ? { time: renderTime, outputScale: canvasScale }
+    : { time: renderTime };
   const evaluated =
     usableFrameOverride ??
     (runtimeOverride
-      ? evaluateRuntimeProjectV3(runtimeOverride, frameIndex, { time: renderTime })
-      : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, { time: renderTime }));
+      ? evaluateRuntimeProjectV3(runtimeOverride, frameIndex, evaluationOptions)
+      : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, evaluationOptions));
   if (requestId !== requestRef.current) return;
   renderer.paintFrame(evaluated);
   const rendererCanvas = renderer.canvas;

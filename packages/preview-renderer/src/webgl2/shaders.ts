@@ -395,3 +395,81 @@ void main() {
   if (u_invert_mask > 0.5) coverage = 1.0 - coverage;
   outColor = encodePremultiplied(content * coverage * u_composite_alpha);
 }`;
+
+/** Full SVG/CSS blend-mode compositor. Inputs and output are premultiplied. */
+export const BLEND_FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+uniform sampler2D u_source;
+uniform sampler2D u_backdrop;
+uniform float u_composite_alpha;
+uniform float u_blend_mode;
+uniform float u_encode_srgb;
+in vec2 v_uv;
+out vec4 outColor;
+
+vec3 srgbToLinear(vec3 color) {
+  vec3 low = color / 12.92;
+  vec3 high = pow((color + vec3(0.055)) / 1.055, vec3(2.4));
+  return mix(low, high, step(vec3(0.04045), color));
+}
+vec3 linearToSrgb(vec3 color) {
+  vec3 positive = max(color, vec3(0.0));
+  vec3 low = positive * 12.92;
+  vec3 high = 1.055 * pow(positive, vec3(1.0 / 2.4)) - vec3(0.055);
+  return mix(low, high, step(vec3(0.0031308), positive));
+}
+float luminance(vec3 color) { return dot(color, vec3(0.2126, 0.7152, 0.0722)); }
+float saturation(vec3 color) { return max(color.r, max(color.g, color.b)) - min(color.r, min(color.g, color.b)); }
+vec3 clipColor(vec3 color) {
+  float l = luminance(color);
+  float n = min(color.r, min(color.g, color.b));
+  float x = max(color.r, max(color.g, color.b));
+  if (n < 0.0) color = l + ((color - l) * l) / max(l - n, 0.000001);
+  if (x > 1.0) color = l + ((color - l) * (1.0 - l)) / max(x - l, 0.000001);
+  return clamp(color, 0.0, 1.0);
+}
+vec3 setLum(vec3 color, float l) { return clipColor(color + vec3(l - luminance(color))); }
+vec3 setSat(vec3 color, float s) {
+  float low = min(color.r, min(color.g, color.b));
+  float high = max(color.r, max(color.g, color.b));
+  if (high <= low + 0.000001) return vec3(0.0);
+  vec3 result = (color - vec3(low)) * s / (high - low);
+  return result;
+}
+vec3 blendColor(vec3 backdrop, vec3 source, int mode) {
+  if (mode == 0) return source;
+  if (mode == 1) return min(backdrop, source);
+  if (mode == 2) return backdrop * source;
+  if (mode == 3) return mix(vec3(0.0), 1.0 - min(vec3(1.0), (1.0 - backdrop) / max(source, vec3(0.000001))), step(vec3(0.000001), source));
+  if (mode == 4) return max(backdrop, source);
+  if (mode == 5) return backdrop + source - backdrop * source;
+  if (mode == 6) return mix(min(vec3(1.0), backdrop / max(vec3(1.0) - source, vec3(0.000001))), vec3(1.0), step(vec3(0.999999), source));
+  if (mode == 7) return mix(2.0 * backdrop * source, 1.0 - 2.0 * (1.0 - backdrop) * (1.0 - source), step(vec3(0.5), backdrop));
+  if (mode == 8) {
+    vec3 d = backdrop;
+    vec3 low = d - (1.0 - 2.0 * source) * d * (1.0 - d);
+    vec3 high = d + (2.0 * source - 1.0) * (sqrt(max(d, vec3(0.0))) - d);
+    vec3 cubic = d + (2.0 * source - 1.0) * (((16.0 * d - 12.0) * d + 4.0) * d);
+    return mix(low, mix(cubic, high, step(vec3(0.25), d)), step(vec3(0.5), source));
+  }
+  if (mode == 9) return mix(2.0 * backdrop * source, 1.0 - 2.0 * (1.0 - backdrop) * (1.0 - source), step(vec3(0.5), source));
+  if (mode == 10) return abs(backdrop - source);
+  if (mode == 11) return backdrop + source - 2.0 * backdrop * source;
+  if (mode == 12) return setLum(setSat(source, saturation(backdrop)), luminance(backdrop));
+  if (mode == 13) return setLum(setSat(backdrop, saturation(source)), luminance(backdrop));
+  if (mode == 14) return setLum(source, luminance(backdrop));
+  return setLum(backdrop, luminance(source));
+}
+void main() {
+  vec4 sourceSample = texture(u_source, v_uv);
+  vec4 backdropSample = texture(u_backdrop, v_uv);
+  float sourceAlpha = clamp(sourceSample.a * u_composite_alpha, 0.0, 1.0);
+  float backdropAlpha = clamp(backdropSample.a, 0.0, 1.0);
+  vec3 sourceColor = sourceSample.a > 0.000001 ? clamp(sourceSample.rgb / sourceSample.a, 0.0, 1.0) : vec3(0.0);
+  vec3 backdropColor = backdropSample.a > 0.000001 ? clamp(srgbToLinear(backdropSample.rgb / backdropSample.a), 0.0, 1.0) : vec3(0.0);
+  vec3 blended = blendColor(backdropColor, sourceColor, int(u_blend_mode + 0.5));
+  vec3 outputPremultiplied = sourceAlpha * blended + backdropAlpha * (1.0 - sourceAlpha) * backdropColor;
+  float outputAlpha = sourceAlpha + backdropAlpha * (1.0 - sourceAlpha);
+  if (u_encode_srgb > 0.5 && outputAlpha > 0.000001) outputPremultiplied = linearToSrgb(outputPremultiplied / outputAlpha) * outputAlpha;
+  outColor = vec4(max(outputPremultiplied, vec3(0.0)), outputAlpha);
+}`;

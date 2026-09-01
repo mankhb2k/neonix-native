@@ -53,7 +53,9 @@ function pathData(command: Extract<PaintCommand, { op: "drawPath" }>): string {
     const parts = [`M ${contour.start.x} ${contour.start.y}`];
     for (const segment of contour.segments) {
       if (segment.kind === "line") parts.push(`L ${segment.to.x} ${segment.to.y}`);
-      else parts.push(`C ${segment.control1.x} ${segment.control1.y} ${segment.control2.x} ${segment.control2.y} ${segment.to.x} ${segment.to.y}`);
+      else if (segment.kind === "quadratic") parts.push(`Q ${segment.control.x} ${segment.control.y} ${segment.to.x} ${segment.to.y}`);
+      else if (segment.kind === "cubic") parts.push(`C ${segment.control1.x} ${segment.control1.y} ${segment.control2.x} ${segment.control2.y} ${segment.to.x} ${segment.to.y}`);
+      else parts.push(`A ${segment.radii.x} ${segment.radii.y} ${segment.rotation} ${segment.largeArc ? 1 : 0} ${segment.sweep ? 1 : 0} ${segment.to.x} ${segment.to.y}`);
     }
     if (contour.closed) parts.push("Z");
     return parts.join(" ");

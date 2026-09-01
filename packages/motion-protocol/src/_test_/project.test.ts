@@ -549,6 +549,69 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
   });
 
+  it("preserves SVG length tokens, pathLength calibration, and paint references", () => {
+    const project = {
+      ...RECTANGLE_PROJECT,
+      paintServers: [{
+        id: "brand-gradient",
+        paint: {
+          type: "linear-gradient" as const,
+          stops: [{ offset: 0, color: "#00aa88" }, { offset: 1, color: "#ff3366" }],
+        },
+      }],
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        type: "path" as const,
+        payload: {
+          contours: [{
+            id: "open",
+            start: { x: 0, y: 0 },
+            segments: [{ kind: "line" as const, to: { x: 96, y: 0 } }],
+            closed: false,
+          }],
+          fillRule: "nonzero" as const,
+          pathLength: 100,
+        },
+        style: {
+          fill: { type: "reference" as const, id: "brand-gradient", fallback: "#000000" },
+          stroke: "#ffffff",
+          strokeWidth: { value: 2, unit: "px" as const },
+          strokeDash: { array: [0, { value: 10, unit: "percent" as const }], offset: { value: -4, unit: "px" as const } },
+        },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(project)).toEqual(project);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...project,
+      layers: [{ ...project.layers[0], style: { ...project.layers[0].style, fill: { type: "reference", id: "missing" } } }],
+    })).toThrow(/Unknown paint server reference/);
+  });
+
+  it("accepts an SVG path with omitted paint properties and applies no protocol-side rejection", () => {
+    const path = {
+      ...RECTANGLE_PROJECT,
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        type: "path" as const,
+        payload: {
+          contours: [{
+            id: "closed",
+            start: { x: 0, y: 0 },
+            segments: [
+              { kind: "line" as const, to: { x: 40, y: 0 } },
+              { kind: "line" as const, to: { x: 40, y: 40 } },
+              { kind: "line" as const, to: { x: 0, y: 40 } },
+            ],
+            closed: true,
+          }],
+          fillRule: "nonzero" as const,
+        },
+        style: {},
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
+  });
+
   it("accepts SVG marker definitions and validates marker references", () => {
     const marker = {
       id: "arrow",

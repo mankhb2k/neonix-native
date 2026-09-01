@@ -39,7 +39,7 @@ export function normalizeRuntimeProjectV3(project: RuntimeProjectV3): RuntimePro
 export function evaluateRuntimeProjectV3(
   project: RuntimeProjectV3,
   frame: number,
-  options: { time?: number } = {},
+  options: { time?: number; outputScale?: number } = {},
 ): RuntimeFrameV3 {
   const validation = validateRuntimeVisualProjectV3(project);
   if (!validation.ok) {

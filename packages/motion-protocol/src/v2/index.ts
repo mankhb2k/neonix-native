@@ -32,15 +32,23 @@ export { V2_AUDIO_FIXTURES, type V2AudioFixture } from "./audio-fixtures";
 export {
   V2ColorSchema,
   V2FiniteNumberSchema,
+  V2NonNegativeSvgLengthSchema,
   V2MillisecondsSchema,
   V2IdSchema,
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
+  V2PositiveSvgLengthSchema,
   V2PositiveMillisecondsSchema,
   V2PaintOrderSchema,
   V2PaintOrderItemSchema,
+  V2VectorEffectSchema,
+  V2SvgLengthSchema,
+  V2SvgLengthUnitSchema,
   type V2PaintOrder,
   type V2PaintOrderItem,
+  type V2VectorEffect,
+  type V2SvgLength,
+  type V2SvgLengthUnit,
 } from "./common";
 export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
@@ -132,6 +140,10 @@ export {
   V2PatternFillSchema,
   V2PatternViewBoxSchema,
   V2PaintServerSchema,
+  V2PaintReferenceSchema,
+  V2PaintKeywordSchema,
+  V2PaintServerDefinitionSchema,
+  V2PaintServerListSchema,
   V2PaintSchema,
   type V2PaintTransform,
   type V2GradientStop,
@@ -140,6 +152,9 @@ export {
   type V2PatternFill,
   type V2PatternViewBox,
   type V2PaintServer,
+  type V2PaintReference,
+  type V2PaintKeyword,
+  type V2PaintServerDefinition,
   type V2Paint,
 } from "./paint";
 export {
@@ -178,6 +193,7 @@ export {
   type V2Frame,
   type V2BlendMode,
   type V2IsolationMode,
+  type V2Composite,
   type V2Visibility,
   type V2GroupLayer,
   type V2ImageAlign,

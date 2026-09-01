@@ -1,9 +1,12 @@
 import { z } from "zod";
 import {
   V2FiniteNumberSchema,
-  V2NonNegativeNumberSchema,
+  V2NonNegativeSvgLengthSchema,
   V2PositiveNumberSchema,
+  V2PositiveSvgLengthSchema,
   V2PaintOrderSchema,
+  V2SvgLengthSchema,
+  V2VectorEffectSchema,
 } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
@@ -24,9 +27,11 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
   payload: z
     .object({
       shape: z.enum(["rectangle", "circle", "ellipse", "line", "polyline", "polygon"]),
-      cornerRadius: V2NonNegativeNumberSchema.optional(),
-      rx: V2NonNegativeNumberSchema.optional(),
-      ry: V2NonNegativeNumberSchema.optional(),
+      /** SVG pathLength calibration after the basic shape is lowered to path geometry. */
+      pathLength: V2FiniteNumberSchema.nonnegative().optional(),
+      cornerRadius: V2NonNegativeSvgLengthSchema.optional(),
+      rx: V2NonNegativeSvgLengthSchema.optional(),
+      ry: V2NonNegativeSvgLengthSchema.optional(),
       start: V2ShapePointSchema.optional(),
       end: V2ShapePointSchema.optional(),
       points: z.array(V2ShapePointSchema).min(2).optional(),
@@ -57,19 +62,20 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
       fill: V2PaintSchema.optional(),
       fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
       stroke: V2PaintSchema.optional(),
-      strokeWidth: V2PositiveNumberSchema.optional(),
+      strokeWidth: V2PositiveSvgLengthSchema.optional(),
       strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
       strokeMiterLimit: V2PositiveNumberSchema.optional(),
       strokeJoin: z.enum(["miter", "bevel", "round"]).optional(),
       strokeCap: z.enum(["butt", "square", "round"]).optional(),
       strokeDash: z
         .object({
-          array: z.array(V2FiniteNumberSchema.positive()).min(1),
-          offset: V2FiniteNumberSchema.optional(),
+          array: z.union([z.literal("none"), z.array(V2NonNegativeSvgLengthSchema).min(1)]),
+          offset: V2SvgLengthSchema.optional(),
         })
         .strict()
         .optional(),
       paintOrder: V2PaintOrderSchema.optional(),
+      vectorEffect: V2VectorEffectSchema.optional(),
       markerStart: V2MarkerReferenceSchema.optional(),
       markerMid: V2MarkerReferenceSchema.optional(),
       markerEnd: V2MarkerReferenceSchema.optional(),

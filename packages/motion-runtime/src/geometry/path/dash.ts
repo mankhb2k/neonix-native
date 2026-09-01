@@ -24,7 +24,13 @@ function pointsBetween(contour: MeasuredContour, startDistance: number, endDista
 
 /** SVG dash runs measured continuously along a complete subpath. */
 export function dashContour(contour: MeasuredContour, dash: PathStrokeDash): PathPoint[][] {
-  const normalized = normalizePathDash(dash);
+  const calibration = contour.pathLength !== undefined && contour.pathLength > EPSILON
+    ? contour.length / contour.pathLength
+    : 1;
+  const normalized = normalizePathDash({
+    array: dash.array.map((value) => value * calibration),
+    offset: dash.offset * calibration,
+  });
   if (normalized.total <= EPSILON) return [contour.points];
   let phase = normalized.offset;
   let index = 0;

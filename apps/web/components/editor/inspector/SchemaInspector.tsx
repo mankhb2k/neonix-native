@@ -38,6 +38,12 @@ function clampFadeDuration(value: number, clipDuration: number): number {
   return Math.max(0, Math.min(clipDuration, Number.isFinite(value) ? value : 0));
 }
 
+function numericSvgLength(value: unknown, fallback: number): number {
+  if (typeof value === "number") return value;
+  if (value && typeof value === "object" && "value" in value && typeof value.value === "number") return value.value;
+  return fallback;
+}
+
 /** Languages currently shipped by the web editor for text layers. */
 const SHIPPED_TEXT_LANGUAGES = [
   { value: "vi", label: "Vietnamese" },
@@ -583,7 +589,7 @@ export function SchemaInspector() {
           onChange={(value, gestureId) => patchLayerCoalesced("opacity", gestureId, { opacity: Math.max(0, Math.min(1, value)) })}
         />
         {selected.type === "shape" ? (
-          <NumberField label="Corner radius" step={1} integer suffix="px" value={selected.payload.cornerRadius ?? 0} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
+          <NumberField label="Corner radius" step={1} integer suffix="px" value={numericSvgLength(selected.payload.cornerRadius, 0)} onChange={(value) => patchLayer({ payload: { cornerRadius: Math.max(0, value) } })} />
         ) : null}
       </InspectorSection>
 
@@ -658,7 +664,7 @@ export function SchemaInspector() {
             <ColorField label="Fill" value={selected.style.fill} onChange={(value) => patchLayer({ style: { fill: value } })} />
           ) : null}
           {typeof selected.style.stroke === "string" ? <ColorField label="Stroke" value={selected.style.stroke as string} onChange={(value) => patchLayer({ style: { stroke: value } })} /> : null}
-          {selected.style.stroke ? <NumberField label="Stroke width" step={1} integer suffix="px" value={selected.style.strokeWidth ?? 1} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
+          {selected.style.stroke ? <NumberField label="Stroke width" step={1} integer suffix="px" value={numericSvgLength(selected.style.strokeWidth, 1)} onChange={(value) => patchLayer({ style: { strokeWidth: Math.max(0.001, value) } })} /> : null}
           {!selected.style.stroke ? <ActionButton label="Add stroke" onClick={() => patchLayer({ style: { stroke: "#ffffff", strokeWidth: 1 } })} /> : null}
         </InspectorSection>
       ) : null}

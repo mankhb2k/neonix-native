@@ -113,7 +113,7 @@ export function flattenPathContourAny(contour: PathContour): CanonicalContour {
   }
   const canonical = canonicalizePathPoints(points, contour.closed);
   if (canonical.length < (contour.closed ? 3 : 2)) throw new Error(`Path contour ${contour.id} does not contain enough non-collinear points`);
-  return { id: contour.id, points: canonical, closed: contour.closed };
+  return { id: contour.id, points: canonical, closed: contour.closed, ...(contour.pathLength === undefined ? {} : { pathLength: contour.pathLength }) };
 }
 
 export function flattenPathContour(contour: PathContour): PathPoint[] {

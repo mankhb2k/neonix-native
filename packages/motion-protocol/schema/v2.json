@@ -601,6 +601,15 @@
                         "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
                       },
                       {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "currentColor",
+                          "context-fill",
+                          "context-stroke"
+                        ]
+                      },
+                      {
                         "anyOf": [
                           {
                             "type": "object",
@@ -647,16 +656,48 @@
                                     "const": "linear-gradient"
                                   },
                                   "x1": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "anyOf": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                          },
+                                          "unit": {
+                                            "type": "string",
+                                            "enum": [
+                                              "number",
+                                              "px",
+                                              "pt",
+                                              "pc",
+                                              "mm",
+                                              "cm",
+                                              "in",
+                                              "em",
+                                              "ex",
+                                              "percent"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "value",
+                                          "unit"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
                                   },
                                   "y1": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "x2": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "y2": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "angle": {
                                     "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
@@ -733,11 +774,13 @@
                                       "f"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  "href": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
                                   }
                                 },
                                 "required": [
-                                  "type",
-                                  "stops"
+                                  "type"
                                 ],
                                 "additionalProperties": false
                               },
@@ -749,40 +792,81 @@
                                     "const": "radial-gradient"
                                   },
                                   "cx": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "cy": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "radius": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                    "anyOf": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                          },
+                                          "unit": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1/anyOf/1/properties/unit"
+                                          }
+                                        },
+                                        "required": [
+                                          "value",
+                                          "unit"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
                                   },
                                   "fx": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "fy": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
                                   "fr": {
-                                    "type": "number",
-                                    "minimum": 0
+                                    "anyOf": [
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                                          },
+                                          "unit": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1/anyOf/1/properties/unit"
+                                          }
+                                        },
+                                        "required": [
+                                          "value",
+                                          "unit"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
                                   },
                                   "stops": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/stops"
                                   },
                                   "spreadMethod": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/spreadMethod"
                                   },
                                   "gradientUnits": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientUnits"
                                   },
                                   "gradientTransform": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientTransform"
+                                  },
+                                  "href": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/href"
                                   }
                                 },
                                 "required": [
-                                  "type",
-                                  "stops"
+                                  "type"
                                 ],
                                 "additionalProperties": false
                               },
@@ -807,21 +891,23 @@
                                     "maximum": 1
                                   },
                                   "stops": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/stops"
                                   },
                                   "spreadMethod": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/spreadMethod"
                                   },
                                   "gradientUnits": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientUnits"
                                   },
                                   "gradientTransform": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientTransform"
+                                  },
+                                  "href": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/href"
                                   }
                                 },
                                 "required": [
-                                  "type",
-                                  "stops"
+                                  "type"
                                 ],
                                 "additionalProperties": false
                               }
@@ -835,16 +921,16 @@
                                 "const": "pattern"
                               },
                               "x": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                               },
                               "y": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                               },
                               "width": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
                               },
                               "height": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
                               },
                               "patternUnits": {
                                 "type": "string",
@@ -861,10 +947,13 @@
                                 ]
                               },
                               "patternTransform": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientTransform"
                               },
                               "transform": {
-                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientTransform"
+                              },
+                              "href": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/id"
                               },
                               "viewBox": {
                                 "type": "object",
@@ -955,7 +1044,7 @@
                                           "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
                                         },
                                         "strokeOpacity": {
                                           "type": "number",
@@ -989,19 +1078,19 @@
                                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1032,19 +1121,19 @@
                                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1076,19 +1165,19 @@
                                           "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1128,19 +1217,19 @@
                                           "minItems": 2
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1177,19 +1266,19 @@
                                           "minItems": 3
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1220,19 +1309,19 @@
                                           ]
                                         },
                                         "fill": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fill"
                                         },
                                         "fillOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
                                         },
                                         "stroke": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
                                         },
                                         "strokeWidth": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
                                         },
                                         "strokeOpacity": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
                                         }
                                       },
                                       "required": [
@@ -1249,7 +1338,7 @@
                                           "const": "group"
                                         },
                                         "transform": {
-                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/gradientTransform"
                                         },
                                         "opacity": {
                                           "type": "number",
@@ -1259,7 +1348,7 @@
                                         "children": {
                                           "type": "array",
                                           "items": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items"
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3/properties/content/items"
                                           },
                                           "minItems": 1
                                         }
@@ -1276,10 +1365,44 @@
                               }
                             },
                             "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "reference"
+                              },
+                              "id": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                              },
+                              "fallback": {
+                                "anyOf": [
+                                  {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "const": "none"
+                                      }
+                                    },
+                                    "required": [
+                                      "type"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
                               "type",
-                              "width",
-                              "height",
-                              "content"
+                              "id"
                             ],
                             "additionalProperties": false
                           }
@@ -2118,15 +2241,15 @@
                           "type": "string",
                           "enum": [
                             "normal",
-                            "multiply",
-                            "screen",
                             "darken",
-                            "lighten",
-                            "overlay",
-                            "color-dodge",
+                            "multiply",
                             "color-burn",
-                            "hard-light",
+                            "lighten",
+                            "screen",
+                            "color-dodge",
+                            "overlay",
                             "soft-light",
+                            "hard-light",
                             "difference",
                             "exclusion",
                             "hue",
@@ -3178,6 +3301,68 @@
           },
           "maxItems": 256
         },
+        "paintServers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/id"
+              },
+              "paint": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "none"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "solid"
+                      },
+                      "color": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                      },
+                      "opacity": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "color"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2"
+                  },
+                  {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/3"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "paint"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 256
+        },
         "layers": {
           "type": "array",
           "items": {
@@ -3499,6 +3684,9 @@
                     "maximum": 1,
                     "default": 1
                   },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                  },
                   "enabled": {
                     "type": "boolean"
                   },
@@ -3530,25 +3718,7 @@
                     "type": "object",
                     "properties": {
                       "blendMode": {
-                        "type": "string",
-                        "enum": [
-                          "normal",
-                          "darken",
-                          "multiply",
-                          "color-burn",
-                          "lighten",
-                          "screen",
-                          "color-dodge",
-                          "overlay",
-                          "soft-light",
-                          "hard-light",
-                          "difference",
-                          "exclusion",
-                          "hue",
-                          "saturation",
-                          "color",
-                          "luminosity"
-                        ],
+                        "$ref": "#/definitions/MotionProtocolV2/properties/filters/items/properties/primitives/items/anyOf/0/properties/mode",
                         "default": "normal"
                       },
                       "isolation": {
@@ -4360,6 +4530,9 @@
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
                   },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/color"
+                  },
                   "enabled": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
@@ -4495,6 +4668,9 @@
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
                   },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/color"
+                  },
                   "enabled": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
@@ -4543,14 +4719,18 @@
                           "polygon"
                         ]
                       },
+                      "pathLength": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "cornerRadius": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/fr"
                       },
                       "rx": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/fr"
                       },
                       "ry": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/fr"
                       },
                       "start": {
                         "type": "object",
@@ -4599,7 +4779,7 @@
                         "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "strokeWidth": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
                       },
                       "strokeOpacity": {
                         "type": "number",
@@ -4629,15 +4809,22 @@
                         "type": "object",
                         "properties": {
                           "array": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "exclusiveMinimum": 0
-                            },
-                            "minItems": 1
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "const": "none"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/fr"
+                                },
+                                "minItems": 1
+                              }
+                            ]
                           },
                           "offset": {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                           }
                         },
                         "required": [
@@ -4647,6 +4834,13 @@
                       },
                       "paintOrder": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/paintOrder"
+                      },
+                      "vectorEffect": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "non-scaling-stroke"
+                        ]
                       },
                       "markerStart": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/id"
@@ -4694,6 +4888,9 @@
                   },
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/color"
                   },
                   "enabled": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
@@ -4907,6 +5104,9 @@
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
                   },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/color"
+                  },
                   "enabled": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"
                   },
@@ -4959,6 +5159,10 @@
                         ],
                         "default": "nonzero"
                       },
+                      "pathLength": {
+                        "type": "number",
+                        "minimum": 0
+                      },
                       "morph": {
                         "type": "object",
                         "properties": {
@@ -5002,8 +5206,7 @@
                         "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "strokeWidth": {
-                        "type": "number",
-                        "exclusiveMinimum": 0
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
                       },
                       "strokeOpacity": {
                         "type": "number",
@@ -5034,15 +5237,22 @@
                         "type": "object",
                         "properties": {
                           "array": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "exclusiveMinimum": 0
-                            },
-                            "minItems": 1
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "const": "none"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/fr"
+                                },
+                                "minItems": 1
+                              }
+                            ]
                           },
                           "offset": {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                           }
                         },
                         "required": [
@@ -5052,6 +5262,9 @@
                       },
                       "paintOrder": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/paintOrder"
+                      },
+                      "vectorEffect": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/vectorEffect"
                       },
                       "markerStart": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/id"
@@ -5099,6 +5312,9 @@
                   },
                   "opacity": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/opacity"
+                  },
+                  "color": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/color"
                   },
                   "enabled": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/enabled"

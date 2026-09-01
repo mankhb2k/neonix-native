@@ -124,6 +124,48 @@ describe("canonical compiler V3 projection", () => {
     });
   });
 
+  it("preserves SVG vector-effect when lowering a path", () => {
+    const project = filterProject({ id: "vector-effect", primitives: [] });
+    project.filters = [];
+    project.layers[0] = {
+      ...project.layers[0]!,
+      filter: undefined,
+      style: { fill: "#00aa88", stroke: "#ff3366", strokeWidth: 12, vectorEffect: "non-scaling-stroke" },
+    };
+    const buffer = compileProtocolToPaintCommands(project);
+    const path = buffer.commands.find((command) => command.op === "drawPath");
+    expect(path).toMatchObject({ vectorEffect: "non-scaling-stroke" });
+  });
+
+  it("resolves SVG paint references and authoring lengths at the compiler boundary", () => {
+    const project = filterProject({ id: "unused", primitives: [] });
+    project.filters = [];
+    project.paintServers = [{
+      id: "brand",
+      paint: {
+        type: "linear-gradient" as const,
+        stops: [{ offset: 0, color: "#00aa88" }, { offset: 1, color: "#ff3366" }],
+      },
+    }];
+    project.layers[0] = {
+      ...project.layers[0]!,
+      filter: undefined,
+      style: {
+        fill: { type: "reference" as const, id: "brand" },
+        stroke: "#ffffff",
+        strokeWidth: { value: 2, unit: "px" as const },
+        strokeDash: { array: [{ value: 10, unit: "percent" as const }, 5], offset: -4 },
+      },
+    };
+    const buffer = compileProtocolToPaintCommands(project);
+    const path = buffer.commands.find((command) => command.op === "drawPath");
+    expect(path).toMatchObject({
+      strokeWidth: 2,
+      strokeDash: { array: expect.any(Array), offset: -4 },
+      fillPaint: { type: "linear-gradient", stops: expect.any(Array) },
+    });
+  });
+
 });
 
 function fixtureProject(id: string) {

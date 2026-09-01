@@ -75,8 +75,21 @@ describe("Protocol V2 preview lab fixtures", () => {
       "image.nested-svg",
       "image.missing-asset",
       "composite.blend.normal",
+      "composite.blend.darken",
       "composite.blend.multiply",
+      "composite.blend.color-burn",
+      "composite.blend.lighten",
       "composite.blend.screen",
+      "composite.blend.color-dodge",
+      "composite.blend.overlay",
+      "composite.blend.soft-light",
+      "composite.blend.hard-light",
+      "composite.blend.difference",
+      "composite.blend.exclusion",
+      "composite.blend.hue",
+      "composite.blend.saturation",
+      "composite.blend.color",
+      "composite.blend.luminosity",
       "composite.blend.stack.normal",
       "composite.blend.stack.multiply",
       "composite.blend.stack.screen",
@@ -228,8 +241,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     const midPaths = mid.commands.filter((command) => command.op === "drawPath");
     const allPaths = all.commands.filter((command) => command.op === "drawPath");
     expect(startPaths).toHaveLength(2);
-    expect(midPaths).toHaveLength(4);
-    expect(allPaths).toHaveLength(4);
+    expect(midPaths).toHaveLength(5);
+    expect(allPaths).toHaveLength(5);
     expect(allPaths.at(-1)?.op === "drawPath" && allPaths.at(-1)?.paintOrder).toEqual(["fill"]);
     expect(start.commands.some((command) => command.key?.includes(":marker:end:"))).toBe(true);
   });

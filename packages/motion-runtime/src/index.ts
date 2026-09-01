@@ -7,6 +7,8 @@ export {
   interpolatePathContours,
   tessellateClosedPath,
   tessellatePathStroke,
+  tessellateNonScalingStroke,
+  isAffine2DMatrix,
   type PathStrokeOptions,
 } from "./geometry/path";
 

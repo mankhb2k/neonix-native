@@ -18,6 +18,7 @@ export {
   type V2Frame,
   type V2BlendMode,
   type V2IsolationMode,
+  type V2Composite,
   type V2Visibility,
   type V2PaintOrder,
   type V2PaintOrderItem,

@@ -144,6 +144,8 @@ export type PathContour = {
       }
   >;
   closed: boolean;
+  /** SVG pathLength calibration value, preserved until dash/length lowering. */
+  pathLength?: number;
 };
 
 /**
@@ -161,6 +163,8 @@ export type PathStrokeMesh = PathMesh;
 export type PathStrokeJoin = "miter" | "bevel" | "round";
 export type PathStrokeCap = "butt" | "square" | "round";
 export type PathStrokeDash = { array: number[]; offset: number };
+/** SVG vector-effect semantic preserved by the runtime paint contract. */
+export type PathVectorEffect = "none" | "non-scaling-stroke";
 
 /** One SVG marker instance positioned on a lowered path. */
 export type PathMarker = {

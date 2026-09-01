@@ -1,15 +1,26 @@
 import { z } from "zod";
 import {
+  V2ColorSchema,
   V2FiniteNumberSchema,
   V2IdSchema,
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
-  V2PaintOrderSchema,
 } from "../common";
 import { V2TimingSchema } from "../timing";
 import { V2TransformSchema } from "../transform";
 import { V2TrackListSchema } from "../animation";
 import { V2BackfaceVisibilitySchema } from "../render3d";
+import { V2CompositeSchema } from "../blend";
+
+// Compatibility exports: blend semantics now live in v2/blend.ts.
+export {
+  V2BlendModeSchema,
+  V2IsolationModeSchema,
+  V2CompositeSchema,
+  type V2BlendMode,
+  type V2IsolationMode,
+  type V2Composite,
+} from "../blend";
 
 export const V2FrameSchema = z
   .object({
@@ -21,38 +32,8 @@ export const V2FrameSchema = z
 export { V2PaintOrderSchema, V2PaintOrderItemSchema } from "../common";
 export type { V2PaintOrder, V2PaintOrderItem } from "../common";
 
-/** Portable GPU blend modes represented by the Protocol V2 schema. */
-export const V2BlendModeSchema = z.enum([
-  "normal",
-  "darken",
-  "multiply",
-  "color-burn",
-  "lighten",
-  "screen",
-  "color-dodge",
-  "overlay",
-  "soft-light",
-  "hard-light",
-  "difference",
-  "exclusion",
-  "hue",
-  "saturation",
-  "color",
-  "luminosity",
-]);
-
-/** CSS isolation property for compositing groups. */
-export const V2IsolationModeSchema = z.enum(["auto", "isolate"]);
-
 /** SVG visibility presentation property. */
 export const V2VisibilitySchema = z.enum(["visible", "hidden", "collapse"]);
-
-export const V2CompositeSchema = z
-  .object({
-    blendMode: V2BlendModeSchema.default("normal"),
-    isolation: V2IsolationModeSchema.optional(),
-  })
-  .strict();
 
 export const V2LayerBaseSchema = z
   .object({
@@ -64,6 +45,8 @@ export const V2LayerBaseSchema = z
     transform: V2TransformSchema,
     /** Source alpha shared by normal and non-normal blend modes. */
     opacity: V2FiniteNumberSchema.min(0).max(1).default(1),
+    /** SVG inherited `color` property used by currentColor paint. */
+    color: V2ColorSchema.optional(),
     /** Editor/runtime enable state; omitted means enabled. */
     enabled: z.boolean().optional(),
     /** SVG visibility presentation property; omitted means visible. */
@@ -84,6 +67,4 @@ export const V2LayerBaseSchema = z
   .strict();
 
 export type V2Frame = z.infer<typeof V2FrameSchema>;
-export type V2BlendMode = z.infer<typeof V2BlendModeSchema>;
-export type V2IsolationMode = z.infer<typeof V2IsolationModeSchema>;
 export type V2Visibility = z.infer<typeof V2VisibilitySchema>;

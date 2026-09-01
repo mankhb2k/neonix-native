@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   interpolatePathContours,
+  tessellateNonScalingStroke,
   tessellateClosedPath,
   tessellatePathStroke,
 } from "./path";
@@ -68,6 +69,12 @@ const openLine = {
   closed: false as const,
 };
 
+const calibratedLine = {
+  ...openLine,
+  id: "calibrated-line",
+  pathLength: 50,
+};
+
 function meshContainsPoint(mesh: { vertices: number[]; indices: number[] }, x: number, y: number): boolean {
   const cross = (ax: number, ay: number, bx: number, by: number, px: number, py: number) =>
     (bx - ax) * (py - ay) - (by - ay) * (px - ax);
@@ -113,6 +120,13 @@ describe("Path tessellation", () => {
       { x: 100, y: 0 },
       { x: 100, y: 50 },
     ]);
+  });
+
+  it("applies SVG pathLength calibration before generating dash runs", () => {
+    const measured = measureContour(flattenPathContourAny(calibratedLine));
+    const runs = dashContour(measured, { array: [10, 10], offset: 0 });
+    expect(runs[0]).toEqual([{ x: 0, y: 0 }, { x: 20, y: 0 }]);
+    expect(runs[1]).toEqual([{ x: 40, y: 0 }, { x: 60, y: 0 }]);
   });
 
   it("canonicalizes SVG-like closed contours without a repeated closing point", () => {
@@ -263,6 +277,34 @@ describe("Path tessellation", () => {
     expect(bevel.indices.length).toBeGreaterThan(outer.segments.length * 6);
     expect(round.indices.length).toBeGreaterThan(butt.indices.length);
     expect(round.vertices.every(Number.isFinite)).toBe(true);
+  });
+
+  it("keeps non-scaling stroke width fixed after a 2D scale", () => {
+    const contour = {
+      id: "non-scaling-line",
+      start: { x: 20, y: 40 },
+      segments: [{ kind: "line" as const, to: { x: 120, y: 40 } }],
+      closed: false as const,
+    };
+    const scaled = new Float64Array([
+      2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ]);
+    const mesh = tessellateNonScalingStroke([contour], 10, scaled, { cap: "butt" });
+
+    expect(mesh?.bounds).toEqual({ x: 40, y: 75, width: 200, height: 10 });
+  });
+
+  it("does not claim non-scaling-stroke for perspective matrices", () => {
+    const perspective = new Float64Array([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0.01,
+      0, 0, 0, 1,
+    ]);
+    expect(tessellateNonScalingStroke([openLine], 10, perspective)).toBeUndefined();
   });
 
   it("covers the miter apex continuously", () => {

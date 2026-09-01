@@ -23,7 +23,7 @@ function SvgReference({ fixture }: { fixture: PathRenderingFixture }) {
       {filter.kind === "outer-glow" && <><feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blurred" /><feFlood floodColor="#00e5ff" floodOpacity="0.75" result="color" /><feComposite in="color" in2="blurred" operator="in" result="glow" /><feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge></>}
       {filter.kind === "inner-glow" && <><feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blurred" /><feComposite in="SourceAlpha" in2="blurred" operator="out" result="edge" /><feFlood floodColor="#ff3366" floodOpacity="0.8" result="color" /><feComposite in="color" in2="edge" operator="in" result="glow" /><feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge></>}
     </filter></defs> : null}
-    {fixture.svg.map((item) => <path key={item.d} d={item.d} filter={filterId ? `url(#${filterId})` : undefined} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} />)}
+    {fixture.svg.map((item) => <path key={item.d} d={item.d} filter={filterId ? `url(#${filterId})` : undefined} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} transform={item.transform} vectorEffect={item.vectorEffect} />)}
   </svg>;
 }
 

@@ -29,29 +29,87 @@ import {
   type V2Filter,
   type V2FilterPrimitive,
   type V2Mask,
+  type V2Paint,
+  type V2SvgLength,
   type V2SvgDefinitionNode,
 } from "@motionvideo/motion-protocol";
 import { isCompilerFeatureSupported } from "./capabilities";
-import { canonicalizePaint } from "./paint";
+import { canonicalizePaint, resolveSvgLength, type PaintServerLookup } from "./paint";
 
 const isV2AtomCertified = isCompilerFeatureSupported;
 type ShapePayload = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>["payload"];
 type ProtocolPaint = Extract<MotionProtocolV2["layers"][number], { type: "shape" }>['style']['fill'];
 
-function runtimePaint(paint: ProtocolPaint | undefined, width: number, height: number): PaintFill | undefined {
-  return canonicalizePaint(paint, width, height);
+function runtimePaint(paint: ProtocolPaint | undefined, width: number, height: number, paintServers?: PaintServerLookup, currentColor = "#000000", contextFill?: ProtocolPaint, contextStroke?: ProtocolPaint): PaintFill | undefined {
+  return canonicalizePaint(paint, width, height, paintServers, currentColor, contextFill, contextStroke);
 }
 
-function paintColor(paint: ProtocolPaint | undefined): string | undefined {
-  if (typeof paint === "string") return paint;
+function resolvePaintColor(paint: ProtocolPaint | undefined, paintServers?: PaintServerLookup, seen = new Set<string>()): ProtocolPaint | undefined {
+  if (!paint || typeof paint === "string" || !paintServers) return paint;
+  if (paint.type === "reference") {
+    if (seen.has(paint.id)) return paint.fallback;
+    const target = paintServers.get(paint.id);
+    if (!target) return paint.fallback;
+    const next = new Set(seen);
+    next.add(paint.id);
+    return resolvePaintColor(target, paintServers, next);
+  }
+  return paint;
+}
+
+function paintColor(paint: ProtocolPaint | undefined, paintServers?: PaintServerLookup, currentColor = "#000000", contextFill?: ProtocolPaint, contextStroke?: ProtocolPaint): string | undefined {
+  paint = resolvePaintColor(paint, paintServers);
+  if (typeof paint === "string") {
+    if (paint === "none") return "#00000000";
+    if (paint === "context-fill" || paint === "context-stroke") {
+      const context = paint === "context-fill" ? contextFill : contextStroke;
+      if (!context || (typeof context === "string" && (context === "context-fill" || context === "context-stroke"))) return "#00000000";
+      return paintColor(context, paintServers, currentColor, contextFill, contextStroke);
+    }
+    return paint === "currentColor" ? currentColor : paint;
+  }
   if (paint?.type === "none") return "#00000000";
   if (paint?.type === "solid") return paint.color;
-  if (paint && "stops" in paint) return paint.stops[0]?.color ?? "#00000000";
+  if (paint && "stops" in paint) return paint.stops?.[0]?.color ?? "#00000000";
   if (paint?.type === "pattern") {
-    const fill = paint.content[0] && "fill" in paint.content[0] ? paint.content[0].fill : undefined;
+    const fill = paint.content?.[0] && "fill" in paint.content[0] ? paint.content[0].fill : undefined;
     return typeof fill === "string" ? fill : fill?.type === "solid" ? fill.color : "#00000000";
   }
   return undefined;
+}
+
+function strokeReference(width: number, height: number): number {
+  return Math.sqrt((width * width + height * height) / 2);
+}
+
+function lowerStrokeWidth(value: V2SvgLength | undefined, width: number, height: number, fallback: number): number {
+  return resolveSvgLength(value, strokeReference(width, height)) ?? fallback;
+}
+
+function lowerStrokeDash(
+  dash: { array: "none" | V2SvgLength[]; offset?: V2SvgLength } | undefined,
+  width: number,
+  height: number,
+): { array: number[]; offset: number } | undefined {
+  if (!dash || dash.array === "none") return undefined;
+  const reference = strokeReference(width, height);
+  const array = dash.array.map((value) => resolveSvgLength(value, reference) ?? 0);
+  if (array.every((value) => value === 0)) return undefined;
+  return { array, offset: resolveSvgLength(dash.offset, reference) ?? 0 };
+}
+
+/** SVG closes an open subpath for fill, but a zero-area closure paints nothing. */
+function hasFillableRegion(contours: readonly PathContour[]): boolean {
+  return contours.some((contour) => {
+    const points = flattenPathContourAny(contour).points;
+    let area = 0;
+    for (let index = 0; index < points.length; index += 1) {
+      const current = points[index]!;
+      const next = points[(index + 1) % points.length]!;
+      area += current.x * next.y - next.x * current.y;
+    }
+    return Math.abs(area) > 1e-7;
+  });
 }
 
 function paintCapability(layerType: "shape" | "path", paint: ProtocolPaint | undefined): string | undefined {
@@ -64,8 +122,8 @@ function primitivePathContour(payload: ShapePayload, width: number, height: numb
   if (shape === "rectangle") {
     // SVG copies the supplied radius to the missing axis. Explicit zero is
     // preserved, so rx="0" and ry="8" intentionally produce square corners.
-    const radiusX = Math.min(payload.rx ?? payload.cornerRadius ?? payload.ry ?? 0, width / 2);
-    const radiusY = Math.min(payload.ry ?? payload.cornerRadius ?? payload.rx ?? 0, height / 2);
+    const radiusX = Math.min(resolveSvgLength(payload.rx ?? payload.cornerRadius ?? payload.ry, width) ?? 0, width / 2);
+    const radiusY = Math.min(resolveSvgLength(payload.ry ?? payload.cornerRadius ?? payload.rx, height) ?? 0, height / 2);
     if (radiusX > 0 || radiusY > 0) {
       return {
         id: "shape-contour",
@@ -184,6 +242,8 @@ type MarkerReferenceStyle = {
   markerStart?: string;
   markerMid?: string;
   markerEnd?: string;
+  fill?: ProtocolPaint;
+  stroke?: ProtocolPaint;
 };
 
 function markerSegmentPoint(segment: PathContour["segments"][number]): { x: number; y: number } {
@@ -268,6 +328,8 @@ function lowerMarkers(
   style: MarkerReferenceStyle,
   contours: PathContour[],
   strokeWidth: number,
+  paintServers?: PaintServerLookup,
+  currentColor = "#000000",
 ): PathMarker[] | undefined {
   if (!definitions?.length) return undefined;
   const byId = new Map(definitions.map((marker) => [marker.id, marker]));
@@ -315,9 +377,9 @@ function lowerMarkers(
       id: `${ref}:${placementIndex}`,
       placement,
       contours: markerContours,
-      ...(markerFill !== undefined ? { fill: paintColor(markerFill)!, fillPaint: runtimePaint(markerFill, marker.markerWidth, marker.markerHeight) } : {}),
+      ...(markerFill !== undefined ? { fill: paintColor(markerFill, paintServers, currentColor, style.fill, style.stroke)!, fillPaint: runtimePaint(markerFill, marker.markerWidth, marker.markerHeight, paintServers, currentColor, style.fill, style.stroke) } : {}),
       ...(marker.content.fillOpacity !== undefined ? { fillOpacity: marker.content.fillOpacity } : {}),
-      ...(markerStroke !== undefined ? { stroke: paintColor(markerStroke)!, strokePaint: runtimePaint(markerStroke, marker.markerWidth, marker.markerHeight), strokeWidth: markerStrokeWidth } : {}),
+      ...(markerStroke !== undefined ? { stroke: paintColor(markerStroke, paintServers, currentColor, style.fill, style.stroke)!, strokePaint: runtimePaint(markerStroke, marker.markerWidth, marker.markerHeight, paintServers, currentColor, style.fill, style.stroke), strokeWidth: markerStrokeWidth } : {}),
       ...(marker.content.strokeOpacity !== undefined ? { strokeOpacity: marker.content.strokeOpacity } : {}),
       paintOrder: lowerPaintOrder(marker.content.paintOrder) ?? ["fill", "stroke", "markers"],
       ...(markerFill !== undefined ? { mesh: tessellateClosedPath(fillContours, "nonzero") } : {}),
@@ -604,6 +666,7 @@ function lowerDefinitionDrawables(
   mask: V2Mask,
   targetWidth: number,
   targetHeight: number,
+  paintServers?: PaintServerLookup,
 ): DefinitionDrawable[] {
   const unitMatrix: Affine2D = mask.maskContentUnits === "objectBoundingBox"
     ? [targetWidth, 0, 0, targetHeight, 0, 0]
@@ -625,14 +688,14 @@ function lowerDefinitionDrawables(
         ? [transformContour(rawContour, matrix)]
         : [];
     if (contours.length === 0) return [];
-    const fill = node.fill === undefined ? undefined : paintColor(node.fill);
-    const stroke = node.stroke === undefined ? undefined : paintColor(node.stroke);
+    const fill = node.fill === undefined ? undefined : paintColor(node.fill, paintServers);
+    const stroke = node.stroke === undefined ? undefined : paintColor(node.stroke, paintServers);
     return [{
       contours,
       fillRule: node.type === "path" ? node.fillRule ?? "nonzero" : "nonzero",
-      ...(fill ? { fill, fillPaint: runtimePaint(node.fill, targetWidth, targetHeight) } : {}),
+      ...(fill ? { fill, fillPaint: runtimePaint(node.fill, targetWidth, targetHeight, paintServers) } : {}),
       ...(node.fillOpacity !== undefined ? { fillOpacity: node.fillOpacity * opacity } : {}),
-      ...(stroke ? { stroke, strokePaint: runtimePaint(node.stroke, targetWidth, targetHeight) } : {}),
+      ...(stroke ? { stroke, strokePaint: runtimePaint(node.stroke, targetWidth, targetHeight, paintServers) } : {}),
       ...(node.strokeWidth !== undefined ? { strokeWidth: node.strokeWidth } : {}),
       ...(node.strokeOpacity !== undefined ? { strokeOpacity: node.strokeOpacity * opacity } : {}),
     }];
@@ -644,6 +707,7 @@ function lowerSemanticMask(
   layer: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
   project: MotionProtocolV2,
   context: LayerContext,
+  paintServers?: PaintServerLookup,
 ): { clipPath?: NonNullable<VisualRuntimeNode["clipPath"]>; mask?: VisualRuntimeMask; nodes: VisualRuntimeNode[] } {
   if (layer.clipPath === undefined && layer.mask === undefined) return { nodes: [] };
   if (layer.clipPath !== undefined) {
@@ -657,7 +721,7 @@ function lowerSemanticMask(
     const objectBoxMatrix: Affine2D = definition.clipPathUnits === "objectBoundingBox"
       ? [layer.frame.width, 0, 0, layer.frame.height, 0, 0]
       : IDENTITY_AFFINE;
-    const drawables = lowerDefinitionDrawables(definition.children, objectBoxMatrix, maskDefinition, layer.frame.width, layer.frame.height);
+    const drawables = lowerDefinitionDrawables(definition.children, objectBoxMatrix, maskDefinition, layer.frame.width, layer.frame.height, paintServers);
     const sourceIds = drawables.map((_, index) => `${layer.id}:clipPath:${definition.id}:${index}`);
     const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, true));
     if (!nodes.length) throw new Error(`clipPath ${definition.id} has no renderable geometry`);
@@ -669,7 +733,7 @@ function lowerSemanticMask(
     if (mask.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
       throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
     }
-    const maskDrawables = lowerDefinitionDrawables(mask.children, IDENTITY_AFFINE, mask, layer.frame.width, layer.frame.height);
+    const maskDrawables = lowerDefinitionDrawables(mask.children, IDENTITY_AFFINE, mask, layer.frame.width, layer.frame.height, paintServers);
     const maskSourceIds = maskDrawables.map((_, index) => `${layer.id}:mask:${mask.id}:${index}`);
     const maskNodes = maskDrawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, maskSourceIds[index]!, false));
     if (!maskNodes.length) throw new Error(`mask ${mask.id} has no renderable geometry`);
@@ -685,7 +749,7 @@ function lowerSemanticMask(
   if (definition.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
     throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
   }
-  const drawables = lowerDefinitionDrawables(definition.children, IDENTITY_AFFINE, definition, layer.frame.width, layer.frame.height);
+  const drawables = lowerDefinitionDrawables(definition.children, IDENTITY_AFFINE, definition, layer.frame.width, layer.frame.height, paintServers);
   const sourceIds = drawables.map((_, index) => `${layer.id}:mask:${definition.id}:${index}`);
   const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, false));
   if (!nodes.length) throw new Error(`mask ${definition.id} has no renderable geometry`);
@@ -741,6 +805,7 @@ type LayerContext = {
   opacity: number;
   visible: boolean;
   timing: { start: number; duration: number };
+  currentColor: string;
 };
 
 /** Options accepted by the canonical Protocol compiler. */
@@ -751,6 +816,7 @@ function compileVisualRuntimeInternal(
   _options: CompileProtocolOptions = {},
 ): VisualRuntimeProject {
   const project = parseMotionProtocol(input);
+  const paintServers = new Map<string, V2Paint>((project.paintServers ?? []).map((definition) => [definition.id, definition.paint]));
   const projection = viewProjectionMatrix4(project);
   const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
   const contextCache = new Map<string, LayerContext>();
@@ -767,8 +833,9 @@ function compileVisualRuntimeInternal(
           localMatrix: identityMatrix4(),
           worldMatrix: identityMatrix4(),
           opacity: 1,
-          visible: true,
-          timing: { start: 0, duration: Number.POSITIVE_INFINITY },
+        visible: true,
+        timing: { start: 0, duration: Number.POSITIVE_INFINITY },
+        currentColor: "#000000",
         };
     const start = parentContext.timing.start + toRuntimeSeconds(layer.timing.start);
     const end = Math.min(
@@ -789,6 +856,7 @@ function compileVisualRuntimeInternal(
         layer.opacity > 0 &&
         end > start,
       timing: { start, duration: Math.max(0, end - start) },
+      currentColor: layer.color ?? parentContext.currentColor,
     };
     contextCache.set(layer.id, context);
     return context;
@@ -833,7 +901,7 @@ function compileVisualRuntimeInternal(
         }
       }
       if (context.timing.duration <= 0) return null;
-      const semanticMask = lowerSemanticMask(layer, project, context);
+      const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
       semanticMaskNodes.push(...semanticMask.nodes);
       const clipPath = semanticMask.clipPath;
       const mask = semanticMask.mask;
@@ -1047,14 +1115,20 @@ function compileVisualRuntimeInternal(
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
       }
-      const contours = layer.payload.morph
+      const sourceContours = layer.payload.morph
         ? interpolatePathContours(
             layer.payload.contours,
             layer.payload.morph.targetContours,
             layer.payload.morph.progress,
           )
         : layer.payload.contours;
-      const hasFill = layer.style.fill !== undefined;
+      const contours = sourceContours.map((contour) => ({
+        ...contour,
+        ...(layer.payload.pathLength === undefined ? {} : { pathLength: layer.payload.pathLength }),
+      }));
+      const authoredFill: ProtocolPaint = layer.style.fill ?? "#000000";
+      const fillPaint = runtimePaint(authoredFill, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+      const hasFill = fillPaint?.type !== "none" && hasFillableRegion(contours);
       if (hasFill && !isV2AtomCertified("path.fill")) {
         throw new Error("Uncertified Protocol V2 atom: path.fill");
       }
@@ -1073,17 +1147,11 @@ function compileVisualRuntimeInternal(
         }
       }
       if (layer.style.strokeWidth !== undefined) {
-        if (layer.style.stroke === undefined) {
-          throw new Error(`Protocol V2 atom ${layer.id}: strokeWidth requires stroke`);
-        }
         if (!isV2AtomCertified("path.strokeWidth")) {
           throw new Error("Uncertified Protocol V2 atom: path.strokeWidth");
         }
       }
       if (layer.style.strokeOpacity !== undefined) {
-        if (layer.style.stroke === undefined) {
-          throw new Error(`Protocol V2 atom ${layer.id}: strokeOpacity requires stroke`);
-        }
         if (!isV2AtomCertified("path.strokeOpacity")) {
           throw new Error("Uncertified Protocol V2 atom: path.strokeOpacity");
         }
@@ -1098,21 +1166,21 @@ function compileVisualRuntimeInternal(
           throw new Error("Uncertified Protocol V2 atom: path.strokeDash");
         }
       }
+      if (layer.style.vectorEffect !== undefined && !isV2AtomCertified("path.vectorEffect")) {
+        throw new Error("Uncertified Protocol V2 atom: path.vectorEffect");
+      }
       if (layer.payload.morph && !isV2AtomCertified("path.morph")) {
         throw new Error("Uncertified Protocol V2 atom: path.morph");
       }
-      const strokeWidth = layer.style.strokeWidth ?? DEFAULT_PATH_STROKE_WIDTH;
+      const strokeWidth = lowerStrokeWidth(layer.style.strokeWidth, layer.frame.width, layer.frame.height, DEFAULT_PATH_STROKE_WIDTH);
       const strokeJoin = layer.style.strokeJoin ?? "miter";
       const strokeCap = layer.style.strokeCap ?? "butt";
-      const strokeDash = layer.style.strokeDash
-        ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
-        : undefined;
+      const strokeDash = lowerStrokeDash(layer.style.strokeDash, layer.frame.width, layer.frame.height);
       const paintOrder = lowerPaintOrder(layer.style.paintOrder);
-      const markers = lowerMarkers(project.markers, layer.style, contours, strokeWidth);
-      const fillPaint = runtimePaint(layer.style.fill, layer.frame.width, layer.frame.height);
-      const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height);
-      const fillColorValue = paintColor(layer.style.fill);
-      const strokeColorValue = paintColor(layer.style.stroke);
+      const markers = lowerMarkers(project.markers, layer.style, contours, strokeWidth, paintServers, context.currentColor);
+      const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+      const fillColorValue = paintColor(authoredFill, paintServers, context.currentColor);
+      const strokeColorValue = paintColor(layer.style.stroke, paintServers, context.currentColor);
       const pathPaintCapability = paintCapability("path", layer.style.fill);
       if (pathPaintCapability && !isV2AtomCertified(pathPaintCapability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${pathPaintCapability}`);
@@ -1172,6 +1240,7 @@ function compileVisualRuntimeInternal(
                 ...(strokeDash ? { strokeDash } : {}),
               }
             : {}),
+          ...(layer.style.vectorEffect ? { vectorEffect: layer.style.vectorEffect } : {}),
           fillRule: layer.payload.fillRule,
           ...(layer.style.fillOpacity !== undefined
             ? { fillOpacity: layer.style.fillOpacity }
@@ -1187,8 +1256,9 @@ function compileVisualRuntimeInternal(
     if (!isV2AtomCertified(fillCapability)) {
       throw new Error(`Uncertified Protocol V2 atom: ${fillCapability}`);
     }
-    const fillPaint = runtimePaint(layer.style.fill, layer.frame.width, layer.frame.height);
-    const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height);
+    const authoredFill: ProtocolPaint = layer.style.fill ?? "#000000";
+    const fillPaint = runtimePaint(authoredFill, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+    const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
     const gradientCapability = paintCapability("shape", layer.style.fill);
     if (gradientCapability && !isV2AtomCertified(`${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`)) {
       throw new Error(`Uncertified Protocol V2 atom: ${layer.type}.${layer.payload.shape}.${gradientCapability.split(".").at(-1)}`);
@@ -1204,9 +1274,6 @@ function compileVisualRuntimeInternal(
       }
     }
     if (layer.style.strokeWidth !== undefined) {
-      if (layer.style.stroke === undefined) {
-        throw new Error(`Protocol V2 atom ${layer.id}: strokeWidth requires stroke`);
-      }
       const strokeWidthCapability = `${layer.type}.${layer.payload.shape}.strokeWidth`;
       if (!isV2AtomCertified(strokeWidthCapability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${strokeWidthCapability}`);
@@ -1219,9 +1286,6 @@ function compileVisualRuntimeInternal(
       }
     }
     if (layer.style.strokeOpacity !== undefined) {
-      if (layer.style.stroke === undefined) {
-        throw new Error(`Protocol V2 atom ${layer.id}: strokeOpacity requires stroke`);
-      }
       const strokeOpacityCapability = `${layer.type}.${layer.payload.shape}.strokeOpacity`;
       if (!isV2AtomCertified(strokeOpacityCapability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${strokeOpacityCapability}`);
@@ -1229,13 +1293,16 @@ function compileVisualRuntimeInternal(
     }
     for (const property of ["strokeJoin", "strokeCap", "strokeDash"] as const) {
       if (layer.style[property] !== undefined) {
-        if (layer.style.stroke === undefined) {
-          throw new Error(`Protocol V2 atom ${layer.id}: ${property} requires stroke`);
-        }
         const capability = `${layer.type}.${layer.payload.shape}.${property}`;
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
+      }
+    }
+    if (layer.style.vectorEffect !== undefined) {
+      const capability = `${layer.type}.${layer.payload.shape}.vectorEffect`;
+      if (!isV2AtomCertified(capability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
       }
     }
     if (layer.style.paintOrder !== undefined) {
@@ -1262,8 +1329,13 @@ function compileVisualRuntimeInternal(
 
     const effects = lowerLayerEffects(layer, project);
     const paintOrder = lowerPaintOrder(layer.style.paintOrder);
-    const shapeContour = primitivePathContour(layer.payload, layer.frame.width, layer.frame.height);
-    const markers = lowerMarkers(project.markers, layer.style, [shapeContour], layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH);
+    const shapeContour = {
+      ...primitivePathContour(layer.payload, layer.frame.width, layer.frame.height),
+      ...(layer.payload.pathLength === undefined ? {} : { pathLength: layer.payload.pathLength }),
+    };
+    const strokeWidth = lowerStrokeWidth(layer.style.strokeWidth, layer.frame.width, layer.frame.height, DEFAULT_RECTANGLE_STROKE_WIDTH);
+    const strokeDash = lowerStrokeDash(layer.style.strokeDash, layer.frame.width, layer.frame.height);
+    const markers = lowerMarkers(project.markers, layer.style, [shapeContour], strokeWidth, paintServers, context.currentColor);
     return {
       id: layer.id,
         parentId: layer.parentLayerId,
@@ -1282,17 +1354,17 @@ function compileVisualRuntimeInternal(
         height: layer.frame.height,
         contours: [shapeContour],
         fillRule: "nonzero" as const,
-        ...(layer.style.fill
-          ? { fill: paintColor(layer.style.fill)!, ...(fillPaint ? { fillPaint } : {}) }
+        ...(layer.payload.shape !== "line" && fillPaint?.type !== "none"
+          ? { fill: paintColor(authoredFill, paintServers, context.currentColor)!, ...(fillPaint ? { fillPaint } : {}) }
           : {}),
         ...(layer.style.fillOpacity !== undefined
           ? { fillOpacity: layer.style.fillOpacity }
           : {}),
         ...(layer.style.stroke !== undefined
           ? {
-              stroke: paintColor(layer.style.stroke)!,
+              stroke: paintColor(layer.style.stroke, paintServers, context.currentColor)!,
               ...(strokePaint ? { strokePaint } : {}),
-              strokeWidth: layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
+              strokeWidth,
               ...(layer.style.strokeOpacity !== undefined
                 ? { strokeOpacity: layer.style.strokeOpacity }
                 : {}),
@@ -1301,28 +1373,25 @@ function compileVisualRuntimeInternal(
                 : {}),
               ...(layer.style.strokeJoin ? { strokeJoin: layer.style.strokeJoin } : {}),
               ...(layer.style.strokeCap ? { strokeCap: layer.style.strokeCap } : {}),
-              ...(layer.style.strokeDash
-                ? { strokeDash: { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 } }
-                : {}),
+                ...(strokeDash ? { strokeDash } : {}),
             }
           : {}),
+        ...(layer.style.vectorEffect ? { vectorEffect: layer.style.vectorEffect } : {}),
         ...(paintOrder ? { paintOrder } : {}),
         ...(markers ? { markers } : {}),
-        ...(layer.style.fill && layer.payload.shape !== "line"
+        ...(layer.payload.shape !== "line" && fillPaint?.type !== "none"
           ? { mesh: tessellateClosedPath([shapeContour], "nonzero") }
           : {}),
         ...(layer.style.stroke
           ? {
               strokeMesh: tessellatePathStroke(
                 [shapeContour],
-                layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH,
+                strokeWidth,
                 {
                   join: layer.style.strokeJoin ?? "miter",
                   cap: layer.style.strokeCap ?? "butt",
                   miterLimit: layer.style.strokeMiterLimit,
-                  dash: layer.style.strokeDash
-                    ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
-                    : undefined,
+                  dash: strokeDash,
                 },
               ),
             }

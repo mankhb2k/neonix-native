@@ -17,6 +17,9 @@ export function interpolatePathContours(base: PathContour[], target: PathContour
       if (segment.kind === "arc" && next.kind === "arc") return { kind: "arc" as const, radii: { x: segment.radii.x + (next.radii.x - segment.radii.x) * progress, y: segment.radii.y + (next.radii.y - segment.radii.y) * progress }, rotation: segment.rotation + (next.rotation - segment.rotation) * progress, largeArc: progress < 0.5 ? segment.largeArc : next.largeArc, sweep: progress < 0.5 ? segment.sweep : next.sweep, to: interpolatePoint(segment.to, next.to, progress) };
       throw new Error(`Path morph segment topology mismatch at ${contour.id}`);
     });
-    return { id: contour.id, start: interpolatePoint(contour.start, other.start, progress), segments, closed: contour.closed };
+    const pathLength = contour.pathLength === undefined && other.pathLength === undefined
+      ? undefined
+      : (contour.pathLength ?? other.pathLength ?? 0) + ((other.pathLength ?? contour.pathLength ?? 0) - (contour.pathLength ?? other.pathLength ?? 0)) * progress;
+    return { id: contour.id, start: interpolatePoint(contour.start, other.start, progress), segments, closed: contour.closed, ...(pathLength === undefined ? {} : { pathLength }) };
   });
 }

@@ -12,6 +12,7 @@ export type CanonicalContour = {
   id: string;
   points: import("../../paint/paint-types").PathPoint[];
   closed: boolean;
+  pathLength?: number;
 };
 
 export type PathFillRule = "nonzero" | "evenodd";

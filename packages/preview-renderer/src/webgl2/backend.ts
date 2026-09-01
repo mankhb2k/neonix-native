@@ -21,6 +21,7 @@ import {
   BLUR_FRAGMENT_SHADER,
   BLUR_VERTEX_SHADER,
   INNER_GLOW_FRAGMENT_SHADER,
+  BLEND_FRAGMENT_SHADER,
 } from "./shaders";
 import { blend, blendPremultiplied, type BlendMode } from "./passes";
 import type {
@@ -58,14 +59,16 @@ export function createWebGL2Backend(
   const blurProgramHandle = program(gl, BLUR_VERTEX_SHADER, BLUR_FRAGMENT_SHADER);
   const innerGlowProgramHandle = program(gl, BLUR_VERTEX_SHADER, INNER_GLOW_FRAGMENT_SHADER);
   const clipMaskProgramHandle = program(gl, BLUR_VERTEX_SHADER, CLIP_MASK_FRAGMENT_SHADER);
+  const blendProgramHandle = program(gl, BLUR_VERTEX_SHADER, BLEND_FRAGMENT_SHADER);
   const vao = gl.createVertexArray();
   const blurVao = gl.createVertexArray();
   const innerGlowVao = gl.createVertexArray();
   const clipMaskVao = gl.createVertexArray();
+  const blendVao = gl.createVertexArray();
   const quadBuffer = gl.createBuffer();
   const pathBuffer = gl.createBuffer();
   const pathIndexBuffer = gl.createBuffer();
-  if (!vao || !blurVao || !innerGlowVao || !clipMaskVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
+  if (!vao || !blurVao || !innerGlowVao || !clipMaskVao || !blendVao || !quadBuffer || !pathBuffer || !pathIndexBuffer) throw new Error("preview-renderer: unable to create WebGL buffers");
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
   gl.bufferData(
@@ -83,6 +86,16 @@ export function createWebGL2Backend(
     gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 16, 8);
   };
   bindVertexBuffer(quadBuffer);
+  gl.bindVertexArray(null);
+
+  gl.bindVertexArray(blendVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+  const blendPosition = gl.getAttribLocation(blendProgramHandle, "a_position");
+  const blendUv = gl.getAttribLocation(blendProgramHandle, "a_uv");
+  gl.enableVertexAttribArray(blendPosition);
+  gl.vertexAttribPointer(blendPosition, 2, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(blendUv);
+  gl.vertexAttribPointer(blendUv, 2, gl.FLOAT, false, 16, 8);
   gl.bindVertexArray(null);
 
   gl.bindVertexArray(innerGlowVao);
@@ -167,6 +180,11 @@ export function createWebGL2Backend(
   const blurColorAdjustMetaLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_meta");
   const blurColorAdjustLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust[0]");
   const blurColorAdjustSpaceLocation = gl.getUniformLocation(blurProgramHandle, "u_color_adjust_space");
+  const blendSourceLocation = gl.getUniformLocation(blendProgramHandle, "u_source");
+  const blendBackdropLocation = gl.getUniformLocation(blendProgramHandle, "u_backdrop");
+  const blendCompositeAlphaLocation = gl.getUniformLocation(blendProgramHandle, "u_composite_alpha");
+  const blendModeLocation = gl.getUniformLocation(blendProgramHandle, "u_blend_mode");
+  const blendEncodeSrgbLocation = gl.getUniformLocation(blendProgramHandle, "u_encode_srgb");
   const setPatternUniforms = (gradients: ReturnType<typeof gradientUniforms>) => {
     gl.uniform4fv(patternGeometryLocation, gradients.patternGeometry);
     gl.uniform4fv(patternColorsLocation, gradients.patternColors);
@@ -205,6 +223,9 @@ export function createWebGL2Backend(
   let effectSourceMsaaTarget: EffectMsaaTarget | null = null;
   let effectLevels: EffectLevel[] = [];
   let createLayerTarget: ((targetWidth: number, targetHeight: number) => EffectTarget) | null = null;
+  let backdropTexture: WebGLTexture | null = null;
+  let backdropWidth = 0;
+  let backdropHeight = 0;
   let lastStats: PreviewRenderStats = {
     backend: "webgl2",
     drawCalls: 0,
@@ -380,6 +401,22 @@ export function createWebGL2Backend(
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   };
 
+  const ensureBackdropTexture = (targetWidth: number, targetHeight: number): WebGLTexture => {
+    if (backdropTexture && backdropWidth === targetWidth && backdropHeight === targetHeight) return backdropTexture;
+    if (backdropTexture) gl.deleteTexture(backdropTexture);
+    backdropTexture = gl.createTexture();
+    if (!backdropTexture) throw new Error("preview-renderer: unable to allocate blend backdrop texture");
+    backdropWidth = targetWidth;
+    backdropHeight = targetHeight;
+    gl.bindTexture(gl.TEXTURE_2D, backdropTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, targetWidth, targetHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    return backdropTexture;
+  };
+
   const paint = (bufferToPaint: PaintCommandBuffer): PreviewRenderStats => {
     const started = performance.now();
     diagnostics.length = 0;
@@ -404,6 +441,84 @@ export function createWebGL2Backend(
     let projection = webglClipSpaceProjection(worldToClipMatrixForPaint(firstCommand));
     const physicalWidth = Math.max(1, Math.round(width * dpr));
     const physicalHeight = Math.max(1, Math.round(height * dpr));
+    const blendModeIndex = (mode: BlendMode): number => ({
+      normal: 0,
+      darken: 1,
+      multiply: 2,
+      "color-burn": 3,
+      lighten: 4,
+      screen: 5,
+      "color-dodge": 6,
+      overlay: 7,
+      "soft-light": 8,
+      "hard-light": 9,
+      difference: 10,
+      exclusion: 11,
+      hue: 12,
+      saturation: 13,
+      color: 14,
+      luminosity: 15,
+    })[mode];
+    const compositeAdvancedBlend = (
+      source: WebGLTexture,
+      target: EffectTarget | null,
+      compositeAlpha: number,
+      blendMode: BlendMode,
+      output: EffectTarget,
+    ) => {
+      const backdrop = ensureBackdropTexture(physicalWidth, physicalHeight);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
+      // The backdrop texture is allocated once and then populated from the
+      // currently bound destination. Keep the copy source/destination state
+      // explicit because the regular paint path can leave the active unit on
+      // the LUT texture (unit 2).
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, backdrop);
+      gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, physicalWidth, physicalHeight);
+      // Never sample from a texture attached to the framebuffer being written.
+      // Render the advanced blend into an intermediate target first, then use
+      // the regular premultiplied composite pass to put it on the destination.
+      gl.bindFramebuffer(gl.FRAMEBUFFER, output.framebuffer);
+      gl.viewport(0, 0, physicalWidth, physicalHeight);
+      gl.disable(gl.BLEND);
+      gl.useProgram(blendProgramHandle);
+      gl.bindVertexArray(blendVao);
+      // Effect target allocation may have left this output texture bound on
+      // the LUT unit. Unbind it before attaching the same texture as the
+      // framebuffer color target; WebGL treats that as a feedback loop even
+      // when the shader does not sample that unit.
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, source);
+      gl.uniform1i(blendSourceLocation, 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, backdrop);
+      gl.uniform1i(blendBackdropLocation, 1);
+      gl.uniform1f(blendCompositeAlphaLocation, compositeAlpha);
+      gl.uniform1f(blendModeLocation, blendModeIndex(blendMode));
+      gl.uniform1f(blendEncodeSrgbLocation, 1);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      drawCalls += 1;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
+      gl.viewport(0, 0, physicalWidth, physicalHeight);
+      gl.useProgram(blurProgramHandle);
+      gl.bindVertexArray(blurVao);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, output.texture);
+      gl.uniform1i(blurTextureLocation, 0);
+      gl.uniform4f(blurPostParamsLocation, 0, 0, 0, 0);
+      gl.uniform4f(blurShadowColorLocation, 0, 0, 0, 0);
+      gl.uniform2f(blurShadowOffsetLocation, 0, 0);
+      gl.uniform1f(blurCompositeAlphaLocation, 1);
+      setPostColorAdjust(undefined);
+      blendPremultiplied(gl);
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      drawCalls += 1;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.useProgram(programHandle);
+      gl.bindVertexArray(vao);
+    };
     const compositeIsolation = (source: WebGLTexture, target: EffectTarget | null, compositeAlpha: number, blendMode: BlendMode = "normal") => {
       const root = effectLevels[0];
       if (!root) throw new Error("preview-renderer: isolation target is unavailable");
@@ -424,13 +539,16 @@ export function createWebGL2Backend(
       drawCalls += 1;
       gl.bindFramebuffer(gl.FRAMEBUFFER, target?.framebuffer ?? null);
       gl.viewport(0, 0, physicalWidth, physicalHeight);
-      if (blendMode === "normal") blendPremultiplied(gl);
-      else blend(gl, blendMode);
-      gl.bindTexture(gl.TEXTURE_2D, root.a.texture);
-      gl.uniform4f(blurPostParamsLocation, 0, 0, 0, 1);
-      gl.uniform1f(blurCompositeAlphaLocation, compositeAlpha);
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-      drawCalls += 1;
+      if (blendMode === "normal") {
+        blendPremultiplied(gl);
+        gl.bindTexture(gl.TEXTURE_2D, root.a.texture);
+        gl.uniform4f(blurPostParamsLocation, 0, 0, 0, 1);
+        gl.uniform1f(blurCompositeAlphaLocation, compositeAlpha);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+        drawCalls += 1;
+      } else {
+        compositeAdvancedBlend(root.a.texture, target, compositeAlpha, blendMode, root.b);
+      }
       gl.useProgram(programHandle);
       gl.bindVertexArray(vao);
     };
@@ -452,6 +570,7 @@ export function createWebGL2Backend(
     const isLayerMaskMode = (mode: string): mode is NonNullable<LayerScope["mode"]> =>
       mode === "clip" || mode === "alpha" || mode === "luma";
     const layerScopes: LayerScope[] = [];
+    const drawBlendMode = () => layerScopes.length > 0 || activeEffectScope ? "normal" as const : currentBlend;
     const bindClipMaskTarget = (sourceKey: string): "mask" | "clip" | null => {
       const scope = layerScopes.at(-1);
       if (!scope) return null;
@@ -462,12 +581,15 @@ export function createWebGL2Backend(
       scope.target = targetKind;
       gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
       gl.viewport(0, 0, physicalWidth, physicalHeight);
-      // A layer surface can still be bound on texture unit 0 after allocation.
-      // Unbind it before drawing into the same framebuffer to avoid a WebGL
-      // read/write feedback loop; image and text branches bind their source
-      // texture again before issuing the draw.
+      // A layer surface can still be bound on any texture unit after target
+      // allocation. Unbind all units before drawing into the same framebuffer
+      // to avoid a WebGL read/write feedback loop; draw branches bind their
+      // source textures again before issuing the draw.
+      for (const unit of [gl.TEXTURE0, gl.TEXTURE1, gl.TEXTURE2, gl.TEXTURE3]) {
+        gl.activeTexture(unit);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+      }
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, null);
       return targetKind === "content" ? null : targetKind;
     };
     const compositeClipMask = (
@@ -528,7 +650,7 @@ export function createWebGL2Backend(
         const coverageKind = bindClipMaskTarget(command.key);
         const isCoverageSource = coverageKind !== null;
         const isClipMaskSource = coverageKind === "clip";
-        blend(gl, isCoverageSource ? "normal" : currentBlend);
+        blend(gl, isCoverageSource ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
@@ -597,7 +719,7 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
           continue;
         }
-        blend(gl, maskMode ? "normal" : currentBlend);
+        blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(pathBuffer);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
         gl.uniformMatrix4fv(modelLocation, false, packMatrix4F32(transform.matrix4));
@@ -666,7 +788,7 @@ export function createWebGL2Backend(
           skippedCommands += 1;
           continue;
         }
-        blend(gl, maskMode ? "normal" : currentBlend);
+        blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
         const layout = command.op === "drawImage"
           ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio)
@@ -724,7 +846,7 @@ export function createWebGL2Backend(
           skippedCommands += 1;
           continue;
         }
-        blend(gl, maskMode ? "normal" : currentBlend);
+        blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
         const color = cssColorToRgba(command.fill);
         color[3] *= transform.alpha;
@@ -1096,10 +1218,14 @@ export function createWebGL2Backend(
       gl.deleteVertexArray(blurVao);
       gl.deleteVertexArray(innerGlowVao);
       gl.deleteVertexArray(clipMaskVao);
+      gl.deleteVertexArray(blendVao);
       gl.deleteProgram(programHandle);
       gl.deleteProgram(blurProgramHandle);
       gl.deleteProgram(innerGlowProgramHandle);
       gl.deleteProgram(clipMaskProgramHandle);
+      gl.deleteProgram(blendProgramHandle);
+      if (backdropTexture) gl.deleteTexture(backdropTexture);
+      backdropTexture = null;
       deleteEffectTargets();
     },
   };

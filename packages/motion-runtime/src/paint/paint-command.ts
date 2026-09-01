@@ -140,6 +140,7 @@ export type PaintCommand =
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
+      vectorEffect?: "none" | "non-scaling-stroke";
       paintOrder?: PaintOrder;
     }
   | {
@@ -186,6 +187,7 @@ export type PaintCommand =
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
+      vectorEffect?: "none" | "non-scaling-stroke";
       paintOrder?: PaintOrder;
       markers?: PathMarker[];
     }

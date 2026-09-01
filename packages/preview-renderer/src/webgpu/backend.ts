@@ -29,6 +29,7 @@ import {
   type BlendMode,
 } from "./resources";
 import {
+  createBlendPostObjects,
   createClipMaskPostObjects,
   createInnerGlowPostObjects,
   createPostObjects,
@@ -82,19 +83,11 @@ export function createWebGPUBackend(
   const postObjects = createPostObjects(device, format);
   const postMsaaObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT);
   const postMsaaPremultipliedObjects = createPostObjects(device, format, MSAA_SAMPLE_COUNT, true);
-  const postMsaaPremultipliedBlendObjects = new Map<BlendMode, ReturnType<typeof createPostObjects>>([
-    ["normal", postMsaaPremultipliedObjects],
-    ["multiply", createPostObjects(device, format, MSAA_SAMPLE_COUNT, true, "multiply")],
-    ["screen", createPostObjects(device, format, MSAA_SAMPLE_COUNT, true, "screen")],
-  ]);
+  const blendPostMsaaObjects = createBlendPostObjects(device, format, MSAA_SAMPLE_COUNT);
+  const blendPostEffectObjects = createBlendPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const clipMaskPostMsaaObjects = createClipMaskPostObjects(device, format);
   const effectPostObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const effectPostPremultipliedObjects = createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true);
-  const effectPostPremultipliedBlendObjects = new Map<BlendMode, ReturnType<typeof createPostObjects>>([
-    ["normal", effectPostPremultipliedObjects],
-    ["multiply", createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true, "multiply")],
-    ["screen", createPostObjects(device, EFFECT_TEXTURE_FORMAT, 1, true, "screen")],
-  ]);
   const innerGlowPostObjects = createInnerGlowPostObjects(device, EFFECT_TEXTURE_FORMAT);
   const clipMaskPostEffectObjects = createClipMaskPostObjects(device, EFFECT_TEXTURE_FORMAT, 1);
   const assets = new Map(options.assets ?? []);
@@ -320,6 +313,50 @@ export function createWebGPUBackend(
       nextPass.setBindGroup(0, bindGroup);
       nextPass.draw(4);
     };
+    const blendModeIndex = (mode: BlendMode): number => ({
+      normal: 0,
+      darken: 1,
+      multiply: 2,
+      "color-burn": 3,
+      lighten: 4,
+      screen: 5,
+      "color-dodge": 6,
+      overlay: 7,
+      "soft-light": 8,
+      "hard-light": 9,
+      difference: 10,
+      exclusion: 11,
+      hue: 12,
+      saturation: 13,
+      color: 14,
+      luminosity: 15,
+    })[mode];
+    const postBlend = (
+      nextPass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]>,
+      source: WebGPUTextureLike,
+      backdrop: WebGPUTextureLike,
+      compositeAlpha: number,
+      blendMode: BlendMode,
+      pipelineObjects: ReturnType<typeof createBlendPostObjects>,
+      encodeSrgb: boolean,
+    ) => {
+      const uniform = device.createBuffer({ size: 16, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+      transientBuffers.add(uniform);
+      device.queue.writeBuffer(uniform, 0, new Float32Array([compositeAlpha, blendModeIndex(blendMode), encodeSrgb ? 1 : 0, 0]));
+      const bindGroup = device.createBindGroup({
+        layout: pipelineObjects.layout,
+        entries: [
+          { binding: 0, resource: { buffer: uniform } },
+          { binding: 1, resource: source.createView() },
+          { binding: 2, resource: backdrop.createView() },
+          { binding: 3, resource: objects.sampler },
+        ],
+      });
+      nextPass.setPipeline(pipelineObjects.pipeline);
+      nextPass.setVertexBuffer(0, objects.vertexBuffer);
+      nextPass.setBindGroup(0, bindGroup);
+      nextPass.draw(4);
+    };
     const postClipMask = (
       nextPass: ReturnType<WebGPUCommandEncoderLike["beginRenderPass"]>,
       content: WebGPUTextureLike,
@@ -412,6 +449,7 @@ export function createWebGPUBackend(
       return target === "content" ? null : target;
     };
     const objectsForTransform = (nextTransform: Extract<PaintCommand, { op: "setTransform" }>) => {
+      if (layerScopes.length > 0 || activeEffectScope) return activeObjects;
       const mode = nextTransform.blendMode ?? "normal";
       const table = activeObjects === singleSampleObjects
         ? singleSampleBlendObjects
@@ -990,6 +1028,28 @@ export function createWebGPUBackend(
             compositePass.end();
           }
           drawCalls += 1;
+        } else if (scope.blendMode !== "normal") {
+          const decodePass = encoder.beginRenderPass({
+            colorAttachments: [{ view: root.a.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
+          });
+          post(decodePass, scope.surface.content, [0, 0, 0, -1], effectPostObjects);
+          decodePass.end();
+          drawCalls += 1;
+          if (scope.parentTarget) {
+            const blendPass = beginTargetPass(root.b);
+            postBlend(blendPass, root.a, scope.parentTarget, scope.compositeAlpha, scope.blendMode, blendPostEffectObjects, false);
+            blendPass.end();
+            const copyPass = beginTargetPass(scope.parentTarget);
+            post(copyPass, root.b, [0, 0, 0, 0], effectPostObjects);
+            copyPass.end();
+          } else {
+            stageIndex = stageIndex === 0 ? 1 : 0;
+            const backdrop = stages[stageIndex === 0 ? 1 : 0];
+            const compositePass = beginStagePass(stages[stageIndex]);
+            postBlend(compositePass, root.a, backdrop, scope.compositeAlpha, scope.blendMode, blendPostMsaaObjects, true);
+            compositePass.end();
+          }
+          drawCalls += 1;
         } else {
           const decodePass = encoder.beginRenderPass({
             colorAttachments: [{ view: root.a.createView(), clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }],
@@ -999,12 +1059,12 @@ export function createWebGPUBackend(
           drawCalls += 1;
           if (scope.parentTarget) {
             const compositePass = beginTargetPass(scope.parentTarget);
-            post(compositePass, root.a, [0, 0, 0, 1], effectPostPremultipliedBlendObjects.get(scope.blendMode) ?? effectPostPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            post(compositePass, root.a, [0, 0, 0, 1], effectPostPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
             compositePass.end();
           } else {
             stageIndex = stageIndex === 0 ? 1 : 0;
             const compositePass = beginStagePass(stages[stageIndex], stages[stageIndex === 0 ? 1 : 0]);
-            post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedBlendObjects.get(scope.blendMode) ?? postMsaaPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
+            post(compositePass, root.a, [0, 0, 0, 1], postMsaaPremultipliedObjects, undefined, { color: [0, 0, 0, 0], offsetX: 0, offsetY: 0, compositeAlpha: scope.compositeAlpha });
             compositePass.end();
           }
           drawCalls += 1;

@@ -1,10 +1,12 @@
 import { frameToTime } from "../foundation/determinism";
 import {
+  identityMatrix4,
   matrix4ToArray,
   multiplyMatrix4,
   projectPoint3D,
   type Point3D,
 } from "../geometry/matrix4";
+import { tessellateNonScalingStroke } from "../geometry/path";
 import type { PaintCommand } from "../paint/paint-command";
 import { normalizeVisualRuntimeProject, validateVisualRuntimeProject } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
@@ -78,7 +80,7 @@ function resolveVideoMedia(
 export function evaluateVisualRuntimeProject(
   project: VisualRuntimeProject,
   frame: number,
-  options: { time?: number } = {},
+  options: { time?: number; outputScale?: number } = {},
 ): VisualRuntimeFrame {
   // Native VPS export inputProps cross a JSON boundary. Rehydrate Matrix4 values before
   // validation and arithmetic; otherwise serialized typed arrays are plain
@@ -100,6 +102,10 @@ export function evaluateVisualRuntimeProject(
   const time = options.time ?? frameToTime(frame, project.composition.fps);
   if (!Number.isFinite(time) || time < 0) {
     throw new Error("Runtime V2 time must be finite and non-negative");
+  }
+  const outputScale = options.outputScale ?? 1;
+  if (!Number.isFinite(outputScale) || outputScale <= 0) {
+    throw new Error("Runtime V2 outputScale must be finite and positive");
   }
   const commands: PaintCommand[] = [
     {
@@ -201,7 +207,18 @@ export function evaluateVisualRuntimeProject(
     if (effectProgram && blendMode !== "normal") {
       throw new Error(`Runtime V2 blend modes on an effected layer are not certified yet: ${node.id}`);
     }
-    if (effectProgram) {
+    const blendIsolation = blendMode !== "normal";
+    if (blendIsolation) {
+      commands.push({
+        op: "beginLayer",
+        key: node.id,
+        layerId: node.id,
+        isolation: true,
+        offscreen: true,
+        compositeAlpha: node.opacity,
+        blendMode,
+      });
+    } else if (effectProgram) {
       commands.push({
         op: "beginLayer",
         key: node.id,
@@ -211,8 +228,39 @@ export function evaluateVisualRuntimeProject(
         effectProgram,
       });
     }
-    if (content.kind === "path" && content.markers?.length) {
-      if (effectProgram) {
+    const nonScalingStrokeMesh = content.kind === "path" &&
+      content.vectorEffect === "non-scaling-stroke" &&
+      content.stroke !== undefined &&
+      content.strokeWidth !== undefined
+      ? tessellateNonScalingStroke(
+          content.contours,
+          content.strokeWidth / outputScale,
+          node.worldMatrix,
+          {
+            join: content.strokeJoin,
+            cap: content.strokeCap,
+            miterLimit: content.strokeMiterLimit,
+            dash: content.strokeDash,
+          },
+        )
+      : undefined;
+    if (
+      content.kind === "path" &&
+      content.vectorEffect === "non-scaling-stroke" &&
+      content.stroke !== undefined &&
+      content.strokeWidth !== undefined &&
+      nonScalingStrokeMesh === undefined
+    ) {
+      diagnostics.push({
+        severity: "warning",
+        code: "runtime_v2_non_scaling_stroke_requires_2d_affine",
+        message: `Runtime V2 non-scaling-stroke fell back to transformed stroke for non-2D-affine layer ${node.id}`,
+        layerId: node.id,
+        key: node.id,
+      });
+    }
+    if (content.kind === "path" && (content.markers?.length || content.vectorEffect === "non-scaling-stroke")) {
+      if (content.markers?.length && effectProgram) {
         throw new Error(`Runtime V2 marker paths with effects are not certified yet: ${node.id}`);
       }
       const paintOrder = content.paintOrder ?? ["fill", "stroke", "markers"];
@@ -222,11 +270,12 @@ export function evaluateVisualRuntimeProject(
         marker?: NonNullable<typeof content.markers>[number],
       ) => {
         const source = marker ?? content;
+        const useNonScalingStroke = !marker && pass === "stroke" && nonScalingStrokeMesh !== undefined;
         commands.push({
           op: "setTransform",
           key,
-          matrix4: matrix4ToArray(node.worldMatrix),
-          alpha: node.opacity,
+          matrix4: matrix4ToArray(useNonScalingStroke ? identityMatrix4() : node.worldMatrix),
+          alpha: blendIsolation ? 1 : node.opacity,
           visible: true,
           order: node.order,
           blendMode,
@@ -244,14 +293,29 @@ export function evaluateVisualRuntimeProject(
             ? { fill: source.fill, ...(source.fillPaint ? { fillPaint: source.fillPaint } : {}), ...(source.fillOpacity !== undefined ? { fillOpacity: source.fillOpacity } : {}), ...(source.mesh ? { mesh: source.mesh } : {}) }
             : {}),
           ...(pass === "stroke" && source.stroke !== undefined
-            ? { stroke: source.stroke, ...(source.strokePaint ? { strokePaint: source.strokePaint } : {}), ...(source.strokeWidth !== undefined ? { strokeWidth: source.strokeWidth } : {}), ...(source.strokeOpacity !== undefined ? { strokeOpacity: source.strokeOpacity } : {}), ...(source.strokeMesh ? { strokeMesh: source.strokeMesh } : {}) }
+            ? {
+                stroke: source.stroke,
+                ...(source.strokePaint ? { strokePaint: source.strokePaint } : {}),
+                ...(source.strokeWidth !== undefined ? { strokeWidth: source.strokeWidth } : {}),
+                ...(!marker && content.strokeOpacity !== undefined ? { strokeOpacity: content.strokeOpacity } : {}),
+                ...(!marker && content.strokeMiterLimit !== undefined ? { strokeMiterLimit: content.strokeMiterLimit } : {}),
+                ...(!marker && content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
+                ...(!marker && content.strokeCap ? { strokeCap: content.strokeCap } : {}),
+                ...(!marker && content.strokeDash ? { strokeDash: content.strokeDash } : {}),
+                ...(useNonScalingStroke
+                  ? { strokeMesh: nonScalingStrokeMesh }
+                  : source.strokeMesh
+                    ? { strokeMesh: source.strokeMesh }
+                    : {}),
+              }
             : {}),
+          ...(!marker && content.vectorEffect ? { vectorEffect: content.vectorEffect } : {}),
         });
       };
       paintOrder.forEach((pass) => {
         if (pass === "fill" && content.fill !== undefined) pushPathPass(`${node.id}:fill`, "fill");
         if (pass === "stroke" && content.stroke !== undefined) pushPathPass(`${node.id}:stroke`, "stroke");
-        if (pass === "markers") {
+        if (pass === "markers" && content.markers?.length) {
           content.markers!.forEach((marker, index) => {
             const markerOrder = marker.paintOrder.filter((item) => item !== "markers");
             markerOrder.forEach((markerPass) => {
@@ -261,13 +325,14 @@ export function evaluateVisualRuntimeProject(
           });
         }
       });
+      if (effectProgram || blendIsolation) commands.push({ op: "endLayer", key: node.id });
       return;
     }
     commands.push({
       op: "setTransform",
       key: node.id,
       matrix4: matrix4ToArray(node.worldMatrix),
-      alpha: node.opacity,
+      alpha: blendIsolation ? 1 : node.opacity,
       visible: true,
       order: node.order,
       blendMode,
@@ -303,6 +368,7 @@ export function evaluateVisualRuntimeProject(
         ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
         ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
         ...(content.paintOrder ? { paintOrder: content.paintOrder } : {}),
+        ...(content.vectorEffect ? { vectorEffect: content.vectorEffect } : {}),
       });
     } else if (content.kind === "text") {
       commands.push({
@@ -384,7 +450,7 @@ export function evaluateVisualRuntimeProject(
           : {}),
       });
     }
-    if (effectProgram) {
+    if (effectProgram || blendIsolation) {
       commands.push({ op: "endLayer", key: node.id });
     }
   };

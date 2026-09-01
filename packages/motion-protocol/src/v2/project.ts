@@ -8,6 +8,7 @@ import { V2MarkerListSchema } from "./markers";
 import { V2ClipPathListSchema } from "./clip";
 import { V2MaskListSchema } from "./mask";
 import { V2FilterListSchema } from "./filter";
+import { V2PaintServerListSchema, type V2Paint, type V2PatternContent } from "./paint";
 import type { MotionProtocolV2 } from "./types";
 
 const COMMON_NUMBER_PATHS = new Set([
@@ -127,6 +128,8 @@ export const MotionProtocolV2Schema = z
     clipPaths: V2ClipPathListSchema.optional(),
     masks: V2MaskListSchema.optional(),
     filters: V2FilterListSchema.optional(),
+    /** SVG paint-server definitions referenced by fill/stroke paint values. */
+    paintServers: V2PaintServerListSchema.optional(),
     layers: V2LayerListSchema,
     audio: V2AudioDomainSchema,
   })
@@ -136,10 +139,40 @@ export const MotionProtocolV2Schema = z
     const clipPathIds = new Set((project.clipPaths ?? []).map((clipPath) => clipPath.id));
     const maskIds = new Set((project.masks ?? []).map((mask) => mask.id));
     const filterIds = new Set((project.filters ?? []).map((filter) => filter.id));
+    const paintServerIds = new Set((project.paintServers ?? []).map((paintServer) => paintServer.id));
     const ids = new Set<string>();
     const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
     const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
+
+    const checkPaintReferences = (paint: V2Paint | undefined, path: (string | number)[], seen = new Set<string>()): void => {
+      if (!paint || typeof paint === "string") return;
+      if (paint.type === "reference") {
+        if (!paintServerIds.has(paint.id)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown paint server reference: ${paint.id}`, path: [...path, "id"] });
+        } else if (seen.has(paint.id)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Paint server reference cycle: ${paint.id}`, path: [...path, "id"] });
+        }
+        return;
+      }
+      if ((paint.type === "linear-gradient" || paint.type === "radial-gradient" || paint.type === "conic-gradient" || paint.type === "pattern") && paint.href) {
+        if (!paintServerIds.has(paint.href)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown paint server href: ${paint.href}`, path: [...path, "href"] });
+        }
+      }
+      if (paint.type === "pattern") {
+        paint.content?.forEach((node: V2PatternContent, index: number) => checkPatternNode(node, [...path, "content", index], seen));
+      }
+    };
+    const checkPatternNode = (node: V2PatternContent, path: (string | number)[], seen: Set<string>): void => {
+      if (node.type === "group") {
+        node.children.forEach((child: V2PatternContent, index: number) => checkPatternNode(child, [...path, "children", index], seen));
+        return;
+      }
+      checkPaintReferences(node.fill, [...path, "fill"], seen);
+      checkPaintReferences(node.stroke, [...path, "stroke"], seen);
+    };
+    (project.paintServers ?? []).forEach((definition, index) => checkPaintReferences(definition.paint, ["paintServers", index, "paint"]));
     for (const [index, asset] of project.assets.entries()) {
       if (assetIds.has(asset.id)) {
         ctx.addIssue({
@@ -196,6 +229,8 @@ export const MotionProtocolV2Schema = z
       }
       ids.add(layer.id);
       if (layer.type === "shape" || layer.type === "path") {
+        checkPaintReferences(layer.style.fill, ["layers", index, "style", "fill"]);
+        checkPaintReferences(layer.style.stroke, ["layers", index, "style", "stroke"]);
         for (const field of ["markerStart", "markerMid", "markerEnd"] as const) {
           const markerId = layer.style[field];
           if (markerId !== undefined && !markerIds.has(markerId)) {

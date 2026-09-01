@@ -12,6 +12,7 @@ import type {
   PathStrokeDash,
   PathStrokeJoin,
   PathStrokeMesh,
+  PathVectorEffect,
   PathMarker,
   RenderMediaFit,
   RuntimeEffect,
@@ -87,6 +88,7 @@ export type VisualRuntimeShape = {
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
+  vectorEffect?: PathVectorEffect;
   paintOrder?: PaintOrder;
   effects?: RuntimeEffect[];
 };
@@ -110,6 +112,7 @@ export type VisualRuntimePath = {
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
+  vectorEffect?: PathVectorEffect;
   paintOrder?: PaintOrder;
   markers?: PathMarker[];
   effects?: RuntimeEffect[];

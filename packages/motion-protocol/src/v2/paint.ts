@@ -2,7 +2,11 @@ import { z } from "zod";
 import {
   V2ColorSchema,
   V2FiniteNumberSchema,
+  V2IdSchema,
+  V2NonNegativeSvgLengthSchema,
+  V2PositiveSvgLengthSchema,
   V2PositiveNumberSchema,
+  V2SvgLengthSchema,
 } from "./common";
 import { V2PathContourSchema } from "./path-geometry";
 
@@ -42,20 +46,23 @@ const V2GradientStopsSchema = z
   });
 
 const V2GradientCommon = {
-  stops: V2GradientStopsSchema,
+  /** Stops may be inherited from an SVG href template. */
+  stops: V2GradientStopsSchema.optional(),
   spreadMethod: z.enum(["pad", "reflect", "repeat"]).optional(),
   gradientUnits: z.enum(["objectBoundingBox", "userSpaceOnUse"]).optional(),
   gradientTransform: V2PaintTransformSchema.optional(),
+  /** SVG2 gradient template reference. */
+  href: V2IdSchema.optional(),
 } as const;
 
 export const V2GradientFillSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("linear-gradient"),
-      x1: V2FiniteNumberSchema.optional(),
-      y1: V2FiniteNumberSchema.optional(),
-      x2: V2FiniteNumberSchema.optional(),
-      y2: V2FiniteNumberSchema.optional(),
+      x1: V2SvgLengthSchema.optional(),
+      y1: V2SvgLengthSchema.optional(),
+      x2: V2SvgLengthSchema.optional(),
+      y2: V2SvgLengthSchema.optional(),
       /** Compatibility authoring shorthand; compiler lowers it to x/y. */
       angle: V2FiniteNumberSchema.optional(),
       ...V2GradientCommon,
@@ -64,12 +71,12 @@ export const V2GradientFillSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("radial-gradient"),
-      cx: V2FiniteNumberSchema.optional(),
-      cy: V2FiniteNumberSchema.optional(),
-      radius: V2PositiveNumberSchema.optional(),
-      fx: V2FiniteNumberSchema.optional(),
-      fy: V2FiniteNumberSchema.optional(),
-      fr: V2FiniteNumberSchema.nonnegative().optional(),
+      cx: V2SvgLengthSchema.optional(),
+      cy: V2SvgLengthSchema.optional(),
+      radius: V2PositiveSvgLengthSchema.optional(),
+      fx: V2SvgLengthSchema.optional(),
+      fy: V2SvgLengthSchema.optional(),
+      fr: V2NonNegativeSvgLengthSchema.optional(),
       ...V2GradientCommon,
     })
     .strict(),
@@ -89,7 +96,7 @@ const V2PatternStyle: Record<string, z.ZodTypeAny> = {
   fill: z.lazy(() => V2PaintSchema).optional(),
   fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
   stroke: z.lazy(() => V2PaintSchema).optional(),
-  strokeWidth: V2PositiveNumberSchema.optional(),
+  strokeWidth: V2PositiveSvgLengthSchema.optional(),
   strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
 } as const;
 
@@ -198,19 +205,33 @@ export const V2PatternViewBoxSchema = z
 export const V2PatternFillSchema = z
   .object({
     type: z.literal("pattern"),
-    x: V2FiniteNumberSchema.optional(),
-    y: V2FiniteNumberSchema.optional(),
-    width: V2PositiveNumberSchema,
-    height: V2PositiveNumberSchema,
+    x: V2SvgLengthSchema.optional(),
+    y: V2SvgLengthSchema.optional(),
+    width: V2PositiveSvgLengthSchema.optional(),
+    height: V2PositiveSvgLengthSchema.optional(),
     patternUnits: z.enum(["objectBoundingBox", "userSpaceOnUse"]).optional(),
     patternContentUnits: z.enum(["objectBoundingBox", "userSpaceOnUse"]).optional(),
     patternTransform: V2PaintTransformSchema.optional(),
     /** Compatibility alias retained while existing fixtures migrate. */
     transform: V2PaintTransformSchema.optional(),
+    /** SVG2 pattern template reference. */
+    href: V2IdSchema.optional(),
     viewBox: V2PatternViewBoxSchema.optional(),
-    content: z.array(V2PatternNodeSchema).min(1),
+    content: z.array(V2PatternNodeSchema).min(1).optional(),
   })
   .strict();
+
+export const V2PaintReferenceSchema = z
+  .object({
+    type: z.literal("reference"),
+    id: V2IdSchema,
+    /** SVG paint fallback; kept deliberately non-recursive. */
+    fallback: z.union([V2ColorSchema, z.object({ type: z.literal("none") }).strict()]).optional(),
+  })
+  .strict();
+
+/** SVG paint keywords. `none` is also accepted in its object form for clarity. */
+export const V2PaintKeywordSchema = z.enum(["none", "currentColor", "context-fill", "context-stroke"]);
 
 export const V2PaintServerSchema = z.union([
   z.object({ type: z.literal("none") }).strict(),
@@ -219,10 +240,36 @@ export const V2PaintServerSchema = z.union([
     .strict(),
   V2GradientFillSchema,
   V2PatternFillSchema,
+  V2PaintReferenceSchema,
 ]);
 
+/** Named SVG paint-server definitions used by paint references and href. */
+export const V2PaintServerDefinitionSchema = z
+  .object({
+    id: V2IdSchema,
+    paint: z.union([
+      z.object({ type: z.literal("none") }).strict(),
+      z.object({ type: z.literal("solid"), color: V2ColorSchema, opacity: V2FiniteNumberSchema.min(0).max(1).optional() }).strict(),
+      V2GradientFillSchema,
+      V2PatternFillSchema,
+    ]),
+  })
+  .strict();
+export const V2PaintServerListSchema = z
+  .array(V2PaintServerDefinitionSchema)
+  .max(256)
+  .superRefine((definitions, ctx) => {
+    const ids = new Set<string>();
+    definitions.forEach((definition, index) => {
+      if (ids.has(definition.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate paint server id: ${definition.id}`, path: [index, "id"] });
+      }
+      ids.add(definition.id);
+    });
+  });
+
 /** Authoring paint. A color string is the shorthand for a solid paint. */
-export const V2PaintSchema = z.union([V2ColorSchema, V2PaintServerSchema]);
+export const V2PaintSchema = z.union([V2ColorSchema, V2PaintKeywordSchema, V2PaintServerSchema]);
 
 export type V2PaintTransform = z.infer<typeof V2PaintTransformSchema>;
 export type V2GradientStop = z.infer<typeof V2GradientStopSchema>;
@@ -230,5 +277,8 @@ export type V2GradientFill = z.infer<typeof V2GradientFillSchema>;
 export type V2PatternViewBox = z.infer<typeof V2PatternViewBoxSchema>;
 export type V2PatternContent = z.infer<typeof V2PatternNodeSchema>;
 export type V2PatternFill = z.infer<typeof V2PatternFillSchema>;
+export type V2PaintReference = z.infer<typeof V2PaintReferenceSchema>;
+export type V2PaintKeyword = z.infer<typeof V2PaintKeywordSchema>;
 export type V2PaintServer = z.infer<typeof V2PaintServerSchema>;
+export type V2PaintServerDefinition = z.infer<typeof V2PaintServerDefinitionSchema>;
 export type V2Paint = z.infer<typeof V2PaintSchema>;

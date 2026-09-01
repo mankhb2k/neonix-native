@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { V2ColorSchema, V2FiniteNumberSchema, V2IdSchema } from "./common";
+import { V2BlendModeSchema } from "./blend";
 
 /** SVG filter length. Bare numbers are kept as user-space values. */
 export const V2FilterLengthSchema = z.union([
@@ -81,7 +82,7 @@ export const V2FilterPrimitiveSchema = z.union([
     ...V2FilterPrimitiveBase,
     type: z.literal("feBlend"),
     in2: V2FilterInputSchema,
-    mode: z.enum(["normal", "multiply", "screen", "darken", "lighten", "overlay", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"]).optional(),
+    mode: V2BlendModeSchema.optional(),
   }).strict(),
   z.object({
     ...V2FilterPrimitiveBase,

@@ -407,3 +407,89 @@ fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
   let coverage = max(sourceAlpha - blurredAlpha, 0.0) * uniforms.tint.a;
   return vec4<f32>(srgbToLinear(uniforms.tint.rgb) * coverage, coverage);
 }`;
+
+/** Full SVG/CSS blend-mode compositor. Inputs and output are premultiplied. */
+export const BLEND_POST_SHADER = `
+struct BlendUniforms {
+  compositeAlpha: f32,
+  blendMode: f32,
+  encodeSrgb: f32,
+  _padding: f32,
+};
+@group(0) @binding(0) var<uniform> uniforms: BlendUniforms;
+@group(0) @binding(1) var sourceTexture: texture_2d<f32>;
+@group(0) @binding(2) var backdropTexture: texture_2d<f32>;
+@group(0) @binding(3) var imageSampler: sampler;
+struct VertexInput { @location(0) position: vec2<f32>, @location(1) uv: vec2<f32> };
+struct VertexOutput { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
+@vertex fn vertexMain(input: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = vec4<f32>(input.position.x * 2.0 - 1.0, 1.0 - input.position.y * 2.0, 0.0, 1.0);
+  output.uv = input.uv;
+  return output;
+}
+fn srgbToLinear(color: vec3<f32>) -> vec3<f32> {
+  let low = color / vec3<f32>(12.92);
+  let high = pow((color + vec3<f32>(0.055)) / vec3<f32>(1.055), vec3<f32>(2.4));
+  return select(low, high, color >= vec3<f32>(0.04045));
+}
+fn linearToSrgb(color: vec3<f32>) -> vec3<f32> {
+  let positive = max(color, vec3<f32>(0.0));
+  let low = positive * vec3<f32>(12.92);
+  let high = vec3<f32>(1.055) * pow(positive, vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+  return select(low, high, positive >= vec3<f32>(0.0031308));
+}
+fn luminance(color: vec3<f32>) -> f32 { return dot(color, vec3<f32>(0.2126, 0.7152, 0.0722)); }
+fn saturation(color: vec3<f32>) -> f32 { return max(color.r, max(color.g, color.b)) - min(color.r, min(color.g, color.b)); }
+fn clipColor(color: vec3<f32>) -> vec3<f32> {
+  var result = color;
+  let l = luminance(result);
+  let n = min(result.r, min(result.g, result.b));
+  if (n < 0.0) { result = vec3<f32>(l) + ((result - vec3<f32>(l)) * l) / max(l - n, 0.000001); }
+  let x = max(result.r, max(result.g, result.b));
+  if (x > 1.0) { result = vec3<f32>(l) + ((result - vec3<f32>(l)) * (1.0 - l)) / max(x - l, 0.000001); }
+  return clamp(result, vec3<f32>(0.0), vec3<f32>(1.0));
+}
+fn setLum(color: vec3<f32>, l: f32) -> vec3<f32> { return clipColor(color + vec3<f32>(l - luminance(color))); }
+fn setSat(color: vec3<f32>, s: f32) -> vec3<f32> {
+  let low = min(color.r, min(color.g, color.b));
+  let high = max(color.r, max(color.g, color.b));
+  if (high <= low + 0.000001) { return vec3<f32>(0.0); }
+  return (color - vec3<f32>(low)) * s / (high - low);
+}
+fn blendColor(backdrop: vec3<f32>, source: vec3<f32>, mode: f32) -> vec3<f32> {
+  if (mode == 0.0) { return source; }
+  if (mode == 1.0) { return min(backdrop, source); }
+  if (mode == 2.0) { return backdrop * source; }
+  if (mode == 3.0) { return select(vec3<f32>(0.0), 1.0 - min(vec3<f32>(1.0), (1.0 - backdrop) / max(source, vec3<f32>(0.000001))), source >= vec3<f32>(0.000001)); }
+  if (mode == 4.0) { return max(backdrop, source); }
+  if (mode == 5.0) { return backdrop + source - backdrop * source; }
+  if (mode == 6.0) { return select(min(vec3<f32>(1.0), backdrop / max(vec3<f32>(1.0) - source, vec3<f32>(0.000001))), vec3<f32>(1.0), source >= vec3<f32>(0.999999)); }
+  if (mode == 7.0) { return mix(2.0 * backdrop * source, 1.0 - 2.0 * (1.0 - backdrop) * (1.0 - source), select(vec3<f32>(0.0), vec3<f32>(1.0), backdrop >= vec3<f32>(0.5))); }
+  if (mode == 8.0) {
+    let low = backdrop - (1.0 - 2.0 * source) * backdrop * (1.0 - backdrop);
+    let high = backdrop + (2.0 * source - 1.0) * (sqrt(max(backdrop, vec3<f32>(0.0))) - backdrop);
+    let cubic = backdrop + (2.0 * source - 1.0) * (((16.0 * backdrop - 12.0) * backdrop + 4.0) * backdrop);
+    return mix(low, mix(cubic, high, select(vec3<f32>(0.0), vec3<f32>(1.0), backdrop >= vec3<f32>(0.25))), select(vec3<f32>(0.0), vec3<f32>(1.0), source >= vec3<f32>(0.5)));
+  }
+  if (mode == 9.0) { return mix(2.0 * backdrop * source, 1.0 - 2.0 * (1.0 - backdrop) * (1.0 - source), select(vec3<f32>(0.0), vec3<f32>(1.0), source >= vec3<f32>(0.5))); }
+  if (mode == 10.0) { return abs(backdrop - source); }
+  if (mode == 11.0) { return backdrop + source - 2.0 * backdrop * source; }
+  if (mode == 12.0) { return setLum(setSat(source, saturation(backdrop)), luminance(backdrop)); }
+  if (mode == 13.0) { return setLum(setSat(backdrop, saturation(source)), luminance(backdrop)); }
+  if (mode == 14.0) { return setLum(source, luminance(backdrop)); }
+  return setLum(backdrop, luminance(source));
+}
+@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+  let sourceSample = textureSample(sourceTexture, imageSampler, input.uv);
+  let backdropSample = textureSample(backdropTexture, imageSampler, input.uv);
+  let sourceAlpha = clamp(sourceSample.a * uniforms.compositeAlpha, 0.0, 1.0);
+  let backdropAlpha = clamp(backdropSample.a, 0.0, 1.0);
+  let sourceColor = select(vec3<f32>(0.0), clamp(sourceSample.rgb / sourceSample.a, vec3<f32>(0.0), vec3<f32>(1.0)), sourceSample.a > 0.000001);
+  let backdropColor = select(vec3<f32>(0.0), clamp(srgbToLinear(backdropSample.rgb / backdropSample.a), vec3<f32>(0.0), vec3<f32>(1.0)), backdropSample.a > 0.000001);
+  let blended = blendColor(backdropColor, sourceColor, uniforms.blendMode);
+  let outputAlpha = sourceAlpha + backdropAlpha * (1.0 - sourceAlpha);
+  var outputPremultiplied = sourceAlpha * blended + backdropAlpha * (1.0 - sourceAlpha) * backdropColor;
+  if (uniforms.encodeSrgb > 0.5 && outputAlpha > 0.000001) { outputPremultiplied = linearToSrgb(outputPremultiplied / outputAlpha) * outputAlpha; }
+  return vec4<f32>(max(outputPremultiplied, vec3<f32>(0.0)), outputAlpha);
+}`;

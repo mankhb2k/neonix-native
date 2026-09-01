@@ -8,6 +8,7 @@ export { flattenPathContour, flattenPathContourAny } from "./flatten";
 export { measureContour, sampleContourAtDistance } from "./length";
 export { dashContour, normalizePathDash } from "./dash";
 export { interpolatePathContours } from "./morph";
+export { isAffine2DMatrix, tessellateNonScalingStroke } from "./non-scaling-stroke";
 export type { CanonicalContour, PathFillRule, PathStrokeOptions } from "./types";
 
 export function tessellateClosedPath(contours: PathContour[], fillRule: PathFillRule = "nonzero") {

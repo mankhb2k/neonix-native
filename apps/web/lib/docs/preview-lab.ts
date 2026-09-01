@@ -5,6 +5,7 @@ import {
   type V2AudioFixture,
   type V2ClipPath,
   type V2Mask,
+  type V2BlendMode,
 } from "@motionvideo/motion-protocol/v2";
 import {
   compileHtmlCss,
@@ -314,7 +315,7 @@ const IMAGE_MISSING_ASSET_PROJECT = imageProject(
 );
 
 function imageBlendProject(
-  blendMode: "normal" | "multiply" | "screen",
+  blendMode: V2BlendMode,
 ): MotionProtocolV2 {
   return project(
     `preview-image-blend-${blendMode}-v2`,
@@ -354,10 +355,6 @@ function imageBlendProject(
     [PREVIEW_IMAGE_ASSET],
   );
 }
-
-const IMAGE_BLEND_NORMAL_PROJECT = imageBlendProject("normal");
-const IMAGE_BLEND_MULTIPLY_PROJECT = imageBlendProject("multiply");
-const IMAGE_BLEND_SCREEN_PROJECT = imageBlendProject("screen");
 
 function imageStackBlendProject(
   blendMode: "normal" | "multiply" | "screen",
@@ -2707,6 +2704,33 @@ function htmlCompilerCase(id: string, label: string, hint: string, html: string,
   return { id, label, group, hint, project: compileHtmlCss(htmlCssSource).protocol ?? RECTANGLE_PROJECT, htmlCssSource };
 }
 
+const PREVIEW_BLEND_MODES = [
+  "normal",
+  "darken",
+  "multiply",
+  "color-burn",
+  "lighten",
+  "screen",
+  "color-dodge",
+  "overlay",
+  "soft-light",
+  "hard-light",
+  "difference",
+  "exclusion",
+  "hue",
+  "saturation",
+  "color",
+  "luminosity",
+] as const satisfies readonly V2BlendMode[];
+
+const PREVIEW_BLEND_MODE_CASES: PreviewLabCase[] = PREVIEW_BLEND_MODES.map((blendMode) => ({
+  id: `composite.blend.${blendMode}`,
+  label: `Blend / ${blendMode}`,
+  group: "Task 12 / Blend modes",
+  hint: `The same source image is composited over the same gradient backdrop with SVG/CSS ${blendMode} semantics.`,
+  project: imageBlendProject(blendMode),
+}));
+
 export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   {
     id: "primitive.shape.rectangle",
@@ -3349,27 +3373,7 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     hint: "An unresolved asset remains a valid V2 command and reports a deterministic missing-asset diagnostic.",
     project: IMAGE_MISSING_ASSET_PROJECT,
   },
-  {
-    id: "composite.blend.normal",
-    label: "Blend / normal",
-    group: "Task 12 / Blend modes",
-    hint: "The local example image uses ordinary source-over composition over a colored backdrop.",
-    project: IMAGE_BLEND_NORMAL_PROJECT,
-  },
-  {
-    id: "composite.blend.multiply",
-    label: "Blend / multiply",
-    group: "Task 12 / Blend modes",
-    hint: "The local example image darkens against the same backdrop through portable GPU multiply blending.",
-    project: IMAGE_BLEND_MULTIPLY_PROJECT,
-  },
-  {
-    id: "composite.blend.screen",
-    label: "Blend / screen",
-    group: "Task 12 / Blend modes",
-    hint: "The local example image lightens against the same backdrop through portable GPU screen blending.",
-    project: IMAGE_BLEND_SCREEN_PROJECT,
-  },
+  ...PREVIEW_BLEND_MODE_CASES,
   {
     id: "composite.blend.stack.normal",
     label: "Blend stack / normal",
