@@ -1,6 +1,7 @@
 import {
   V2_AUDIO_FIXTURES,
   type MotionProtocolV2,
+  type V2Marker,
   type V2AudioFixture,
 } from "@motionvideo/motion-protocol/v2";
 import {
@@ -26,6 +27,9 @@ type ShapeOptions = {
   strokeJoin?: "miter" | "bevel" | "round";
   strokeCap?: "butt" | "square" | "round";
   strokeDash?: { array: number[]; offset?: number };
+  markerStart?: string;
+  markerMid?: string;
+  markerEnd?: string;
   frame?: RectangleLayer["frame"];
   transform?: RectangleLayer["transform"];
   opacity?: number;
@@ -117,6 +121,9 @@ function shapeLayer(options: ShapeOptions, shape: RectangleLayer["payload"]["sha
       ...(options.strokeJoin ? { strokeJoin: options.strokeJoin } : {}),
       ...(options.strokeCap ? { strokeCap: options.strokeCap } : {}),
       ...(options.strokeDash ? { strokeDash: options.strokeDash } : {}),
+      ...(options.markerStart ? { markerStart: options.markerStart } : {}),
+      ...(options.markerMid ? { markerMid: options.markerMid } : {}),
+      ...(options.markerEnd ? { markerEnd: options.markerEnd } : {}),
     },
   };
 }
@@ -800,6 +807,46 @@ const PATH_STROKE_4PX_PROJECT: MotionProtocolV2 = {
   }),
 };
 
+const PATH_PAINT_ORDER_PROJECT = (paintOrder: ["fill" | "stroke" | "markers", "fill" | "stroke" | "markers"]): MotionProtocolV2 => ({
+  ...PATH_PENTAGON_PERSPECTIVE_PROJECT,
+  id: `preview-path-paint-order-${paintOrder.join("-")}-v2`,
+  layers: PATH_PENTAGON_PERSPECTIVE_PROJECT.layers.map((layer) => {
+    if (layer.type !== "path") return layer;
+    return {
+      ...layer,
+      id: `pentagon-paint-order-${paintOrder.join("-")}`,
+      style: {
+        ...layer.style,
+        fill: "#00aa88",
+        stroke: "#ff3366",
+        strokeWidth: 24,
+        paintOrder,
+      },
+    };
+  }),
+});
+
+const SHAPE_PAINT_ORDER_PROJECT = (paintOrder: ["fill" | "stroke" | "markers", "fill" | "stroke" | "markers"]): MotionProtocolV2 => project(
+  `preview-shape-paint-order-${paintOrder.join("-")}-v2`,
+  [rectangle({
+    id: `rectangle-paint-order-${paintOrder.join("-")}`,
+    order: 0,
+    frame: { width: 360, height: 240 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 780, y: 420, z: 0 } },
+    fill: "#00aa88",
+    stroke: "#ff3366",
+    strokeWidth: 24,
+  })].map((layer) => ({
+    ...layer,
+    style: { ...layer.style, paintOrder },
+  })),
+);
+
+const PAINT_ORDER_FILL_STROKE_PATH_PROJECT = PATH_PAINT_ORDER_PROJECT(["fill", "stroke"]);
+const PAINT_ORDER_STROKE_FILL_PATH_PROJECT = PATH_PAINT_ORDER_PROJECT(["stroke", "fill"]);
+const PAINT_ORDER_FILL_STROKE_SHAPE_PROJECT = SHAPE_PAINT_ORDER_PROJECT(["fill", "stroke"]);
+const PAINT_ORDER_STROKE_FILL_SHAPE_PROJECT = SHAPE_PAINT_ORDER_PROJECT(["stroke", "fill"]);
+
 const PATH_STROKE_OPACITY_PROJECT: MotionProtocolV2 = {
   ...PATH_STROKE_PROJECT,
   layers: PATH_STROKE_PROJECT.layers.map((layer) => {
@@ -878,6 +925,99 @@ const PATH_LINE_PROJECT = project("preview-path-line-v2", [
     style: { stroke: "#ff3366", strokeWidth: 4, strokeCap: "butt" },
   },
 ]);
+
+const ARROW_MARKER: V2Marker = {
+  id: "arrow",
+  markerUnits: "strokeWidth",
+  refX: 8,
+  refY: 5,
+  markerWidth: 1.5,
+  markerHeight: 1.5,
+  orient: "auto",
+  viewBox: { x: 0, y: 0, width: 10, height: 10 },
+  content: {
+    contours: [{
+      id: "arrow-head",
+      start: { x: 0, y: 0 },
+      segments: [
+        { kind: "line", to: { x: 10, y: 5 } },
+        { kind: "line", to: { x: 0, y: 10 } },
+        { kind: "line", to: { x: 3, y: 5 } },
+        { kind: "line", to: { x: 0, y: 0 } },
+      ],
+      closed: true,
+    }],
+    fill: "#ff3366",
+    paintOrder: ["fill"],
+  },
+};
+
+const MARKER_LINE_PROJECT = projectWithMarkers("preview-path-marker-line-v2", [{
+  id: "marker-line",
+  type: "path",
+  parentLayerId: null,
+  order: 0,
+  frame: { width: 640, height: 260 },
+  transform: { ...IDENTITY_TRANSFORM, translate: { x: 640, y: 410, z: 0 } },
+  opacity: 1,
+  timing: { start: 0, duration: 3 },
+  payload: {
+    contours: [{ id: "line", start: { x: 40, y: 190 }, segments: [{ kind: "line", to: { x: 600, y: 70 } }], closed: false }],
+    fillRule: "nonzero",
+  },
+  style: { stroke: "#00aa88", strokeWidth: 14, strokeCap: "round", markerEnd: "arrow" },
+}], [ARROW_MARKER]);
+
+const MARKER_MID_PROJECT = projectWithMarkers("preview-path-marker-mid-v2", [{
+  id: "marker-mid",
+  type: "path",
+  parentLayerId: null,
+  order: 0,
+  frame: { width: 700, height: 300 },
+  transform: { ...IDENTITY_TRANSFORM, translate: { x: 600, y: 380, z: 0 } },
+  opacity: 1,
+  timing: { start: 0, duration: 3 },
+  payload: {
+    contours: [{ id: "polyline", start: { x: 30, y: 210 }, segments: [
+      { kind: "line", to: { x: 190, y: 60 } },
+      { kind: "line", to: { x: 350, y: 210 } },
+      { kind: "line", to: { x: 510, y: 60 } },
+      { kind: "line", to: { x: 670, y: 210 } },
+    ], closed: false }],
+    fillRule: "nonzero",
+  },
+  style: { stroke: "#f97316", strokeWidth: 12, strokeJoin: "round", markerMid: "arrow" },
+}], [ARROW_MARKER]);
+
+const MARKER_ALL_PROJECT = projectWithMarkers("preview-path-marker-all-v2", [{
+  id: "marker-all",
+  type: "path",
+  parentLayerId: null,
+  order: 0,
+  frame: { width: 760, height: 320 },
+  transform: { ...IDENTITY_TRANSFORM, translate: { x: 560, y: 360, z: 0 } },
+  opacity: 1,
+  timing: { start: 0, duration: 3 },
+  payload: {
+    contours: [{ id: "cubic", start: { x: 30, y: 230 }, segments: [
+      { kind: "cubic", control1: { x: 170, y: 10 }, control2: { x: 310, y: 10 }, to: { x: 380, y: 150 } },
+      { kind: "cubic", control1: { x: 450, y: 290 }, control2: { x: 590, y: 290 }, to: { x: 730, y: 80 } },
+    ], closed: false }],
+    fillRule: "nonzero",
+  },
+  style: { stroke: "#38bdf8", strokeWidth: 10, strokeCap: "round", markerStart: "arrow", markerMid: "arrow", markerEnd: "arrow", paintOrder: ["stroke", "markers"] },
+}], [ARROW_MARKER]);
+
+const MARKER_SHAPE_PROJECT = projectWithMarkers("preview-shape-marker-end-v2", [rectangle({
+  id: "marker-rectangle",
+  order: 0,
+  frame: { width: 420, height: 180 },
+  transform: { ...IDENTITY_TRANSFORM, translate: { x: 750, y: 450, z: 0 } },
+  fill: "#00aa88",
+  stroke: "#ff3366",
+  strokeWidth: 12,
+  markerEnd: "arrow",
+})], [ARROW_MARKER]);
 
 const PATH_QUADRATIC_PROJECT = project("preview-path-quadratic-stroke-v2", [
   {
@@ -2659,6 +2799,8 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.stroke", label: "Paint / stroke", group: "Paint / Stroke", hint: "A shape carrying a stroke color.", project: RECTANGLE_STROKE_PROJECT },
   { id: "shape.stroke-width", label: "Paint / stroke width", group: "Paint / Stroke", hint: "A shape carrying a positive strokeWidth.", project: RECTANGLE_STROKE_WIDTH_PROJECT },
   { id: "shape.stroke-opacity", label: "Paint / stroke opacity", group: "Paint / Stroke", hint: "A shape carrying strokeOpacity independently from its fill.", project: RECTANGLE_PAINT_OPACITY_PROJECT },
+  { id: "shape.paint-order.fill-stroke", label: "Paint order / fill → stroke", group: "Paint / Order", hint: "SVG default paint order: fill is painted before stroke.", project: PAINT_ORDER_FILL_STROKE_SHAPE_PROJECT },
+  { id: "shape.paint-order.stroke-fill", label: "Paint order / stroke → fill", group: "Paint / Order", hint: "The stroke is painted first, then the fill covers its inner edge.", project: PAINT_ORDER_STROKE_FILL_SHAPE_PROJECT },
   { id: "shape.stroke-join", label: "Paint / stroke join", group: "Paint / Stroke", hint: "SVG-like strokeJoin on a primitive shape.", project: SHAPE_STROKE_JOIN_PROJECT },
   { id: "shape.stroke-cap", label: "Paint / stroke cap", group: "Paint / Stroke", hint: "SVG-like strokeCap on a primitive shape.", project: SHAPE_STROKE_CAP_PROJECT },
   { id: "shape.stroke-dash", label: "Paint / stroke dash", group: "Paint / Stroke", hint: "SVG-like strokeDash and offset on a primitive shape.", project: SHAPE_STROKE_DASH_PROJECT },
@@ -3503,6 +3645,13 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
   { id: "path.stroke", label: "Path / stroke", group: "Layers / Path", hint: "The same five-sided path with a 4px stroke.", project: PATH_STROKE_4PX_PROJECT },
   { id: "path.stroke-width", label: "Path / stroke width", group: "Layers / Path", hint: "A path carrying strokeWidth.", project: PATH_STROKE_PROJECT },
   { id: "path.stroke-opacity", label: "Path / stroke opacity", group: "Layers / Path", hint: "The five-sided path uses a contrasting blue stroke at 35% opacity.", project: PATH_STROKE_OPACITY_PROJECT },
+  { id: "path.paint-order.fill-stroke", label: "Paint order / fill → stroke", group: "Paint / Order", hint: "SVG default paint order on a path: fill is painted before stroke.", project: PAINT_ORDER_FILL_STROKE_PATH_PROJECT },
+  { id: "path.paint-order.stroke-fill", label: "Paint order / stroke → fill", group: "Paint / Order", hint: "A path paints its stroke first and fill second.", project: PAINT_ORDER_STROKE_FILL_PATH_PROJECT },
+  { id: "path.marker-start", label: "Marker / marker-start", group: "Paint / Markers", hint: "An SVG marker is placed at the first point and oriented along the path tangent.", project: MARKER_LINE_PROJECT },
+  { id: "path.marker-mid", label: "Marker / marker-mid", group: "Paint / Markers", hint: "The marker is placed at every interior vertex using the bisector of incoming and outgoing tangents.", project: MARKER_MID_PROJECT },
+  { id: "path.marker-end", label: "Marker / marker-end", group: "Paint / Markers", hint: "An SVG marker is placed at the final point and follows the outgoing path tangent.", project: MARKER_LINE_PROJECT },
+  { id: "path.marker-start-mid-end", label: "Marker / start + mid + end", group: "Paint / Markers", hint: "One path exercises all three SVG marker references and paint order.", project: MARKER_ALL_PROJECT },
+  { id: "shape.marker-end", label: "Marker / shape marker-end", group: "Paint / Markers", hint: "A basic SVG shape is lowered to path geometry and receives the same marker semantic.", project: MARKER_SHAPE_PROJECT },
   { id: "path.stroke-join.miter", label: "Path / stroke join miter", group: "Layers / Path", hint: "Miter join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
   { id: "path.stroke-join.bevel", label: "Path / stroke join bevel", group: "Layers / Path", hint: "Bevel join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
   { id: "path.stroke-join.round", label: "Path / stroke join round", group: "Layers / Path", hint: "Round join on an angled open path.", project: PATH_STROKE_VARIANTS_PROJECT },
@@ -4131,6 +4280,8 @@ const PREVIEW_LAB_GROUP_ORDER = [
   "Paint / Stroke",
   "Paint / Gradient",
   "Paint / Pattern",
+  "Paint / Order",
+  "Paint / Markers",
   "Effects",
   "Compositing",
   "Timing",
@@ -4187,12 +4338,29 @@ const PAINT_PATTERN_CASES = new Set([
   "shape.pattern-group",
 ]);
 
+const PAINT_ORDER_CASES = new Set([
+  "shape.paint-order.fill-stroke",
+  "shape.paint-order.stroke-fill",
+  "path.paint-order.fill-stroke",
+  "path.paint-order.stroke-fill",
+]);
+
+const PAINT_MARKER_CASES = new Set([
+  "path.marker-start",
+  "path.marker-mid",
+  "path.marker-end",
+  "path.marker-start-mid-end",
+  "shape.marker-end",
+]);
+
 function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
   if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
   if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
   if (item.id === "html-compiler.primitives.rectangle-rounded") return "Layers / Shape";
   if (item.id.startsWith("html-compiler.transform.")) return "Transforms / Core";
   if (PAINT_PATTERN_CASES.has(item.id)) return "Paint / Pattern";
+  if (PAINT_ORDER_CASES.has(item.id)) return "Paint / Order";
+  if (PAINT_MARKER_CASES.has(item.id)) return "Paint / Markers";
   if (PAINT_GRADIENT_CASES.has(item.id)) return "Paint / Gradient";
   if (PAINT_STROKE_CASES.has(item.id)) return "Paint / Stroke";
   if (PAINT_FILL_CASES.has(item.id)) return "Paint / Fill";
@@ -4235,6 +4403,15 @@ export function previewLabCaseById(
     cases.find((item) => item.id === defaultCase) ??
     cases[0]
   );
+}
+
+function projectWithMarkers(
+  id: string,
+  layers: V2Layer[],
+  markers: V2Marker[],
+  view: MotionProtocolV2["composition"]["view"] = ORTHOGRAPHIC_VIEW,
+): MotionProtocolV2 {
+  return { ...project(id, layers, view), markers };
 }
 
 function imagePayload(

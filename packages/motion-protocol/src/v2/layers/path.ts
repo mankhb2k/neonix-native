@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { V2FiniteNumberSchema } from "../common";
+import { V2PaintOrderSchema } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
+import { V2MarkerReferenceSchema } from "../markers";
 import {
   V2PathContourSchema,
   V2PathPointSchema,
@@ -49,6 +51,10 @@ export const V2PathLayerSchema = V2LayerBaseSchema.extend({
         })
         .strict()
         .optional(),
+      paintOrder: V2PaintOrderSchema.optional(),
+      markerStart: V2MarkerReferenceSchema.optional(),
+      markerMid: V2MarkerReferenceSchema.optional(),
+      markerEnd: V2MarkerReferenceSchema.optional(),
     })
     .strict()
     .superRefine((style, ctx) => {

@@ -211,6 +211,58 @@ export function evaluateVisualRuntimeProject(
         effectProgram,
       });
     }
+    if (content.kind === "path" && content.markers?.length) {
+      if (effectProgram) {
+        throw new Error(`Runtime V2 marker paths with effects are not certified yet: ${node.id}`);
+      }
+      const paintOrder = content.paintOrder ?? ["fill", "stroke", "markers"];
+      const pushPathPass = (
+        key: string,
+        pass: "fill" | "stroke",
+        marker?: NonNullable<typeof content.markers>[number],
+      ) => {
+        const source = marker ?? content;
+        commands.push({
+          op: "setTransform",
+          key,
+          matrix4: matrix4ToArray(node.worldMatrix),
+          alpha: node.opacity,
+          visible: true,
+          order: node.order,
+          blendMode,
+        });
+        commands.push({
+          op: "drawPath",
+          key,
+          layerId: node.id,
+          contours: source.contours,
+          width: content.width,
+          height: content.height,
+          fillRule: marker ? "nonzero" : content.fillRule,
+          paintOrder: [pass],
+          ...(pass === "fill" && source.fill !== undefined
+            ? { fill: source.fill, ...(source.fillPaint ? { fillPaint: source.fillPaint } : {}), ...(source.fillOpacity !== undefined ? { fillOpacity: source.fillOpacity } : {}), ...(source.mesh ? { mesh: source.mesh } : {}) }
+            : {}),
+          ...(pass === "stroke" && source.stroke !== undefined
+            ? { stroke: source.stroke, ...(source.strokePaint ? { strokePaint: source.strokePaint } : {}), ...(source.strokeWidth !== undefined ? { strokeWidth: source.strokeWidth } : {}), ...(source.strokeOpacity !== undefined ? { strokeOpacity: source.strokeOpacity } : {}), ...(source.strokeMesh ? { strokeMesh: source.strokeMesh } : {}) }
+            : {}),
+        });
+      };
+      paintOrder.forEach((pass) => {
+        if (pass === "fill" && content.fill !== undefined) pushPathPass(`${node.id}:fill`, "fill");
+        if (pass === "stroke" && content.stroke !== undefined) pushPathPass(`${node.id}:stroke`, "stroke");
+        if (pass === "markers") {
+          content.markers!.forEach((marker, index) => {
+            const markerOrder = marker.paintOrder.filter((item) => item !== "markers");
+            markerOrder.forEach((markerPass) => {
+              if (markerPass === "fill" && marker.fill !== undefined) pushPathPass(`${node.id}:marker:${marker.placement}:${index}:fill`, "fill", marker);
+              if (markerPass === "stroke" && marker.stroke !== undefined) pushPathPass(`${node.id}:marker:${marker.placement}:${index}:stroke`, "stroke", marker);
+            });
+          });
+        }
+      });
+      return;
+    }
     commands.push({
       op: "setTransform",
       key: node.id,
@@ -250,6 +302,7 @@ export function evaluateVisualRuntimeProject(
         ...(content.strokeJoin ? { strokeJoin: content.strokeJoin } : {}),
         ...(content.strokeCap ? { strokeCap: content.strokeCap } : {}),
         ...(content.strokeDash ? { strokeDash: content.strokeDash } : {}),
+        ...(content.paintOrder ? { paintOrder: content.paintOrder } : {}),
       });
     } else if (content.kind === "text") {
       commands.push({

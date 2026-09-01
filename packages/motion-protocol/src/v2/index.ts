@@ -37,9 +37,26 @@ export {
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
   V2PositiveMillisecondsSchema,
+  V2PaintOrderSchema,
+  V2PaintOrderItemSchema,
+  type V2PaintOrder,
+  type V2PaintOrderItem,
 } from "./common";
 export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
+export {
+  V2MarkerUnitsSchema,
+  V2MarkerOrientSchema,
+  V2MarkerViewBoxSchema,
+  V2MarkerSchema,
+  V2MarkerListSchema,
+  V2MarkerReferenceSchema,
+  type V2MarkerUnits,
+  type V2MarkerOrient,
+  type V2MarkerViewBox,
+  type V2Marker,
+  type V2MarkerList,
+} from "./markers";
 export {
   V2ColorAdjustEffectSchema,
   V2GrayscaleEffectSchema,

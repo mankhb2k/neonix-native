@@ -26,6 +26,22 @@ async function supportsWebGPU(page: Page): Promise<boolean> {
 }
 
 test.describe("Protocol V2 atom preview", () => {
+  test("renders SVG marker-start, marker-mid, and marker-end placements", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    for (const caseId of ["path.marker-start", "path.marker-mid", "path.marker-end", "path.marker-start-mid-end", "shape.marker-end"]) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /error|missing|invalid/);
+      await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(1);
+      if (await supportsWebGPU(page)) {
+        await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+        await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+        await expect(canvas).not.toHaveAttribute("data-diagnostics", /error|missing|invalid/);
+        await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(1);
+      }
+    }
+  });
+
   test("applies the V2 color-adjust effect in matching GPU backends", async ({ page }) => {
     const caseId = "effect.color-adjust";
     await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);

@@ -549,6 +549,47 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
   });
 
+  it("accepts SVG marker definitions and validates marker references", () => {
+    const marker = {
+      id: "arrow",
+      markerUnits: "userSpaceOnUse" as const,
+      refX: 8,
+      refY: 5,
+      markerWidth: 10,
+      markerHeight: 10,
+      orient: "auto" as const,
+      content: {
+        contours: [{
+          id: "arrow-head",
+          start: { x: 0, y: 0 },
+          segments: [
+            { kind: "line" as const, to: { x: 10, y: 5 } },
+            { kind: "line" as const, to: { x: 0, y: 10 } },
+          ],
+          closed: false,
+        }],
+        fill: "#ff3366",
+      },
+    };
+    const path = {
+      ...RECTANGLE_PROJECT,
+      id: "marker-project-v2",
+      markers: [marker],
+      layers: [{
+        ...RECTANGLE_PROJECT.layers[0],
+        type: "path" as const,
+        id: "marker-path",
+        payload: {
+          contours: [{ id: "line", start: { x: 0, y: 20 }, segments: [{ kind: "line" as const, to: { x: 160, y: 20 } }], closed: false }],
+          fillRule: "nonzero" as const,
+        },
+        style: { stroke: "#00aa88", strokeWidth: 8, markerEnd: "arrow" },
+      }],
+    };
+    expect(MotionProtocolV2Schema.parse(path)).toEqual(path);
+    expect(() => MotionProtocolV2Schema.parse({ ...path, layers: [{ ...path.layers[0], style: { ...path.layers[0].style, markerEnd: "missing" } }] })).toThrow(/Unknown marker reference/);
+  });
+
   it("accepts an image asset reference with SVG viewport semantics", () => {
     const image = {
       ...RECTANGLE_PROJECT,

@@ -18,6 +18,9 @@ export type PaintBlendMode =
   | "color"
   | "luminosity";
 
+export type PaintOrderItem = "fill" | "stroke" | "markers";
+export type PaintOrder = PaintOrderItem[];
+
 export type PaintFillNone = { type: "none" };
 export type PaintFillSolid = { type: "solid"; color: string; opacity?: number };
 export type PaintTransform = { a: number; b: number; c: number; d: number; e: number; f: number };
@@ -155,6 +158,23 @@ export type PathStrokeMesh = PathMesh;
 export type PathStrokeJoin = "miter" | "bevel" | "round";
 export type PathStrokeCap = "butt" | "square" | "round";
 export type PathStrokeDash = { array: number[]; offset: number };
+
+/** One SVG marker instance positioned on a lowered path. */
+export type PathMarker = {
+  id: string;
+  placement: "start" | "mid" | "end";
+  contours: PathContour[];
+  mesh?: PathMesh;
+  strokeMesh?: PathStrokeMesh;
+  fill?: string;
+  fillPaint?: PaintFill;
+  fillOpacity?: number;
+  stroke?: string;
+  strokePaint?: PaintFill;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  paintOrder: PaintOrder;
+};
 
 /** A positioned font-outline glyph, resolved by Runtime before GPU submission. */
 export type PaintTextGlyph = {

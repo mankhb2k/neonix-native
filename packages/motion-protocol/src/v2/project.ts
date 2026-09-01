@@ -4,6 +4,7 @@ import { V2IdSchema } from "./common";
 import { V2AssetListSchema } from "./assets";
 import { V2AudioDomainSchema } from "./audio";
 import { V2LayerListSchema } from "./layers";
+import { V2MarkerListSchema } from "./markers";
 import type { MotionProtocolV2 } from "./types";
 
 const COMMON_NUMBER_PATHS = new Set([
@@ -118,11 +119,13 @@ export const MotionProtocolV2Schema = z
     id: V2IdSchema,
     composition: V2CompositionSchema,
     assets: V2AssetListSchema,
+    markers: V2MarkerListSchema.optional(),
     layers: V2LayerListSchema,
     audio: V2AudioDomainSchema,
   })
   .strict()
   .superRefine((project, ctx) => {
+    const markerIds = new Set((project.markers ?? []).map((marker) => marker.id));
     const ids = new Set<string>();
     const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
@@ -182,6 +185,18 @@ export const MotionProtocolV2Schema = z
         });
       }
       ids.add(layer.id);
+      if (layer.type === "shape" || layer.type === "path") {
+        for (const field of ["markerStart", "markerMid", "markerEnd"] as const) {
+          const markerId = layer.style[field];
+          if (markerId !== undefined && !markerIds.has(markerId)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Unknown marker reference: ${markerId}`,
+              path: ["layers", index, "style", field],
+            });
+          }
+        }
+      }
       if (layer.parentLayerId !== null) {
         const parent = layerById.get(layer.parentLayerId);
         if (!parent) {

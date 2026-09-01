@@ -3,6 +3,7 @@
 export * from "./geometry/matrix4";
 export {
   flattenPathContour,
+  flattenPathContourAny,
   interpolatePathContours,
   tessellateClosedPath,
   tessellatePathStroke,

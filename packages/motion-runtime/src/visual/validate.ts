@@ -350,6 +350,40 @@ export function validateVisualRuntimeProject(
           diagnostics.push({ severity: "error", code: "runtime_v2_path_stroke_dash", message: "Runtime V2 path strokeDash is invalid", nodeId: node.id });
         }
       }
+      if (node.content.paintOrder) {
+        const allowed = new Set(["fill", "stroke", "markers"]);
+        if (
+          node.content.paintOrder.length === 0 ||
+          node.content.paintOrder.length > 3 ||
+          node.content.paintOrder.some((item) => !allowed.has(item)) ||
+          new Set(node.content.paintOrder).size !== node.content.paintOrder.length
+        ) {
+          diagnostics.push({
+            severity: "error",
+            code: "runtime_v2_paint_order",
+            message: "Runtime V2 paintOrder must contain unique fill, stroke, and markers items",
+            nodeId: node.id,
+          });
+        }
+      }
+      if (node.content.markers) {
+        for (const marker of node.content.markers) {
+          if (!marker.id.trim() || !["start", "mid", "end"].includes(marker.placement)) {
+            diagnostics.push({ severity: "error", code: "runtime_v2_path_marker_identity", message: "Runtime V2 path marker identity is invalid", nodeId: node.id });
+          }
+          if (marker.fill !== undefined) {
+            const mesh = marker.mesh;
+            const valid = !!mesh && mesh.vertices.length >= 6 && mesh.vertices.length % 2 === 0 && mesh.vertices.every(Number.isFinite) && mesh.indices.length >= 3 && mesh.indices.length % 3 === 0 && mesh.indices.every((index) => Number.isSafeInteger(index) && index >= 0 && index < mesh.vertices.length / 2);
+            if (!valid) diagnostics.push({ severity: "error", code: "runtime_v2_path_marker_mesh", message: "Runtime V2 filled marker must contain a valid mesh", nodeId: node.id });
+          }
+          if (marker.stroke !== undefined && (marker.strokeWidth === undefined || !Number.isFinite(marker.strokeWidth) || marker.strokeWidth <= 0 || !marker.strokeMesh)) {
+            diagnostics.push({ severity: "error", code: "runtime_v2_path_marker_stroke", message: "Runtime V2 stroked marker must contain a positive width and mesh", nodeId: node.id });
+          }
+          if (marker.paintOrder.length === 0 || marker.paintOrder.some((item) => !["fill", "stroke", "markers"].includes(item))) {
+            diagnostics.push({ severity: "error", code: "runtime_v2_path_marker_paint_order", message: "Runtime V2 marker paintOrder is invalid", nodeId: node.id });
+          }
+        }
+      }
     }
     if (!Number.isFinite(node.opacity) || node.opacity < 0 || node.opacity > 1) {
       diagnostics.push({

@@ -48,6 +48,16 @@ function isFit(value: unknown): boolean {
   );
 }
 
+function isPaintOrder(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length >= 1 &&
+    value.length <= 3 &&
+    value.every((item) => item === "fill" || item === "stroke" || item === "markers") &&
+    new Set(value).size === value.length
+  );
+}
+
 /**
  * Structural + semantic checks on a paint command stream.
  * Does not mutate the buffer.
@@ -321,6 +331,14 @@ export function validatePaintCommandBuffer(
             severity: "error",
             code: "invalid_media_time",
             message: `Invalid mediaTime for "${cmd.key}"`,
+            key: cmd.key,
+          });
+        }
+        if ("paintOrder" in cmd && cmd.paintOrder !== undefined && !isPaintOrder(cmd.paintOrder)) {
+          issues.push({
+            severity: "error",
+            code: "invalid_paint_order",
+            message: `Invalid paintOrder for "${cmd.key}"`,
             key: cmd.key,
           });
         }

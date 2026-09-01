@@ -36,6 +36,8 @@ describe("Protocol V2 preview lab fixtures", () => {
       "shape.stroke",
       "shape.stroke-width",
       "shape.stroke-opacity",
+      "shape.paint-order.fill-stroke",
+      "shape.paint-order.stroke-fill",
       "shape.stroke-join",
       "shape.stroke-cap",
       "shape.stroke-dash",
@@ -119,6 +121,13 @@ describe("Protocol V2 preview lab fixtures", () => {
       "path.stroke",
       "path.stroke-width",
       "path.stroke-opacity",
+      "path.paint-order.fill-stroke",
+      "path.paint-order.stroke-fill",
+      "path.marker-start",
+      "path.marker-mid",
+      "path.marker-end",
+      "path.marker-start-mid-end",
+      "shape.marker-end",
       "path.stroke-join.miter",
       "path.stroke-join.bevel",
       "path.stroke-join.round",
@@ -206,6 +215,20 @@ describe("Protocol V2 preview lab fixtures", () => {
       { time: 0 },
     ).commands.find((command) => command.op === "drawPath");
     expect(openFilledPolyline?.op === "drawPath" && openFilledPolyline.mesh).toBeDefined();
+  });
+
+  it("lowers marker references into ordered marker draw passes", () => {
+    const start = compileProtocolToPaintCommands(previewLabCaseById("path.marker-start").project, { time: 0 });
+    const mid = compileProtocolToPaintCommands(previewLabCaseById("path.marker-mid").project, { time: 0 });
+    const all = compileProtocolToPaintCommands(previewLabCaseById("path.marker-start-mid-end").project, { time: 0 });
+    const startPaths = start.commands.filter((command) => command.op === "drawPath");
+    const midPaths = mid.commands.filter((command) => command.op === "drawPath");
+    const allPaths = all.commands.filter((command) => command.op === "drawPath");
+    expect(startPaths).toHaveLength(2);
+    expect(midPaths).toHaveLength(4);
+    expect(allPaths).toHaveLength(4);
+    expect(allPaths.at(-1)?.op === "drawPath" && allPaths.at(-1)?.paintOrder).toEqual(["fill"]);
+    expect(start.commands.some((command) => command.key?.includes(":marker:end:"))).toBe(true);
   });
 
   it("exposes dedicated HTML compiler Phase 2 source/protocol previews", () => {
@@ -340,6 +363,8 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Paint / Stroke",
       "Paint / Gradient",
       "Paint / Pattern",
+      "Paint / Order",
+      "Paint / Markers",
       "Effects",
       "Compositing",
       "Timing",
@@ -455,6 +480,19 @@ describe("Protocol V2 preview lab fixtures", () => {
       { op: "endLayer", key: "nested-inner-group" },
       { op: "endLayer", key: "nested-outer-group" },
     ]);
+  });
+
+  it("keeps layer order separate from SVG paint order", () => {
+    const fixture = previewLabCaseById("path.paint-order.stroke-fill");
+    expect(fixture.project.layers[0]).toMatchObject({
+      order: 0,
+      style: { paintOrder: ["stroke", "fill"] },
+    });
+    const buffer = compileProtocolToPaintCommands(fixture.project, { time: 0 });
+    expect(buffer.commands).toContainEqual(expect.objectContaining({
+      op: "drawPath",
+      paintOrder: ["stroke", "fill", "markers"],
+    }));
   });
 
   it("lowers a basic group as a balanced hierarchy scope", () => {

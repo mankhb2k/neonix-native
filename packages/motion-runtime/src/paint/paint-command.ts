@@ -10,6 +10,8 @@ import type {
   PathContour,
   PathMesh,
   PathStrokeMesh,
+  PathMarker,
+  PaintOrder,
   RenderImagePreserveAspectRatio,
   RenderImageRendering,
   RenderMediaFit,
@@ -131,6 +133,7 @@ export type PaintCommand =
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
+      paintOrder?: PaintOrder;
     }
   | {
       op: "drawSolid";
@@ -176,6 +179,8 @@ export type PaintCommand =
       strokeJoin?: "miter" | "bevel" | "round";
       strokeCap?: "butt" | "square" | "round";
       strokeDash?: { array: number[]; offset: number };
+      paintOrder?: PaintOrder;
+      markers?: PathMarker[];
     }
   | {
       op: "drawVideo";

@@ -14,9 +14,12 @@ import {
   type VisualRuntimeProject,
   type PathContour,
   type PaintFill,
+  type PaintOrder,
+  type PathMarker,
   type VisualRuntimeMask,
   identityMatrix4,
   interpolatePathContours,
+  flattenPathContourAny,
   tessellateClosedPath,
       tessellatePathStroke,
 } from "@motionvideo/motion-runtime";
@@ -162,6 +165,163 @@ function viewProjectionMatrix4(project: MotionProtocolV2): {
 
 const DEFAULT_RECTANGLE_STROKE_WIDTH = 4;
 const DEFAULT_PATH_STROKE_WIDTH = 1;
+const DEFAULT_PAINT_ORDER = ["fill", "stroke", "markers"] as const;
+
+function lowerPaintOrder(
+  paintOrder: readonly (typeof DEFAULT_PAINT_ORDER[number])[] | undefined,
+): PaintOrder | undefined {
+  if (!paintOrder) return undefined;
+  return [...new Set([...paintOrder, ...DEFAULT_PAINT_ORDER])];
+}
+
+type MarkerPlacement = "start" | "mid" | "end";
+type MarkerDefinition = NonNullable<MotionProtocolV2["markers"]>[number];
+type MarkerReferenceStyle = {
+  markerStart?: string;
+  markerMid?: string;
+  markerEnd?: string;
+};
+
+function markerSegmentPoint(segment: PathContour["segments"][number]): { x: number; y: number } {
+  return segment.to;
+}
+
+function markerTangent(
+  contour: PathContour,
+  segmentIndex: number,
+  atEnd: boolean,
+): { x: number; y: number } {
+  const segment = contour.segments[segmentIndex]!;
+  const from = segmentIndex === 0 ? contour.start : markerSegmentPoint(contour.segments[segmentIndex - 1]!);
+  const to = segment.to;
+  if (segment.kind === "cubic") {
+    const control = atEnd ? segment.control2 : segment.control1;
+    return atEnd
+      ? { x: to.x - control.x, y: to.y - control.y }
+      : { x: control.x - from.x, y: control.y - from.y };
+  }
+  if (segment.kind === "quadratic") {
+    const control = segment.control;
+    return atEnd
+      ? { x: to.x - control.x, y: to.y - control.y }
+      : { x: control.x - from.x, y: control.y - from.y };
+  }
+  return { x: to.x - from.x, y: to.y - from.y };
+}
+
+function normalizedDirection(direction: { x: number; y: number }): { x: number; y: number } {
+  const length = Math.hypot(direction.x, direction.y);
+  return length > 1e-7 ? { x: direction.x / length, y: direction.y / length } : { x: 1, y: 0 };
+}
+
+function markerAngle(
+  orient: MarkerDefinition["orient"],
+  tangent: { x: number; y: number },
+  placement: MarkerPlacement,
+): number {
+  if (typeof orient === "number") return orient;
+  const direction = normalizedDirection(tangent);
+  const angle = (Math.atan2(direction.y, direction.x) * 180) / Math.PI;
+  return orient === "auto-start-reverse" && placement === "start" ? angle + 180 : angle;
+}
+
+function lowerMarkerContour(
+  contour: PathContour,
+  marker: MarkerDefinition,
+  position: { x: number; y: number },
+  angleDegrees: number,
+  strokeWidth: number,
+  id: string,
+): PathContour {
+  const radians = (angleDegrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const unitScale = marker.markerUnits === "strokeWidth" ? strokeWidth : 1;
+  const viewBox = marker.viewBox;
+  const scaleX = viewBox ? marker.markerWidth / viewBox.width : 1;
+  const scaleY = viewBox ? marker.markerHeight / viewBox.height : 1;
+  const transform = (point: { x: number; y: number }) => {
+    const localX = ((point.x - (viewBox?.x ?? 0)) * scaleX - marker.refX) * unitScale;
+    const localY = ((point.y - (viewBox?.y ?? 0)) * scaleY - marker.refY) * unitScale;
+    return {
+      x: position.x + cos * localX - sin * localY,
+      y: position.y + sin * localX + cos * localY,
+    };
+  };
+  const flattened = flattenPathContourAny(contour);
+  const points = flattened.points.map(transform);
+  return {
+    id,
+    start: points[0]!,
+    segments: points.slice(1).map((to) => ({ kind: "line" as const, to })),
+    closed: flattened.closed,
+  };
+}
+
+/** Resolve SVG marker references into positioned, backend-neutral geometry. */
+function lowerMarkers(
+  definitions: readonly MarkerDefinition[] | undefined,
+  style: MarkerReferenceStyle,
+  contours: PathContour[],
+  strokeWidth: number,
+): PathMarker[] | undefined {
+  if (!definitions?.length) return undefined;
+  const byId = new Map(definitions.map((marker) => [marker.id, marker]));
+  const placements: Array<{
+    placement: MarkerPlacement;
+    ref: string;
+    point: { x: number; y: number };
+    tangent: { x: number; y: number };
+  }> = [];
+  contours.forEach((contour) => {
+    if (style.markerStart) {
+      placements.push({ placement: "start", ref: style.markerStart, point: contour.start, tangent: markerTangent(contour, 0, false) });
+    }
+    contour.segments.forEach((segment, segmentIndex) => {
+      const last = segmentIndex === contour.segments.length - 1;
+      if (!last && style.markerMid) {
+        const incoming = normalizedDirection(markerTangent(contour, segmentIndex, true));
+        const outgoing = normalizedDirection(markerTangent(contour, segmentIndex + 1, false));
+        placements.push({
+          placement: "mid",
+          ref: style.markerMid,
+          point: segment.to,
+          tangent: normalizedDirection({ x: incoming.x + outgoing.x, y: incoming.y + outgoing.y }),
+        });
+      }
+      if (last && style.markerEnd) {
+        placements.push({ placement: "end", ref: style.markerEnd, point: segment.to, tangent: markerTangent(contour, segmentIndex, true) });
+      }
+    });
+  });
+  const result: PathMarker[] = [];
+  placements.forEach(({ placement, ref, point, tangent }, placementIndex) => {
+    const marker = byId.get(ref);
+    if (!marker) return;
+    const unitScale = marker.markerUnits === "strokeWidth" ? strokeWidth : 1;
+    const angle = markerAngle(marker.orient, tangent, placement);
+    const markerContours = marker.content.contours.map((contour, index) =>
+      lowerMarkerContour(contour, marker, point, angle, strokeWidth, `${ref}:${placementIndex}:${index}`),
+    );
+    const fillContours = markerContours.map((contour) => ({ ...contour, closed: true }));
+    const markerFill = marker.content.fill;
+    const markerStroke = marker.content.stroke;
+    const markerStrokeWidth = (marker.content.strokeWidth ?? 1) * unitScale;
+    result.push({
+      id: `${ref}:${placementIndex}`,
+      placement,
+      contours: markerContours,
+      ...(markerFill !== undefined ? { fill: paintColor(markerFill)!, fillPaint: runtimePaint(markerFill, marker.markerWidth, marker.markerHeight) } : {}),
+      ...(marker.content.fillOpacity !== undefined ? { fillOpacity: marker.content.fillOpacity } : {}),
+      ...(markerStroke !== undefined ? { stroke: paintColor(markerStroke)!, strokePaint: runtimePaint(markerStroke, marker.markerWidth, marker.markerHeight), strokeWidth: markerStrokeWidth } : {}),
+      ...(marker.content.strokeOpacity !== undefined ? { strokeOpacity: marker.content.strokeOpacity } : {}),
+      paintOrder: lowerPaintOrder(marker.content.paintOrder) ?? ["fill", "stroke", "markers"],
+      ...(markerFill !== undefined ? { mesh: tessellateClosedPath(fillContours, "nonzero") } : {}),
+      ...(markerStroke !== undefined ? { strokeMesh: tessellatePathStroke(markerContours, markerStrokeWidth, { join: "miter", cap: "butt" }) } : {}),
+    });
+  });
+  return result.length ? result : undefined;
+}
 
 function lowerEffects(
   effects: ProtocolEffect[] | undefined,
@@ -542,6 +702,14 @@ function compileVisualRuntimeInternal(
       if (layer.style.stroke !== undefined && !isV2AtomCertified("path.stroke")) {
         throw new Error("Uncertified Protocol V2 atom: path.stroke");
       }
+      if (layer.style.paintOrder !== undefined && !isV2AtomCertified("path.paintOrder")) {
+        throw new Error("Uncertified Protocol V2 atom: path.paintOrder");
+      }
+      if (layer.style.markerStart || layer.style.markerMid || layer.style.markerEnd) {
+        if (!isV2AtomCertified("path.markers")) {
+          throw new Error("Uncertified Protocol V2 atom: path.markers");
+        }
+      }
       if (layer.style.strokeWidth !== undefined) {
         if (layer.style.stroke === undefined) {
           throw new Error(`Protocol V2 atom ${layer.id}: strokeWidth requires stroke`);
@@ -577,6 +745,8 @@ function compileVisualRuntimeInternal(
       const strokeDash = layer.style.strokeDash
         ? { array: layer.style.strokeDash.array, offset: layer.style.strokeDash.offset ?? 0 }
         : undefined;
+      const paintOrder = lowerPaintOrder(layer.style.paintOrder);
+      const markers = lowerMarkers(project.markers, layer.style, contours, strokeWidth);
       const fillPaint = runtimePaint(layer.style.fill, layer.frame.width, layer.frame.height);
       const strokePaint = runtimePaint(layer.style.stroke, layer.frame.width, layer.frame.height);
       const fillColorValue = paintColor(layer.style.fill);
@@ -644,6 +814,8 @@ function compileVisualRuntimeInternal(
           ...(layer.style.fillOpacity !== undefined
             ? { fillOpacity: layer.style.fillOpacity }
             : {}),
+          ...(paintOrder ? { paintOrder } : {}),
+          ...(markers ? { markers } : {}),
           ...(effects ? { effects } : {}),
         },
       };
@@ -704,6 +876,18 @@ function compileVisualRuntimeInternal(
         }
       }
     }
+    if (layer.style.paintOrder !== undefined) {
+      const capability = `${layer.type}.${layer.payload.shape}.paintOrder`;
+      if (!isV2AtomCertified(capability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+      }
+    }
+    if (layer.style.markerStart || layer.style.markerMid || layer.style.markerEnd) {
+      const capability = `${layer.type}.${layer.payload.shape}.markers`;
+      if (!isV2AtomCertified(capability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+      }
+    }
     if (layer.payload.cornerRadius !== undefined) {
       if (layer.payload.shape !== "rectangle") {
         throw new Error(`Protocol V2 atom ${layer.id}: cornerRadius requires rectangle`);
@@ -715,7 +899,9 @@ function compileVisualRuntimeInternal(
     }
 
     const effects = lowerEffects(layer.effects);
+    const paintOrder = lowerPaintOrder(layer.style.paintOrder);
     const shapeContour = primitivePathContour(layer.payload, layer.frame.width, layer.frame.height);
+    const markers = lowerMarkers(project.markers, layer.style, [shapeContour], layer.style.strokeWidth ?? DEFAULT_RECTANGLE_STROKE_WIDTH);
     return {
       id: layer.id,
         parentId: layer.parentLayerId,
@@ -758,6 +944,8 @@ function compileVisualRuntimeInternal(
                 : {}),
             }
           : {}),
+        ...(paintOrder ? { paintOrder } : {}),
+        ...(markers ? { markers } : {}),
         ...(layer.style.fill && layer.payload.shape !== "line"
           ? { mesh: tessellateClosedPath([shapeContour], "nonzero") }
           : {}),

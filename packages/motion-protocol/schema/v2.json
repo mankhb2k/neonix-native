@@ -361,6 +361,976 @@
             ]
           }
         },
+        "markers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/id"
+              },
+              "markerUnits": {
+                "type": "string",
+                "enum": [
+                  "strokeWidth",
+                  "userSpaceOnUse"
+                ],
+                "default": "strokeWidth"
+              },
+              "refX": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                "default": 0
+              },
+              "refY": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                "default": 0
+              },
+              "markerWidth": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width",
+                "default": 3
+              },
+              "markerHeight": {
+                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width",
+                "default": 3
+              },
+              "orient": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "auto"
+                  },
+                  {
+                    "type": "string",
+                    "const": "auto-start-reverse"
+                  },
+                  {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  }
+                ],
+                "default": 0
+              },
+              "viewBox": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "y": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "width": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                  },
+                  "height": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "contours": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "start": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                            },
+                            "y": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "segments": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "line"
+                                  },
+                                  "to": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "to"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "quadratic"
+                                  },
+                                  "control": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  },
+                                  "to": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "control",
+                                  "to"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "cubic"
+                                  },
+                                  "control1": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  },
+                                  "control2": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  },
+                                  "to": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "control1",
+                                  "control2",
+                                  "to"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "arc"
+                                  },
+                                  "radii": {
+                                    "type": "object",
+                                    "properties": {
+                                      "x": {
+                                        "type": "number",
+                                        "minimum": 0
+                                      },
+                                      "y": {
+                                        "type": "number",
+                                        "minimum": 0
+                                      }
+                                    },
+                                    "required": [
+                                      "x",
+                                      "y"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "rotation": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "largeArc": {
+                                    "type": "boolean"
+                                  },
+                                  "sweep": {
+                                    "type": "boolean"
+                                  },
+                                  "to": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items/properties/start"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "radii",
+                                  "rotation",
+                                  "largeArc",
+                                  "sweep",
+                                  "to"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "minItems": 1
+                        },
+                        "closed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "start",
+                        "segments",
+                        "closed"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  },
+                  "fill": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "none"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "solid"
+                              },
+                              "color": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                              },
+                              "opacity": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "color"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "linear-gradient"
+                                  },
+                                  "x1": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "y1": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "x2": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "y2": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "angle": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "stops": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "offset": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "color": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
+                                        },
+                                        "stopOpacity": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "offset",
+                                        "color"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "spreadMethod": {
+                                    "type": "string",
+                                    "enum": [
+                                      "pad",
+                                      "reflect",
+                                      "repeat"
+                                    ]
+                                  },
+                                  "gradientUnits": {
+                                    "type": "string",
+                                    "enum": [
+                                      "objectBoundingBox",
+                                      "userSpaceOnUse"
+                                    ]
+                                  },
+                                  "gradientTransform": {
+                                    "type": "object",
+                                    "properties": {
+                                      "a": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "b": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "c": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "d": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "e": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      },
+                                      "f": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      }
+                                    },
+                                    "required": [
+                                      "a",
+                                      "b",
+                                      "c",
+                                      "d",
+                                      "e",
+                                      "f"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "stops"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "radial-gradient"
+                                  },
+                                  "cx": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "cy": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "radius": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                  },
+                                  "fx": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "fy": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "fr": {
+                                    "type": "number",
+                                    "minimum": 0
+                                  },
+                                  "stops": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
+                                  },
+                                  "spreadMethod": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
+                                  },
+                                  "gradientUnits": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
+                                  },
+                                  "gradientTransform": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "stops"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "conic-gradient"
+                                  },
+                                  "from": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "cx": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "cy": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "stops": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
+                                  },
+                                  "spreadMethod": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
+                                  },
+                                  "gradientUnits": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
+                                  },
+                                  "gradientTransform": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "stops"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "pattern"
+                              },
+                              "x": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                              },
+                              "y": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                              },
+                              "width": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                              },
+                              "height": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                              },
+                              "patternUnits": {
+                                "type": "string",
+                                "enum": [
+                                  "objectBoundingBox",
+                                  "userSpaceOnUse"
+                                ]
+                              },
+                              "patternContentUnits": {
+                                "type": "string",
+                                "enum": [
+                                  "objectBoundingBox",
+                                  "userSpaceOnUse"
+                                ]
+                              },
+                              "patternTransform": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                              },
+                              "transform": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                              },
+                              "viewBox": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "y": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                  },
+                                  "width": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                  },
+                                  "height": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                  },
+                                  "align": {
+                                    "type": "string",
+                                    "enum": [
+                                      "none",
+                                      "xMinYMin",
+                                      "xMidYMin",
+                                      "xMaxYMin",
+                                      "xMinYMid",
+                                      "xMidYMid",
+                                      "xMaxYMid",
+                                      "xMinYMax",
+                                      "xMidYMax",
+                                      "xMaxYMax"
+                                    ]
+                                  },
+                                  "meetOrSlice": {
+                                    "type": "string",
+                                    "enum": [
+                                      "meet",
+                                      "slice"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "x",
+                                  "y",
+                                  "width",
+                                  "height"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "content": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "rect"
+                                        },
+                                        "x": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "y": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "width": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "height": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "rx": {
+                                          "type": "number",
+                                          "minimum": 0
+                                        },
+                                        "ry": {
+                                          "type": "number",
+                                          "minimum": 0
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "strokeOpacity": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "x",
+                                        "y",
+                                        "width",
+                                        "height"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "circle"
+                                        },
+                                        "cx": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "cy": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "radius": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "cx",
+                                        "cy",
+                                        "radius"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "ellipse"
+                                        },
+                                        "cx": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "cy": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "rx": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "ry": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "cx",
+                                        "cy",
+                                        "rx",
+                                        "ry"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "line"
+                                        },
+                                        "x1": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "y1": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "x2": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "y2": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "x1",
+                                        "y1",
+                                        "x2",
+                                        "y2"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "polyline"
+                                        },
+                                        "points": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "x": {
+                                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                              },
+                                              "y": {
+                                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                              }
+                                            },
+                                            "required": [
+                                              "x",
+                                              "y"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 2
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "points"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "polygon"
+                                        },
+                                        "points": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "x": {
+                                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                              },
+                                              "y": {
+                                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                              }
+                                            },
+                                            "required": [
+                                              "x",
+                                              "y"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "minItems": 3
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "points"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "path"
+                                        },
+                                        "contours": {
+                                          "type": "array",
+                                          "items": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items"
+                                          },
+                                          "minItems": 1
+                                        },
+                                        "fillRule": {
+                                          "type": "string",
+                                          "enum": [
+                                            "nonzero",
+                                            "evenodd"
+                                          ]
+                                        },
+                                        "fill": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
+                                        },
+                                        "fillOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
+                                        },
+                                        "stroke": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
+                                        },
+                                        "strokeWidth": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
+                                        },
+                                        "strokeOpacity": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "contours"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "const": "group"
+                                        },
+                                        "transform": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
+                                        },
+                                        "opacity": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 1
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/1/anyOf/3/properties/content/items"
+                                          },
+                                          "minItems": 1
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "children"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "minItems": 1
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "width",
+                              "height",
+                              "content"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "fillOpacity": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "stroke": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                  },
+                  "strokeWidth": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                  },
+                  "strokeOpacity": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "paintOrder": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "fill",
+                        "stroke",
+                        "markers"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "contours"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "content"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 256
+        },
         "layers": {
           "type": "array",
           "items": {
@@ -1921,848 +2891,7 @@
                     "type": "object",
                     "properties": {
                       "fill": {
-                        "anyOf": [
-                          {
-                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                          },
-                          {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "none"
-                                  }
-                                },
-                                "required": [
-                                  "type"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "solid"
-                                  },
-                                  "color": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                                  },
-                                  "opacity": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "color"
-                                ],
-                                "additionalProperties": false
-                              },
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "linear-gradient"
-                                      },
-                                      "x1": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "y1": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "x2": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "y2": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "angle": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "stops": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "object",
-                                          "properties": {
-                                            "offset": {
-                                              "type": "number",
-                                              "minimum": 0,
-                                              "maximum": 1
-                                            },
-                                            "color": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                                            },
-                                            "stopOpacity": {
-                                              "type": "number",
-                                              "minimum": 0,
-                                              "maximum": 1
-                                            }
-                                          },
-                                          "required": [
-                                            "offset",
-                                            "color"
-                                          ],
-                                          "additionalProperties": false
-                                        }
-                                      },
-                                      "spreadMethod": {
-                                        "type": "string",
-                                        "enum": [
-                                          "pad",
-                                          "reflect",
-                                          "repeat"
-                                        ]
-                                      },
-                                      "gradientUnits": {
-                                        "type": "string",
-                                        "enum": [
-                                          "objectBoundingBox",
-                                          "userSpaceOnUse"
-                                        ]
-                                      },
-                                      "gradientTransform": {
-                                        "type": "object",
-                                        "properties": {
-                                          "a": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          "b": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          "c": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          "d": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          "e": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          },
-                                          "f": {
-                                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                          }
-                                        },
-                                        "required": [
-                                          "a",
-                                          "b",
-                                          "c",
-                                          "d",
-                                          "e",
-                                          "f"
-                                        ],
-                                        "additionalProperties": false
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "stops"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "radial-gradient"
-                                      },
-                                      "cx": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "cy": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "radius": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                      },
-                                      "fx": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "fy": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "fr": {
-                                        "type": "number",
-                                        "minimum": 0
-                                      },
-                                      "stops": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
-                                      },
-                                      "spreadMethod": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
-                                      },
-                                      "gradientUnits": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
-                                      },
-                                      "gradientTransform": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "stops"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "const": "conic-gradient"
-                                      },
-                                      "from": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "cx": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 1
-                                      },
-                                      "cy": {
-                                        "type": "number",
-                                        "minimum": 0,
-                                        "maximum": 1
-                                      },
-                                      "stops": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/stops"
-                                      },
-                                      "spreadMethod": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/spreadMethod"
-                                      },
-                                      "gradientUnits": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientUnits"
-                                      },
-                                      "gradientTransform": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
-                                      }
-                                    },
-                                    "required": [
-                                      "type",
-                                      "stops"
-                                    ],
-                                    "additionalProperties": false
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "type": {
-                                    "type": "string",
-                                    "const": "pattern"
-                                  },
-                                  "x": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                  },
-                                  "y": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                  },
-                                  "width": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                  },
-                                  "height": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                  },
-                                  "patternUnits": {
-                                    "type": "string",
-                                    "enum": [
-                                      "objectBoundingBox",
-                                      "userSpaceOnUse"
-                                    ]
-                                  },
-                                  "patternContentUnits": {
-                                    "type": "string",
-                                    "enum": [
-                                      "objectBoundingBox",
-                                      "userSpaceOnUse"
-                                    ]
-                                  },
-                                  "patternTransform": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
-                                  },
-                                  "transform": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
-                                  },
-                                  "viewBox": {
-                                    "type": "object",
-                                    "properties": {
-                                      "x": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "y": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "width": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                      },
-                                      "height": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                      },
-                                      "align": {
-                                        "type": "string",
-                                        "enum": [
-                                          "none",
-                                          "xMinYMin",
-                                          "xMidYMin",
-                                          "xMaxYMin",
-                                          "xMinYMid",
-                                          "xMidYMid",
-                                          "xMaxYMid",
-                                          "xMinYMax",
-                                          "xMidYMax",
-                                          "xMaxYMax"
-                                        ]
-                                      },
-                                      "meetOrSlice": {
-                                        "type": "string",
-                                        "enum": [
-                                          "meet",
-                                          "slice"
-                                        ]
-                                      }
-                                    },
-                                    "required": [
-                                      "x",
-                                      "y",
-                                      "width",
-                                      "height"
-                                    ],
-                                    "additionalProperties": false
-                                  },
-                                  "content": {
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "rect"
-                                            },
-                                            "x": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "y": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "width": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "height": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "rx": {
-                                              "type": "number",
-                                              "minimum": 0
-                                            },
-                                            "ry": {
-                                              "type": "number",
-                                              "minimum": 0
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "type": "number",
-                                              "minimum": 0,
-                                              "maximum": 1
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "strokeOpacity": {
-                                              "type": "number",
-                                              "minimum": 0,
-                                              "maximum": 1
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "x",
-                                            "y",
-                                            "width",
-                                            "height"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "circle"
-                                            },
-                                            "cx": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "cy": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "radius": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "cx",
-                                            "cy",
-                                            "radius"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "ellipse"
-                                            },
-                                            "cx": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "cy": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "rx": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "ry": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "cx",
-                                            "cy",
-                                            "rx",
-                                            "ry"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "line"
-                                            },
-                                            "x1": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "y1": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "x2": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "y2": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "x1",
-                                            "y1",
-                                            "x2",
-                                            "y2"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "polyline"
-                                            },
-                                            "points": {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "x": {
-                                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                  },
-                                                  "y": {
-                                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                  }
-                                                },
-                                                "required": [
-                                                  "x",
-                                                  "y"
-                                                ],
-                                                "additionalProperties": false
-                                              },
-                                              "minItems": 2
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "points"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "polygon"
-                                            },
-                                            "points": {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "x": {
-                                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                  },
-                                                  "y": {
-                                                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                  }
-                                                },
-                                                "required": [
-                                                  "x",
-                                                  "y"
-                                                ],
-                                                "additionalProperties": false
-                                              },
-                                              "minItems": 3
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "points"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "path"
-                                            },
-                                            "contours": {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                  "id": {
-                                                    "type": "string",
-                                                    "minLength": 1,
-                                                    "maxLength": 200
-                                                  },
-                                                  "start": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                      "x": {
-                                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                      },
-                                                      "y": {
-                                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                      }
-                                                    },
-                                                    "required": [
-                                                      "x",
-                                                      "y"
-                                                    ],
-                                                    "additionalProperties": false
-                                                  },
-                                                  "segments": {
-                                                    "type": "array",
-                                                    "items": {
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "kind": {
-                                                              "type": "string",
-                                                              "const": "line"
-                                                            },
-                                                            "to": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            }
-                                                          },
-                                                          "required": [
-                                                            "kind",
-                                                            "to"
-                                                          ],
-                                                          "additionalProperties": false
-                                                        },
-                                                        {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "kind": {
-                                                              "type": "string",
-                                                              "const": "quadratic"
-                                                            },
-                                                            "control": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            },
-                                                            "to": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            }
-                                                          },
-                                                          "required": [
-                                                            "kind",
-                                                            "control",
-                                                            "to"
-                                                          ],
-                                                          "additionalProperties": false
-                                                        },
-                                                        {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "kind": {
-                                                              "type": "string",
-                                                              "const": "cubic"
-                                                            },
-                                                            "control1": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            },
-                                                            "control2": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            },
-                                                            "to": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            }
-                                                          },
-                                                          "required": [
-                                                            "kind",
-                                                            "control1",
-                                                            "control2",
-                                                            "to"
-                                                          ],
-                                                          "additionalProperties": false
-                                                        },
-                                                        {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "kind": {
-                                                              "type": "string",
-                                                              "const": "arc"
-                                                            },
-                                                            "radii": {
-                                                              "type": "object",
-                                                              "properties": {
-                                                                "x": {
-                                                                  "type": "number",
-                                                                  "minimum": 0
-                                                                },
-                                                                "y": {
-                                                                  "type": "number",
-                                                                  "minimum": 0
-                                                                }
-                                                              },
-                                                              "required": [
-                                                                "x",
-                                                                "y"
-                                                              ],
-                                                              "additionalProperties": false
-                                                            },
-                                                            "rotation": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                                            },
-                                                            "largeArc": {
-                                                              "type": "boolean"
-                                                            },
-                                                            "sweep": {
-                                                              "type": "boolean"
-                                                            },
-                                                            "to": {
-                                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items/properties/start"
-                                                            }
-                                                          },
-                                                          "required": [
-                                                            "kind",
-                                                            "radii",
-                                                            "rotation",
-                                                            "largeArc",
-                                                            "sweep",
-                                                            "to"
-                                                          ],
-                                                          "additionalProperties": false
-                                                        }
-                                                      ]
-                                                    },
-                                                    "minItems": 1
-                                                  },
-                                                  "closed": {
-                                                    "type": "boolean"
-                                                  }
-                                                },
-                                                "required": [
-                                                  "id",
-                                                  "start",
-                                                  "segments",
-                                                  "closed"
-                                                ],
-                                                "additionalProperties": false
-                                              },
-                                              "minItems": 1
-                                            },
-                                            "fillRule": {
-                                              "type": "string",
-                                              "enum": [
-                                                "nonzero",
-                                                "evenodd"
-                                              ]
-                                            },
-                                            "fill": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fill"
-                                            },
-                                            "fillOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/fillOpacity"
-                                            },
-                                            "stroke": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/stroke"
-                                            },
-                                            "strokeWidth": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeWidth"
-                                            },
-                                            "strokeOpacity": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/0/properties/strokeOpacity"
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "contours"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "type": {
-                                              "type": "string",
-                                              "const": "group"
-                                            },
-                                            "transform": {
-                                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/2/anyOf/0/properties/gradientTransform"
-                                            },
-                                            "opacity": {
-                                              "type": "number",
-                                              "minimum": 0,
-                                              "maximum": 1
-                                            },
-                                            "children": {
-                                              "type": "array",
-                                              "items": {
-                                                "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items"
-                                              },
-                                              "minItems": 1
-                                            }
-                                          },
-                                          "required": [
-                                            "type",
-                                            "children"
-                                          ],
-                                          "additionalProperties": false
-                                        }
-                                      ]
-                                    },
-                                    "minItems": 1
-                                  }
-                                },
-                                "required": [
-                                  "type",
-                                  "width",
-                                  "height",
-                                  "content"
-                                ],
-                                "additionalProperties": false
-                              }
-                            ]
-                          }
-                        ]
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "fillOpacity": {
                         "type": "number",
@@ -2770,7 +2899,7 @@
                         "maximum": 1
                       },
                       "stroke": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "strokeWidth": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
@@ -2818,6 +2947,18 @@
                           "array"
                         ],
                         "additionalProperties": false
+                      },
+                      "paintOrder": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/paintOrder"
+                      },
+                      "markerStart": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                      },
+                      "markerMid": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                      },
+                      "markerEnd": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
                       }
                     },
                     "additionalProperties": false
@@ -3085,7 +3226,7 @@
                       "contours": {
                         "type": "array",
                         "items": {
-                          "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items"
+                          "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items"
                         },
                         "minItems": 1
                       },
@@ -3103,7 +3244,7 @@
                           "targetContours": {
                             "type": "array",
                             "items": {
-                              "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill/anyOf/1/anyOf/3/properties/content/items/anyOf/6/properties/contours/items"
+                              "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items"
                             },
                             "minItems": 1
                           },
@@ -3129,7 +3270,7 @@
                     "type": "object",
                     "properties": {
                       "fill": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "fillOpacity": {
                         "type": "number",
@@ -3137,7 +3278,7 @@
                         "maximum": 1
                       },
                       "stroke": {
-                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/2/properties/style/properties/fill"
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
                       },
                       "strokeWidth": {
                         "type": "number",
@@ -3187,6 +3328,18 @@
                           "array"
                         ],
                         "additionalProperties": false
+                      },
+                      "paintOrder": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/paintOrder"
+                      },
+                      "markerStart": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                      },
+                      "markerMid": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                      },
+                      "markerEnd": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/id"
                       }
                     },
                     "additionalProperties": false

@@ -16,6 +16,8 @@ export {
   V2MaskCompositeOperatorSchema,
   V2MaskLayerSchema,
   V2MaskStackSchema,
+  V2PaintOrderSchema,
+  V2PaintOrderItemSchema,
   type V2Frame,
   type V2BlendMode,
   type V2IsolationMode,
@@ -23,6 +25,8 @@ export {
   type V2MaskCompositeOperator,
   type V2MaskLayer,
   type V2MaskStack,
+  type V2PaintOrder,
+  type V2PaintOrderItem,
 } from "./base";
 export {
   V2AnimatableValueSchema,

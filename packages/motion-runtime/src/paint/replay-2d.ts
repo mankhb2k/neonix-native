@@ -605,42 +605,50 @@ export function replayPaintCommands2D(
       } else {
         ctx.rect(0, 0, cmd.width, cmd.height);
       }
-      applyFill(
-        ctx,
-        cmd.fill,
-        cmd.op === "drawShape" ? cmd.fillPaint : undefined,
-        cmd.width,
-        cmd.height,
-      );
-      ctx.globalAlpha =
-        layerAlpha * (cmd.op === "drawShape" ? cmd.fillOpacity ?? 1 : 1);
-      ctx.fill();
-      if (cmd.op === "drawShape" && cmd.stroke) {
-        ctx.globalAlpha = layerAlpha * (cmd.strokeOpacity ?? 1);
-        if (cmd.strokePaint) {
-          applyFill(ctx, cmd.stroke, cmd.strokePaint, cmd.width, cmd.height);
-          ctx.strokeStyle = ctx.fillStyle;
-        } else ctx.strokeStyle = cmd.stroke;
-        ctx.lineWidth = cmd.strokeWidth ?? 1;
-        ctx.stroke();
+      const paintOrder = cmd.op === "drawShape"
+        ? cmd.paintOrder ?? ["fill", "stroke", "markers"]
+        : ["fill"];
+      for (const paint of paintOrder) {
+        if (paint === "fill") {
+          applyFill(
+            ctx,
+            cmd.fill,
+            cmd.op === "drawShape" ? cmd.fillPaint : undefined,
+            cmd.width,
+            cmd.height,
+          );
+          ctx.globalAlpha =
+            layerAlpha * (cmd.op === "drawShape" ? cmd.fillOpacity ?? 1 : 1);
+          ctx.fill();
+        } else if (paint === "stroke" && cmd.op === "drawShape" && cmd.stroke) {
+          ctx.globalAlpha = layerAlpha * (cmd.strokeOpacity ?? 1);
+          if (cmd.strokePaint) {
+            applyFill(ctx, cmd.stroke, cmd.strokePaint, cmd.width, cmd.height);
+            ctx.strokeStyle = ctx.fillStyle;
+          } else ctx.strokeStyle = cmd.stroke;
+          ctx.lineWidth = cmd.strokeWidth ?? 1;
+          ctx.stroke();
+        }
       }
     } else if (cmd.op === "drawPath") {
       const pathWidth = cmd.width ?? cmd.mesh?.bounds.width ?? 200;
       const pathHeight = cmd.height ?? cmd.mesh?.bounds.height ?? 200;
       strokePathContours(ctx, cmd.contours);
-      if (cmd.fill || cmd.fillPaint) {
-        applyFill(ctx, cmd.fill, cmd.fillPaint, pathWidth, pathHeight);
-        ctx.globalAlpha = cmd.fillOpacity ?? 1;
-        ctx.fill(cmd.fillRule);
-      }
-      if (cmd.stroke) {
-        ctx.globalAlpha = cmd.strokeOpacity ?? 1;
-        if (cmd.strokePaint) {
-          applyFill(ctx, cmd.stroke, cmd.strokePaint, pathWidth, pathHeight);
-          ctx.strokeStyle = ctx.fillStyle;
-        } else ctx.strokeStyle = cmd.stroke;
-        ctx.lineWidth = cmd.strokeWidth ?? 1;
-        ctx.stroke();
+      const paintOrder = cmd.paintOrder ?? ["fill", "stroke", "markers"];
+      for (const paint of paintOrder) {
+        if (paint === "fill" && (cmd.fill || cmd.fillPaint)) {
+          applyFill(ctx, cmd.fill, cmd.fillPaint, pathWidth, pathHeight);
+          ctx.globalAlpha = cmd.fillOpacity ?? 1;
+          ctx.fill(cmd.fillRule);
+        } else if (paint === "stroke" && cmd.stroke) {
+          ctx.globalAlpha = cmd.strokeOpacity ?? 1;
+          if (cmd.strokePaint) {
+            applyFill(ctx, cmd.stroke, cmd.strokePaint, pathWidth, pathHeight);
+            ctx.strokeStyle = ctx.fillStyle;
+          } else ctx.strokeStyle = cmd.stroke;
+          ctx.lineWidth = cmd.strokeWidth ?? 1;
+          ctx.stroke();
+        }
       }
     } else if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
       if (cmd.op === "drawVideo" && cmd.mediaVisible === false) {

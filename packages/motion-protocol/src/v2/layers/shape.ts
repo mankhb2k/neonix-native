@@ -3,10 +3,12 @@ import {
   V2FiniteNumberSchema,
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
+  V2PaintOrderSchema,
 } from "../common";
 import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
+import { V2MarkerReferenceSchema } from "../markers";
 
 const V2ShapePointSchema = z.object({
   x: V2FiniteNumberSchema,
@@ -67,6 +69,10 @@ export const V2ShapeLayerSchema = V2LayerBaseSchema.extend({
         })
         .strict()
         .optional(),
+      paintOrder: V2PaintOrderSchema.optional(),
+      markerStart: V2MarkerReferenceSchema.optional(),
+      markerMid: V2MarkerReferenceSchema.optional(),
+      markerEnd: V2MarkerReferenceSchema.optional(),
     })
     .strict(),
 }).strict();

@@ -2,6 +2,7 @@ import type { Matrix4 } from "../geometry/matrix4";
 import type { PaintCommandBuffer } from "../paint/paint-buffer";
 import type {
   PaintFill,
+  PaintOrder,
   PaintTextGlyph,
   PaintTextLine,
   PathContour,
@@ -10,6 +11,7 @@ import type {
   PathStrokeDash,
   PathStrokeJoin,
   PathStrokeMesh,
+  PathMarker,
   RenderMediaFit,
   RuntimeEffect,
 } from "../paint/paint-types";
@@ -77,6 +79,7 @@ export type VisualRuntimeShape = {
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
+  paintOrder?: PaintOrder;
   effects?: RuntimeEffect[];
 };
 
@@ -99,6 +102,8 @@ export type VisualRuntimePath = {
   strokeJoin?: PathStrokeJoin;
   strokeCap?: PathStrokeCap;
   strokeDash?: PathStrokeDash;
+  paintOrder?: PaintOrder;
+  markers?: PathMarker[];
   effects?: RuntimeEffect[];
 };
 

@@ -4,6 +4,7 @@ import {
   V2IdSchema,
   V2NonNegativeNumberSchema,
   V2PositiveNumberSchema,
+  V2PaintOrderSchema,
 } from "../common";
 import { V2TimingSchema } from "../timing";
 import { V2TransformSchema } from "../transform";
@@ -16,6 +17,9 @@ export const V2FrameSchema = z
     height: V2PositiveNumberSchema,
   })
   .strict();
+
+export { V2PaintOrderSchema, V2PaintOrderItemSchema } from "../common";
+export type { V2PaintOrder, V2PaintOrderItem } from "../common";
 
 /** Portable GPU blend modes represented by the Protocol V2 schema. */
 export const V2BlendModeSchema = z.enum([

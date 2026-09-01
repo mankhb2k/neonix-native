@@ -492,14 +492,15 @@ export function createWebGPUBackend(
         }
         const pathWidth = command.width ?? command.mesh?.bounds.width ?? 1;
         const pathHeight = command.height ?? command.mesh?.bounds.height ?? 1;
-        const meshes = [
-          command.fill && command.mesh
-            ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
-            : null,
-          !maskMode && command.stroke && command.strokeMesh
-            ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: command.strokePaint }
-            : null,
-        ].filter((entry) => entry !== null).map((entry) => entry!);
+        const fillMesh = command.fill && command.mesh
+          ? { mesh: command.mesh, color: maskMode === "clip" ? [1, 1, 1, 1] : cssColorToRgba(command.fill), opacity: maskMode === "clip" ? 1 : command.fillOpacity ?? 1, fillPaint: maskMode === "clip" ? undefined : command.fillPaint }
+          : null;
+        const strokeMesh = !maskMode && command.stroke && command.strokeMesh
+          ? { mesh: command.strokeMesh, color: cssColorToRgba(command.stroke), opacity: command.strokeOpacity ?? 1, fillPaint: command.strokePaint }
+          : null;
+        const meshes = (command.paintOrder ?? ["fill", "stroke", "markers"]).flatMap((paint) =>
+          paint === "fill" && fillMesh ? [fillMesh] : paint === "stroke" && strokeMesh ? [strokeMesh] : [],
+        );
         if (meshes.length === 0) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_path_mesh_missing", message: "drawPath requires a Runtime-resolved fill or stroke mesh", key: command.key, layerId: command.layerId });
