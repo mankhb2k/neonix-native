@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { textGlyphCacheKey } from "./text-atlas";
+import { textAtlasScale, textGlyphCacheKey } from "./text-atlas";
 
 const glyph = {
   glyphId: 42,
@@ -30,5 +30,15 @@ describe("text glyph cache key", () => {
     expect(textGlyphCacheKey(glyph, { pixelsPerUnit: 8, transform: [1, 0, 0, 1] })).not.toBe(base);
     expect(textGlyphCacheKey(glyph, { pixelsPerUnit: 16, transform: [2, 0, 0, 2] })).not.toBe(base);
     expect(textGlyphCacheKey({ ...glyph, renderMode: "vector" }, { pixelsPerUnit: 16, transform: [1, 0, 0, 1] })).not.toBe(base);
+  });
+});
+
+describe("text atlas display scaling", () => {
+  it("tracks the effective DPR without growing without bounds", () => {
+    expect(textAtlasScale(0.5)).toBe(8);
+    expect(textAtlasScale(1)).toBe(8);
+    expect(textAtlasScale(1.5)).toBe(12);
+    expect(textAtlasScale(2)).toBe(16);
+    expect(textAtlasScale(4)).toBe(16);
   });
 });

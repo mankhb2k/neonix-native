@@ -16,6 +16,9 @@ export type TextAtlas = {
   id: string;
   asset: PreviewAsset;
   glyphs: TextAtlasGlyph[];
+  /** Monochrome atlas coverage. The transport remains RGBA8 for backend parity. */
+  format: "a8";
+  pixelsPerUnit: number;
 };
 
 export type TextGlyphCacheContext = {
@@ -144,7 +147,18 @@ export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_A
       },
     });
   }
-  const pixels = new Uint8Array(context.getImageData(0, 0, atlasWidth, atlasHeight).data);
+  const rgba = context.getImageData(0, 0, atlasWidth, atlasHeight).data;
+  // The text shader samples only coverage (`sampled.a`). Keep the atlas
+  // semantically A8 and discard the redundant RGB payload. PreviewAsset still
+  // transports RGBA8 because WebGL2/WebGPU share that upload contract; the
+  // RGB bytes are constant white and never affect the result.
+  const pixels = new Uint8Array(atlasWidth * atlasHeight * 4);
+  for (let index = 0; index < rgba.length / 4; index += 1) {
+    pixels[index * 4] = 255;
+    pixels[index * 4 + 1] = 255;
+    pixels[index * 4 + 2] = 255;
+    pixels[index * 4 + 3] = rgba[index * 4 + 3]!;
+  }
   return {
     id: `text-atlas:${command.key}`,
     asset: {
@@ -158,5 +172,7 @@ export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_A
       premultipliedAlpha: false,
     },
     glyphs,
+    format: "a8",
+    pixelsPerUnit,
   };
 }
