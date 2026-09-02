@@ -2121,15 +2121,15 @@ type TextLayer = Extract<V2Layer, { type: "text" }>;
 type TextChunk = TextLayer["payload"]["chunks"][number];
 type TextSpan = TextChunk["spans"][number];
 
-const PREVIEW_ROBOTO_REGULAR_FONT = {
-  id: "preview-roboto-regular-v2",
+const PREVIEW_NOTO_SANS_REGULAR_FONT = {
+  id: "preview-noto-sans-regular-v2",
   kind: "font" as const,
-  uri: "/preview/font/Roboto-Regular.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
   mimeType: "font/ttf" as const,
-  family: "Roboto",
+  family: "Noto Sans",
   weight: 400,
   style: "normal" as const,
-  integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+  integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
 };
 
 function textLayer(options: {
@@ -2180,7 +2180,7 @@ function textLayer(options: {
         spans: [{
           id: `${options.id}-span`,
           sourceRange: { start: 0, end: source.length },
-          font: { families: [PREVIEW_ROBOTO_REGULAR_FONT.family], size: fontSize },
+          font: { families: [PREVIEW_NOTO_SANS_REGULAR_FONT.family], size: fontSize },
           fill: "#f8fafc",
           ...(options.wordSpacing !== undefined ? { wordSpacing: options.wordSpacing } : {}),
           ...(options.textLength !== undefined ? { textLength: options.textLength, lengthAdjust: options.lengthAdjust ?? "spacing" } : {}),
@@ -2215,7 +2215,7 @@ const TEXT_ALIGNMENT_PROJECT = project(
     }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_LEFT_PROJECT = project(
@@ -2239,7 +2239,7 @@ const TEXT_LEFT_PROJECT = project(
     }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_RIGHT_PROJECT = project(
@@ -2263,7 +2263,7 @@ const TEXT_RIGHT_PROJECT = project(
     }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_PARAGRAPH_PROJECT = project(
@@ -2289,7 +2289,7 @@ const TEXT_PARAGRAPH_PROJECT = project(
     }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_LENGTH_PROJECT = project(
@@ -2299,7 +2299,7 @@ const TEXT_LENGTH_PROJECT = project(
     textLayer({ id: "text-length", order: 1, text: "textLength spacingAndGlyphs", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 410, z: 0 } }, frame: { width: 1280, height: 260 }, fontSize: 64, textLength: 1080, lengthAdjust: "spacingAndGlyphs" }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_POSITIONING_PROJECT = project(
@@ -2309,7 +2309,7 @@ const TEXT_POSITIONING_PROJECT = project(
     textLayer({ id: "text-positioning", order: 1, text: "dx dy rotate", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 390, z: 0 } }, frame: { width: 1280, height: 300 }, fontSize: 86, dx: [0, 8, 14, 0, -8, 0, 0, 8, 0, -6, 0, 0, 0], dy: [0, -8, 6, 0, 10, 0, 0, -5, 0, 8, 0, 0, 0], rotate: [0, -8, 10, -5, 0, 0, 0, 8, 0, -8, 0, 0, 0] }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_PATH_PROJECT = project(
@@ -2330,7 +2330,7 @@ const TEXT_PATH_PROJECT = project(
     textLayer({ id: "text-path", order: 1, text: "text follows an SVG path", align: "left", verticalAlign: "top", transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 290, z: 0 } }, frame: { width: 1400, height: 500 }, fontSize: 68, textPath: { pathId: "text-guide", startOffset: 0, method: "align", spacing: "auto" } }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_VERTICAL_PROJECT = project(
@@ -2340,7 +2340,7 @@ const TEXT_VERTICAL_PROJECT = project(
     textLayer({ id: "text-vertical", order: 1, text: "VERTICAL", align: "left", verticalAlign: "top", transform: { ...IDENTITY_TRANSFORM, translate: { x: 960, y: 180, z: 0 } }, frame: { width: 900, height: 720 }, fontSize: 72, lineHeight: 92, writingMode: "vertical-rl" }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const TEXT_DECORATION_STROKE_PROJECT = project(
@@ -2350,7 +2350,7 @@ const TEXT_DECORATION_STROKE_PROJECT = project(
     textLayer({ id: "text-style", order: 1, text: "underline and stroke", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 360, z: 0 } }, frame: { width: 1400, height: 360 }, fontSize: 92, stroke: "#38bdf8", strokeWidth: 3, strokeOpacity: 0.9, paintOrder: ["fill", "stroke", "markers"], textDecoration: { underline: { fill: "#f97316", strokeWidth: 4 }, lineThrough: { fill: "#ef4444", strokeWidth: 3 } } }),
   ],
   ORTHOGRAPHIC_VIEW,
-  [PREVIEW_ROBOTO_REGULAR_FONT],
+  [PREVIEW_NOTO_SANS_REGULAR_FONT],
 );
 
 const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
@@ -3504,7 +3504,7 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     id: "text.single-line.alignment",
     label: "Text / exact font alignment",
     group: "Task 10 / Text",
-    hint: "Roboto Regular is hash-verified, shaped by Runtime, and aligned inside the immutable text frame before its glyph atlas reaches WebGPU or WebGL2.",
+    hint: "Noto Sans Regular is hash-verified, shaped by Runtime, and aligned inside the immutable text frame before its glyph atlas reaches WebGPU or WebGL2.",
     project: TEXT_ALIGNMENT_PROJECT,
   },
   {

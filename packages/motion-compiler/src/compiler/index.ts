@@ -1156,6 +1156,9 @@ function compileVisualRuntimeInternal(
           fontAssetId: textFontAsset.id,
           fontUri: textFontAsset.uri,
           fontIntegrity: textFontAsset.integrity ?? "",
+          ...(firstSpan.font.weight === undefined ? {} : { fontWeight: firstSpan.font.weight }),
+          ...(firstSpan.font.style === undefined ? {} : { fontStyle: firstSpan.font.style }),
+          ...(firstSpan.font.stretch === undefined ? {} : { fontStretch: firstSpan.font.stretch }),
           ...(firstSpan.font.variations ? { variations: { ...firstSpan.font.variations } } : {}),
           ...(textFontFallbacks.length > 1
             ? { fontFallbacks: textFontFallbacks.map((candidate) => ({ assetId: candidate.id, uri: candidate.uri, integrity: candidate.integrity ?? "" })) }

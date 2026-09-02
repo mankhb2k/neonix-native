@@ -786,7 +786,7 @@ export function createWebGPUBackend(
         }
         const atlasScale = textAtlasScale(dpr);
         const atlasKey = textAtlasKey(command, atlasScale, transform.matrix4, dpr);
-        const atlas = textAtlases.get(atlasKey) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
+        const atlas = textAtlases.get(atlasKey) ?? options.textAtlasRasterizer?.({ ...command, key: atlasKey }, atlasScale) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
         if (!atlas) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });

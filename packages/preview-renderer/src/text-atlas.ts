@@ -1,7 +1,7 @@
 import type { PaintCommand } from "@motionvideo/motion-runtime";
 import type { PreviewAsset } from "./shared/types";
 
-type TextCommand = Extract<PaintCommand, { op: "drawText" }>;
+export type TextCommand = Extract<PaintCommand, { op: "drawText" }>;
 
 export type TextAtlasGlyph = {
   x: number;
@@ -20,6 +20,9 @@ export type TextAtlas = {
   format: "a8";
   pixelsPerUnit: number;
 };
+
+/** Optional host-provided rasterizer. It must return the same atlas contract. */
+export type TextAtlasRasterizer = (command: TextCommand, pixelsPerUnit: number) => TextAtlas | null;
 
 export type TextGlyphCacheContext = {
   pixelsPerUnit: number;
@@ -72,14 +75,15 @@ export function textAtlasKey(command: TextCommand, pixelsPerUnit = MIN_TEXT_ATLA
 const PADDING = 2;
 const MAX_ROW_WIDTH = 2048;
 
-/**
- * Rasterize HarfBuzz-derived SVG outlines once into an alpha atlas. Canvas is
- * only an atlas builder: it never measures, wraps, or positions text.
- */
-export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_ATLAS_PIXELS_PER_UNIT): TextAtlas | null {
-  if (!command.glyphs?.length || typeof document === "undefined" || typeof Path2D === "undefined") {
-    return null;
-  }
+export type TextAtlasLayout = {
+  width: number;
+  height: number;
+  glyphs: TextAtlasGlyph[];
+};
+
+/** Calculate atlas placement without invoking a rasterizer. */
+export function textAtlasLayout(command: TextCommand, pixelsPerUnit = MIN_TEXT_ATLAS_PIXELS_PER_UNIT): TextAtlasLayout | null {
+  if (!command.glyphs?.length) return null;
   const cells = command.glyphs.map((glyph) => {
     const width = Math.max(1, Math.ceil((glyph.width + PADDING * 2) * pixelsPerUnit));
     const height = Math.max(1, Math.ceil((glyph.height + PADDING * 2) * pixelsPerUnit));
@@ -102,6 +106,31 @@ export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_A
     atlasWidth = Math.max(atlasWidth, x);
   }
   const atlasHeight = Math.max(1, y + rowHeight);
+  return {
+    width: atlasWidth,
+    height: atlasHeight,
+    glyphs: cells.map(({ glyph, x: cellX, y: cellY }) => ({
+      x: glyph.x - PADDING,
+      y: glyph.y - PADDING,
+      width: glyph.width + PADDING * 2,
+      height: glyph.height + PADDING * 2,
+      ...(glyph.fill ? { fill: glyph.fill } : {}),
+      uv: { x: cellX / atlasWidth, y: cellY / atlasHeight, width: Math.max(1, Math.ceil((glyph.width + PADDING * 2) * pixelsPerUnit)) / atlasWidth, height: Math.max(1, Math.ceil((glyph.height + PADDING * 2) * pixelsPerUnit)) / atlasHeight },
+    })),
+  };
+}
+
+/**
+ * Rasterize HarfBuzz-derived SVG outlines once into an alpha atlas. Canvas is
+ * only an atlas builder: it never measures, wraps, or positions text.
+ */
+export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_ATLAS_PIXELS_PER_UNIT): TextAtlas | null {
+  if (!command.glyphs?.length || typeof document === "undefined" || typeof Path2D === "undefined") {
+    return null;
+  }
+  const layout = textAtlasLayout(command, pixelsPerUnit);
+  if (!layout) return null;
+  const { width: atlasWidth, height: atlasHeight } = layout;
   const canvas = document.createElement("canvas");
   canvas.width = atlasWidth;
   canvas.height = atlasHeight;
@@ -111,41 +140,22 @@ export function createTextAtlas(command: TextCommand, pixelsPerUnit = MIN_TEXT_A
   context.imageSmoothingQuality = "high";
   context.fillStyle = "#ffffff";
   const glyphs: TextAtlasGlyph[] = [];
-  for (const cell of cells) {
-    const { glyph } = cell;
+  for (const [index, glyph] of command.glyphs.entries()) {
+    const atlasGlyph = layout.glyphs[index]!;
     const path = glyph.path ? new Path2D(glyph.path) : null;
     if (!path) {
-      glyphs.push({
-        x: glyph.x - PADDING,
-        y: glyph.y - PADDING,
-        width: glyph.width + PADDING * 2,
-        height: glyph.height + PADDING * 2,
-        ...(glyph.fill ? { fill: glyph.fill } : {}),
-        uv: { x: cell.x / atlasWidth, y: cell.y / atlasHeight, width: cell.width / atlasWidth, height: cell.height / atlasHeight },
-      });
+      glyphs.push(atlasGlyph);
       continue;
     }
     context.save();
     context.translate(
-      cell.x + PADDING * pixelsPerUnit - glyph.outline.x * glyph.pathScale * pixelsPerUnit,
-      cell.y + PADDING * pixelsPerUnit + glyph.outline.y * glyph.pathScale * pixelsPerUnit,
+      atlasGlyph.uv.x * atlasWidth + PADDING * pixelsPerUnit - glyph.outline.x * glyph.pathScale * pixelsPerUnit,
+      atlasGlyph.uv.y * atlasHeight + PADDING * pixelsPerUnit + glyph.outline.y * glyph.pathScale * pixelsPerUnit,
     );
-    context.scale(glyph.pathScale * pixelsPerUnit, -glyph.pathScale * pixelsPerUnit);
+    context.scale(glyph.pathScale * pixelsPerUnit * (glyph.scaleX ?? 1), -glyph.pathScale * pixelsPerUnit);
     context.fill(path);
     context.restore();
-    glyphs.push({
-      x: glyph.x - PADDING,
-      y: glyph.y - PADDING,
-      width: glyph.width + PADDING * 2,
-      height: glyph.height + PADDING * 2,
-      ...(glyph.fill ? { fill: glyph.fill } : {}),
-      uv: {
-        x: cell.x / atlasWidth,
-        y: cell.y / atlasHeight,
-        width: cell.width / atlasWidth,
-        height: cell.height / atlasHeight,
-      },
-    });
+    glyphs.push(atlasGlyph);
   }
   const rgba = context.getImageData(0, 0, atlasWidth, atlasHeight).data;
   // The text shader samples only coverage (`sampled.a`). Keep the atlas

@@ -9,11 +9,11 @@ import { getUserAssetsProvider, publicUserAssetUrl } from "@/lib/server/r2";
 loadEnvConfig(process.cwd(), false);
 
 const TEST_PREFIX = "[Render test]";
-const FONT_ID = "font-roboto-regular";
+const FONT_ID = "font-noto-sans-regular";
 // Keep the built-in font same-origin so local preview and the deployed app
 // resolve the exact public asset without depending on a cross-origin app host.
-const FONT_URI = "/preview/font/Roboto-Regular.ttf";
-const FONT_INTEGRITY = "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459";
+const FONT_URI = "/preview/font/Noto_Sans/NotoSans-Regular.ttf";
+const FONT_INTEGRITY = "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614";
 
 type DbAsset = {
   id: string;
@@ -64,7 +64,7 @@ function fontAsset() {
     kind: "font" as const,
     uri: FONT_URI,
     mimeType: "font/ttf" as const,
-    family: "Roboto",
+    family: "Noto Sans",
     weight: 400,
     style: "normal" as const,
     integrity: FONT_INTEGRITY,
@@ -148,7 +148,7 @@ function text(input: {
         spans: [{
           id: `${input.id}-span`,
           sourceRange: { start: 0, end: source.length },
-          font: { families: ["Roboto"], size: input.size ?? 64 },
+          font: { families: ["Noto Sans"], size: input.size ?? 64 },
           fill: input.fill ?? "#ffffff",
         }],
       }],

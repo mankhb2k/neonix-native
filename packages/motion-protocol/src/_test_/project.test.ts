@@ -745,14 +745,14 @@ describe("Motion Protocol V2 schema", () => {
       ...RECTANGLE_PROJECT,
       id: "text-project-v2",
       assets: [{
-        id: "roboto-regular",
+        id: "noto-sans-regular",
         kind: "font" as const,
-        uri: "/preview/font/Roboto-Regular.ttf",
+        uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
         mimeType: "font/ttf" as const,
-        family: "Roboto",
+        family: "Noto Sans",
         weight: 400,
         style: "normal" as const,
-        integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+        integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
       }],
       layers: [{
         id: "headline",
@@ -772,7 +772,7 @@ describe("Motion Protocol V2 schema", () => {
             spans: [{
               id: "headline-span",
               sourceRange: { start: 0, end: 9 },
-              font: { families: ["Roboto", "sans-serif"], size: 48, weight: 700, variations: { wght: 700 } },
+              font: { families: ["Noto Sans", "sans-serif"], size: 48, weight: 700, variations: { wght: 700 } },
               fill: "#ffffff",
             }],
           }],

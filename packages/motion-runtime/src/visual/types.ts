@@ -198,6 +198,9 @@ export type VisualRuntimeText = {
   fontAssetId: string;
   fontUri: string;
   fontIntegrity: string;
+  fontWeight?: number;
+  fontStyle?: "normal" | "italic" | "oblique";
+  fontStretch?: "ultra-condensed" | "extra-condensed" | "condensed" | "semi-condensed" | "normal" | "semi-expanded" | "expanded" | "extra-expanded" | "ultra-expanded";
   variations?: Record<string, number>;
   /** Ordered runtime font candidates; first is the authored face. */
   fontFallbacks?: Array<{

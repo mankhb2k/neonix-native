@@ -6,7 +6,7 @@ import { prepareVisualRuntimeProjectText } from "./text-layout";
 
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
-const robotoPath = path.join(repoRoot, "apps/web/public/preview/font/Roboto-Regular.ttf");
+const notoSansPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans/NotoSans-Regular.ttf");
 const notoEmojiPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf");
 
 function textContent(overrides: Partial<VisualRuntimeText> = {}): VisualRuntimeText {
@@ -14,7 +14,7 @@ function textContent(overrides: Partial<VisualRuntimeText> = {}): VisualRuntimeT
     kind: "text",
     text: "Hello",
     fontAssetId: "roboto",
-    fontUri: "/preview/font/Roboto-Regular.ttf",
+    fontUri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
     fontIntegrity: "sha256:roboto",
     fontSize: 32,
     lineHeight: 38,
@@ -55,7 +55,7 @@ function project(content: VisualRuntimeText): VisualRuntimeProject {
 
 describe("runtime text shaping and materialization", () => {
   it("keeps GlyphRun separate and selects a grayscale mask for small plain text", async () => {
-    const bytes = await readFile(robotoPath);
+    const bytes = await readFile(notoSansPath);
     const result = await prepareVisualRuntimeProjectText(
       project(textContent()),
       async () => bytes,
@@ -71,13 +71,13 @@ describe("runtime text shaping and materialization", () => {
   });
 
   it("resolves a different font run when the primary face lacks a grapheme", async () => {
-    const [roboto, notoEmoji] = await Promise.all([readFile(robotoPath), readFile(notoEmojiPath)]);
+    const [notoSans, notoEmoji] = await Promise.all([readFile(notoSansPath), readFile(notoEmojiPath)]);
     const result = await prepareVisualRuntimeProjectText(
       project(textContent({
         text: "A 👋",
         fontFallbacks: [{ assetId: "noto-emoji", uri: "/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf", integrity: "sha256:noto" }],
       })),
-      async (font) => font.assetId === "noto-emoji" ? notoEmoji : roboto,
+      async (font) => font.assetId === "noto-emoji" ? notoEmoji : notoSans,
       async () => import("harfbuzzjs"),
     );
     const content = result.project.nodes[0]!.content;

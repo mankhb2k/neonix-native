@@ -29,7 +29,7 @@ const TEXT_LAYER = {
       spans: [{
         id: "span-1",
         sourceRange: { start: 0, end: 4 },
-        font: { families: ["Roboto", "sans-serif"], size: 32, weight: 400, style: "normal" as const },
+        font: { families: ["Noto Sans", "sans-serif"], size: 32, weight: 400, style: "normal" as const },
         fill: "#ffffffff",
         letterSpacing: { value: 1, unit: "px" as const },
       }],

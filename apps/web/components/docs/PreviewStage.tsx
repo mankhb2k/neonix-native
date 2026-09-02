@@ -27,6 +27,7 @@ import {
   type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
 import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-v3";
+import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 
 type PreviewStageProps = {
   project: unknown;
@@ -305,9 +306,13 @@ export function PreviewStage({
         ? await prepareRuntimeProjectV3Text(
             compiled,
             (font) => Promise.resolve(resources.fontBytes.get(font.assetId) ?? null),
-            loadBrowserHarfBuzz,
-          )
+          loadBrowserHarfBuzz,
+        )
         : null;
+      const textAtlasRasterizer = compiled.visual.nodes.some((node) => node.content.kind === "text")
+        ? await createCanvasKitTextAtlasRasterizer().catch(() => undefined)
+        : undefined;
+      canvas.dataset.textRasterizer = textAtlasRasterizer ? "canvaskit" : "canvas2d";
       if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
         resources.release();
         return;
@@ -324,6 +329,7 @@ export function PreviewStage({
           devicePixelRatio: initialRenderDpr,
           preserveDrawingBuffer,
           assets: resources.assets,
+          textAtlasRasterizer,
         });
         if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
           renderer.dispose();

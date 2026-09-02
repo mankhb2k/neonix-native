@@ -53,21 +53,35 @@ type PathSegment =
   | { kind: "arc"; radii: { x: number; y: number }; rotation: number; largeArc: boolean; sweep: boolean; to: PathPoint };
 
 const TEXT_PREVIEW_FONT = {
-  id: "debug-roboto-regular",
+  id: "debug-noto-sans-regular",
   kind: "font" as const,
-  uri: "/preview/font/Roboto-Regular.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
   mimeType: "font/ttf" as const,
-  family: "Roboto",
+  family: "Noto Sans",
   weight: 400,
   style: "normal" as const,
-  integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+  integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
+};
+
+const TEXT_PREVIEW_BOLD_ITALIC_FONT = {
+  id: "debug-noto-sans-bold-italic",
+  kind: "font" as const,
+  uri: "/preview/font/Noto_Sans/NotoSans-BoldItalic.ttf",
+  mimeType: "font/ttf" as const,
+  family: "Noto Sans",
+  weight: 700,
+  style: "italic" as const,
+  integrity: "sha256:7e34616e092593c340449baf9a259075a054c6419511ccf21ff0d83a1c9dd0d0",
 };
 
 function project(id: string, layers: MotionProtocolV2["layers"], filters: V2Filter[] = [], assets: MotionProtocolV2["assets"] = []): MotionProtocolV2 {
+  const projectAssets = assets.some((asset) => asset.id === TEXT_PREVIEW_FONT.id)
+    ? [...assets, ...(assets.some((asset) => asset.id === TEXT_PREVIEW_BOLD_ITALIC_FONT.id) ? [] : [TEXT_PREVIEW_BOLD_ITALIC_FONT])]
+    : assets;
   return {
     format: "motion-protocol", formatVersion: 2, id,
     composition: { width: 960, height: 540, fps: 30, background: "#101820", colorSpace: "srgb", view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } },
-    assets, ...(filters.length ? { filters } : {}), audio: { sampleRate: 48000, tracks: [] }, layers,
+    assets: projectAssets, ...(filters.length ? { filters } : {}), audio: { sampleRate: 48000, tracks: [] }, layers,
   };
 }
 
@@ -117,7 +131,7 @@ function textLayer(id: string, value: string, options: {
         spans: spans.map((span) => ({
           id: span.id,
           sourceRange: { start: span.start, end: span.end },
-          font: { ...fontOverrides, families: fontOverrides?.families ?? ["Roboto", "sans-serif"], size: fontOverrides?.size ?? fontSize },
+          font: { ...fontOverrides, families: fontOverrides?.families ?? ["Noto Sans", "sans-serif"], size: fontOverrides?.size ?? fontSize },
           fill: span.fill,
           ...(options.letterSpacing !== undefined ? { letterSpacing: { value: options.letterSpacing, unit: "px" as const } } : {}),
           ...(options.wordSpacing !== undefined ? { wordSpacing: { value: options.wordSpacing, unit: "px" as const } } : {}),
@@ -243,7 +257,7 @@ export const PATH_RENDERING_FIXTURES: PathRenderingFixture[] = [
   { id: "text-length-adjust", label: "Text / textLength spacingAndGlyphs", project: project("debug-text-length-adjust", [textLayer("text-length-adjust", "fixed measure", { x: 120, y: 120, fontSize: 64, spanStyle: { textLength: { value: 600, unit: "px" }, lengthAdjust: "spacingAndGlyphs" } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "fixed measure", x: 120, y: 190, fontSize: 64, textLength: 600, lengthAdjust: "spacingAndGlyphs" }, svg: [], probes: [{ name: "text", x: 400, y: 190, expected: "paint" }, { name: "outside", x: 120, y: 300, expected: "background" }] },
   { id: "text-path", label: "Text / textPath reference", project: project("debug-text-path", [pathLayer("text-baseline-path", { start: { x: 100, y: 300 }, segments: [{ kind: "cubic", control1: { x: 260, y: 100 }, control2: { x: 420, y: 100 }, to: { x: 580, y: 300 } }, { kind: "cubic", control1: { x: 740, y: 500 }, control2: { x: 820, y: 500 }, to: { x: 900, y: 260 } }], closed: false }, { fill: "none", stroke: "#334155", strokeWidth: 3, strokeDash: { array: [8, 12], offset: 0 } }), { ...textLayer("text-path-label", "text on a path", { x: 0, y: 0, fontSize: 52, textPath: { pathId: "text-baseline-path", startOffset: 24 } }), order: 1 }], [], [TEXT_PREVIEW_FONT]), svgText: { text: "text on a path", x: 0, y: 0, fontSize: 52, textPathD: "M 100 300 C 260 100 420 100 580 300 S 820 500 900 260", textPathStartOffset: 24 }, svg: [{ d: "M 100 300 C 260 100 420 100 580 300 S 820 500 900 260", fill: "none", stroke: "#334155", strokeWidth: 3, dash: "8 12" }], probes: [{ name: "path", x: 340, y: 190, expected: "paint" }, { name: "outside", x: 120, y: 80, expected: "background" }] },
   { id: "text-vertical", label: "Text / vertical writing-mode", project: project("debug-text-vertical", [textLayer("text-vertical", "VERT", { x: 480, y: 80, fontSize: 64, writingMode: "vertical-rl" })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "VERT", x: 480, y: 90, fontSize: 64, writingMode: "vertical-rl" }, svg: [], probes: [{ name: "text", x: 480, y: 180, expected: "paint" }, { name: "outside", x: 300, y: 180, expected: "background" }] },
-  { id: "text-font-variant", label: "Text / font style and stretch", project: project("debug-text-font-variant", [textLayer("text-font-variant", "italic expanded", { x: 100, y: 120, fontSize: 64, spanStyle: { font: { weight: 700, style: "italic", stretch: "expanded" } } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "italic expanded", x: 100, y: 190, fontSize: 64, fontWeight: 700, fontStyle: "italic", fontStretch: "expanded" }, svg: [], probes: [{ name: "text", x: 250, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
+  { id: "text-font-variant", label: "Text / font style and stretch", project: project("debug-text-font-variant", [textLayer("text-font-variant", "italic expanded", { x: 100, y: 120, fontSize: 64, spanStyle: { font: { families: ["Noto Sans", "sans-serif"], weight: 700, style: "italic", stretch: "expanded" } } })], [], [TEXT_PREVIEW_FONT, TEXT_PREVIEW_BOLD_ITALIC_FONT]), svgText: { text: "italic expanded", x: 100, y: 190, fontSize: 64, fontWeight: 700, fontStyle: "italic", fontStretch: "expanded" }, svg: [], probes: [{ name: "text", x: 250, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
   { id: "text-decoration", label: "Text / decoration", project: project("debug-text-decoration", [textLayer("text-decoration", "decorated text", { x: 100, y: 120, fontSize: 64, spanStyle: { textDecoration: { underline: { stroke: "#f97316", strokeWidth: { value: 4, unit: "px" } }, overline: { fill: "#38bdf8" }, lineThrough: { stroke: "#fb7185" } } } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "decorated text", x: 100, y: 190, fontSize: 64, textDecoration: "underline overline line-through", stroke: undefined }, svg: [], probes: [{ name: "text", x: 220, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
   { id: "text-stroke", label: "Text / stroke and paint-order", project: project("debug-text-stroke", [textLayer("text-stroke", "outlined type", { x: 100, y: 120, fontSize: 72, spanStyle: { fill: "#f8fafc", stroke: "#f43f5e", strokeWidth: { value: 4, unit: "px" }, paintOrder: ["stroke", "fill", "markers"] } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "outlined type", x: 100, y: 200, fontSize: 72, stroke: "#f43f5e", strokeWidth: 4 }, svg: [], probes: [{ name: "text", x: 220, y: 200, expected: "paint" }, { name: "outside", x: 100, y: 320, expected: "background" }] },
   { id: "text-whitespace", label: "Text / preserved whitespace", project: project("debug-text-whitespace", [textLayer("text-whitespace", "  preserve   spaces", { x: 100, y: 120, fontSize: 64, whiteSpace: "preserve", textRendering: "geometricPrecision" })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "  preserve   spaces", x: 100, y: 190, fontSize: 64, whiteSpace: "pre", textRendering: "geometricPrecision" }, svg: [], probes: [{ name: "text", x: 260, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },

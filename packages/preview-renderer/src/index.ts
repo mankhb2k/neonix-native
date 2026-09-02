@@ -22,6 +22,18 @@ export {
   webglClipSpaceProjection,
 } from "./math";
 export { cssColorToRgba } from "./shared/color";
+export {
+  createTextAtlas,
+  textAtlasLayout,
+  textAtlasKey,
+  textAtlasScale,
+  textGlyphCacheKey,
+  type TextAtlas,
+  type TextAtlasGlyph,
+  type TextAtlasLayout,
+  type TextAtlasRasterizer,
+  type TextCommand,
+} from "./text-atlas";
 export { imageLayout, mediaLayout, type MediaLayout } from "./media";
 export {
   buildEffectPassPlan,

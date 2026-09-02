@@ -27,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.787.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@motionvideo/editor-core": "workspace:*",
+    "@motionvideo/export-renderer": "workspace:*",
     "@motionvideo/html-compiler": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-mcp": "workspace:*",
@@ -34,12 +35,13 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/playback-engine": "workspace:*",
     "@motionvideo/preview-renderer": "workspace:*",
-    "@motionvideo/export-renderer": "workspace:*",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "@tailwindcss/postcss": "^4.3.3",
+    "canvaskit-wasm": "0.42.0",
     "clsx": "^2.1.1",
     "github-slugger": "^2.0.0",
+    "harfbuzzjs": "^1.6.0",
     "jose": "^6.2.10",
     "lucide-react": "^1.25.0",
     "next": "^15.2.4",
@@ -53,8 +55,7 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14",
-    "harfbuzzjs": "^1.6.0"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",

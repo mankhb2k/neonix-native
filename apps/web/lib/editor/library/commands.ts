@@ -4,14 +4,14 @@ import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
 import type { V2Asset, MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export const DEFAULT_FONT_ASSET: V2Asset = {
-  id: "font-roboto-regular",
+  id: "font-noto-sans-regular",
   kind: "font",
-  uri: "/preview/font/Roboto-Regular.ttf",
+  uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
   mimeType: "font/ttf",
-  family: "Roboto",
+  family: "Noto Sans",
   weight: 400,
   style: "normal",
-  integrity: "sha256:15256405ecb0d880678833a582760efad538ab2932318b52c8105b267d159459",
+  integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
 };
 
 function transform(
@@ -59,7 +59,7 @@ function textPayload(text: string) {
       spans: [{
         id: "text-span",
         sourceRange: { start: 0, end: source.length },
-        font: { families: ["Roboto"], size: 72 },
+        font: { families: ["Noto Sans"], size: 72 },
         fill: "#f7e7bd",
       }],
     }],

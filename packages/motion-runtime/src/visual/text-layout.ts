@@ -214,7 +214,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const spacingShift = text.textLength !== undefined && !useGlyphScale && lineGlyphs.length > 1 ? (targetAdvance - naturalAdvance) * glyphIndex / (lineGlyphs.length - 1) : 0;
         glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift;
         glyph.y += adjustedBaselineY;
-        if (useGlyphScale) { glyph.width *= lengthScale; glyph.scaleX = lengthScale; }
+        if (useGlyphScale) { glyph.width *= lengthScale; glyph.scaleX = (glyph.scaleX ?? 1) * lengthScale; }
         const characterIndex = Math.max(0, Math.min(sourceLine.length - 1, glyph.cluster - sourceOffset));
         const rotation = text.rotate?.[characterIndex] ?? 0;
         if (rotation) glyph.rotation = rotation;
@@ -234,9 +234,17 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const glyph = entry.glyph;
         const progress = text.textLength !== undefined && text.lengthAdjust !== "spacingAndGlyphs" && lineGlyphs.length > 1 ? entry.advanceStart + (targetAdvance - naturalAdvance) * lineGlyphs.indexOf(entry) / (lineGlyphs.length - 1) : entry.advanceStart * pathScale;
         const sample = sampleContourAtDistance(textPath, text.textPath.startOffset + progress);
-        glyph.rotation = Math.atan2(sample.tangent.y, sample.tangent.x) * 180 / Math.PI;
-        glyph.x = sample.point.x;
-        glyph.y = sample.point.y;
+        const angle = Math.atan2(sample.tangent.y, sample.tangent.x);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const xBearing = glyph.xBearing * entry.font.fontScale;
+        const yBearing = glyph.yBearing * entry.font.fontScale;
+        // glyphPathToMesh positions glyph.x/y at the outline's top-left
+        // anchor, while SVG textPath places the glyph baseline on the path.
+        // Convert the baseline sample into that anchor before rotating.
+        glyph.rotation = angle * 180 / Math.PI;
+        glyph.x = sample.point.x + cos * xBearing + sin * yBearing;
+        glyph.y = sample.point.y + sin * xBearing - cos * yBearing;
       }
     }
     if (!vertical && text.textDecoration) {
@@ -278,9 +286,15 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
       };
       if (renderMode === "vector") {
         paintGlyph.mesh = glyphPathToMesh(path, resolved.fontScale, outline, glyph.x, glyph.y) ?? undefined;
+        if (paintGlyph.mesh && glyph.scaleX && glyph.scaleX !== 1) {
+          paintGlyph.mesh = transformPathMesh(paintGlyph.mesh, { scaleX: glyph.scaleX, originX: glyph.x, originY: glyph.y });
+        }
         if (text.stroke && text.strokeWidth) {
           paintGlyph.stroke = text.stroke; paintGlyph.strokePaint = text.strokePaint; paintGlyph.strokeWidth = text.strokeWidth; paintGlyph.strokeOpacity = text.strokeOpacity;
           paintGlyph.strokeMesh = glyphPathToStrokeMesh(path, resolved.fontScale, outline, glyph.x, glyph.y, text.strokeWidth) ?? undefined;
+          if (paintGlyph.strokeMesh && glyph.scaleX && glyph.scaleX !== 1) {
+            paintGlyph.strokeMesh = transformPathMesh(paintGlyph.strokeMesh, { scaleX: glyph.scaleX, originX: glyph.x, originY: glyph.y });
+          }
         }
         if (glyph.rotation) {
           paintGlyph.mesh = paintGlyph.mesh ? transformPathMesh(paintGlyph.mesh, { rotation: glyph.rotation, originX: glyph.x, originY: glyph.y }) : undefined;

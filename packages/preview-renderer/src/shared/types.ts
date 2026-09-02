@@ -3,6 +3,7 @@ import type {
   RenderMediaFit,
   RuntimeFrameV3,
 } from "@motionvideo/motion-runtime";
+import type { TextAtlasRasterizer } from "../text-atlas";
 
 export type PreviewBackendKind = "webgl2" | "webgpu";
 export type PreviewBackendPreference = PreviewBackendKind | "auto";
@@ -65,6 +66,8 @@ export type PreviewRendererOptions = {
   background?: string;
   assets?: ReadonlyMap<string, PreviewAsset>;
   resolveAsset?: PreviewAssetResolver;
+  /** Optional shared text rasterizer, e.g. CanvasKit/Skia WASM. */
+  textAtlasRasterizer?: TextAtlasRasterizer;
   onDiagnostic?: (diagnostic: PreviewDiagnostic) => void;
   /** Maximum backend diagnostics retained in memory. */
   maxDiagnostics?: number;

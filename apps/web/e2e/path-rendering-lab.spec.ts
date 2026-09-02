@@ -32,6 +32,10 @@ test.describe("Path rendering parity lab", () => {
         // land below the alpha threshold used by the native pixel reader.
         // These cases are evaluated from the captured panel images and bounds.
         expect(webgl!.paintedPixels).toBeGreaterThan(0);
+        if (id.startsWith("text-")) {
+          await expect(page.getByTestId("path-debug-webgl2")).toHaveAttribute("data-text-rasterizer", "canvaskit");
+          await expect(page.getByTestId("path-debug-webgpu")).toHaveAttribute("data-text-rasterizer", "canvaskit");
+        }
       } else {
         expect(webgl!.backgroundHoles).toBe(0);
         expect(webgl!.probes.every((probe) => probe.actual === probe.expected)).toBe(true);
