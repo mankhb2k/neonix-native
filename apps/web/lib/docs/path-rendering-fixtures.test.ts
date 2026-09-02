@@ -16,7 +16,7 @@ describe("path rendering filter parity fixtures", () => {
 
   it("compiles semantic text fixtures into runtime text nodes", () => {
     const textFixtures = PATH_RENDERING_FIXTURES.filter((fixture) => fixture.svgText);
-    expect(textFixtures).toHaveLength(22);
+    expect(textFixtures).toHaveLength(25);
 
     for (const fixture of textFixtures) {
       const runtime = compileProtocol(fixture.project);

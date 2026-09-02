@@ -22,7 +22,7 @@ test.describe("Path rendering parity lab", () => {
     const captureDirectory = path.resolve(process.cwd(), "..", "..", "tmp", "path-rendering-text");
     await mkdir(captureDirectory, { recursive: true });
     const report: Record<string, unknown> = {};
-    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash", "quadratic-round", "arc-round", "arc-closed", "mesh-transparent-join", "mesh-open-fill", "mesh-concave-round", "mesh-curved-round", "filter-fe-gaussian-blur", "filter-fe-gaussian-blur-4", "filter-fe-gaussian-blur-40", "filter-fe-gaussian-blur-256", "filter-fe-drop-shadow", "filter-fe-outer-glow", "filter-fe-inner-glow", "filter-fe-color-matrix-saturate", "filter-fe-color-matrix-hue", "text-plain", "text-mask-12", "text-mask-24", "text-mask-48", "text-vector-large", "text-vector-rotate", "text-anchor-middle", "text-multiline", "text-spacing", "text-rtl", "text-tspan-paint", "text-positioned", "text-baseline", "text-length-adjust", "text-path", "text-vertical", "text-font-variant", "text-decoration", "text-stroke", "text-whitespace", "text-word-spacing", "text-ligature-emoji"]) {
+    for (const id of ["join-round", "round-right-angle", "round-acute", "round-zigzag", "round-closed", "closed-dash", "shape-dash", "quadratic-round", "arc-round", "arc-closed", "mesh-transparent-join", "mesh-open-fill", "mesh-concave-round", "mesh-curved-round", "filter-fe-gaussian-blur", "filter-fe-gaussian-blur-4", "filter-fe-gaussian-blur-40", "filter-fe-gaussian-blur-256", "filter-fe-drop-shadow", "filter-fe-outer-glow", "filter-fe-inner-glow", "filter-fe-color-matrix-saturate", "filter-fe-color-matrix-hue", "text-plain", "text-mask-12", "text-mask-24", "text-mask-48", "text-vector-large", "text-vector-rotate", "text-anchor-middle", "text-multiline", "text-spacing", "text-rtl", "text-tspan-paint", "text-positioned", "text-baseline", "text-length-adjust", "text-path", "text-vertical", "text-font-variant", "text-decoration", "text-stroke", "text-whitespace", "text-word-spacing", "text-ligature-emoji", "text-emoji-only", "text-emoji-zwj", "text-emoji-variation"]) {
       const measurements = await selectCase(page, id) as Array<{ backend: string; backgroundHoles: number; paintedPixels: number; probes: Array<{ actual: string; expected: string }> }>;
       report[id] = measurements;
       const webgl = measurements.find((entry) => entry.backend === "webgl2");
@@ -47,5 +47,25 @@ test.describe("Path rendering parity lab", () => {
       }
     }
     await writeFile(path.join(captureDirectory, "report.json"), JSON.stringify(report, null, 2), "utf8");
+  });
+
+  test("renders the full color emoji glyph after a fixture switch", async ({ page }) => {
+    await page.goto("/debug/path-rendering?case=text-ligature-emoji");
+    await expect(page.getByTestId("path-rendering-measurements")).toHaveAttribute("data-fixture-id", "text-ligature-emoji");
+    const canvas = page.getByTestId("path-debug-webgl2");
+    await expect(canvas).toHaveAttribute("data-backend", "webgl2", { timeout: 30_000 });
+    await expect(canvas).toHaveAttribute("data-text-rasterizer", "canvaskit", { timeout: 30_000 });
+    await expect.poll(async () => canvas.evaluate((node) => {
+      if (!(node instanceof HTMLCanvasElement)) throw new Error("Expected WebGL2 debug canvas");
+      const gl = node.getContext("webgl2");
+      if (!gl) throw new Error("Expected WebGL2 context");
+      const pixels = new Uint8Array(node.width * node.height * 4);
+      gl.readPixels(0, 0, node.width, node.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      let count = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index]! > 180 && pixels[index + 1]! > 80 && pixels[index + 1]! < 210 && pixels[index + 2]! < 100 && pixels[index + 3]! > 0) count += 1;
+      }
+      return count;
+    })).toBeGreaterThan(0);
   });
 });

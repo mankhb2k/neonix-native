@@ -837,7 +837,8 @@ export function createWebGL2Backend(
         // Prefer the resolved vector outline. This is the same geometry that
         // export writes as SVG paths and avoids a second low-resolution text
         // rasterization through an alpha atlas.
-        const hasVectorRenderableGlyphs = command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
+        const hasColorGlyphs = command.glyphs.some((glyph) => glyph.colorGlyph !== undefined || glyph.renderMode?.startsWith("color-"));
+        const hasVectorRenderableGlyphs = !hasColorGlyphs && command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
         if (hasVectorRenderableGlyphs) {
           blend(gl, maskMode ? "normal" : drawBlendMode());
           bindVertexBuffer(pathBuffer);
@@ -892,7 +893,11 @@ export function createWebGL2Backend(
         }
         const atlasScale = textAtlasScale(dpr);
         const atlasKey = textAtlasKey(command, atlasScale, transform.matrix4, dpr);
-        const atlas = textAtlases.get(atlasKey) ?? options.textAtlasRasterizer?.({ ...command, key: atlasKey }, atlasScale) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
+        const needsColorAtlas = hasColorGlyphs;
+        const cachedCandidate = textAtlases.get(atlasKey);
+        const cachedAtlas = cachedCandidate && ((cachedCandidate.format === "rgba") === needsColorAtlas) ? cachedCandidate : undefined;
+        const rasterizedAtlas = cachedAtlas ?? options.textAtlasRasterizer?.({ ...command, key: atlasKey }, atlasScale);
+        const atlas = rasterizedAtlas ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
         if (!atlas) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
@@ -907,7 +912,9 @@ export function createWebGL2Backend(
         blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
         gl.uniformMatrix4fv(projectionLocation, false, projection);
-        gl.uniform1i(modeLocation, 2);
+        // Mode 2 is an A8 coverage mask; mode 3 preserves the atlas RGB for
+        // embedded color glyphs such as COLRv1 emoji.
+        gl.uniform1i(modeLocation, atlas.format === "rgba" ? 3 : 2);
         gl.uniform1i(shapeLocation, 0);
         gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
         gl.uniform2f(strokeExtentLocation, 0, 0);

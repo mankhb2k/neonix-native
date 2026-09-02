@@ -15,7 +15,7 @@ function SvgReference({ fixture }: { fixture: PathRenderingFixture }) {
     ? { x: "-100%", y: "-100%", width: "300%", height: "300%" }
     : { x: "-20%", y: "-20%", width: "140%", height: "140%" };
   return <svg viewBox="0 0 960 540" className="h-full w-full bg-[#101820]" aria-label="SVG reference">
-    <style>{`@font-face { font-family: "Noto Sans"; src: url("/preview/font/Noto_Sans/NotoSans-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; } @font-face { font-family: "Noto Sans"; src: url("/preview/font/Noto_Sans/NotoSans-BoldItalic.ttf") format("truetype"); font-weight: 700; font-style: italic; }`}</style>
+    <style>{`@font-face { font-family: "Noto Sans"; src: url("/preview/font/Noto_Sans/NotoSans-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; } @font-face { font-family: "Noto Sans"; src: url("/preview/font/Noto_Sans/NotoSans-BoldItalic.ttf") format("truetype"); font-weight: 700; font-style: italic; } @font-face { font-family: "Noto Color Emoji"; src: url("/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; }`}</style>
     {filter ? <defs><filter id={filterId} {...filterRegion}>
       {filter.kind === "blur" && <feGaussianBlur in="SourceGraphic" stdDeviation={stdDeviation} />}
       {filter.kind === "drop-shadow" && <feDropShadow in="SourceGraphic" dx="18" dy="20" stdDeviation="12" floodColor="#ff3366" floodOpacity="0.8" />}
@@ -26,7 +26,7 @@ function SvgReference({ fixture }: { fixture: PathRenderingFixture }) {
     </filter></defs> : null}
     {fixture.svg.map((item) => <path key={item.d} d={item.d} filter={filterId ? `url(#${filterId})` : undefined} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} transform={item.transform} vectorEffect={item.vectorEffect} />)}
     {fixture.svgText?.textPathD ? <defs><path id={`${fixture.id}-text-path`} d={fixture.svgText.textPathD} /></defs> : null}
-    {fixture.svgText ? <text x={fixture.svgText.x} y={fixture.svgText.y} dx={fixture.svgText.dx?.join(" ")} dy={fixture.svgText.dy?.join(" ")} rotate={fixture.svgText.rotate?.join(" ")} fontFamily="Noto Sans, sans-serif" fontSize={fixture.svgText.fontSize} fontWeight={fixture.svgText.fontWeight} fontStyle={fixture.svgText.fontStyle} fontStretch={fixture.svgText.fontStretch} fill="#f8fafc" stroke={fixture.svgText.stroke} strokeWidth={fixture.svgText.strokeWidth} textAnchor={fixture.svgText.textAnchor} letterSpacing={fixture.svgText.letterSpacing} wordSpacing={fixture.svgText.wordSpacing} direction={fixture.svgText.direction} writingMode={fixture.svgText.writingMode} style={fixture.svgText.whiteSpace ? { whiteSpace: fixture.svgText.whiteSpace } : undefined} textRendering={fixture.svgText.textRendering} dominantBaseline={fixture.svgText.dominantBaseline} alignmentBaseline={fixture.svgText.alignmentBaseline} baselineShift={fixture.svgText.baselineShift} textLength={fixture.svgText.textLength} lengthAdjust={fixture.svgText.lengthAdjust} textDecoration={fixture.svgText.textDecoration} unicodeBidi={fixture.svgText.direction === "rtl" ? "bidi-override" : undefined}>
+    {fixture.svgText ? <text x={fixture.svgText.x} y={fixture.svgText.y} dx={fixture.svgText.dx?.join(" ")} dy={fixture.svgText.dy?.join(" ")} rotate={fixture.svgText.rotate?.join(" ")} fontFamily="Noto Sans, 'Noto Color Emoji', sans-serif" fontSize={fixture.svgText.fontSize} fontWeight={fixture.svgText.fontWeight} fontStyle={fixture.svgText.fontStyle} fontStretch={fixture.svgText.fontStretch} fill="#f8fafc" stroke={fixture.svgText.stroke} strokeWidth={fixture.svgText.strokeWidth} textAnchor={fixture.svgText.textAnchor} letterSpacing={fixture.svgText.letterSpacing} wordSpacing={fixture.svgText.wordSpacing} direction={fixture.svgText.direction} writingMode={fixture.svgText.writingMode} style={fixture.svgText.whiteSpace ? { whiteSpace: fixture.svgText.whiteSpace } : undefined} textRendering={fixture.svgText.textRendering} dominantBaseline={fixture.svgText.dominantBaseline} alignmentBaseline={fixture.svgText.alignmentBaseline} baselineShift={fixture.svgText.baselineShift} textLength={fixture.svgText.textLength} lengthAdjust={fixture.svgText.lengthAdjust} textDecoration={fixture.svgText.textDecoration} unicodeBidi={fixture.svgText.direction === "rtl" ? "bidi-override" : undefined}>
       {fixture.svgText.textPathD ? <textPath href={`#${fixture.id}-text-path`} startOffset={`${fixture.svgText.textPathStartOffset ?? 0}px`}>{fixture.svgText.text}</textPath> : fixture.svgText.spans?.length ? fixture.svgText.spans.map((span) => <tspan key={`${span.text}-${span.fill}`} fill={span.fill}>{span.text}</tspan>) : fixture.svgText.text}
     </text> : null}
   </svg>;
@@ -65,6 +65,10 @@ async function measureCanvas(canvas: HTMLCanvasElement, fixture: PathRenderingFi
 
 export function PathRenderingLab() {
   const [fixtureId, setFixtureId] = useState(PATH_RENDERING_FIXTURES[0].id);
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("case");
+    if (requested) setFixtureId(pathRenderingFixtureById(requested).id);
+  }, []);
   const fixture = useMemo(() => pathRenderingFixtureById(fixtureId), [fixtureId]);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   useEffect(() => {

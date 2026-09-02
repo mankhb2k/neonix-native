@@ -24,8 +24,8 @@ import {
   type PreviewAsset,
   type PreviewBackendKind,
   type PreviewBackendPreference,
-  type PreviewRenderer,
 } from "@motionvideo/preview-renderer";
+import { createSkiaRenderer, skiaTextGlyphAssetId } from "@motionvideo/skia-renderer";
 import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-v3";
 import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 
@@ -39,17 +39,42 @@ type PreviewStageProps = {
   externalPlayback?: boolean;
   /** Imperative frame path used by editor mode; avoids React state per RAF. */
   registerPlaybackFrameSink?: (sink: (event: PlaybackFrameEventV3) => void) => () => void;
-  backend?: PreviewBackendPreference;
-  onBackendReady?: (backend: PreviewBackendKind | null) => void;
+  backend?: PreviewStageBackendPreference;
+  onBackendReady?: (backend: PreviewStageBackendKind | null) => void;
   /** Keep the WebGL backbuffer only for capture/test scenarios. */
   preserveDrawingBuffer?: boolean;
   /** Stable identifier for diagnostic pages with more than one renderer. */
   testId?: string;
+  /** Exposes the exact prepared RuntimeFrameV3 painted by the backend. */
+  onFrameReady?: (frame: RuntimeFrameV3) => void;
   onVideoElement?: (
     assetId: string,
     element: HTMLVideoElement,
     onFrameReady?: () => void,
   ) => void | (() => void);
+};
+
+type PreviewStageBackendKind = PreviewBackendKind | "skia";
+type PreviewStageBackendPreference = PreviewBackendPreference | "skia";
+
+type StageRenderer = {
+  readonly backend: PreviewStageBackendKind;
+  readonly canvas: HTMLCanvasElement | OffscreenCanvas;
+  paintFrame(frame: RuntimeFrameV3): void;
+  resize(width: number, height: number, devicePixelRatio?: number): void;
+  setAsset(assetId: string, asset: PreviewAsset): void;
+  removeAsset(assetId: string): void;
+  setFont?(fontAssetId: string, font: ArrayBuffer | Uint8Array): void;
+  removeFont?(fontAssetId: string): void;
+  getStats(): {
+    drawCalls: number;
+    frameTimeMs: number;
+    nativeTextGlyphs?: number;
+    outlineTextGlyphs?: number;
+    colorTextGlyphs?: number;
+    diagnostics: readonly { code: string }[];
+  };
+  dispose(): void;
 };
 
 export function PreviewStage({
@@ -60,17 +85,20 @@ export function PreviewStage({
   isPlaying = false,
   externalPlayback = false,
   registerPlaybackFrameSink,
-  backend = "auto",
+  backend = "skia",
   onBackendReady,
   preserveDrawingBuffer = false,
   testId = "preview-v2-canvas",
+  onFrameReady,
   onVideoElement,
 }: PreviewStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<PreviewRenderer | null>(null);
+  const rendererRef = useRef<StageRenderer | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const projectRef = useRef<ReturnType<typeof MotionProtocolV2Schema.parse> | null>(null);
   const assetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
+  const skiaTextAssetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
+  const skiaFontBytesRef = useRef<ReadonlyMap<string, ArrayBuffer>>(new Map());
   const resourcesRef = useRef<PreviewResources | null>(null);
   const resourceRegistryRef = useRef<PreviewResourceRegistry | null>(null);
   if (!resourceRegistryRef.current) resourceRegistryRef.current = new PreviewResourceRegistry();
@@ -79,6 +107,7 @@ export function PreviewStage({
   const runtimeRef = useRef<RuntimeProjectV3 | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
   const onBackendReadyRef = useRef(onBackendReady);
+  const onFrameReadyRef = useRef(onFrameReady);
   const onVideoElementRef = useRef(onVideoElement);
   const videoRegistrationDisposersRef = useRef<Array<() => void>>([]);
   const playbackFrameSinkReleaseRef = useRef<(() => void) | null>(null);
@@ -94,6 +123,7 @@ export function PreviewStage({
   const [resourceReadyToken, setResourceReadyToken] = useState(0);
   const [rendererError, setRendererError] = useState<string | null>(null);
   onBackendReadyRef.current = onBackendReady;
+  onFrameReadyRef.current = onFrameReady;
   onVideoElementRef.current = onVideoElement;
   const renderProject = useMemo(() => {
     if (hiddenLayerIds.length === 0 || !project || typeof project !== "object") {
@@ -120,6 +150,14 @@ export function PreviewStage({
     [renderProject],
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
+  // Keep synchronous frame effects from pairing a newly selected project with
+  // the previous project's prepared RuntimeProject while resource loading is
+  // still in flight.
+  if (projectRef.current !== parsedProject) {
+    projectRef.current = parsedProject;
+    runtimeRef.current = null;
+    preparationDiagnosticsRef.current = [];
+  }
   const error = parsedResult.success ? rendererError : parsedResult.error.message;
   frameRef.current = frame ?? null;
   isPlayingRef.current = isPlaying;
@@ -146,6 +184,7 @@ export function PreviewStage({
       assetsRef.current,
       false,
       preparationDiagnosticsRef.current,
+      onFrameReadyRef.current,
     );
   }, []);
 
@@ -167,6 +206,7 @@ export function PreviewStage({
       assetsRef.current,
       isPlayingRef.current,
       preparationDiagnosticsRef.current,
+      onFrameReadyRef.current,
     );
     return undefined;
   }, [externalPlayback, frame, isPlaying, time]);
@@ -200,6 +240,7 @@ export function PreviewStage({
         assetsRef.current,
         event.playing,
         preparationDiagnosticsRef.current,
+        onFrameReadyRef.current,
       );
     });
     playbackFrameSinkReleaseRef.current = release;
@@ -211,7 +252,7 @@ export function PreviewStage({
     };
   }, [externalPlayback, registerPlaybackFrameSink, resourceReadyToken]);
 
-  // The canvas and GPU renderer live for the lifetime of the backend. Keeping
+  // The canvas and renderer live for the lifetime of the selected backend. Keeping
   // them mounted while the document changes prevents a visible blank frame
   // when a layer is added from the editor header.
   useEffect(() => {
@@ -240,6 +281,9 @@ export function PreviewStage({
       resourcesRef.current?.release();
       resourcesRef.current = null;
       assetsRef.current = new Map();
+      releaseSkiaTextAssets(skiaTextAssetsRef.current);
+      skiaTextAssetsRef.current = new Map();
+      skiaFontBytesRef.current = new Map();
       runtimeRef.current = null;
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
@@ -284,7 +328,10 @@ export function PreviewStage({
     let cancelled = false;
     const resourceGeneration = ++resourceGenerationRef.current;
     const devicePixelRatio = window.devicePixelRatio || 1;
-    const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio);
+      const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio);
+    // Do not let a prepared RuntimeProject from the previous dropdown/project
+    // selection paint while the new font resources are being resolved.
+    runtimeRef.current = null;
 
     void (async () => {
       const resources = await loadPreviewResources(parsedProject, resourceRegistry, resourceGeneration);
@@ -293,6 +340,8 @@ export function PreviewStage({
         return;
       }
       const previousAssets = assetsRef.current;
+      const previousSkiaTextAssets = skiaTextAssetsRef.current;
+      const previousSkiaFontBytes = skiaFontBytesRef.current;
       const previousResources = resourcesRef.current;
       const compiled = compileProtocol(parsedProject);
       canvas.dataset.previewState = "compiling";
@@ -309,45 +358,101 @@ export function PreviewStage({
           loadBrowserHarfBuzz,
         )
         : null;
-      const textAtlasRasterizer = compiled.visual.nodes.some((node) => node.content.kind === "text")
-        ? await createCanvasKitTextAtlasRasterizer().catch(() => undefined)
+      const textAtlasRasterizer = backend !== "skia" && compiled.visual.nodes.some((node) => node.content.kind === "text")
+        ? await createCanvasKitTextAtlasRasterizer((assetId) => resources.fontBytes.get(assetId) ?? null).catch((error) => {
+          console.error("CanvasKit text rasterizer unavailable", error);
+          return undefined;
+        })
         : undefined;
       canvas.dataset.textRasterizer = textAtlasRasterizer ? "canvaskit" : "canvas2d";
+      canvas.dataset.skiaTextAssets = "0";
       if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
         resources.release();
         return;
       }
       const runtime = prepared?.project ?? compiled;
+      const preparedFrame = evaluateRuntimeProjectV3(
+        runtime,
+        frameIndexAtTime(timeRef.current, parsedProject.composition.fps),
+        { time: timeRef.current },
+      );
+      const skiaTextAssets = backend === "skia"
+        ? await loadSkiaTextAssets(preparedFrame)
+        : new Map<string, PreviewAsset>();
+      canvas.dataset.skiaTextAssets = String(skiaTextAssets.size);
+      if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
+        releaseSkiaTextAssets(skiaTextAssets);
+        resources.release();
+        return;
+      }
       let renderer = rendererRef.current;
+      const requestedTextRasterizer = backend === "skia"
+        ? "skia-glyphs"
+        : textAtlasRasterizer
+          ? "canvaskit"
+          : "canvas2d";
+      // The backend captures the atlas rasterizer when it is created. A docs
+      // fixture can change from a non-text case to an emoji case without
+      // remounting PreviewStage, so recreate the backend when that dependency
+      // changes instead of leaving it with a stale Canvas2D fallback.
+      if (renderer && canvas.dataset.rendererTextRasterizer !== requestedTextRasterizer) {
+        renderer.dispose();
+        rendererRef.current = null;
+        renderer = null;
+      }
       if (!renderer) {
         canvas.dataset.previewState = "creating-renderer";
-        renderer = await createPreviewRenderer({
-          canvas,
-          backend,
-          width: parsedProject.composition.width,
-          height: parsedProject.composition.height,
-          devicePixelRatio: initialRenderDpr,
-          preserveDrawingBuffer,
-          assets: resources.assets,
-          textAtlasRasterizer,
-        });
+        const nextRenderer = backend === "skia"
+          ? await createSkiaRenderer({
+            canvas,
+            width: parsedProject.composition.width,
+            height: parsedProject.composition.height,
+            devicePixelRatio: initialRenderDpr,
+            assets: new Map([...resources.assets, ...skiaTextAssets]),
+            fonts: resources.fontBytes,
+          })
+          : await createPreviewRenderer({
+            canvas,
+            backend,
+            width: parsedProject.composition.width,
+            height: parsedProject.composition.height,
+            devicePixelRatio: initialRenderDpr,
+            preserveDrawingBuffer,
+            assets: resources.assets,
+            textAtlasRasterizer,
+          });
         if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
-          renderer.dispose();
+          nextRenderer.dispose();
+          releaseSkiaTextAssets(skiaTextAssets);
           resources.release();
           return;
         }
+        renderer = nextRenderer;
         rendererRef.current = renderer;
         canvas.dataset.rendererDpr = String(initialRenderDpr);
         canvas.dataset.backend = renderer.backend;
+        canvas.dataset.rendererTextRasterizer = requestedTextRasterizer;
         canvas.dataset.previewState = "ready";
         onBackendReadyRef.current?.(renderer.backend);
       } else {
         for (const assetId of previousAssets.keys()) renderer.removeAsset(assetId);
+        for (const assetId of previousSkiaTextAssets.keys()) renderer.removeAsset(assetId);
         for (const [assetId, asset] of resources.assets) renderer.setAsset(assetId, asset);
+        for (const [assetId, asset] of skiaTextAssets) renderer.setAsset(assetId, asset);
+        for (const [fontAssetId, previousBytes] of previousSkiaFontBytes) {
+          if (resources.fontBytes.get(fontAssetId) !== previousBytes) renderer.removeFont?.(fontAssetId);
+        }
+        for (const [fontAssetId, bytes] of resources.fontBytes) {
+          if (previousSkiaFontBytes.get(fontAssetId) !== bytes) renderer.setFont?.(fontAssetId, bytes);
+        }
       }
+      if (!renderer) return;
+      canvas.dataset.previewState = "ready";
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
       assetsRef.current = resources.assets;
+      skiaTextAssetsRef.current = skiaTextAssets;
+      skiaFontBytesRef.current = resources.fontBytes;
       resourcesRef.current = resources;
       for (const [assetId, asset] of resources.assets) {
         if (asset.kind !== "video" || !(asset.source instanceof HTMLVideoElement)) continue;
@@ -368,6 +473,7 @@ export function PreviewStage({
         activeAudioSources: 0,
       });
       previousResources?.release();
+      releaseSkiaTextAssets(previousSkiaTextAssets);
       runtimeRef.current = runtime;
       setResourceReadyToken((value) => value + 1);
       preparationDiagnosticsRef.current = [
@@ -383,6 +489,7 @@ export function PreviewStage({
         devicePixelRatio,
       );
       if (!externalPlayback) {
+        if (!renderer) return;
         const requestId = ++paintRequestRef.current;
         void paintFrame(
           renderer,
@@ -395,6 +502,7 @@ export function PreviewStage({
           assetsRef.current,
           isPlayingRef.current,
           preparationDiagnosticsRef.current,
+          onFrameReadyRef.current,
         );
       }
     })().catch((err: unknown) => {
@@ -451,6 +559,7 @@ export function PreviewStage({
           assetsRef.current,
           isPlayingRef.current,
           preparationDiagnosticsRef.current,
+          onFrameReadyRef.current,
         );
       }
     };
@@ -505,7 +614,12 @@ async function loadPreviewResources(
       if (asset.kind === "font") {
         const lease = await registry.acquire(key, async () => {
           // Asset URLs are resolved at runtime and may point to any configured origin.
-          const response = await globalThis.fetch(asset.uri);
+          // The bundled Noto Color Emoji font is intentionally large. Some
+          // Chromium profiles fail with ERR_CACHE_WRITE_FAILURE while writing
+          // it to the HTTP disk cache, even though the response is valid. The
+          // preview registry already owns the in-memory lifetime, so avoid the
+          // browser disk-cache write for deterministic font loading.
+          const response = await globalThis.fetch(asset.uri, { cache: "no-store" });
           if (!response.ok) throw new Error(`Unable to load font asset ${asset.id}`);
           const bytes = await response.arrayBuffer();
           if (!(await matchesIntegrity(bytes, asset.integrity))) {
@@ -603,6 +717,48 @@ function disposePreviewAsset(asset: PreviewAsset): void {
   } catch {
     // Best-effort decoder/network cleanup during registry eviction.
   }
+}
+
+function releaseSkiaTextAssets(assets: ReadonlyMap<string, PreviewAsset>): void {
+  for (const asset of assets.values()) {
+    if (typeof ImageBitmap !== "undefined" && asset.source instanceof ImageBitmap) asset.source.close();
+  }
+}
+
+async function loadSkiaTextAssets(frame: RuntimeFrameV3): Promise<Map<string, PreviewAsset>> {
+  const decoded = new Map<string, PreviewAsset>();
+  const jobs: Array<Promise<void>> = [];
+  for (const command of frame.commands) {
+    if (command.op !== "drawText") continue;
+    for (const [glyphIndex, glyph] of (command.glyphs ?? []).entries()) {
+      const colorGlyph = glyph.colorGlyph;
+      if (colorGlyph?.kind !== "bitmap") continue;
+      jobs.push((async () => {
+        let uri: string | undefined;
+        try {
+          const encoded = colorGlyph.bytes.slice().buffer as ArrayBuffer;
+          uri = URL.createObjectURL(new Blob([encoded], { type: colorGlyph.mimeType }));
+          const source = new Image();
+          source.decoding = "async";
+          source.src = uri;
+          await source.decode();
+          decoded.set(skiaTextGlyphAssetId(command.key, glyphIndex), {
+            source,
+            width: source.naturalWidth,
+            height: source.naturalHeight,
+            kind: "image",
+          });
+        } catch {
+          // The Skia replay keeps its outline fallback and reports a diagnostic
+          // if this browser cannot decode the color glyph resource.
+        } finally {
+          if (uri) URL.revokeObjectURL(uri);
+        }
+      })());
+    }
+  }
+  await Promise.all(jobs);
+  return decoded;
 }
 
 async function matchesIntegrity(bytes: ArrayBuffer, integrity: string): Promise<boolean> {
@@ -712,8 +868,22 @@ async function prepareVideoFrames(
   }));
 }
 
+function frameContainsPreparedText(
+  project: ReturnType<typeof MotionProtocolV2Schema.parse>,
+  candidate: RuntimeFrameV3,
+): boolean {
+  const textLayerCount = project.layers.filter((layer) => layer.type === "text").length;
+  if (textLayerCount === 0) return true;
+  const textCommands = candidate.commands.filter((command) => command.op === "drawText");
+  // An inactive text layer legitimately emits no drawText command. For an
+  // active layer, Runtime V3 must carry the resolved glyph array; an older
+  // unprepared frame must never win over the prepared runtime below.
+  if (textCommands.length === 0) return !candidate.diagnostics.some((diagnostic) => diagnostic.code === "runtime_v2_text_unprepared");
+  return textCommands.length >= textLayerCount && textCommands.every((command) => command.glyphs !== undefined);
+}
+
 function paintFrame(
-  renderer: PreviewRenderer,
+  renderer: StageRenderer,
   project: ReturnType<typeof MotionProtocolV2Schema.parse>,
   time: number,
   requestId: number,
@@ -723,6 +893,7 @@ function paintFrame(
   assets: ReadonlyMap<string, PreviewAsset>,
   playing: boolean,
   preparationDiagnostics: readonly string[],
+  onFrameReady?: (frame: RuntimeFrameV3) => void,
 ): void {
   const collectPerformanceMetrics = process.env.NODE_ENV !== "production";
   const paintStartedAt = collectPerformanceMetrics ? performance.now() : 0;
@@ -734,7 +905,9 @@ function paintFrame(
   const renderTime = previewSampleTimeAtEnd(project, time);
   const frameIndex = frameIndexAtTime(renderTime, project.composition.fps);
   const usableFrameOverride =
-    frameOverride != null && Math.abs(frameOverride.time - renderTime) < 1e-6
+    frameOverride != null &&
+    Math.abs(frameOverride.time - renderTime) < 1e-6 &&
+    frameContainsPreparedText(project, frameOverride)
       ? frameOverride
       : null;
   const canvasScale = renderer.canvas instanceof HTMLCanvasElement
@@ -750,10 +923,19 @@ function paintFrame(
       : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, evaluationOptions));
   if (requestId !== requestRef.current) return;
   renderer.paintFrame(evaluated);
+  if (frameContainsPreparedText(project, evaluated)) onFrameReady?.(evaluated);
   const rendererCanvas = renderer.canvas;
   if (rendererCanvas instanceof HTMLCanvasElement) {
     const stats = renderer.getStats();
     rendererCanvas.dataset.drawCalls = String(stats.drawCalls);
+    const textCommands = evaluated.commands.filter((command) => command.op === "drawText");
+    rendererCanvas.dataset.runtimeTextCommands = String(textCommands.length);
+    rendererCanvas.dataset.runtimeGlyphs = String(textCommands.reduce((total, command) => total + (command.glyphs?.length ?? 0), 0));
+    rendererCanvas.dataset.runtimeColorGlyphs = String(textCommands.reduce((total, command) => total + (command.glyphs?.filter((glyph) => glyph.colorGlyph)?.length ?? 0), 0));
+    rendererCanvas.dataset.runtimeColorGlyphModes = [...new Set(textCommands.flatMap((command) => command.glyphs?.flatMap((glyph) => glyph.colorGlyph ? [glyph.colorGlyph.kind === "bitmap" ? `${glyph.colorGlyph.kind}:${glyph.colorGlyph.mimeType}` : glyph.colorGlyph.kind] : []) ?? []))].join(",");
+    rendererCanvas.dataset.skiaNativeTextGlyphs = String(stats.nativeTextGlyphs ?? 0);
+    rendererCanvas.dataset.skiaOutlineTextGlyphs = String(stats.outlineTextGlyphs ?? 0);
+    rendererCanvas.dataset.skiaColorTextGlyphs = String(stats.colorTextGlyphs ?? 0);
     if (collectPerformanceMetrics) {
       const paintEndedAt = performance.now();
       const previousPaintAt = Number(rendererCanvas.dataset.paintAtMs);

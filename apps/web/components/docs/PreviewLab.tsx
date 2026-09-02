@@ -23,11 +23,14 @@ import type {
   PreviewBackendPreference,
 } from "@motionvideo/preview-renderer";
 
+type PreviewLabBackendPreference = PreviewBackendPreference | "skia";
+
 const backendOptions: Array<{
-  id: PreviewBackendPreference;
+  id: PreviewLabBackendPreference;
   label: string;
 }> = [
   { id: "auto", label: "Auto" },
+  { id: "skia", label: "Skia" },
   { id: "webgpu", label: "WebGPU" },
   { id: "webgl2", label: "WebGL2" },
 ];
@@ -63,8 +66,10 @@ export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-comp
   const router = useRouter();
   const searchParams = useSearchParams();
   const selected = previewLabCaseById(searchParams.get("case"), variant);
-  const backend: PreviewBackendPreference =
-    searchParams.get("backend") === "webgpu"
+  const backend: PreviewLabBackendPreference =
+    searchParams.get("backend") === "skia"
+      ? "skia"
+      : searchParams.get("backend") === "webgpu"
       ? "webgpu"
       : searchParams.get("backend") === "webgl2"
         ? "webgl2"
@@ -96,7 +101,7 @@ export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-comp
     router.replace(`${variant === "html-compiler" ? "/docs/preview/html-compiler" : "/docs/preview"}?${params.toString()}`, { scroll: false });
   }
 
-  function selectBackend(next: PreviewBackendPreference) {
+  function selectBackend(next: PreviewLabBackendPreference) {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "auto") params.delete("backend");
     else params.set("backend", next);
@@ -433,9 +438,9 @@ function PreviewCaseRenderer({
   onBackendChange,
 }: {
   project: PreviewLabCase["project"];
-  backend: PreviewBackendPreference;
+  backend: PreviewLabBackendPreference;
   initialTime: number;
-  onBackendChange: (backend: PreviewBackendPreference) => void;
+  onBackendChange: (backend: PreviewLabBackendPreference) => void;
 }) {
   const runtime = useMemo(() => compileProtocol(project), [project]);
   const duration = Math.max(
@@ -453,7 +458,7 @@ function PreviewCaseRenderer({
   const [currentTime, setCurrentTime] = useState(firstTime);
   const [isPlaying, setIsPlaying] = useState(false);
   const playheadRef = useRef(firstTime);
-  const [activeBackend, setActiveBackend] = useState<PreviewBackendKind | null>(
+  const [activeBackend, setActiveBackend] = useState<(PreviewBackendKind | "skia") | null>(
     null,
   );
 
@@ -532,7 +537,7 @@ function PreviewCaseRenderer({
           data-testid="preview-active-backend"
         >
           {activeBackend
-            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : "WebGL2"}`
+            ? `Active: ${activeBackend === "webgpu" ? "WebGPU" : activeBackend === "skia" ? "Skia" : "WebGL2"}`
             : "Loading renderer..."}
         </span>
       </div>

@@ -709,7 +709,8 @@ export function createWebGPUBackend(
         // Prefer the resolved vector outline. Export uses the same outline as
         // SVG path data, so preview does not need to downsample text into an
         // intermediate alpha bitmap.
-        const hasVectorRenderableGlyphs = command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
+        const hasColorGlyphs = command.glyphs.some((glyph) => glyph.colorGlyph !== undefined || glyph.renderMode?.startsWith("color-"));
+        const hasVectorRenderableGlyphs = !hasColorGlyphs && command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
         if (hasVectorRenderableGlyphs) {
           const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
           const activeTransform = transform;
@@ -786,7 +787,10 @@ export function createWebGPUBackend(
         }
         const atlasScale = textAtlasScale(dpr);
         const atlasKey = textAtlasKey(command, atlasScale, transform.matrix4, dpr);
-        const atlas = textAtlases.get(atlasKey) ?? options.textAtlasRasterizer?.({ ...command, key: atlasKey }, atlasScale) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
+        const needsColorAtlas = hasColorGlyphs;
+        const cachedCandidate = textAtlases.get(atlasKey);
+        const cachedAtlas = cachedCandidate && ((cachedCandidate.format === "rgba") === needsColorAtlas) ? cachedCandidate : undefined;
+        const atlas = cachedAtlas ?? options.textAtlasRasterizer?.({ ...command, key: atlasKey }, atlasScale) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
         if (!atlas) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
@@ -809,7 +813,9 @@ export function createWebGPUBackend(
           writeMatrix4(data, 0, projection);
           writeMatrix4(data, 16, matrix4ForQuad(baseMatrix, glyph.x, glyph.y, glyph.width, glyph.height));
           data.set(color, 32);
-          data.set([0, 2, 0, 0], 36);
+          // Mode 2 is an A8 coverage mask; mode 3 preserves the atlas RGB for
+          // embedded color glyphs such as COLRv1 emoji.
+          data.set([0, atlas.format === "rgba" ? 3 : 2, 0, 0], 36);
           data.set([glyph.uv.x, glyph.uv.y, glyph.uv.width, glyph.uv.height], 40);
           data.set([0, 0, 0, 0], 44);
           data.set([0, 0, 0, 0], 48);

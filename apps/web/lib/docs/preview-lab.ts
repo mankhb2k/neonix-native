@@ -2132,6 +2132,28 @@ const PREVIEW_NOTO_SANS_REGULAR_FONT = {
   integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
 };
 
+const PREVIEW_NOTO_SANS_ARABIC_FONT = {
+  id: "preview-noto-sans-arabic-regular-v2",
+  kind: "font" as const,
+  uri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf",
+  mimeType: "font/ttf" as const,
+  family: "Noto Sans Arabic",
+  weight: 400,
+  style: "normal" as const,
+  integrity: "sha256:ceea25b464a656dc3b26849bab9356740401af62aedf1bfa8b7f0d9b75925b1b",
+};
+
+const PREVIEW_NOTO_COLOR_EMOJI_FONT = {
+  id: "preview-noto-color-emoji-v2",
+  kind: "font" as const,
+  uri: "/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf",
+  mimeType: "font/ttf" as const,
+  family: "Noto Color Emoji",
+  weight: 400,
+  style: "normal" as const,
+  integrity: "sha256:7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90",
+};
+
 function textLayer(options: {
   id: string;
   order: number;
@@ -2142,6 +2164,9 @@ function textLayer(options: {
   frame?: { width: number; height: number };
   fontSize?: number;
   lineHeight?: number;
+  fontFamilies?: string[];
+  language?: string;
+  direction?: "ltr" | "rtl";
   writingMode?: TextLayer["payload"]["source"]["writingMode"];
   dx?: number[];
   dy?: number[];
@@ -2168,7 +2193,12 @@ function textLayer(options: {
     opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
-      source: { text: source, language: "vi", ...(options.writingMode ? { writingMode: options.writingMode } : {}) },
+      source: {
+        text: source,
+        language: options.language ?? "vi",
+        ...(options.direction ? { direction: options.direction } : {}),
+        ...(options.writingMode ? { writingMode: options.writingMode } : {}),
+      },
       chunks: [{
         id: `${options.id}-chunk`,
         sourceRange: { start: 0, end: source.length },
@@ -2180,7 +2210,7 @@ function textLayer(options: {
         spans: [{
           id: `${options.id}-span`,
           sourceRange: { start: 0, end: source.length },
-          font: { families: [PREVIEW_NOTO_SANS_REGULAR_FONT.family], size: fontSize },
+          font: { families: options.fontFamilies ?? [PREVIEW_NOTO_SANS_REGULAR_FONT.family], size: fontSize },
           fill: "#f8fafc",
           ...(options.wordSpacing !== undefined ? { wordSpacing: options.wordSpacing } : {}),
           ...(options.textLength !== undefined ? { textLength: options.textLength, lengthAdjust: options.lengthAdjust ?? "spacing" } : {}),
@@ -2351,6 +2381,176 @@ const TEXT_DECORATION_STROKE_PROJECT = project(
   ],
   ORTHOGRAPHIC_VIEW,
   [PREVIEW_NOTO_SANS_REGULAR_FONT],
+);
+
+const TEXT_ARABIC_RTL_PROJECT = project(
+  "preview-text-arabic-rtl-v2",
+  [
+    rectangle({ id: "text-arabic-rtl-frame", order: 0, fill: "#173247", frame: { width: 1400, height: 280 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } } }),
+    textLayer({
+      id: "text-arabic-rtl",
+      order: 1,
+      text: "السلام عليكم",
+      align: "right",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 112,
+      fontFamilies: [PREVIEW_NOTO_SANS_ARABIC_FONT.family],
+      language: "ar",
+      direction: "rtl",
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_ARABIC_FONT],
+);
+
+const TEXT_ARABIC_LAM_ALEF_PROJECT = project(
+  "preview-text-arabic-lam-alef-v2",
+  [
+    rectangle({ id: "text-arabic-lam-alef-frame", order: 0, fill: "#173247", frame: { width: 1400, height: 280 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } } }),
+    textLayer({
+      id: "text-arabic-lam-alef",
+      order: 1,
+      text: "لا إله إلا الله",
+      align: "right",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 108,
+      fontFamilies: [PREVIEW_NOTO_SANS_ARABIC_FONT.family],
+      language: "ar",
+      direction: "rtl",
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_ARABIC_FONT],
+);
+
+const TEXT_ARABIC_MARKS_PROJECT = project(
+  "preview-text-arabic-marks-v2",
+  [
+    rectangle({ id: "text-arabic-marks-frame", order: 0, fill: "#173247", frame: { width: 1400, height: 280 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } } }),
+    textLayer({
+      id: "text-arabic-marks",
+      order: 1,
+      text: "العَرَبِيَّةُ",
+      align: "right",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 118,
+      fontFamilies: [PREVIEW_NOTO_SANS_ARABIC_FONT.family],
+      language: "ar",
+      direction: "rtl",
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_ARABIC_FONT],
+);
+
+const TEXT_EMOJI_FALLBACK_PROJECT = project(
+  "preview-text-emoji-fallback-v2",
+  [
+    rectangle({
+      id: "text-emoji-fallback-frame",
+      order: 0,
+      fill: "#173247",
+      frame: { width: 1400, height: 280 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+    }),
+    textLayer({
+      id: "text-emoji-fallback",
+      order: 1,
+      text: "Hello 👋 2026",
+      align: "center",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 92,
+      fontFamilies: [PREVIEW_NOTO_SANS_REGULAR_FONT.family, PREVIEW_NOTO_COLOR_EMOJI_FONT.family],
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT, PREVIEW_NOTO_COLOR_EMOJI_FONT],
+);
+
+const TEXT_EMOJI_ONLY_PROJECT = project(
+  "preview-text-emoji-only-v2",
+  [
+    rectangle({
+      id: "text-emoji-only-frame",
+      order: 0,
+      fill: "#173247",
+      frame: { width: 1400, height: 280 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+    }),
+    textLayer({
+      id: "text-emoji-only",
+      order: 1,
+      text: "👋",
+      align: "center",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 128,
+      fontFamilies: [PREVIEW_NOTO_COLOR_EMOJI_FONT.family],
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_COLOR_EMOJI_FONT],
+);
+
+const TEXT_EMOJI_ZWJ_PROJECT = project(
+  "preview-text-emoji-zwj-v2",
+  [
+    rectangle({
+      id: "text-emoji-zwj-frame",
+      order: 0,
+      fill: "#173247",
+      frame: { width: 1400, height: 280 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+    }),
+    textLayer({
+      id: "text-emoji-zwj",
+      order: 1,
+      text: "Family 👨‍👩‍👧‍👦",
+      align: "center",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 92,
+      fontFamilies: [PREVIEW_NOTO_SANS_REGULAR_FONT.family, PREVIEW_NOTO_COLOR_EMOJI_FONT.family],
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT, PREVIEW_NOTO_COLOR_EMOJI_FONT],
+);
+
+const TEXT_EMOJI_VARIATION_PROJECT = project(
+  "preview-text-emoji-variation-v2",
+  [
+    rectangle({
+      id: "text-emoji-variation-frame",
+      order: 0,
+      fill: "#173247",
+      frame: { width: 1400, height: 280 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+    }),
+    textLayer({
+      id: "text-emoji-variation",
+      order: 1,
+      text: "❤️ ☕️ 🏳️‍🌈",
+      align: "center",
+      verticalAlign: "middle",
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 400, z: 0 } },
+      frame: { width: 1400, height: 280 },
+      fontSize: 92,
+      fontFamilies: [PREVIEW_NOTO_SANS_REGULAR_FONT.family, PREVIEW_NOTO_COLOR_EMOJI_FONT.family],
+    }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_NOTO_SANS_REGULAR_FONT, PREVIEW_NOTO_COLOR_EMOJI_FONT],
 );
 
 const COLOR_ADJUST_PROJECT = project("preview-effect-color-adjust-v2", [
@@ -3562,6 +3762,55 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     group: "Task 10 / Text",
     hint: "Text stroke is a vector outline around each glyph; underline and line-through are independent decoration paint rectangles.",
     project: TEXT_DECORATION_STROKE_PROJECT,
+  },
+  {
+    id: "text.arabic.rtl",
+    label: "Text / Arabic RTL shaping",
+    group: "Task 10 / Text",
+    hint: "Protocol V2 keeps Arabic semantic text with language=ar and direction=rtl; HarfBuzz resolves joining forms before Skia receives positioned glyph IDs.",
+    project: TEXT_ARABIC_RTL_PROJECT,
+  },
+  {
+    id: "text.arabic.lam-alef",
+    label: "Text / Arabic lam-alef",
+    group: "Task 10 / Text",
+    hint: "Lam-alef joins prove that the Runtime shapes the Unicode run instead of drawing each Arabic code point independently.",
+    project: TEXT_ARABIC_LAM_ALEF_PROJECT,
+  },
+  {
+    id: "text.arabic.marks",
+    label: "Text / Arabic marks",
+    group: "Task 10 / Text",
+    hint: "Arabic combining marks use HarfBuzz offsets from the bundled, hash-verified Noto Sans Arabic font.",
+    project: TEXT_ARABIC_MARKS_PROJECT,
+  },
+  {
+    id: "text.emoji-fallback",
+    label: "Text / emoji fallback",
+    group: "Task 10 / Text",
+    hint: "Noto Sans remains the primary face; only the waving-hand emoji resolves to the bundled Noto Color Emoji face.",
+    project: TEXT_EMOJI_FALLBACK_PROJECT,
+  },
+  {
+    id: "text.emoji-only",
+    label: "Text / emoji only",
+    group: "Task 10 / Text",
+    hint: "A color emoji-only run uses the bundled Noto Color Emoji font without a normal-text fallback face.",
+    project: TEXT_EMOJI_ONLY_PROJECT,
+  },
+  {
+    id: "text.emoji-zwj",
+    label: "Text / emoji ZWJ cluster",
+    group: "Task 10 / Text",
+    hint: "The family emoji is shaped as one grapheme cluster and resolved through the bundled color emoji font.",
+    project: TEXT_EMOJI_ZWJ_PROJECT,
+  },
+  {
+    id: "text.emoji-variation",
+    label: "Text / emoji variation selectors",
+    group: "Task 10 / Text",
+    hint: "Heart, coffee and rainbow flag variation sequences exercise color-glyph fallback without changing normal text font selection.",
+    project: TEXT_EMOJI_VARIATION_PROJECT,
   },
   {
     id: "effect.color-adjust",

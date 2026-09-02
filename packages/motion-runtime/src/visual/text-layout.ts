@@ -90,6 +90,29 @@ function colorToHex(color: { red: number; green: number; blue: number; alpha: nu
   return `#${channel(color.red)}${channel(color.green)}${channel(color.blue)}${channel(color.alpha)}`;
 }
 
+function standaloneSvgGlyphDocument(document: string, glyphId: number): string {
+  const svgStart = document.indexOf("<svg");
+  const rootEnd = svgStart >= 0 ? document.indexOf(">", svgStart) : -1;
+  const defsStart = document.indexOf("<defs", rootEnd + 1);
+  const defsEnd = defsStart >= 0 ? document.indexOf("</defs>", defsStart) : -1;
+  const glyphStart = document.indexOf(`<g id="glyph${glyphId}">`, rootEnd + 1);
+  const glyphClose = glyphStart >= 0 ? document.indexOf("</g>", glyphStart) : -1;
+  if (svgStart < 0 || rootEnd < 0) return document;
+
+  // OpenType SVG documents do not have to provide a browser viewport. In
+  // particular, Noto Color Emoji stores glyphs in the font coordinate space
+  // (roughly x=0..1200, y=-1000..200) and often omits width/height/viewBox.
+  // Without a normalized viewBox the browser falls back to 300x150 and clips
+  // the glyph before either the SVG reference or CanvasKit can render it.
+  const root = document.slice(svgStart, rootEnd + 1)
+    .replace(/\s(?:width|height|viewBox|preserveAspectRatio)=(?:"[^"]*"|'[^']*')/gi, "")
+    .replace(/<svg\b/i, '<svg width="1000" height="1000" viewBox="0 -1000 1200 1200"');
+  const defs = defsStart >= 0 && defsEnd >= 0 ? document.slice(defsStart, defsEnd + "</defs>".length) : "";
+  if (glyphStart < 0) return `${root}${defs}${document.slice(rootEnd + 1, document.lastIndexOf("</svg>"))}</svg>`;
+  const glyph = document.slice(glyphStart, glyphClose >= 0 ? glyphClose + "</g>".length : document.length);
+  return `${root}${defs}${glyph}${glyphClose >= 0 ? "" : "</g>"}</svg>`;
+}
+
 /** Read one SVG-in-OpenType document from the font's SVG table. */
 function svgGlyphDocument(face: HbFace, glyphId: number): string | undefined {
   const table = face.referenceTable("SVG ");
@@ -106,8 +129,9 @@ function svgGlyphDocument(face: HbFace, glyphId: number): string | undefined {
     if (glyphId < startGlyph || glyphId > endGlyph) continue;
     const documentOffset = view.getUint32(entry + 4, false);
     const documentLength = view.getUint32(entry + 8, false);
-    if (documentOffset + documentLength > table.length) return undefined;
-    return new TextDecoder().decode(table.slice(documentOffset, documentOffset + documentLength));
+    const absoluteOffset = listOffset + documentOffset;
+    if (absoluteOffset + documentLength > table.length) return undefined;
+    return standaloneSvgGlyphDocument(new TextDecoder().decode(table.slice(absoluteOffset, absoluteOffset + documentLength)), glyphId);
   }
   return undefined;
 }
@@ -327,8 +351,7 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
       if (svgDocument) {
         paintGlyph.renderMode = "color-svg";
         paintGlyph.colorGlyph = { kind: "bitmap", mimeType: "image/svg+xml", bytes: new TextEncoder().encode(svgDocument) };
-      }
-      if (resolved.face.hasColorPaint() && resolved.face.glyphHasColorPaint(glyph.glyphId)) {
+      } else if (resolved.face.hasColorPaint() && resolved.face.glyphHasColorPaint(glyph.glyphId)) {
         paintGlyph.renderMode = "color-svg";
         paintGlyph.colorGlyph = { kind: "paint-graph" };
       }

@@ -30,6 +30,7 @@ describe("text glyph cache key", () => {
     expect(textGlyphCacheKey(glyph, { pixelsPerUnit: 8, transform: [1, 0, 0, 1] })).not.toBe(base);
     expect(textGlyphCacheKey(glyph, { pixelsPerUnit: 16, transform: [2, 0, 0, 2] })).not.toBe(base);
     expect(textGlyphCacheKey({ ...glyph, renderMode: "vector" }, { pixelsPerUnit: 16, transform: [1, 0, 0, 1] })).not.toBe(base);
+    expect(textGlyphCacheKey({ ...glyph, colorGlyph: { kind: "bitmap", mimeType: "image/svg+xml", bytes: new Uint8Array([1]) } }, { pixelsPerUnit: 16, transform: [1, 0, 0, 1] })).not.toBe(base);
   });
 });
 

@@ -65,15 +65,43 @@ function pathData(command: Extract<PaintCommand, { op: "drawPath" }>): string {
 function glyphTransform(glyph: PaintTextGlyph): string {
   const rotation = glyph.rotation ? ` rotate(${glyph.rotation} ${glyph.x} ${glyph.y})` : "";
   const scaleX = glyph.scaleX ?? 1;
-  return `translate(${glyph.x} ${glyph.y}) translate(${-glyph.outline.x} ${glyph.outline.y}) scale(${glyph.pathScale * scaleX} ${-glyph.pathScale})${rotation}`;
+  // Keep the font-space origin inside the scaled coordinate system. Putting
+  // the outline translation before scale would leave font units unscaled and
+  // push ordinary glyphs far outside their text frame in native SVG export.
+  return `translate(${glyph.x} ${glyph.y}) scale(${glyph.pathScale * scaleX} ${-glyph.pathScale}) translate(${-glyph.outline.x} ${-glyph.outline.y})${rotation}`;
+}
+
+/**
+ * SVG-in-OpenType documents can be a shared sprite sheet rather than a
+ * standalone SVG image. Extract the requested glyph and provide the font
+ * coordinate system that an external SVG image does not get automatically.
+ */
+function standaloneColorGlyphSvg(document: string, glyphId: number): string {
+  const svgStart = document.indexOf("<svg");
+  const rootEnd = svgStart >= 0 ? document.indexOf(">", svgStart) : -1;
+  const defsStart = document.indexOf("<defs", rootEnd + 1);
+  const defsEnd = defsStart >= 0 ? document.indexOf("</defs>", defsStart) : -1;
+  const glyphStart = document.indexOf(`<g id="glyph${glyphId}">`, rootEnd + 1);
+  const glyphClose = glyphStart >= 0 ? document.indexOf("</g>", glyphStart) : -1;
+  if (svgStart < 0 || rootEnd < 0 || defsStart < 0 || defsEnd < 0 || glyphStart < 0) {
+    return document;
+  }
+  const root = document.slice(svgStart, rootEnd + 1)
+    .replace("<svg ", '<svg width="1000" height="1000" viewBox="0 -1000 1000 1000" ');
+  const glyph = document.slice(glyphStart, glyphClose >= 0 ? glyphClose + "</g>".length : document.length);
+  return `${root}${document.slice(defsStart, defsEnd + "</defs>".length)}${glyph}${glyphClose >= 0 ? "" : "</g>"}</svg>`;
 }
 
 function colorGlyphSvg(glyph: PaintTextGlyph, fallback: string): string {
   const colorGlyph = glyph.colorGlyph;
   if (!colorGlyph) return "";
   if (colorGlyph.kind === "bitmap") {
-    const data = Buffer.from(colorGlyph.bytes).toString("base64");
-    return `<image x="${glyph.x}" y="${glyph.y - glyph.height}" width="${glyph.width}" height="${glyph.height}" preserveAspectRatio="none" href="data:${colorGlyph.mimeType};base64,${data}"/>`;
+    const source = colorGlyph.mimeType === "image/svg+xml"
+      ? standaloneColorGlyphSvg(new TextDecoder().decode(colorGlyph.bytes), glyph.glyphId)
+      : undefined;
+    const bytes = source ? Buffer.from(source, "utf8") : Buffer.from(colorGlyph.bytes);
+    const data = bytes.toString("base64");
+    return `<image x="${glyph.x}" y="${glyph.y}" width="${glyph.width}" height="${glyph.height}" preserveAspectRatio="none" href="data:${colorGlyph.mimeType};base64,${data}"/>`;
   }
   if (colorGlyph.kind === "layers") {
     return colorGlyph.layers.filter((layer) => layer.path).map((layer) => {
@@ -83,7 +111,10 @@ function colorGlyphSvg(glyph: PaintTextGlyph, fallback: string): string {
       return `<path d="${escapeXml(layer.path!)}" transform="${transform}" fill="${fill(layer.fill, fallback)}"/>`;
     }).join("");
   }
-  return "";
+  // A paint graph may not have a portable SVG serialization in the runtime
+  // command. Keep the glyph visible in native export with its resolved
+  // outline rather than silently dropping the emoji.
+  return `<path d="${escapeXml(glyph.path)}" transform="${glyphTransform(glyph)}" fill="${fill(fallback)}"/>`;
 }
 
 function draw(command: Extract<PaintCommand, { op: "drawText" | "drawShape" | "drawSolid" | "drawPath" }>): string {
@@ -170,4 +201,9 @@ export async function rasterizeSvgToRgba(svg: string, width: number, height: num
     .ensureAlpha()
     .raw()
     .toBuffer();
+}
+
+/** Encode a native-resolution RGBA frame for inspection or image export. */
+export async function encodeRgbaToPng(rgba: Buffer, width: number, height: number): Promise<Buffer> {
+  return sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer();
 }

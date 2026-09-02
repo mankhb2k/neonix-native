@@ -16,8 +16,8 @@ export type TextAtlas = {
   id: string;
   asset: PreviewAsset;
   glyphs: TextAtlasGlyph[];
-  /** Monochrome atlas coverage. The transport remains RGBA8 for backend parity. */
-  format: "a8";
+  /** A8 coverage for normal text or RGBA pixels for embedded color glyphs. */
+  format: "a8" | "rgba";
   pixelsPerUnit: number;
 };
 
@@ -63,6 +63,7 @@ export function textGlyphCacheKey(
     context.devicePixelRatio ?? "",
     glyph.variationKey ?? "",
     glyph.renderMode ?? "vector",
+    glyph.colorGlyph?.kind ?? "no-color-glyph",
     matrix,
   ].join(":");
 }

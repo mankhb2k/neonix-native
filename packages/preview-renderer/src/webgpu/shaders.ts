@@ -149,7 +149,7 @@ fn samplePattern(point: vec2<f32>) -> vec4<f32> {
   }
   let sampled = textureSample(imageTexture, imageSampler, uniforms.media.xy + input.uv * uniforms.media.zw);
   var source = select(uniforms.color, sampled, uniforms.params.y > 0.5);
-  if (uniforms.params.y > 1.5) {
+  if (uniforms.params.y > 1.5 && uniforms.params.y < 2.5) {
     source = vec4<f32>(uniforms.color.rgb, uniforms.color.a * sampled.a);
   }
   if (uniforms.params.y <= 0.5 && uniforms.gradientParams.x > 0.5) {

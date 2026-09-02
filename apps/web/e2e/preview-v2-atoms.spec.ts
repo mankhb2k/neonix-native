@@ -409,6 +409,26 @@ test.describe("Protocol V2 atom preview", () => {
     expect(Math.abs(webgpu.bottom - webgl.bottom)).toBeLessThanOrEqual(2);
   });
 
+  test("uses the bundled Noto Color Emoji only for emoji fallback runs", async ({ page }) => {
+    const canvas = page.getByTestId("preview-v2-canvas");
+    for (const caseId of ["text.emoji-fallback", "text.emoji-only", "text.emoji-zwj", "text.emoji-variation"]) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgl2`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgl2");
+      await expect(canvas).toHaveAttribute("data-text-rasterizer", "canvaskit");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+      expect((await readWebGLPixel(page, "preview-v2-canvas", 960, 540))[1]).toBeGreaterThan(24);
+    }
+
+    test.skip(!(await supportsWebGPU(page)), "WebGPU is unavailable in this browser");
+    for (const caseId of ["text.emoji-fallback", "text.emoji-only", "text.emoji-zwj", "text.emoji-variation"]) {
+      await page.goto(`/docs/preview?case=${caseId}&backend=webgpu`);
+      await expect(canvas).toHaveAttribute("data-backend", "webgpu");
+      await expect(canvas).toHaveAttribute("data-text-rasterizer", "canvaskit");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /text_|font_/);
+      expect((await readPresentedPixel(page, "preview-v2-canvas", 960, 540))[1]).toBeGreaterThan(24);
+    }
+  });
+
   test("renders left, right, and explicit multiline text examples", async ({ page }) => {
     const canvas = page.getByTestId("preview-v2-canvas");
     const countBrightPixels = async () => canvas.evaluate((node) => {

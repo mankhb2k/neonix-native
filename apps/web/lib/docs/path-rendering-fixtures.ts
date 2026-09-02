@@ -74,6 +74,17 @@ const TEXT_PREVIEW_BOLD_ITALIC_FONT = {
   integrity: "sha256:7e34616e092593c340449baf9a259075a054c6419511ccf21ff0d83a1c9dd0d0",
 };
 
+const TEXT_PREVIEW_EMOJI_FONT = {
+  id: "debug-noto-color-emoji",
+  kind: "font" as const,
+  uri: "/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf",
+  mimeType: "font/ttf" as const,
+  family: "Noto Color Emoji",
+  weight: 400,
+  style: "normal" as const,
+  integrity: "sha256:7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90",
+};
+
 function project(id: string, layers: MotionProtocolV2["layers"], filters: V2Filter[] = [], assets: MotionProtocolV2["assets"] = []): MotionProtocolV2 {
   const projectAssets = assets.some((asset) => asset.id === TEXT_PREVIEW_FONT.id)
     ? [...assets, ...(assets.some((asset) => asset.id === TEXT_PREVIEW_BOLD_ITALIC_FONT.id) ? [] : [TEXT_PREVIEW_BOLD_ITALIC_FONT])]
@@ -262,7 +273,10 @@ export const PATH_RENDERING_FIXTURES: PathRenderingFixture[] = [
   { id: "text-stroke", label: "Text / stroke and paint-order", project: project("debug-text-stroke", [textLayer("text-stroke", "outlined type", { x: 100, y: 120, fontSize: 72, spanStyle: { fill: "#f8fafc", stroke: "#f43f5e", strokeWidth: { value: 4, unit: "px" }, paintOrder: ["stroke", "fill", "markers"] } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "outlined type", x: 100, y: 200, fontSize: 72, stroke: "#f43f5e", strokeWidth: 4 }, svg: [], probes: [{ name: "text", x: 220, y: 200, expected: "paint" }, { name: "outside", x: 100, y: 320, expected: "background" }] },
   { id: "text-whitespace", label: "Text / preserved whitespace", project: project("debug-text-whitespace", [textLayer("text-whitespace", "  preserve   spaces", { x: 100, y: 120, fontSize: 64, whiteSpace: "preserve", textRendering: "geometricPrecision" })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "  preserve   spaces", x: 100, y: 190, fontSize: 64, whiteSpace: "pre", textRendering: "geometricPrecision" }, svg: [], probes: [{ name: "text", x: 260, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
   { id: "text-word-spacing", label: "Text / word-spacing", project: project("debug-text-word-spacing", [textLayer("text-word-spacing", "word spacing", { x: 100, y: 120, fontSize: 64, letterSpacing: 2, wordSpacing: 18 })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "word spacing", x: 100, y: 190, fontSize: 64, letterSpacing: 2, wordSpacing: 18 }, svg: [], probes: [{ name: "text", x: 260, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
-  { id: "text-ligature-emoji", label: "Text / ligature and emoji fallback", project: project("debug-text-ligature-emoji", [textLayer("text-ligature-emoji", "office fi 👋", { x: 100, y: 120, fontSize: 64, spanStyle: { kerning: "auto", opticalSizing: "auto" } })], [], [TEXT_PREVIEW_FONT]), svgText: { text: "office fi 👋", x: 100, y: 190, fontSize: 64 }, svg: [], probes: [{ name: "text", x: 240, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
+  { id: "text-ligature-emoji", label: "Text / ligature and emoji fallback", project: project("debug-text-ligature-emoji", [textLayer("text-ligature-emoji", "office fi 👋", { x: 100, y: 120, fontSize: 64, spanStyle: { kerning: "auto", opticalSizing: "auto", font: { families: ["Noto Sans", "Noto Color Emoji", "sans-serif"] } } })], [], [TEXT_PREVIEW_FONT, TEXT_PREVIEW_EMOJI_FONT]), svgText: { text: "office fi 👋", x: 100, y: 190, fontSize: 64 }, svg: [], probes: [{ name: "text", x: 240, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
+  { id: "text-emoji-zwj", label: "Text / emoji ZWJ cluster", project: project("debug-text-emoji-zwj", [textLayer("text-emoji-zwj", "Family 👨‍👩‍👧‍👦", { x: 100, y: 120, fontSize: 64, spanStyle: { font: { families: ["Noto Sans", "Noto Color Emoji", "sans-serif"] } } })], [], [TEXT_PREVIEW_FONT, TEXT_PREVIEW_EMOJI_FONT]), svgText: { text: "Family 👨‍👩‍👧‍👦", x: 100, y: 190, fontSize: 64 }, svg: [], probes: [{ name: "text", x: 250, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
+  { id: "text-emoji-variation", label: "Text / emoji variation selectors", project: project("debug-text-emoji-variation", [textLayer("text-emoji-variation", "❤️ ☕️ 🏳️‍🌈", { x: 100, y: 120, fontSize: 64, spanStyle: { font: { families: ["Noto Sans", "Noto Color Emoji", "sans-serif"] } } })], [], [TEXT_PREVIEW_FONT, TEXT_PREVIEW_EMOJI_FONT]), svgText: { text: "❤️ ☕️ 🏳️‍🌈", x: 100, y: 190, fontSize: 64 }, svg: [], probes: [{ name: "text", x: 250, y: 190, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
+  { id: "text-emoji-only", label: "Text / emoji only", project: project("debug-text-emoji-only", [textLayer("text-emoji-only", "👋", { x: 100, y: 120, fontSize: 96, spanStyle: { font: { families: ["Noto Color Emoji"] } } })], [], [TEXT_PREVIEW_EMOJI_FONT]), svgText: { text: "👋", x: 100, y: 216, fontSize: 96 }, svg: [], probes: [{ name: "text", x: 480, y: 180, expected: "paint" }, { name: "outside", x: 100, y: 300, expected: "background" }] },
 ];
 
 export function pathRenderingFixtureById(id: string | null): PathRenderingFixture {

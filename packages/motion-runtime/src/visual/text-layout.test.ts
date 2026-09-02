@@ -7,6 +7,7 @@ import { prepareVisualRuntimeProjectText } from "./text-layout";
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
 const notoSansPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans/NotoSans-Regular.ttf");
+const notoArabicPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf");
 const notoEmojiPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf");
 
 function textContent(overrides: Partial<VisualRuntimeText> = {}): VisualRuntimeText {
@@ -88,5 +89,31 @@ describe("runtime text shaping and materialization", () => {
     expect(emojiGlyph).toBeDefined();
     expect(["color-bitmap", "color-layers", "color-svg"]).toContain(emojiGlyph?.renderMode);
     expect(emojiGlyph?.colorGlyph).toBeDefined();
+  });
+
+  it("shapes an Arabic RTL run before a renderer receives its glyphs", async () => {
+    const arabic = await readFile(notoArabicPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "السلام عليكم",
+        fontAssetId: "noto-arabic",
+        fontUri: "/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf",
+        fontIntegrity: "sha256:noto-arabic",
+        fontSize: 96,
+        direction: "rtl",
+        language: "ar",
+      })),
+      async () => arabic,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    const run = content.layout?.runs[0];
+    expect(run).toMatchObject({ fontAssetId: "noto-arabic", direction: "rtl", language: "ar" });
+    expect(run?.glyphs.length).toBeGreaterThan(0);
+    expect(run?.glyphs.every((glyph) => glyph.fontAssetId === "noto-arabic")).toBe(true);
+    expect(run?.glyphs.every((glyph) => Number.isFinite(glyph.advanceX) && Number.isFinite(glyph.advanceY))).toBe(true);
+    expect(content.layout?.glyphs.every((glyph) => glyph.renderMode === "vector")).toBe(true);
   });
 });
