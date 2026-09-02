@@ -1,6 +1,6 @@
 import type { PaintCommandBuffer, PaintCommand, PaintTextColorLayer, PaintTextGlyph } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "./color";
-import type { SkiaCanvas, SkiaCanvasKit, SkiaPaint, SkiaImage, SkiaTypeface } from "./canvas-kit";
+import type { SkiaCanvas, SkiaCanvasKit, SkiaPaint, SkiaImage, SkiaTypeface, SkiaImageFilter, SkiaColorFilter } from "./canvas-kit";
 import type { SkiaAsset } from "./types";
 import { createSkiaPaint } from "./paint";
 
@@ -13,6 +13,15 @@ export type SkiaReplayStats = {
   outlineTextGlyphs: number;
   colorTextGlyphs: number;
   diagnostics: string[];
+};
+
+type ReplayLayer = {
+  key: string;
+  saved: boolean;
+  blocked: boolean;
+  clipSourceKeys: Set<string>;
+  maskMode?: "alpha" | "luma";
+  maskSourceKeys: Set<string>;
 };
 
 export type SkiaTypefaceResolver = (fontAssetId: string | undefined) => SkiaTypeface | null;
@@ -42,6 +51,208 @@ function configureStroke(
   p.setStrokeWidth(command.strokeWidth ?? 1);
   p.setStrokeCap(command.strokeCap === "round" ? kit.StrokeCap.Round : command.strokeCap === "square" ? kit.StrokeCap.Square : kit.StrokeCap.Butt);
   p.setStrokeJoin(command.strokeJoin === "round" ? kit.StrokeJoin.Round : command.strokeJoin === "bevel" ? kit.StrokeJoin.Bevel : kit.StrokeJoin.Miter);
+}
+
+function blendModeFor(kit: SkiaCanvasKit, mode: string | undefined): unknown {
+  const name = mode === "normal" || mode === undefined ? "SrcOver" : mode
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return kit.BlendMode[name] ?? kit.BlendMode.SrcOver;
+}
+
+type EffectFilterResult = { filter: SkiaImageFilter | null; supported: boolean };
+type ColorMatrix = number[];
+
+function identityColorMatrix(): ColorMatrix {
+  return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+}
+
+/** Compose two CanvasKit 4x5 color matrices; the right matrix runs first. */
+function multiplyColorMatrices(left: ColorMatrix, right: ColorMatrix): ColorMatrix {
+  const result = new Array<number>(20).fill(0);
+  for (let row = 0; row < 4; row += 1) {
+    for (let column = 0; column < 4; column += 1) {
+      for (let inner = 0; inner < 4; inner += 1) result[row * 5 + column] += left[row * 5 + inner]! * right[inner * 5 + column]!;
+    }
+    result[row * 5 + 4] = left[row * 5 + 4]!;
+    for (let inner = 0; inner < 4; inner += 1) result[row * 5 + 4] += left[row * 5 + inner]! * right[inner * 5 + 4]!;
+  }
+  return result;
+}
+
+function colorAdjustMatrix(op: Extract<NonNullable<Extract<PaintCommand, { op: "beginLayer" }>['effectProgram']>['ops'][number], { kind: "color-adjust" }>): ColorMatrix {
+  const saturation = op.saturation;
+  const lumR = 0.2126;
+  const lumG = 0.7152;
+  const lumB = 0.0722;
+  let matrix = multiplyColorMatrices([
+    lumR * (1 - saturation) + saturation, lumG * (1 - saturation), lumB * (1 - saturation), 0, 0,
+    lumR * (1 - saturation), lumG * (1 - saturation) + saturation, lumB * (1 - saturation), 0, 0,
+    lumR * (1 - saturation), lumG * (1 - saturation), lumB * (1 - saturation) + saturation, 0, 0,
+    0, 0, 0, 1, 0,
+  ], identityColorMatrix());
+  const angle = op.hueRotate * Math.PI / 180;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  matrix = multiplyColorMatrices([
+    lumR + cosine * (1 - lumR) - sine * lumR, lumG * (1 - cosine) - sine * lumG, lumB * (1 - cosine) + sine * (1 - lumB), 0, 0,
+    lumR * (1 - cosine) + sine * 0.143, lumG + cosine * (1 - lumG) + sine * 0.140, lumB * (1 - cosine) - sine * 0.283, 0, 0,
+    lumR * (1 - cosine) - sine * (1 - lumR), lumG * (1 - cosine) + sine * lumG, lumB + cosine * (1 - lumB) + sine * lumB, 0, 0,
+    0, 0, 0, 1, 0,
+  ], matrix);
+  const contrast = op.contrast;
+  matrix = multiplyColorMatrices([
+    contrast, 0, 0, 0, 255 * 0.5 * (1 - contrast),
+    0, contrast, 0, 0, 255 * 0.5 * (1 - contrast),
+    0, 0, contrast, 0, 255 * 0.5 * (1 - contrast),
+    0, 0, 0, 1, 0,
+  ], matrix);
+  return multiplyColorMatrices([
+    1, 0, 0, 0, op.brightness * 255,
+    0, 1, 0, 0, op.brightness * 255,
+    0, 0, 1, 0, op.brightness * 255,
+    0, 0, 0, 1, 0,
+  ], matrix);
+}
+
+function tintColor(kit: SkiaCanvasKit, color: string, opacity: number): unknown {
+  const [red, green, blue, alpha] = cssColorToRgba(color);
+  return kit.Color(red * 255, green * 255, blue * 255, Math.max(0, Math.min(1, alpha * opacity)));
+}
+
+function matchEffectGraph(program: NonNullable<Extract<PaintCommand, { op: "beginLayer" }>['effectProgram']>, kinds: string[]): boolean {
+  return program.ops.length === kinds.length && program.ops.every((op, index) => op.kind === kinds[index]);
+}
+
+function effectFilterFor(kit: SkiaCanvasKit, program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram']): EffectFilterResult {
+  if (!program) return { filter: null, supported: true };
+  const ops = program.ops;
+  const blur = ops[1];
+  const tint = ops.find((op) => op.kind === "tint");
+  const offset = ops.find((op) => op.kind === "offset");
+  if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "offset", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow) {
+    const filter = kit.ImageFilter.MakeDropShadow(offset.x, offset.y, blur.radius, blur.radius, tintColor(kit, tint.color, tint.opacity), null);
+    return { filter, supported: Boolean(filter) };
+  }
+  if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeDropShadow) {
+    const filter = kit.ImageFilter.MakeDropShadow(0, 0, blur.radius, blur.radius, tintColor(kit, tint.color, tint.opacity), null);
+    return { filter, supported: Boolean(filter) };
+  }
+  if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
+    const blurred = kit.ImageFilter.MakeBlur(blur.radius, blur.radius, kit.TileMode.Decal, null);
+    const inside = blurred ? kit.ImageFilter.MakeBlend(kit.BlendMode.DstOut, null, blurred) : null;
+    const colorFilter: SkiaColorFilter | null = inside ? kit.ColorFilter.MakeBlend(tintColor(kit, tint.color, tint.opacity), kit.BlendMode.SrcIn) : null;
+    const tinted = inside && colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, inside) : null;
+    const filter = tinted ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, null, tinted) : null;
+    colorFilter?.delete();
+    blurred?.delete();
+    inside?.delete();
+    tinted?.delete();
+    return { filter, supported: Boolean(filter) };
+  }
+  if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust") && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
+    let filter: SkiaImageFilter | null = null;
+    for (const op of ops) {
+      let next: SkiaImageFilter | null;
+      if (op.kind === "blur") {
+        next = kit.ImageFilter.MakeBlur(op.radius, op.radius, kit.TileMode.Decal, filter);
+      } else if (kit.ColorFilter?.MakeMatrix && kit.ImageFilter.MakeColorFilter) {
+        const colorFilter = kit.ColorFilter.MakeMatrix(colorAdjustMatrix(op));
+        next = colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, filter) : null;
+        colorFilter?.delete();
+      } else {
+        next = null;
+      }
+      if (!next) {
+        filter?.delete();
+        return { filter: null, supported: false };
+      }
+      filter?.delete();
+      filter = next;
+    }
+    return { filter, supported: Boolean(filter) };
+  }
+  return { filter: null, supported: false };
+}
+
+function maskColorAlpha(
+  command: Extract<PaintCommand, { op: "drawPath" }>,
+  mode: "alpha" | "luma",
+): number {
+  const [red, green, blue, colorAlpha] = cssColorToRgba(command.fill ?? "#000000");
+  const coverage = mode === "luma"
+    ? (0.2126 * red + 0.7152 * green + 0.0722 * blue)
+    : 1;
+  const paintAlpha = command.fillPaint?.type === "solid" ? command.fillPaint.opacity ?? 1 : 1;
+  return Math.max(0, Math.min(1, coverage * colorAlpha * (command.fillOpacity ?? 1) * paintAlpha));
+}
+
+function applyMaskSource(
+  kit: SkiaCanvasKit,
+  canvas: SkiaCanvas,
+  source: { command: Extract<PaintCommand, { op: "drawPath" }>; transform: Extract<PaintCommand, { op: "setTransform" }> | null },
+  mode: "alpha" | "luma",
+): boolean {
+  const path = kit.Path.MakeFromSVGString(pathSvg(source.command));
+  if (!path) return false;
+  const paint = createSkiaPaint(kit, "#ffffff", maskColorAlpha(source.command, mode), kit.PaintStyle.Fill);
+  paint.setBlendMode(kit.BlendMode.DstIn);
+  canvas.save();
+  if (source.transform) canvas.concat(matrix4ToSkia3x3(source.transform.matrix4));
+  canvas.drawPath(path, paint);
+  canvas.restore();
+  paint.delete();
+  path.delete();
+  return true;
+}
+
+function sourcePathCommands(buffer: PaintCommandBuffer): Map<string, {
+  command: Extract<PaintCommand, { op: "drawPath" }>;
+  transform: Extract<PaintCommand, { op: "setTransform" }> | null;
+}> {
+  const result = new Map<string, {
+    command: Extract<PaintCommand, { op: "drawPath" }>;
+    transform: Extract<PaintCommand, { op: "setTransform" }> | null;
+  }>();
+  let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  for (const command of buffer.commands) {
+    if (command.op === "setTransform") {
+      transform = command;
+    } else if (command.op === "drawPath") {
+      result.set(command.key, { command, transform });
+      transform = null;
+    } else if (command.op !== "beginFrame" && command.op !== "endFrame") {
+      transform = null;
+    }
+  }
+  return result;
+}
+
+function applyClipPath(
+  kit: SkiaCanvasKit,
+  canvas: SkiaCanvas,
+  source: { command: Extract<PaintCommand, { op: "drawPath" }>; transform: Extract<PaintCommand, { op: "setTransform" }> | null },
+): boolean {
+  if (!canvas.clipPath) return false;
+  const path = kit.Path.MakeFromSVGString(pathSvg(source.command));
+  if (!path) return false;
+  const transform = source.transform?.matrix4;
+  if (transform) {
+    // SkPath is immutable in CanvasKit. Transform through a PathBuilder so
+    // the clip is installed in the parent canvas coordinate space without
+    // leaking a temporary canvas matrix into the following draw command.
+    const builder = new kit.PathBuilder(path);
+    builder.transform(matrix4ToSkia3x3(transform));
+    const transformed = builder.snapshot();
+    canvas.clipPath(transformed, kit.ClipOp.Intersect, true);
+    transformed.delete();
+    builder.delete();
+  } else {
+    canvas.clipPath(path, kit.ClipOp.Intersect, true);
+  }
+  path.delete();
+  return true;
 }
 
 export function matrix4ToSkia3x3(matrix: readonly number[]): number[] {
@@ -374,7 +585,11 @@ export function replaySkiaCommands(
     colorTextGlyphs: 0,
     diagnostics: [],
   };
+  const semanticSources = sourcePathCommands(buffer);
+  const layers: ReplayLayer[] = [];
   let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  const isBlocked = () => layers.some((layer) => layer.blocked);
+  const addDiagnostic = (value: string) => stats.diagnostics.push(value);
   for (const command of buffer.commands) {
     if (command.op === "beginFrame") {
       const [backgroundR, backgroundG, backgroundB, backgroundA] = cssColorToRgba(command.background ?? defaultBackground);
@@ -382,8 +597,99 @@ export function replaySkiaCommands(
       pendingTransform = null;
       continue;
     }
+    if (command.op === "beginGroup") {
+      canvas.save();
+      layers.push({ key: command.key, saved: true, blocked: isBlocked(), clipSourceKeys: new Set(), maskSourceKeys: new Set() });
+      continue;
+    }
+    if (command.op === "endGroup") {
+      const layer = layers.pop();
+      if (layer?.saved) canvas.restore();
+      pendingTransform = null;
+      continue;
+    }
+    if (command.op === "beginLayer") {
+      const clipSourceKeys = new Set(command.clipPath?.sourceKeys ?? (command.clipPath ? [command.clipPath.sourceKey] : []));
+      const maskSourceKeys = new Set(command.mask?.sourceKeys ?? (command.mask ? [command.mask.sourceKey] : []));
+      const layer: ReplayLayer = {
+        key: command.key,
+        saved: false,
+        blocked: isBlocked(),
+        clipSourceKeys,
+        maskMode: command.mask?.mode === "alpha" || command.mask?.mode === "luma" ? command.mask.mode : undefined,
+        maskSourceKeys,
+      };
+      layers.push(layer);
+      const effectFilter = effectFilterFor(kit, command.effectProgram);
+      if (command.effectProgram && !effectFilter.supported) addDiagnostic(`skia_effect_unsupported:${command.key}`);
+      let maskCoverage = 1;
+      if (command.mask && command.mask.mode !== "clip") {
+        for (const sourceKey of maskSourceKeys) {
+          const source = semanticSources.get(sourceKey);
+          if (!source) {
+            addDiagnostic(`skia_mask_source_unsupported:${command.key}:${sourceKey}`);
+            continue;
+          }
+          maskCoverage = Math.min(maskCoverage, maskColorAlpha(source.command, command.mask.mode));
+        }
+        // The current Runtime mask fixtures are path sources with uniform
+        // alpha/luma coverage. Keep that coverage on the flattened layer;
+        // pixel-wise image/gradient masks require a dedicated mask surface.
+        layer.maskMode = undefined;
+      }
+      const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter) || (command.blendMode !== undefined && command.blendMode !== "normal");
+      if (shouldSaveLayer) {
+        const paint = new kit.Paint();
+        paint.setAntiAlias(true);
+        paint.setStyle(kit.PaintStyle.Fill);
+        paint.setAlphaf(Math.max(0, Math.min(1, (command.compositeAlpha ?? 1) * maskCoverage)));
+        paint.setBlendMode(blendModeFor(kit, command.blendMode));
+        if (effectFilter.filter && paint.setImageFilter) paint.setImageFilter(effectFilter.filter);
+        canvas.saveLayer(paint);
+        paint.delete();
+        effectFilter.filter?.delete();
+      } else {
+        canvas.save();
+      }
+      layer.saved = true;
+      if (command.mask && command.mask.mode !== "clip") {
+        for (const sourceKey of maskSourceKeys) {
+          const source = semanticSources.get(sourceKey);
+          if (source && !applyClipPath(kit, canvas, source)) addDiagnostic(`skia_mask_source_unsupported:${command.key}:${sourceKey}`);
+        }
+      }
+      if (command.clipPath) {
+        const sources = command.clipPath.sourceKeys ?? [command.clipPath.sourceKey];
+        for (const sourceKey of sources) {
+          const source = semanticSources.get(sourceKey);
+          if (!source || !applyClipPath(kit, canvas, source)) addDiagnostic(`skia_clip_path_unsupported:${command.key}:${sourceKey}`);
+        }
+      }
+      continue;
+    }
+    if (command.op === "endLayer") {
+      const layer = layers.pop();
+      if (layer?.saved && layer.maskMode) {
+        for (const sourceKey of layer.maskSourceKeys) {
+          const source = semanticSources.get(sourceKey);
+          if (!source || !applyMaskSource(kit, canvas, source, layer.maskMode)) addDiagnostic(`skia_mask_source_unsupported:${layer.key}:${sourceKey}`);
+        }
+      }
+      if (layer?.saved) canvas.restore();
+      pendingTransform = null;
+      continue;
+    }
     if (command.op === "setTransform") {
       pendingTransform = command;
+      continue;
+    }
+    if (isBlocked()) {
+      if (["drawPath", "drawShape", "drawSolid", "drawText", "drawImage", "drawVideo"].includes(command.op)) pendingTransform = null;
+      continue;
+    }
+    if (command.op === "drawPath" && layers.some((layer) => layer.clipSourceKeys.has(command.key) || layer.maskSourceKeys.has(command.key))) {
+      // Compiler-lowered clipPath/mask geometry is a source node, not visible content.
+      pendingTransform = null;
       continue;
     }
     if (command.op === "drawSolid") {
@@ -517,7 +823,7 @@ export function replaySkiaCommands(
       canvas.restore();
       continue;
     }
-    if (!["endFrame", "beginGroup", "endGroup", "beginLayer", "endLayer"].includes(command.op)) {
+    if (command.op !== "endFrame") {
       stats.skippedCommands++;
       stats.diagnostics.push(command.op);
     }

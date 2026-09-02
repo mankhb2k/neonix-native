@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { PreviewStage } from "./PreviewStage";
-import { SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import { evaluateRuntimeProjectV3, frameIndexAtTime } from "@motionvideo/motion-runtime";
 import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
+import { SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
+import { PreviewStage } from "./PreviewStage";
 
-const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES];
+const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
 const DEFAULT_CASE = CASES[0];
 if (!DEFAULT_CASE) throw new Error("Skia preview fixtures are empty");
 
@@ -24,7 +24,7 @@ export function SkiaRuntimeLab() {
   const referenceFrame = preparedFrame?.caseId === selected.id ? preparedFrame.frame : frame;
   return <main className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
     <header className="mx-auto mb-5 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Skia / Runtime E2E</p><h1 className="mt-2 text-2xl font-semibold">Protocol V2 → Compiler → Runtime → Skia</h1><p className="mt-2 text-sm text-slate-400">{selected.label} · time {previewTime.toFixed(3)}s · {referenceFrame.commands.length} runtime commands</p></header>
-    <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="runtime-skia-case" className="text-xs text-slate-400">Protocol fixture</label><select id="runtime-skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value)} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-xs text-slate-100">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selected.id}</span></div>
+    <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="runtime-skia-case" className="text-xs text-slate-400">Protocol fixture</label><select id="runtime-skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value)} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-base text-slate-100">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selected.id}</span></div>
     <section className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-2">
       <Panel title="Browser SVG reference" badge="SVG / same RuntimeFrameV3"><iframe title="Browser SVG reference" data-testid="skia-svg-reference" srcDoc={runtimeFrameToSvg(referenceFrame, selected.id)} className="aspect-video w-full border-0 bg-[#080c14]" /></Panel>
       <Panel title="Skia preview" badge="RuntimeFrameV3"><div className="aspect-video overflow-hidden"><PreviewStage project={selected.project} frame={frame} time={previewTime} backend="skia" testId="skia-runtime-stage" onFrameReady={onFrameReady} /></div></Panel>
@@ -280,6 +280,90 @@ function svgImagePreserveAspectRatio(
   return `${preserveAspectRatio?.defer ? "defer " : ""}${align} ${preserveAspectRatio?.meetOrSlice ?? "meet"}`;
 }
 
+type SvgColorMatrix = number[];
+
+function svgMultiplyColorMatrices(left: SvgColorMatrix, right: SvgColorMatrix): SvgColorMatrix {
+  const result = new Array<number>(20).fill(0);
+  for (let row = 0; row < 4; row += 1) {
+    for (let column = 0; column < 4; column += 1) {
+      for (let inner = 0; inner < 4; inner += 1) result[row * 5 + column] += left[row * 5 + inner] * right[inner * 5 + column];
+    }
+    result[row * 5 + 4] = left[row * 5 + 4]!;
+    for (let inner = 0; inner < 4; inner += 1) result[row * 5 + 4] += left[row * 5 + inner] * right[inner * 5 + 4];
+  }
+  return result;
+}
+
+function svgColorAdjustMatrix(op: { brightness: number; contrast: number; saturation: number; hueRotate: number }): string {
+  const lumR = 0.2126;
+  const lumG = 0.7152;
+  const lumB = 0.0722;
+  const identity = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+  let matrix = svgMultiplyColorMatrices([
+    lumR * (1 - op.saturation) + op.saturation, lumG * (1 - op.saturation), lumB * (1 - op.saturation), 0, 0,
+    lumR * (1 - op.saturation), lumG * (1 - op.saturation) + op.saturation, lumB * (1 - op.saturation), 0, 0,
+    lumR * (1 - op.saturation), lumG * (1 - op.saturation), lumB * (1 - op.saturation) + op.saturation, 0, 0,
+    0, 0, 0, 1, 0,
+  ], identity);
+  const angle = op.hueRotate * Math.PI / 180;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  matrix = svgMultiplyColorMatrices([
+    lumR + cosine * (1 - lumR) - sine * lumR, lumG * (1 - cosine) - sine * lumG, lumB * (1 - cosine) + sine * (1 - lumB), 0, 0,
+    lumR * (1 - cosine) + sine * 0.143, lumG + cosine * (1 - lumG) + sine * 0.140, lumB * (1 - cosine) - sine * 0.283, 0, 0,
+    lumR * (1 - cosine) - sine * (1 - lumR), lumG * (1 - cosine) + sine * lumG, lumB + cosine * (1 - lumB) + sine * lumB, 0, 0,
+    0, 0, 0, 1, 0,
+  ], matrix);
+  const contrastOffset = 0.5 * (1 - op.contrast);
+  matrix = svgMultiplyColorMatrices([
+    op.contrast, 0, 0, 0, contrastOffset,
+    0, op.contrast, 0, 0, contrastOffset,
+    0, 0, op.contrast, 0, contrastOffset,
+    0, 0, 0, 1, 0,
+  ], matrix);
+  matrix = svgMultiplyColorMatrices([
+    1, 0, 0, 0, op.brightness,
+    0, 1, 0, 0, op.brightness,
+    0, 0, 1, 0, op.brightness,
+    0, 0, 0, 1, 0,
+  ], matrix);
+  return matrix.map(svgNumber).join(" ");
+}
+
+function svgEffectFilter(
+  command: Extract<PaintCommand, { op: "beginLayer" }>,
+  defs: string[],
+): string | undefined {
+  const program = command.effectProgram;
+  if (!program) return undefined;
+  const ops = program.ops;
+  const filterId = `${command.key}-runtime-effect`;
+  const color = ops.find((op) => op.kind === "tint");
+  const blur = ops.find((op) => op.kind === "blur");
+  const offset = ops.find((op) => op.kind === "offset");
+  let content = "";
+  if (ops.length === 5 && ops[0]?.kind === "alpha-mask" && ops[1]?.kind === "blur" && ops[2]?.kind === "tint" && ops[3]?.kind === "offset" && ops[4]?.kind === "composite" && color?.kind === "tint" && blur?.kind === "blur" && offset?.kind === "offset") {
+    content = `<feDropShadow dx="${svgNumber(offset.x)}" dy="${svgNumber(offset.y)}" stdDeviation="${svgNumber(blur.radius)}" flood-color="${svgEscape(color.color)}" flood-opacity="${svgNumber(color.opacity)}"/>`;
+  } else if (ops.length === 4 && ops[0]?.kind === "alpha-mask" && ops[1]?.kind === "blur" && ops[2]?.kind === "tint" && ops[3]?.kind === "composite" && color?.kind === "tint" && blur?.kind === "blur") {
+    content = `<feDropShadow dx="0" dy="0" stdDeviation="${svgNumber(blur.radius)}" flood-color="${svgEscape(color.color)}" flood-opacity="${svgNumber(color.opacity)}"/>`;
+  } else if (ops.length === 5 && ops[0]?.kind === "alpha-mask" && ops[1]?.kind === "blur" && ops[2]?.kind === "inner-alpha" && ops[3]?.kind === "tint" && ops[4]?.kind === "composite" && color?.kind === "tint" && blur?.kind === "blur") {
+    content = `<feGaussianBlur in="SourceAlpha" stdDeviation="${svgNumber(blur.radius)}" result="runtime-blur"/><feComposite in="SourceAlpha" in2="runtime-blur" operator="out" result="runtime-inside"/><feFlood flood-color="${svgEscape(color.color)}" flood-opacity="${svgNumber(color.opacity)}" result="runtime-tint"/><feComposite in="runtime-tint" in2="runtime-inside" operator="in" result="runtime-glow"/><feComposite in="SourceGraphic" in2="runtime-glow" operator="over"/>`;
+  } else if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust")) {
+    let input = "SourceGraphic";
+    content = ops.map((op, index) => {
+      const result = `runtime-effect-${index}`;
+      const item = op.kind === "blur"
+        ? `<feGaussianBlur in="${input}" stdDeviation="${svgNumber(op.radius)}" result="${result}"/>`
+        : `<feColorMatrix in="${input}" type="matrix" values="${svgColorAdjustMatrix(op)}" result="${result}"/>`;
+      input = result;
+      return item;
+    }).join("");
+  }
+  if (!content) return undefined;
+  defs.push(`<filter id="${svgEscape(filterId)}" x="-100%" y="-100%" width="300%" height="300%">${content}</filter>`);
+  return `url(#${svgEscape(filterId)})`;
+}
+
 function svgDrawCommand(command: PaintCommand, defs: string[]): string {
   if (command.op === "drawSolid") return `<rect width="${svgNumber(command.width)}" height="${svgNumber(command.height)}" fill="${svgEscape(command.fill)}"/>`;
   if (command.op === "drawShape") {
@@ -344,22 +428,90 @@ function runtimeFrameToSvg(frame: RuntimeFrameV3, fixtureId?: string): string {
   const height = begin?.height ?? 1;
   const defs: string[] = [];
   const body: string[] = [];
+  const sourceCommands = new Map<string, { command: Extract<PaintCommand, { op: "drawPath" }>; transform: Extract<PaintCommand, { op: "setTransform" }> | null }>();
+  let sourceTransform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  for (const command of frame.commands) {
+    if (command.op === "setTransform") sourceTransform = command;
+    else if (command.op === "drawPath") {
+      sourceCommands.set(command.key, { command, transform: sourceTransform });
+      sourceTransform = null;
+    } else if (command.op !== "beginFrame" && command.op !== "endFrame") sourceTransform = null;
+  }
   let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  const groupStack: string[] = [];
+  const clipSourceKeys = new Set<string>();
+  const maskSourceKeys = new Set<string>();
+  const blendCss = (value: string | undefined): string => value === "normal" || value === undefined ? "normal" : value;
+  const svgMatrix = (matrix: readonly number[] | undefined): string => {
+    if (!matrix || matrix.length !== 16 || !matrix.every(Number.isFinite)) return "";
+    return `matrix(${svgNumber(matrix[0])} ${svgNumber(matrix[1])} ${svgNumber(matrix[4])} ${svgNumber(matrix[5])} ${svgNumber(matrix[12])} ${svgNumber(matrix[13])})`;
+  };
   for (const command of frame.commands) {
     if (command.op === "beginFrame") {
       body.push(`<rect width="${svgNumber(width)}" height="${svgNumber(height)}" fill="${svgEscape(command.background ?? "#000000")}"/>`);
+    } else if (command.op === "beginGroup") {
+      body.push(`<g data-runtime-group="${svgEscape(command.key)}">`);
+      groupStack.push("group");
+    } else if (command.op === "endGroup") {
+      if (groupStack.pop()) body.push("</g>");
+    } else if (command.op === "beginLayer") {
+      const attributes: string[] = [`data-runtime-layer="${svgEscape(command.key)}"`];
+      if (command.compositeAlpha !== undefined) attributes.push(`opacity="${svgNumber(command.compositeAlpha)}"`);
+      const blend = blendCss(command.blendMode);
+      const styles = [command.isolation ? "isolation:isolate" : "", blend !== "normal" ? `mix-blend-mode:${svgEscape(blend)}` : ""].filter(Boolean);
+      if (styles.length) attributes.push(`style="${styles.join(";")}"`);
+      const effectFilter = svgEffectFilter(command, defs);
+      if (effectFilter) attributes.push(`filter="${effectFilter}"`);
+      if (command.clipPath) {
+        const sources = command.clipPath.sourceKeys ?? [command.clipPath.sourceKey];
+        const clipId = `${command.key}-runtime-clip`;
+        const paths = sources.map((sourceKey) => {
+          const source = sourceCommands.get(sourceKey);
+          if (!source) return "";
+          const transform = svgMatrix(source.transform?.matrix4);
+          return `<path d="${svgPathData(source.command)}" fill="#fff"${transform ? ` transform="${transform}"` : ""}/>`;
+        }).join("");
+        defs.push(`<clipPath id="${svgEscape(clipId)}" clipPathUnits="userSpaceOnUse">${paths}</clipPath>`);
+        attributes.push(`clip-path="url(#${svgEscape(clipId)})"`);
+        for (const sourceKey of sources) clipSourceKeys.add(sourceKey);
+      }
+      if (command.mask) {
+        const sources = command.mask.sourceKeys ?? [command.mask.sourceKey];
+        const maskId = `${command.key}-runtime-mask`;
+        const paths = sources.map((sourceKey) => {
+          const source = sourceCommands.get(sourceKey);
+          if (!source) return "";
+          const transform = svgMatrix(source.transform?.matrix4);
+          const sourceFill = source.command.fill ?? "#000000";
+          const opacity = (source.command.fillOpacity ?? 1) * (source.command.fillPaint?.type === "solid" ? source.command.fillPaint.opacity ?? 1 : 1);
+          return `<path d="${svgPathData(source.command)}" fill="${svgEscape(sourceFill)}" fill-opacity="${svgNumber(opacity)}"${transform ? ` transform="${transform}"` : ""}/>`;
+        }).join("");
+        const maskType = command.mask.mode === "luma" ? ` style="mask-type:luminance"` : "";
+        defs.push(`<mask id="${svgEscape(maskId)}" maskUnits="userSpaceOnUse" x="0" y="0" width="${svgNumber(width)}" height="${svgNumber(height)}"${maskType}>${paths}</mask>`);
+        attributes.push(`mask="url(#${svgEscape(maskId)})"`);
+        for (const sourceKey of sources) maskSourceKeys.add(sourceKey);
+      }
+      body.push(`<g ${attributes.join(" ")}>`);
+      groupStack.push("layer");
     } else if (command.op === "setTransform") {
       pendingTransform = command;
+    } else if (command.op === "endLayer") {
+      if (groupStack.pop()) body.push("</g>");
+      pendingTransform = null;
     } else {
+      if (command.op === "drawPath" && (clipSourceKeys.has(command.key) || maskSourceKeys.has(command.key))) {
+        pendingTransform = null;
+        continue;
+      }
       const drawable = svgDrawCommand(command, defs);
       if (!drawable) continue;
       if (!pendingTransform) {
         body.push(drawable);
         continue;
       }
-      const matrix = pendingTransform.matrix4;
-      if (matrix.length === 16 && matrix.every(Number.isFinite) && pendingTransform.visible && pendingTransform.alpha > 0) {
-        body.push(`<g transform="matrix(${svgNumber(matrix[0])} ${svgNumber(matrix[1])} ${svgNumber(matrix[4])} ${svgNumber(matrix[5])} ${svgNumber(matrix[12])} ${svgNumber(matrix[13])})" opacity="${svgNumber(pendingTransform.alpha)}">${drawable}</g>`);
+      const matrix = svgMatrix(pendingTransform.matrix4);
+      if (matrix && pendingTransform.visible && pendingTransform.alpha > 0) {
+        body.push(`<g transform="${matrix}" opacity="${svgNumber(pendingTransform.alpha)}">${drawable}</g>`);
       }
       pendingTransform = null;
     }

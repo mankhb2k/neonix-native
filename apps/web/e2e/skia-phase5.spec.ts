@@ -1,7 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  SKIA_CLIP_CASES,
+  SKIA_COMPOSITING_CASES,
+  SKIA_EFFECT_CASES,
   SKIA_GRADIENT_CASES,
   SKIA_IMAGE_CASES,
+  SKIA_MASK_CASES,
   SKIA_PREVIEW_CASES,
   SKIA_TEXT_CASES,
   SKIA_VIDEO_CASES,
@@ -13,7 +17,11 @@ const TOTAL_SKIA_CASES =
   SKIA_GRADIENT_CASES.length +
   SKIA_IMAGE_CASES.length +
   SKIA_VIDEO_CASES.length +
-  SKIA_TEXT_CASES.length;
+  SKIA_TEXT_CASES.length +
+  SKIA_COMPOSITING_CASES.length +
+  SKIA_CLIP_CASES.length +
+  SKIA_MASK_CASES.length +
+  SKIA_EFFECT_CASES.length;
 
 function resourceCounts(value: string | null): { activeAssets: number; activeVideos: number } {
   if (!value) return { activeAssets: 0, activeVideos: 0 };

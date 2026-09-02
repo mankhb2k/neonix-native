@@ -10,8 +10,23 @@ export type SkiaCanvasKit = {
   PaintStyle: { Fill: unknown; Stroke: unknown };
   StrokeCap: { Butt: unknown; Square: unknown; Round: unknown };
   StrokeJoin: { Miter: unknown; Bevel: unknown; Round: unknown };
+  /** Skia blend modes use the same Porter-Duff/CSS names as CanvasKit. */
+  BlendMode: Record<string, unknown>;
+  ColorFilter?: {
+    MakeMatrix(matrix: number[]): SkiaColorFilter | null;
+    MakeBlend?(color: unknown, mode: unknown): SkiaColorFilter | null;
+  };
   ClipOp: { Intersect: unknown };
+  ImageFilter: {
+    MakeBlur(sigmaX: number, sigmaY: number, tileMode: unknown, input?: unknown): SkiaImageFilter | null;
+    MakeColorFilter?(filter: SkiaColorFilter, input?: SkiaImageFilter | null): SkiaImageFilter | null;
+    MakeCompose?(outer: SkiaImageFilter | null, inner: SkiaImageFilter | null): SkiaImageFilter | null;
+    MakeDropShadow?(dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: SkiaImageFilter | null): SkiaImageFilter | null;
+    MakeDropShadowOnly?(dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: SkiaImageFilter | null): SkiaImageFilter | null;
+    MakeBlend?(mode: unknown, background: SkiaImageFilter | null, foreground: SkiaImageFilter | null): SkiaImageFilter | null;
+  };
   Path: { MakeFromSVGString(value: string): SkiaPath | null };
+  PathBuilder: new (path?: SkiaPath) => SkiaPathBuilder;
   Typeface: { MakeTypefaceFromData(data: ArrayBuffer | Uint8Array): SkiaTypeface | null };
   Font: new (typeface: SkiaTypeface, size: number) => SkiaFont;
   MakeImageFromCanvasImageSource(source: TexImageSource): SkiaImage | null;
@@ -41,7 +56,9 @@ export type SkiaCanvas = {
   drawPath(path: SkiaPath, paint: SkiaPaint): void;
   drawGlyphs(glyphs: Uint16Array, positions: Float32Array, x: number, y: number, font: SkiaFont, paint: SkiaPaint): void;
   drawImageRect(image: SkiaImage, sourceRect: unknown, destinationRect: unknown, paint: SkiaPaint | null, fastSample?: boolean): void;
+  saveLayer(paint?: SkiaPaint | null, bounds?: unknown, backdrop?: SkiaImageFilter | null, flags?: number, tileMode?: unknown): number;
   clipRect(rect: unknown, op?: unknown, antialias?: boolean): void;
+  clipPath?(path: SkiaPath, op?: unknown, antialias?: boolean): void;
   readPixels(x: number, y: number, info: unknown): Uint8Array | null;
 };
 
@@ -53,12 +70,17 @@ export type SkiaPaint = {
   setStrokeWidth(value: number): void;
   setStrokeCap(value: unknown): void;
   setStrokeJoin(value: unknown): void;
+  setBlendMode(value: unknown): void;
+  setImageFilter?(value: SkiaImageFilter | null): void;
   setShader(value: unknown): void;
   delete(): void;
 };
 
 export type SkiaShader = { delete(): void };
+export type SkiaColorFilter = { delete(): void };
+export type SkiaImageFilter = { delete(): void };
 export type SkiaPath = { delete(): void };
+export type SkiaPathBuilder = { transform(...args: unknown[]): SkiaPathBuilder; snapshot(): SkiaPath; delete(): void };
 export type SkiaTypeface = { delete(): void };
 export type SkiaFont = { delete(): void; setSubpixel(value: boolean): void };
 export type SkiaImage = { delete(): void; width?: () => number; height?: () => number };

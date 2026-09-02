@@ -1,5 +1,5 @@
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { PREVIEW_LAB_CASES } from "./preview-lab";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type SkiaPreviewFixture = {
   id: string;
@@ -88,4 +88,46 @@ export const SKIA_TEXT_CASES: readonly SkiaPreviewFixture[] = [
   fixture("text.emoji-variation", "Emoji variation-selector sequences.", ["drawText", "emoji", "variation"]),
 ];
 
-export const SKIA_PREVIEW_DEFAULT_CASE = SKIA_PREVIEW_CASES[0]!;
+/** Phase 6 compositing fixtures. They are intentionally sourced from the
+ * canonical Preview Lab so the dropdown still exercises Protocol V2 ->
+ * Compiler -> Runtime rather than a renderer-only scene. */
+export const SKIA_COMPOSITING_CASES: readonly SkiaPreviewFixture[] = [
+  ...(["normal", "darken", "multiply", "color-burn", "lighten", "screen", "color-dodge", "overlay", "soft-light", "hard-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"] as const).map((mode) => fixture(`composite.blend.${mode}`, `Runtime ${mode} blend mode.`, ["beginLayer", "saveLayer", mode])),
+  fixture("group.explicit-isolation", "Explicit isolated group with source-over children.", ["beginLayer", "isolation"]),
+  fixture("group.isolation.opacity", "Group opacity composited once at the layer boundary.", ["beginLayer", "compositeAlpha"]),
+];
+
+export const SKIA_CLIP_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("clip.svg.user-space", "Runtime-lowered user-space clipPath.", ["beginLayer", "clipPath", "clipPath.source"]),
+  fixture("clip.svg.object-bounding-box", "Runtime-lowered objectBoundingBox clipPath.", ["beginLayer", "clipPath", "objectBoundingBox"]),
+];
+
+/** Masks and effect graphs remain visible in the matrix. Path-source masks are
+ * replayed by the Skia layer and effect programs are exercised from Runtime. */
+export const SKIA_MASK_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("mask.svg.alpha", "Runtime alpha mask applied with DstIn coverage.", ["beginLayer", "mask", "alpha", "DstIn"]),
+  fixture("mask.svg.luminance", "Runtime luminance mask converted to coverage.", ["beginLayer", "mask", "luma", "DstIn"]),
+];
+
+export const SKIA_EFFECT_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("effect.color-adjust", "Runtime color matrix adjustment.", ["beginLayer", "effectProgram", "color-adjust"]),
+  fixture("effect.blur", "Runtime blur effect with default radius.", ["beginLayer", "effectProgram", "blur"]),
+  fixture("effect.blur.stroke", "Runtime blur over fill and stroke coverage.", ["beginLayer", "effectProgram", "blur", "stroke"]),
+  fixture("effect.drop-shadow", "Runtime drop shadow from captured alpha.", ["beginLayer", "effectProgram", "drop-shadow"]),
+  fixture("effect.drop-shadow.negative-offset", "Runtime drop shadow with negative offset.", ["beginLayer", "effectProgram", "drop-shadow", "negative"]),
+  fixture("effect.drop-shadow.zero-blur", "Runtime crisp zero-radius drop shadow.", ["beginLayer", "effectProgram", "drop-shadow", "zero"]),
+  fixture("effect.drop-shadow.alpha-color", "Runtime drop shadow with alpha color.", ["beginLayer", "effectProgram", "drop-shadow", "alpha"]),
+  fixture("effect.drop-shadow.stroke-source", "Runtime drop shadow from fill and stroke.", ["beginLayer", "effectProgram", "drop-shadow", "stroke"]),
+  fixture("effect.outer-glow", "Runtime outer glow behind the source.", ["beginLayer", "effectProgram", "outer-glow"]),
+  fixture("effect.outer-glow.stroke-source", "Runtime outer glow from fill and stroke.", ["beginLayer", "effectProgram", "outer-glow", "stroke"]),
+  fixture("effect.outer-glow.perspective", "Runtime projected outer glow.", ["beginLayer", "effectProgram", "outer-glow", "perspective"]),
+  fixture("effect.inner-glow", "Runtime inner glow from alpha difference.", ["beginLayer", "effectProgram", "inner-glow"]),
+  fixture("effect.noise", "Runtime deterministic noise effect.", ["beginLayer", "effectProgram", "noise"]),
+  fixture("effect.order", "Runtime ordered color-adjust and blur operators.", ["beginLayer", "effectProgram", "order"]),
+  fixture("effect.blur-chain", "Runtime ordered blur chain.", ["beginLayer", "effectProgram", "blur-chain"]),
+  fixture("effect.blur.radius-4", "Runtime blur effect at 4px.", ["beginLayer", "effectProgram", "blur", "4"]),
+  fixture("effect.blur.radius-40", "Runtime blur effect at 40px.", ["beginLayer", "effectProgram", "blur", "40"]),
+  fixture("effect.blur.radius-256", "Runtime blur effect at 256px.", ["beginLayer", "effectProgram", "blur", "256"]),
+];
+
+export const SKIA_PREVIEW_DEFAULT_CASE = SKIA_PREVIEW_CASES[0];

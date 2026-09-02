@@ -85,7 +85,13 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     for (const replayDiagnostic of replay.diagnostics) {
       const code = replayDiagnostic.startsWith("text_color_glyph_fallback")
         ? "skia_text_color_glyph_fallback"
-        : "skia_replay_diagnostic";
+        : replayDiagnostic.startsWith("skia_mask_unsupported")
+          ? "skia_mask_unsupported"
+          : replayDiagnostic.startsWith("skia_effect_unsupported")
+            ? "skia_effect_unsupported"
+            : replayDiagnostic.startsWith("skia_clip_path_unsupported")
+              ? "skia_clip_path_unsupported"
+              : "skia_replay_diagnostic";
       add({ severity: "warning", code, message: replayDiagnostic, key: "skia" });
     }
     activeSurface.flush();
