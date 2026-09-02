@@ -8,7 +8,7 @@ import {
 } from "../math";
 import { cssColorToRgba } from "../shared/color";
 import { imageLayout, mediaLayout } from "../media";
-import { createTextAtlas, type TextAtlas } from "../text-atlas";
+import { createTextAtlas, textAtlasKey, textAtlasScale, type TextAtlas } from "../text-atlas";
 import { buildEffectPassPlan, colorAdjustUniforms, type EffectPassPlan } from "../shared/effects";
 import { blurPyramidPlan } from "../shared/blur";
 import type { PreviewBackend } from "../backend";
@@ -271,7 +271,7 @@ export function createWebGL2Backend(
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, asset.premultipliedAlpha === false ? 0 : 1);
     if (canUpdateInPlace && asset.pixels) {
       gl.texSubImage2D(
         gl.TEXTURE_2D,
@@ -834,13 +834,71 @@ export function createWebGL2Backend(
           if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
           continue;
         }
-        const atlas = textAtlases.get(command.key) ?? createTextAtlas(command);
+        // Prefer the resolved vector outline. This is the same geometry that
+        // export writes as SVG paths and avoids a second low-resolution text
+        // rasterization through an alpha atlas.
+        const hasVectorRenderableGlyphs = command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
+        if (hasVectorRenderableGlyphs) {
+          blend(gl, maskMode ? "normal" : drawBlendMode());
+          bindVertexBuffer(pathBuffer);
+          gl.uniformMatrix4fv(projectionLocation, false, projection);
+          gl.uniform1i(modeLocation, 0);
+          gl.uniform1i(shapeLocation, 0);
+          gl.uniform2f(strokeExtentLocation, 0, 0);
+          gl.uniform3f(geometryLocation, 0, command.width, command.height);
+          gl.uniform4f(uvRectLocation, 0, 0, 1, 1);
+          setColorAdjust(maskMode ? undefined : sourceColorAdjust());
+          const activeTransform = transform;
+          const drawVectorMesh = (mesh: { vertices: number[]; indices: number[] }, value: string, alpha: number) => {
+            const vertexData = new Float32Array(mesh.vertices.length * 2);
+            for (let index = 0; index < mesh.vertices.length / 2; index += 1) {
+              vertexData[index * 4] = mesh.vertices[index * 2]!;
+              vertexData[index * 4 + 1] = mesh.vertices[index * 2 + 1]!;
+              vertexData[index * 4 + 2] = mesh.vertices[index * 2]! / Math.max(command.width, 1);
+              vertexData[index * 4 + 3] = mesh.vertices[index * 2 + 1]! / Math.max(command.height, 1);
+            }
+            gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.DYNAMIC_DRAW);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pathIndexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(mesh.indices), gl.DYNAMIC_DRAW);
+            const color = cssColorToRgba(value);
+            color[3] *= alpha * activeTransform.alpha;
+            gl.uniform4fv(colorLocation, color);
+            gl.uniformMatrix4fv(modelLocation, false, packMatrix4F32(activeTransform.matrix4));
+            gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
+            drawCalls += 1;
+          };
+          for (const glyph of command.glyphs) {
+            const drawFill = () => {
+              if (glyph.colorGlyph?.kind === "layers") {
+                for (const layer of glyph.colorGlyph.layers) if (layer.mesh) drawVectorMesh(layer.mesh, layer.fill, 1);
+                return;
+              }
+              if (glyph.mesh) drawVectorMesh(glyph.mesh, glyph.fill ?? command.fill, 1);
+            };
+            const drawStroke = () => glyph.strokeMesh && glyph.stroke
+              ? drawVectorMesh(glyph.strokeMesh, glyph.stroke, glyph.strokeOpacity ?? 1)
+              : undefined;
+            const order = command.paintOrder ?? ["fill", "stroke", "markers"];
+            for (const pass of order) {
+              if (pass === "fill") drawFill();
+              if (pass === "stroke") drawStroke();
+            }
+          }
+          for (const decoration of command.decorations ?? []) {
+            const vertices = [decoration.x, decoration.y, decoration.x + decoration.width, decoration.y, decoration.x + decoration.width, decoration.y + decoration.height, decoration.x, decoration.y + decoration.height];
+            drawVectorMesh({ vertices, indices: [0, 1, 2, 0, 2, 3] }, decoration.fill, decoration.opacity ?? 1);
+          }
+          continue;
+        }
+        const atlasScale = textAtlasScale(dpr);
+        const atlasKey = textAtlasKey(command, atlasScale, transform.matrix4, dpr);
+        const atlas = textAtlases.get(atlasKey) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
         if (!atlas) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
           continue;
         }
-        textAtlases.set(command.key, atlas);
+        textAtlases.set(atlasKey, atlas);
         const texture = uploadTexture(atlas.id, atlas.asset);
         if (!texture) {
           skippedCommands += 1;
@@ -848,10 +906,7 @@ export function createWebGL2Backend(
         }
         blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
-        const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha;
         gl.uniformMatrix4fv(projectionLocation, false, projection);
-        gl.uniform4fv(colorLocation, color);
         gl.uniform1i(modeLocation, 2);
         gl.uniform1i(shapeLocation, 0);
         gl.uniform4f(strokeColorLocation, 0, 0, 0, 0);
@@ -866,6 +921,9 @@ export function createWebGL2Backend(
         gl.uniform1i(textureLocation, 0);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         for (const glyph of atlas.glyphs) {
+          const color = cssColorToRgba(glyph.fill ?? command.fill);
+          color[3] *= transform.alpha;
+          gl.uniform4fv(colorLocation, color);
           gl.uniformMatrix4fv(modelLocation, false, matrix4ForQuad(baseMatrix, glyph.x, glyph.y, glyph.width, glyph.height));
           gl.uniform4f(uvRectLocation, glyph.uv.x, glyph.uv.y, glyph.uv.width, glyph.uv.height);
           setColorAdjust(sourceColorAdjust());

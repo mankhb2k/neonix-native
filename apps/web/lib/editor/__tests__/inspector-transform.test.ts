@@ -21,7 +21,7 @@ const makeShape = (id: string, x: number, y: number, width: number, height: numb
   frame: { width, height },
   transform: { ...baseTransform, translate: { x, y, z: 0 } },
   opacity: 1,
-  timing: { start: 0, duration: 1 },
+  timing: { start: 0, duration: 1000 },
   payload: { shape: "rectangle" as const, cornerRadius: 0 },
   style: { fill: "#fff" },
 });
@@ -63,7 +63,7 @@ describe("inspector layer bounds", () => {
         frame: { width: 100, height: 50 },
         transform: baseTransform,
         opacity: 1,
-        timing: { start: 0, duration: 1 },
+        timing: { start: 0, duration: 1000 },
         payload: { shape: "rectangle", cornerRadius: 0 },
         style: { fill: "#fff" },
       }),

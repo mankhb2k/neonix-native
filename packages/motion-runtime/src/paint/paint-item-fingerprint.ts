@@ -48,6 +48,12 @@ export function computePaintItemFingerprint(
   // Draw-specific properties
   switch (drawCmd.op) {
     case "drawText":
+      if (drawCmd.glyphs) {
+        parts.push(`glyphs:${drawCmd.glyphs.map((glyph) => `${glyph.fontIntegrity ?? ""}:${glyph.fontAssetId ?? ""}:${glyph.glyphId}:${round3(glyph.x)}:${round3(glyph.y)}:${glyph.mesh?.vertices.length ?? 0}:${glyph.strokeMesh?.vertices.length ?? 0}:${glyph.renderMode ?? "vector"}:${glyph.variationKey ?? ""}:${glyph.fill ?? ""}`).join(";")}`);
+      }
+      if (drawCmd.decorations) parts.push(`decorations:${drawCmd.decorations.map((item) => `${round3(item.x)},${round3(item.y)},${round3(item.width)},${round3(item.height)},${item.fill},${round3(item.opacity ?? 1)}`).join(";")}`);
+      if (drawCmd.paintOrder) parts.push(`po:${drawCmd.paintOrder.join(",")}`);
+      break;
     case "drawShape":
     case "drawSolid":
     case "drawImage":

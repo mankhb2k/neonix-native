@@ -245,7 +245,7 @@ async function hydratePrivateAssetUrls(
             mimeType: systemAsset.mime_type,
             ...(systemAsset.width ? { width: systemAsset.width } : {}),
             ...(systemAsset.height ? { height: systemAsset.height } : {}),
-            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms / 1000 } : {}),
+            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms } : {}),
             ...(typeof metadata.fps === "number" ? { fps: metadata.fps } : {}),
           };
         }
@@ -254,7 +254,7 @@ async function hydratePrivateAssetUrls(
             ...asset,
             uri,
             mimeType: systemAsset.mime_type,
-            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms / 1000 } : {}),
+            ...(systemAsset.duration_ms !== null ? { duration: systemAsset.duration_ms } : {}),
             ...(typeof metadata.sampleRate === "number" ? { sampleRate: metadata.sampleRate } : {}),
             ...(typeof metadata.channels === "number" ? { channels: metadata.channels } : {}),
           };

@@ -33,7 +33,7 @@ export function DocsPreview({
     const parsed = MotionProtocolV2Schema.parse(project);
     const duration = Math.max(
       0.1,
-      ...parsed.layers.map((layer) => layer.timing.start + layer.timing.duration),
+      ...parsed.layers.map((layer) => (layer.timing.start + layer.timing.duration) / 1000),
     );
     let raf = 0;
     const started = performance.now();

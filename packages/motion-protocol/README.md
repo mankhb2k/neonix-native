@@ -307,67 +307,49 @@ defined by this package yet.
 | `path` | Contours with line/cubic segments; `fillRule`; optional morph | Fill, stroke, joins, caps, dash, and contour morph |
 | `image` | `assetId`; optional `fit`, normalized `crop` | Image asset placement |
 | `video` | `assetId`; optional `fit`, trim, audio, `framePolicy` | Video asset placement and source-time selection |
-| `text` | Canonical `TextLayout`: visual lines, glyph runs, positioned glyphs | Runtime font/glyph rendering; CSS text semantics are resolved before Protocol V2 |
+| `text` | SVG-like source, chunks, spans and font/paint semantics | Compiler shaping and fallback; runtime consumes resolved glyph layout |
 
 Image and video `fit` can be `contain`, `cover`, `fill`, or `none`.
 
-### 5.1 Text layout and glyph runs
+### 5.1 Semantic text and glyph mapping
 
-Text is render data, not a CSS text-layout command. A text layer contains one
-required `payload.layout`, which is a visual sequence of lines and glyph runs.
-Each run selects an exact font asset and optional resolved OpenType variation
-coordinates; each glyph has its glyph ID, local origin, and advance vector.
+Text is an SVG-like semantic source. The editor modifies `source.text`, chunks,
+and spans; the compiler resolves font assets, shaping, fallback, bidi, spacing,
+and glyph positions before the runtime renders it.
 
 ```json
 {
   "payload": {
     "source": { "text": "Hello مرحبا", "language": "en" },
-    "layout": {
-      "lines": [
-        { "id": "line-1", "baselineY": 48, "runIds": ["latin", "arabic"] }
-      ],
-      "runs": [
-        {
-          "id": "latin",
-          "font": { "assetId": "inter", "size": 40, "variations": { "wght": 650 } },
-          "fill": "#ffffff",
-          "glyphs": [
-            { "glyphId": 43, "x": 0, "y": 48, "advance": { "x": 28, "y": 0 }, "cluster": 0 }
-          ]
-        },
-        {
-          "id": "arabic",
-          "font": { "assetId": "noto-arabic", "size": 40 },
-          "fill": "#00e5ff",
-          "glyphs": [
-            { "glyphId": 70, "x": 28, "y": 48, "advance": { "x": 24, "y": 0 }, "cluster": 6 }
-          ]
-        }
-      ]
-    }
+    "chunks": [{
+      "id": "chunk-1",
+      "sourceRange": { "start": 0, "end": 16 },
+      "textAnchor": "middle",
+      "spans": [{
+        "id": "span-1",
+        "sourceRange": { "start": 0, "end": 16 },
+        "font": { "families": ["Roboto", "sans-serif"], "size": 40 },
+        "fill": "#ffffff"
+      }]
+    }]
   }
 }
 ```
 
-`lines[].runIds` defines visual paint order. Run IDs and line IDs are unique;
-every run must be referenced by exactly one line. This permits bidirectional
-text, font fallback, wrapping, and rich inline styles without adding CSS
-`white-space`, `direction`, `word-break`, or `font-family` syntax to Atomic.
-`payload.source` is optional editor metadata only: the runtime must render
-`layout`, never reshape its source string. `cluster` is an optional UTF-16
-offset into that metadata for editor selection/caret mapping.
+`sourceRange` uses UTF-16 offsets so editor selection and caret mapping match
+JavaScript string indexing. The compiler may use UTF-8 byte offsets internally,
+but emits the resolved glyph-to-source mapping as UTF-16 ranges.
 
 The text compiler/shaper owns cascade, font fallback, OpenType features,
 variation resolution, bidi, spacing, line breaking, wrapping, alignment, and
-rich spans. Text decoration is lowered to ordinary shape/path layers. The
-runtime owns glyph-outline lookup/caching, tessellation or atlas generation,
-and GPU drawing from the selected font asset + variation coordinates + glyph
-ID. Glyph outlines do not enter Protocol JSON.
+rich spans. The runtime owns glyph-outline lookup/caching, tessellation or atlas
+generation, and GPU drawing from the resolved font asset + glyph ID. Glyph
+outlines do not enter semantic Protocol JSON.
 
-Run-level tracks use the stable run ID, for example
-`payload.layout.runs.latin.fill` (color) or
-`payload.layout.runs.latin.font.size` (number). Whole-text motion normally
-uses the shared layer transform and opacity tracks.
+Span-level tracks use the stable span ID, for example
+`payload.chunks.spans.span-1.fill` or
+`payload.chunks.spans.span-1.font.size`. Whole-text motion normally uses the
+shared layer transform and opacity tracks.
 
 ### 5.2 Paint and gradients
 

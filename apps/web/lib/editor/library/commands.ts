@@ -28,6 +28,10 @@ function transform(
     anchor: { x: width / 2, y: height / 2, z: 0 },
   };
 }
+
+/** Library placement values are timeline seconds; Protocol V2 stores milliseconds. */
+const secondsToProtocolMilliseconds = (value: number): number => value * 1000;
+
 function uniqueId(document: MotionProtocolV2, base: string): string {
   let id = base.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "layer";
   let suffix = 1;
@@ -47,18 +51,18 @@ function rootOrder(document: MotionProtocolV2): string[] {
 
 function textPayload(text: string) {
   const source = text.normalize("NFC");
-  const lines = source.split("\n");
   return {
     source: { text: source, language: "vi" },
-    layout: {
-      lines: lines.map((_, index) => ({ id: `line-${index}`, baselineY: (index + 1) * 86, runIds: [`run-${index}`] })),
-      runs: lines.map((line, index) => ({
-        id: `run-${index}`,
-        font: { assetId: DEFAULT_FONT_ASSET.id, size: 72 },
+    chunks: [{
+      id: "text-chunk",
+      sourceRange: { start: 0, end: source.length },
+      spans: [{
+        id: "text-span",
+        sourceRange: { start: 0, end: source.length },
+        font: { families: ["Roboto"], size: 72 },
         fill: "#f7e7bd",
-        glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * 86, advance: { x: 0, y: 0 }, cluster: 0 }],
-      })),
-    },
+      }],
+    }],
   };
 }
 
@@ -91,7 +95,10 @@ function layerForPayload(
     frame: { width, height },
     transform: transform((document.composition.width - width) / 2, (document.composition.height - height) / 2, width, height),
     opacity: 1,
-    timing: { start: Math.max(0, startTime), duration },
+    timing: {
+      start: secondsToProtocolMilliseconds(Math.max(0, startTime)),
+      duration: secondsToProtocolMilliseconds(duration),
+    },
   };
 
   if (payload.kind === "shape") {
@@ -185,7 +192,10 @@ export function commandsForLibraryPayload(
       clip: {
         id: clipId,
         assetId: payload.asset.id,
-        timing: { start: Math.max(0, startTime), duration: Math.max(0.5, payload.duration ?? 5) },
+        timing: {
+          start: secondsToProtocolMilliseconds(Math.max(0, startTime)),
+          duration: secondsToProtocolMilliseconds(Math.max(0.5, payload.duration ?? 5)),
+        },
         trim: { start: 0 },
         playbackRate: 1,
         enabled: true,

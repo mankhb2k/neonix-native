@@ -34,6 +34,10 @@ const inputClass =
 
 const DEFAULT_AUDIO_FADE = { duration: 0, curve: "linear" as const };
 
+/** Inspector controls display seconds while Protocol V2 persists milliseconds. */
+const protocolMillisecondsToSeconds = (value: number): number => value / 1000;
+const secondsToProtocolMilliseconds = (value: number): number => value * 1000;
+
 function clampFadeDuration(value: number, clipDuration: number): number {
   return Math.max(0, Math.min(clipDuration, Number.isFinite(value) ? value : 0));
 }
@@ -311,15 +315,23 @@ function AudioInspector({
   onClipPatch: (patch: AudioClipPatch) => void;
   onTrackPatch: (patch: AudioTrackDocumentPatch) => void;
 }) {
+  const timingStart = protocolMillisecondsToSeconds(clip.timing.start);
+  const timingDuration = protocolMillisecondsToSeconds(clip.timing.duration);
+  const trimStart = protocolMillisecondsToSeconds(clip.trim.start);
+  const trimEnd = clip.trim.end == null
+    ? trimStart + timingDuration
+    : protocolMillisecondsToSeconds(clip.trim.end);
+  const fadeIn = clip.fadeIn ?? DEFAULT_AUDIO_FADE;
+  const fadeOut = clip.fadeOut ?? DEFAULT_AUDIO_FADE;
   return (
     <div className="min-h-full w-full" data-testid="inspector-audio-properties">
       <InspectorSection label="Media" open={open} onToggle={onToggle}>
         <ReadonlyField label="Asset" value={assetLabel} />
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="Start" step={0.01} suffix="s" value={clip.timing.start} onChange={(value) => onClipPatch({ timing: { start: Math.max(0, value) } })} />
-          <NumberField label="Duration" step={0.01} suffix="s" value={clip.timing.duration} onChange={(value) => onClipPatch({ timing: { duration: Math.max(0.001, value) } })} />
-          <NumberField label="Trim start" step={0.01} suffix="s" value={clip.trim.start} onChange={(value) => onClipPatch({ trim: { start: Math.max(0, value) } })} />
-          <NumberField label="Trim end" step={0.01} suffix="s" value={clip.trim.end ?? clip.trim.start + clip.timing.duration} onChange={(value) => onClipPatch({ trim: { end: Math.max(clip.trim.start + 0.001, value) } })} />
+          <NumberField label="Start" step={0.01} suffix="s" value={timingStart} onChange={(value) => onClipPatch({ timing: { start: secondsToProtocolMilliseconds(Math.max(0, value)) } })} />
+          <NumberField label="Duration" step={0.01} suffix="s" value={timingDuration} onChange={(value) => onClipPatch({ timing: { duration: secondsToProtocolMilliseconds(Math.max(0.001, value)) } })} />
+          <NumberField label="Trim start" step={0.01} suffix="s" value={trimStart} onChange={(value) => onClipPatch({ trim: { start: secondsToProtocolMilliseconds(Math.max(0, value)) } })} />
+          <NumberField label="Trim end" step={0.01} suffix="s" value={trimEnd} onChange={(value) => onClipPatch({ trim: { end: secondsToProtocolMilliseconds(Math.max(trimStart + 0.001, value)) } })} />
         </div>
         <NumberField label="Playback rate" step={0.01} value={clip.playbackRate} onChange={(value) => onClipPatch({ playbackRate: Math.max(0.001, value) })} />
         <ToggleField label="Enabled" checked={clip.enabled} onChange={(checked) => onClipPatch({ enabled: checked })} />
@@ -328,16 +340,14 @@ function AudioInspector({
         <NumberField label="Track pan" step={0.01} value={track.pan} onChange={(value) => onTrackPatch({ pan: Math.max(-1, Math.min(1, value)) })} />
         <ToggleField label="Track muted" checked={track.muted} onChange={(checked) => onTrackPatch({ muted: checked })} />
         {(() => {
-          const fadeIn = clip.fadeIn ?? DEFAULT_AUDIO_FADE;
-          const fadeOut = clip.fadeOut ?? DEFAULT_AUDIO_FADE;
           return (
             <>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                <NumberField label="Fade in" step={0.01} suffix="s" value={fadeIn.duration} onChange={(value) => onClipPatch({ fadeIn: { duration: clampFadeDuration(value, clip.timing.duration), curve: fadeIn.curve } })} />
+                <NumberField label="Fade in" step={0.01} suffix="s" value={protocolMillisecondsToSeconds(fadeIn.duration)} onChange={(value) => onClipPatch({ fadeIn: { duration: secondsToProtocolMilliseconds(clampFadeDuration(value, timingDuration)), curve: fadeIn.curve } })} />
                 <InspectorSelect label="Curve" value={fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeIn: { duration: fadeIn.duration, curve: value as "linear" | "equal-power" } })} />
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                <NumberField label="Fade out" step={0.01} suffix="s" value={fadeOut.duration} onChange={(value) => onClipPatch({ fadeOut: { duration: clampFadeDuration(value, clip.timing.duration), curve: fadeOut.curve } })} />
+                <NumberField label="Fade out" step={0.01} suffix="s" value={protocolMillisecondsToSeconds(fadeOut.duration)} onChange={(value) => onClipPatch({ fadeOut: { duration: secondsToProtocolMilliseconds(clampFadeDuration(value, timingDuration)), curve: fadeOut.curve } })} />
                 <InspectorSelect label="Curve" value={fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => onClipPatch({ fadeOut: { duration: fadeOut.duration, curve: value as "linear" | "equal-power" } })} />
               </div>
             </>
@@ -392,10 +402,10 @@ export function SchemaInspector() {
   const fontOptions = useMemo(() => {
     const fonts = document.assets
       .filter((asset) => asset.kind === "font")
-      .map((asset) => ({ value: asset.id, label: asset.family }));
-    const fontAssetId = selected?.type === "text" ? selected.payload.layout.runs[0]?.font.assetId : undefined;
-    if (fontAssetId && !fonts.some((option) => option.value === fontAssetId)) {
-      fonts.unshift({ value: fontAssetId, label: fontAssetId });
+      .map((asset) => ({ value: asset.family, label: asset.family }));
+    const fontFamily = selected?.type === "text" ? selected.payload.chunks[0]?.spans[0]?.font.families[0] : undefined;
+    if (fontFamily && !fonts.some((option) => option.value === fontFamily)) {
+      fonts.unshift({ value: fontFamily, label: fontFamily });
     }
     return fonts;
   }, [document.assets, selected]);
@@ -486,8 +496,8 @@ export function SchemaInspector() {
     });
   };
 
-  const commonStart = commonLayerNumber((layer) => layer.timing.start);
-  const commonDuration = commonLayerNumber((layer) => layer.timing.duration);
+  const commonStart = commonLayerNumber((layer) => protocolMillisecondsToSeconds(layer.timing.start));
+  const commonDuration = commonLayerNumber((layer) => protocolMillisecondsToSeconds(layer.timing.duration));
   const commonTranslateX = commonLayerNumber((layer) => layer.transform.translate.x);
   const commonTranslateY = commonLayerNumber((layer) => layer.transform.translate.y);
   const commonWidth = commonLayerNumber((layer) => layer.frame.width);
@@ -506,8 +516,8 @@ export function SchemaInspector() {
       ) : null}
       <InspectorSection label="Timing" className="order-4" open={openSections.timing ?? false} onToggle={() => toggle("timing")}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NumberField label="Start" value={commonStart.value} mixed={isMultiLayerSelection && commonStart.mixed} onChange={(value) => patchSelectedLayers({ timing: { start: Math.max(0, value) } })} />
-          <NumberField label="Duration" value={commonDuration.value} mixed={isMultiLayerSelection && commonDuration.mixed} onChange={(value) => patchSelectedLayers({ timing: { duration: Math.max(0.001, value) } })} />
+          <NumberField label="Start" value={commonStart.value} mixed={isMultiLayerSelection && commonStart.mixed} onChange={(value) => patchSelectedLayers({ timing: { start: secondsToProtocolMilliseconds(Math.max(0, value)) } })} />
+          <NumberField label="Duration" value={commonDuration.value} mixed={isMultiLayerSelection && commonDuration.mixed} onChange={(value) => patchSelectedLayers({ timing: { duration: secondsToProtocolMilliseconds(Math.max(0.001, value)) } })} />
         </div>
         <ReadonlyField label="End" value={isMultiLayerSelection && (commonStart.mixed || commonDuration.mixed) ? "Mixed" : (commonStart.value + commonDuration.value).toFixed(2)} />
       </InspectorSection>
@@ -642,19 +652,19 @@ export function SchemaInspector() {
       <div className="order-6">
       {selected.type === "text" ? (
         <InspectorSection label="Text" open={openSections.text ?? false} onToggle={() => toggle("text")}>
-          <TextAreaField label="Content" value={selected.payload.source?.text ?? ""} onCommit={(value) => patchLayer({ payload: { source: { text: value.normalize("NFC"), language: selected.payload.source?.language ?? "und" } } })} />
+          <TextAreaField label="Content" value={selected.payload.source.text} onCommit={(value) => patchLayer({ payload: { source: { ...selected.payload.source, text: value.normalize("NFC") } } })} />
           <InspectorSelect
             label="Font"
-            value={selected.payload.layout.runs[0]?.font.assetId ?? ""}
+            value={selected.payload.chunks[0]?.spans[0]?.font.families[0] ?? ""}
             options={fontOptions}
-            onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, font: { ...run.font, assetId: value } })) } } })}
+            onChange={(value) => patchLayer({ payload: { chunks: selected.payload.chunks.map((chunk) => ({ ...chunk, spans: chunk.spans.map((span) => ({ ...span, font: { ...span.font, families: [value, ...span.font.families.slice(1)] } })) })) } })}
           />
           <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-            <NumberField label="Font size" step={1} integer suffix="px" value={selected.payload.layout.runs[0]?.font.size ?? 1} onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, font: { ...run.font, size: Math.max(0.001, value) } })) } } })} />
-            <ReadonlyField label="Lines" value={String(selected.payload.layout.lines.length)} />
+            <NumberField label="Font size" step={1} integer suffix="px" value={typeof selected.payload.chunks[0]?.spans[0]?.font.size === "number" ? selected.payload.chunks[0].spans[0].font.size : 1} onChange={(value) => patchLayer({ payload: { chunks: selected.payload.chunks.map((chunk) => ({ ...chunk, spans: chunk.spans.map((span) => ({ ...span, font: { ...span.font, size: Math.max(0.001, value) } })) })) } })} />
+            <ReadonlyField label="Chunks" value={String(selected.payload.chunks.length)} />
           </div>
-          <InspectorSelect label="Language" value={selected.payload.source?.language ?? "und"} options={languageOptions} onChange={(value) => patchLayer({ payload: { source: { text: selected.payload.source?.text ?? "", language: value } } })} />
-          <ColorField label="Fill" value={selected.payload.layout.runs[0]?.fill ?? "#ffffff"} onChange={(value) => patchLayer({ payload: { layout: { ...selected.payload.layout, runs: selected.payload.layout.runs.map((run) => ({ ...run, fill: value })) } } })} />
+          <InspectorSelect label="Language" value={selected.payload.source.language ?? "und"} options={languageOptions} onChange={(value) => patchLayer({ payload: { source: { ...selected.payload.source, language: value } } })} />
+          <ColorField label="Fill" value={typeof selected.payload.chunks[0]?.spans[0]?.fill === "string" ? selected.payload.chunks[0].spans[0].fill : "#ffffff"} onChange={(value) => patchLayer({ payload: { chunks: selected.payload.chunks.map((chunk) => ({ ...chunk, spans: chunk.spans.map((span) => ({ ...span, fill: value })) })) } })} />
         </InspectorSection>
       ) : null}
 
@@ -681,14 +691,19 @@ export function SchemaInspector() {
         <InspectorSection label="Media" open={openSections.media ?? false} onToggle={() => toggle("media")}>
           {(() => {
             const source = document.assets.find((asset) => asset.id === selected.payload.assetId);
-            const sourceDuration = source?.kind === "video" ? source.duration : undefined;
+            const sourceDurationMs = source?.kind === "video" ? source.duration : undefined;
+            const sourceDuration = sourceDurationMs === undefined
+              ? undefined
+              : protocolMillisecondsToSeconds(sourceDurationMs);
             const trimStart = Math.min(
-              selected.payload.trimStart ?? 0,
+              protocolMillisecondsToSeconds(selected.payload.trimStart ?? 0),
               Math.max(0, (sourceDuration ?? Number.POSITIVE_INFINITY) - 0.001),
             );
             const maxTrimEnd = sourceDuration ?? Number.POSITIVE_INFINITY;
             const currentTrimEnd = Math.min(
-              selected.payload.trimEnd ?? sourceDuration ?? selected.timing.duration,
+              protocolMillisecondsToSeconds(
+                selected.payload.trimEnd ?? sourceDurationMs ?? selected.timing.duration,
+              ),
               maxTrimEnd,
             );
             return (
@@ -706,7 +721,7 @@ export function SchemaInspector() {
                     value={trimStart}
                     onChange={(value) => {
                       const maxStart = Math.max(0, Math.min(maxTrimEnd, currentTrimEnd) - 0.001);
-                      patchLayer({ payload: { trimStart: Math.min(maxStart, Math.max(0, value)) } });
+                      patchLayer({ payload: { trimStart: secondsToProtocolMilliseconds(Math.min(maxStart, Math.max(0, value))) } });
                     }}
                   />
                   <NumberField
@@ -716,7 +731,7 @@ export function SchemaInspector() {
                     value={currentTrimEnd}
                     onChange={(value) => {
                       const minEnd = trimStart + 0.001;
-                      patchLayer({ payload: { trimEnd: Math.min(maxTrimEnd, Math.max(minEnd, value)) } });
+                      patchLayer({ payload: { trimEnd: secondsToProtocolMilliseconds(Math.min(maxTrimEnd, Math.max(minEnd, value))) } });
                     }}
                   />
                 </div>
@@ -754,11 +769,11 @@ export function SchemaInspector() {
                 <NumberField label="Pan" step={0.01} value={audio.pan} onChange={(value) => patchLayer({ payload: { audio: { pan: Math.max(-1, Math.min(1, value)) } } })}
                 />
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <NumberField label="Fade in" step={0.01} suffix="s" value={fadeIn.duration} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: clampFadeDuration(value, selected.timing.duration), curve: fadeIn.curve } } } })} />
+                  <NumberField label="Fade in" step={0.01} suffix="s" value={protocolMillisecondsToSeconds(fadeIn.duration)} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: secondsToProtocolMilliseconds(clampFadeDuration(value, protocolMillisecondsToSeconds(selected.timing.duration))), curve: fadeIn.curve } } } })} />
                   <InspectorSelect label="Curve" value={fadeIn.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => patchLayer({ payload: { audio: { fadeIn: { duration: fadeIn.duration, curve: value as "linear" | "equal-power" } } } })} />
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <NumberField label="Fade out" step={0.01} suffix="s" value={fadeOut.duration} onChange={(value) => patchLayer({ payload: { audio: { fadeOut: { duration: clampFadeDuration(value, selected.timing.duration), curve: fadeOut.curve } } } })} />
+                  <NumberField label="Fade out" step={0.01} suffix="s" value={protocolMillisecondsToSeconds(fadeOut.duration)} onChange={(value) => patchLayer({ payload: { audio: { fadeOut: { duration: secondsToProtocolMilliseconds(clampFadeDuration(value, protocolMillisecondsToSeconds(selected.timing.duration))), curve: fadeOut.curve } } } })} />
                   <InspectorSelect label="Curve" value={fadeOut.curve} options={[{ value: "linear", label: "Linear" }, { value: "equal-power", label: "Equal power" }]} onChange={(value) => patchLayer({ payload: { audio: { fadeOut: { duration: fadeOut.duration, curve: value as "linear" | "equal-power" } } } })} />
                 </div>
                 <ActionButton label="Detach audio" onClick={() => applyCommand({ type: "detach-video-audio", layerId: selected.id })} />

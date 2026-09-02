@@ -21,20 +21,77 @@ function transform(
   };
 }
 
-function textPayload(text: string) {
-  const source = text.normalize("NFC");
-  const lines = source.split("\n");
+/** Demo authoring values are written in seconds; persisted Protocol V2 values are milliseconds. */
+function normalizeProtocolTiming(project: MotionProtocolV2): MotionProtocolV2 {
   return {
-    source: { text: source, language: "vi" },
-    layout: {
-      lines: lines.map((_, index) => ({ id: `line-${index}`, baselineY: (index + 1) * 86, runIds: [`run-${index}`] })),
-      runs: lines.map((line, index) => ({
-        id: `run-${index}`,
-        font: { assetId: "font-roboto-regular", size: 72 },
-        fill: "#f7e7bd",
-        glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * 86, advance: { x: 0, y: 0 }, cluster: 0 }],
+    ...project,
+    assets: project.assets.map((asset) => asset.kind === "image" || asset.kind === "font"
+      ? asset
+      : {
+          ...asset,
+          ...(asset.duration !== undefined ? { duration: asset.duration * 1000 } : {}),
+          ...(asset.kind === "video" && asset.audio
+            ? {
+                audio: {
+                  ...asset.audio,
+                  ...(asset.audio.duration !== undefined ? { duration: asset.audio.duration * 1000 } : {}),
+                },
+              }
+            : {}),
+        }),
+    layers: project.layers.map((layer) => ({
+      ...layer,
+      timing: {
+        start: layer.timing.start * 1000,
+        duration: layer.timing.duration * 1000,
+      },
+      ...(layer.type === "video"
+        ? {
+            payload: {
+              ...layer.payload,
+              ...(layer.payload.trimStart !== undefined ? { trimStart: layer.payload.trimStart * 1000 } : {}),
+              ...(layer.payload.trimEnd !== undefined ? { trimEnd: layer.payload.trimEnd * 1000 } : {}),
+            },
+          }
+        : {}),
+    })) as MotionProtocolV2["layers"],
+    audio: {
+      ...project.audio,
+      tracks: project.audio.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => ({
+          ...clip,
+          timing: {
+            start: clip.timing.start * 1000,
+            duration: clip.timing.duration * 1000,
+          },
+          trim: {
+            ...clip.trim,
+            ...(clip.trim.start !== undefined ? { start: clip.trim.start * 1000 } : {}),
+            ...(clip.trim.end !== undefined ? { end: clip.trim.end * 1000 } : {}),
+          },
+          ...(clip.fadeIn ? { fadeIn: { ...clip.fadeIn, duration: clip.fadeIn.duration * 1000 } } : {}),
+          ...(clip.fadeOut ? { fadeOut: { ...clip.fadeOut, duration: clip.fadeOut.duration * 1000 } } : {}),
+        })),
       })),
     },
+  };
+}
+
+function textPayload(text: string) {
+  const source = text.normalize("NFC");
+  return {
+    source: { text: source, language: "vi" },
+    chunks: [{
+      id: "text-chunk",
+      sourceRange: { start: 0, end: source.length },
+      spans: [{
+        id: "text-span",
+        sourceRange: { start: 0, end: source.length },
+        font: { families: ["Roboto"], size: 72 },
+        fill: "#f7e7bd",
+      }],
+    }],
   };
 }
 
@@ -136,7 +193,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
     ];
   });
 
-  return {
+  return normalizeProtocolTiming({
     format: "motion-protocol",
     formatVersion: 2,
     id: "history-three-kingdoms-60s",
@@ -237,7 +294,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
       },
       ...eventLayers,
     ],
-  };
+  });
 }
 
 export function createV2EditorProject(
@@ -247,7 +304,7 @@ export function createV2EditorProject(
     return createThreeKingdomsHistoryProject();
   }
   const isOverlap = projectId === "overlap";
-  return {
+  return normalizeProtocolTiming({
     format: "motion-protocol",
     formatVersion: 2,
     id: `web-editor-${projectId}`,
@@ -290,7 +347,7 @@ export function createV2EditorProject(
             position: { x: 480, y: 270, z: 0 },
           }),
         ],
-  };
+  });
 }
 
 export function isV2EditorProjectId(value: string): boolean {

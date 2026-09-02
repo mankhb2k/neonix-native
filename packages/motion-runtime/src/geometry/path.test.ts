@@ -4,6 +4,7 @@ import {
   tessellateNonScalingStroke,
   tessellateClosedPath,
   tessellatePathStroke,
+  glyphPathToMesh,
 } from "./path";
 import {
   canonicalizePathPoints,
@@ -93,7 +94,32 @@ function meshContainsPoint(mesh: { vertices: number[]; indices: number[] }, x: n
   return false;
 }
 
+function meshTriangleArea(mesh: { vertices: number[]; indices: number[] }): number {
+  let area = 0;
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const points = [0, 1, 2].map((offset) => {
+      const vertex = mesh.indices[index + offset]! * 2;
+      return [mesh.vertices[vertex]!, mesh.vertices[vertex + 1]!] as const;
+    });
+    area += Math.abs((points[1]![0] - points[0]![0]) * (points[2]![1] - points[0]![1]) - (points[1]![1] - points[0]![1]) * (points[2]![0] - points[0]![0])) / 2;
+  }
+  return area;
+}
+
 describe("Path tessellation", () => {
+  it("converts a font SVG outline into a positioned vector mesh", () => {
+    const mesh = glyphPathToMesh(
+      "M0 0L100 0L100 100L0 100Z",
+      0.2,
+      { x: 0, y: 100 },
+      10,
+      20,
+    );
+    expect(mesh).not.toBeNull();
+    expect(mesh!.indices.length).toBeGreaterThanOrEqual(6);
+    expect(mesh!.vertices.every(Number.isFinite)).toBe(true);
+    expect(mesh!.bounds).toEqual({ x: 10, y: 20, width: 20, height: 20 });
+  });
   it("normalizes SVG dash patterns and negative offsets", () => {
     expect(normalizePathDash({ array: [10, 5, 2], offset: -4 })).toEqual({
       pattern: [10, 5, 2, 10, 5, 2],
@@ -352,6 +378,19 @@ describe("Path tessellation", () => {
     // tessellation, preventing visible polygon facets in the GPU preview.
     expect(mesh.indices.length).toBeGreaterThan(30);
     expect(mesh.vertices.every(Number.isFinite)).toBe(true);
+  });
+
+  it("uses one paintable outline for a transparent open stroke", () => {
+    const mesh = tessellatePathStroke([openLine], 12, { join: "round", cap: "butt" });
+
+    expect(meshTriangleArea(mesh)).toBeCloseTo(1200, 5);
+  });
+
+  it("tightens round tessellation by local sagitta tolerance", () => {
+    const coarse = tessellatePathStroke([openLine], 100, { cap: "round", roundTolerance: 0.25 });
+    const fine = tessellatePathStroke([openLine], 100, { cap: "round", roundTolerance: 0.01 });
+
+    expect(fine.indices.length).toBeGreaterThan(coarse.indices.length);
   });
 
   it("interpolates matching contour topology before tessellation", () => {

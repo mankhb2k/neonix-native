@@ -1,9 +1,11 @@
 /**
  * Returns the maximum timeline duration available from a video source.
  *
- * Protocol V2 stores timing in seconds. The source range is half-open and is
- * bounded by trimEnd (when present) or the probed source duration. A video
- * layer never repeats its source to satisfy a longer timeline duration.
+ * The timeline policy receives normalized seconds from the editor boundary.
+ * Protocol V2 stores the corresponding source and trim values in milliseconds.
+ * The source range is half-open and is bounded by trimEnd (when present) or
+ * the probed source duration. A video layer never repeats its source to
+ * satisfy a longer timeline duration.
  */
 export function getVideoTimelineDurationLimit(input: {
   sourceDuration?: number;

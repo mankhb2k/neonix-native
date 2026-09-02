@@ -4,6 +4,8 @@ export * from "./geometry/matrix4";
 export {
   flattenPathContour,
   flattenPathContourAny,
+  measureContour,
+  sampleContourAtDistance,
   interpolatePathContours,
   tessellateClosedPath,
   tessellatePathStroke,
@@ -72,10 +74,14 @@ export type {
   VisualRuntimeNode,
   VisualRuntimeProject,
   VisualRuntimeTextLayout,
+  GlyphRun,
+  GlyphRunGlyph,
+  VisualRuntimeText,
   VisualRuntimeView,
 } from "./visual/types";
 export type {
   VisualRuntimeTextFontResolver,
+  VisualRuntimeTextFontSource,
   VisualRuntimeTextShaperLoader,
 } from "./visual/text-layout";
 export { buildRuntimeEffectProgram } from "./visual/effects";

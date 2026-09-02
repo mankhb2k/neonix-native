@@ -391,6 +391,8 @@ export function evaluateVisualRuntimeProject(
         height: content.height,
         glyphs: content.layout!.glyphs,
         lines: content.layout!.lines,
+        ...(content.paintOrder ? { paintOrder: content.paintOrder } : {}),
+        ...(content.layout!.decorations ? { decorations: content.layout!.decorations } : {}),
       });
     } else if (content.kind === "image") {
       commands.push({

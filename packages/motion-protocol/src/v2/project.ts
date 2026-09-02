@@ -58,19 +58,19 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
     const segments = path.split(".");
     if (segments.length === 5
       && segments[0] === "payload"
-      && segments[1] === "layout"
-      && segments[2] === "runs"
+      && segments[1] === "chunks"
+      && segments[2] === "spans"
       && segments[4] === "fill"
-      && layer.payload.layout.runs.some((run) => run.id === segments[3])) {
+      && layer.payload.chunks.some((chunk) => chunk.spans.some((span) => span.id === segments[3]))) {
       return new Set(["color"]);
     }
     if (segments.length === 6
       && segments[0] === "payload"
-      && segments[1] === "layout"
-      && segments[2] === "runs"
+      && segments[1] === "chunks"
+      && segments[2] === "spans"
       && segments[4] === "font"
       && segments[5] === "size"
-      && layer.payload.layout.runs.some((run) => run.id === segments[3])) {
+      && layer.payload.chunks.some((chunk) => chunk.spans.some((span) => span.id === segments[3]))) {
       return new Set(["number"]);
     }
   }
@@ -302,24 +302,6 @@ export const MotionProtocolV2Schema = z
           });
         }
       }
-      if (layer.type === "text") {
-        for (const [runIndex, run] of layer.payload.layout.runs.entries()) {
-          const asset = project.assets.find((candidate) => candidate.id === run.font.assetId);
-          if (!asset) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `Unknown font asset: ${run.font.assetId}`,
-              path: ["layers", index, "payload", "layout", "runs", runIndex, "font", "assetId"],
-            });
-          } else if (asset.kind !== "font") {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `Text glyph run must reference a font asset: ${run.font.assetId}`,
-              path: ["layers", index, "payload", "layout", "runs", runIndex, "font", "assetId"],
-            });
-          }
-        }
-      }
       if (layer.type === "image") {
         const source = project.assets.find((asset) => asset.id === layer.payload.assetId);
         if (source && source.kind !== "image") {
@@ -350,7 +332,7 @@ export const MotionProtocolV2Schema = z
           if (availableDuration > 0 && layer.timing.duration > availableDuration) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: `Video timing duration cannot exceed the selected source range (${availableDuration}s)`,
+              message: `Video timing duration cannot exceed the selected source range (${availableDuration}ms)`,
               path: ["layers", index, "timing", "duration"],
             });
           }

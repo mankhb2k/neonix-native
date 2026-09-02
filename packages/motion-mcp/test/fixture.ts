@@ -34,7 +34,7 @@ export function createV2ShapeProject(id: string): MotionProtocolV2 {
         anchor: { x: 0, y: 0, z: 0 },
       },
       opacity: 1,
-      timing: { start: 0, duration: 3 },
+      timing: { start: 0, duration: 3000 },
       payload: { shape: "rectangle" },
       style: { fill: "#00B894" },
     }],

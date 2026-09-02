@@ -20,7 +20,7 @@ const base = {
   audio: { sampleRate: 48000, tracks: [] },
 } satisfies Omit<MotionProtocolV2, "assets" | "layers">;
 
-function project(duration: number, sourceDuration = 260): MotionProtocolV2 {
+function project(duration: number, sourceDuration = 260000): MotionProtocolV2 {
   return {
     ...base,
     assets: [{ id: "video", kind: "video", uri: "/video.mp4", mimeType: "video/mp4", duration }],
@@ -43,14 +43,14 @@ function project(duration: number, sourceDuration = 260): MotionProtocolV2 {
 
 describe("export source duration gate", () => {
   it("rejects a project that requests beyond the source duration", () => {
-    expect(validateProjectVideoDurations(project(260, 261))[0]?.code).toBe(
+    expect(validateProjectVideoDurations(project(260000, 261000))[0]?.code).toBe(
       "video_source_duration_mismatch",
     );
   });
 
   it("honors an explicit selected source range", () => {
-    const value = project(20, 20);
-    value.layers[0] = { ...value.layers[0]!, payload: { assetId: "video", trimStart: 10, trimEnd: 30 } };
+    const value = project(20000, 20000);
+    value.layers[0] = { ...value.layers[0]!, payload: { assetId: "video", trimStart: 10000, trimEnd: 30000 } };
     expect(validateProjectVideoDurations(value)).toHaveLength(0);
   });
 });

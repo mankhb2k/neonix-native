@@ -12,6 +12,9 @@ import type { TimelineEdit } from "../edit-intents";
 
 type Projection = ReturnType<typeof projectLayersToTimeline>;
 
+/** Timeline edits use seconds; Protocol V2 persists timing in milliseconds. */
+const timelineSecondsToProtocolMilliseconds = (value: number): number => value * 1000;
+
 function clipById(projection: Projection, id: string): TimelineClip | null {
   return projection.clips.find((clip) => clip.id === id) ?? null;
 }
@@ -26,8 +29,10 @@ function rootLayerIds(document: MotionProtocolV2): string[] {
 function layerTimingPatch(start: number, duration?: number): LayerPatch {
   return {
     timing: {
-      start: Math.max(0, start),
-      ...(duration == null ? {} : { duration: Math.max(0.001, duration) }),
+      start: timelineSecondsToProtocolMilliseconds(Math.max(0, start)),
+      ...(duration == null
+        ? {}
+        : { duration: timelineSecondsToProtocolMilliseconds(Math.max(0.001, duration)) }),
     },
   } as LayerPatch;
 }
@@ -42,9 +47,9 @@ function maxVideoTimelineDuration(
   const asset = document.assets.find((candidate) => candidate.id === layer.payload.assetId);
   if (asset?.kind !== "video" || asset.duration === undefined) return undefined;
   const limit = getVideoTimelineDurationLimit({
-    sourceDuration: asset.duration,
-    trimStart: layer.payload.trimStart,
-    trimEnd: layer.payload.trimEnd,
+    sourceDuration: asset.duration / 1000,
+    trimStart: layer.payload.trimStart === undefined ? undefined : layer.payload.trimStart / 1000,
+    trimEnd: layer.payload.trimEnd === undefined ? undefined : layer.payload.trimEnd / 1000,
   });
   return limit === undefined ? undefined : Math.max(MIN_CLIP_SLICE_SEC, limit);
 }
@@ -56,10 +61,14 @@ function audioTimingPatch(
 ): AudioClipPatch {
   return {
     timing: {
-      start: Math.max(0, start),
-      ...(duration == null ? {} : { duration: Math.max(0.001, duration) }),
+      start: timelineSecondsToProtocolMilliseconds(Math.max(0, start)),
+      ...(duration == null
+        ? {}
+        : { duration: timelineSecondsToProtocolMilliseconds(Math.max(0.001, duration)) }),
     },
-    ...(trimStart == null ? {} : { trim: { start: Math.max(0, trimStart) } }),
+    ...(trimStart == null
+      ? {}
+      : { trim: { start: timelineSecondsToProtocolMilliseconds(Math.max(0, trimStart)) } }),
   } as AudioClipPatch;
 }
 

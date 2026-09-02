@@ -344,19 +344,25 @@ Stroke width, cap, join, dash, color, and opacity are paint semantics applied to
 
 ## Responsibility
 
-Text carries content and font identity. Runtime resolves font metrics, shaping, line layout, and glyph data before a renderer consumes it.
+Text preserves SVG-like source, chunks, spans, font requests and paint semantics. The compiler resolves shaping, fallback, clusters and glyph positions before a renderer consumes it.
 
 ${FENCE}json
 {
   "id": "title",
   "type": "text",
   "payload": {
-    "text": "Neonix V2",
-    "font": { "assetId": "font-roboto-regular" },
-    "fontSize": 64,
-    "lineHeight": 1.2,
-    "align": "center",
-    "verticalAlign": "middle"
+    "source": { "text": "Neonix V2", "language": "en" },
+    "chunks": [{
+      "id": "title-chunk",
+      "sourceRange": { "start": 0, "end": 9 },
+      "textAnchor": "middle",
+      "spans": [{
+        "id": "title-span",
+        "sourceRange": { "start": 0, "end": 9 },
+        "font": { "families": ["Roboto", "sans-serif"], "size": 64 },
+        "fill": "#ffffff"
+      }]
+    }]
   },
   "frame": { "width": 800, "height": 160 }
 }

@@ -16,7 +16,7 @@ const legacy = {
       transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
     },
   },
-  assets: [{ id: "clip", kind: "video", uri: "/clip.mp4", mimeType: "video/mp4", duration: 2, fps: 30 }],
+  assets: [{ id: "clip", kind: "video", uri: "/clip.mp4", mimeType: "video/mp4", duration: 2000, fps: 30 }],
   layers: [{
     id: "video",
     type: "video",
@@ -31,7 +31,7 @@ const legacy = {
       anchor: { x: 0, y: 0, z: 0 },
     },
     opacity: 1,
-    timing: { start: 0, duration: 2 },
+    timing: { start: 0, duration: 2000 },
     payload: { assetId: "clip", muted: true },
   }],
   audio: { sampleRate: 48000, tracks: [] },
@@ -64,7 +64,7 @@ describe("Protocol V2 legacy migration", () => {
       }],
       assets: [
         ...legacy.assets,
-        { id: "music", kind: "audio" as const, uri: "/music.mp3", mimeType: "audio/mpeg", duration: 4, sampleRate: 48000, channels: 2 },
+        { id: "music", kind: "audio" as const, uri: "/music.mp3", mimeType: "audio/mpeg", duration: 4000, sampleRate: 48000, channels: 2 },
       ],
       audio: {
         sampleRate: 48000 as const,
@@ -76,8 +76,8 @@ describe("Protocol V2 legacy migration", () => {
           clips: [{
             id: "music-clip",
             assetId: "music",
-            timing: { start: 0, duration: 2 },
-            trim: { start: 0, end: 2 },
+            timing: { start: 0, duration: 2000 },
+            trim: { start: 0, end: 2000 },
             playbackRate: 1,
             gainDb: 0,
             loop: true,

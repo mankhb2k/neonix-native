@@ -36,7 +36,7 @@ export function validateProjectVideoDurations(
         code: "video_source_duration_mismatch",
         layerId: layer.id,
         assetId: source.id,
-        message: `Video layer ${layer.id} requests ${layer.timing.duration}s but only ${available}s are available`,
+        message: `Video layer ${layer.id} requests ${layer.timing.duration}ms but only ${available}ms are available`,
       });
     }
   }

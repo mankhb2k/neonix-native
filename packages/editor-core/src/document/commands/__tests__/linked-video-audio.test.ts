@@ -35,9 +35,9 @@ function fixture(): MotionProtocolV2 {
         kind: "video",
         uri: "/video.mp4",
         mimeType: "video/mp4",
-        duration: 20,
+        duration: 20000,
         fps: 30,
-        audio: { uri: "/video-audio.m4a", mimeType: "audio/mp4", duration: 20, sampleRate: 48000, channels: 2 },
+        audio: { uri: "/video-audio.m4a", mimeType: "audio/mp4", duration: 20000, sampleRate: 48000, channels: 2 },
       },
     ],
     layers: [
@@ -49,17 +49,17 @@ function fixture(): MotionProtocolV2 {
         frame: { width: 320, height: 180 },
         transform: TRANSFORM,
         opacity: 1,
-        timing: { start: 5, duration: 4 },
+        timing: { start: 5000, duration: 4000 },
         payload: {
           assetId: "video-source",
-          trimStart: 2,
-          trimEnd: 6,
+          trimStart: 2000,
+          trimEnd: 6000,
           audio: {
             enabled: true,
             gainDb: -6,
             pan: 0,
-            fadeIn: { duration: 0.25, curve: "linear" },
-            fadeOut: { duration: 0.5, curve: "equal-power" },
+            fadeIn: { duration: 250, curve: "linear" },
+            fadeOut: { duration: 500, curve: "equal-power" },
           },
         },
       },
@@ -108,13 +108,13 @@ describe("linked video audio commands", () => {
     expect(track.clips[0]).toMatchObject({
       id: "audio-detached:video-layer:clip",
       assetId: "video-source",
-      timing: { start: 5, duration: 4 },
-      trim: { start: 2, end: 6 },
+      timing: { start: 5000, duration: 4000 },
+      trim: { start: 2000, end: 6000 },
       playbackRate: 1,
       gainDb: -6,
       pan: 0,
-      fadeIn: { duration: 0.25, curve: "linear" },
-      fadeOut: { duration: 0.5, curve: "equal-power" },
+      fadeIn: { duration: 250, curve: "linear" },
+      fadeOut: { duration: 500, curve: "equal-power" },
     });
 
     const undone = applyEditorCommand(result.document, result.inverse);
@@ -129,7 +129,7 @@ describe("linked video audio commands", () => {
       kind: "audio" as const,
       uri: "/video-audio.m4a",
       mimeType: "audio/mp4",
-      duration: 20,
+      duration: 20000,
       sampleRate: 48000,
       channels: 2,
     };

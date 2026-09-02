@@ -187,6 +187,10 @@ export type PathMarker = {
 export type PaintTextGlyph = {
   glyphId: number;
   cluster: number;
+  /** Exclusive UTF-16 source offset for the complete shaping cluster. */
+  clusterEnd: number;
+  /** Optional resolved span paint. Atlas coverage remains color-independent. */
+  fill?: string;
   x: number;
   y: number;
   width: number;
@@ -194,6 +198,52 @@ export type PaintTextGlyph = {
   path: string;
   pathScale: number;
   outline: { x: number; y: number; width: number; height: number };
+  /** Exact source face used for this glyph. */
+  fontAssetId?: string;
+  fontIntegrity?: string;
+  fontSize?: number;
+  /** Render source selected after shaping. */
+  renderMode?: "vector" | "grayscale-mask" | "color-layers" | "color-bitmap" | "color-svg";
+  /** Stable variation settings identity used by glyph caches. */
+  variationKey?: string;
+  colorGlyph?: PaintTextColorGlyph;
+  /** Runtime-resolved vector mesh used by GPU preview backends. */
+  mesh?: PathMesh;
+  /** Optional glyph stroke geometry, lowered from SVG text stroke. */
+  strokeMesh?: PathStrokeMesh;
+  stroke?: string;
+  strokePaint?: PaintFill;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  /** Final placement metadata retained for native SVG export. */
+  rotation?: number;
+  scaleX?: number;
+};
+
+export type PaintTextColorLayer = {
+  fill: string;
+  path?: string;
+  pathScale?: number;
+  outline?: { x: number; y: number };
+  x?: number;
+  y?: number;
+  mesh?: PathMesh;
+};
+
+/** Color glyph source normalized from OpenType color tables. */
+export type PaintTextColorGlyph =
+  | { kind: "layers"; layers: PaintTextColorLayer[] }
+  | { kind: "bitmap"; mimeType: "image/png" | "image/svg+xml"; bytes: Uint8Array }
+  | { kind: "paint-graph" };
+
+export type PaintTextDecoration = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fill: string;
+  fillPaint?: PaintFill;
+  opacity?: number;
 };
 
 export type PaintTextLine = {

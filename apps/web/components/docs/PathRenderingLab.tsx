@@ -24,6 +24,10 @@ function SvgReference({ fixture }: { fixture: PathRenderingFixture }) {
       {filter.kind === "inner-glow" && <><feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blurred" /><feComposite in="SourceAlpha" in2="blurred" operator="out" result="edge" /><feFlood floodColor="#ff3366" floodOpacity="0.8" result="color" /><feComposite in="color" in2="edge" operator="in" result="glow" /><feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge></>}
     </filter></defs> : null}
     {fixture.svg.map((item) => <path key={item.d} d={item.d} filter={filterId ? `url(#${filterId})` : undefined} fill={item.fill ?? "none"} fillOpacity={item.fillOpacity} stroke={item.stroke} strokeWidth={item.strokeWidth} strokeOpacity={item.strokeOpacity} strokeLinejoin={item.join} strokeLinecap={item.cap} strokeDasharray={item.dash} strokeDashoffset={item.dashOffset} transform={item.transform} vectorEffect={item.vectorEffect} />)}
+    {fixture.svgText?.textPathD ? <defs><path id={`${fixture.id}-text-path`} d={fixture.svgText.textPathD} /></defs> : null}
+    {fixture.svgText ? <text x={fixture.svgText.x} y={fixture.svgText.y} dx={fixture.svgText.dx?.join(" ")} dy={fixture.svgText.dy?.join(" ")} rotate={fixture.svgText.rotate?.join(" ")} fontFamily="Roboto, sans-serif" fontSize={fixture.svgText.fontSize} fontWeight={fixture.svgText.fontWeight} fontStyle={fixture.svgText.fontStyle} fontStretch={fixture.svgText.fontStretch} fill="#f8fafc" stroke={fixture.svgText.stroke} strokeWidth={fixture.svgText.strokeWidth} textAnchor={fixture.svgText.textAnchor} letterSpacing={fixture.svgText.letterSpacing} wordSpacing={fixture.svgText.wordSpacing} direction={fixture.svgText.direction} writingMode={fixture.svgText.writingMode} style={fixture.svgText.whiteSpace ? { whiteSpace: fixture.svgText.whiteSpace } : undefined} textRendering={fixture.svgText.textRendering} dominantBaseline={fixture.svgText.dominantBaseline} alignmentBaseline={fixture.svgText.alignmentBaseline} baselineShift={fixture.svgText.baselineShift} textLength={fixture.svgText.textLength} lengthAdjust={fixture.svgText.lengthAdjust} textDecoration={fixture.svgText.textDecoration} unicodeBidi={fixture.svgText.direction === "rtl" ? "bidi-override" : undefined}>
+      {fixture.svgText.textPathD ? <textPath href={`#${fixture.id}-text-path`} startOffset={`${fixture.svgText.textPathStartOffset ?? 0}px`}>{fixture.svgText.text}</textPath> : fixture.svgText.spans?.length ? fixture.svgText.spans.map((span) => <tspan key={`${span.text}-${span.fill}`} fill={span.fill}>{span.text}</tspan>) : fixture.svgText.text}
+    </text> : null}
   </svg>;
 }
 
@@ -63,13 +67,24 @@ export function PathRenderingLab() {
   const fixture = useMemo(() => pathRenderingFixtureById(fixtureId), [fixtureId]);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    setMeasurements([]);
+    let cancelled = false;
+    let timer = 0;
+    const measureWhenReady = () => {
       const canvases = ["path-debug-webgl2", "path-debug-webgpu"]
         .map((id) => document.querySelector<HTMLCanvasElement>(`[data-testid="${id}"]`))
         .filter((canvas): canvas is HTMLCanvasElement => canvas !== null);
-      void Promise.all(canvases.map((canvas) => measureCanvas(canvas, fixture))).then(setMeasurements).catch(() => setMeasurements([]));
-    }, 700);
-    return () => window.clearTimeout(timer);
+      if (cancelled) return;
+      if (canvases.length !== 2 || canvases.some((canvas) => !canvas.dataset.backend)) {
+        timer = window.setTimeout(measureWhenReady, 100);
+        return;
+      }
+      void Promise.all(canvases.map((canvas) => measureCanvas(canvas, fixture)))
+        .then((result) => { if (!cancelled) setMeasurements(result); })
+        .catch(() => { if (!cancelled) setMeasurements([]); });
+    };
+    timer = window.setTimeout(measureWhenReady, 100);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [fixture]);
   return <main className="min-h-screen bg-[#080c11] p-6 text-slate-200" data-testid="path-rendering-lab">
     <div className="mb-5 flex flex-wrap items-center gap-3"><h1 className="text-xl font-semibold">Path rendering parity lab</h1><Link className="text-cyan-300 underline" href="/docs/preview">Protocol preview</Link></div>
@@ -79,7 +94,7 @@ export function PathRenderingLab() {
       <Panel title="WebGL2"><PreviewStage project={fixture.project} backend="webgl2" preserveDrawingBuffer testId="path-debug-webgl2" /></Panel>
       <Panel title="WebGPU"><PreviewStage project={fixture.project} backend="webgpu" preserveDrawingBuffer testId="path-debug-webgpu" /></Panel>
     </div>
-    <div className="mt-5 grid gap-4 xl:grid-cols-2"><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs">{JSON.stringify(fixture.project, null, 2)}</pre><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs" data-testid="path-rendering-measurements">{JSON.stringify(measurements, null, 2)}</pre></div>
+    <div className="mt-5 grid gap-4 xl:grid-cols-2"><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs">{JSON.stringify(fixture.project, null, 2)}</pre><pre className="overflow-auto rounded border border-slate-800 bg-slate-950 p-4 text-xs" data-testid="path-rendering-measurements" data-fixture-id={fixture.id}>{JSON.stringify(measurements, null, 2)}</pre></div>
   </main>;
 }
 

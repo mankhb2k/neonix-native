@@ -7,6 +7,7 @@ import type {
   PaintBlendMode,
   PaintMaskMode,
   PaintTextGlyph,
+  PaintTextDecoration,
   PaintTextLine,
   PathContour,
   PathMesh,
@@ -94,6 +95,8 @@ export type PaintCommand =
       /** Runtime-resolved glyph outlines. Native backends must not shape text. */
       glyphs?: PaintTextGlyph[];
       lines?: PaintTextLine[];
+      decorations?: PaintTextDecoration[];
+      paintOrder?: PaintOrder;
       verticalAlign?: "top" | "middle" | "bottom";
       direction?: "ltr" | "rtl";
       language?: string;

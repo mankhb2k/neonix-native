@@ -809,7 +809,7 @@ function previewSampleTimeAtEnd(
 ): number {
   const safeTime = Math.max(0, Number.isFinite(time) ? time : 0);
   const duration = project.layers.reduce(
-    (end, layer) => Math.max(end, layer.timing.start + layer.timing.duration),
+    (end, layer) => Math.max(end, (layer.timing.start + layer.timing.duration) / 1000),
     0,
   );
   if (duration <= 0 || safeTime < duration) return safeTime;

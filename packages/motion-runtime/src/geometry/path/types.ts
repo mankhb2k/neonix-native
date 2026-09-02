@@ -21,4 +21,6 @@ export type PathStrokeOptions = {
   cap?: import("../../paint/paint-types").PathStrokeCap;
   miterLimit?: number;
   dash?: import("../../paint/paint-types").PathStrokeDash;
+  /** Maximum allowed sagitta for generated round joins/caps in local units. */
+  roundTolerance?: number;
 };

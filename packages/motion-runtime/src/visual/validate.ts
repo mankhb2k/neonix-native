@@ -288,8 +288,11 @@ export function validateVisualRuntimeProject(
       if (!['left', 'center', 'right'].includes(node.content.align) || !['top', 'middle', 'bottom'].includes(node.content.verticalAlign)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_alignment", message: "Runtime V2 text alignment is invalid", nodeId: node.id });
       }
-      if (node.content.wrap !== "none" || node.content.overflow !== "visible" || node.content.direction !== "ltr") {
+      if (node.content.wrap !== "none" || node.content.overflow !== "visible" || !["ltr", "rtl"].includes(node.content.direction)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_mvp_contract", message: "Runtime V2 text must use the certified MVP layout contract", nodeId: node.id });
+      }
+      if (node.content.writingMode && !["horizontal-tb", "vertical-rl", "vertical-lr"].includes(node.content.writingMode)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_writing_mode", message: "Runtime V2 text writing mode is invalid", nodeId: node.id });
       }
       if (node.content.layout && (!Number.isSafeInteger(node.content.layout.unitsPerEm) || node.content.layout.unitsPerEm <= 0)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_layout", message: "Runtime V2 text layout unitsPerEm is invalid", nodeId: node.id });

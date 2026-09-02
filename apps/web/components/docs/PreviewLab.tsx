@@ -34,6 +34,9 @@ const backendOptions: Array<{
 
 type AuthoringMode = "json" | "html-css";
 
+/** Audio fixture values are Protocol V2 milliseconds; this panel displays seconds. */
+const protocolMillisecondsToSeconds = (value: number): number => value / 1000;
+
 const DEFAULT_HTML_CSS_SOURCE: HtmlCssSource = createHtmlCssSource({
   html: `<div id="gold-01"></div>`,
   css: `body { margin: 0; background: #081018; }
@@ -361,13 +364,13 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
             <p className="text-[12px] text-slate-400">Each row is a runtime track. Overlapping clip bars stay separate until the audio engine mixes them.</p>
             <div className="space-y-2">
               {tracks.map((track) => {
-                const duration = Math.max(1, ...track.clips.map((clip) => clip.timing.start + clip.timing.duration));
+                const duration = Math.max(1, ...track.clips.map((clip) => protocolMillisecondsToSeconds(clip.timing.start + clip.timing.duration)));
                 return (
                   <div key={track.id} className="grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-2">
                     <span className="truncate font-mono text-[11px] text-slate-300">{track.id}</span>
                     <div className="relative h-6 rounded border border-white/10 bg-black/20">
                       {track.clips.map((clip) => (
-                        <span key={clip.id} className="absolute top-0.5 h-5 overflow-hidden rounded bg-cyan-400/30 px-1 font-mono text-[10px] leading-5 text-cyan-100" style={{ left: `${(clip.timing.start / duration) * 100}%`, width: `${Math.max(4, (clip.timing.duration / duration) * 100)}%` }} title={`${clip.id}: ${clip.timing.start}s +${clip.timing.duration}s`}>
+                        <span key={clip.id} className="absolute top-0.5 h-5 overflow-hidden rounded bg-cyan-400/30 px-1 font-mono text-[10px] leading-5 text-cyan-100" style={{ left: `${(protocolMillisecondsToSeconds(clip.timing.start) / duration) * 100}%`, width: `${Math.max(4, (protocolMillisecondsToSeconds(clip.timing.duration) / duration) * 100)}%` }} title={`${clip.id}: ${protocolMillisecondsToSeconds(clip.timing.start)}s +${protocolMillisecondsToSeconds(clip.timing.duration)}s`}>
                           {clip.id}
                         </span>
                       ))}
@@ -397,11 +400,11 @@ function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {
               <div className="mt-2 space-y-1 text-slate-400">
                 {track.clips.map((clip) => (
                   <p key={clip.id} className="font-mono">
-                    {clip.id}: t={clip.timing.start}s +{clip.timing.duration}s, trim {clip.trim.start}
-                    {clip.trim.end != null ? `-${clip.trim.end}` : "+"}, rate {clip.playbackRate}
+                    {clip.id}: t={protocolMillisecondsToSeconds(clip.timing.start)}s +{protocolMillisecondsToSeconds(clip.timing.duration)}s, trim {protocolMillisecondsToSeconds(clip.trim.start)}
+                    {clip.trim.end != null ? `-${protocolMillisecondsToSeconds(clip.trim.end)}` : "+"}, rate {clip.playbackRate}
                     {`, gain ${clip.gainDb} dB, total ${track.gainDb + clip.gainDb} dB`}
                     {clip.fadeIn || clip.fadeOut
-                      ? `, fade in ${clip.fadeIn?.duration ?? 0}s / out ${clip.fadeOut?.duration ?? 0}s`
+                      ? `, fade in ${protocolMillisecondsToSeconds(clip.fadeIn?.duration ?? 0)}s / out ${protocolMillisecondsToSeconds(clip.fadeOut?.duration ?? 0)}s`
                       : ""}
                   </p>
                 ))}

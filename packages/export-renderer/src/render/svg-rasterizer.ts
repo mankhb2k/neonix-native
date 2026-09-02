@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import type { PaintCommand, PaintCommandBuffer, PaintTextGlyph } from "@motionvideo/motion-runtime";
 import { ExportRendererError } from "../errors";
 
 type Affine = { a: number; b: number; c: number; d: number; e: number; f: number };
@@ -62,6 +62,30 @@ function pathData(command: Extract<PaintCommand, { op: "drawPath" }>): string {
   }).join(" ");
 }
 
+function glyphTransform(glyph: PaintTextGlyph): string {
+  const rotation = glyph.rotation ? ` rotate(${glyph.rotation} ${glyph.x} ${glyph.y})` : "";
+  const scaleX = glyph.scaleX ?? 1;
+  return `translate(${glyph.x} ${glyph.y}) translate(${-glyph.outline.x} ${glyph.outline.y}) scale(${glyph.pathScale * scaleX} ${-glyph.pathScale})${rotation}`;
+}
+
+function colorGlyphSvg(glyph: PaintTextGlyph, fallback: string): string {
+  const colorGlyph = glyph.colorGlyph;
+  if (!colorGlyph) return "";
+  if (colorGlyph.kind === "bitmap") {
+    const data = Buffer.from(colorGlyph.bytes).toString("base64");
+    return `<image x="${glyph.x}" y="${glyph.y - glyph.height}" width="${glyph.width}" height="${glyph.height}" preserveAspectRatio="none" href="data:${colorGlyph.mimeType};base64,${data}"/>`;
+  }
+  if (colorGlyph.kind === "layers") {
+    return colorGlyph.layers.filter((layer) => layer.path).map((layer) => {
+      const transform = layer.x !== undefined && layer.y !== undefined && layer.pathScale !== undefined && layer.outline
+        ? `translate(${layer.x} ${layer.y}) translate(${-layer.outline.x} ${layer.outline.y}) scale(${layer.pathScale} ${-layer.pathScale})`
+        : glyphTransform(glyph);
+      return `<path d="${escapeXml(layer.path!)}" transform="${transform}" fill="${fill(layer.fill, fallback)}"/>`;
+    }).join("");
+  }
+  return "";
+}
+
 function draw(command: Extract<PaintCommand, { op: "drawText" | "drawShape" | "drawSolid" | "drawPath" }>): string {
   if (command.op === "drawSolid") {
     return `<rect width="${command.width}" height="${command.height}" fill="${fill(command.fill)}"/>`;
@@ -85,6 +109,17 @@ function draw(command: Extract<PaintCommand, { op: "drawText" | "drawShape" | "d
       ? ` stroke="${fill(command.stroke)}" stroke-opacity="${opacity(command.strokeOpacity)}" stroke-width="${command.strokeWidth ?? 1}" stroke-linejoin="${command.strokeJoin ?? "miter"}" stroke-linecap="${command.strokeCap ?? "butt"}"`
       : "";
     return `<path d="${pathData(command)}" fill="${fill(command.fill, "none")}" fill-opacity="${opacity(command.fillOpacity)}" fill-rule="${command.fillRule}"${stroke}/>`;
+  }
+  if (command.glyphs?.length) {
+    const glyphs = command.glyphs.map((glyph) => {
+      if (glyph.colorGlyph) return colorGlyphSvg(glyph, glyph.fill ?? command.fill);
+      const stroke = glyph.stroke
+        ? ` stroke="${fill(glyph.stroke)}" stroke-width="${glyph.strokeWidth ?? 1}" stroke-opacity="${opacity(glyph.strokeOpacity)}"`
+        : "";
+      return `<path d="${escapeXml(glyph.path)}" transform="${glyphTransform(glyph)}" fill="${fill(glyph.fill ?? command.fill)}"${stroke}/>`;
+    }).join("");
+    const decorations = (command.decorations ?? []).map((item) => `<rect x="${item.x}" y="${item.y}" width="${item.width}" height="${item.height}" fill="${fill(item.fill)}" fill-opacity="${opacity(item.opacity)}"/>`).join("");
+    return `${glyphs}${decorations}`;
   }
   const anchor = command.align === "center" ? "middle" : command.align === "right" ? "end" : "start";
   return `<text x="${anchor === "start" ? 0 : anchor === "middle" ? command.width / 2 : command.width}" y="${command.fontSize}" text-anchor="${anchor}" fill="${fill(command.fill)}" font-size="${command.fontSize}" font-family="sans-serif" font-weight="${command.fontWeight ?? 400}">${escapeXml(command.text)}</text>`;

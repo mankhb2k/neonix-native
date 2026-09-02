@@ -7,7 +7,7 @@ import {
 } from "../math";
 import { cssColorToRgba } from "../shared/color";
 import { imageLayout, mediaLayout } from "../media";
-import { createTextAtlas, type TextAtlas } from "../text-atlas";
+import { createTextAtlas, textAtlasKey, textAtlasScale, type TextAtlas } from "../text-atlas";
 import { buildEffectPassPlan, colorAdjustUniforms, type EffectPassPlan } from "../shared/effects";
 import { blurPyramidPlan } from "../shared/blur";
 import type { PreviewBackend } from "../backend";
@@ -706,23 +706,103 @@ export function createWebGPUBackend(
           if (!command.glyphs?.length) pushDiagnostic({ severity: "warning", code: "preview_text_layout_missing", message: "drawText requires Runtime-resolved glyph outlines", key: command.key, layerId: command.layerId });
           continue;
         }
-        const atlas = textAtlases.get(command.key) ?? createTextAtlas(command);
+        // Prefer the resolved vector outline. Export uses the same outline as
+        // SVG path data, so preview does not need to downsample text into an
+        // intermediate alpha bitmap.
+        const hasVectorRenderableGlyphs = command.glyphs.every((glyph) => glyph.mesh !== undefined || (glyph.colorGlyph?.kind === "layers" && glyph.colorGlyph.layers.some((layer) => layer.mesh !== undefined)));
+        if (hasVectorRenderableGlyphs) {
+          const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
+          const activeTransform = transform;
+          const drawVectorMesh = (mesh: { vertices: number[]; indices: number[] }, value: string, alpha: number) => {
+            const vertexData = new Float32Array(mesh.vertices.length * 2);
+            for (let index = 0; index < mesh.vertices.length / 2; index += 1) {
+              vertexData[index * 4] = mesh.vertices[index * 2]!;
+              vertexData[index * 4 + 1] = mesh.vertices[index * 2 + 1]!;
+              vertexData[index * 4 + 2] = mesh.vertices[index * 2]! / Math.max(command.width, 1);
+              vertexData[index * 4 + 3] = mesh.vertices[index * 2 + 1]! / Math.max(command.height, 1);
+            }
+            const vertexBuffer = device.createBuffer({ size: vertexData.byteLength, usage: BUFFER_VERTEX | BUFFER_COPY_DST });
+            const indexData = new Uint32Array(mesh.indices);
+            const indexBuffer = device.createBuffer({ size: indexData.byteLength, usage: BUFFER_INDEX | BUFFER_COPY_DST });
+            transientBuffers.add(vertexBuffer);
+            transientBuffers.add(indexBuffer);
+            device.queue.writeBuffer(vertexBuffer, 0, vertexData);
+            device.queue.writeBuffer(indexBuffer, 0, indexData);
+            const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
+            transientBuffers.add(uniform);
+            const data = new Float32Array(UNIFORM_FLOATS);
+            const color = cssColorToRgba(value);
+            color[3] *= alpha * activeTransform.alpha;
+            writeMatrix4(data, 0, projection);
+            writeMatrix4(data, 16, packMatrix4F32(activeTransform.matrix4));
+            data.set(color, 32);
+            data.set([0, 0, 0, 0], 36);
+            data.set([0, 0, 0, 0], 40);
+            data.set([0, command.width, command.height, 0], 44);
+            const gradients = gradientUniforms(undefined, activeTransform.alpha);
+            data.set(gradients.start, 48);
+            data.set(gradients.end, 52);
+            data.set(gradients.params, 56);
+            data.set(gradients.radius, 60);
+            data.set(gradients.stops, 64);
+            data.set(gradients.offsets, 96);
+            data.set(gradients.meta, 104);
+            data.set(gradients.patternGeometry, 108);
+            data.set(gradients.patternColors, 140);
+            data.set(gradients.patternMeta, 172);
+            data.set(gradients.patternTransform, 176);
+            data.set(colorAdjustUniforms(maskMode ? undefined : sourceColorAdjust()), 184);
+            device.queue.writeBuffer(uniform, 0, data);
+            const gradientTexture = gradientTextureFor(undefined);
+            const bindGroup = device.createBindGroup({ layout: drawObjects.layout, entries: [{ binding: 0, resource: { buffer: uniform } }, { binding: 1, resource: whiteTexture.createView() }, { binding: 2, resource: drawObjects.sampler }, { binding: 3, resource: gradientTexture.createView() }, { binding: 4, resource: drawObjects.gradientSampler }] });
+            pass!.setPipeline(drawObjects.pathPipeline);
+            pass!.setVertexBuffer(0, vertexBuffer);
+            pass!.setIndexBuffer(indexBuffer, "uint32");
+            pass!.setBindGroup(0, bindGroup);
+            pass!.drawIndexed(indexData.length);
+            drawCalls += 1;
+          };
+          for (const glyph of command.glyphs) {
+            const drawFill = () => {
+              if (glyph.colorGlyph?.kind === "layers") {
+                for (const layer of glyph.colorGlyph.layers) if (layer.mesh) drawVectorMesh(layer.mesh, layer.fill, 1);
+                return;
+              }
+              if (glyph.mesh) drawVectorMesh(glyph.mesh, glyph.fill ?? command.fill, 1);
+            };
+            const drawStroke = () => glyph.strokeMesh && glyph.stroke
+              ? drawVectorMesh(glyph.strokeMesh, glyph.stroke, glyph.strokeOpacity ?? 1)
+              : undefined;
+            const order = command.paintOrder ?? ["fill", "stroke", "markers"];
+            for (const passName of order) {
+              if (passName === "fill") drawFill();
+              if (passName === "stroke") drawStroke();
+            }
+          }
+          for (const decoration of command.decorations ?? []) {
+            drawVectorMesh({ vertices: [decoration.x, decoration.y, decoration.x + decoration.width, decoration.y, decoration.x + decoration.width, decoration.y + decoration.height, decoration.x, decoration.y + decoration.height], indices: [0, 1, 2, 0, 2, 3] }, decoration.fill, decoration.opacity ?? 1);
+          }
+          continue;
+        }
+        const atlasScale = textAtlasScale(dpr);
+        const atlasKey = textAtlasKey(command, atlasScale, transform.matrix4, dpr);
+        const atlas = textAtlases.get(atlasKey) ?? createTextAtlas({ ...command, key: atlasKey }, atlasScale);
         if (!atlas) {
           skippedCommands += 1;
           pushDiagnostic({ severity: "warning", code: "preview_text_atlas_failed", message: "Unable to build the text glyph atlas", key: command.key, layerId: command.layerId });
           continue;
         }
-        textAtlases.set(command.key, atlas);
+        textAtlases.set(atlasKey, atlas);
         const image = textures.get(atlas.id) ?? textureFor(atlas.id, atlas.asset);
         if (!image) {
           skippedCommands += 1;
           continue;
         }
         const drawObjects = maskMode ? singleSampleObjects : objectsForTransform(transform);
-        const color = cssColorToRgba(command.fill);
-        color[3] *= transform.alpha;
         const baseMatrix = packMatrix4F32(transform.matrix4);
         for (const glyph of atlas.glyphs) {
+          const color = cssColorToRgba(glyph.fill ?? command.fill);
+          color[3] *= transform.alpha;
           const uniform = device.createBuffer({ size: UNIFORM_BYTES, usage: BUFFER_UNIFORM | BUFFER_COPY_DST });
           transientBuffers.add(uniform);
           const data = new Float32Array(UNIFORM_FLOATS);

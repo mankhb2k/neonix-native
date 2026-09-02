@@ -6,6 +6,7 @@ import type {
   PaintOrder,
   PaintTextGlyph,
   PaintTextLine,
+  PaintTextDecoration,
   PathContour,
   PathMesh,
   PathStrokeCap,
@@ -151,8 +152,43 @@ export type VisualRuntimeTextLayout = {
   unitsPerEm: number;
   ascender: number;
   descender: number;
+  /** Shaped, positioned glyph data before backend-specific materialization. */
+  runs: GlyphRun[];
   glyphs: PaintTextGlyph[];
   lines: PaintTextLine[];
+  decorations?: PaintTextDecoration[];
+};
+
+/** Backend-neutral result of text shaping and layout. */
+export type GlyphRun = {
+  id: string;
+  fontAssetId: string;
+  fontIntegrity: string;
+  fontSize: number;
+  direction: "ltr" | "rtl" | "ttb" | "btt";
+  language: string;
+  script?: string;
+  glyphs: GlyphRunGlyph[];
+};
+
+export type GlyphRunGlyph = {
+  glyphId: number;
+  cluster: number;
+  clusterEnd: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  xBearing: number;
+  yBearing: number;
+  advanceX: number;
+  advanceY: number;
+  fontAssetId: string;
+  fontIntegrity: string;
+  /** Position within the line before textLength/textPath post-layout. */
+  advanceStart: number;
+  rotation?: number;
+  scaleX?: number;
 };
 
 /** Text stays semantic until the host has resolved the exact font binary. */
@@ -162,6 +198,13 @@ export type VisualRuntimeText = {
   fontAssetId: string;
   fontUri: string;
   fontIntegrity: string;
+  variations?: Record<string, number>;
+  /** Ordered runtime font candidates; first is the authored face. */
+  fontFallbacks?: Array<{
+    assetId: string;
+    uri: string;
+    integrity: string;
+  }>;
   fontSize: number;
   lineHeight: number;
   letterSpacing: number;
@@ -169,9 +212,36 @@ export type VisualRuntimeText = {
   verticalAlign: "top" | "middle" | "bottom";
   wrap: "none";
   overflow: "visible";
-  direction: "ltr";
+  direction: "ltr" | "rtl";
+  writingMode?: "horizontal-tb" | "vertical-rl" | "vertical-lr";
   language: string;
   fill: string;
+  spanFills?: Array<{ start: number; end: number; fill: string }>;
+  wordSpacing?: number;
+  textLength?: number;
+  lengthAdjust?: "spacing" | "spacingAndGlyphs";
+  dx?: number[];
+  dy?: number[];
+  rotate?: number[];
+  textPath?: {
+    contours: PathContour[];
+    startOffset: number;
+    method: "align" | "stretch";
+    spacing: "auto" | "exact";
+  };
+  dominantBaseline?: string;
+  alignmentBaseline?: string;
+  baselineShift?: number;
+  stroke?: string;
+  strokePaint?: PaintFill;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  paintOrder?: PaintOrder;
+  textDecoration?: {
+    underline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
+    overline?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
+    lineThrough?: { fill: string; fillPaint?: PaintFill; thickness: number; opacity?: number };
+  };
   width: number;
   height: number;
   layout?: VisualRuntimeTextLayout;

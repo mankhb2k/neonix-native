@@ -111,7 +111,7 @@ function shape(input: {
     frame: { width: input.width, height: input.height },
     transform: transform(input.x, input.y, input.width, input.height),
     opacity: input.opacity ?? 1,
-    timing: { start: input.start, duration: input.duration },
+    timing: { start: input.start * 1000, duration: input.duration * 1000 },
     payload: { shape: input.shape ?? "rectangle", cornerRadius: input.shape === "ellipse" ? undefined : 24 },
     style: { fill: input.fill },
   };
@@ -131,8 +131,6 @@ function text(input: {
   const width = 1600;
   const height = 160;
   const source = input.value.normalize("NFC");
-  const lineHeight = (input.size ?? 64) * 1.2;
-  const lines = source.split("\n");
   return {
     id: input.id,
     type: "text" as const,
@@ -141,18 +139,19 @@ function text(input: {
     frame: { width, height },
     transform: transform(input.x ?? 160, input.y ?? 460, width, height),
     opacity: 1,
-    timing: { start: input.start, duration: input.duration },
+    timing: { start: input.start * 1000, duration: input.duration * 1000 },
     payload: {
       source: { text: source, language: "en" },
-      layout: {
-        lines: lines.map((_, index) => ({ id: `${input.id}-line-${index}`, baselineY: (index + 1) * lineHeight, runIds: [`${input.id}-run-${index}`] })),
-        runs: lines.map((line, index) => ({
-          id: `${input.id}-run-${index}`,
-          font: { assetId: FONT_ID, size: input.size ?? 64 },
+      chunks: [{
+        id: `${input.id}-chunk`,
+        sourceRange: { start: 0, end: source.length },
+        spans: [{
+          id: `${input.id}-span`,
+          sourceRange: { start: 0, end: source.length },
+          font: { families: ["Roboto"], size: input.size ?? 64 },
           fill: input.fill ?? "#ffffff",
-          glyphs: [{ glyphId: line.codePointAt(0) ?? 0, x: 0, y: index * lineHeight, advance: { x: 0, y: 0 }, cluster: 0 }],
-        })),
-      },
+        }],
+      }],
     },
   };
 }
@@ -166,7 +165,7 @@ function imageLayer(input: { id: string; order: number; assetId: string; start: 
     frame: { width: input.width, height: input.height },
     transform: transform(input.x, input.y, input.width, input.height),
     opacity: input.opacity ?? 1,
-    timing: { start: input.start, duration: input.duration },
+    timing: { start: input.start * 1000, duration: input.duration * 1000 },
     payload: { assetId: input.assetId, width: input.width, height: input.height, preserveAspectRatio: { align: "xMidYMid" as const, meetOrSlice: "slice" as const } },
   };
 }
@@ -180,7 +179,7 @@ function videoLayer(input: { id: string; order: number; assetId: string; start: 
     frame: { width: 1920, height: 1080 },
     transform: transform(0, 0, 1920, 1080),
     opacity: 1,
-    timing: { start: input.start, duration: input.duration },
+    timing: { start: input.start * 1000, duration: input.duration * 1000 },
     payload: {
       assetId: input.assetId,
       fit: "cover" as const,
@@ -205,14 +204,14 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
       clips: [{
         id: `${id}-clip`,
         assetId: asset.id,
-        timing: { start: 0, duration },
-        trim: { start: 0, end: duration },
+        timing: { start: 0, duration: duration * 1000 },
+        trim: { start: 0, end: duration * 1000 },
         enabled: true,
         gainDb: 0,
         pan: 0,
         playbackRate: 1,
-        fadeIn: { duration: 2, curve: "equal-power" as const },
-        fadeOut: { duration: 3, curve: "equal-power" as const },
+        fadeIn: { duration: 2000, curve: "equal-power" as const },
+        fadeOut: { duration: 3000, curve: "equal-power" as const },
       }],
     }],
     },
@@ -238,7 +237,7 @@ function withAssets(project: MotionProtocolV2, assets: AssetRef[]) {
         mimeType: asset.mimeType,
         ...(asset.width != null ? { width: asset.width } : {}),
         ...(asset.height != null ? { height: asset.height } : {}),
-        ...(asset.duration != null ? { duration: asset.duration } : {}),
+        ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
         ...(asset.fps != null ? { fps: asset.fps } : {}),
       };
       return {
@@ -246,7 +245,7 @@ function withAssets(project: MotionProtocolV2, assets: AssetRef[]) {
         kind: "audio" as const,
         uri: asset.uri,
         mimeType: asset.mimeType,
-        ...(asset.duration != null ? { duration: asset.duration } : {}),
+        ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
         ...(asset.sampleRate != null ? { sampleRate: asset.sampleRate } : {}),
       };
     })],

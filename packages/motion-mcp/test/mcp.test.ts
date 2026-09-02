@@ -29,7 +29,7 @@ describe("MCP Protocol V2 operations", () => {
     const project = createV2ShapeProject("mcp-compile");
     const result = compileProject(MCPCompileProjectInputSchema.parse({ project }));
     expect(result.diagnostics).toEqual([]);
-    expect(result.runtimeProject.formatVersion).toBe(2);
+    expect(result.runtimeProject.runtimeVersion).toBe(3);
     expect(result.compilerVersion).toBe("protocol-v2");
   });
 
@@ -37,7 +37,7 @@ describe("MCP Protocol V2 operations", () => {
     const project = createV2ShapeProject("mcp-inspect");
     const timelineInput = MCPInspectTimelineInputSchema.parse({ project });
     const timeline = inspectTimeline(timelineInput.project, timelineInput.layerId);
-    expect(timeline.totalDuration).toBe(3);
+    expect(timeline.totalDuration).toBe(3000);
     expect(timeline.layers[0]?.id).toBe("shape");
     expect(listCapabilities("primitive.shape").total).toBeGreaterThanOrEqual(2);
   });

@@ -26,9 +26,10 @@ export function isV2VisualLayer(layer: V2Layer): boolean {
 
 export function isV2LayerActiveAtTime(layer: V2Layer, time: number): boolean {
   const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  const protocolTime = safeTime * 1000;
   const start = layer.timing.start;
   const end = start + layer.timing.duration;
-  return safeTime >= start && safeTime <= end;
+  return protocolTime >= start && protocolTime <= end;
 }
 
 /**

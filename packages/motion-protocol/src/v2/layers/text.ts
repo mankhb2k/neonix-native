@@ -1,12 +1,13 @@
 import { z } from "zod";
 import {
-  V2ColorSchema,
   V2FiniteNumberSchema,
   V2IdSchema,
   V2NonNegativeNumberSchema,
-  V2PositiveNumberSchema,
+  V2PaintOrderSchema,
+  V2PositiveSvgLengthSchema,
+  V2SvgLengthSchema,
 } from "../common";
-import { V2Vec2Schema } from "../transform";
+import { V2PaintSchema } from "../paint";
 import { V2LayerBaseSchema } from "./base";
 import { V2EffectListSchema } from "../effects";
 
@@ -15,149 +16,174 @@ const V2NfcTextSchema = z.string().refine(
   "Text source must be NFC normalized",
 );
 
-/** OpenType variation axis tags are exactly four printable ASCII characters. */
 const V2FontVariationAxisTagSchema = z
   .string()
   .regex(/^[ -~]{4}$/, "Font variation axis tag must contain exactly four printable ASCII characters");
 
-/** A run ID occupies one track-path segment and therefore cannot contain a dot. */
+const V2TextRangeSchema = z
+  .object({
+    /** UTF-16 offsets, matching JavaScript/editor string indexing. */
+    start: V2NonNegativeNumberSchema.int(),
+    end: V2NonNegativeNumberSchema.int(),
+  })
+  .strict()
+  .superRefine((range, ctx) => {
+    if (range.end < range.start) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text range end must not precede start", path: ["end"] });
+    }
+  });
+
 const V2TextRunIdSchema = V2IdSchema.refine(
   (value) => !value.includes("."),
-  "Glyph run id cannot contain a dot",
+  "Text span id cannot contain a dot",
 );
 
-/**
- * A concrete font instance selected by the text shaper. Font fallback is
- * represented by separate glyph runs that select their own font assets.
- */
-export const V2TextFontInstanceSchema = z
+export const V2TextFontSchema = z
   .object({
-    assetId: V2IdSchema,
-    size: V2PositiveNumberSchema,
-    /** Resolved OpenType variation coordinates, for example { wght: 650 }. */
+    /** SVG font-family is an ordered fallback list, not one resolved asset. */
+    families: z.array(z.string().trim().min(1)).min(1),
+    size: V2PositiveSvgLengthSchema,
+    weight: z.number().int().min(1).max(1000).optional(),
+    style: z.enum(["normal", "italic", "oblique"]).optional(),
+    stretch: z.enum([
+      "ultra-condensed",
+      "extra-condensed",
+      "condensed",
+      "semi-condensed",
+      "normal",
+      "semi-expanded",
+      "expanded",
+      "extra-expanded",
+      "ultra-expanded",
+    ]).optional(),
     variations: z.record(V2FontVariationAxisTagSchema, V2FiniteNumberSchema).optional(),
   })
   .strict();
 
-/** One glyph already shaped and positioned in the text layer's local units. */
-export const V2PositionedGlyphSchema = z
+export const V2TextDecorationStyleSchema = z
   .object({
-    glyphId: V2NonNegativeNumberSchema.int(),
-    x: V2FiniteNumberSchema,
-    y: V2FiniteNumberSchema,
-    /** Advance vector retained for editor selection/caret use and vertical text. */
-    advance: V2Vec2Schema,
-    /** Optional UTF-16 offset into payload.source.text for editor mapping only. */
-    cluster: V2NonNegativeNumberSchema.int().optional(),
+    fill: V2PaintSchema.optional(),
+    stroke: V2PaintSchema.optional(),
+    strokeWidth: V2PositiveSvgLengthSchema.optional(),
   })
   .strict();
 
-/**
- * One visually ordered sequence with one font instance and one paint. Its
- * identifier is a stable target for run-level color/font animation tracks.
- */
-export const V2GlyphRunSchema = z
+const V2TextSpacingSchema = z.union([z.literal("normal"), V2SvgLengthSchema]);
+const V2BaselineShiftSchema = z.union([
+  z.enum(["baseline", "subscript", "superscript"]),
+  V2SvgLengthSchema,
+]);
+
+/** A normalized, non-overlapping SVG text/tspan style range. */
+export const V2TextSpanSchema = z
   .object({
     id: V2TextRunIdSchema,
-    font: V2TextFontInstanceSchema,
-    fill: V2ColorSchema,
-    glyphs: z.array(V2PositionedGlyphSchema).min(1),
+    sourceRange: V2TextRangeSchema,
+    font: V2TextFontSchema,
+    fill: V2PaintSchema.optional(),
+    fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
+    stroke: V2PaintSchema.optional(),
+    strokeWidth: V2PositiveSvgLengthSchema.optional(),
+    strokeOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
+    paintOrder: V2PaintOrderSchema.optional(),
+    letterSpacing: V2TextSpacingSchema.optional(),
+    wordSpacing: V2TextSpacingSchema.optional(),
+    dominantBaseline: z.enum([
+      "auto",
+      "use-script",
+      "no-change",
+      "reset-size",
+      "ideographic",
+      "alphabetic",
+      "hanging",
+      "mathematical",
+      "central",
+      "middle",
+      "text-after-edge",
+      "text-before-edge",
+    ]).optional(),
+    alignmentBaseline: z.enum([
+      "auto",
+      "baseline",
+      "before-edge",
+      "text-before-edge",
+      "middle",
+      "central",
+      "after-edge",
+      "text-after-edge",
+      "ideographic",
+      "alphabetic",
+      "hanging",
+      "mathematical",
+    ]).optional(),
+    baselineShift: V2BaselineShiftSchema.optional(),
+    textLength: V2PositiveSvgLengthSchema.optional(),
+    lengthAdjust: z.enum(["spacing", "spacingAndGlyphs"]).optional(),
+    textDecoration: z
+      .object({
+        underline: V2TextDecorationStyleSchema.optional(),
+        overline: V2TextDecorationStyleSchema.optional(),
+        lineThrough: V2TextDecorationStyleSchema.optional(),
+      })
+      .strict()
+      .optional(),
+    kerning: z.enum(["auto", "normal", "none"]).optional(),
+    opticalSizing: z.enum(["auto", "none"]).optional(),
+    smallCaps: z.boolean().optional(),
   })
   .strict();
 
-/** One baseline and its glyph runs, in visual paint order. */
-export const V2TextLineSchema = z
+export const V2TextPathSchema = z
+  .object({
+    /** Reference to a path element/definition in the same Protocol document. */
+    pathId: V2IdSchema,
+    startOffset: V2SvgLengthSchema.optional(),
+    method: z.enum(["align", "stretch"]).optional(),
+    spacing: z.enum(["auto", "exact"]).optional(),
+  })
+  .strict();
+
+/** A normalized SVG text chunk. Its ranges point into source.text. */
+export const V2TextChunkSchema = z
   .object({
     id: V2IdSchema,
-    baselineY: V2FiniteNumberSchema,
-    runIds: z.array(V2IdSchema).min(1),
+    sourceRange: V2TextRangeSchema,
+    x: z.array(V2SvgLengthSchema).min(1).optional(),
+    y: z.array(V2SvgLengthSchema).min(1).optional(),
+    dx: z.array(V2SvgLengthSchema).min(1).optional(),
+    dy: z.array(V2SvgLengthSchema).min(1).optional(),
+    rotate: z.array(V2FiniteNumberSchema).min(1).optional(),
+    textAnchor: z.enum(["start", "middle", "end"]).optional(),
+    textPath: V2TextPathSchema.optional(),
+    spans: z.array(V2TextSpanSchema).min(1),
   })
   .strict()
-  .superRefine((line, ctx) => {
+  .superRefine((chunk, ctx) => {
+    let previousEnd = chunk.sourceRange.start;
     const seen = new Set<string>();
-    for (const [index, runId] of line.runIds.entries()) {
-      if (seen.has(runId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Text line cannot reference glyph run more than once: ${runId}`,
-          path: ["runIds", index],
-        });
+    for (const [index, span] of chunk.spans.entries()) {
+      if (seen.has(span.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate text span id: ${span.id}`, path: ["spans", index, "id"] });
       }
-      seen.add(runId);
+      seen.add(span.id);
+      if (span.sourceRange.start < chunk.sourceRange.start || span.sourceRange.end > chunk.sourceRange.end) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text span range must be contained by its chunk", path: ["spans", index, "sourceRange"] });
+      }
+      if (span.sourceRange.start < previousEnd) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text spans must be ordered and non-overlapping", path: ["spans", index, "sourceRange"] });
+      }
+      previousEnd = span.sourceRange.end;
     }
   });
 
-/**
- * Canonical render input for text. The compiler/text shaper resolves CSS
- * wrapping, bidi, fallback, features, spacing, and inline style into this
- * layout before Protocol V2 is emitted. The runtime renders glyph IDs using
- * the selected font asset; it does not rerun CSS text layout.
- */
-export const V2TextLayoutSchema = z
-  .object({
-    lines: z.array(V2TextLineSchema).min(1),
-    runs: z.array(V2GlyphRunSchema).min(1),
-  })
-  .strict()
-  .superRefine((layout, ctx) => {
-    const runIds = new Set<string>();
-    for (const [index, run] of layout.runs.entries()) {
-      if (runIds.has(run.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate glyph run id: ${run.id}`,
-          path: ["runs", index, "id"],
-        });
-      }
-      runIds.add(run.id);
-    }
-
-    const lineIds = new Set<string>();
-    const referencedRunIds = new Set<string>();
-    for (const [lineIndex, line] of layout.lines.entries()) {
-      if (lineIds.has(line.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate text line id: ${line.id}`,
-          path: ["lines", lineIndex, "id"],
-        });
-      }
-      lineIds.add(line.id);
-      for (const [runIndex, runId] of line.runIds.entries()) {
-        if (!runIds.has(runId)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Unknown glyph run referenced by line: ${runId}`,
-            path: ["lines", lineIndex, "runIds", runIndex],
-          });
-        }
-        if (referencedRunIds.has(runId)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Glyph run must belong to exactly one text line: ${runId}`,
-            path: ["lines", lineIndex, "runIds", runIndex],
-          });
-        }
-        referencedRunIds.add(runId);
-      }
-    }
-
-    for (const [index, run] of layout.runs.entries()) {
-      if (!referencedRunIds.has(run.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Glyph run is not referenced by a text line: ${run.id}`,
-          path: ["runs", index, "id"],
-        });
-      }
-    }
-  });
-
-/** Optional authoring/editor metadata. It is never the render authority. */
 export const V2TextSourceSchema = z
   .object({
     text: V2NfcTextSchema,
     language: z.string().trim().min(1).max(35).optional(),
+    direction: z.enum(["ltr", "rtl"]).optional(),
+    writingMode: z.enum(["horizontal-tb", "vertical-rl", "vertical-lr"]).optional(),
+    whiteSpace: z.enum(["default", "preserve"]).optional(),
+    textRendering: z.enum(["auto", "optimizeSpeed", "geometricPrecision"]).optional(),
   })
   .strict();
 
@@ -166,17 +192,40 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
   effects: V2EffectListSchema.optional(),
   payload: z
     .object({
-      /** Optional source/editor data; runtime rendering reads layout only. */
-      source: V2TextSourceSchema.optional(),
-      layout: V2TextLayoutSchema,
+      source: V2TextSourceSchema,
+      chunks: z.array(V2TextChunkSchema).min(1),
     })
-    .strict(),
+    .strict()
+    .superRefine((payload, ctx) => {
+      const sourceLength = payload.source.text.length;
+      const chunkIds = new Set<string>();
+      const spanIds = new Set<string>();
+      for (const [index, chunk] of payload.chunks.entries()) {
+        if (chunkIds.has(chunk.id)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate text chunk id: ${chunk.id}`, path: ["chunks", index, "id"] });
+        }
+        chunkIds.add(chunk.id);
+        if (chunk.sourceRange.end > sourceLength) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text chunk range exceeds source text", path: ["chunks", index, "sourceRange"] });
+        }
+        for (const [spanIndex, span] of chunk.spans.entries()) {
+          if (spanIds.has(span.id)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate text span id: ${span.id}`, path: ["chunks", index, "spans", spanIndex, "id"] });
+          }
+          spanIds.add(span.id);
+          if (span.sourceRange.end > sourceLength) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text span range exceeds source text", path: ["chunks", index, "spans", spanIndex, "sourceRange"] });
+          }
+        }
+      }
+    }),
 }).strict();
 
-export type V2TextFontInstance = z.infer<typeof V2TextFontInstanceSchema>;
-export type V2PositionedGlyph = z.infer<typeof V2PositionedGlyphSchema>;
-export type V2GlyphRun = z.infer<typeof V2GlyphRunSchema>;
-export type V2TextLine = z.infer<typeof V2TextLineSchema>;
-export type V2TextLayout = z.infer<typeof V2TextLayoutSchema>;
+export type V2TextRange = z.infer<typeof V2TextRangeSchema>;
+export type V2TextFont = z.infer<typeof V2TextFontSchema>;
+export type V2TextDecorationStyle = z.infer<typeof V2TextDecorationStyleSchema>;
+export type V2TextSpan = z.infer<typeof V2TextSpanSchema>;
+export type V2TextPath = z.infer<typeof V2TextPathSchema>;
+export type V2TextChunk = z.infer<typeof V2TextChunkSchema>;
 export type V2TextSource = z.infer<typeof V2TextSourceSchema>;
 export type V2TextLayer = z.infer<typeof V2TextLayerSchema>;

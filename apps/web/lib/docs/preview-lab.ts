@@ -2118,6 +2118,8 @@ const STROKE_MITER_LIMIT_PROJECT = project("preview-stroke-miter-limit-v2", [
 ]);
 
 type TextLayer = Extract<V2Layer, { type: "text" }>;
+type TextChunk = TextLayer["payload"]["chunks"][number];
+type TextSpan = TextChunk["spans"][number];
 
 const PREVIEW_ROBOTO_REGULAR_FONT = {
   id: "preview-roboto-regular-v2",
@@ -2140,25 +2142,22 @@ function textLayer(options: {
   frame?: { width: number; height: number };
   fontSize?: number;
   lineHeight?: number;
+  writingMode?: TextLayer["payload"]["source"]["writingMode"];
+  dx?: number[];
+  dy?: number[];
+  rotate?: number[];
+  textLength?: number;
+  lengthAdjust?: TextSpan["lengthAdjust"];
+  wordSpacing?: number;
+  textPath?: TextChunk["textPath"];
+  stroke?: TextSpan["stroke"];
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  paintOrder?: TextSpan["paintOrder"];
+  textDecoration?: TextSpan["textDecoration"];
 }): TextLayer {
   const fontSize = options.fontSize ?? 96;
-  const lineHeight = options.lineHeight ?? 120;
-  const lines = options.text.split("\n");
-  const runs = lines.map((line, index) => ({
-    id: `${options.id}-run-${index}`,
-    font: {
-      assetId: PREVIEW_ROBOTO_REGULAR_FONT.id,
-      size: fontSize,
-    },
-    fill: "#f8fafc",
-    glyphs: [{
-      glyphId: line.codePointAt(0) ?? 0,
-      x: 0,
-      y: index * lineHeight,
-      advance: { x: 0, y: 0 },
-      cluster: 0,
-    }],
-  }));
+  const source = options.text.normalize("NFC");
   return {
     id: options.id,
     type: "text",
@@ -2169,15 +2168,29 @@ function textLayer(options: {
     opacity: 1,
     timing: { start: 0, duration: 3 },
     payload: {
-      source: { text: options.text.normalize("NFC"), language: "vi" },
-      layout: {
-        lines: lines.map((_, index) => ({
-          id: `${options.id}-line-${index}`,
-          baselineY: (index + 1) * lineHeight,
-          runIds: [`${options.id}-run-${index}`],
-        })),
-        runs,
-      },
+      source: { text: source, language: "vi", ...(options.writingMode ? { writingMode: options.writingMode } : {}) },
+      chunks: [{
+        id: `${options.id}-chunk`,
+        sourceRange: { start: 0, end: source.length },
+        textAnchor: options.align === "center" ? "middle" : options.align === "right" ? "end" : "start",
+        ...(options.dx ? { dx: options.dx } : {}),
+        ...(options.dy ? { dy: options.dy } : {}),
+        ...(options.rotate ? { rotate: options.rotate } : {}),
+        ...(options.textPath ? { textPath: options.textPath } : {}),
+        spans: [{
+          id: `${options.id}-span`,
+          sourceRange: { start: 0, end: source.length },
+          font: { families: [PREVIEW_ROBOTO_REGULAR_FONT.family], size: fontSize },
+          fill: "#f8fafc",
+          ...(options.wordSpacing !== undefined ? { wordSpacing: options.wordSpacing } : {}),
+          ...(options.textLength !== undefined ? { textLength: options.textLength, lengthAdjust: options.lengthAdjust ?? "spacing" } : {}),
+          ...(options.stroke ? { stroke: options.stroke } : {}),
+          ...(options.strokeWidth !== undefined ? { strokeWidth: options.strokeWidth } : {}),
+          ...(options.strokeOpacity !== undefined ? { strokeOpacity: options.strokeOpacity } : {}),
+          ...(options.paintOrder ? { paintOrder: options.paintOrder } : {}),
+          ...(options.textDecoration ? { textDecoration: options.textDecoration } : {}),
+        }],
+      }],
     },
   };
 }
@@ -2274,6 +2287,67 @@ const TEXT_PARAGRAPH_PROJECT = project(
       fontSize: 64,
       lineHeight: 84,
     }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_LENGTH_PROJECT = project(
+  "preview-text-length-v2",
+  [
+    rectangle({ id: "text-length-frame", order: 0, fill: "#173247", frame: { width: 1280, height: 260 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 410, z: 0 } } }),
+    textLayer({ id: "text-length", order: 1, text: "textLength spacingAndGlyphs", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 410, z: 0 } }, frame: { width: 1280, height: 260 }, fontSize: 64, textLength: 1080, lengthAdjust: "spacingAndGlyphs" }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_POSITIONING_PROJECT = project(
+  "preview-text-positioning-v2",
+  [
+    rectangle({ id: "text-positioning-frame", order: 0, fill: "#173247", frame: { width: 1280, height: 300 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 390, z: 0 } } }),
+    textLayer({ id: "text-positioning", order: 1, text: "dx dy rotate", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 320, y: 390, z: 0 } }, frame: { width: 1280, height: 300 }, fontSize: 86, dx: [0, 8, 14, 0, -8, 0, 0, 8, 0, -6, 0, 0, 0], dy: [0, -8, 6, 0, 10, 0, 0, -5, 0, 8, 0, 0, 0], rotate: [0, -8, 10, -5, 0, 0, 0, 8, 0, -8, 0, 0, 0] }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_PATH_PROJECT = project(
+  "preview-text-path-v2",
+  [
+    {
+      id: "text-guide",
+      type: "path",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 1400, height: 500 },
+      transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 290, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3 },
+      payload: { contours: [{ id: "text-guide-contour", start: { x: 40, y: 300 }, segments: [{ kind: "cubic", control1: { x: 300, y: 20 }, control2: { x: 720, y: 20 }, to: { x: 980, y: 300 } }], closed: false }], fillRule: "nonzero" },
+      style: { fill: "none", stroke: "#334155", strokeWidth: 3 },
+    },
+    textLayer({ id: "text-path", order: 1, text: "text follows an SVG path", align: "left", verticalAlign: "top", transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 290, z: 0 } }, frame: { width: 1400, height: 500 }, fontSize: 68, textPath: { pathId: "text-guide", startOffset: 0, method: "align", spacing: "auto" } }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_VERTICAL_PROJECT = project(
+  "preview-text-vertical-v2",
+  [
+    rectangle({ id: "text-vertical-frame", order: 0, fill: "#173247", frame: { width: 900, height: 720 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 510, y: 180, z: 0 } } }),
+    textLayer({ id: "text-vertical", order: 1, text: "VERTICAL", align: "left", verticalAlign: "top", transform: { ...IDENTITY_TRANSFORM, translate: { x: 960, y: 180, z: 0 } }, frame: { width: 900, height: 720 }, fontSize: 72, lineHeight: 92, writingMode: "vertical-rl" }),
+  ],
+  ORTHOGRAPHIC_VIEW,
+  [PREVIEW_ROBOTO_REGULAR_FONT],
+);
+
+const TEXT_DECORATION_STROKE_PROJECT = project(
+  "preview-text-decoration-stroke-v2",
+  [
+    rectangle({ id: "text-style-frame", order: 0, fill: "#173247", frame: { width: 1400, height: 360 }, transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 360, z: 0 } } }),
+    textLayer({ id: "text-style", order: 1, text: "underline and stroke", align: "center", verticalAlign: "middle", transform: { ...IDENTITY_TRANSFORM, translate: { x: 260, y: 360, z: 0 } }, frame: { width: 1400, height: 360 }, fontSize: 92, stroke: "#38bdf8", strokeWidth: 3, strokeOpacity: 0.9, paintOrder: ["fill", "stroke", "markers"], textDecoration: { underline: { fill: "#f97316", strokeWidth: 4 }, lineThrough: { fill: "#ef4444", strokeWidth: 3 } } }),
   ],
   ORTHOGRAPHIC_VIEW,
   [PREVIEW_ROBOTO_REGULAR_FONT],
@@ -3453,6 +3527,41 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
     group: "Task 10 / Text",
     hint: "Explicit newline characters create deterministic paragraph lines; each line uses the same alignment and line height inside the frame.",
     project: TEXT_PARAGRAPH_PROJECT,
+  },
+  {
+    id: "text.text-length",
+    label: "Text / textLength",
+    group: "Task 10 / Text",
+    hint: "SVG textLength with lengthAdjust=spacingAndGlyphs is resolved into glyph geometry before the GPU paint pass.",
+    project: TEXT_LENGTH_PROJECT,
+  },
+  {
+    id: "text.positioning.dx-dy-rotate",
+    label: "Text / dx dy rotate",
+    group: "Task 10 / Text",
+    hint: "Per-glyph dx, dy and rotate are applied after shaping, so cluster advances remain stable while glyph placement changes.",
+    project: TEXT_POSITIONING_PROJECT,
+  },
+  {
+    id: "text.text-path",
+    label: "Text / textPath",
+    group: "Task 10 / Text",
+    hint: "The shaped run follows a referenced open SVG path using path distance and tangent rather than independent segment placement.",
+    project: TEXT_PATH_PROJECT,
+  },
+  {
+    id: "text.writing-mode.vertical",
+    label: "Text / vertical writing",
+    group: "Task 10 / Text",
+    hint: "vertical-rl creates a right-to-left column and uses vertical glyph advances from the resolved font.",
+    project: TEXT_VERTICAL_PROJECT,
+  },
+  {
+    id: "text.decoration-stroke",
+    label: "Text / decoration + stroke",
+    group: "Task 10 / Text",
+    hint: "Text stroke is a vector outline around each glyph; underline and line-through are independent decoration paint rectangles.",
+    project: TEXT_DECORATION_STROKE_PROJECT,
   },
   {
     id: "effect.color-adjust",

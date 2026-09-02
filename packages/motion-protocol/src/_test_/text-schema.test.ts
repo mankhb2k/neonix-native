@@ -1,79 +1,92 @@
 import { describe, expect, it } from "vitest";
-import { V2TextLayoutSchema, V2TextLayerSchema } from "../v2/layers/text";
+import { V2TextLayerSchema } from "../v2/layers/text";
 
-const LAYOUT = {
-  lines: [
-    { id: "line-1", baselineY: 40, runIds: ["latin", "arabic-fallback"] },
-  ],
-  runs: [
-    {
-      id: "latin",
-      font: { assetId: "inter", size: 32, variations: { wght: 650, opsz: 32 } },
-      fill: "#ffffffff",
-      glyphs: [
-        { glyphId: 42, x: 0, y: 40, advance: { x: 18.5, y: 0 }, cluster: 0 },
-      ],
-    },
-    {
-      id: "arabic-fallback",
-      font: { assetId: "noto-arabic", size: 32 },
-      fill: "#00e5ffff",
-      glyphs: [
-        { glyphId: 70, x: 18.5, y: 40, advance: { x: 16, y: 0 }, cluster: 1 },
-      ],
-    },
-  ],
+const BASE_LAYER = {
+  id: "title",
+  parentLayerId: null,
+  order: 0,
+  frame: { width: 200, height: 80 },
+  transform: {
+    translate: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1 },
+    rotate: { x: 0, y: 0, z: 0 },
+    skew: { x: 0, y: 0 },
+    anchor: { x: 0, y: 0, z: 0 },
+  },
+  opacity: 1,
+  timing: { start: 0, duration: 1000 },
+  type: "text" as const,
 };
 
-describe("Protocol V2 shaped text layout", () => {
-  it("accepts visual runs, positioned glyphs, fallback fonts, and variation coordinates", () => {
-    expect(V2TextLayoutSchema.parse(LAYOUT)).toEqual(LAYOUT);
+const TEXT_LAYER = {
+  ...BASE_LAYER,
+  payload: {
+    source: { text: "A fi", language: "en" },
+    chunks: [{
+      id: "chunk-1",
+      sourceRange: { start: 0, end: 4 },
+      textAnchor: "middle" as const,
+      spans: [{
+        id: "span-1",
+        sourceRange: { start: 0, end: 4 },
+        font: { families: ["Roboto", "sans-serif"], size: 32, weight: 400, style: "normal" as const },
+        fill: "#ffffffff",
+        letterSpacing: { value: 1, unit: "px" as const },
+      }],
+    }],
+  },
+};
+
+describe("Protocol V2 semantic SVG text", () => {
+  it("accepts text chunks, tspan ranges, SVG font properties and paint", () => {
+    expect(V2TextLayerSchema.parse(TEXT_LAYER)).toEqual(TEXT_LAYER);
   });
 
-  it("rejects unresolved, repeated, and unowned glyph-run references", () => {
-    expect(() => V2TextLayoutSchema.parse({
-      ...LAYOUT,
-      lines: [{ ...LAYOUT.lines[0], runIds: ["missing"] }],
-    })).toThrow(/Unknown glyph run/);
-    expect(() => V2TextLayoutSchema.parse({
-      ...LAYOUT,
-      lines: [
-        LAYOUT.lines[0],
-        { id: "line-2", baselineY: 80, runIds: ["latin"] },
-      ],
-    })).toThrow(/exactly one text line/);
-    expect(() => V2TextLayoutSchema.parse({
-      ...LAYOUT,
-      lines: [{ id: "line-1", baselineY: 40, runIds: ["latin"] }],
-    })).toThrow(/not referenced/);
-  });
-
-  it("rejects old CSS-layout fields and keeps source text as non-rendering metadata", () => {
+  it("accepts textPath and editor-safe UTF-16 ranges", () => {
     const layer = {
-      id: "title",
-      parentLayerId: null,
-      order: 0,
-      frame: { width: 200, height: 80 },
-      transform: {
-        translate: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
-        rotate: { x: 0, y: 0, z: 0 },
-        skew: { x: 0, y: 0 },
-        anchor: { x: 0, y: 0, z: 0 },
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        source: { text: "A😀", language: "en", direction: "ltr" as const },
+        chunks: [{
+          ...TEXT_LAYER.payload.chunks[0],
+          sourceRange: { start: 0, end: 3 },
+          textPath: { pathId: "baseline", startOffset: { value: 12, unit: "px" as const } },
+          spans: [{ ...TEXT_LAYER.payload.chunks[0].spans[0], sourceRange: { start: 0, end: 3 } }],
+        }],
       },
-      opacity: 1,
-      timing: { start: 0, duration: 1000 },
-      type: "text" as const,
-      payload: { source: { text: "A", language: "en" }, layout: LAYOUT },
     };
     expect(V2TextLayerSchema.parse(layer)).toEqual(layer);
+  });
+
+  it("rejects overlapping spans and ranges outside source text", () => {
     expect(() => V2TextLayerSchema.parse({
-      ...layer,
-      payload: { ...layer.payload, wrap: "normal" },
-    })).toThrow();
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        chunks: [{
+          ...TEXT_LAYER.payload.chunks[0],
+          spans: [
+            TEXT_LAYER.payload.chunks[0].spans[0],
+            { ...TEXT_LAYER.payload.chunks[0].spans[0], id: "span-2", sourceRange: { start: 3, end: 4 } },
+          ],
+        }],
+      },
+    })).toThrow(/non-overlapping/);
+
     expect(() => V2TextLayerSchema.parse({
-      ...layer,
-      style: { fill: "#ffffff" },
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        chunks: [{ ...TEXT_LAYER.payload.chunks[0], sourceRange: { start: 0, end: 99 } }],
+      },
+    })).toThrow(/exceeds source text/);
+  });
+
+  it("rejects the former glyph-layout payload", () => {
+    expect(() => V2TextLayerSchema.parse({
+      ...BASE_LAYER,
+      payload: { source: { text: "A" }, layout: {} },
     })).toThrow();
   });
 });

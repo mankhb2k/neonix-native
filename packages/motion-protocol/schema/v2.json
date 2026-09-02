@@ -4939,6 +4939,36 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 35
+                          },
+                          "direction": {
+                            "type": "string",
+                            "enum": [
+                              "ltr",
+                              "rtl"
+                            ]
+                          },
+                          "writingMode": {
+                            "type": "string",
+                            "enum": [
+                              "horizontal-tb",
+                              "vertical-rl",
+                              "vertical-lr"
+                            ]
+                          },
+                          "whiteSpace": {
+                            "type": "string",
+                            "enum": [
+                              "default",
+                              "preserve"
+                            ]
+                          },
+                          "textRendering": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "optimizeSpeed",
+                              "geometricPrecision"
+                            ]
                           }
                         },
                         "required": [
@@ -4946,127 +4976,336 @@
                         ],
                         "additionalProperties": false
                       },
-                      "layout": {
-                        "type": "object",
-                        "properties": {
-                          "lines": {
-                            "type": "array",
-                            "items": {
+                      "chunks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                            },
+                            "sourceRange": {
                               "type": "object",
                               "properties": {
-                                "id": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                "start": {
+                                  "type": "integer",
+                                  "minimum": 0
                                 },
-                                "baselineY": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                },
-                                "runIds": {
-                                  "type": "array",
-                                  "items": {
-                                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                                  },
-                                  "minItems": 1
+                                "end": {
+                                  "type": "integer",
+                                  "minimum": 0
                                 }
                               },
                               "required": [
-                                "id",
-                                "baselineY",
-                                "runIds"
+                                "start",
+                                "end"
                               ],
                               "additionalProperties": false
                             },
-                            "minItems": 1
-                          },
-                          "runs": {
-                            "type": "array",
-                            "items": {
+                            "x": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                              },
+                              "minItems": 1
+                            },
+                            "y": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                              },
+                              "minItems": 1
+                            },
+                            "dx": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                              },
+                              "minItems": 1
+                            },
+                            "dy": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                              },
+                              "minItems": 1
+                            },
+                            "rotate": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                              },
+                              "minItems": 1
+                            },
+                            "textAnchor": {
+                              "type": "string",
+                              "enum": [
+                                "start",
+                                "middle",
+                                "end"
+                              ]
+                            },
+                            "textPath": {
                               "type": "object",
                               "properties": {
-                                "id": {
+                                "pathId": {
                                   "$ref": "#/definitions/MotionProtocolV2/properties/id"
                                 },
-                                "font": {
-                                  "type": "object",
-                                  "properties": {
-                                    "assetId": {
-                                      "$ref": "#/definitions/MotionProtocolV2/properties/id"
-                                    },
-                                    "size": {
-                                      "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
-                                    },
-                                    "variations": {
-                                      "type": "object",
-                                      "additionalProperties": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
-                                      },
-                                      "propertyNames": {
-                                        "pattern": "^[ -~]{4}$"
-                                      }
-                                    }
+                                "startOffset": {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                                },
+                                "method": {
+                                  "type": "string",
+                                  "enum": [
+                                    "align",
+                                    "stretch"
+                                  ]
+                                },
+                                "spacing": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "exact"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "pathId"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "spans": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
                                   },
-                                  "required": [
-                                    "assetId",
-                                    "size"
-                                  ],
-                                  "additionalProperties": false
-                                },
-                                "fill": {
-                                  "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/background"
-                                },
-                                "glyphs": {
-                                  "type": "array",
-                                  "items": {
+                                  "sourceRange": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/sourceRange"
+                                  },
+                                  "font": {
                                     "type": "object",
                                     "properties": {
-                                      "glyphId": {
+                                      "families": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "minItems": 1
+                                      },
+                                      "size": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                      },
+                                      "weight": {
                                         "type": "integer",
-                                        "minimum": 0
+                                        "minimum": 1,
+                                        "maximum": 1000
                                       },
-                                      "x": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      "style": {
+                                        "type": "string",
+                                        "enum": [
+                                          "normal",
+                                          "italic",
+                                          "oblique"
+                                        ]
                                       },
-                                      "y": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                      "stretch": {
+                                        "type": "string",
+                                        "enum": [
+                                          "ultra-condensed",
+                                          "extra-condensed",
+                                          "condensed",
+                                          "semi-condensed",
+                                          "normal",
+                                          "semi-expanded",
+                                          "expanded",
+                                          "extra-expanded",
+                                          "ultra-expanded"
+                                        ]
                                       },
-                                      "advance": {
-                                        "$ref": "#/definitions/MotionProtocolV2/properties/clipPaths/items/properties/transform/items/anyOf/2/properties/center"
-                                      },
-                                      "cluster": {
-                                        "type": "integer",
-                                        "minimum": 0
+                                      "variations": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                          "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                                        },
+                                        "propertyNames": {
+                                          "pattern": "^[ -~]{4}$"
+                                        }
                                       }
                                     },
                                     "required": [
-                                      "glyphId",
-                                      "x",
-                                      "y",
-                                      "advance"
+                                      "families",
+                                      "size"
                                     ],
                                     "additionalProperties": false
                                   },
-                                  "minItems": 1
-                                }
+                                  "fill": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                  },
+                                  "fillOpacity": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "stroke": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                  },
+                                  "strokeWidth": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                  },
+                                  "strokeOpacity": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "paintOrder": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/paintOrder"
+                                  },
+                                  "letterSpacing": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "const": "normal"
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                                      }
+                                    ]
+                                  },
+                                  "wordSpacing": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/spans/items/properties/letterSpacing"
+                                  },
+                                  "dominantBaseline": {
+                                    "type": "string",
+                                    "enum": [
+                                      "auto",
+                                      "use-script",
+                                      "no-change",
+                                      "reset-size",
+                                      "ideographic",
+                                      "alphabetic",
+                                      "hanging",
+                                      "mathematical",
+                                      "central",
+                                      "middle",
+                                      "text-after-edge",
+                                      "text-before-edge"
+                                    ]
+                                  },
+                                  "alignmentBaseline": {
+                                    "type": "string",
+                                    "enum": [
+                                      "auto",
+                                      "baseline",
+                                      "before-edge",
+                                      "text-before-edge",
+                                      "middle",
+                                      "central",
+                                      "after-edge",
+                                      "text-after-edge",
+                                      "ideographic",
+                                      "alphabetic",
+                                      "hanging",
+                                      "mathematical"
+                                    ]
+                                  },
+                                  "baselineShift": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "baseline",
+                                          "subscript",
+                                          "superscript"
+                                        ]
+                                      },
+                                      {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
+                                      }
+                                    ]
+                                  },
+                                  "textLength": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                  },
+                                  "lengthAdjust": {
+                                    "type": "string",
+                                    "enum": [
+                                      "spacing",
+                                      "spacingAndGlyphs"
+                                    ]
+                                  },
+                                  "textDecoration": {
+                                    "type": "object",
+                                    "properties": {
+                                      "underline": {
+                                        "type": "object",
+                                        "properties": {
+                                          "fill": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                          },
+                                          "stroke": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill"
+                                          },
+                                          "strokeWidth": {
+                                            "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                          }
+                                        },
+                                        "additionalProperties": false
+                                      },
+                                      "overline": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/spans/items/properties/textDecoration/properties/underline"
+                                      },
+                                      "lineThrough": {
+                                        "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/spans/items/properties/textDecoration/properties/underline"
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  },
+                                  "kerning": {
+                                    "type": "string",
+                                    "enum": [
+                                      "auto",
+                                      "normal",
+                                      "none"
+                                    ]
+                                  },
+                                  "opticalSizing": {
+                                    "type": "string",
+                                    "enum": [
+                                      "auto",
+                                      "none"
+                                    ]
+                                  },
+                                  "smallCaps": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "sourceRange",
+                                  "font"
+                                ],
+                                "additionalProperties": false
                               },
-                              "required": [
-                                "id",
-                                "font",
-                                "fill",
-                                "glyphs"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "minItems": 1
-                          }
+                              "minItems": 1
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "sourceRange",
+                            "spans"
+                          ],
+                          "additionalProperties": false
                         },
-                        "required": [
-                          "lines",
-                          "runs"
-                        ],
-                        "additionalProperties": false
+                        "minItems": 1
                       }
                     },
                     "required": [
-                      "layout"
+                      "source",
+                      "chunks"
                     ],
                     "additionalProperties": false
                   }

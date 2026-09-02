@@ -6,6 +6,9 @@ import {
   type TimelinePosterStatus,
 } from "../model/timeline-types";
 
+/** Protocol V2 stores authoring time in milliseconds; timeline UI uses seconds. */
+const protocolMillisecondsToSeconds = (value: number): number => value / 1000;
+
 export type LayerTimelineProjection = {
   lanes: TimelineLane[];
   clips: TimelineClip[];
@@ -109,13 +112,13 @@ export function projectLayersToTimeline(
       ? {
           muted: layer.payload.audio ? !layer.payload.audio.enabled : false,
           embeddedAudio: Boolean(layer.payload.audio),
-          trimStart: layer.payload.trimStart ?? 0,
+          trimStart: protocolMillisecondsToSeconds(layer.payload.trimStart ?? 0),
           ...(() => {
             const asset = project.assets.find((candidate) => candidate.id === layer.payload.assetId);
             const preview = assetPreviews?.get(layer.payload.assetId);
             if (asset?.kind === "video") {
               return {
-                ...(asset.duration !== undefined ? { sourceDuration: asset.duration } : {}),
+                ...(asset.duration !== undefined ? { sourceDuration: protocolMillisecondsToSeconds(asset.duration) } : {}),
                 ...(preview?.url ? { posterUrl: preview.url } : {}),
                 posterStatus: preview?.status ?? "pending",
               };
@@ -136,8 +139,8 @@ export function projectLayersToTimeline(
           })()
       : {}),
     laneId: laneIdByLayerId.get(layer.id) ?? MAIN_LANE_ID,
-    startTime: layer.timing.start,
-    duration: layer.timing.duration,
+    startTime: protocolMillisecondsToSeconds(layer.timing.start),
+    duration: protocolMillisecondsToSeconds(layer.timing.duration),
     name: layer.id,
   }));
 
@@ -158,8 +161,8 @@ export function projectLayersToTimeline(
       audioTrackId: track.id,
       assetId: clip.assetId,
       laneId: `lane.audio.${track.id}`,
-      startTime: clip.timing.start,
-      duration: clip.timing.duration,
+      startTime: protocolMillisecondsToSeconds(clip.timing.start),
+      duration: protocolMillisecondsToSeconds(clip.timing.duration),
       name: clip.id,
       muted: track.muted,
     })),

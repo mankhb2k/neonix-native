@@ -17,6 +17,8 @@ export type PreviewAsset = {
   kind?: PreviewAssetKind;
   /** Optional RGBA8 pixels for deterministic uploads and non-DOM hosts. */
   pixels?: Uint8Array;
+  /** Whether the source RGB channels are already premultiplied by alpha. */
+  premultipliedAlpha?: boolean;
   /** Incremented by the host when a new decoded video frame is presented. */
   frameVersion?: number;
   /** Resource/document generation used to reject stale uploads. */

@@ -46,7 +46,7 @@ function fixture(): MotionProtocolV2 {
         frame: { width: 1920, height: 1080 },
         transform: TRANSFORM,
         opacity: 1,
-        timing: { start: 0, duration: 60 },
+        timing: { start: 0, duration: 60000 },
         payload: { shape: "rectangle" },
         style: { fill: "#111111" },
       },
@@ -58,7 +58,7 @@ function fixture(): MotionProtocolV2 {
         frame: { width: 800, height: 200 },
         transform: TRANSFORM,
         opacity: 1,
-        timing: { start: 10, duration: 8 },
+        timing: { start: 10000, duration: 8000 },
         payload: { shape: "rectangle" },
         style: { fill: "#aa0000" },
       },
@@ -75,8 +75,8 @@ function fixture(): MotionProtocolV2 {
             {
               id: "score-clip",
               assetId: "score",
-              timing: { start: 0, duration: 60 },
-              trim: { start: 0, end: 60 },
+              timing: { start: 0, duration: 60000 },
+              trim: { start: 0, end: 60000 },
               playbackRate: 1,
               gainDb: 0,
             },
@@ -123,25 +123,25 @@ describe("Protocol V2 layer timeline projection", () => {
       {
         ...project.layers[0]!,
         id: "layer-0",
-        timing: { start: 0, duration: 5 },
+        timing: { start: 0, duration: 5000 },
       },
       {
         ...project.layers[1]!,
         id: "layer-1",
         order: 1,
-        timing: { start: 5, duration: 5 },
+        timing: { start: 5000, duration: 5000 },
       },
       {
         ...project.layers[1]!,
         id: "layer-2",
         order: 2,
-        timing: { start: 10, duration: 5 },
+        timing: { start: 10000, duration: 5000 },
       },
       {
         ...project.layers[1]!,
         id: "layer-3",
         order: 3,
-        timing: { start: 0, duration: 5 },
+        timing: { start: 0, duration: 5000 },
       },
     ];
 
@@ -183,7 +183,7 @@ describe("Protocol V2 layer timeline projection", () => {
       kind: "video",
       uri: "/video.mp4",
       mimeType: "video/mp4",
-      duration: 20,
+      duration: 20000,
       fps: 30,
     });
     project.layers.push({
@@ -194,11 +194,11 @@ describe("Protocol V2 layer timeline projection", () => {
       frame: { width: 1920, height: 1080 },
       transform: TRANSFORM,
       opacity: 1,
-      timing: { start: 4, duration: 8 },
+      timing: { start: 4000, duration: 8000 },
       payload: {
         assetId: "video",
-        trimStart: 2,
-        trimEnd: 10,
+        trimStart: 2000,
+        trimEnd: 10000,
         audio: { enabled: true, gainDb: -3 },
       },
     });
@@ -229,7 +229,7 @@ describe("Protocol V2 layer timeline projection", () => {
       kind: "video",
       uri: "/silent-video.mp4",
       mimeType: "video/mp4",
-      duration: 10,
+      duration: 10000,
       fps: 30,
     });
     project.layers.push({
@@ -240,7 +240,7 @@ describe("Protocol V2 layer timeline projection", () => {
       frame: { width: 1920, height: 1080 },
       transform: TRANSFORM,
       opacity: 1,
-      timing: { start: 0, duration: 10 },
+      timing: { start: 0, duration: 10000 },
       payload: { assetId: "silent-video" },
     });
 

@@ -1,4 +1,5 @@
 import type { CanonicalContour, PathFillRule, PathMesh, PathPoint } from "./types";
+import { canonicalizePathPoints } from "./canonicalize";
 
 const EPSILON = 1e-7;
 type Edge = { start: PathPoint; end: PathPoint; winding: number };
@@ -24,8 +25,15 @@ export function tessellateFillContours(contours: CanonicalContour[], fillRule: P
   if (contours.length === 0) throw new Error("Path V2 requires at least one contour");
   // SVG fill semantics implicitly close each subpath. `closed` is retained
   // for stroke caps/joins, but does not gate the fill operation.
-  const edges = contours.flatMap(edgesFor);
-  const yValues = [...new Set(contours.flatMap((contour) => contour.points.map((point) => point.y)))].sort((a, b) => a - b);
+  // Normalize at the mesh boundary as well as at path canonicalization. This
+  // protects glyphs, dash runs, and compiler-produced contours from zero-area
+  // triangles when they arrive without a prior canonicalize pass.
+  const normalizedContours = contours
+    .map((contour) => ({ ...contour, points: canonicalizePathPoints(contour.points, contour.closed) }))
+    .filter((contour) => contour.points.length >= 3);
+  if (normalizedContours.length === 0) throw new Error("Path contours do not enclose a fillable region");
+  const edges = normalizedContours.flatMap(edgesFor);
+  const yValues = [...new Set(normalizedContours.flatMap((contour) => contour.points.map((point) => point.y)))].sort((a, b) => a - b);
   const vertices: number[] = []; const indices: number[] = [];
   for (let band = 0; band < yValues.length - 1; band += 1) {
     const top = yValues[band]!; const bottom = yValues[band + 1]!;
@@ -43,7 +51,7 @@ export function tessellateFillContours(contours: CanonicalContour[], fillRule: P
     }
   }
   if (indices.length === 0) throw new Error("Path contours do not enclose a fillable region");
-  const points = contours.flatMap((contour) => contour.points);
+  const points = normalizedContours.flatMap((contour) => contour.points);
   const xs = points.map((point) => point.x); const ys = points.map((point) => point.y);
   return { vertices, indices, bounds: { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) } };
 }

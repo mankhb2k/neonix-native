@@ -109,8 +109,8 @@ describe("V2 timeline adapter", () => {
       type: "reorder-layers",
       orderedLayerIds: ["layer-2", "layer-0", "layer-1"],
       patches: {
-        "layer-0": { timing: { start: 1 } },
-        "layer-1": { timing: { start: 1 } },
+        "layer-0": { timing: { start: 1000 } },
+        "layer-1": { timing: { start: 1000 } },
       },
     });
   });

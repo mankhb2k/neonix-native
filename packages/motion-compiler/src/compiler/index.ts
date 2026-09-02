@@ -11,6 +11,7 @@ import {
   type RuntimeVisualProjectV3,
   type RuntimeEffect,
   type VisualRuntimeNode,
+  type VisualRuntimeText,
   type VisualRuntimeProject,
   type PathContour,
   type PaintFill,
@@ -20,6 +21,7 @@ import {
   identityMatrix4,
   interpolatePathContours,
   flattenPathContourAny,
+  measureContour,
   tessellateClosedPath,
       tessellatePathStroke,
 } from "@motionvideo/motion-runtime";
@@ -1047,27 +1049,93 @@ function compileVisualRuntimeInternal(
       };
     }
     if (layer.type === "text") {
-      const firstRun = layer.payload.layout.runs[0]!;
-      const sourceText = layer.payload.source?.text ?? "";
-      const textFontAssetId = firstRun.font.assetId;
-      const textLineHeight = layer.frame.height / Math.max(1, layer.payload.layout.lines.length);
+      const firstChunk = layer.payload.chunks[0]!;
+      const firstSpan = firstChunk.spans[0]!;
+      const sourceText = layer.payload.source.text;
+      const fontSize = resolveSvgLength(firstSpan.font.size, layer.frame.width, 16) ?? 16;
+      const requestedFamilies = firstSpan.font.families.map((family) => family.toLocaleLowerCase());
+      const asset = project.assets?.find((candidate) => candidate.kind === "font"
+        && requestedFamilies.includes(candidate.family.toLocaleLowerCase())
+        && (firstSpan.font.weight === undefined || candidate.weight === firstSpan.font.weight)
+        && (firstSpan.font.style === undefined || candidate.style === firstSpan.font.style));
+      const fallbackAsset = asset ?? project.assets?.find((candidate) => candidate.kind === "font"
+        && requestedFamilies.includes(candidate.family.toLocaleLowerCase()));
+      const textFontAsset = fallbackAsset;
+      if (!textFontAsset) {
+        throw new Error(`Protocol V2 text layer ${layer.id} has no font asset for family ${firstSpan.font.families[0]}`);
+      }
+      const textLineHeight = fontSize * 1.2;
+      const textFontFallbacks = (project.assets ?? [])
+        .filter((candidate): candidate is Extract<NonNullable<typeof project.assets>[number], { kind: "font" }> => candidate.kind === "font")
+        .filter((candidate) => requestedFamilies.includes(candidate.family.toLocaleLowerCase()))
+        .sort((left, right) => {
+          const leftRequested = requestedFamilies.indexOf(left.family.toLocaleLowerCase());
+          const rightRequested = requestedFamilies.indexOf(right.family.toLocaleLowerCase());
+          if (leftRequested !== rightRequested) return leftRequested - rightRequested;
+          if (firstSpan.font.weight !== undefined) {
+            return Math.abs(left.weight - firstSpan.font.weight) - Math.abs(right.weight - firstSpan.font.weight);
+          }
+          return 0;
+        });
+      const textAlign = firstChunk.textAnchor === "middle"
+        ? "center" as const
+        : firstChunk.textAnchor === "end"
+          ? "right" as const
+          : "left" as const;
+      const letterSpacing = firstSpan.letterSpacing === "normal"
+        ? 0
+        : resolveSvgLength(firstSpan.letterSpacing, layer.frame.width, fontSize) ?? 0;
+      const wordSpacing = firstSpan.wordSpacing === "normal"
+        ? 0
+        : resolveSvgLength(firstSpan.wordSpacing, layer.frame.width, fontSize) ?? 0;
+      const textLength = resolveSvgLength(firstSpan.textLength, layer.frame.width, fontSize);
+      const textPathDefinition = firstChunk.textPath
+        ? layerById.get(firstChunk.textPath.pathId)
+        : undefined;
+      const textPathContours = textPathDefinition?.type === "path"
+        ? textPathDefinition.payload.contours
+        : undefined;
+      const textPathLength = textPathContours?.reduce(
+        (total, contour) => total + measureContour(flattenPathContourAny(contour)).length,
+        0,
+      ) ?? 0;
+      const textPathStartOffset = firstChunk.textPath
+        ? resolveSvgLength(firstChunk.textPath.startOffset, textPathLength, fontSize) ?? 0
+        : undefined;
+      const textDecoration = firstSpan.textDecoration
+        ? Object.fromEntries(
+            Object.entries(firstSpan.textDecoration).map(([name, style]) => {
+              if (!style) return [name, undefined];
+              const paint = style.fill ?? style.stroke;
+              const fill = paintColor(paint, paintServers, context.currentColor) ?? "#000000";
+              const fillPaint = runtimePaint(paint, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+              const thickness = resolveSvgLength(style.strokeWidth, fontSize, fontSize) ?? Math.max(1, fontSize / 16);
+              return [name, { fill, ...(fillPaint ? { fillPaint } : {}), thickness }];
+            }),
+          ) as VisualRuntimeText["textDecoration"]
+        : undefined;
+      const stroke = paintColor(firstSpan.stroke, paintServers, context.currentColor);
+      const strokePaint = runtimePaint(firstSpan.stroke, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
+      const strokeWidth = resolveSvgLength(firstSpan.strokeWidth, layer.frame.width, fontSize);
       for (const capability of [
         "text.transform",
         "text.timing",
         "text.opacity",
         "text.order",
         "text.font",
-        layer.payload.layout.lines.length > 1 ? "text.layout.multiline" : "text.layout.singleLine",
+        sourceText.includes("\n") ? "text.layout.multiline" : "text.layout.singleLine",
         "text.layout.glyphs",
         "text.fill",
+        ...(textLength !== undefined ? ["text.length"] : []),
+        ...((firstChunk.dx || firstChunk.dy || firstChunk.rotate) ? ["text.positioning"] : []),
+        ...(textPathContours ? ["text.textPath"] : []),
+        ...((layer.payload.source.writingMode === "vertical-rl" || layer.payload.source.writingMode === "vertical-lr") ? ["text.writingMode.vertical"] : []),
+        ...(textDecoration ? ["text.decoration"] : []),
+        ...((stroke && stroke !== "#00000000" && strokeWidth !== undefined) ? ["text.stroke"] : []),
       ]) {
         if (!isV2AtomCertified(capability)) {
           throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
         }
-      }
-      const asset = project.assets?.find((candidate) => candidate.id === textFontAssetId);
-      if (asset?.kind !== "font") {
-        throw new Error(`Protocol V2 text layer ${layer.id} references a non-font asset`);
       }
       const effects = lowerLayerEffects(layer, project);
       return {
@@ -1085,19 +1153,46 @@ function compileVisualRuntimeInternal(
         content: {
           kind: "text" as const,
           text: sourceText,
-          fontAssetId: textFontAssetId,
-          fontUri: asset.uri,
-          fontIntegrity: asset.integrity,
-          fontSize: firstRun.font.size,
+          fontAssetId: textFontAsset.id,
+          fontUri: textFontAsset.uri,
+          fontIntegrity: textFontAsset.integrity ?? "",
+          ...(firstSpan.font.variations ? { variations: { ...firstSpan.font.variations } } : {}),
+          ...(textFontFallbacks.length > 1
+            ? { fontFallbacks: textFontFallbacks.map((candidate) => ({ assetId: candidate.id, uri: candidate.uri, integrity: candidate.integrity ?? "" })) }
+            : {}),
+          fontSize,
           lineHeight: textLineHeight,
-          letterSpacing: 0,
-          align: "left",
+          letterSpacing,
+          ...(wordSpacing ? { wordSpacing } : {}),
+          ...(textLength !== undefined ? { textLength, lengthAdjust: firstSpan.lengthAdjust ?? "spacing" } : {}),
+          ...(firstChunk.dx ? { dx: firstChunk.dx.map((value) => resolveSvgLength(value, layer.frame.width, fontSize) ?? 0) } : {}),
+          ...(firstChunk.dy ? { dy: firstChunk.dy.map((value) => resolveSvgLength(value, layer.frame.height, fontSize) ?? 0) } : {}),
+          ...(firstChunk.rotate ? { rotate: [...firstChunk.rotate] } : {}),
+          ...(firstSpan.dominantBaseline ? { dominantBaseline: firstSpan.dominantBaseline } : {}),
+          ...(firstSpan.alignmentBaseline ? { alignmentBaseline: firstSpan.alignmentBaseline } : {}),
+          ...(firstSpan.baselineShift
+            ? { baselineShift: typeof firstSpan.baselineShift === "string" ? 0 : resolveSvgLength(firstSpan.baselineShift, fontSize, fontSize) ?? 0 }
+            : {}),
+          ...(textPathContours && firstChunk.textPath
+            ? { textPath: { contours: textPathContours, startOffset: textPathStartOffset ?? 0, method: firstChunk.textPath.method ?? "align", spacing: firstChunk.textPath.spacing ?? "auto" } }
+            : {}),
+          ...(stroke && stroke !== "#00000000" && strokeWidth !== undefined
+            ? { stroke, ...(strokePaint ? { strokePaint } : {}), strokeWidth, ...(firstSpan.strokeOpacity !== undefined ? { strokeOpacity: firstSpan.strokeOpacity } : {}) }
+            : {}),
+          ...(firstSpan.paintOrder ? { paintOrder: lowerPaintOrder(firstSpan.paintOrder) ?? ["fill", "stroke", "markers"] } : {}),
+          ...(textDecoration ? { textDecoration } : {}),
+          align: textAlign,
           verticalAlign: "top",
           wrap: "none",
           overflow: "visible",
-          direction: "ltr",
+          direction: layer.payload.source.direction ?? "ltr",
+          writingMode: layer.payload.source.writingMode,
           language: layer.payload.source?.language ?? "und",
-          fill: firstRun.fill,
+          fill: paintColor(firstSpan.fill, paintServers, context.currentColor) ?? "#000000",
+          spanFills: layer.payload.chunks.flatMap((chunk) => chunk.spans.flatMap((span) => {
+            const fill = paintColor(span.fill, paintServers, context.currentColor);
+            return fill ? [{ start: span.sourceRange.start, end: span.sourceRange.end, fill }] : [];
+          })),
           width: layer.frame.width,
           height: layer.frame.height,
           ...(effects ? { effects } : {}),

@@ -36,7 +36,7 @@ const RECTANGLE_PROJECT = {
         anchor: { x: 0, y: 0, z: 0 },
       },
       opacity: 1,
-      timing: { start: 0, duration: 1 },
+      timing: { start: 0, duration: 1000 },
       payload: { shape: "rectangle" },
       style: { fill: "#00aa88" },
     },
@@ -62,7 +62,7 @@ describe("Motion Protocol V2 schema", () => {
         kind: "audio" as const,
         uri: "/audio/voice.wav",
         mimeType: "audio/wav",
-        duration: 4,
+        duration: 4000,
         sampleRate: 48000,
         channels: 2,
       }],
@@ -76,14 +76,14 @@ describe("Motion Protocol V2 schema", () => {
           clips: [{
             id: "voice-clip",
             assetId: "voice",
-            timing: { start: 1, duration: 2 },
-            trim: { start: 0.5, end: 2.5 },
+            timing: { start: 1000, duration: 2000 },
+            trim: { start: 500, end: 2500 },
             playbackRate: 1,
             enabled: true,
             gainDb: -3,
             pan: 0,
-            fadeIn: { duration: 0.25, curve: "linear" as const },
-            fadeOut: { duration: 0.25, curve: "equal-power" as const },
+            fadeIn: { duration: 250, curve: "linear" as const },
+            fadeOut: { duration: 250, curve: "equal-power" as const },
           }],
         }],
       },
@@ -99,7 +99,7 @@ describe("Motion Protocol V2 schema", () => {
         kind: "audio" as const,
         uri: "/audio/voice.wav",
         mimeType: "audio/wav",
-        duration: 4,
+        duration: 4000,
         sampleRate: 48000,
         channels: 2,
       }],
@@ -113,8 +113,8 @@ describe("Motion Protocol V2 schema", () => {
           clips: [{
             id: "voice-clip",
             assetId: "voice",
-            timing: { start: 0, duration: 2 },
-            trim: { start: 0, end: 2 },
+            timing: { start: 0, duration: 2000 },
+            trim: { start: 0, end: 2000 },
             playbackRate: 1,
             gainDb: 0,
             loop: true,
@@ -133,7 +133,7 @@ describe("Motion Protocol V2 schema", () => {
         kind: "audio" as const,
         uri: "/audio/voice.wav",
         mimeType: "audio/wav",
-        duration: 4,
+        duration: 4000,
         sampleRate: 48000,
         channels: 2,
       }],
@@ -147,8 +147,8 @@ describe("Motion Protocol V2 schema", () => {
           clips: [{
             id: "voice-clip",
             assetId: "voice",
-            timing: { start: 0, duration: 3 },
-            trim: { start: 0, end: 2 },
+            timing: { start: 0, duration: 3000 },
+            trim: { start: 0, end: 2000 },
             playbackRate: 1,
             gainDb: 0,
           }],
@@ -166,7 +166,7 @@ describe("Motion Protocol V2 schema", () => {
         kind: "audio" as const,
         uri: "/audio/voice.wav",
         mimeType: "audio/wav",
-        duration: 4,
+        duration: 4000,
         sampleRate: 48000,
         channels: 2,
       }],
@@ -179,7 +179,7 @@ describe("Motion Protocol V2 schema", () => {
           clips: [{
             id: "voice-clip",
             assetId: "voice",
-            timing: { start: 0, duration: 4 },
+            timing: { start: 0, duration: 4000 },
             trim: { start: 0 },
             playbackRate: 1,
           }],
@@ -206,7 +206,7 @@ describe("Motion Protocol V2 schema", () => {
         kind: "video" as const,
         uri: "/video/clip.mp4",
         mimeType: "video/mp4",
-        duration: 8,
+        duration: 8000,
         fps: 30,
       }],
       layers: [{
@@ -217,16 +217,16 @@ describe("Motion Protocol V2 schema", () => {
         frame: { width: 320, height: 180 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
-        timing: { start: 2, duration: 4 },
+        timing: { start: 2000, duration: 4000 },
         payload: {
           assetId: "clip",
-          trimStart: 1,
-          trimEnd: 5,
+          trimStart: 1000,
+          trimEnd: 5000,
           audio: {
             enabled: true,
             gainDb: -3,
             pan: 0,
-            fadeIn: { duration: 0.25, curve: "linear" as const },
+            fadeIn: { duration: 250, curve: "linear" as const },
           },
         },
       }],
@@ -240,7 +240,7 @@ describe("Motion Protocol V2 schema", () => {
           ...video.layers[0].payload,
           audio: {
             ...video.layers[0].payload.audio,
-            fadeIn: { duration: 4.1, curve: "linear" as const },
+            fadeIn: { duration: 4100, curve: "linear" as const },
           },
         },
       }],
@@ -260,7 +260,7 @@ describe("Motion Protocol V2 schema", () => {
           clips: [{
             id: "clip",
             assetId: "missing",
-            timing: { start: 0, duration: 1 },
+            timing: { start: 0, duration: 1000 },
             trim: { start: 0 },
             playbackRate: 1,
             gainDb: 0,
@@ -673,7 +673,7 @@ describe("Motion Protocol V2 schema", () => {
         frame: { width: 320, height: 240 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
-        timing: { start: 0, duration: 1 },
+        timing: { start: 0, duration: 1000 },
         payload: {
           assetId: "photo",
           x: 10,
@@ -703,7 +703,7 @@ describe("Motion Protocol V2 schema", () => {
         mimeType: "video/mp4",
         width: 1920,
         height: 1080,
-        duration: 60.5,
+        duration: 60500,
         fps: 30,
       }],
       layers: [{
@@ -714,12 +714,12 @@ describe("Motion Protocol V2 schema", () => {
         frame: { width: 960, height: 540 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
-        timing: { start: 0, duration: 3 },
+        timing: { start: 0, duration: 3000 },
         payload: {
           assetId: "clip",
           fit: "cover" as const,
-          trimStart: 1,
-          trimEnd: 4,
+          trimStart: 1000,
+          trimEnd: 4000,
           audio: { enabled: false, gainDb: 0, pan: 0 },
           framePolicy: "floor" as const,
         },
@@ -728,19 +728,19 @@ describe("Motion Protocol V2 schema", () => {
     expect(MotionProtocolV2Schema.parse(video)).toEqual(video);
     expect(() => MotionProtocolV2Schema.parse({
       ...video,
-      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimStart: 4, trimEnd: 1 } }],
+      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimStart: 4000, trimEnd: 1000 } }],
     })).toThrow(/trimEnd must be greater/);
     expect(() => MotionProtocolV2Schema.parse({
       ...video,
-      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimEnd: 61 } }],
+      layers: [{ ...video.layers[0], payload: { ...video.layers[0].payload, trimEnd: 61000 } }],
     })).toThrow(/trimEnd cannot exceed source duration/);
     expect(() => MotionProtocolV2Schema.parse({
       ...video,
-      layers: [{ ...video.layers[0], timing: { start: 0, duration: 4 } }],
+      layers: [{ ...video.layers[0], timing: { start: 0, duration: 4000 } }],
     })).toThrow(/selected source range/);
   });
 
-  it("accepts shaped glyph runs and validates every selected font asset", () => {
+  it("accepts semantic SVG text chunks and animatable span properties", () => {
     const text = {
       ...RECTANGLE_PROJECT,
       id: "text-project-v2",
@@ -762,21 +762,20 @@ describe("Motion Protocol V2 schema", () => {
         frame: { width: 320, height: 100 },
         transform: RECTANGLE_PROJECT.layers[0].transform,
         opacity: 1,
-        timing: { start: 0, duration: 1 },
+        timing: { start: 0, duration: 1000 },
         payload: {
           source: { text: "NeonVideo", language: "en" },
-          layout: {
-            lines: [{ id: "headline-line", baselineY: 56, runIds: ["headline-run"] }],
-            runs: [{
-              id: "headline-run",
-              font: { assetId: "roboto-regular", size: 48, variations: { wght: 700 } },
+          chunks: [{
+            id: "headline-chunk",
+            sourceRange: { start: 0, end: 9 },
+            textAnchor: "middle" as const,
+            spans: [{
+              id: "headline-span",
+              sourceRange: { start: 0, end: 9 },
+              font: { families: ["Roboto", "sans-serif"], size: 48, weight: 700, variations: { wght: 700 } },
               fill: "#ffffff",
-              glyphs: [
-                { glyphId: 49, x: 64, y: 56, advance: { x: 30, y: 0 }, cluster: 0 },
-                { glyphId: 72, x: 94, y: 56, advance: { x: 24, y: 0 }, cluster: 1 },
-              ],
             }],
-          },
+          }],
         },
       }],
     };
@@ -788,37 +787,21 @@ describe("Motion Protocol V2 schema", () => {
         tracks: [
           {
             id: "headline-color",
-            path: "payload.layout.runs.headline-run.fill",
+            path: "payload.chunks.spans.headline-span.fill",
             keyframes: [{ time: 0, value: { type: "color" as const, value: [1, 1, 1, 1] as const } }],
           },
           {
             id: "headline-size",
-            path: "payload.layout.runs.headline-run.font.size",
+            path: "payload.chunks.spans.headline-span.font.size",
             keyframes: [{ time: 0, value: { type: "number" as const, value: 48 } }],
           },
         ],
       }],
     }).layers[0]?.tracks).toHaveLength(2);
-    expect(() => MotionProtocolV2Schema.parse({
+    expect(MotionProtocolV2Schema.parse({
       ...text,
-      layers: [{
-        ...text.layers[0],
-        payload: {
-          ...text.layers[0].payload,
-          layout: {
-            ...text.layers[0].payload.layout,
-            runs: [{
-              ...text.layers[0].payload.layout.runs[0],
-              font: { ...text.layers[0].payload.layout.runs[0].font, assetId: "missing" },
-            }],
-          },
-        },
-      }],
-    })).toThrow(/Unknown font asset/);
-    expect(() => MotionProtocolV2Schema.parse({
-      ...text,
-      assets: [{ ...text.assets[0], kind: "image" as const, width: 10, height: 10 }],
-    })).toThrow(/Text glyph run must reference a font asset/);
+      assets: [{ ...text.assets[0], family: "Missing Font" }],
+    })).toEqual({ ...text, assets: [{ ...text.assets[0], family: "Missing Font" }] });
   });
 
   it("requires one explicit view projection with complete parameters", () => {

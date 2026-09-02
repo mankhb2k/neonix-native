@@ -77,7 +77,7 @@ describe("toStageDocumentCommand", () => {
           anchor: { x: 0, y: 0, z: 0 },
         },
         opacity: 1,
-        timing: { start: 0, duration: 1 },
+        timing: { start: 0, duration: 1000 },
         payload: { shape: "rectangle" },
         style: { fill: "#00aa88" },
       },

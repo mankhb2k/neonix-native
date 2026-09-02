@@ -83,7 +83,7 @@ function AssetItem({ asset }: { asset: V2Asset }) {
     asset,
     duration:
       asset.kind === "video" || asset.kind === "audio"
-        ? asset.duration
+        ? (asset.duration === undefined ? undefined : asset.duration / 1000)
         : undefined,
   });
   const preview = asset.kind === "image" || asset.kind === "video";

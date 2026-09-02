@@ -10,7 +10,7 @@ describe("Three Kingdoms Protocol V2 editor fixture", () => {
     expect(MotionProtocolV2Schema.safeParse(project).success).toBe(true);
     expect(
       Math.max(...project.layers.map((layer) => layer.timing.start + layer.timing.duration)),
-    ).toBe(60);
+    ).toBe(60000);
     expect(project.layers.find((layer) => layer.order === 0)?.id).toBe(
       "main-lane",
     );

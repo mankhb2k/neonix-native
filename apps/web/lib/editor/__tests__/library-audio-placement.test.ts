@@ -29,7 +29,7 @@ describe("library audio placement", () => {
     expect(addAudio).toMatchObject({
       type: "add-audio-clip",
       trackId: "music",
-      clip: { timing: { start: 2, duration: 4 } },
+      clip: { timing: { start: 2000, duration: 4000 } },
     });
   });
 });

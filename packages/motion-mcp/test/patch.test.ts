@@ -15,12 +15,12 @@ describe("Protocol V2 patches", () => {
       baseRevision: 0,
       operations: [
         { op: "addLayer", layer: { ...layer, id: "added", order: 1 } },
-        { op: "trimLayer", layerId: "added", start: 1, duration: 2 },
+        { op: "trimLayer", layerId: "added", start: 1000, duration: 2000 },
       ],
     });
     const result = applyMotionProtocolV2Patch(project, patch);
     expect(result.diagnostics).toEqual([]);
-    expect(result.project?.layers[1]?.timing).toEqual({ start: 1, duration: 2 });
+    expect(result.project?.layers[1]?.timing).toEqual({ start: 1000, duration: 2000 });
   });
 
   it("rejects duplicate layer ids after a patch", () => {
