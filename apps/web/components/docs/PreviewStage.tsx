@@ -68,10 +68,13 @@ type StageRenderer = {
   removeFont?(fontAssetId: string): void;
   getStats(): {
     drawCalls: number;
+    skippedCommands?: number;
     frameTimeMs: number;
     nativeTextGlyphs?: number;
     outlineTextGlyphs?: number;
     colorTextGlyphs?: number;
+    textureUploads?: number;
+    videoTextureUploads?: number;
     diagnostics: readonly { code: string }[];
   };
   dispose(): void;
@@ -463,11 +466,12 @@ export function PreviewStage({
         );
         if (dispose) videoRegistrationDisposersRef.current.push(dispose);
       }
+      const uniqueAssets = [...new Set(resources.assets.values())];
       canvas.dataset.previewResourceCounts = JSON.stringify({
         ...resourceRegistry.stats(),
-        activeAssets: resources.assets.size,
-        activeVideos: [...resources.assets.values()].filter((asset) => asset.kind === "video").length,
-        activeRvfcs: [...resources.assets.values()].filter((asset) => asset.kind === "video").length,
+        activeAssets: uniqueAssets.length,
+        activeVideos: uniqueAssets.filter((asset) => asset.kind === "video").length,
+        activeRvfcs: uniqueAssets.filter((asset) => asset.kind === "video").length,
         activeFonts: resources.fontBytes.size,
         cachedAudioBuffers: 0,
         activeAudioSources: 0,
@@ -936,6 +940,8 @@ function paintFrame(
     rendererCanvas.dataset.skiaNativeTextGlyphs = String(stats.nativeTextGlyphs ?? 0);
     rendererCanvas.dataset.skiaOutlineTextGlyphs = String(stats.outlineTextGlyphs ?? 0);
     rendererCanvas.dataset.skiaColorTextGlyphs = String(stats.colorTextGlyphs ?? 0);
+    rendererCanvas.dataset.skiaTextureUploads = String(stats.textureUploads ?? 0);
+    rendererCanvas.dataset.skiaVideoTextureUploads = String(stats.videoTextureUploads ?? 0);
     if (collectPerformanceMetrics) {
       const paintEndedAt = performance.now();
       const previousPaintAt = Number(rendererCanvas.dataset.paintAtMs);
@@ -959,13 +965,20 @@ function paintFrame(
       .filter((command) => command.op === "drawVideo")
       .map((command) => `${command.key}:${command.mediaTime.toFixed(3)}:${command.mediaVisible !== false ? "visible" : "hidden"}`)
       .join(",");
+    const missingResourceDiagnostics = evaluated.commands
+      .filter((command) => (command.op === "drawImage" || command.op === "drawVideo") && !assets.has(command.assetId))
+      .map(() => ({ code: "preview_asset_missing" }));
+    const backendDiagnostics = (stats.skippedCommands ?? 0) > 0
+      ? stats.diagnostics
+      : stats.diagnostics.filter((diagnostic) => !["skia_command_unsupported", "skia_replay_diagnostic"].includes(diagnostic.code));
     rendererCanvas.dataset.diagnostics = [
       ...evaluated.diagnostics,
       // Backend selection is a lifecycle info event, not a frame/render
       // diagnostic. Keep it out of the canvas contract so parity checks and
       // performance tooling only observe actionable issues.
-      ...stats.diagnostics.filter((diagnostic) => diagnostic.code !== "preview_backend_selected"),
+      ...backendDiagnostics.filter((diagnostic) => diagnostic.code !== "preview_backend_selected"),
       ...preparationDiagnostics.map((code) => ({ code })),
+      ...missingResourceDiagnostics,
     ]
       .map((diagnostic) => diagnostic.code)
       .join(",");

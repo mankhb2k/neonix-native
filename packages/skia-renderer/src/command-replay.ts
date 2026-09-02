@@ -7,6 +7,8 @@ import { createSkiaPaint } from "./paint";
 export type SkiaReplayStats = {
   drawCalls: number;
   skippedCommands: number;
+  textureUploads: number;
+  videoTextureUploads: number;
   nativeTextGlyphs: number;
   outlineTextGlyphs: number;
   colorTextGlyphs: number;
@@ -68,7 +70,7 @@ function imageRectForCommand(
     const y = command.op === "drawImage" ? command.y : 0;
     return {
       source: [0, 0, asset.width, asset.height],
-      destination: [x, y, x + asset.width, y + asset.height],
+      destination: [x, y, x + viewportWidth, y + viewportHeight],
     };
   }
   const forceFill = fit === "fill" || (command.op === "drawVideo" && !fit);
@@ -93,7 +95,7 @@ function imageRectForCommand(
   return {
     source: [0, 0, asset.width, asset.height],
     destination: [x + (viewportWidth - drawWidth) * xFactor, y + (viewportHeight - drawHeight) * yFactor, x + (viewportWidth - drawWidth) * xFactor + drawWidth, y + (viewportHeight - drawHeight) * yFactor + drawHeight],
-    clip: slice ? [x, y, viewportWidth, viewportHeight] : undefined,
+    clip: slice ? [x, y, x + viewportWidth, y + viewportHeight] : undefined,
   };
 }
 
@@ -104,19 +106,45 @@ function drawAsset(
   asset: SkiaAsset,
   alpha: number,
 ): boolean {
-  const image: SkiaImage | null = kit.MakeImageFromCanvasImageSource(asset.source);
+  // CanvasKit's browser helper is reliable for Image/Canvas/ImageBitmap but
+  // older CanvasKit builds can throw while reading an HTMLVideoElement. The
+  // host still owns video decoding; snapshot only the already-seeked current
+  // frame into a canvas before handing pixels to Skia.
+  const source = snapshotVideoSource(asset);
+  const image: SkiaImage | null = kit.MakeImageFromCanvasImageSource(source);
   if (!image) return false;
   const rects = imageRectForCommand(command, asset);
   const imagePaint = createSkiaPaint(kit, "#ffffff", alpha, kit.PaintStyle.Fill);
   if (rects.clip) {
     canvas.save();
-    canvas.clipRect(rects.clip);
+    canvas.clipRect(rects.clip, kit.ClipOp.Intersect, true);
   }
-  canvas.drawImageRect(image, rects.source, rects.destination, imagePaint, false);
+  const fastSample = command.op === "drawImage"
+    && (command.imageRendering === "optimizeSpeed" || command.imageRendering === "crisp-edges" || command.imageRendering === "pixelated");
+  canvas.drawImageRect(image, rects.source, rects.destination, imagePaint, fastSample);
   if (rects.clip) canvas.restore();
   imagePaint.delete();
   image.delete();
   return true;
+}
+
+function snapshotVideoSource(asset: SkiaAsset): TexImageSource {
+  if (
+    asset.kind !== "video" ||
+    typeof HTMLVideoElement === "undefined" ||
+    !(asset.source instanceof HTMLVideoElement)
+  ) return asset.source;
+
+  const width = Math.max(1, Math.floor(asset.width));
+  const height = Math.max(1, Math.floor(asset.height));
+  // Use a DOM canvas here rather than OffscreenCanvas: CanvasKit 0.42's
+  // MakeImageFromCanvasImageSource path reads the browser canvas backing store
+  // and some builds do not expose the same internal fields for OffscreenCanvas.
+  const snapshot = Object.assign(document.createElement("canvas"), { width, height });
+  const context = snapshot.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  if (!context) return asset.source;
+  context.drawImage(asset.source, 0, 0, width, height);
+  return snapshot;
 }
 
 function textGlyphMatrix(glyph: PaintTextGlyph, pathScale = glyph.pathScale, outline = glyph.outline): number[] {
@@ -339,6 +367,8 @@ export function replaySkiaCommands(
   const stats: SkiaReplayStats = {
     drawCalls: 0,
     skippedCommands: 0,
+    textureUploads: 0,
+    videoTextureUploads: 0,
     nativeTextGlyphs: 0,
     outlineTextGlyphs: 0,
     colorTextGlyphs: 0,
@@ -481,6 +511,8 @@ export function replaySkiaCommands(
         stats.diagnostics.push(`${command.op}:${command.key}`);
       } else {
         stats.drawCalls++;
+        if (command.op === "drawVideo") stats.videoTextureUploads++;
+        else stats.textureUploads++;
       }
       canvas.restore();
       continue;

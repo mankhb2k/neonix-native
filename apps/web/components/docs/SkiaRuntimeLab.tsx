@@ -2,12 +2,12 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { PreviewStage } from "./PreviewStage";
-import { SKIA_GRADIENT_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES } from "@/lib/docs/skia-preview-fixtures";
+import { SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { compileProtocol } from "@motionvideo/motion-compiler";
-import { evaluateRuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, frameIndexAtTime } from "@motionvideo/motion-runtime";
 import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
-const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_TEXT_CASES];
+const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES];
 const DEFAULT_CASE = CASES[0];
 if (!DEFAULT_CASE) throw new Error("Skia preview fixtures are empty");
 
@@ -15,18 +15,19 @@ export function SkiaRuntimeLab() {
   const [caseId, setCaseId] = useState(CASES[0]?.id ?? "primitive.shape.rectangle");
   const selected = CASES.find((item) => item.id === caseId) ?? DEFAULT_CASE;
   const runtime = useMemo(() => compileProtocol(selected.project), [selected]);
-  const frame = useMemo(() => evaluateRuntimeProjectV3(runtime, 0), [runtime]);
+  const previewTime = selected.previewTime ?? 0;
+  const frame = useMemo(() => evaluateRuntimeProjectV3(runtime, frameIndexAtTime(previewTime, selected.project.composition.fps), { time: previewTime }), [previewTime, runtime, selected]);
   const [preparedFrame, setPreparedFrame] = useState<{ caseId: string; frame: RuntimeFrameV3 } | null>(null);
   const onFrameReady = useCallback((nextFrame: RuntimeFrameV3) => {
     setPreparedFrame((current) => current?.caseId === selected.id ? current : { caseId: selected.id, frame: nextFrame });
   }, [selected.id]);
   const referenceFrame = preparedFrame?.caseId === selected.id ? preparedFrame.frame : frame;
   return <main className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
-    <header className="mx-auto mb-5 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Skia / Runtime E2E</p><h1 className="mt-2 text-2xl font-semibold">Protocol V2 → Compiler → Runtime → Skia</h1><p className="mt-2 text-sm text-slate-400">{selected.label} · frame 0 · {referenceFrame.commands.length} runtime commands</p></header>
+    <header className="mx-auto mb-5 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Skia / Runtime E2E</p><h1 className="mt-2 text-2xl font-semibold">Protocol V2 → Compiler → Runtime → Skia</h1><p className="mt-2 text-sm text-slate-400">{selected.label} · time {previewTime.toFixed(3)}s · {referenceFrame.commands.length} runtime commands</p></header>
     <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="runtime-skia-case" className="text-xs text-slate-400">Protocol fixture</label><select id="runtime-skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value)} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-xs text-slate-100">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selected.id}</span></div>
     <section className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-2">
       <Panel title="Browser SVG reference" badge="SVG / same RuntimeFrameV3"><iframe title="Browser SVG reference" data-testid="skia-svg-reference" srcDoc={runtimeFrameToSvg(referenceFrame, selected.id)} className="aspect-video w-full border-0 bg-[#080c14]" /></Panel>
-      <Panel title="Skia preview" badge="RuntimeFrameV3"><div className="aspect-video overflow-hidden"><PreviewStage project={selected.project} frame={frame} backend="skia" testId="skia-runtime-stage" onFrameReady={onFrameReady} /></div></Panel>
+      <Panel title="Skia preview" badge="RuntimeFrameV3"><div className="aspect-video overflow-hidden"><PreviewStage project={selected.project} frame={frame} time={previewTime} backend="skia" testId="skia-runtime-stage" onFrameReady={onFrameReady} /></div></Panel>
     </section>
   </main>;
 }
@@ -271,6 +272,14 @@ function svgTextGlyph(
   return `<path d="${svgEscape(glyph.path)}" transform="matrix(${matrix})" fill="${svgTextGlyphPaint(glyph, command, defs, `${command.key}-text-fill-${index}`)}"${stroke}/>`;
 }
 
+function svgImagePreserveAspectRatio(
+  preserveAspectRatio: Extract<PaintCommand, { op: "drawImage" }>['preserveAspectRatio'],
+): string {
+  const align = preserveAspectRatio?.align ?? "xMidYMid";
+  if (align === "none") return "none";
+  return `${preserveAspectRatio?.defer ? "defer " : ""}${align} ${preserveAspectRatio?.meetOrSlice ?? "meet"}`;
+}
+
 function svgDrawCommand(command: PaintCommand, defs: string[]): string {
   if (command.op === "drawSolid") return `<rect width="${svgNumber(command.width)}" height="${svgNumber(command.height)}" fill="${svgEscape(command.fill)}"/>`;
   if (command.op === "drawShape") {
@@ -310,6 +319,16 @@ function svgDrawCommand(command: PaintCommand, defs: string[]): string {
     const fill = command.fill ? svgPaint(command.fill, command.fillPaint, command.width ?? 1, command.height ?? 1, defs, `${command.key}-fill`) : "none";
     const fillOpacity = svgNumber((command.fillOpacity ?? 1) * (command.fillPaint?.type === "solid" ? command.fillPaint.opacity ?? 1 : 1));
     return `<path d="${svgPathData(command)}" fill="${fill}" fill-rule="${command.fillRule}" fill-opacity="${fillOpacity}"${svgStrokeAttributes(command, defs)}/>`;
+  }
+  if (command.op === "drawImage") {
+    if (!command.uri) return "";
+    const imageRendering = command.imageRendering ? ` image-rendering="${svgEscape(command.imageRendering)}"` : "";
+    return `<image x="${svgNumber(command.x)}" y="${svgNumber(command.y)}" width="${svgNumber(command.width)}" height="${svgNumber(command.height)}" preserveAspectRatio="${svgImagePreserveAspectRatio(command.preserveAspectRatio)}" href="${svgEscape(command.uri)}"${imageRendering}/>`;
+  }
+  if (command.op === "drawVideo") {
+    if (!command.uri) return "";
+    const objectFit = command.fit === "contain" ? "contain" : command.fit === "cover" ? "cover" : command.fit === "none" ? "none" : "fill";
+    return `<foreignObject x="0" y="0" width="${svgNumber(command.width)}" height="${svgNumber(command.height)}"><video xmlns="http://www.w3.org/1999/xhtml" data-runtime-media-time="${svgNumber(command.mediaTime)}" src="${svgEscape(command.uri)}" muted="muted" playsinline="playsinline" preload="auto" style="display:block;width:100%;height:100%;object-fit:${objectFit};background:transparent"></video></foreignObject>`;
   }
   if (command.op === "drawText") {
     const glyphs = (command.glyphs ?? []).map((glyph, index) => svgTextGlyph(glyph, command, defs, index)).join("");

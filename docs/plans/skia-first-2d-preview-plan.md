@@ -22,8 +22,10 @@
 > prevents stale frames during fixture changes, and exposes the exact prepared
 > `RuntimeFrameV3` to the browser SVG reference. Skia replays glyph outlines,
 > color layers/encoded color glyphs, text stroke, opacity and decorations. The
-> lab contains 13 existing Protocol V2 text fixtures, including fallback emoji,
-> emoji-only, ZWJ and variation-selector cases; Playwright validates all 13.
+> lab contains 16 Protocol V2 text fixtures, including three Arabic fixtures
+> (`language=ar`, `direction=rtl`) plus fallback emoji, emoji-only, ZWJ and
+> variation-selector cases; Runtime shaping and Skia pixel-diff are validated
+> by Playwright. Mixed-script UAX#9 bidi remains outside this MVP gate.
 
 ## Mục tiêu
 
@@ -249,7 +251,8 @@ Skia Path / glyph draw
 - color emoji qua COLR/layer hoặc encoded bitmap khi CanvasKit hỗ trợ decode;
 - frame callback dùng chung cho SVG reference và Skia để tránh so sánh khác
   RuntimeFrame;
-- 13 fixture text/font thực tế, gồm 4 fixture emoji: fallback, only, ZWJ và
+- 16 fixture text/font thực tế, gồm 3 fixture Arabic RTL và 4 fixture emoji:
+  fallback, only, ZWJ và
   variation selectors.
 
 Gate đã đạt:
@@ -257,13 +260,24 @@ Gate đã đạt:
 - glyph count phát ra từ Runtime được kiểm tra trên canvas và Skia có draw call;
 - browser SVG và Skia dùng cùng glyph frame, không browser shaping lại text;
 - font thiếu tiếp tục đi qua diagnostic Runtime rõ ràng;
-- `skia-phase4.spec.ts` pass pixel-diff cho toàn bộ 13 text/font cases.
+- Arabic RTL thuần được shaping bằng HarfBuzz và replay bằng Skia `drawGlyphs`;
+- emoji color vẫn được nhận diện là color-glyph resource, không bị nhầm với text
+  monochrome;
+- `skia-phase4.spec.ts` pass pixel-diff cho toàn bộ 16 text/font cases.
 
-### Phase 5 — Image và video
+Phase 4 được khóa ở phạm vi text semantic, font selection/fallback, shaping,
+glyph placement và monochrome/color glyph replay. Bidi trộn Arabic/Latin, line
+breaking phức tạp và paragraph layout global sẽ mở ở phase text riêng khi có
+UAX#9/paragraph contract rõ ràng.
 
-Resource adapter nhận asset đã được host decode hoặc bytes đã chuẩn bị:
+### Phase 5 — Image và video (đã hoàn tất gate MVP)
+
+Resource adapter nhận asset từ `apps/web/public/preview` qua URI trong Protocol
+V2, host decode và chuyển resource đã chuẩn bị vào Skia:
 
 ```text
+Protocol asset URI (`/preview/image/*`, `/preview/svg/*`, `/preview/video/*`)
+        ↓
 PreviewAsset / decoded video frame
         ↓
 Skia image
@@ -280,6 +294,27 @@ Triển khai:
 - video frame theo `mediaTime` runtime;
 - resource cache và disposal;
 - không phát audio trong visual Skia renderer.
+
+Phase 5 gate: static image cases phải dùng các asset `/preview` hiện có và pass
+SVG reference pixel-diff; video cases phải seek cùng `mediaTime` từ Runtime,
+upload decoded frame vào Skia, expose resource/video counters và giữ ổn định
+khi đổi fixture. Asset thiếu phải fail closed với diagnostic.
+
+Gate đã đạt:
+
+- `SkiaRuntimeLab` có dropdown 7 image cases và 4 video cases lấy từ cùng
+  `PREVIEW_LAB_CASES`, không tạo một protocol/geometry fixture riêng cho Skia;
+- image đi qua URI `/preview/image/*` hoặc `/preview/svg/*`, loader decode thành
+  `PreviewAsset`, Runtime phát `drawImage`, Skia replay `drawImageRect` với
+  contain/cover/none/alignment/filter;
+- video đi qua URI `/preview/video/demo-video.mp4`, loader seek theo `mediaTime`,
+  Skia snapshot frame hiện tại vào DOM canvas trước khi upload để tương thích
+  CanvasKit 0.42, không dùng audio;
+- clip cover dùng đúng LTRB viewport và `ClipOp.Intersect`; missing asset không
+  bị vẽ và phát `preview_asset_missing`;
+- `skia-phase5.spec.ts` pass image pixel-diff, missing-resource gate và 4 video
+  resource/media-time/upload gates;
+- toàn bộ gate `skia-phase2.spec.ts` đến `skia-phase5.spec.ts` pass: 6 tests.
 
 ### Phase 6 — Compositing và effects
 

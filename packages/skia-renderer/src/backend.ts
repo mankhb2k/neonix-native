@@ -102,6 +102,8 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       ...stats,
       drawCalls: replay.drawCalls,
       skippedCommands: replay.skippedCommands,
+      textureUploads: replay.textureUploads,
+      videoTextureUploads: replay.videoTextureUploads,
       nativeTextGlyphs: replay.nativeTextGlyphs,
       outlineTextGlyphs: replay.outlineTextGlyphs,
       colorTextGlyphs: replay.colorTextGlyphs,

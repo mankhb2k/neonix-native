@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SKIA_GRADIENT_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES } from "../lib/docs/skia-preview-fixtures";
+import { SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "../lib/docs/skia-preview-fixtures";
 import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia Phase 3 paint and gradient contract", () => {
@@ -7,7 +7,7 @@ test.describe("Skia Phase 3 paint and gradient contract", () => {
     await page.goto("/docs/preview/skia");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
-    await expect(select.locator("option")).toHaveCount(SKIA_PREVIEW_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_TEXT_CASES.length);
+    await expect(select.locator("option")).toHaveCount(SKIA_PREVIEW_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_IMAGE_CASES.length + SKIA_VIDEO_CASES.length + SKIA_TEXT_CASES.length);
     await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
 
     for (const fixture of SKIA_GRADIENT_CASES) {

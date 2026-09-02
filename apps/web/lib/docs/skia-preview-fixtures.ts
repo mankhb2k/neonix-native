@@ -6,6 +6,7 @@ export type SkiaPreviewFixture = {
   label: string;
   purpose: string;
   project: MotionProtocolV2;
+  previewTime?: number;
   expected: readonly string[];
   svgReference: string;
 };
@@ -15,7 +16,7 @@ const sourceById = new Map(PREVIEW_LAB_CASES.map((item) => [item.id, item]));
 function fixture(id: string, purpose: string, expected: readonly string[]): SkiaPreviewFixture {
   const source = sourceById.get(id);
   if (!source) throw new Error(`Missing Skia preview source fixture: ${id}`);
-  return { id, label: source.label, purpose, project: source.project, expected, svgReference: `/preview/skia/${id}.svg` };
+  return { id, label: source.label, purpose, project: source.project, previewTime: source.previewTime, expected, svgReference: `/preview/skia/${id}.svg` };
 }
 
 /** Dedicated Skia parity fixtures. The project payload remains Protocol V2;
@@ -41,6 +42,27 @@ export const SKIA_GRADIENT_CASES: readonly SkiaPreviewFixture[] = [
   fixture("shape.gradient-spread", "Reflect spread method.", ["drawShape", "reflect"]),
   fixture("shape.gradient-user-space", "User-space gradient transform.", ["drawShape", "userSpaceOnUse", "gradientTransform"]),
   fixture("shape.stroke-gradient", "Gradient reused for stroke paint.", ["drawShape", "strokePaint"]),
+];
+
+/** Phase 5 static resources. These projects resolve their asset URIs from
+ * apps/web/public/preview through the normal Protocol V2 resource loader. */
+export const SKIA_IMAGE_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("image.preserve-aspect-ratio.meet", "Landscape image contained in its viewport.", ["drawImage", "contain", "preview/image"]),
+  fixture("image.preserve-aspect-ratio.slice", "Portrait image covering and clipping its viewport.", ["drawImage", "cover", "preview/image"]),
+  fixture("image.preserve-aspect-ratio.none", "Image stretched to an explicit viewport.", ["drawImage", "none", "preview/image"]),
+  fixture("image.preserve-aspect-ratio.alignment", "Image meet alignment at xMinYMin.", ["drawImage", "alignment", "preview/image"]),
+  fixture("image.image-rendering.pixelated", "Transparent PNG with pixelated sampling policy.", ["drawImage", "pixelated", "preview/image"]),
+  fixture("image.nested-svg", "SVG image resource from the preview asset directory.", ["drawImage", "image/svg+xml", "preview/svg"]),
+  fixture("image.missing-asset", "Missing resource fail-closed diagnostic.", ["drawImage", "missing", "diagnostic"]),
+];
+
+/** Phase 5 video resources. The MP4 source is the existing
+ * apps/web/public/preview/video/demo-video.mp4 asset. */
+export const SKIA_VIDEO_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("video.frame-seek", "Runtime-selected video frame.", ["drawVideo", "mediaTime", "preview/video"]),
+  fixture("video.trim", "Video source trim range.", ["drawVideo", "trim", "preview/video"]),
+  fixture("video.frame-policy", "Ceil frame policy after Runtime evaluation.", ["drawVideo", "ceil", "preview/video"]),
+  fixture("video.multi-instance", "Two instances sharing one decoded asset.", ["drawVideo", "multi-instance", "preview/video"]),
 ];
 
 /** Phase 4 text fixtures. They intentionally reuse the Protocol V2 text

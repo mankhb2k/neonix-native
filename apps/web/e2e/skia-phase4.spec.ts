@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SKIA_GRADIENT_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES } from "../lib/docs/skia-preview-fixtures";
+import { SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "../lib/docs/skia-preview-fixtures";
 import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia Phase 4 Runtime text and font contract", () => {
@@ -7,7 +7,7 @@ test.describe("Skia Phase 4 Runtime text and font contract", () => {
     await page.goto("/docs/preview/skia");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
-    await expect(select.locator("option")).toHaveCount(SKIA_PREVIEW_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_TEXT_CASES.length);
+    await expect(select.locator("option")).toHaveCount(SKIA_PREVIEW_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_IMAGE_CASES.length + SKIA_VIDEO_CASES.length + SKIA_TEXT_CASES.length);
     await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
 
     for (const fixture of SKIA_TEXT_CASES) {
@@ -29,7 +29,7 @@ test.describe("Skia Phase 4 Runtime text and font contract", () => {
       }
       await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(0);
       await expect.poll(async () => await canvas.getAttribute("data-diagnostics") ?? "").not.toContain("skia_command_unsupported");
-      const svgFrame = await page.getByTestId("skia-svg-reference").contentFrame();
+      const svgFrame = page.getByTestId("skia-svg-reference").contentFrame();
       await expect.poll(async () => svgFrame?.locator(`svg[data-fixture="${fixture.id}"] path, svg[data-fixture="${fixture.id}"] image`).count() ?? 0).toBeGreaterThan(0);
       await expect.poll(async () => svgFrame?.locator("svg path, svg image").count() ?? 0).toBeGreaterThan(0);
 

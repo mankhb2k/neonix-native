@@ -10,6 +10,7 @@ export type SkiaCanvasKit = {
   PaintStyle: { Fill: unknown; Stroke: unknown };
   StrokeCap: { Butt: unknown; Square: unknown; Round: unknown };
   StrokeJoin: { Miter: unknown; Bevel: unknown; Round: unknown };
+  ClipOp: { Intersect: unknown };
   Path: { MakeFromSVGString(value: string): SkiaPath | null };
   Typeface: { MakeTypefaceFromData(data: ArrayBuffer | Uint8Array): SkiaTypeface | null };
   Font: new (typeface: SkiaTypeface, size: number) => SkiaFont;
@@ -40,7 +41,7 @@ export type SkiaCanvas = {
   drawPath(path: SkiaPath, paint: SkiaPaint): void;
   drawGlyphs(glyphs: Uint16Array, positions: Float32Array, x: number, y: number, font: SkiaFont, paint: SkiaPaint): void;
   drawImageRect(image: SkiaImage, sourceRect: unknown, destinationRect: unknown, paint: SkiaPaint | null, fastSample?: boolean): void;
-  clipRect(rect: unknown): void;
+  clipRect(rect: unknown, op?: unknown, antialias?: boolean): void;
   readPixels(x: number, y: number, info: unknown): Uint8Array | null;
 };
 
