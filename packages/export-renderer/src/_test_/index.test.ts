@@ -3,12 +3,12 @@ import {
   parseRenderManifest,
   RenderJobProgressSchema,
   RenderJobStatusSchema,
-} from "./index";
+} from "../contracts/index";
 import {
   GROUP_COMPOSITING_MODES,
   type GroupCompositingMode,
   type ProviderCapabilities,
-} from "./provider";
+} from "../contracts/provider";
 
 describe("export-renderer contracts", () => {
   it("parses job status", () => {

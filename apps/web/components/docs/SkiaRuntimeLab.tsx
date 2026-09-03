@@ -4,10 +4,10 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import { evaluateRuntimeProjectV3, frameIndexAtTime } from "@motionvideo/motion-runtime";
 import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
-import { SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
+import { SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { PreviewStage } from "./PreviewStage";
 
-const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
+const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
 const DEFAULT_CASE = CASES[0];
 if (!DEFAULT_CASE) throw new Error("Skia preview fixtures are empty");
 

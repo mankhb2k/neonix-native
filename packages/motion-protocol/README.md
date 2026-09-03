@@ -1,9 +1,16 @@
 # `@motionvideo/motion-protocol`
 
-Atomic Protocol V2 schema and validation contract for NeonVideo.
+Protocol V2 is Neonix's strict, renderer-neutral authoring JSON. It preserves
+the supported SVG semantics as data: geometry, presentation properties,
+transform lists, paint servers, references, timing, and media metadata remain
+readable before the Compiler lowers them to Runtime V3.
 
-This package owns authoring JSON only. It does not own Runtime IR, Matrix4
-buffers, GPU resources, preview rendering, or export rendering.
+The canonical contract is the Zod schema in `src/v2`. The generated JSON
+Schema is `schema/v2.json`. Unknown properties are rejected at every strict
+object boundary.
+
+This package owns authoring data only. It does not expose Runtime IR, Matrix4
+buffers, decoded media, GPU resources, preview state, or export commands.
 
 ## Public API
 
@@ -11,10 +18,17 @@ buffers, GPU resources, preview rendering, or export rendering.
 import {
   MotionProtocolV2Schema,
   parseMotionProtocol,
+  serializeMotionProtocol,
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol";
 
-const protocol: MotionProtocolV2 = MotionProtocolV2Schema.parse(input);
+// Strict current-schema validation.
+const project: MotionProtocolV2 = MotionProtocolV2Schema.parse(input);
+
+// Public parser for persisted input. It applies the small additive V2
+// migration first, then validates the result with MotionProtocolV2Schema.
+const parsed = parseMotionProtocol(input);
+const json = serializeMotionProtocol(parsed);
 ```
 
 The explicit V2 entrypoint is also available:
@@ -23,56 +37,53 @@ The explicit V2 entrypoint is also available:
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 ```
 
-The retired `./runtime` entrypoint and all V1 parser/schema exports have been
-removed.
+There is no V1 or `./runtime` schema entrypoint in this package.
 
-## Protocol V2 shape
+## SVG semantic map
 
-```text
-MotionProtocolV2
-├── composition
-│   ├── width / height / fps
-│   ├── background / colorSpace
-│   └── required view + projection
-└── layers[]
-    └── atomic layer
-        ├── frame
-        ├── transform (3D translate / scale / rotate / skew / anchor)
-        ├── timing
-        ├── opacity / order (unique among siblings; higher paints later)
-        ├── optional property tracks / keyframes (local layer time)
-        └── shape payload + paint style
-```
+Protocol V2 is a normalized JSON representation of the supported SVG model;
+it is not an XML serializer and does not claim to implement every SVG element.
+The mapping is intentionally one-to-one at the semantic boundary:
 
-The root also contains required `assets[]` and `audio` domains. Silent
-projects use `audio: { sampleRate: 48000, tracks: [] }`. Audio is parallel to
-`layers[]`, not part of the visual scene graph; its clips reference `audio` or
-`video` assets. A video layer with embedded sound stores its audio authoring
-controls in `payload.audio`. The video layer remains the default source of
-composition timing and source trim; the Compiler copies those values into a
-separate runtime audio clip. The audio derivative itself is metadata on the
-video asset and is not decoded audio.
+| SVG semantic | Protocol V2 representation |
+| --- | --- |
+| `<svg>` viewport and root coordinate system | `composition` and `composition.view` |
+| `<g>` | A `type: "group"` layer; descendants use `parentLayerId` |
+| `<rect>`, `<circle>`, `<ellipse>`, `<line>`, `<polyline>`, `<polygon>` | A `type: "shape"` layer with `payload.shape` |
+| `<path>` | A `type: "path"` layer with explicit contours and segments |
+| `<image>` | A `type: "image"` layer referencing an `image` asset |
+| `<video>` | A `type: "video"` layer referencing a `video` asset |
+| `<text>` / `<tspan>` | A `type: "text"` layer with `source`, `chunks`, and `spans` |
+| SVG presentation attributes | `style`, `opacity`, `visibility`, `composite`, or layer `effects` |
+| `transform="..."` | `transform.operations[]`, preserving source order |
+| `<defs>` paint/clip/mask/filter/marker definitions | Optional root `paintServers`, `clipPaths`, `masks`, `filters`, `markers` |
+| `url(#id)` | `{ "type": "reference", "id": "id" }` |
+| `fill`, `stroke`, gradients, patterns | `style.fill`, `style.stroke`, and `V2Paint` values |
+| `marker-start/mid/end` | `style.markerStart`, `markerMid`, `markerEnd` |
+| `clip-path`, `mask`, `filter` | Layer `clipPath`, `mask`, and `filter` references |
+| `<audio>` or a video audio stream | Root `audio.tracks[].clips[]` or `video.payload.audio` |
 
-Every schema is strict. Unknown fields are rejected. A Protocol V1 envelope,
-legacy origin/depth fields, bones, high-level patterns, and runtime-only fields
-are not accepted by this package.
+The protocol keeps source semantics in JSON. Compiler decisions such as CSS
+cascade resolution, percentage resolution, font fallback, shaping, and media
+decoding happen after validation.
 
-## Complete JSON design
+## Root document
 
-### 1. Root document
-
-`MotionProtocolV2` always has these seven root fields:
+The required root fields are:
 
 ```text
 MotionProtocolV2
-├── format
-├── formatVersion
+├── format: "motion-protocol"
+├── formatVersion: 2
 ├── id
 ├── composition
 ├── assets[]
 ├── layers[]
 └── audio
 ```
+
+The following definition collections are optional and are referenced by ID:
+`markers[]`, `clipPaths[]`, `masks[]`, `filters[]`, and `paintServers[]`.
 
 Minimal valid project:
 
@@ -109,49 +120,78 @@ Minimal valid project:
 }
 ```
 
-### 2. Composition
+### Scalar and unit rules
 
-| Field | Meaning |
-| --- | --- |
-| `width` | Composition width in pixels |
-| `height` | Composition height in pixels |
-| `fps` | Frames per second |
-| `background` | `#RRGGBB` or `#RRGGBBAA` |
-| `colorSpace` | Currently `srgb` |
-| `view` | Composition projection and view transform |
+- IDs are non-empty strings with a maximum length of 200.
+- JSON numbers must be finite. Positive and non-negative constraints are
+  enforced by the schema.
+- Colors are `#RRGGBB` or `#RRGGBBAA` strings.
+- SVG lengths are either a bare number or `{ "value": number, "unit": ... }`.
+  Units are `number`, `px`, `pt`, `pc`, `mm`, `cm`, `in`, `em`, `ex`, and
+  `percent`.
+- All composition, layer, video, and audio timing values are milliseconds.
+  `fps` and `sampleRate` are rates per second.
 
-`view.projection` is either:
+## Composition and view
 
-- `orthographic`: `kind`, `zoom`, `near`, `far`;
-- `perspective`: `kind`, `fov`, `near`, `far`.
+`composition` contains positive `width`, `height`, and `fps`, a hex
+`background`, the current `colorSpace: "srgb"`, and a required `view`.
 
-`view.transform` contains semantic `translate` and `rotate` Vec3 values.
+`view.projection` is one of:
 
-### 3. Assets
+- `{ "kind": "orthographic", "zoom", "near", "far" }`
+- `{ "kind": "perspective", "fov", "near", "far" }`
 
-`assets[]` contains portable metadata and references only. It does not contain
-textures, decoded audio, browser elements, GPU handles, or other runtime data.
+In both forms, `far` must be greater than `near`. `view.transform` contains
+required `translate` and `rotate` Vec3 values. It is the composition camera
+view, not a layer transform.
 
-| `kind` | Required identity and metadata |
+## Assets
+
+`assets[]` contains portable metadata and references. It never contains a
+decoded image, video element, PCM buffer, font object, GPU handle, or runtime
+resource cache.
+
+| `kind` | Fields |
 | --- | --- |
 | `image` | `id`, `uri`; optional `mimeType`, `width`, `height`, `integrity` |
-| `video` | `id`, `uri`; optional dimensions, `duration`, `fps`, audio derivative |
-| `audio` | `id`, `uri`, `mimeType`; optional `duration`, `sampleRate`, `channels`, `integrity` |
-| `font` | `id`, `uri`, `mimeType`, `family`, `weight`, `style`, `integrity` |
+| `video` | Image metadata plus optional `duration`, `fps`, `audio` derivative |
+| `audio` | `id`, `uri`, required `mimeType`; optional `duration`, `sampleRate`, `channels`, `integrity` |
+| `font` | `id`, `uri`, `mimeType` (`font/ttf` or `font/otf`), `family`, `weight`, `style`, SHA-256 `integrity` |
 
-A video audio derivative has `uri` and optional `mimeType`, `duration`,
-`sampleRate`, `channels`, and `integrity`.
+Video audio is metadata on the video asset:
 
-### 4. Shared visual-layer fields
+```json
+{
+  "kind": "video",
+  "id": "video-001",
+  "uri": "/preview/video/demo-video.mp4",
+  "duration": 4000,
+  "fps": 30,
+  "audio": {
+    "uri": "/preview/audio/demo-video.mp3",
+    "mimeType": "audio/mpeg",
+    "duration": 4000,
+    "sampleRate": 48000,
+    "channels": 2
+  }
+}
+```
 
-Every layer has the following base fields:
+## Layer model
+
+`layers[]` is a flat array representing a tree. Layer IDs are globally unique;
+only a group may be a parent. Sibling `order` values are unique and higher
+values paint later.
+
+Every layer has these required fields:
 
 ```json
 {
   "id": "layer-001",
   "parentLayerId": null,
-  "order": 1,
-  "frame": { "width": 1080, "height": 500 },
+  "order": 0,
+  "frame": { "width": 320, "height": 180 },
   "transform": {
     "translate": { "x": 0, "y": 0, "z": 0 },
     "scale": { "x": 1, "y": 1, "z": 1 },
@@ -159,78 +199,98 @@ Every layer has the following base fields:
     "skew": { "x": 0, "y": 0 },
     "anchor": { "x": 0, "y": 0, "z": 0 }
   },
-  "opacity": 1,
-  "enabled": true,
-  "backfaceVisibility": "visible",
-  "timing": { "start": 0, "duration": 5000 }
+  "timing": { "start": 0, "duration": 3000 },
+  "type": "shape",
+  "payload": { "shape": "rectangle" },
+  "style": { "fill": "#14B8A6" }
 }
 ```
 
-| Field | Meaning |
+Common optional fields:
+
+| Field | SVG meaning |
 | --- | --- |
-| `id` | Unique layer identifier |
-| `parentLayerId` | Parent group identifier or `null` |
-| `order` | Paint order within the sibling scope; higher paints later |
-| `frame` | Local width and height |
-| `transform` | Translate, scale, rotate, skew, anchor, and optional ordered operations |
-| `opacity` | Source opacity from `0` to `1`; default `1` |
-| `enabled` | Optional editor/runtime enable state; omitted means `true` |
-| `backfaceVisibility` | Optional `visible` or `hidden`; controls painting of the reverse side after accumulated 3D transforms |
-| `timing` | Composition-time start and duration in milliseconds |
-| `tracks` | Optional typed keyframe tracks sampled in local layer time (milliseconds) |
-| `composite` | Optional blend mode and mask |
-| `effects` | Optional ordered effect list |
+| `opacity` | Source alpha; omitted means `1` |
+| `color` | Inherited SVG `color`, used by `currentColor` |
+| `enabled` | Editor/runtime enable state; omitted means enabled |
+| `visibility` | `visible`, `hidden`, or `collapse`; omitted means visible |
+| `backfaceVisibility` | `visible` or `hidden` after accumulated 3D transforms |
+| `clipPath` | ID in root `clipPaths[]` |
+| `mask` | ID in root `masks[]` |
+| `filter` | ID in root `filters[]` |
+| `composite` | SVG/CSS blend and isolation state |
+| `tracks` | Typed local-time property animation |
+| `effects` | Ordered normalized render effects; available on every current layer type |
 
-#### Transform and matrix boundary
+`effects` is not part of the shared base object in TypeScript, but every
+current group and drawable layer schema exposes it as an optional field.
 
-The semantic component fields (`translate`, `scale`, `rotate`, `skew`, and
-`anchor`) remain in Protocol V2 for compatibility. V2 also supports an
-optional ordered `operations[]` form. Operation order is significant and is
-the lossless representation for CSS transform lists:
+### Transforms
+
+The five component fields are always required for a layer transform:
+`translate: Vec3`, `scale: Vec3`, `rotate: Vec3`, `skew: Vec2`, and
+`anchor: Vec3`. They are the compact form for ordinary transforms. When
+`operations` is absent, Runtime composes the component form using the current
+layer transform contract.
+
+For a lossless SVG/CSS transform list, use `operations[]`. Its order is
+semantic and must not be sorted, merged, or reconstructed from a final matrix:
 
 ```json
 {
-  "anchor": { "x": 0, "y": 0, "z": 0 },
+  "translate": { "x": 0, "y": 0, "z": 0 },
+  "scale": { "x": 1, "y": 1, "z": 1 },
+  "rotate": { "x": 0, "y": 0, "z": 0 },
+  "skew": { "x": 0, "y": 0 },
+  "anchor": { "x": 50, "y": 25, "z": 0 },
   "operations": [
-    { "type": "translate", "value": { "x": 100, "y": 0, "z": 0 } },
-    { "type": "rotateZ", "value": 30 },
-    { "type": "scale", "value": { "x": 1.2, "y": 1.2, "z": 1 } }
+    { "type": "translate", "x": 100, "y": 40 },
+    { "type": "rotate", "angle": 30, "center": { "x": 50, "y": 25 } },
+    { "type": "scale", "x": 1.2, "y": 0.9 }
   ]
 }
 ```
 
-Supported operations are `translate`, `rotateX`, `rotateY`, `rotateZ`,
-`scale`, `skew`, `perspective`, and `matrix`. A `matrix` operation carries
-exactly 16 finite column-major values (matching the runtime/WebGL `Matrix4`)
-and is a first-class protocol value for CSS
-`matrix()`/`matrix3d()`; it is not an undocumented fallback. The compiler
-emits the ordered operations, and the runtime composes them into its internal
-`Matrix4` for rendering. Matrix multiplication and GPU representation remain
-runtime implementation details; the transform information itself stays in
-the protocol so it cannot be lost between compiler and runtime.
+Supported ordered operations are:
 
-For the additive V2 migration, the legacy component fields remain required
-even when `operations[]` is present. New compiler/runtime support must treat
-`operations[]` as authoritative for order; old consumers that do not support
-operations must reject such input rather than silently ignoring it.
+| Operation | JSON shape | SVG meaning |
+| --- | --- | --- |
+| `translate` | `{ "type": "translate", "x", "y" }` | `translate(x y)` |
+| `scale` | `{ "type": "scale", "x", "y" }` | `scale(x y)` |
+| `rotate` | `{ "type": "rotate", "angle", "center"? }` | `rotate(angle [cx cy])` |
+| `skewX` | `{ "type": "skewX", "angle" }` | `skewX(angle)` |
+| `skewY` | `{ "type": "skewY", "angle" }` | `skewY(angle)` |
+| `matrix` | `{ "type": "matrix", "values": [a,b,c,d,e,f] }` | SVG `matrix(a b c d e f)` |
 
-In normal use, simple 2D transforms continue to use the semantic component
-fields and do not need `operations[]`. The ordered form is reserved for cases
-where transform order must be preserved, for 3D operations, perspective, or
-an arbitrary matrix. Most ordinary CSS animation tracks therefore continue to
-target properties such as `transform.translate.x`, `transform.scale`, or
-`opacity` rather than manipulating a matrix directly.
+The six-value SVG matrix uses `x' = a*x + c*y + e` and
+`y' = b*x + d*y + f`. It is different from the 16-value motion Matrix4.
 
-`enabled` is an editor/runtime state, not a persisted copy of CSS `display` or
-`visibility`. A disabled layer remains in the protocol hierarchy but
-contributes no rendered output. It can also be targeted by a boolean track for
-discrete timeline enable/disable changes.
+Motion-only 3D extensions are explicit and do not masquerade as SVG
+operations:
 
-### 4.1 Local 3D contexts
+```json
+[
+  { "type": "extension", "name": "motion.translate3d", "value": { "x": 0, "y": 0, "z": 40 } },
+  { "type": "extension", "name": "motion.scale3d", "value": { "x": 1, "y": 1, "z": 1 } },
+  { "type": "extension", "name": "motion.rotateY", "value": 18 },
+  { "type": "extension", "name": "motion.perspective", "value": 800 },
+  { "type": "extension", "name": "motion.matrix4", "value": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] }
+]
+```
 
-`composition.view.projection` is the global camera. A CSS `perspective`
-property, however, applies to one subtree, so Protocol V2 represents it on a
-group through an optional `render3d` context:
+The extension names are `motion.translate3d`, `motion.scale3d`,
+`motion.rotateX`, `motion.rotateY`, `motion.rotateZ`, `motion.perspective`,
+and `motion.matrix4`. `motion.matrix4.value` contains exactly 16 finite
+numbers. The optional `transform.extensions.anchor` is the explicit motion
+pivot for an ordered operation list; it falls back to `transform.anchor`.
+
+For additive compatibility, the component fields remain required even when
+`operations[]` is present. Consumers that support `operations[]` must treat it
+as authoritative for order.
+
+### Local 3D group context
+
+A group may define a local CSS-like 3D context:
 
 ```json
 {
@@ -245,35 +305,259 @@ group through an optional `render3d` context:
 }
 ```
 
-`transformStyle` is the single flattening boundary: `flat` (the default when
-the field is omitted) flattens descendants, while `preserve-3d` keeps them in
-the group's 3D space. `perspective.distance` is positive and `origin` is the
-compiler-resolved point in the group's local coordinate units; it may be
-outside the group bounds. This is the resolved projection context, not a
-second CSS property atom. `backfaceVisibility` is a layer-level render state
-and may be `visible` or `hidden`.
+`transformStyle` is `flat` or `preserve-3d` and defaults to `flat` when
+omitted. `perspective.distance` is positive. `origin` is in the group's local
+coordinate units.
 
-### 4.2 Temporal tracks
+### Layer types
 
-Protocol V2 uses one temporal primitive for visual properties: an optional
-`tracks[]` list on every layer. A track addresses one animatable leaf property
-with a dot-separated `path` and contains strictly ordered keyframes in local
-layer time in milliseconds. The static layer value remains the base value
-outside the track's keyframe range; compiler/runtime behavior is a separate
-lowering concern.
+`layers[]` is a discriminated union by `type`:
+
+| Type | Protocol fields | SVG semantics |
+| --- | --- | --- |
+| `group` | Optional `effects`, `render3d` | `<g>` hierarchy and inherited state |
+| `shape` | `payload`, `style`, optional `effects` | Basic SVG geometry and presentation |
+| `path` | `payload`, `style`, optional `effects` | Explicit SVG path geometry and presentation |
+| `image` | `payload`, optional `effects` | `<image>` viewport and sampling |
+| `video` | `payload`, optional `effects` | `<video>` source range, fitting, and audio controls |
+| `text` | `payload`, optional `effects` | `<text>`/`<tspan>` source and normalized spans |
+
+#### Shape
+
+`payload.shape` is one of `rectangle`, `circle`, `ellipse`, `line`, `polyline`,
+or `polygon`. `cornerRadius`, `rx`, and `ry` apply only to rectangles.
+`line` requires `start` and `end`; `polyline` and `polygon` require at least
+two `points`. `pathLength` is the optional SVG path-length calibration.
+
+`style` supports `fill`, `fillOpacity`, `stroke`, `strokeWidth`,
+`strokeOpacity`, `strokeMiterLimit`, `strokeJoin`, `strokeCap`, `strokeDash`,
+`paintOrder`, `vectorEffect`, and `markerStart`/`markerMid`/`markerEnd`.
+
+#### Path
+
+`payload.contours` contains one or more contours, with `fillRule` of `nonzero`
+or `evenodd`, optional `pathLength`, and optional `morph` data. Each contour
+has `id`, `start`, `segments`, and `closed`. A segment is one of:
+
+```json
+{ "kind": "line", "to": { "x": 100, "y": 0 } }
+{ "kind": "quadratic", "control": { "x": 50, "y": -20 }, "to": { "x": 100, "y": 0 } }
+{ "kind": "cubic", "control1": { "x": 20, "y": -20 }, "control2": { "x": 80, "y": -20 }, "to": { "x": 100, "y": 0 } }
+{ "kind": "arc", "radii": { "x": 40, "y": 40 }, "rotation": 0, "largeArc": false, "sweep": true, "to": { "x": 100, "y": 0 } }
+```
+
+Path style uses the same paint/stroke fields as shape style.
+
+#### Image
 
 ```json
 {
-  "tracks": [
+  "type": "image",
+  "payload": {
+    "assetId": "image-001",
+    "x": 0,
+    "y": 0,
+    "width": 640,
+    "height": 360,
+    "preserveAspectRatio": {
+      "align": "xMidYMid",
+      "meetOrSlice": "meet"
+    },
+    "imageRendering": "auto"
+  }
+}
+```
+
+`width` and `height` may be omitted to use intrinsic asset dimensions.
+`preserveAspectRatio.defer` optionally retains SVG's `defer` keyword semantics.
+`preserveAspectRatio.align` is `none`, `xMinYMin`, `xMidYMin`, `xMaxYMin`,
+`xMinYMid`, `xMidYMid`, `xMaxYMid`, `xMinYMax`, `xMidYMax`, or `xMaxYMax`.
+`meetOrSlice` is `meet` or `slice`. `imageRendering` is `auto`,
+`optimizeQuality`, `optimizeSpeed`, `smooth`, `high-quality`, `crisp-edges`,
+or `pixelated`.
+
+#### Video
+
+```json
+{
+  "type": "video",
+  "payload": {
+    "assetId": "video-001",
+    "fit": "contain",
+    "trimStart": 1000,
+    "trimEnd": 5000,
+    "framePolicy": "round",
+    "audio": {
+      "enabled": true,
+      "gainDb": -3,
+      "pan": 0,
+      "fadeIn": { "duration": 250, "curve": "linear" },
+      "fadeOut": { "duration": 500, "curve": "equal-power" }
+    }
+  }
+}
+```
+
+`fit` is `contain`, `cover`, `fill`, or `none`. `framePolicy` is `floor`,
+`round`, or `ceil`. `trimEnd` must be greater than `trimStart` and remain
+within known source duration metadata. Embedded audio keeps the video timing
+and trim as its source identity; the Compiler derives the independent runtime
+audio input.
+
+#### Text
+
+Text source is NFC-normalized and ranges use UTF-16 offsets:
+
+```json
+{
+  "type": "text",
+  "payload": {
+    "source": {
+      "text": "Hello",
+      "language": "en",
+      "direction": "ltr",
+      "writingMode": "horizontal-tb",
+      "whiteSpace": "default",
+      "textRendering": "auto"
+    },
+    "chunks": [
+      {
+        "id": "chunk-1",
+        "sourceRange": { "start": 0, "end": 5 },
+        "textAnchor": "middle",
+        "spans": [
+          {
+            "id": "span-1",
+            "sourceRange": { "start": 0, "end": 5 },
+            "font": {
+              "families": ["Noto Sans", "sans-serif"],
+              "size": 40,
+              "weight": 400,
+              "style": "normal"
+            },
+            "fill": "#FFFFFF",
+            "letterSpacing": "normal",
+            "wordSpacing": 0
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The source supports `language`, `direction`, `writingMode`, `whiteSpace`, and
+`textRendering`. Chunks support `x`, `y`, `dx`, `dy`, `rotate` arrays,
+`textAnchor`, and an optional `textPath`. Spans support the SVG font, fill,
+stroke, spacing, baseline, `textLength`, `lengthAdjust`, decoration, kerning,
+optical sizing, and small-caps semantics. Span IDs cannot contain a dot and
+span ranges must be ordered, non-overlapping, and contained by their chunk.
+
+## Paint and SVG definitions
+
+`V2Paint` is a color string, one of the keywords `none`, `currentColor`,
+`context-fill`, or `context-stroke`, or an object:
+
+- `{ "type": "none" }`
+- `{ "type": "solid", "color": "#RRGGBB", "opacity"? }`
+- `linear-gradient`, `radial-gradient`, or `conic-gradient`
+- `pattern`
+- `{ "type": "reference", "id": "...", "fallback"? }`
+
+### Gradients
+
+All gradient fields retain their SVG names. Stops are optional because SVG
+permits zero or one stop; when present, offsets must be non-decreasing.
+
+```json
+{
+  "type": "linear-gradient",
+  "x1": { "value": 0, "unit": "percent" },
+  "y1": 0,
+  "x2": { "value": 100, "unit": "percent" },
+  "y2": 0,
+  "gradientUnits": "objectBoundingBox",
+  "spreadMethod": "pad",
+  "stops": [
+    { "offset": 0, "color": "#14B8A6" },
+    { "offset": 1, "color": "#2563EB", "stopOpacity": 0.8 }
+  ]
+}
+```
+
+Linear gradients support `x1`, `y1`, `x2`, `y2`, and the compatibility
+shorthand `angle`. Radial gradients support `cx`, `cy`, `radius`, `fx`, `fy`,
+and `fr`. Conic gradients support `from`, `cx`, and `cy`. All gradients may
+also use `spreadMethod` (`pad`, `reflect`, `repeat`), `gradientUnits`, an SVG
+2D `gradientTransform` matrix, and an `href` template reference.
+
+Patterns retain `x`, `y`, `width`, `height`, `patternUnits`,
+`patternContentUnits`, `patternTransform` (and the compatibility `transform`),
+`viewBox`, `href`, and recursive `content` nodes. Pattern nodes are normalized
+SVG `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `path`, or
+`group` nodes with paint and opacity.
+
+Named paint definitions live at the root:
+
+```json
+{
+  "paintServers": [
     {
-      "id": "title-x",
-      "path": "transform.translate.x",
-      "keyframes": [
-        { "time": 0, "value": { "type": "number", "value": -120 } },
+      "id": "brand-gradient",
+      "paint": {
+        "type": "linear-gradient",
+        "angle": 90,
+        "stops": [
+          { "offset": 0, "color": "#14B8A6" },
+          { "offset": 1, "color": "#2563EB" }
+        ]
+      }
+    }
+  ]
+}
+```
+
+A layer can then use `"fill": { "type": "reference", "id": "brand-gradient" }`.
+References and gradient/pattern `href` values are validated against the root
+definitions. Cycles and unknown IDs are rejected.
+
+### Paint order, strokes, and markers
+
+`paintOrder` is an ordered, unique subset of `fill`, `stroke`, and `markers`;
+unlisted components are appended using SVG's default order. Stroke fields map
+to SVG `stroke-width`, `stroke-opacity`, `stroke-linejoin`, `stroke-linecap`,
+`stroke-miterlimit`, and `stroke-dasharray`/`stroke-dashoffset`.
+
+`vectorEffect` is `none` or `non-scaling-stroke`. Marker references point to
+root `markers[]` definitions. A marker stores `markerUnits`, `refX`, `refY`,
+`markerWidth`, `markerHeight`, `orient` (`auto`, `auto-start-reverse`, or a
+number), an optional viewBox, and contour content with paint.
+
+## Clip paths, masks, and filters
+
+Definitions are kept at the root so a layer preserves the SVG reference model.
+Definition children use the same normalized geometry vocabulary as paths and
+basic SVG elements. Definition transforms use the exact ordered SVG operation
+shape described above.
+
+### Clip paths
+
+```json
+{
+  "clipPaths": [
+    {
+      "id": "clip-1",
+      "clipPathUnits": "userSpaceOnUse",
+      "transform": [
+        { "type": "translate", "x": 20, "y": 10 }
+      ],
+      "children": [
         {
-          "time": 600,
-          "value": { "type": "number", "value": 0 },
-          "easing": { "type": "cubicBezier", "x1": 0.22, "y1": 1, "x2": 0.36, "y2": 1 }
+          "type": "rect",
+          "x": 0,
+          "y": 0,
+          "width": 300,
+          "height": 180
         }
       ]
     }
@@ -281,177 +565,128 @@ lowering concern.
 }
 ```
 
-All temporal numbers in Protocol V2 are milliseconds; fractional milliseconds
-are allowed when a source timeline needs sub-millisecond precision.
+`clipPathUnits` is `userSpaceOnUse` or `objectBoundingBox` and defaults to
+`userSpaceOnUse`. Definition nodes support `path`, `rect`, `circle`, `ellipse`,
+`line`, `polyline`, `polygon`, and `group`, with optional transform, clipPath,
+fill, fillOpacity, stroke, strokeWidth, and strokeOpacity.
 
-`value` is explicitly typed as `number`, `vec2`, `vec3`, `vec4`, `color`,
-`boolean`, `string`, or `enum`. Numeric/vector/color values are interpolable;
-boolean/string/enum values are discrete. Supported easing descriptors are
-`linear`, `step`, `cubicBezier`, and `spring`. Effect paths use the stable
-effect ID as a path segment, for example `effects.main-blur.radius`; effect
-IDs used by tracks must not contain a dot.
+### Masks
 
-The protocol only describes temporal data. CSS `animation`, CSS `transition`,
-Figma smart-animate, and AE-style editor actions are high-level inputs that
-must be normalized into these tracks. No compiler or runtime behavior is
-defined by this package yet.
+Masks have `id`, `maskUnits`, `maskContentUnits`, `maskType`, optional `x`,
+`y`, `width`, `height`, optional ordered transform, and `children`.
+`maskUnits` defaults to `objectBoundingBox`, `maskContentUnits` to
+`userSpaceOnUse`, and `maskType` to `luminance`. `maskType` may be `alpha` or
+`luminance`; mask lengths are numbers or `{ "value": number, "unit": "percent" }`.
 
-### 5. Visual layer types
+### Filters
 
-`layers[]` is a discriminated union by `type`.
+`filters[]` is the normalized SVG filter graph. A filter has `id`, optional
+`x`, `y`, `width`, `height`, `filterUnits`, `primitiveUnits`,
+`colorInterpolationFilters`, and one to 128 ordered `primitives`.
 
-| Type | Payload | Style or behavior |
-| --- | --- | --- |
-| `group` | Optional `render3d` context | Hierarchy container; children point to its `id` |
-| `shape` | `shape`: `rectangle` or `ellipse`; optional `cornerRadius` | Fill, gradient, opacity, stroke, and stroke width |
-| `path` | Contours with line/cubic segments; `fillRule`; optional morph | Fill, stroke, joins, caps, dash, and contour morph |
-| `image` | `assetId`; optional `fit`, normalized `crop` | Image asset placement |
-| `video` | `assetId`; optional `fit`, trim, audio, `framePolicy` | Video asset placement and source-time selection |
-| `text` | SVG-like source, chunks, spans and font/paint semantics | Compiler shaping and fallback; runtime consumes resolved glyph layout |
+Defaults are `filterUnits: "objectBoundingBox"`,
+`primitiveUnits: "userSpaceOnUse"`, and
+`colorInterpolationFilters: "linearRGB"`. Every primitive has a unique `id`
+and may have `in`, `result`, `region`, and its own
+`colorInterpolationFilters`. Supported primitive names are:
 
-Image and video `fit` can be `contain`, `cover`, `fill`, or `none`.
+`feBlend`, `feColorMatrix`, `feComponentTransfer`, `feComposite`,
+`feConvolveMatrix`, `feDisplacementMap`, `feDropShadow`, `feFlood`,
+`feGaussianBlur`, `feImage`, `feMerge`, `feMorphology`, `feOffset`, `feTile`,
+`feTurbulence`, `feDiffuseLighting`, and `feSpecularLighting`.
 
-### 5.1 Semantic text and glyph mapping
+The primitive fields retain SVG names, including `in`, `in2`, `result`,
+`mode`, `operator`, `stdDeviation`, `dx`, `dy`, `scale`, channel selectors,
+transfer functions, light definitions, and filter regions. `feColorMatrix`
+with `kind: "matrix"` requires 20 values; convolution kernels must match
+`order.x * order.y`.
 
-Text is an SVG-like semantic source. The editor modifies `source.text`, chunks,
-and spans; the compiler resolves font assets, shaping, fallback, bidi, spacing,
-and glyph positions before the runtime renders it.
+## Compositing and normalized effects
 
-```json
-{
-  "payload": {
-    "source": { "text": "Hello مرحبا", "language": "en" },
-    "chunks": [{
-      "id": "chunk-1",
-      "sourceRange": { "start": 0, "end": 16 },
-      "textAnchor": "middle",
-      "spans": [{
-        "id": "span-1",
-        "sourceRange": { "start": 0, "end": 16 },
-        "font": { "families": ["Roboto", "sans-serif"], "size": 40 },
-        "fill": "#ffffff"
-      }]
-    }]
-  }
-}
-```
-
-`sourceRange` uses UTF-16 offsets so editor selection and caret mapping match
-JavaScript string indexing. The compiler may use UTF-8 byte offsets internally,
-but emits the resolved glyph-to-source mapping as UTF-16 ranges.
-
-The text compiler/shaper owns cascade, font fallback, OpenType features,
-variation resolution, bidi, spacing, line breaking, wrapping, alignment, and
-rich spans. The runtime owns glyph-outline lookup/caching, tessellation or atlas
-generation, and GPU drawing from the resolved font asset + glyph ID. Glyph
-outlines do not enter semantic Protocol JSON.
-
-Span-level tracks use the stable span ID, for example
-`payload.chunks.spans.span-1.fill` or
-`payload.chunks.spans.span-1.font.size`. Whole-text motion normally uses the
-shared layer transform and opacity tracks.
-
-### 5.2 Paint and gradients
-
-Paint is represented by the final source primitive, not by CSS `background`
-shorthand. A compiler may lower multiple background layers into an ordered
-group of shape and image layers. Shape fills support solid colors and
-gradients:
-
-```json
-{
-  "type": "conic-gradient",
-  "from": 45,
-  "cx": 0.5,
-  "cy": 0.5,
-  "stops": [
-    { "offset": 0, "color": "#ff0000" },
-    { "offset": 0.35, "color": "#ffff00" },
-    { "offset": 1, "color": "#0000ff" }
-  ]
-}
-```
-
-Supported gradient types are `linear-gradient`, `radial-gradient`, and
-`conic-gradient`. Every gradient has at least two color stops; stop offsets
-are normalized to `0..1` and must be non-decreasing. Linear and radial
-gradients keep their existing geometric fields (`angle`, `cx`, `cy`, and
-`radius` where applicable). A conic gradient uses `from` in degrees and an
-optional normalized center (`cx`, `cy`). Background shorthand, repetition,
-layer order, and implicit CSS stop resolution remain compiler concerns.
-
-### 6. Compositing and effects
-
-Optional compositing:
+`composite` maps SVG/CSS compositing directly:
 
 ```json
 {
   "composite": {
-    "blendMode": "normal",
-    "isolation": "auto"
+    "blendMode": "multiply",
+    "isolation": "isolate"
   }
 }
 ```
 
-Blend modes map 1:1 to the CSS Compositing and Blending Level 1 names:
-`normal`, `darken`, `multiply`, `color-burn`, `lighten`, `screen`,
-`color-dodge`, `overlay`, `soft-light`, `hard-light`, `difference`,
-`exclusion`, `hue`, `saturation`, `color`, and `luminosity`. The non-CSS
-`add` value is not part of Protocol V2. `isolation` maps to CSS `isolation`
-and is `auto` or `isolate`. SVG masking is referenced by layer-level
-`clipPath` and `mask` IDs. `clipPath` uses geometric coverage; `mask` uses
-`alpha` or `luminance` coverage.
+`blendMode` is one of `normal`, `darken`, `multiply`, `color-burn`, `lighten`,
+`screen`, `color-dodge`, `overlay`, `soft-light`, `hard-light`, `difference`,
+`exclusion`, `hue`, `saturation`, `color`, or `luminosity`. `isolation` is
+`auto` or `isolate`.
 
-When both references are present, the compiler emits separate coverage
-surfaces and the runtime applies the clip path before the alpha/luminance mask.
-Mask position, size, repeat, origin, clip, and source-image resolution remain
-compiler responsibilities.
-
-`blendMode` is a runtime compositing primitive, not a compiler-only semantic:
-the runtime must evaluate the selected formula against the source and
-backdrop pixels. Protocol stores the CSS name; formula implementation,
-premultiplied-alpha handling, and color-space details belong to runtime.
-
-Effects are ordered and have unique IDs. The current effect types are:
+Layer `effects[]` is an ordered list of at most eight normalized render atoms.
+Each effect has a unique `id`. Current types and fields are:
 
 | Type | Fields |
 | --- | --- |
 | `color-adjust` | `brightness`, `contrast`, `saturation`, `hueRotate` |
-| `grayscale` | `amount` (`0..1`) |
-| `sepia` | `amount` (`0..1`) |
-| `invert` | `amount` (`0..1`) |
-| `filter-opacity` | `amount` (`0..1`); distinct from layer `opacity` |
-| `blur` | `radius` |
-| `shadow` | `source` (`box` or `alpha`), `offset`, `blur`, signed `spread`, `color`, `inset` |
-| `outer-glow` | `radius`, `color`, `opacity` |
-| `inner-glow` | `radius`, `color`, `opacity` |
-| `noise` | `scale`, `amount`, `opacity`, `seed` |
+| `grayscale`, `sepia`, `invert` | `amount` in `0..1` |
+| `filter-opacity` | `amount` in `0..1`, distinct from layer `opacity` |
+| `blur` | positive `radius`, maximum 256 |
+| `shadow` | `source`, `offset`, `blur`, signed `spread`, `color`, `inset` |
+| `outer-glow`, `inner-glow` | positive `radius`, `color`, `opacity` |
+| `noise` | positive `scale`, `amount`, `opacity`, integer `seed` |
 
-At most eight effects can be attached to one drawable layer.
+`shadow.source: "box"` represents CSS `box-shadow`. `source: "alpha"`
+represents alpha/drop-shadow semantics and requires `spread: 0` and
+`inset: false`. Effect order is preserved; a renderer may fuse compatible
+color operations only when that does not change their position relative to a
+spatial operation such as blur or shadow.
 
-`shadow` is the canonical shadow atom. `source: "box"` represents CSS
-`box-shadow`: `spread` is signed and `inset` may be true or false. `source:
-"alpha"` represents CSS `filter: drop-shadow()`, so it requires
-`spread: 0` and `inset: false`. Shadow transparency is carried by the alpha
-component of `color`; there is no second shadow-opacity field. Multiple
-shadows are repeated in `effects[]` and retain list order. Runtime must derive
-each shadow from the original layer source surface, so one shadow does not
-become the input silhouette of the next shadow.
+## Animation and timing
 
-The semantic filter effects map directly to CSS `grayscale()`, `sepia()`,
-`invert()`, and `opacity()`. `filter-opacity` is intentionally separate from
-the layer-level `opacity` because it participates in the ordered filter chain.
-Protocol V2 keeps these names and normalized values readable for users and AI;
-compiler/runtime lowering to a color matrix is a later implementation step and
-is not part of this package. Effect order must be preserved, so color effects
-may only be fused when that does not move them across a spatial effect such as
-`blur` or `shadow`.
+Each layer has composition-time `timing`:
 
-### 7. Audio
+```json
+{ "start": 0, "duration": 3000 }
+```
 
-Audio is a required root domain and is parallel to visual layers.
-All audio timing, trim, fade, and media-duration values in Protocol V2 are
-milliseconds. `sampleRate` and `fps` remain rates measured per second.
+`tracks[]` is optional and stores typed animation against a dot-separated
+property path in local layer time:
+
+```json
+{
+  "tracks": [
+    {
+      "id": "move-x",
+      "path": "transform.translate.x",
+      "keyframes": [
+        { "time": 0, "value": { "type": "number", "value": -120 } },
+        {
+          "time": 600,
+          "value": { "type": "number", "value": 0 },
+          "easing": {
+            "type": "cubicBezier",
+            "x1": 0.22,
+            "y1": 1,
+            "x2": 0.36,
+            "y2": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Keyframe times must be strictly increasing and cannot exceed the layer
+duration. Values are explicitly typed as `number`, `vec2`, `vec3`, `vec4`,
+`color` (RGBA tuple in `0..1`), `boolean`, `string`, or `enum`. Vector values
+are fixed-size tuples. Easing is `linear`, `step`, `cubicBezier`, or `spring`.
+`interpolation`, when present, is `linear` or `discrete`.
+
+The schema also validates that a track path identifies an animatable property
+on that particular layer and that its value kind matches the property.
+
+## Audio
+
+Audio is a required root domain parallel to visual layers. A silent project
+uses `{ "sampleRate": 48000, "tracks": [] }`.
 
 ```json
 {
@@ -472,7 +707,9 @@ milliseconds. `sampleRate` and `fps` remain rates measured per second.
             "playbackRate": 1,
             "enabled": true,
             "gainDb": 0,
-            "pan": 0
+            "pan": 0,
+            "fadeIn": { "duration": 250, "curve": "linear" },
+            "fadeOut": { "duration": 500, "curve": "equal-power" }
           }
         ]
       }
@@ -481,109 +718,55 @@ milliseconds. `sampleRate` and `fps` remain rates measured per second.
 }
 ```
 
-Each audio clip may also contain `fadeIn` and `fadeOut`, each with a
-`duration` and curve of `linear` or `equal-power`.
+Audio clip `timing` is composition time; `trim` is source time. Clips reference
+only `audio` assets or the audio derivative of a `video` asset. `playbackRate`
+is positive. `gainDb` is a finite number, `pan` is normalized to `-1..1`, and
+fade durations cannot exceed the clip duration. `enabled: false` preserves the
+clip on the timeline while silencing its input.
 
-Audio clip timing is composition time in milliseconds. `trim` is source time in
-milliseconds. Audio clips may
-reference only `audio` assets or the audio derivative of a `video` asset.
-`enabled: false` silences the mix input without removing it from the timeline.
+Video embedded audio uses `video.payload.audio` for `enabled`, `gainDb`, `pan`,
+`fadeIn`, and `fadeOut`. Its timing and trim stay on the video layer so the
+visual source and original audio move together; the Compiler lowers the audio
+part to Runtime audio data.
 
-#### Embedded audio on a video layer
+## Validation and ownership
 
-`video.payload.audio` is an authoring control surface for the audio stream
-belonging to that video layer. It has the same audio characteristics as a
-standalone input:
+Schema validation covers:
 
-| Field | Meaning |
-| --- | --- |
-| `enabled` | Whether the embedded audio contributes to the mix |
-| `gainDb` | Input gain in decibels |
-| `pan` | Normalized stereo pan from `-1` to `1` |
-| `fadeIn` | Optional fade-in duration and curve |
-| `fadeOut` | Optional fade-out duration and curve |
-| video `timing` | Default composition range for the linked audio |
-| video `trimStart` / `trimEnd` | Default source range for the linked audio |
-
-The current Protocol keeps timing and trim on the video layer so one edit can
-move, trim, or retime the visual and its original audio together. The
-authoring command changes these values; the Compiler resolves them into an
-independent audio clip. This avoids putting decoder state, PCM, or FFmpeg
-commands inside Protocol JSON.
-
-Example:
-
-```json
-{
-  "type": "video",
-  "timing": { "start": 2000, "duration": 4000 },
-  "payload": {
-    "assetId": "video-01",
-    "trimStart": 1000,
-    "trimEnd": 5000,
-    "audio": {
-      "enabled": true,
-      "gainDb": -3,
-      "pan": 0,
-      "fadeIn": { "duration": 250, "curve": "linear" },
-      "fadeOut": { "duration": 500, "curve": "equal-power" }
-    }
-  }
-}
-```
-
-The semantic lowering is:
-
-```text
-video layer
-  ├── visual source: original video stream
-  └── audio source: video asset audio derivative
-        └── timing/trim inherited from the video layer
-            + gain/pan/fades from payload.audio
-```
-
-If an editor needs audio independent from the video, it should create or
-promote a standalone audio clip in `audio.tracks[]` instead of silently
-changing the meaning of the linked video layer.
-
-### 8. Validation rules
-
-The Protocol schema validates both field types and project relationships:
-
-- root format is `motion-protocol`, version is `2`;
-- unknown fields are rejected;
-- asset, layer, track, and clip IDs are unique where required;
-- parent layers exist, are groups, and cannot form cycles;
-- sibling `order` values are unique;
-- asset references match the required asset kind;
-- video trims and audio fades stay within their timing/source ranges;
-- mask sources satisfy the group and drawable-layer rules.
+- exact format/version and strict object fields;
+- finite numbers, positive/non-negative constraints, colors, lengths, and enums;
+- unique asset, layer, definition, track, and clip IDs where applicable;
+- valid group parents, no parent cycles, and unique sibling order values;
+- valid image/video/audio asset-kind references;
+- valid clipPath, mask, filter, marker, and paint-server references;
+- track paths, value kinds, keyframe ordering, and layer-duration bounds;
+- video trim/source-duration and audio fade bounds.
 
 Capability support is decided by the Compiler after Protocol validation. A
-valid JSON field is therefore a valid authoring value, but not automatically a
-promise that every renderer already supports it.
-
-## Pipeline ownership
+schema-valid value is valid authoring data; it is not by itself a promise that
+every renderer supports every optional SVG or 3D feature.
 
 ```text
-Atomic Protocol V2 JSON
-        |
-        v
+Protocol V2 JSON
+      |
+      v
 @motionvideo/motion-compiler
-        |
-        v
-RuntimeProjectV3
-        |
-        v
-@motionvideo/motion-runtime
+      |
+      v
+RuntimeProjectV3 / RuntimeFrameV3
+      |
+      +--> browser SVG reference
+      +--> Skia preview
+      +--> export renderer
 ```
 
-Preview and export consume Runtime IR through their own renderers.
-
-## Commands
+## Schema and tests
 
 ```bash
 pnpm --filter @motionvideo/motion-protocol typecheck
 pnpm --filter @motionvideo/motion-protocol test
 pnpm --filter @motionvideo/motion-protocol check:schema
 ```
+
+`check:schema` regenerates `schema/v2.json` from the Zod source and verifies
+that the checked-in JSON Schema is current.

@@ -5,6 +5,8 @@ export class ExportRendererError extends Error {
       | "INVALID_PROJECT"
       | "UNSUPPORTED_COMMAND"
       | "NON_AFFINE_TRANSFORM"
+      | "ASSET_NOT_FOUND"
+      | "ASSET_DECODE_FAILED"
       | "FFMPEG_FAILED"
       | "OUTPUT_FAILED",
     readonly details?: Record<string, unknown>,

@@ -9,7 +9,7 @@ import {
   PreviewContactSheetRequestSchema,
   DraftVideoRequestSchema,
   FinalRenderRequestSchema,
-} from "./provider";
+} from "../contracts/provider";
 
 // ── ProviderInfo ─────────────────────────────────────────────────────
 

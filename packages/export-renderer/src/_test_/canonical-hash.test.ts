@@ -16,13 +16,13 @@ import {
   computeRuntimeHash,
   buildCapabilityFingerprint,
   RENDER_MANIFEST_VERSION,
-} from "./canonical-hash";
+} from "../contracts/canonical-hash";
 import {
   deepSortKeys,
   computeContentHash,
   shortHash,
   hashesMatch,
-} from "./content-hash";
+} from "../contracts/content-hash";
 
 // ── canonicalJson ─────────────────────────────────────────────────────
 

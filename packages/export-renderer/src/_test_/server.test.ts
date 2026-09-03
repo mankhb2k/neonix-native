@@ -1,6 +1,6 @@
 import { once } from "node:events";
 import { describe, expect, it, afterEach } from "vitest";
-import { createExportRendererServer } from "./server";
+import { createExportRendererServer } from "../api/server";
 
 const originalToken = process.env.INTERNAL_WORKER_TOKEN;
 

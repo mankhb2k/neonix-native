@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { writeFile } from "node:fs/promises";
-import { prepareMediaJob, type MediaObjectStore } from "./media-worker";
+import { prepareMediaJob, type MediaObjectStore } from "../media/media-worker";
 
 function fakeStore(source: Buffer, initialObjects: Array<[string, Buffer]> = []) {
   const objects = new Map<string, Buffer>([["video/origin.mp4", source], ...initialObjects]);

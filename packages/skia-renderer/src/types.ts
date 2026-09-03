@@ -7,7 +7,10 @@ export type SkiaFontAsset = ArrayBuffer | Uint8Array;
 
 /** Host-owned decoded resource. CanvasKit does not own its lifetime. */
 export type SkiaAsset = {
-  source: TexImageSource;
+  /** Browser-owned source. Node export uses `encoded` instead. */
+  source?: TexImageSource;
+  /** Encoded PNG/JPEG/WebP/GIF bytes decoded by CanvasKit. */
+  encoded?: Uint8Array;
   width: number;
   height: number;
   kind?: SkiaAssetKind;
@@ -54,6 +57,10 @@ export type SkiaRendererOptions = {
   assets?: ReadonlyMap<string, SkiaAsset>;
   /** Font bytes keyed by Runtime fontAssetId. Runtime still performs shaping. */
   fonts?: ReadonlyMap<string, SkiaFontAsset>;
+  /** Optional injected CanvasKit instance for Node/offline export. */
+  canvasKit?: import("./canvas-kit").SkiaCanvasKit;
+  /** Receives a physical RGBA readback before browser canvas presentation. */
+  onReadback?: (pixels: Uint8Array, width: number, height: number) => void;
   onDiagnostic?: (diagnostic: SkiaDiagnostic) => void;
   maxDiagnostics?: number;
 };

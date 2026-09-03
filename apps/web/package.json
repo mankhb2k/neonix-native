@@ -15,6 +15,7 @@
     "seed:demo-user": "tsx scripts/seed-demo-user.ts",
     "seed:render-tests": "tsx scripts/seed-render-test-projects.ts",
     "export:emoji-samples": "tsx scripts/export-emoji-samples.ts",
+    "export:skia-preview": "tsx scripts/export-skia-preview.ts",
     "migrate:asset-prefix": "tsx scripts/migrate-asset-prefix-v3.ts",
     "test:editor:watch": "vitest --config vitest.editor.config.ts",
     "test": "pnpm run test:editor",

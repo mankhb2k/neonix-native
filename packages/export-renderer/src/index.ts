@@ -1,6 +1,9 @@
 export * from "./errors";
 export * from "./render/types";
 export * from "./render/render";
+export { resolveFfmpegAudioMix, resolveProjectAudioMix } from "./render/audio-filter";
+export { loadNodeCanvasKit } from "./render/node-skia";
+export { resolveLocalPreviewAssetPath, SkiaFrameAssetResolver, loadRuntimeFontAssets } from "./render/skia-assets";
 export * from "./contracts/index";
 export { paintCommandsToSvg, rasterizeSvgToRgba, encodeRgbaToPng } from "./render/svg-rasterizer";
 export * from "./media/media-probe-v3";

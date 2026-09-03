@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { identityMatrix4, type PaintCommandBuffer, type PaintTextGlyph } from "@motionvideo/motion-runtime";
 import { ExportRendererError } from "../errors";
-import { encodeRgbaToPng, paintCommandsToSvg } from "./svg-rasterizer";
+import { encodeRgbaToPng, paintCommandsToSvg } from "../render/svg-rasterizer";
 
 const buffer: PaintCommandBuffer = {
   commands: [
@@ -55,7 +55,7 @@ describe("native SVG export", () => {
       ],
       diagnostics: [],
     });
-    const encoded = svg.match(/data:image\/svg\+xml;base64,([^\"]+)/)?.[1];
+    const encoded = svg.match(/data:image\/svg\+xml;base64,([^"]+)/)?.[1];
     expect(encoded).toBeDefined();
     const standalone = Buffer.from(encoded!, "base64").toString("utf8");
     expect(standalone).toContain('viewBox="0 -1000 1000 1000"');

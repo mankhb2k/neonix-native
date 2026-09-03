@@ -32,6 +32,17 @@ export const SKIA_PREVIEW_CASES: readonly SkiaPreviewFixture[] = [
   fixture("path.geometry.arc", "Elliptical arc contour.", ["drawPath", "arc"]),
 ];
 
+/** Transform parity fixtures. These deliberately use the canonical Preview
+ * Lab projects so the browser SVG and Skia panels receive the same compiled
+ * RuntimeFrameV3 transform matrices. */
+export const SKIA_TRANSFORM_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("html-compiler.transform.translate", "2D translation lowered by the HTML compiler.", ["setTransform", "translate", "drawShape"]),
+  fixture("html-compiler.transform.scale-anchor", "Non-uniform scale around a local transform-origin anchor.", ["setTransform", "scale", "anchor"]),
+  fixture("html-compiler.transform.rotate", "Z rotation around the default local center anchor.", ["setTransform", "rotate", "anchor"]),
+  fixture("html-compiler.transform.skew", "X-axis skew lowered from CSS to the Runtime transform.", ["setTransform", "skew", "drawShape"]),
+  fixture("group.nested-transform", "Nested parent and child 2D transforms composed by Runtime.", ["beginGroup", "setTransform", "nested"]),
+];
+
 /** Phase 3 paint contract fixtures sourced from the existing Protocol V2 lab. */
 export const SKIA_GRADIENT_CASES: readonly SkiaPreviewFixture[] = [
   fixture("shape.linear-gradient", "Linear gradient on a shape.", ["drawShape", "linear-gradient", "stops"]),

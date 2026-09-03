@@ -10,6 +10,9 @@ export async function encodeRgbaFramesToMp4(options: {
   height: number;
   fps: number;
   frames: AsyncIterable<Buffer>;
+  audioInputs?: Array<{ path: string }>;
+  audioFilterComplex?: string;
+  durationSeconds?: number;
   logLevel?: "quiet" | "error" | "warning" | "info";
 }): Promise<{ outputBytes: number; encodeMilliseconds: number }> {
   await mkdir(dirname(options.outputPath), { recursive: true });
@@ -17,8 +20,14 @@ export async function encodeRgbaFramesToMp4(options: {
   const args = [
     "-y", "-hide_banner", "-loglevel", options.logLevel ?? "error",
     "-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${options.width}x${options.height}`,
-    "-r", String(options.fps), "-i", "pipe:0", "-an", "-c:v", "libx264",
-    "-preset", "veryfast", "-pix_fmt", "yuv420p", "-movflags", "+faststart", options.outputPath,
+    "-r", String(options.fps), "-i", "pipe:0",
+    ...(options.audioInputs ?? []).flatMap((input) => ["-i", input.path]),
+    ...(options.audioFilterComplex && options.audioInputs?.length
+      ? ["-filter_complex", options.audioFilterComplex, "-map", "0:v:0", "-map", "[aout]", "-c:a", "aac", "-b:a", "192k"]
+      : ["-map", "0:v:0", "-an"]),
+    "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+    ...(options.durationSeconds ? ["-t", String(options.durationSeconds)] : []),
+    "-movflags", "+faststart", options.outputPath,
   ];
   const child = spawn(options.ffmpegPath, args, { stdio: ["pipe", "ignore", "pipe"] });
   let stderr = "";

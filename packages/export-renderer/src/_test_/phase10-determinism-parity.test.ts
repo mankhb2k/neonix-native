@@ -15,21 +15,21 @@ import {
   shortHash,
   hashesMatch,
   parseRenderManifest,
-} from "./index.js";
+} from "../contracts/index.js";
 import {
   goldenSampleFrame,
   goldenSampleTime,
   compareGoldenFrames,
   GOLDEN_SAMPLE_POINTS,
-} from "./golden-frames.js";
+} from "../contracts/golden-frames.js";
 import {
   runPreflight,
   checkCodecSupport,
   checkTextureSize,
   checkMemory,
-} from "./preflight.js";
-import type { GoldenFile } from "./golden-frames.js";
-import type { PreflightResult } from "./preflight.js";
+} from "../contracts/preflight.js";
+import type { GoldenFile } from "../contracts/golden-frames.js";
+import type { PreflightResult } from "../contracts/preflight.js";
 
 // ═══════════════════════════════════════════════════════════════════
 // RenderManifest (Task 10.1)

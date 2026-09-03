@@ -47,12 +47,12 @@ function imageRectForCommand(
   };
 }
 
-function snapshotVideoSource(asset: SkiaAsset): TexImageSource {
+function snapshotVideoSource(asset: SkiaAsset): TexImageSource | null {
   if (
     asset.kind !== "video" ||
     typeof HTMLVideoElement === "undefined" ||
     !(asset.source instanceof HTMLVideoElement)
-  ) return asset.source;
+  ) return asset.source ?? null;
 
   const width = Math.max(1, Math.floor(asset.width));
   const height = Math.max(1, Math.floor(asset.height));
@@ -61,7 +61,7 @@ function snapshotVideoSource(asset: SkiaAsset): TexImageSource {
   // and some builds do not expose the same internal fields for OffscreenCanvas.
   const snapshot = Object.assign(document.createElement("canvas"), { width, height });
   const context = snapshot.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
-  if (!context) return asset.source;
+  if (!context) return asset.source ?? null;
   context.drawImage(asset.source, 0, 0, width, height);
   return snapshot;
 }
@@ -78,7 +78,11 @@ export function drawAsset(
   // host still owns video decoding; snapshot only the already-seeked current
   // frame into a canvas before handing pixels to Skia.
   const source = snapshotVideoSource(asset);
-  const image: SkiaImage | null = kit.MakeImageFromCanvasImageSource(source);
+  const image: SkiaImage | null = asset.encoded && kit.MakeImageFromEncoded
+    ? kit.MakeImageFromEncoded(asset.encoded)
+    : source
+      ? kit.MakeImageFromCanvasImageSource(source)
+      : null;
   if (!image) return false;
   const rects = imageRectForCommand(command, asset);
   const imagePaint = createSkiaPaint(kit, "#ffffff", alpha, kit.PaintStyle.Fill);

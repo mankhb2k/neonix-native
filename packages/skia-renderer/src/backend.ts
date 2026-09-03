@@ -50,7 +50,7 @@ function applyNoise(
 }
 
 export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<SkiaRenderer> {
-  const kit = await loadCanvasKit();
+  const kit = options.canvasKit ?? await loadCanvasKit();
   let width = options.width ?? (options.canvas.width || 1);
   let height = options.height ?? (options.canvas.height || 1);
   let dpr = Number.isFinite(options.devicePixelRatio) && (options.devicePixelRatio ?? 0) > 0 ? options.devicePixelRatio! : 1;
@@ -150,8 +150,15 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       colorSpace: kit.ColorSpace.SRGB,
     });
     if (pixels && replay.noiseRegions.length) applyNoise(pixels, backingWidth, backingHeight, replay.noiseRegions, dpr);
-    const target = options.canvas.getContext("2d") as CanvasRenderingContext2D | null;
-    if (target && pixels) target.putImageData(new ImageData(new Uint8ClampedArray(pixels), backingWidth, backingHeight), 0, 0);
+    if (pixels) {
+      options.onReadback?.(pixels, backingWidth, backingHeight);
+      const target = typeof (options.canvas as { getContext?: unknown }).getContext === "function"
+        ? options.canvas.getContext("2d") as CanvasRenderingContext2D | null
+        : null;
+      if (target && typeof ImageData !== "undefined") {
+        target.putImageData(new ImageData(new Uint8ClampedArray(pixels), backingWidth, backingHeight), 0, 0);
+      }
+    }
     stats = {
       ...stats,
       drawCalls: replay.drawCalls,

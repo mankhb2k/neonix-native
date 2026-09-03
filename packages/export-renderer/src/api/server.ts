@@ -50,7 +50,7 @@ export function createExportRendererServer(options: {
   return createServer(async (request, response) => {
     try {
       if (request.method === "GET" && ["/health", "/healthz", "/readyz"].includes(request.url ?? "")) {
-        json(response, 200, { ok: true, service: "export-renderer", renderer: "native-svg-ffmpeg" });
+        json(response, 200, { ok: true, service: "export-renderer", renderer: "skia-wasm-ffmpeg" });
         return;
       }
       const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);

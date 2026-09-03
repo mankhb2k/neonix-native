@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sha256Hex } from "./sha256";
+import { sha256Hex } from "../contracts/sha256";
 
 // Reference vectors generated with Node's `createHash("sha256")`.
 const VECTORS: Array<[input: string, expected: string]> = [

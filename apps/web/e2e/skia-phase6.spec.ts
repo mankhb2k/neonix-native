@@ -8,12 +8,14 @@ import {
   SKIA_MASK_CASES,
   SKIA_PREVIEW_CASES,
   SKIA_TEXT_CASES,
+  SKIA_TRANSFORM_CASES,
   SKIA_VIDEO_CASES,
 } from "../lib/docs/skia-preview-fixtures";
 import { readSkiaDiff } from "./skia-pixel-diff";
 
 const TOTAL_SKIA_CASES = [
   ...SKIA_PREVIEW_CASES,
+  ...SKIA_TRANSFORM_CASES,
   ...SKIA_GRADIENT_CASES,
   ...SKIA_IMAGE_CASES,
   ...SKIA_VIDEO_CASES,

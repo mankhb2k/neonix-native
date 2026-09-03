@@ -6,6 +6,10 @@ export type ExportRenderOptions = {
   frameCount?: number;
   ffmpegPath?: string;
   ffmpegLogLevel?: "quiet" | "error" | "warning" | "info";
+  /** Filesystem root containing the web app's public directory. */
+  assetRoot?: string;
+  /** Skia is the Phase 9 visual export backend; SVG remains available only for legacy helpers. */
+  renderer?: "skia" | "svg";
 };
 
 export type ExportRenderStats = {

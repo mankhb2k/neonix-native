@@ -89,9 +89,11 @@ function drawColorGlyph(
   const bitmapGlyph = colorGlyph.kind === "bitmap" ? colorGlyph : glyph.colorGlyphFallback;
   if (bitmapGlyph) {
     const decodedAsset = assets.get(skiaTextGlyphAssetId(commandKey, glyphIndex));
-    const image = decodedAsset
-      ? kit.MakeImageFromCanvasImageSource(decodedAsset.source)
-      : kit.MakeImageFromEncoded?.(bitmapGlyph.bytes) ?? null;
+    const image = decodedAsset?.encoded && kit.MakeImageFromEncoded
+      ? kit.MakeImageFromEncoded(decodedAsset.encoded)
+      : decodedAsset?.source
+        ? kit.MakeImageFromCanvasImageSource(decodedAsset.source)
+        : kit.MakeImageFromEncoded?.(bitmapGlyph.bytes) ?? null;
     if (image) {
       const paint = createSkiaPaint(kit, "#ffffff", alpha, kit.PaintStyle.Fill);
       const imageWidth = decodedAsset?.width ?? image.width?.() ?? Math.max(1, glyph.width);
