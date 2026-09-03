@@ -1,6 +1,6 @@
 # `@motionvideo/html-compiler`
 
-Phase 2–4 HTML/CSS authoring boundary. The package compiles a deliberately small,
+Phase 0.1–4 HTML/CSS authoring boundary. The package compiles a deliberately small,
 deterministic CSS subset into Atomic Protocol V2; it does not import the motion
 runtime or renderer.
 
@@ -14,6 +14,26 @@ HTML + CSS
   -> Motion Protocol V2 JSON
 ```
 
+## Supported in Phase 0.1 — cascade and value normalization
+
+The first P0 slice is backed by the live fixture at
+`apps/web/lib/docs/html-compiler-preview.ts` and covers the normalization
+contract before layout lowering:
+
+| CSS property / feature | Accepted syntax | Normalization | V2 target | Fallback / diagnostic | Fixture |
+| --- | --- | --- | --- | --- | --- |
+| selector cascade | tag, `.class`, `#id`, descendant, selector list | specificity → `!important` → source order | computed style | unsupported selectors fail closed | `html-compiler.p0.cascade-values` |
+| custom properties | `--name`, `var(--name, fallback)` | scoped inheritance and recursive resolution | concrete paint/length value | missing/cyclic variable diagnostic | `html-compiler.p0.cascade-values` |
+| special keywords | `initial`, `inherit`, `unset` | property initial value or inherited value | concrete computed style | invalid property value diagnostic | `html-compiler.p0.cascade-values` |
+| common shorthands | `margin`, `padding`, `border`, solid `background` | longhand expansion with cascade order preserved | `frame` / `style` | unsupported shorthand fails closed | `html-compiler.p0.cascade-values` |
+| typed value functions | `calc()`, `min()`, `max()`, `clamp()` | fixed 1920×1080 viewport and px normalization | `frame` / `transform` | incompatible units fail closed | `html-compiler.p0.cascade-values` |
+| paint keywords | `none`, `transparent`, `currentColor` | canonical V2 colors | `style.fill` / `style.stroke` | property-invalid colors fail closed | `html-compiler.p0.cascade-values` |
+
+The preview route shows the same source in a native browser iframe and in the
+Skia-backed Protocol V2 stage. Its sidebar is generated from registered
+fixtures, so a property is not presented as supported until it has a source,
+lowering and test coverage.
+
 ## Supported in Phase 2
 
 - Nested visual HTML/SVG elements with `id` and `class` attributes.
@@ -23,8 +43,8 @@ HTML + CSS
 - Specificity, source order and inherited text plus SVG paint properties.
 - CSS custom properties with nested references and `var()` fallbacks.
 - `px`, `%`, `em`, `rem`, `vw`, `vh`, `auto` and arithmetic `calc()`.
-- Absolute offsets, width/height, min/max constraints, margin, padding and
-  `box-sizing` input normalization.
+- Absolute offsets, width/height, min/max constraints, numeric
+  `aspect-ratio`, margin, padding and `box-sizing` input normalization.
 - Solid hex/transparent paint, opacity, `display:none`, stable IDs/order and
   parent groups for nested elements.
 - Phase 3A layout primitives: `display: block|contents|none`, static block
@@ -33,9 +53,10 @@ HTML + CSS
 
 ### Stable element identity
 
-The compiler uses `data-atomic-id` as the canonical authoring identity, then
-falls back to the HTML `id`, then to a deterministic DOM structural path such
-as `dom/div:0/span:0`. Explicit identities must be unique. A visual element
+The compiler uses the standard HTML `id` as the canonical authoring identity,
+then falls back to a deterministic DOM structural path such as
+`dom/div:0/span:0`. The removed `data-atomic-id` attribute is rejected.
+Explicit identities must be unique. A visual element
 that lowers to multiple Protocol layers keeps the base identity for its group
   and receives stable suffixes such as `hero::paint`.
 
@@ -132,25 +153,93 @@ perspective parsing remain a later HTML compiler slice.
 
 ## Explicitly deferred
 
-Flex/grid layout, margin collapsing, overflow clipping, images, masks, filters, text shaping,
+Flex/grid layout, overflow clipping, images, masks, filters, text shaping,
 advanced transform matrices, 3D context, animation and transitions are later compiler phases. Unsupported
 properties, selectors, text nodes and invalid values fail closed with a
 diagnostic; they are not silently ignored.
 
 ## API
 
+### Package structure
+
+The public entrypoint in `src/index.ts` only coordinates the compiler pipeline
+and re-exports the stable source API. Implementation responsibilities live
+under `src/compiler/`:
+
+```text
+src/
+├── source.ts                 # NeonixHtmlSourceV1 and new-project factory
+├── index.ts                  # public API and compile orchestration
+└── compiler/
+    ├── html.ts               # HTML shell, identity and manifest parsing
+    ├── css-parser.ts         # CSS rules and declarations
+    ├── cascade.ts            # selectors, specificity and inheritance
+    ├── cascade-values.ts     # shorthand/longhand expansion
+    ├── values.ts             # var(), calc(), min(), max(), clamp() and units
+    ├── paint.ts              # colors, gradients, borders and radius
+    ├── path.ts               # SVG path parsing and path paint
+    ├── transform.ts          # CSS transform lowering
+    ├── layout.ts             # future layout-only helpers
+    ├── model.ts              # internal compiler model and support tables
+    ├── errors.ts             # diagnostics and source locations
+    └── utils.ts              # shared parser utilities
+```
+
+New compiler features should be added to the narrowest module that owns their
+semantic responsibility; `index.ts` should only connect those modules to the
+Protocol V2 lowering step.
+
 ```ts
-const result = compileHtmlCss({ html, css }, {
-  composition: { width: 1920, height: 1080, fps: 30, durationMs: 1000 },
-});
+const source = createNewHtmlProject();
+const sourceWithStyles = { ...source, css };
+const result = compileHtmlCss(sourceWithStyles);
 
 // result.status === "success" -> result.protocol is schema-validated V2 JSON
 // result.status === "error"   -> result.diagnostics explains the source error
 ```
 
-The output is validated by `MotionProtocolV2Schema` before it is returned. The
+`createNewHtmlProject` is the new-project factory. It creates the complete
+multiline `DOCTYPE/html/head/body` document, including the
+`script#neonix-manifest` composition block, and the `NeonixHtmlSourceV1`
+envelope. The compiler validates the embedded manifest before producing
+Protocol V2. Every source starts with the
+fixed composition envelope `{ width: 1920, height: 1080, fps: 30,
+background: "#081018", colorSpace: "srgb" }`. The browser reference and
+compiler must consume this same envelope; they do not independently choose a
+viewport or scale. The output is validated by `MotionProtocolV2Schema` before it is returned. The
 motion compiler then owns Protocol V2 -> RuntimeProjectV3 lowering; this package
 does not perform runtime fallback or browser rendering.
+
+### Composition bounds
+
+The fixed composition is also the compiler's hard axis-aligned layout boundary.
+After resolving percentages, viewport units, `calc()`, `min()`, `max()` and
+`clamp()`, a node's layout rectangle is constrained to `0..1920` and
+`0..1080` before it is lowered to a Protocol V2 layer. For example,
+`left: 100px; width: 100%` produces a visible width of `1820px`, not a
+`1920px` layer extending past the right edge. The browser reference uses the
+same fixed logical viewport and `overflow: hidden` at the composition root.
+
+This boundary applies to the resolved layout rectangle. Transforms, strokes,
+shadows and future visual effects require their own clip semantics before they
+can be guaranteed to remain pixel-perfectly inside the composition.
+
+## CLI
+
+The package includes a small project CLI for creating repeatable HTML compiler
+cases. It writes the canonical `neonix-source.json` and the compiler output
+`protocol-v2.json` into the target directory:
+
+```bash
+pnpm --filter @motionvideo/html-compiler cli new ./fixtures/new-project
+pnpm --filter @motionvideo/html-compiler cli new ./fixtures/p0/blue-rectangle --example blue-rectangle
+pnpm --filter @motionvideo/html-compiler cli compile ./fixtures/p0/blue-rectangle
+```
+
+`new` is non-destructive: it refuses to overwrite an existing source or
+protocol file. The `blue-rectangle` example is the Phase 0 starter case and
+uses the standard HTML document shell, a stable `id`, and the fixed
+1920x1080 composition manifest.
 
 Tests live under `src/_test_` and cover cascade/inheritance, nested groups,
 variables/fallbacks, units, `calc()`, SVG/path contours and fail-closed diagnostics. The original
@@ -171,14 +260,15 @@ Protocol JSON.
 
 Identity precedence is:
 
-1. `data-atomic-id` — canonical identity for editor-authored elements.
-2. `id` — HTML-compatible fallback.
-3. A deterministic structural path such as `dom/body:0/div:0/span:0`.
+1. `id` — canonical HTML identity.
+2. A deterministic structural path such as `dom/body:0/div:0/span:0` for
+   compiler-internal containers or legacy fragment inputs.
 
 Explicit identities must match `^[A-Za-z][A-Za-z0-9_-]{0,199}$` and be unique.
 Invalid and duplicate identities produce `html-identity-invalid` and
 `html-duplicate-atomic-id`. Structural paths are deterministic for the same
-DOM structure; use `data-atomic-id` when an identity must survive sibling edits.
+DOM structure; use a stable HTML `id` when an identity must survive sibling
+edits.
 
 One element can lower to multiple layers while preserving its base identity:
 
@@ -213,10 +303,15 @@ unit strings: percentages use the containing block, `em` uses the node's
 computed font size, `rem` uses the 16px root default, and viewport units use the
 composition viewport.
 
-The default composition is `1920 × 1080`, `fps = 30`, `durationMs = 1000`.
-`content-box` adds padding to the frame; `border-box` treats width/height as the
-border box. Missing margin/padding normalize to zero. `display:none` removes
-the complete subtree. Invalid units, values or incompatible `calc()` expressions
+The source composition is fixed at `1920 x 1080`, `fps = 30`, background
+`#081018` and `srgb`. Compiler timing still defaults to `durationMs = 1000`
+until duration becomes part of the project timeline contract.
+
+`content-box` adds padding and border to the frame; `border-box` treats
+width/height as the border box. A numeric `aspect-ratio` resolves an `auto`
+dimension before min/max constraints are applied. Missing margin/padding
+normalize to zero. `display:none` removes the complete subtree. Invalid units,
+values or incompatible `calc()` expressions
 produce `css-unit-unsupported`, `css-value-invalid` or
 `css-calc-incompatible`.
 
@@ -252,8 +347,9 @@ The five foundation contracts are:
    inherited, `auto` and invalid values are distinct states.
 4. **Box coordinate contract** — composition origin is top-left, x grows right,
    y grows down, frames are border-box coordinates, and Protocol timing is ms.
-   Full browser block-flow/margin-collapse/flex/grid behavior is deferred to
-   the layout phase.
+    Static block flow and adjoining vertical margin collapse are supported;
+    flex/grid and advanced containing-block behavior remain deferred to the
+    layout phase.
 5. **Source diagnostics** — parse and normalization errors carry `kind`, source
    character `offset`, `line` and `column` whenever the source span is known.
 

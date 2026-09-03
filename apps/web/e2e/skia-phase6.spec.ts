@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  SKIA_ANIMATION_CASES,
   SKIA_CLIP_CASES,
   SKIA_COMPOSITING_CASES,
   SKIA_EFFECT_CASES,
@@ -14,6 +15,7 @@ import {
 import { readSkiaDiff } from "./skia-pixel-diff";
 
 const TOTAL_SKIA_CASES = [
+  ...SKIA_ANIMATION_CASES,
   ...SKIA_PREVIEW_CASES,
   ...SKIA_TRANSFORM_CASES,
   ...SKIA_GRADIENT_CASES,

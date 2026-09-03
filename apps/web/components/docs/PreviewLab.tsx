@@ -1,21 +1,15 @@
 "use client";
 
+import { Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
 import { PreviewStage } from "@/components/docs/PreviewStage";
 import {
   type PreviewLabCase,
   previewLabCaseById,
   previewLabGroups,
 } from "@/lib/docs/preview-lab";
-import {
-  compileHtmlCss,
-  createHtmlCssSource,
-  type HtmlCompilerDiagnostic,
-  type HtmlCssSource,
-} from "@motionvideo/html-compiler";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import type { V2AudioFixture } from "@motionvideo/motion-protocol/v2";
 import type {
@@ -35,37 +29,13 @@ const backendOptions: Array<{
   { id: "webgl2", label: "WebGL2" },
 ];
 
-type AuthoringMode = "json" | "html-css";
-
 /** Audio fixture values are Protocol V2 milliseconds; this panel displays seconds. */
 const protocolMillisecondsToSeconds = (value: number): number => value / 1000;
 
-const DEFAULT_HTML_CSS_SOURCE: HtmlCssSource = createHtmlCssSource({
-  html: `<div id="gold-01"></div>`,
-  css: `body { margin: 0; background: #081018; }
-#gold-01 { position: absolute; left: 480px; top: 270px; width: 960px; height: 540px; background: #14b8a6; opacity: 1; }`,
-});
-
-function htmlCssDocumentFromSource(source: HtmlCssSource): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-${source.css}
-  </style>
-</head>
-<body>
-${source.html}
-</body>
-</html>`;
-}
-
-export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-compiler" }) {
+export function PreviewLab() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selected = previewLabCaseById(searchParams.get("case"), variant);
+  const selected = previewLabCaseById(searchParams.get("case"));
   const backend: PreviewLabBackendPreference =
     searchParams.get("backend") === "skia"
       ? "skia"
@@ -79,33 +49,21 @@ export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-comp
     Number.isFinite(requestedTime) && requestedTime >= 0
       ? requestedTime
       : (selected.previewTime ?? 0);
-  const groups = useMemo(() => previewLabGroups(variant), [variant]);
+  const groups = useMemo(() => previewLabGroups(), []);
   const json = JSON.stringify(selected.project, null, 2);
-  const [authoringMode, setAuthoringMode] = useState<AuthoringMode>(variant === "html-compiler" ? "html-css" : "json");
-  const htmlCssSource = selected.htmlCssSource ?? DEFAULT_HTML_CSS_SOURCE;
-  const htmlCssDocument = htmlCssDocumentFromSource(htmlCssSource);
-  const htmlCompile = useMemo(() => compileHtmlCss(htmlCssSource), [htmlCssSource]);
-  const sourceProject = variant === "html-compiler" && selected.htmlCssSource && htmlCompile.protocol
-    ? htmlCompile.protocol
-    : variant === "html-compiler" && selected.id === "primitive.shape.rectangle" && htmlCompile.protocol
-    ? htmlCompile.protocol
-    : selected.project;
-  const sourceJson = variant === "html-compiler" && (selected.htmlCssSource || selected.id === "primitive.shape.rectangle")
-    ? JSON.stringify(htmlCompile.protocol ?? { diagnostics: htmlCompile.diagnostics }, null, 2)
-    : json;
 
   function selectCase(id: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("case", id);
     params.delete("time");
-    router.replace(`${variant === "html-compiler" ? "/docs/preview/html-compiler" : "/docs/preview"}?${params.toString()}`, { scroll: false });
+    router.replace(`/docs/preview?${params.toString()}`, { scroll: false });
   }
 
   function selectBackend(next: PreviewLabBackendPreference) {
     const params = new URLSearchParams(searchParams.toString());
     if (next === "auto") params.delete("backend");
     else params.set("backend", next);
-    router.replace(`${variant === "html-compiler" ? "/docs/preview/html-compiler" : "/docs/preview"}?${params.toString()}`, { scroll: false });
+    router.replace(`/docs/preview?${params.toString()}`, { scroll: false });
   }
 
   return (
@@ -174,86 +132,23 @@ export function PreviewLab({ variant = "json" }: { variant?: "json" | "html-comp
             {selected.audioFixture ? (
               <AudioFixturePreview fixture={selected.audioFixture} />
             ) : (
-              <>
-                {variant === "html-compiler" && selected.htmlCssSource && htmlCompile.status === "error" ? (
-                  <HtmlCompilerDiagnosticPreview diagnostics={htmlCompile.diagnostics} />
-                ) : (
-                  <PreviewCaseRenderer
-                    key={selected.id}
-                    project={sourceProject}
-                    backend={backend}
-                    initialTime={time}
-                    onBackendChange={selectBackend}
-                  />
-                )}
-                {variant === "html-compiler" ? <HtmlCssPreview source={htmlCssSource} /> : null}
-              </>
+              <PreviewCaseRenderer
+                key={selected.id}
+                project={selected.project}
+                backend={backend}
+                initialTime={time}
+                onBackendChange={selectBackend}
+              />
             )}
           </div>
 
-          {variant === "html-compiler" ? (
-            <AuthoringPanel mode={authoringMode} onModeChange={setAuthoringMode} json={sourceJson} document={htmlCssDocument} />
-          ) : (
-            <aside className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex" data-testid="preview-authoring-panel">
-              <div className="border-b border-white/10 px-3 py-2 text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">Atomic Protocol V2 JSON</div>
-              <CodePanel value={json} />
-            </aside>
-          )}
+          <aside className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex" data-testid="preview-authoring-panel">
+            <div className="border-b border-white/10 px-3 py-2 text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">Atomic Protocol V2 JSON</div>
+            <CodePanel value={json} />
+          </aside>
         </div>
       </section>
     </div>
-  );
-}
-
-function AuthoringPanel({
-  mode,
-  onModeChange,
-  json,
-  document,
-}: {
-  mode: AuthoringMode;
-  onModeChange: (mode: AuthoringMode) => void;
-  json: string;
-  document: string;
-}) {
-  return (
-    <aside
-      className="hidden min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-white/10 bg-[#0c0e14] 2xl:flex"
-      data-testid="preview-authoring-panel"
-    >
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-        <div
-          className="inline-flex rounded-md border border-white/10 p-0.5"
-          role="tablist"
-          aria-label="Authoring output"
-          data-testid="preview-authoring-toggle"
-        >
-          {(["json", "html-css"] as const).map((nextMode) => (
-            <button
-              key={nextMode}
-              type="button"
-              role="tab"
-              aria-selected={mode === nextMode}
-              data-testid={`preview-authoring-${nextMode}`}
-              onClick={() => onModeChange(nextMode)}
-              className={
-                mode === nextMode
-                  ? "rounded bg-cyan-400/20 px-2 py-1 text-[11px] font-medium text-cyan-100"
-                  : "rounded px-2 py-1 text-[11px] text-slate-400 hover:bg-white/10 hover:text-slate-200"
-              }
-            >
-              {nextMode === "json" ? "Atomic Protocol V2 JSON" : "HTML / CSS"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {mode === "json" ? (
-        <CodePanel value={json} />
-      ) : (
-        <CodePanel value={document} testId="html-css-document-input" />
-      )}
-    </aside>
   );
 }
 
@@ -269,57 +164,6 @@ function CodePanel({
       <code data-testid={testId}>{value}</code>
     </pre>
   );
-}
-
-function HtmlCssPreview({ source }: { source: HtmlCssSource }) {
-  return (
-    <section
-      className="mt-4 w-full overflow-hidden rounded-lg border border-cyan-300/20 bg-[#0c1118] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]"
-      data-testid="html-css-preview"
-    >
-      <div className="border-b border-white/10 px-3 py-2">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-cyan-300/80 uppercase">
-          HTML / CSS Preview
-        </p>
-      </div>
-      <div className="aspect-video w-full overflow-hidden bg-white" data-testid="html-css-authoring-stage">
-        <iframe
-          title="HTML CSS authoring stage"
-          className="h-full w-full border-0"
-          sandbox=""
-          srcDoc={htmlCssSrcDoc(source)}
-        />
-      </div>
-    </section>
-  );
-}
-
-function HtmlCompilerDiagnosticPreview({ diagnostics }: { diagnostics: HtmlCompilerDiagnostic[] }) {
-  return (
-    <section className="flex aspect-video w-full flex-col rounded-lg border border-rose-300/30 bg-[#0c1118] p-5" data-testid="html-compiler-diagnostic-preview">
-      <p className="text-[11px] font-semibold tracking-[0.14em] text-rose-300 uppercase">Expected HTML compiler diagnostic</p>
-      <p className="mt-2 text-[12px] text-slate-400">This fixture intentionally contains visual-unsupported behavior and must not enter the runtime.</p>
-      <div className="mt-4 space-y-3 overflow-auto text-[12px] text-slate-300">
-        {diagnostics.map((diagnostic, index) => (
-          <div key={`${diagnostic.code}-${index}`} className="rounded-md border border-rose-300/20 bg-rose-950/20 p-3">
-            <p className="font-mono text-rose-200">{diagnostic.code}</p>
-            <p className="mt-1">{diagnostic.message}</p>
-            {diagnostic.source ? (
-              <p className="mt-2 font-mono text-[11px] text-slate-400">
-                {diagnostic.source.kind}:{diagnostic.source.line}:{diagnostic.source.column}
-              </p>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function htmlCssSrcDoc(source: HtmlCssSource): string {
-  const css = source.css.replace(/<\/style/gi, "<\\/style");
-  const html = source.html.replace(/<\/body/gi, "<\\/body");
-  return `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style><style>html, body { width: 1920px; height: 1080px; overflow: hidden; } body { transform: scale(.5); transform-origin: top left; }</style></head><body>${html}</body></html>`;
 }
 
 function AudioFixturePreview({ fixture }: { fixture: V2AudioFixture }) {

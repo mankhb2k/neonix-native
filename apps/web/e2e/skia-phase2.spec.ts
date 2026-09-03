@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "../lib/docs/skia-preview-fixtures";
+import { SKIA_ANIMATION_CASES, SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "../lib/docs/skia-preview-fixtures";
 import { readSkiaDiff } from "./skia-pixel-diff";
 
 test.describe("Skia Phase 2 Runtime path baseline", () => {
@@ -7,7 +7,7 @@ test.describe("Skia Phase 2 Runtime path baseline", () => {
     await page.goto("/docs/preview/skia");
     const select = page.locator("#runtime-skia-case");
     const canvas = page.getByTestId("skia-runtime-stage");
-    await expect(select.locator("option")).toHaveCount(SKIA_PREVIEW_CASES.length + SKIA_TRANSFORM_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_IMAGE_CASES.length + SKIA_VIDEO_CASES.length + SKIA_TEXT_CASES.length + SKIA_COMPOSITING_CASES.length + SKIA_CLIP_CASES.length + SKIA_MASK_CASES.length + SKIA_EFFECT_CASES.length);
+    await expect(select.locator("option")).toHaveCount(SKIA_ANIMATION_CASES.length + SKIA_PREVIEW_CASES.length + SKIA_TRANSFORM_CASES.length + SKIA_GRADIENT_CASES.length + SKIA_IMAGE_CASES.length + SKIA_VIDEO_CASES.length + SKIA_TEXT_CASES.length + SKIA_COMPOSITING_CASES.length + SKIA_CLIP_CASES.length + SKIA_MASK_CASES.length + SKIA_EFFECT_CASES.length);
     await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
 
     for (const fixture of SKIA_PREVIEW_CASES) {

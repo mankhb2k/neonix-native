@@ -1,0 +1,108 @@
+import { fail } from "./errors";
+import { splitTopLevel } from "./utils";
+import type { Style } from "./model";
+
+export function isPaintToken(value: string): boolean {
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(value) || ["transparent", "currentcolor", "none"].includes(value.toLowerCase());
+}
+
+export type Num = { value: number; unit: "px" | "%" | "number" };
+
+export function calcExpression(expression: string, property: string, relative: number, fontSize: number, rootFontSize: number, viewport: { width: number; height: number }): Num {
+  const text = expression.trim();
+  if (text.toLowerCase() === "auto") return { value: Number.NaN, unit: "px" };
+  let cursor = 0;
+  const failValue = (message: string): never => fail("css-value-invalid", `${property} ${message}: ${expression}`);
+  const skipWhitespace = () => { while (/\s/.test(text[cursor] ?? "")) cursor += 1; };
+  const parseExpression = (): Num => {
+    let result = parseProduct();
+    while (true) {
+      skipWhitespace(); const operator = text[cursor];
+      if (operator !== "+" && operator !== "-") return result;
+      cursor += 1; const rhs = parseProduct();
+      if (result.unit !== rhs.unit && !(result.unit === "px" && rhs.unit === "number") && !(result.unit === "number" && rhs.unit === "px")) fail("css-calc-incompatible", `Incompatible calc units in ${expression}`);
+      result = { value: operator === "+" ? result.value + rhs.value : result.value - rhs.value, unit: result.unit === "px" || rhs.unit === "px" ? "px" : "number" };
+    }
+  };
+  const parseProduct = (): Num => {
+    let result = parsePrimary();
+    while (true) {
+      skipWhitespace(); const operator = text[cursor];
+      if (operator !== "*" && operator !== "/") return result;
+      cursor += 1; const rhs = parsePrimary();
+      if (operator === "*") {
+        if (result.unit !== "number" && rhs.unit !== "number") fail("css-calc-incompatible", `Multiplication requires a number in ${expression}`);
+        result = { value: result.value * rhs.value, unit: result.unit === "number" ? rhs.unit : result.unit };
+      } else {
+        if (rhs.unit !== "number" || rhs.value === 0) fail("css-calc-incompatible", `Division requires a non-zero number in ${expression}`);
+        result = { value: result.value / rhs.value, unit: result.unit };
+      }
+    }
+  };
+  const parsePrimary = (): Num => {
+    skipWhitespace();
+    if (text[cursor] === "+" || text[cursor] === "-") {
+      const sign = text[cursor] === "-" ? -1 : 1; cursor += 1; const value = parsePrimary(); return { ...value, value: value.value * sign };
+    }
+    if (text[cursor] === "(") {
+      cursor += 1; const value = parseExpression(); skipWhitespace(); if (text[cursor] !== ")") failValue("has an unclosed parenthesis"); cursor += 1; return value;
+    }
+    const functionMatch = text.slice(cursor).match(/^([A-Za-z-]+)\(/);
+    if (functionMatch) {
+      const name = functionMatch[1]!.toLowerCase(); cursor += functionMatch[0]!.length;
+      if (!["calc", "min", "max", "clamp"].includes(name)) failValue(`does not support ${name}()`);
+      const values: Num[] = [];
+      skipWhitespace();
+      if (name === "calc") { values.push(parseExpression()); skipWhitespace(); if (text[cursor] !== ")") failValue("has an invalid calc() expression"); cursor += 1; return values[0]!; }
+      while (true) {
+        values.push(parseExpression()); skipWhitespace();
+        if (text[cursor] === ",") { cursor += 1; continue; }
+        if (text[cursor] !== ")") failValue(`has an invalid ${name}() expression`); cursor += 1; break;
+      }
+      if ((name === "min" || name === "max") && values.length < 1) failValue(`${name}() needs at least one value`);
+      if (name === "clamp" && values.length !== 3) failValue("clamp() needs three values");
+      if (values.some((value) => value.unit !== values[0]!.unit)) fail("css-calc-incompatible", `Incompatible units in ${expression}`);
+      if (name === "min") return values.reduce((a, b) => a.value <= b.value ? a : b);
+      if (name === "max") return values.reduce((a, b) => a.value >= b.value ? a : b);
+      return { ...values[1]!, value: Math.min(Math.max(values[1]!.value, values[0]!.value), values[2]!.value) };
+    }
+    const match = text.slice(cursor).match(/^(\d*\.?\d+)(px|%|em|rem|vw|vh)?/i);
+    if (!match) failValue("has an invalid numeric value");
+    const parsed = match as RegExpMatchArray;
+    cursor += parsed[0]!.length; const number = Number(parsed[1]!); const unit = (parsed[2] ?? "number").toLowerCase();
+    if (unit === "px" || unit === "number") return { value: number, unit: unit === "px" ? "px" : "number" };
+    if (unit === "%") return { value: number / 100 * relative, unit: "px" };
+    if (unit === "em") return { value: number * fontSize, unit: "px" };
+    if (unit === "rem") return { value: number * rootFontSize, unit: "px" };
+    if (unit === "vw") return { value: number / 100 * viewport.width, unit: "px" };
+    return { value: number / 100 * viewport.height, unit: "px" };
+  };
+  const result = parseExpression(); skipWhitespace(); if (cursor !== text.length) failValue("contains unsupported syntax"); return result;
+}
+
+export function resolveVar(value: string, vars: Map<string, string>, seen: Set<string>): string {
+  let result = ""; let cursor = 0;
+  while (cursor < value.length) {
+    const start = value.indexOf("var(", cursor);
+    if (start < 0) { result += value.slice(cursor); break; }
+    result += value.slice(cursor, start); let depth = 1; let end = start + 4;
+    while (end < value.length && depth > 0) { if (value[end] === "(") depth += 1; else if (value[end] === ")") depth -= 1; end += 1; }
+    if (depth !== 0) fail("css-variable-invalid", `Unclosed var() expression: ${value}`);
+    const body = value.slice(start + 4, end - 1); const parts = splitTopLevel(body, ","); const name = parts[0]?.trim(); const fallback = parts.slice(1).join(",").trim();
+    if (!name || !/^--[\w-]+$/.test(name)) fail("css-variable-invalid", `Invalid custom property reference: ${body}`);
+    if (seen.has(name)) { if (fallback) result += resolveVar(fallback, vars, seen); else fail("css-variable-cycle", `Cyclic variable ${name}`); }
+    else { const resolved = vars.get(name); if (resolved === undefined) { if (fallback) result += resolveVar(fallback, vars, seen); else fail("css-variable-missing", `Missing variable ${name}`); } else result += resolveVar(resolved, vars, new Set([...seen, name])); }
+    cursor = end;
+  }
+  return result;
+}
+
+export function number(style: Style, property: string, relative: number, fontSize: number, rootFontSize: number, viewport: { width: number; height: number }): number {
+  const value = style.get(property); if (value === undefined) return Number.NaN; return calcExpression(value, property, relative, fontSize, rootFontSize, viewport).value;
+}
+
+export function edges(style: Style, prefix: "margin" | "padding", relative: number, fontSize: number, rootFontSize: number, viewport: { width: number; height: number }): [number, number, number, number] {
+  const shorthand = style.get(prefix); const values = shorthand ? splitTopLevel(shorthand, " ") : []; const expanded = values.length === 1 ? [values[0], values[0], values[0], values[0]] : values.length === 2 ? [values[0], values[1], values[0], values[1]] : values.length === 3 ? [values[0], values[1], values[2], values[1]] : values.length >= 4 ? values.slice(0, 4) : [undefined, undefined, undefined, undefined];
+  return ["top", "right", "bottom", "left"].map((side, i) => { const value = style.get(`${prefix}-${side}`) ?? expanded[i]; return value === undefined ? 0 : calcExpression(value, `${prefix}-${side}`, relative, fontSize, rootFontSize, viewport).value; }) as [number, number, number, number];
+}
+

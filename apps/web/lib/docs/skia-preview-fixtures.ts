@@ -36,11 +36,20 @@ export const SKIA_PREVIEW_CASES: readonly SkiaPreviewFixture[] = [
  * Lab projects so the browser SVG and Skia panels receive the same compiled
  * RuntimeFrameV3 transform matrices. */
 export const SKIA_TRANSFORM_CASES: readonly SkiaPreviewFixture[] = [
-  fixture("html-compiler.transform.translate", "2D translation lowered by the HTML compiler.", ["setTransform", "translate", "drawShape"]),
-  fixture("html-compiler.transform.scale-anchor", "Non-uniform scale around a local transform-origin anchor.", ["setTransform", "scale", "anchor"]),
-  fixture("html-compiler.transform.rotate", "Z rotation around the default local center anchor.", ["setTransform", "rotate", "anchor"]),
-  fixture("html-compiler.transform.skew", "X-axis skew lowered from CSS to the Runtime transform.", ["setTransform", "skew", "drawShape"]),
+  fixture("rectangle.transform.translate", "2D translation lowered to the Runtime transform.", ["setTransform", "translate", "drawShape"]),
+  fixture("rectangle.transform.scale", "Scale around the rectangle transform origin.", ["setTransform", "scale", "drawShape"]),
+  fixture("rectangle.transform.rotate", "Z rotation around the normalized center anchor.", ["setTransform", "rotate", "anchor"]),
+  fixture("rectangle.transform.skew", "X-axis skew lowered to the Runtime transform.", ["setTransform", "skew", "drawShape"]),
   fixture("group.nested-transform", "Nested parent and child 2D transforms composed by Runtime.", ["beginGroup", "setTransform", "nested"]),
+];
+
+/** Protocol V2 animation fixtures. Their `tracks[]` and local-millisecond
+ * keyframes are sampled by the Skia Runtime Lab on every playback tick. */
+export const SKIA_ANIMATION_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("animation.transform-keyframes", "JSON tracks animate translation, rotation, and scale.", ["tracks", "translate", "rotate", "scale"]),
+  fixture("animation.opacity", "A numeric JSON opacity track fades a layer.", ["tracks", "opacity"]),
+  fixture("animation.path-morph", "A JSON progress track morphs one path topology into another.", ["tracks", "morph", "drawPath"]),
+  fixture("animation.timing-stagger", "Layer timing windows create a staggered sequence.", ["timing", "drawShape"]),
 ];
 
 /** Phase 3 paint contract fixtures sourced from the existing Protocol V2 lab. */

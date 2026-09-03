@@ -44,18 +44,18 @@ describe("HTML/CSS compiler Phase 2", () => {
     expect(result.protocol?.layers).toEqual([]);
   });
 
-  it("uses data-atomic-id first, then id, then a stable structural path", () => {
-    const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="legacy" data-atomic-id="hero"><span></span></div>`, css: `#legacy { width: 20px; height: 20px; background: #ffffff; } div > span { width: 5px; height: 5px; background: #00ff00; }` }));
+  it("uses id, then a stable structural path", () => {
+    const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="legacy"><span id="child"></span></div>`, css: `#legacy { width: 20px; height: 20px; background: #ffffff; } div > span { width: 5px; height: 5px; background: #00ff00; }` }));
     expect(result.status).toBe("error");
     expect(result.diagnostics[0]?.code).toBe("css-selector-unsupported");
 
-    const stable = compileHtmlCss(createHtmlCssSource({ html: `<div id="legacy" data-atomic-id="hero"><span></span></div>`, css: `#legacy { width: 20px; height: 20px; background: #ffffff; } div span { width: 5px; height: 5px; background: #00ff00; }` }));
+    const stable = compileHtmlCss(createHtmlCssSource({ html: `<div id="legacy"><span id="child"></span></div>`, css: `#legacy { width: 20px; height: 20px; background: #ffffff; } div span { width: 5px; height: 5px; background: #00ff00; }` }));
     expect(stable.status).toBe("success");
-    expect(stable.protocol?.layers.map((layer) => layer.id)).toEqual(["hero", "hero::paint", "dom/div:0/span:0"]);
+    expect(stable.protocol?.layers.map((layer) => layer.id)).toEqual(["legacy", "legacy::paint", "child"]);
   });
 
-  it("rejects duplicate explicit atomic identities", () => {
-    const result = compileHtmlCss(createHtmlCssSource({ html: `<div data-atomic-id="same"></div><div data-atomic-id="same"></div>`, css: `[data-atomic-id] { width: 10px; height: 10px; }` }));
+  it("rejects duplicate HTML ids", () => {
+    const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="same"></div><div id="same"></div>`, css: `#same { width: 10px; height: 10px; }` }));
     expect(result.status).toBe("error");
     expect(result.diagnostics[0]?.code).toBe("html-duplicate-atomic-id");
   });

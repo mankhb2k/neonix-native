@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import { compileHtmlCss, createHtmlCssSource } from "./index";
+import { compileHtmlCss, createHtmlCssSource, createNewHtmlProject, DEFAULT_HTML_CSS_COMPOSITION, DEFAULT_NEONIX_HTML_DOCUMENT } from "./index";
 
 const source = createHtmlCssSource({
   html: `<div id="gold-01"></div>`,
@@ -9,6 +9,59 @@ const source = createHtmlCssSource({
 });
 
 describe("HTML compiler Phase 1 vertical slice", () => {
+  it("creates every source with the fixed composition envelope", () => {
+    expect(createHtmlCssSource().composition).toEqual(DEFAULT_HTML_CSS_COMPOSITION);
+    expect(createNewHtmlProject()).toEqual({
+      kind: "neonix-html-source",
+      sourceSchemaVersion: 1,
+      composition: DEFAULT_HTML_CSS_COMPOSITION,
+      html: DEFAULT_NEONIX_HTML_DOCUMENT,
+      css: "",
+    });
+    expect(DEFAULT_NEONIX_HTML_DOCUMENT).toContain('id="neonix-manifest"');
+  });
+
+  it("reads the composition manifest from the standard HTML document", () => {
+    const result = compileHtmlCss(createNewHtmlProject());
+    expect(result.status).toBe("success");
+    expect(result.protocol?.composition).toMatchObject({
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#081018",
+      colorSpace: "srgb",
+    });
+  });
+
+  it("keeps the compiler viewport fixed even when legacy options are supplied", () => {
+    const result = compileHtmlCss(source, { composition: { width: 1280, height: 720, fps: 24 } });
+    expect(result.status).toBe("success");
+    expect(result.protocol?.composition).toMatchObject({ width: 1920, height: 1080, fps: 30 });
+  });
+
+  it("compiles a standard HTML document shell", () => {
+    const result = compileHtmlCss(createNewHtmlProject({
+      html: `<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+  <div id="blue-rectangle"></div>
+</body>
+</html>`,
+      css: `#blue-rectangle {
+  position: absolute;
+  left: 720px;
+  top: 420px;
+  width: 480px;
+  height: 240px;
+  background: #2563eb;
+}`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers[0]).toMatchObject({ id: "blue-rectangle", type: "shape", style: { fill: "#2563eb" } });
+  });
+
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {
     const result = compileHtmlCss(source);
     expect(result.status).toBe("success");
@@ -18,7 +71,7 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol).toMatchObject({
       format: "motion-protocol",
       formatVersion: 2,
-      composition: { width: 1920, height: 1080, fps: 30, background: "#081018" },
+      composition: { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" },
       layers: [{
         id: "gold-01",
         type: "shape",

@@ -1,4 +1,7 @@
 import {
+  type HtmlCssSource,
+} from "@motionvideo/html-compiler";
+import {
   V2_AUDIO_FIXTURES,
   type MotionProtocolV2,
   type V2Marker,
@@ -7,11 +10,6 @@ import {
   type V2Mask,
   type V2BlendMode,
 } from "@motionvideo/motion-protocol/v2";
-import {
-  compileHtmlCss,
-  createHtmlCssSource,
-  type HtmlCssSource,
-} from "@motionvideo/html-compiler";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 type RectangleLayer = Extract<V2Layer, { type: "shape" }>;
@@ -37,6 +35,9 @@ type ShapeOptions = {
   transform?: RectangleLayer["transform"];
   opacity?: number;
   timing?: RectangleLayer["timing"];
+  /** Protocol V2 tracks use local milliseconds, even though the fixture
+   * helper keeps layer timing readable in seconds. */
+  tracks?: RectangleLayer["tracks"];
   effects?: RectangleLayer["effects"];
   start?: { x: number; y: number };
   end?: { x: number; y: number };
@@ -100,6 +101,7 @@ function shapeLayer(options: ShapeOptions, shape: RectangleLayer["payload"]["sha
     transform: options.transform ?? IDENTITY_TRANSFORM,
     opacity: options.opacity ?? 1,
     timing: options.timing ?? { start: 0, duration: 3 },
+    ...(options.tracks ? { tracks: options.tracks } : {}),
     ...(options.effects ? { effects: options.effects } : {}),
     payload: {
       shape,
@@ -181,6 +183,112 @@ function project(
     audio: { sampleRate: 48000, tracks: [] },
   };
 }
+
+// Animation fixtures below are real Protocol V2 JSON: layer timing is
+// normalized from seconds by `project()`, while track keyframe times are
+// authored directly in the protocol's canonical local milliseconds.
+const ANIMATION_TRANSFORM_PROJECT = project("preview-animation-transform-v2", [
+  rectangle({
+    id: "animation-transform",
+    order: 0,
+    frame: { width: 300, height: 180 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 240, y: 430, z: 0 } },
+    fill: "#14b8a6",
+    timing: { start: 0, duration: 4 },
+    tracks: [
+      {
+        id: "translate-x",
+        path: "transform.translate.x",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 240 }, easing: { type: "cubicBezier", x1: 0.22, y1: 1, x2: 0.36, y2: 1 } },
+          { time: 2000, value: { type: "number", value: 810 }, easing: { type: "linear" } },
+          { time: 4000, value: { type: "number", value: 1380 } },
+        ],
+      },
+      {
+        id: "rotate-z",
+        path: "transform.rotate.z",
+        keyframes: [
+          { time: 0, value: { type: "number", value: -14 }, easing: { type: "linear" } },
+          { time: 2000, value: { type: "number", value: 14 }, easing: { type: "linear" } },
+          { time: 4000, value: { type: "number", value: -14 } },
+        ],
+      },
+      {
+        id: "scale-x",
+        path: "transform.scale.x",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 0.72 }, easing: { type: "cubicBezier", x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 } },
+          { time: 2000, value: { type: "number", value: 1.08 }, easing: { type: "linear" } },
+          { time: 4000, value: { type: "number", value: 0.72 } },
+        ],
+      },
+      {
+        id: "scale-y",
+        path: "transform.scale.y",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 0.72 }, easing: { type: "cubicBezier", x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 } },
+          { time: 2000, value: { type: "number", value: 1.08 }, easing: { type: "linear" } },
+          { time: 4000, value: { type: "number", value: 0.72 } },
+        ],
+      },
+    ],
+  }),
+]);
+
+const ANIMATION_OPACITY_PROJECT = project("preview-animation-opacity-v2", [
+  rectangle({
+    id: "opacity-backdrop",
+    order: 0,
+    frame: { width: 1260, height: 300 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 330, y: 390, z: 0 } },
+    fill: "#173247",
+  }),
+  rectangle({
+    id: "opacity-foreground",
+    order: 1,
+    frame: { width: 1260, height: 300 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 330, y: 390, z: 0 } },
+    fill: "#14b8a6",
+    opacity: 0,
+    timing: { start: 0, duration: 3 },
+    tracks: [{
+      id: "opacity",
+      path: "opacity",
+      keyframes: [
+        { time: 0, value: { type: "number", value: 0 }, easing: { type: "linear" } },
+        { time: 1200, value: { type: "number", value: 1 }, easing: { type: "cubicBezier", x1: 0.22, y1: 1, x2: 0.36, y2: 1 } },
+        { time: 3000, value: { type: "number", value: 0.35 } },
+      ],
+    }],
+  }),
+]);
+
+const ANIMATION_TIMING_PROJECT = project("preview-animation-timing-v2", [
+  rectangle({
+    id: "timing-backdrop",
+    order: 0,
+    frame: { width: 1260, height: 300 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 330, y: 390, z: 0 } },
+    fill: "#101820",
+  }),
+  rectangle({
+    id: "timing-first",
+    order: 1,
+    frame: { width: 420, height: 220 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 420, y: 430, z: 0 } },
+    fill: "#38bdf8",
+    timing: { start: 0, duration: 1.2 },
+  }),
+  rectangle({
+    id: "timing-second",
+    order: 2,
+    frame: { width: 420, height: 220 },
+    transform: { ...IDENTITY_TRANSFORM, translate: { x: 1080, y: 430, z: 0 } },
+    fill: "#f97316",
+    timing: { start: 1.2, duration: 1.8 },
+  }),
+]);
 
 const PREVIEW_IMAGE_ASSET = {
   id: "preview-image-v2",
@@ -1224,6 +1332,30 @@ const PATH_MORPH_PROJECT = project(
   },
 );
 
+const ANIMATION_MORPH_PROJECT: MotionProtocolV2 = {
+  ...PATH_MORPH_PROJECT,
+  id: "preview-animation-morph-v2",
+  layers: PATH_MORPH_PROJECT.layers.map((layer) => layer.type === "path" && layer.id === "morph-path"
+      ? {
+        ...layer,
+        transform: { ...IDENTITY_TRANSFORM, translate: { x: 760, y: 360, z: 0 } },
+        payload: {
+          ...layer.payload,
+          morph: layer.payload.morph ? { ...layer.payload.morph, progress: 0 } : undefined,
+        },
+        tracks: [{
+          id: "morph-progress",
+          path: "payload.morph.progress",
+          keyframes: [
+            { time: 0, value: { type: "number", value: 0 }, easing: { type: "cubicBezier", x1: 0.22, y1: 1, x2: 0.36, y2: 1 } },
+            { time: 1500, value: { type: "number", value: 1 }, easing: { type: "linear" } },
+            { time: 3000, value: { type: "number", value: 0 } },
+          ],
+        }],
+      }
+    : layer),
+};
+
 const GROUP_PARENT_TRANSFORM_PROJECT = project(
   "preview-group-parent-transform-v2",
   [
@@ -1866,7 +1998,7 @@ const MANY_STOP_GRADIENT_FILL = {
   y2: 0,
   stops: Array.from({ length: 12 }, (_, index) => ({
     offset: index / 11,
-    color: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e", "#ef4444"][index]!,
+    color: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef", "#ec4899", "#f43f5e", "#ef4444"][index],
   })),
 };
 
@@ -2975,11 +3107,6 @@ export type PreviewLabCase = {
   audioFixture?: V2AudioFixture;
 };
 
-function htmlCompilerCase(id: string, label: string, hint: string, html: string, css: string, group = "HTML compiler / Phase 4"): PreviewLabCase {
-  const htmlCssSource = createHtmlCssSource({ html, css });
-  return { id, label, group, hint, project: compileHtmlCss(htmlCssSource).protocol ?? RECTANGLE_PROJECT, htmlCssSource };
-}
-
 const PREVIEW_BLEND_MODES = [
   "normal",
   "darken",
@@ -3008,6 +3135,38 @@ const PREVIEW_BLEND_MODE_CASES: PreviewLabCase[] = PREVIEW_BLEND_MODES.map((blen
 }));
 
 export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
+  {
+    id: "animation.transform-keyframes",
+    label: "Animation / transform keyframes",
+    group: "Animation / Protocol V2",
+    hint: "Local millisecond tracks animate translate, rotation, and scale through the Runtime frame.",
+    project: ANIMATION_TRANSFORM_PROJECT,
+    previewTime: 0.5,
+  },
+  {
+    id: "animation.opacity",
+    label: "Animation / opacity",
+    group: "Animation / Protocol V2",
+    hint: "A numeric opacity track fades the foreground layer over a static backdrop.",
+    project: ANIMATION_OPACITY_PROJECT,
+    previewTime: 0.6,
+  },
+  {
+    id: "animation.path-morph",
+    label: "Animation / path morph",
+    group: "Animation / Protocol V2",
+    hint: "The path morph progress is sampled from a local keyframe track.",
+    project: ANIMATION_MORPH_PROJECT,
+    previewTime: 0.75,
+  },
+  {
+    id: "animation.timing-stagger",
+    label: "Animation / timing stagger",
+    group: "Animation / Protocol V2",
+    hint: "Layer timing windows activate the first and second layer at different composition times.",
+    project: ANIMATION_TIMING_PROJECT,
+    previewTime: 0.4,
+  },
   {
     id: "primitive.shape.rectangle",
     label: "Shape / rectangle",
@@ -3055,551 +3214,6 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
   { id: "shape.effects", label: "Effect / shape effects", group: "Effects", hint: "A shape carrying the optional V2 effects list.", project: BLUR_PROJECT },
   { id: "shape.rectangle-perspective", label: "Shape / rectangle perspective", group: "Layers / Shape", hint: "A rectangle shape evaluated through perspective geometry.", project: SHAPE_RECTANGLE_PERSPECTIVE_PROJECT },
   { id: "shape.ellipse-perspective", label: "Shape / ellipse perspective", group: "Layers / Shape", hint: "An ellipse shape evaluated through perspective geometry.", project: SHAPE_ELLIPSE_PERSPECTIVE_PROJECT },
-  htmlCompilerCase(
-    "html-compiler.primitives.rectangle-rounded",
-    "HTML compiler / rectangle + rounded",
-    "One source fixture covers both primitive paint lowering and the rounded-rectangle corner/stroke contract.",
-    `<div id="compiler-solid"></div>
-<div id="compiler-rounded"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#compiler-solid {
-  position: absolute;
-  left: 240px;
-  top: 300px;
-  width: 640px;
-  height: 360px;
-  background: #14b8a6;
-}
-
-#compiler-rounded {
-  position: absolute;
-  left: 1040px;
-  top: 300px;
-  width: 640px;
-  height: 360px;
-  background: #2563eb;
-  border: 12px solid #e2e8f0;
-  border-radius: 48px;
-}`,
-    "Primitives",
-  ),
-  htmlCompilerCase(
-    "html-compiler.transform.translate",
-    "HTML compiler / translate",
-    "CSS translate is lowered to a numeric local transform while preserving the element frame.",
-    `<div id="compiler-translate"></div>`,
-    `body { margin: 0; background: #081018; }
-#compiler-translate {
-  position: absolute;
-  left: 520px;
-  top: 300px;
-  width: 640px;
-  height: 360px;
-  background: #14b8a6;
-  transform: translate(180px, 90px);
-}`,
-    "Transforms & 3D",
-  ),
-  htmlCompilerCase(
-    "html-compiler.transform.scale-anchor",
-    "HTML compiler / scale + anchor",
-    "CSS scale and transform-origin become Protocol scale and a local anchor.",
-    `<div id="compiler-scale"></div>`,
-    `body { margin: 0; background: #081018; }
-#compiler-scale {
-  position: absolute;
-  left: 640px;
-  top: 280px;
-  width: 640px;
-  height: 360px;
-  background: #2563eb;
-  transform: scale(1.25, 0.75);
-  transform-origin: 25% 75%;
-}`,
-    "Transforms & 3D",
-  ),
-  htmlCompilerCase(
-    "html-compiler.transform.rotate",
-    "HTML compiler / rotate + anchor",
-    "CSS rotate is normalized to degrees and composed around the default center anchor.",
-    `<div id="compiler-rotate"></div>`,
-    `body { margin: 0; background: #081018; }
-#compiler-rotate {
-  position: absolute;
-  left: 720px;
-  top: 320px;
-  width: 480px;
-  height: 280px;
-  background: #7c3aed;
-  transform: rotate(18deg);
-}`,
-    "Transforms & 3D",
-  ),
-  htmlCompilerCase(
-    "html-compiler.transform.skew",
-    "HTML compiler / skew",
-    "CSS skewX is lowered to the Protocol skew vector in degrees.",
-    `<div id="compiler-skew"></div>`,
-    `body { margin: 0; background: #081018; }
-#compiler-skew {
-  position: absolute;
-  left: 600px;
-  top: 360px;
-  width: 720px;
-  height: 240px;
-  background: #f97316;
-  transform: skewX(12deg);
-}`,
-    "Transforms & 3D",
-  ),
-  htmlCompilerCase(
-    "html-compiler.path.svg-cubic",
-    "HTML compiler / SVG cubic path",
-    "SVG M/L/C/Z commands lower directly to a Protocol path contour with fill and fill opacity.",
-    `<svg id="compiler-svg-cubic"><path id="compiler-cubic" d="M 20 180 C 90 10 330 10 400 180 L 400 240 L 20 240 Z" /></svg>`,
-    `body { margin: 0; background: #081018; }
-#compiler-svg-cubic { position: absolute; left: 240px; top: 280px; width: 480px; height: 300px; }
-#compiler-cubic { fill: #14b8a6; fill-opacity: .85; }`,
-    "Paths",
-  ),
-  htmlCompilerCase(
-    "html-compiler.path.svg-evenodd",
-    "HTML compiler / SVG evenodd contours",
-    "Multiple SVG subpaths and fill-rule are preserved as ordered V2 contours.",
-    `<svg id="compiler-svg-evenodd"><path id="compiler-evenodd" d="M 0 0 H 360 V 240 H 0 Z M 90 60 H 270 V 180 H 90 Z" /></svg>`,
-    `body { margin: 0; background: #081018; }
-#compiler-svg-evenodd { position: absolute; left: 240px; top: 280px; width: 480px; height: 300px; }
-#compiler-evenodd { fill: #2563eb; fill-rule: evenodd; }`,
-    "Paths",
-  ),
-  htmlCompilerCase(
-    "html-compiler.path.svg-stroke",
-    "HTML compiler / SVG stroke path",
-    "SVG stroke width, join, cap, opacity and dash fields map directly to the V2 path style contract.",
-    `<svg id="compiler-svg-stroke"><path id="compiler-stroke" d="M 40 150 C 140 20 340 280 440 150" /></svg>`,
-    `body { margin: 0; background: #081018; }
-#compiler-svg-stroke { position: absolute; left: 240px; top: 280px; width: 520px; height: 300px; }
-#compiler-stroke { fill: none; stroke: #f97316; stroke-width: 20px; stroke-opacity: .9; stroke-linejoin: bevel; stroke-linecap: round; stroke-dasharray: 64 24; stroke-dashoffset: 8; }`,
-    "Paths",
-  ),
-  {
-    id: "html-compiler.phase2.cascade",
-    label: "HTML compiler / cascade + nested boxes",
-    group: "HTML compiler / Phase 2",
-    hint: "Selector specificity and nested box geometry are lowered to Protocol V2 groups and shape layers.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<div id="phase2-card" class="card"><div id="phase2-child" class="child"></div></div>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-.card {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: #112233;
-}
-
-#phase2-card {
-  left: 480px;
-  background: #123456;
-}
-
-.child {
-  width: 50%;
-  height: 50%;
-  margin: 24px;
-  background: #14b8a6;
-}`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div id="phase2-card" class="card"><div id="phase2-child" class="child"></div></div>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-.card {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: #112233;
-}
-
-#phase2-card {
-  left: 480px;
-  background: #123456;
-}
-
-.child {
-  width: 50%;
-  height: 50%;
-  margin: 24px;
-  background: #14b8a6;
-}`,
-    }),
-  },
-  {
-    id: "html-compiler.phase2.units-calc",
-    label: "HTML compiler / units + calc",
-    group: "HTML compiler / Phase 2",
-    hint: "Viewport units, percentages, rem and calc() resolve to numeric frame and translate values.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<div id="phase2-units"></div>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-:root {
-  --surface: #224466;
-}
-
-#phase2-units {
-  position: absolute;
-  left: 10vw;
-  top: calc(50% - 20px);
-  width: calc(50% - 24px);
-  height: 2rem;
-  padding: 10px 20px;
-  background: var(--surface);
-}`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div id="phase2-units"></div>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-:root {
-  --surface: #224466;
-}
-
-#phase2-units {
-  position: absolute;
-  left: 10vw;
-  top: calc(50% - 20px);
-  width: calc(50% - 24px);
-  height: 2rem;
-  padding: 10px 20px;
-  background: var(--surface);
-}`,
-    }),
-  },
-  {
-    id: "html-compiler.phase2.normalization",
-    label: "HTML compiler / identity + color normalization",
-    group: "HTML compiler / Phase 2",
-    hint: "data-atomic-id, class tokens, shorthand colors and nested layer IDs follow the normalization contract.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<div data-atomic-id="normalize-card" class="card card"><span></span></div>`,
-      css: `.card {
-  position: absolute;
-  left: 600px;
-  top: 300px;
-  width: 720px;
-  height: 420px;
-  background: #AbC;
-}
-
-.card span {
-  width: 180px;
-  height: 96px;
-  margin: 24px;
-  background: transparent;
-}`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div data-atomic-id="normalize-card" class="card card"><span></span></div>`,
-      css: `.card {
-  position: absolute;
-  left: 600px;
-  top: 300px;
-  width: 720px;
-  height: 420px;
-  background: #AbC;
-}
-
-.card span {
-  width: 180px;
-  height: 96px;
-  margin: 24px;
-  background: transparent;
-}`,
-    }),
-  },
-  {
-    id: "html-compiler.phase2.tags",
-    label: "HTML compiler / supported tags",
-    group: "HTML compiler / Phase 2",
-    hint: "Semantic container tags use the same visual-role lowering: nested groups plus shape paint for resolved backgrounds.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<main>
-  <section>
-    <article>
-      <div id="tag-card" data-atomic-id="tag-card"></div>
-    </article>
-  </section>
-</main>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-main {
-  margin: 0;
-}
-
-section {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: #172554;
-}
-
-article {
-  width: 720px;
-  height: 400px;
-  margin: 48px;
-  background: #1e3a8a;
-}
-
-#tag-card {
-  width: 480px;
-  height: 240px;
-  margin: 80px;
-  background: #14b8a6;
-}`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<main>
-  <section>
-    <article>
-      <div id="tag-card" data-atomic-id="tag-card"></div>
-    </article>
-  </section>
-</main>`,
-      css: `body {
-  margin: 0;
-  background: #081018;
-}
-
-main {
-  margin: 0;
-}
-
-section {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: #172554;
-}
-
-article {
-  width: 720px;
-  height: 400px;
-  margin: 48px;
-  background: #1e3a8a;
-}
-
-#tag-card {
-  width: 480px;
-  height: 240px;
-  margin: 80px;
-  background: #14b8a6;
-}`,
-    }),
-  },
-  {
-    id: "html-compiler.phase2.diagnostics",
-    label: "HTML compiler / source diagnostics",
-    group: "HTML compiler / Phase 2",
-    hint: "Unsupported visual source reports a deterministic HTML diagnostic with line and column instead of entering the runtime.",
-    project: RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div id="diagnostic-box" onclick="run()"></div>`,
-      css: `#diagnostic-box {
-  width: 480px;
-  height: 240px;
-  background: #14b8a6;
-}`,
-    }),
-  },
-  {
-    id: "html-compiler.phase3.block-flow",
-    label: "HTML compiler / block flow",
-    group: "HTML compiler / Phase 3",
-    hint: "Static block children are placed in vertical flow with margins and deterministic parent groups.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<main>
-  <div id="flow-a"></div>
-  <div id="flow-b"></div>
-  <div id="flow-c"></div>
-</main>`,
-      css: `body { margin: 0; background: #081018; }
-main { position: absolute; left: 480px; top: 120px; width: 960px; height: 840px; background: #172554; padding: 40px; }
-main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<main>
-  <div id="flow-a"></div>
-  <div id="flow-b"></div>
-  <div id="flow-c"></div>
-</main>`,
-      css: `body { margin: 0; background: #081018; }
-main { position: absolute; left: 480px; top: 120px; width: 960px; height: 840px; background: #172554; padding: 40px; }
-main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
-    }),
-  },
-  {
-    id: "html-compiler.phase3.positioning",
-    label: "HTML compiler / relative + absolute",
-    group: "HTML compiler / Phase 3",
-    hint: "Relative offsets and an absolute child resolve against the positioned parent containing block.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<div id="position-parent"><div id="position-child"></div></div>`,
-      css: `body { margin: 0; background: #081018; }
-#position-parent { position: relative; left: 480px; top: 240px; width: 960px; height: 600px; background: #172554; }
-#position-child { position: absolute; left: 240px; top: 160px; width: 480px; height: 280px; background: #14b8a6; }`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div id="position-parent"><div id="position-child"></div></div>`,
-      css: `body { margin: 0; background: #081018; }
-#position-parent { position: relative; left: 480px; top: 240px; width: 960px; height: 600px; background: #172554; }
-#position-child { position: absolute; left: 240px; top: 160px; width: 480px; height: 280px; background: #14b8a6; }`,
-    }),
-  },
-  {
-    id: "html-compiler.phase3.visibility-z-index",
-    label: "HTML compiler / visibility + z-index",
-    group: "HTML compiler / Phase 3",
-    hint: "Hidden layers remain in layout while numeric z-index determines sibling paint order.",
-    project: compileHtmlCss(createHtmlCssSource({
-      html: `<div id="stack-back"></div><div id="stack-front"></div><div id="stack-hidden"></div>`,
-      css: `body { margin: 0; background: #081018; }
-#stack-back { position: absolute; left: 560px; top: 300px; width: 800px; height: 420px; background: #1e3a8a; z-index: 0; }
-#stack-front { position: absolute; left: 760px; top: 420px; width: 640px; height: 300px; background: #14b8a6; z-index: 2; }
-#stack-hidden { position: absolute; left: 600px; top: 260px; width: 120px; height: 120px; background: #ff3366; visibility: hidden; z-index: 3; }`,
-    })).protocol ?? RECTANGLE_PROJECT,
-    htmlCssSource: createHtmlCssSource({
-      html: `<div id="stack-back"></div><div id="stack-front"></div><div id="stack-hidden"></div>`,
-      css: `body { margin: 0; background: #081018; }
-#stack-back { position: absolute; left: 560px; top: 300px; width: 800px; height: 420px; background: #1e3a8a; z-index: 0; }
-#stack-front { position: absolute; left: 760px; top: 420px; width: 640px; height: 300px; background: #14b8a6; z-index: 2; }
-#stack-hidden { position: absolute; left: 600px; top: 260px; width: 120px; height: 120px; background: #ff3366; visibility: hidden; z-index: 3; }`,
-    }),
-  },
-  htmlCompilerCase(
-    "html-compiler.phase4.rounded-border",
-    "HTML compiler / rounded rectangle + border",
-    "Uniform border-radius and solid border lower directly to rectangle cornerRadius/stroke atoms.",
-    `<div id="phase4-rounded"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#phase4-rounded {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: #14b8a6;
-  border: 16px solid #e2e8f0;
-  border-radius: 72px;
-}`,
-  ),
-  htmlCompilerCase(
-    "html-compiler.phase4.linear-gradient",
-    "HTML compiler / linear gradient",
-    "A CSS linear-gradient with three stops becomes a normalized Protocol gradient paint.",
-    `<div id="phase4-linear"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#phase4-linear {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: linear-gradient(90deg, #14b8a6 0%, #2563eb 50%, #7c3aed 100%);
-}`,
-  ),
-  htmlCompilerCase(
-    "html-compiler.phase4.radial-gradient",
-    "HTML compiler / radial gradient",
-    "Radial center and multi-stop colors are resolved to normalized cx/cy/stops values.",
-    `<div id="phase4-radial"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#phase4-radial {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: radial-gradient(circle at 35% 40%, #ffffff 0%, #14b8a6 45%, #172554 100%);
-}`,
-  ),
-  htmlCompilerCase(
-    "html-compiler.phase4.conic-gradient",
-    "HTML compiler / conic gradient",
-    "Conic CSS paint is emitted as a first-class Protocol primitive; renderer capability is reported separately.",
-    `<div id="phase4-conic"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#phase4-conic {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: conic-gradient(from 45deg at 50% 50%, #14b8a6 0%, #2563eb 50%, #7c3aed 100%);
-}`,
-  ),
-  htmlCompilerCase(
-    "html-compiler.phase4.background-layers",
-    "HTML compiler / background layers",
-    "Top-level comma-separated background paints retain deterministic ordered paint layer identities.",
-    `<div id="phase4-layers"></div>`,
-    `body {
-  margin: 0;
-  background: #081018;
-}
-
-#phase4-layers {
-  position: absolute;
-  left: 480px;
-  top: 240px;
-  width: 960px;
-  height: 600px;
-  background: linear-gradient(135deg, #14b8a6, #2563eb), #172554;
-}`,
-  ),
   {
     id: "image.preserve-aspect-ratio.meet",
     label: "Image / preserveAspectRatio meet",
@@ -4596,7 +4210,6 @@ main div { width: 720px; height: 160px; margin: 16px; background: #14b8a6; }`,
 ];
 
 export const PREVIEW_LAB_DEFAULT_CASE = "primitive.shape.rectangle";
-export const HTML_COMPILER_PREVIEW_DEFAULT_CASE = "html-compiler.primitives.rectangle-rounded";
 
 const PREVIEW_LAB_GROUP_ORDER = [
   "Layers / Shape",
@@ -4687,10 +4300,6 @@ const PAINT_MARKER_CASES = new Set([
 ]);
 
 function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
-  if (item.id.startsWith("html-compiler.phase2.")) return "HTML compiler / Phase 2";
-  if (item.id.startsWith("html-compiler.phase3.")) return "HTML compiler / Phase 3";
-  if (item.id === "html-compiler.primitives.rectangle-rounded") return "Layers / Shape";
-  if (item.id.startsWith("html-compiler.transform.")) return "Transforms / Core";
   if (PAINT_PATTERN_CASES.has(item.id)) return "Paint / Pattern";
   if (PAINT_ORDER_CASES.has(item.id)) return "Paint / Order";
   if (PAINT_MARKER_CASES.has(item.id)) return "Paint / Markers";
@@ -4725,17 +4334,11 @@ function previewLabGroupLabel(item: PreviewLabCase): PreviewLabGroupLabel {
 
 export function previewLabCaseById(
   id: string | null | undefined,
-  variant: "json" | "html-compiler" = "json",
 ): PreviewLabCase {
-  const cases = variant === "html-compiler"
-    ? PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler."))
-    : PREVIEW_LAB_CASES.filter((item) => !item.id.startsWith("html-compiler."));
-  const defaultCase = variant === "html-compiler"
-    ? HTML_COMPILER_PREVIEW_DEFAULT_CASE
-    : PREVIEW_LAB_DEFAULT_CASE;
+  const cases = PREVIEW_LAB_CASES;
   return (
     cases.find((item) => item.id === id) ??
-    cases.find((item) => item.id === defaultCase) ??
+    cases.find((item) => item.id === PREVIEW_LAB_DEFAULT_CASE) ??
     cases[0]
   );
 }
@@ -4758,15 +4361,12 @@ function imagePayload(
   return { assetId, width, height, preserveAspectRatio };
 }
 
-export function previewLabGroups(variant: "json" | "html-compiler" = "json"): Array<{
+export function previewLabGroups(): Array<{
   label: string;
   cases: PreviewLabCase[];
 }> {
   const map = new Map<string, PreviewLabCase[]>();
-  const cases = variant === "html-compiler"
-    ? PREVIEW_LAB_CASES.filter((item) => item.id.startsWith("html-compiler."))
-    : PREVIEW_LAB_CASES.filter((item) => !item.id.startsWith("html-compiler."));
-  for (const item of cases) {
+  for (const item of PREVIEW_LAB_CASES) {
     const group = previewLabGroupLabel(item);
     const cases = map.get(group) ?? [];
     cases.push(item);

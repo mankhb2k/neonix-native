@@ -283,9 +283,15 @@ importers:
       '@eslint/js':
         specifier: ^9.22.0
         version: 9.39.5
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.20.1
       eslint:
         specifier: ^9.22.0
         version: 9.39.5(jiti@2.7.0)
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.12
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
@@ -294,7 +300,7 @@ importers:
         version: 8.65.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
       vitest:
         specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.2.0)(happy-dom@20.11.1)(vite@8.1.5(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
+        version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.12))
 
   packages/motion-compiler:
     dependencies:
@@ -5820,7 +5826,7 @@ snapshots:
 
   happy-dom@20.11.1:
     dependencies:
-      '@types/node': 22.20.1
+      '@types/node': 26.2.0
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.1
       buffer-image-size: 0.6.4

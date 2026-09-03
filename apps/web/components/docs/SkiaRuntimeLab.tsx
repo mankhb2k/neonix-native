@@ -1,38 +1,99 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { Pause, Play } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { samplePreviewProtocolAtTime } from "@/lib/docs/preview-animation";
+import { SKIA_ANIMATION_CASES, SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import { evaluateRuntimeProjectV3, frameIndexAtTime } from "@motionvideo/motion-runtime";
-import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
-import { SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { PreviewStage } from "./PreviewStage";
+import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
-const CASES = [...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
+const CASES = [...SKIA_ANIMATION_CASES, ...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
 const DEFAULT_CASE = CASES[0];
 if (!DEFAULT_CASE) throw new Error("Skia preview fixtures are empty");
 
 export function SkiaRuntimeLab() {
   const [caseId, setCaseId] = useState(CASES[0]?.id ?? "primitive.shape.rectangle");
   const selected = CASES.find((item) => item.id === caseId) ?? DEFAULT_CASE;
-  const runtime = useMemo(() => compileProtocol(selected.project), [selected]);
-  const previewTime = selected.previewTime ?? 0;
+  const [previewTime, setPreviewTime] = useState(DEFAULT_CASE.previewTime ?? 0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [preparedFrame, setPreparedFrame] = useState<{ caseId: string; time: number; frame: RuntimeFrameV3 } | null>(null);
+  const duration = useMemo(() => Math.max(0.1, ...selected.project.layers.map((layer) => (layer.timing.start + layer.timing.duration) / 1000)), [selected]);
+  const sampledProject = useMemo(() => samplePreviewProtocolAtTime(selected.project, previewTime), [previewTime, selected]);
+  const runtime = useMemo(() => compileProtocol(sampledProject), [sampledProject]);
   const frame = useMemo(() => evaluateRuntimeProjectV3(runtime, frameIndexAtTime(previewTime, selected.project.composition.fps), { time: previewTime }), [previewTime, runtime, selected]);
-  const [preparedFrame, setPreparedFrame] = useState<{ caseId: string; frame: RuntimeFrameV3 } | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  useEffect(() => {
+    setPreviewTime(selected.previewTime ?? 0);
+    setIsPlaying(false);
+    setPreparedFrame(null);
+  }, [selected.id, selected.previewTime]);
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    let previousAt = performance.now();
+    const tick = (now: number) => {
+      const delta = Math.max(0, (now - previousAt) / 1000);
+      previousAt = now;
+      setPreviewTime((current) => {
+        const next = current + delta;
+        return next >= duration ? 0 : next;
+      });
+      animationFrameRef.current = requestAnimationFrame(tick);
+    };
+    animationFrameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    };
+  }, [duration, isPlaying]);
   const onFrameReady = useCallback((nextFrame: RuntimeFrameV3) => {
-    setPreparedFrame((current) => current?.caseId === selected.id ? current : { caseId: selected.id, frame: nextFrame });
+    setPreparedFrame((current) => current?.caseId === selected.id && Math.abs(current.time - nextFrame.time) < 1e-6
+      ? current
+      : { caseId: selected.id, time: nextFrame.time, frame: nextFrame });
   }, [selected.id]);
-  const referenceFrame = preparedFrame?.caseId === selected.id ? preparedFrame.frame : frame;
+  const referenceFrame = preparedFrame?.caseId === selected.id && Math.abs(preparedFrame.time - previewTime) < 1e-6
+    ? preparedFrame.frame
+    : frame;
+  const frameStep = 1 / selected.project.composition.fps;
   return <main className="min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100 md:px-8">
     <header className="mx-auto mb-5 max-w-[1400px]"><p className="text-[11px] font-semibold tracking-[.18em] text-cyan-300 uppercase">Preview / Skia / Runtime E2E</p><h1 className="mt-2 text-2xl font-semibold">Protocol V2 → Compiler → Runtime → Skia</h1><p className="mt-2 text-sm text-slate-400">{selected.label} · time {previewTime.toFixed(3)}s · {referenceFrame.commands.length} runtime commands</p></header>
     <div className="mx-auto mb-5 flex max-w-[1400px] items-center gap-3"><label htmlFor="runtime-skia-case" className="text-xs text-slate-400">Protocol fixture</label><select id="runtime-skia-case" value={caseId} onChange={(event) => setCaseId(event.target.value)} className="rounded-md border border-white/15 bg-[#101721] px-3 py-2 text-base text-slate-100">{CASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><span className="font-mono text-[11px] text-slate-500">{selected.id}</span></div>
     <section className="mx-auto grid max-w-[1400px] gap-5 lg:grid-cols-2">
-      <Panel title="Browser SVG reference" badge="SVG / same RuntimeFrameV3"><iframe title="Browser SVG reference" data-testid="skia-svg-reference" srcDoc={runtimeFrameToSvg(referenceFrame, selected.id)} className="aspect-video w-full border-0 bg-[#080c14]" /></Panel>
-      <Panel title="Skia preview" badge="RuntimeFrameV3"><div className="aspect-video overflow-hidden"><PreviewStage project={selected.project} frame={frame} time={previewTime} backend="skia" testId="skia-runtime-stage" onFrameReady={onFrameReady} /></div></Panel>
+      <Panel title="Browser SVG reference" badge="SVG / same RuntimeFrameV3"><RuntimeSvgReference frame={referenceFrame} fixtureId={selected.id} /></Panel>
+      <Panel title="Skia preview" badge="RuntimeFrameV3"><div className="aspect-video overflow-hidden"><PreviewStage project={selected.project} frame={frame} time={previewTime} isPlaying={isPlaying} backend="skia" testId="skia-runtime-stage" onFrameReady={onFrameReady} /></div><div className="flex items-center gap-3 border-t border-white/10 bg-[#0a1018] px-4 py-3"><button type="button" data-testid="skia-play-toggle" aria-label={isPlaying ? "Pause preview" : "Play preview"} title={isPlaying ? "Pause preview" : "Play preview"} aria-pressed={isPlaying} onClick={() => setIsPlaying((playing) => !playing)} className="inline-flex size-8 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300/10 text-cyan-200 transition hover:bg-cyan-300/20 focus-visible:outline-2 focus-visible:outline-cyan-300">{isPlaying ? <Pause size={15} strokeWidth={2.5} /> : <Play size={15} strokeWidth={2.5} />}</button><input aria-label="Preview timeline" data-testid="skia-time-slider" type="range" min={0} max={duration} step={frameStep} value={Math.min(previewTime, duration)} onChange={(event) => { setIsPlaying(false); setPreviewTime(Number(event.target.value)); }} className="h-1 min-w-0 flex-1 accent-cyan-300" /><span data-testid="skia-preview-time" data-time={previewTime.toFixed(6)} className="min-w-24 text-right font-mono text-[11px] text-slate-400">{previewTime.toFixed(2)}s / {duration.toFixed(2)}s</span></div></Panel>
     </section>
   </main>;
 }
 
 function Panel({ title, badge, children }: { title: string; badge: string; children: ReactNode }) { return <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0c1118]"><div className="flex items-center justify-between border-b border-white/10 px-4 py-3"><h2 className="text-sm font-medium">{title}</h2><span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">{badge}</span></div>{children}</article>; }
+
+const RUNTIME_SVG_BOOTSTRAP = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"></svg>';
+
+function RuntimeSvgReference({ frame, fixtureId }: { frame: RuntimeFrameV3; fixtureId: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const markup = useMemo(() => runtimeFrameToSvg(frame, fixtureId), [fixtureId, frame]);
+  const updateSvg = useCallback(() => {
+    const iframe = iframeRef.current;
+    const document = iframe?.contentDocument;
+    if (!document) return;
+    const parsed = new DOMParser().parseFromString(markup, "image/svg+xml");
+    const nextSvg = parsed.documentElement;
+    if (nextSvg.tagName.toLowerCase() !== "svg") return;
+    const currentSvg = document.querySelector("svg");
+    const importedSvg = document.importNode(nextSvg, true);
+    if (currentSvg) currentSvg.replaceWith(importedSvg);
+    else document.replaceChildren(importedSvg);
+  }, [markup]);
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return undefined;
+    iframe.addEventListener("load", updateSvg);
+    updateSvg();
+    return () => iframe.removeEventListener("load", updateSvg);
+  }, [updateSvg]);
+  return <iframe ref={iframeRef} title="Browser SVG reference" data-testid="skia-svg-reference" srcDoc={RUNTIME_SVG_BOOTSTRAP} className="aspect-video w-full border-0 bg-[#080c14]" />;
+}
 
 function svgNumber(value: number): string {
   return Number.isFinite(value) ? String(value) : "0";

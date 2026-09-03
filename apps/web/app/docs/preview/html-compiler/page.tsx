@@ -1,6 +1,6 @@
 import { Suspense } from "react";
+import { HtmlCompilerRuntimeLab } from "@/components/docs/HtmlCompilerRuntimeLab";
 import type { Metadata } from "next";
-import { PreviewLab } from "@/components/docs/PreviewLab";
 
 export const metadata: Metadata = {
   title: "HTML compiler preview lab",
@@ -17,7 +17,7 @@ export default function HtmlCompilerPreviewPage() {
         </div>
       }
     >
-      <PreviewLab variant="html-compiler" />
+      <HtmlCompilerRuntimeLab />
     </Suspense>
   );
 }

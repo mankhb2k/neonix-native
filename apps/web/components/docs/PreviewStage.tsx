@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 import {
   PreviewResourceRegistry,
   previewResourceKey,
@@ -27,7 +28,6 @@ import {
 } from "@motionvideo/preview-renderer";
 import { createSkiaRenderer, skiaTextGlyphAssetId } from "@motionvideo/skia-renderer";
 import type { PlaybackFrameEventV3 } from "@/lib/editor/playback/playback-controller-v3";
-import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 
 type PreviewStageProps = {
   project: unknown;
@@ -336,7 +336,7 @@ export function PreviewStage({
     let cancelled = false;
     const resourceGeneration = ++resourceGenerationRef.current;
     const devicePixelRatio = window.devicePixelRatio || 1;
-    const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio);
+    const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio, effectiveBackend);
     // Do not let a prepared RuntimeProject from the previous dropdown/project
     // selection paint while the new font resources are being resolved.
     runtimeRef.current = null;
@@ -495,6 +495,7 @@ export function PreviewStage({
         parsedProject.composition.width,
         parsedProject.composition.height,
         devicePixelRatio,
+        initialRenderDpr,
       );
       if (!externalPlayback) {
         if (!renderer) return;
@@ -548,13 +549,14 @@ export function PreviewStage({
     const update = () => {
       const devicePixelRatio = window.devicePixelRatio || 1;
       const renderer = rendererRef.current;
-      const renderDpr = canvasRenderDpr(host, parsed.composition.width, parsed.composition.height, devicePixelRatio);
+      const renderDpr = canvasRenderDpr(host, parsed.composition.width, parsed.composition.height, devicePixelRatio, effectiveBackend);
       applyCanvasLayout(
         host,
         canvas,
         parsed.composition.width,
         parsed.composition.height,
         devicePixelRatio,
+        renderDpr,
       );
       if (
         renderer &&
@@ -590,7 +592,7 @@ export function PreviewStage({
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [parsedProject]);
+  }, [effectiveBackend, parsedProject]);
 
   return (
     <div
@@ -933,7 +935,9 @@ function paintFrame(
   const canvasScale = renderer.canvas instanceof HTMLCanvasElement
     ? Number(renderer.canvas.dataset.cssScale)
     : Number.NaN;
-  const evaluationOptions = Number.isFinite(canvasScale) && canvasScale > 0
+  const evaluationOptions = renderer.backend === "skia"
+    ? { time: renderTime }
+    : Number.isFinite(canvasScale) && canvasScale > 0
     ? { time: renderTime, outputScale: canvasScale }
     : { time: renderTime };
   const evaluated =
@@ -1047,6 +1051,7 @@ function applyCanvasLayout(
   width: number,
   height: number,
   devicePixelRatio: number,
+  renderDpr: number,
 ): void {
   const scale = canvasCssScale(host, width, height);
   const targetCanvas = canvas;
@@ -1059,7 +1064,7 @@ function applyCanvasLayout(
   targetCanvas.dataset.backingWidth = String(targetCanvas.width);
   targetCanvas.dataset.backingHeight = String(targetCanvas.height);
   targetCanvas.dataset.cssScale = String(scale);
-  targetCanvas.dataset.renderDpr = String(scale * devicePixelRatio);
+  targetCanvas.dataset.renderDpr = String(renderDpr);
 }
 
 function canvasCssScale(host: HTMLDivElement, width: number, height: number): number {
@@ -1071,6 +1076,11 @@ function canvasRenderDpr(
   width: number,
   height: number,
   devicePixelRatio: number,
+  backend: PreviewStageBackendKind,
 ): number {
+  // Skia renders the canonical composition surface once at 1920x1080. The
+  // host only controls the CSS display size, so the browser performs the
+  // final downsampling consistently with the native HTML reference.
+  if (backend === "skia") return 1;
   return canvasCssScale(host, width, height) * devicePixelRatio;
 }
