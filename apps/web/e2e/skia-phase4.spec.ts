@@ -25,6 +25,7 @@ test.describe("Skia Phase 4 Runtime text and font contract", () => {
       }
       if (fixture.id.startsWith("text.emoji-")) {
         await expect.poll(async () => Number(await canvas.getAttribute("data-runtime-color-glyphs")), `${fixture.id} color glyphs`).toBeGreaterThan(0);
+        await expect.poll(async () => Number(await canvas.getAttribute("data-skia-native-color-text-glyphs")), `${fixture.id} uses native COLRv1 glyphs`).toBeGreaterThan(0);
         await expect.poll(async () => Number(await canvas.getAttribute("data-skia-text-assets")), `${fixture.id} decoded color glyph assets`).toBeGreaterThan(0);
       }
       await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(0);

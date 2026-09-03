@@ -13,7 +13,7 @@ const webGpuLaunchArgs = [
 
 export default defineConfig({
   testDir: "./e2e",
-  // Retired V1 editor suites are excluded; active coverage is V2 preview/smoke.
+  // Active coverage is the Protocol V2 / Runtime V3 preview and editor suites.
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

@@ -325,7 +325,20 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
           paintGlyph.strokeMesh = paintGlyph.strokeMesh ? transformPathMesh(paintGlyph.strokeMesh, { rotation: glyph.rotation, originX: glyph.x, originY: glyph.y }) : undefined;
         }
       }
-      if (resolved.face.hasColorLayers()) {
+      // Keep the native COLRv1 paint graph as the primary source. The SVG
+      // document is retained only as a backend fallback: rasterizing it into
+      // an image before Skia gets the glyph loses the font's native color
+      // rasterization quality and makes small emoji look softer than SVG text.
+      const svgDocument = svgGlyphDocument(resolved.face, glyph.glyphId);
+      const svgFallback = svgDocument
+        ? { kind: "bitmap" as const, mimeType: "image/svg+xml" as const, bytes: new TextEncoder().encode(svgDocument) }
+        : undefined;
+      const hasColorPaint = resolved.face.hasColorPaint() && resolved.face.glyphHasColorPaint(glyph.glyphId);
+      if (hasColorPaint) {
+        paintGlyph.renderMode = "color-paint";
+        paintGlyph.colorGlyph = { kind: "paint-graph" };
+        if (svgFallback) paintGlyph.colorGlyphFallback = svgFallback;
+      } else if (resolved.face.hasColorLayers()) {
         const layers = resolved.face.getGlyphColorLayers(glyph.glyphId);
         if (layers.length) {
           const palette = resolved.face.getColorPalettes()[0]?.colors ?? [];
@@ -345,15 +358,11 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
       }
       if (resolved.face.hasColorPng()) {
         const png = resolved.font.getGlyphColorPng(glyph.glyphId);
-        if (png?.length) { paintGlyph.renderMode = "color-bitmap"; paintGlyph.colorGlyph = { kind: "bitmap", mimeType: "image/png", bytes: png }; }
+        if (png?.length && !paintGlyph.colorGlyph) { paintGlyph.renderMode = "color-bitmap"; paintGlyph.colorGlyph = { kind: "bitmap", mimeType: "image/png", bytes: png }; }
       }
-      const svgDocument = svgGlyphDocument(resolved.face, glyph.glyphId);
-      if (svgDocument) {
+      if (!paintGlyph.colorGlyph && svgFallback) {
         paintGlyph.renderMode = "color-svg";
-        paintGlyph.colorGlyph = { kind: "bitmap", mimeType: "image/svg+xml", bytes: new TextEncoder().encode(svgDocument) };
-      } else if (resolved.face.hasColorPaint() && resolved.face.glyphHasColorPaint(glyph.glyphId)) {
-        paintGlyph.renderMode = "color-svg";
-        paintGlyph.colorGlyph = { kind: "paint-graph" };
+        paintGlyph.colorGlyph = svgFallback;
       }
       glyphs.push(paintGlyph);
     }

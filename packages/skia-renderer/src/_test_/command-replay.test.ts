@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { matrix4ToSkia3x3, replaySkiaCommands } from "./command-replay";
-import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaTypeface } from "./canvas-kit";
+import { matrix4ToSkia3x3, replaySkiaCommands } from "../command";
+import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaTypeface } from "../canvas-kit";
 
 describe("Skia command replay transforms", () => {
   it("maps the runtime column-major Matrix4 to CanvasKit's 3x3", () => {
@@ -26,6 +26,7 @@ describe("Skia command replay transforms", () => {
       0, 0, 0, 1,
     ])).toThrow("finite Matrix4");
   });
+
   it("replays Runtime glyph IDs through CanvasKit Font.drawGlyphs", () => {
     const glyphCalls: Array<{ glyphs: number[]; positions: number[]; subpixel: boolean }> = [];
     class Paint implements SkiaPaint {

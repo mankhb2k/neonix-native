@@ -253,6 +253,10 @@ function svgTextGlyph(
 ): string {
   const matrix = svgTextGlyphMatrix(glyph).map(svgNumber).join(" ");
   const colorGlyph = glyph.colorGlyph;
+  if (colorGlyph?.kind === "paint-graph" && glyph.colorGlyphFallback) {
+    const fallback = glyph.colorGlyphFallback;
+    return `<image x="${svgNumber(glyph.x)}" y="${svgNumber(glyph.y)}" width="${svgNumber(glyph.width)}" height="${svgNumber(glyph.height)}" preserveAspectRatio="none" href="data:${fallback.mimeType};base64,${svgBytesBase64(fallback.bytes)}"/>`;
+  }
   if (colorGlyph?.kind === "bitmap") {
     return `<image x="${svgNumber(glyph.x)}" y="${svgNumber(glyph.y)}" width="${svgNumber(glyph.width)}" height="${svgNumber(glyph.height)}" preserveAspectRatio="none" href="data:${colorGlyph.mimeType};base64,${svgBytesBase64(colorGlyph.bytes)}"/>`;
   }
@@ -348,6 +352,11 @@ function svgEffectFilter(
     content = `<feDropShadow dx="0" dy="0" stdDeviation="${svgNumber(blur.radius)}" flood-color="${svgEscape(color.color)}" flood-opacity="${svgNumber(color.opacity)}"/>`;
   } else if (ops.length === 5 && ops[0]?.kind === "alpha-mask" && ops[1]?.kind === "blur" && ops[2]?.kind === "inner-alpha" && ops[3]?.kind === "tint" && ops[4]?.kind === "composite" && color?.kind === "tint" && blur?.kind === "blur") {
     content = `<feGaussianBlur in="SourceAlpha" stdDeviation="${svgNumber(blur.radius)}" result="runtime-blur"/><feComposite in="SourceAlpha" in2="runtime-blur" operator="out" result="runtime-inside"/><feFlood flood-color="${svgEscape(color.color)}" flood-opacity="${svgNumber(color.opacity)}" result="runtime-tint"/><feComposite in="runtime-tint" in2="runtime-inside" operator="in" result="runtime-glow"/><feComposite in="SourceGraphic" in2="runtime-glow" operator="over"/>`;
+  } else if (ops.length === 1 && ops[0]?.kind === "noise") {
+    const noise = ops[0];
+    const strength = noise.amount * noise.opacity;
+    const intercept = 0.5 - strength;
+    content = `<feTurbulence type="fractalNoise" baseFrequency="${svgNumber(1 / Math.max(noise.scale, 0.25))}" numOctaves="1" seed="${svgNumber(noise.seed)}" result="runtime-noise-source"/><feColorMatrix in="runtime-noise-source" type="saturate" values="0" result="runtime-noise-gray"/><feComponentTransfer in="runtime-noise-gray" result="runtime-noise-adjusted"><feFuncR type="linear" slope="${svgNumber(strength * 2)}" intercept="${svgNumber(intercept)}"/><feFuncG type="linear" slope="${svgNumber(strength * 2)}" intercept="${svgNumber(intercept)}"/><feFuncB type="linear" slope="${svgNumber(strength * 2)}" intercept="${svgNumber(intercept)}"/></feComponentTransfer><feComposite in="runtime-noise-adjusted" in2="SourceGraphic" operator="in" result="runtime-noise-masked"/><feBlend in="SourceGraphic" in2="runtime-noise-masked" mode="overlay"/>`;
   } else if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust")) {
     let input = "SourceGraphic";
     content = ops.map((op, index) => {
@@ -360,7 +369,12 @@ function svgEffectFilter(
     }).join("");
   }
   if (!content) return undefined;
-  defs.push(`<filter id="${svgEscape(filterId)}" x="-100%" y="-100%" width="300%" height="300%">${content}</filter>`);
+  // Runtime high-level color-adjust effects default to the same sRGB domain
+  // used by CanvasKit. SVG otherwise defaults filter interpolation to
+  // linearRGB, which becomes visibly different for high-contrast operations.
+  // Explicit Runtime metadata still wins for lowered SVG filter graphs.
+  const colorInterpolation = ops.find((op) => op.kind === "color-adjust")?.colorInterpolationFilters ?? "sRGB";
+  defs.push(`<filter id="${svgEscape(filterId)}" color-interpolation-filters="${colorInterpolation}" x="-100%" y="-100%" width="300%" height="300%">${content}</filter>`);
   return `url(#${svgEscape(filterId)})`;
 }
 
@@ -517,5 +531,5 @@ function runtimeFrameToSvg(frame: RuntimeFrameV3, fixtureId?: string): string {
     }
   }
   const fixtureAttribute = fixtureId ? ` data-fixture="${svgEscape(fixtureId)}"` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg"${fixtureAttribute} width="${svgNumber(width)}" height="${svgNumber(height)}" viewBox="0 0 ${svgNumber(width)} ${svgNumber(height)}"><style>html,body,svg{margin:0;width:100%;height:100%;display:block;overflow:hidden}</style>${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg"${fixtureAttribute} data-runtime-frame="${svgNumber(frame.frame)}" data-runtime-time="${svgNumber(frame.time)}" width="${svgNumber(width)}" height="${svgNumber(height)}" viewBox="0 0 ${svgNumber(width)} ${svgNumber(height)}"><style>html,body,svg{margin:0;width:100%;height:100%;display:block;overflow:hidden}</style>${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
 }

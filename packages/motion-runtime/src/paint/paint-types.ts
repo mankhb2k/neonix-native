@@ -203,10 +203,12 @@ export type PaintTextGlyph = {
   fontIntegrity?: string;
   fontSize?: number;
   /** Render source selected after shaping. */
-  renderMode?: "vector" | "grayscale-mask" | "color-layers" | "color-bitmap" | "color-svg";
+  renderMode?: "vector" | "grayscale-mask" | "color-layers" | "color-bitmap" | "color-paint" | "color-svg";
   /** Stable variation settings identity used by glyph caches. */
   variationKey?: string;
   colorGlyph?: PaintTextColorGlyph;
+  /** Optional lower-fidelity source used when a backend cannot consume COLRv1. */
+  colorGlyphFallback?: Extract<PaintTextColorGlyph, { kind: "bitmap" }>;
   /** Runtime-resolved vector mesh used by GPU preview backends. */
   mesh?: PathMesh;
   /** Optional glyph stroke geometry, lowered from SVG text stroke. */

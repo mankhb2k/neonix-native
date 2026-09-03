@@ -97,6 +97,34 @@ test.describe("Skia Phase 5 Protocol V2 resource contract", () => {
       // Cover/crop is the most filter-sensitive case because both engines
       // resample a portrait source after clipping it to the viewport.
       expect(diff.meanAbsoluteDelta, `${fixture.id} mean delta`).toBeLessThan(14);
+      if (fixture.id === "image.preserve-aspect-ratio.meet") {
+        const geometry = await canvas.evaluate(async (element) => {
+          const canvas = element as HTMLCanvasElement;
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Skia image context is missing");
+          const source = new Image();
+          source.src = "/preview/image/photo-landscape.jpg";
+          await source.decode();
+          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          const background = [16, 24, 32];
+          let left = canvas.width;
+          let top = canvas.height;
+          let right = 0;
+          let bottom = 0;
+          for (let y = 0; y < canvas.height; y += 1) for (let x = 0; x < canvas.width; x += 1) {
+            const index = (y * canvas.width + x) * 4;
+            if (Math.abs(pixels[index]! - background[0]!) > 12 || Math.abs(pixels[index + 1]! - background[1]!) > 12 || Math.abs(pixels[index + 2]! - background[2]!) > 12) {
+              left = Math.min(left, x);
+              top = Math.min(top, y);
+              right = Math.max(right, x);
+              bottom = Math.max(bottom, y);
+            }
+          }
+          return { naturalRatio: source.naturalWidth / source.naturalHeight, paintedRatio: (right - left + 1) / (bottom - top + 1), centerX: (left + right) / 2, canvasCenterX: canvas.width / 2 };
+        });
+        expect(geometry.paintedRatio, `${fixture.id} intrinsic ratio`).toBeCloseTo(geometry.naturalRatio, 1);
+        expect(Math.abs(geometry.centerX - geometry.canvasCenterX), `${fixture.id} meet alignment`).toBeLessThan(1);
+      }
     }
   });
 

@@ -93,7 +93,7 @@ test.describe("Skia Phase 6 Runtime compositing contract", () => {
       expect(diff.changedRatio, `${fixture.id} changed ratio`).toBeLessThan(0.2);
       expect(diff.meanAbsoluteDelta, `${fixture.id} mean delta`).toBeLessThan(22);
     }
-    const supportedEffects = SKIA_EFFECT_CASES.filter((item) => item.id !== "effect.noise" && item.id !== "effect.outer-glow.perspective");
+    const supportedEffects = SKIA_EFFECT_CASES.filter((item) => item.id !== "effect.outer-glow.perspective");
     for (const fixture of supportedEffects) {
       await selectCase(page, fixture.id);
       await expect(canvas).not.toHaveAttribute("data-diagnostics", /skia_effect_unsupported/);
@@ -102,11 +102,6 @@ test.describe("Skia Phase 6 Runtime compositing contract", () => {
       expect(diff.paintedPixels, `${fixture.id} painted pixels`).toBeGreaterThan(0);
       expect(diff.changedRatio, `${fixture.id} changed ratio`).toBeLessThan(0.35);
       expect(diff.meanAbsoluteDelta, `${fixture.id} mean delta`).toBeLessThan(36);
-    }
-    for (const fixture of SKIA_EFFECT_CASES.filter((item) => item.id === "effect.noise")) {
-      await selectCase(page, fixture.id);
-      await expect(canvas).toHaveAttribute("data-diagnostics", /skia_effect_unsupported/);
-      await expect(canvas).not.toHaveAttribute("data-diagnostics", /skia_command_unsupported/);
     }
     for (const fixture of SKIA_EFFECT_CASES.filter((item) => item.id === "effect.outer-glow.perspective")) {
       await select.selectOption(fixture.id);

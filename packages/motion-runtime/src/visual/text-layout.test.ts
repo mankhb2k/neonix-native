@@ -87,8 +87,9 @@ describe("runtime text shaping and materialization", () => {
     expect(new Set(content.layout?.runs.map((run) => run.fontAssetId))).toEqual(new Set(["roboto", "noto-emoji"]));
     const emojiGlyph = content.layout?.glyphs.find((glyph) => glyph.fontAssetId === "noto-emoji");
     expect(emojiGlyph).toBeDefined();
-    expect(["color-bitmap", "color-layers", "color-svg"]).toContain(emojiGlyph?.renderMode);
+    expect(["color-bitmap", "color-layers", "color-paint", "color-svg"]).toContain(emojiGlyph?.renderMode);
     expect(emojiGlyph?.colorGlyph).toBeDefined();
+    if (emojiGlyph?.colorGlyph?.kind === "paint-graph") expect(emojiGlyph.colorGlyphFallback?.mimeType).toBe("image/svg+xml");
   });
 
   it("shapes an Arabic RTL run before a renderer receives its glyphs", async () => {

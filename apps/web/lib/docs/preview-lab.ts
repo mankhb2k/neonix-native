@@ -187,8 +187,10 @@ const PREVIEW_IMAGE_ASSET = {
   kind: "image" as const,
   uri: "/preview/image/photo-landscape.jpg",
   mimeType: "image/jpeg",
-  width: 1600,
-  height: 900,
+  // Keep the declared intrinsic size aligned with photo-landscape.jpg so
+  // preserveAspectRatio=meet resolves identically in native SVG and Skia.
+  width: 1920,
+  height: 1280,
 };
 
 const PREVIEW_PORTRAIT_IMAGE_ASSET = {

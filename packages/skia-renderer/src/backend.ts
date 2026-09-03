@@ -1,7 +1,53 @@
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import { loadCanvasKit, type SkiaSurface, type SkiaTypeface } from "./canvas-kit";
-import { replaySkiaCommands } from "./command-replay";
+import { replaySkiaCommands } from "./command";
 import type { SkiaDiagnostic, SkiaRenderer, SkiaRendererOptions, SkiaRenderStats, SkiaAsset, SkiaFontAsset } from "./types";
+
+function fract(value: number): number {
+  return value - Math.floor(value);
+}
+
+function noiseHash(x: number, y: number): number {
+  let vx = fract(x * 0.1031);
+  let vy = fract(y * 0.1031);
+  let vz = fract((x + y) * 0.1031);
+  const dot = vx * (vy + 33.33) + vy * (vz + 33.33) + vz * (vx + 33.33);
+  vx += dot;
+  vy += dot;
+  vz += dot;
+  return fract((vx + vy) * vz);
+}
+
+function applyNoise(
+  pixels: Uint8Array,
+  pixelWidth: number,
+  pixelHeight: number,
+  regions: Array<{ effect: { scale: number; amount: number; opacity: number; seed: number }; bounds: { left: number; top: number; right: number; bottom: number } }>,
+  dpr: number,
+): void {
+  for (const region of regions) {
+    const left = Math.max(0, Math.floor(region.bounds.left * dpr));
+    const top = Math.max(0, Math.floor(region.bounds.top * dpr));
+    const right = Math.min(pixelWidth, Math.ceil(region.bounds.right * dpr));
+    const bottom = Math.min(pixelHeight, Math.ceil(region.bounds.bottom * dpr));
+    const scale = Math.max(region.effect.scale, 0.25);
+    const strength = region.effect.amount * region.effect.opacity;
+    for (let y = top; y < bottom; y += 1) {
+      for (let x = left; x < right; x += 1) {
+        const index = (y * pixelWidth + x) * 4;
+        const alpha = pixels[index + 3]! / 255;
+        if (alpha <= 0.000001) continue;
+        const cellX = Math.floor(x / scale);
+        const cellY = Math.floor(y / scale);
+        const value = noiseHash(cellX + region.effect.seed, cellY + region.effect.seed * 1.37);
+        const delta = (value - 0.5) * 2 * strength;
+        pixels[index] = Math.round(Math.max(0, Math.min(255, pixels[index]! / alpha + delta * 255)));
+        pixels[index + 1] = Math.round(Math.max(0, Math.min(255, pixels[index + 1]! / alpha + delta * 255)));
+        pixels[index + 2] = Math.round(Math.max(0, Math.min(255, pixels[index + 2]! / alpha + delta * 255)));
+      }
+    }
+  }
+}
 
 export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<SkiaRenderer> {
   const kit = await loadCanvasKit();
@@ -26,6 +72,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     drawCalls: 0,
     skippedCommands: 0,
     nativeTextGlyphs: 0,
+    nativeColorTextGlyphs: 0,
     outlineTextGlyphs: 0,
     colorTextGlyphs: 0,
     frameTimeMs: 0,
@@ -102,6 +149,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       colorType: kit.ColorType.RGBA_8888,
       colorSpace: kit.ColorSpace.SRGB,
     });
+    if (pixels && replay.noiseRegions.length) applyNoise(pixels, backingWidth, backingHeight, replay.noiseRegions, dpr);
     const target = options.canvas.getContext("2d") as CanvasRenderingContext2D | null;
     if (target && pixels) target.putImageData(new ImageData(new Uint8ClampedArray(pixels), backingWidth, backingHeight), 0, 0);
     stats = {
@@ -111,6 +159,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       textureUploads: replay.textureUploads,
       videoTextureUploads: replay.videoTextureUploads,
       nativeTextGlyphs: replay.nativeTextGlyphs,
+      nativeColorTextGlyphs: replay.nativeColorTextGlyphs,
       outlineTextGlyphs: replay.outlineTextGlyphs,
       colorTextGlyphs: replay.colorTextGlyphs,
       frameTimeMs: performance.now() - started,

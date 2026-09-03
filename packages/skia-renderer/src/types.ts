@@ -33,6 +33,8 @@ export type SkiaRenderStats = {
   readonly skippedCommands: number;
   /** Glyphs replayed with CanvasKit Font.drawGlyphs from Runtime glyph IDs. */
   readonly nativeTextGlyphs: number;
+  /** Color glyphs replayed through the font's native COLRv1 paint graph. */
+  readonly nativeColorTextGlyphs: number;
   /** Glyphs that retain the exact Runtime outline-path replay fallback. */
   readonly outlineTextGlyphs: number;
   /** Color glyphs replayed as layers or decoded image resources. */

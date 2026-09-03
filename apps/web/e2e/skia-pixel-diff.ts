@@ -19,8 +19,31 @@ export async function readSkiaDiff(page: Page): Promise<SkiaDiff> {
     }
     const svg = iframe.contentDocument?.querySelector("svg")?.outerHTML;
     if (!svg) throw new Error("Skia SVG reference has not loaded");
+    // The serialized SVG is rendered from a blob URL below. Resolve external
+    // Runtime image resources against the app origin first; otherwise a
+    // relative href such as /preview/image/photo-landscape.jpg resolves
+    // against the blob URL and silently disappears from the reference.
+    const parsedSvg = new DOMParser().parseFromString(svg, "image/svg+xml");
+    for (const element of parsedSvg.querySelectorAll("[href], [xlink\\:href]")) {
+      for (const attribute of ["href", "xlink:href"]) {
+        const value = element.getAttribute(attribute);
+        if (value && !value.startsWith("data:") && !value.startsWith("#")) {
+          const response = await fetch(new URL(value, window.location.href).href);
+          if (!response.ok) throw new Error(`SVG reference resource failed: ${response.status}`);
+          const resource = await response.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error ?? new Error("SVG reference resource could not be encoded"));
+            reader.readAsDataURL(resource);
+          });
+          element.setAttribute(attribute, dataUrl);
+        }
+      }
+    }
+    const resolvedSvg = parsedSvg.documentElement.outerHTML;
     const image = new Image();
-    const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    const imageUrl = URL.createObjectURL(new Blob([resolvedSvg], { type: "image/svg+xml" }));
     image.src = imageUrl;
     await image.decode();
     const reference = document.createElement("canvas");
