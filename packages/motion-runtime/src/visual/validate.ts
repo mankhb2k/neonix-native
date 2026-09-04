@@ -288,8 +288,26 @@ export function validateVisualRuntimeProject(
       if (!['left', 'center', 'right'].includes(node.content.align) || !['top', 'middle', 'bottom'].includes(node.content.verticalAlign)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_alignment", message: "Runtime V2 text alignment is invalid", nodeId: node.id });
       }
-      if (!["none", "word", "character"].includes(node.content.wrap) || node.content.overflow !== "visible" || !["ltr", "rtl"].includes(node.content.direction)) {
+      if (node.content.whiteSpace && !["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"].includes(node.content.whiteSpace)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_whitespace", message: "Runtime V2 text white-space mode is invalid", nodeId: node.id });
+      }
+      if (node.content.justify && !["line", "all"].includes(node.content.justify)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_justify", message: "Runtime V2 text justification mode is invalid", nodeId: node.id });
+      }
+      if ([node.content.width, node.content.height, node.content.contentWidth, node.content.contentHeight, node.content.contentOffsetX, node.content.contentOffsetY].some((value) => value !== undefined && (!Number.isFinite(value) || value < 0))) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_content_box", message: "Runtime V2 text content-box metrics are invalid", nodeId: node.id });
+      }
+      if (!["none", "word", "character"].includes(node.content.wrap) || !["visible", "clip"].includes(node.content.overflow) || !["ltr", "rtl"].includes(node.content.direction)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_layout_contract", message: "Runtime V2 text layout contract is invalid", nodeId: node.id });
+      }
+      if (node.content.textOverflow && !["clip", "ellipsis"].includes(node.content.textOverflow)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_overflow", message: "Runtime V2 text overflow mode is invalid", nodeId: node.id });
+      }
+      if (node.content.textRendering && !["auto", "optimizeSpeed", "geometricPrecision"].includes(node.content.textRendering)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_rendering", message: "Runtime V2 text rendering mode is invalid", nodeId: node.id });
+      }
+      if (node.content.maxLines !== undefined && (!Number.isSafeInteger(node.content.maxLines) || node.content.maxLines <= 0)) {
+        diagnostics.push({ severity: "error", code: "runtime_v2_text_max_lines", message: "Runtime V2 text maxLines must be a positive integer", nodeId: node.id });
       }
       if (node.content.writingMode && !["horizontal-tb", "vertical-rl", "vertical-lr"].includes(node.content.writingMode)) {
         diagnostics.push({ severity: "error", code: "runtime_v2_text_writing_mode", message: "Runtime V2 text writing mode is invalid", nodeId: node.id });

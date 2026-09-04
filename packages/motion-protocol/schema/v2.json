@@ -4970,6 +4970,18 @@
                           "lineHeight": {
                             "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                           },
+                          "contentWidth": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                          },
+                          "contentHeight": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                          },
+                          "contentOffsetX": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                          },
+                          "contentOffsetY": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                          },
                           "textAlign": {
                             "type": "string",
                             "enum": [
@@ -4978,7 +4990,9 @@
                               "center",
                               "start",
                               "end",
-                              "justify"
+                              "justify",
+                              "match-parent",
+                              "justify-all"
                             ]
                           },
                           "whiteSpace": {

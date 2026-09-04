@@ -1,8 +1,97 @@
 import { fail } from "./errors";
 import { calcExpression } from "./values";
+import { parseColor } from "./paint";
 import { splitTopLevel } from "./utils";
 import type { HtmlCompilerFontAsset } from "../source";
 import type { Style } from "./model";
+
+export type HtmlCompilerTextAlign = "left" | "right" | "center" | "start" | "end" | "justify" | "match-parent" | "justify-all";
+export type HtmlCompilerTextDirection = "ltr" | "rtl";
+export type HtmlCompilerWritingMode = "horizontal-tb" | "vertical-rl" | "vertical-lr";
+export type HtmlCompilerWhiteSpace = "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces";
+export type HtmlCompilerTextSpacing = "normal" | { value: number; unit: "px" };
+export type HtmlCompilerTextDecoration = Partial<Record<"underline" | "overline" | "lineThrough", { fill: string; strokeWidth?: { value: number; unit: "px" } }>>;
+export type HtmlCompilerTextOverflow = "clip" | "ellipsis";
+export type HtmlCompilerTextRendering = "auto" | "optimizeSpeed" | "geometricPrecision";
+
+/** Normalize CSS text alignment into the Protocol V2 layout vocabulary. */
+export function parseTextAlign(value: string | undefined): HtmlCompilerTextAlign {
+  const normalized = (value ?? "start").trim().toLowerCase();
+  if (["left", "right", "center", "start", "end", "justify", "match-parent", "justify-all"].includes(normalized)) return normalized as HtmlCompilerTextAlign;
+  return fail("css-text-align-invalid", `text-align must be start, end, left, right, center, justify, match-parent or justify-all: ${value}`);
+}
+
+export function parseTextDirection(value: string | undefined): HtmlCompilerTextDirection {
+  const normalized = (value ?? "ltr").trim().toLowerCase();
+  if (normalized === "ltr" || normalized === "rtl") return normalized;
+  return fail("css-direction-invalid", `direction must be ltr or rtl: ${value}`);
+}
+
+export function parseWritingMode(value: string | undefined): HtmlCompilerWritingMode {
+  const normalized = (value ?? "horizontal-tb").trim().toLowerCase();
+  if (["horizontal-tb", "vertical-rl", "vertical-lr"].includes(normalized)) return normalized as HtmlCompilerWritingMode;
+  return fail("css-writing-mode-invalid", `writing-mode must be horizontal-tb, vertical-rl or vertical-lr: ${value}`);
+}
+
+export function parseTextDecoration(value: string | undefined, currentColor: string, containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerTextDecoration | undefined {
+  const normalized = (value ?? "none").trim().toLowerCase();
+  if (normalized === "none") return undefined;
+  const lines = new Set<"underline" | "overline" | "lineThrough">();
+  let color = currentColor;
+  let strokeWidth: { value: number; unit: "px" } | undefined;
+  for (const token of normalized.split(/\s+/).filter(Boolean)) {
+    if (token === "underline" || token === "overline" || token === "line-through") {
+      lines.add(token === "line-through" ? "lineThrough" : token);
+      continue;
+    }
+    if (token === "solid") continue;
+    if (token === "double" || token === "dotted" || token === "dashed" || token === "wavy") {
+      return fail("css-text-decoration-style-unsupported", `Only solid text-decoration is supported: ${token}`);
+    }
+    if (token === "currentcolor" || token === "transparent" || /^#[0-9a-f]{3,8}$/i.test(token)) {
+      color = parseColor(token, "text-decoration-color", currentColor);
+      continue;
+    }
+    if (token === "auto" || token === "from-font") continue;
+    const resolved = calcExpression(token, "text-decoration-thickness", containingWidth, fontSize, 16, viewport);
+    if (resolved.unit === "number" || !Number.isFinite(resolved.value) || resolved.value <= 0) fail("css-text-decoration-thickness-invalid", `text-decoration thickness must be a positive length: ${token}`);
+    strokeWidth = { value: resolved.value, unit: "px" };
+  }
+  if (!lines.size) return fail("css-text-decoration-line-invalid", `text-decoration must include underline, overline or line-through: ${value}`);
+  return Object.fromEntries([...lines].map((line) => [line, { fill: color, ...(strokeWidth ? { strokeWidth } : {}) }])) as HtmlCompilerTextDecoration;
+}
+
+export function parseWhiteSpace(value: string | undefined): HtmlCompilerWhiteSpace {
+  const normalized = (value ?? "normal").trim().toLowerCase();
+  if (["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"].includes(normalized)) return normalized as HtmlCompilerWhiteSpace;
+  return fail("css-white-space-invalid", `white-space must be normal, nowrap, pre, pre-wrap, pre-line or break-spaces: ${value}`);
+}
+
+export function parseTextOverflow(value: string | undefined): HtmlCompilerTextOverflow {
+  const normalized = (value ?? "clip").trim().toLowerCase();
+  if (normalized === "clip" || normalized === "ellipsis") return normalized;
+  return fail("css-text-overflow-invalid", `text-overflow must be clip or ellipsis: ${value}`);
+}
+
+export function parseTextRendering(value: string | undefined): HtmlCompilerTextRendering {
+  const normalized = (value ?? "auto").trim().toLowerCase();
+  if (normalized === "auto") return "auto";
+  if (normalized === "optimizespeed") return "optimizeSpeed";
+  if (normalized === "geometricprecision") return "geometricPrecision";
+  return fail("css-text-rendering-invalid", `text-rendering must be auto, optimizeSpeed or geometricPrecision: ${value}`);
+}
+
+export function wrapForWhiteSpace(value: HtmlCompilerWhiteSpace): "none" | "word" {
+  return value === "nowrap" || value === "pre" ? "none" : "word";
+}
+
+export function parseTextSpacing(value: string | undefined, property: "letter-spacing" | "word-spacing", containingWidth: number, fontSize: number, viewport: { width: number; height: number }): HtmlCompilerTextSpacing {
+  const normalized = (value ?? "normal").trim().toLowerCase();
+  if (normalized === "normal") return "normal";
+  const resolved = calcExpression(normalized, property, containingWidth, fontSize, 16, viewport);
+  if (!Number.isFinite(resolved.value)) fail("css-text-spacing-invalid", `${property} must resolve to a finite length: ${value}`);
+  return { value: resolved.value, unit: "px" };
+}
 
 export function parseFontFamilies(value: string): string[] {
   const families = splitTopLevel(value, ",").map((family) => family.trim()).filter(Boolean).map((family) => {

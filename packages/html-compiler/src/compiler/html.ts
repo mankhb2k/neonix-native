@@ -32,7 +32,7 @@ export function parseHtml(html: string): Node {
   const token = /<!--[\s\S]*?-->|<!DOCTYPE[^>]*>|<\/?[A-Za-z][^>]*>|([^<]+)/gi;
   for (const match of html.matchAll(token)) {
     if (match[1] !== undefined) {
-      if (match[1].trim()) stack[stack.length - 1]!.text += match[1];
+      stack[stack.length - 1]!.text += match[1];
       continue;
     }
     const raw = match[0]!;

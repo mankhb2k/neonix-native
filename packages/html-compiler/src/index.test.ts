@@ -82,6 +82,115 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.assets?.map((asset) => asset.id)).toEqual(["inter-bold", "noto-emoji"]);
   });
 
+  it("lowers all authored CSS text-align values into Protocol V2 JSON", () => {
+    const alignments = [
+      ["start", "start"],
+      ["end", "end"],
+      ["left", "left"],
+      ["right", "right"],
+      ["center", "center"],
+      ["justify", "justify"],
+      ["match-parent", "match-parent"],
+      ["justify-all", "justify-all"],
+    ] as const;
+    const html = `<div id="align-start">start alignment</div><div id="align-end">end alignment</div><div id="align-left">left alignment</div><div id="align-right">right alignment</div><div id="align-center">center alignment</div><div id="align-justify">justify alignment</div><div id="align-match-parent">match parent alignment</div><div id="align-justify-all">justify all alignment</div>`;
+    const css = [
+      "body { margin: 0; background: #081018; }",
+      ...alignments.map(([value], index) => `#align-${value} { position: absolute; left: 100px; top: ${100 + index * 100}px; width: 900px; height: 80px; color: #ffffff; font-family: Inter; font-size: 32px; text-align: ${value}; }`),
+    ].join("\n");
+    const result = compileHtmlCss(createHtmlCssSource({ html, css }), {
+      fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    const textLayers = result.protocol?.layers.filter((layer) => layer.type === "text") ?? [];
+    expect(textLayers).toHaveLength(alignments.length);
+    expect(textLayers.map((layer) => layer.type === "text" ? layer.payload.layout?.textAlign : undefined)).toEqual(alignments.map(([, normalized]) => normalized));
+  });
+
+  it("lowers direction, writing-mode and text-decoration into Protocol V2", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="rtl">Ù…Ø±Ø­Ø¨Ø§</div><div id="vertical">VERT</div><div id="decorated">decorated</div>`,
+      css: `body { margin: 0; } #rtl, #vertical, #decorated { position: absolute; left: 40px; top: 40px; width: 300px; height: 120px; font-family: Inter; color: #ffffff; } #rtl { direction: rtl; text-align: start; } #vertical { top: 200px; writing-mode: vertical-rl; } #decorated { top: 360px; text-decoration: underline 3px #ff0000 overline line-through; }`,
+    }), {
+      fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    const rtl = result.protocol?.layers.find((layer) => layer.id === "rtl");
+    expect(rtl).toMatchObject({ type: "text", payload: { source: { direction: "rtl", writingMode: "horizontal-tb" }, chunks: [{ textAnchor: "end" }] } });
+    const vertical = result.protocol?.layers.find((layer) => layer.id === "vertical");
+    expect(vertical).toMatchObject({ type: "text", payload: { source: { direction: "ltr", writingMode: "vertical-rl" } } });
+    const decorated = result.protocol?.layers.find((layer) => layer.id === "decorated");
+    expect(decorated).toMatchObject({
+      type: "text",
+      payload: {
+        chunks: [{ spans: [{ textDecoration: {
+          underline: { fill: "#ff0000", strokeWidth: { value: 3, unit: "px" } },
+          overline: { fill: "#ff0000", strokeWidth: { value: 3, unit: "px" } },
+          lineThrough: { fill: "#ff0000", strokeWidth: { value: 3, unit: "px" } },
+        } }] }],
+      },
+    });
+  });
+
+  it("emits the text content box separately from the border-box frame", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box">content box</div>`,
+      css: `body { margin: 0; } #box { position: absolute; left: 50px; top: 50px; width: 200px; height: 80px; margin-left: 30px; padding: 10px 20px; border: 2px solid #ffffff; font-family: Inter; text-align: center; }`,
+    }), {
+      fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    const textLayer = result.protocol?.layers.find((layer) => layer.type === "text");
+    expect(textLayer?.frame).toMatchObject({ width: 244, height: 104 });
+    expect(textLayer?.type === "text" ? textLayer.payload.layout : undefined).toMatchObject({ contentWidth: 200, contentOffsetX: 22, contentOffsetY: 12 });
+  });
+
+  it("lowers letter-spacing, word-spacing and white-space into the text contract", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="typography">A  B\nC</div>`,
+      css: `body { margin: 0; } #typography { position: absolute; left: 40px; top: 40px; width: 300px; height: 120px; font-family: Inter; letter-spacing: 2px; word-spacing: 8px; white-space: pre-wrap; }`,
+    }), {
+      fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    const textLayer = result.protocol?.layers.find((layer) => layer.type === "text");
+    expect(textLayer?.type === "text" ? textLayer.payload : undefined).toMatchObject({
+      source: { text: "A  B\nC" },
+      layout: { whiteSpace: "pre-wrap", wrap: "word" },
+    });
+    const span = textLayer?.type === "text" ? textLayer.payload.chunks[0]?.spans[0] : undefined;
+    expect(span?.letterSpacing).toEqual({ value: 2, unit: "px" });
+    expect(span?.wordSpacing).toEqual({ value: 8, unit: "px" });
+  });
+
+  it("lowers deterministic text overflow and rendering capabilities", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="overflow">A deterministic single-line overflow example</div><div id="precision">Geometric text</div>`,
+      css: `body { margin: 0; } #overflow, #precision { position: absolute; left: 40px; top: 40px; width: 200px; height: 60px; font-family: Inter; font-size: 32px; } #overflow { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } #precision { top: 140px; text-rendering: geometricPrecision; }`,
+    }), {
+      fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const overflow = result.protocol?.layers.find((layer) => layer.id === "overflow");
+    expect(overflow).toMatchObject({
+      type: "text",
+      clipPath: "html-text-clip-0",
+      payload: { source: { textRendering: "auto" }, layout: { textOverflow: "ellipsis", maxLines: 1, whiteSpace: "nowrap", wrap: "none" } },
+    });
+    expect(result.protocol?.clipPaths).toEqual([{ id: "html-text-clip-0", clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: 0, y: 0, width: 200, height: 60 }] }]);
+    expect(result.protocol?.layers.find((layer) => layer.id === "precision")).toMatchObject({ type: "text", payload: { source: { textRendering: "geometricPrecision" } } });
+  });
+
+  it("requires deterministic clipping for text-overflow ellipsis", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="overflow">text</div>`,
+      css: `#overflow { position: absolute; width: 200px; height: 60px; font-family: Inter; text-overflow: ellipsis; }`,
+    }), { fontAssets: [{ id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }] });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-text-overflow-requires-clipping");
+  });
+
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {
     const result = compileHtmlCss(source);
     expect(result.status).toBe("success");

@@ -86,6 +86,114 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.glyphs.every((glyph) => glyph.x <= 150)).toBe(true);
   });
 
+  it("trims grapheme clusters and shapes an ellipsis inside a clipped line", async () => {
+    const bytes = await readFile(notoSansPath);
+    const value = "Hello world from Neonix";
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: value, width: 150, contentWidth: 150, whiteSpace: "nowrap", wrap: "none", overflow: "clip", textOverflow: "ellipsis", maxLines: 1 })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines).toHaveLength(1);
+    expect(content.layout?.glyphs.length).toBeLessThan(value.length);
+    expect(content.layout?.glyphs.at(-1)?.cluster ?? value.length).toBeLessThan(value.length);
+  });
+
+  it("maps text-rendering intent to safe mask/vector modes", async () => {
+    const bytes = await readFile(notoSansPath);
+    const prepare = (textRendering: VisualRuntimeText["textRendering"]) => prepareVisualRuntimeProjectText(
+      project(textContent({ textRendering })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const speed = await prepare("optimizeSpeed");
+    const precision = await prepare("geometricPrecision");
+    const speedContent = speed.project.nodes[0]!.content;
+    const precisionContent = precision.project.nodes[0]!.content;
+    expect(speedContent.kind === "text" ? speedContent.layout?.glyphs[0]?.renderMode : undefined).toBe("grayscale-mask");
+    expect(precisionContent.kind === "text" ? precisionContent.layout?.glyphs[0]?.renderMode : undefined).toBe("vector");
+  });
+
+  it("uses contentWidth and contentOffsetX/Y for text layout", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "A B C", width: 500, height: 120, contentWidth: 300, contentOffsetX: 20, contentOffsetY: 12, justify: "all" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines[0]?.advanceWidth).toBeCloseTo(300, 5);
+    expect(Math.min(...(content.layout?.glyphs.map((glyph) => glyph.x) ?? []))).toBeGreaterThanOrEqual(20);
+    expect(Math.min(...(content.layout?.glyphs.map((glyph) => glyph.y) ?? []))).toBeGreaterThan(12);
+  });
+
+  it("places vertical-rl and vertical-lr columns at opposite inline edges", async () => {
+    const bytes = await readFile(notoSansPath);
+    const resolve = async (writingMode: "vertical-rl" | "vertical-lr") => {
+      const result = await prepareVisualRuntimeProjectText(
+        project(textContent({ text: "VERT", writingMode, width: 500, height: 120, contentWidth: 300, contentOffsetX: 12 })),
+        async () => bytes,
+        async () => import("harfbuzzjs"),
+      );
+      const content = result.project.nodes[0]!.content;
+      if (content.kind !== "text") throw new Error("Expected text runtime content");
+      return Math.min(...content.layout!.glyphs.map((glyph) => glyph.x));
+    };
+    const verticalRlX = await resolve("vertical-rl");
+    const verticalLrX = await resolve("vertical-lr");
+    expect(verticalRlX).toBeCloseTo(12 + 300 - 38, 5);
+    expect(verticalLrX).toBeCloseTo(12, 5);
+    expect(verticalRlX).toBeGreaterThan(verticalLrX);
+  });
+
+  it("normalizes collapsible whitespace before shaping", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "A   B\n C", whiteSpace: "normal", wrap: "none" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines).toHaveLength(1);
+    expect(content.layout?.lines[0]?.advanceWidth).toBeLessThan(150);
+  });
+
+  it("preserves newlines and repeated spaces for pre-wrap", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "A   B\n C", whiteSpace: "pre-wrap", wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines).toHaveLength(2);
+    expect(content.layout?.lines[0]?.advanceWidth).toBeGreaterThan(content.layout?.lines[1]?.advanceWidth ?? 0);
+  });
+
+  it("justifies wrapped lines but leaves the final line natural", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello world from Neonix", width: 500, contentWidth: 240, wrap: "word", justify: "line" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines.length).toBeGreaterThan(1);
+    expect(content.layout?.lines[0]?.advanceWidth).toBeCloseTo(240, 5);
+    expect(content.layout?.lines.at(-1)?.advanceWidth).toBeLessThan(240);
+  });
+
   it("resolves a different font run when the primary face lacks a grapheme", async () => {
     const [notoSans, notoEmoji] = await Promise.all([readFile(notoSansPath), readFile(notoEmojiPath)]);
     const result = await prepareVisualRuntimeProjectText(

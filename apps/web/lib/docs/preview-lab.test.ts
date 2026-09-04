@@ -52,7 +52,7 @@ describe("Protocol V2 preview lab fixtures", () => {
   });
 
   it("keeps the HTML compiler sidebar backed by real P0 fixtures", () => {
-    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(36);
+    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(41);
     expect(htmlCompilerPreviewCaseById(null).id).toBe(HTML_COMPILER_DEFAULT_CASE_ID);
     expect(HTML_COMPILER_PHASE0_CASES[0]?.id).toBe("html-compiler.new-project.blue-rectangle");
     expect(HTML_COMPILER_PHASE0_CASES[0]?.source.composition).toEqual({
@@ -132,11 +132,14 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PHASE0_CASES[26]?.source.css).toContain("image-rendering: pixelated");
     expect(HTML_COMPILER_PHASE0_CASES[27]?.source.css).toContain("object-fit: none");
     expect(HTML_COMPILER_PHASE0_CASES[27]?.source.css).toContain("overflow: hidden");
-    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.html).toContain('id="font-inter"');
-    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.css).toContain('font-family: "Lora"');
-    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.css).toContain("font-weight: 700");
-    expect(HTML_COMPILER_PHASE0_CASES[29]?.source.html).toContain('id="emoji-triple"');
-    expect(HTML_COMPILER_PHASE0_CASES[29]?.source.css).toContain('font-family: "Noto Color Emoji"');
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts").source.html).toContain('id="font-inter"');
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts").source.css).toContain('font-family: "Lora"');
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.font-family-three-fonts").source.css).toContain("font-weight: 700");
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.emoji-fallback").source.html).toContain('id="emoji-triple"');
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.emoji-fallback").source.css).toContain('font-family: "Noto Color Emoji"');
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("direction: rtl");
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("writing-mode: vertical-rl");
+    expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("text-decoration: underline");
     expect(htmlCompilerPreviewGroups().map((group) => group.topic)).toEqual([
       "New project",
       "Composition & geometry",
@@ -357,47 +360,96 @@ describe("Protocol V2 preview lab fixtures", () => {
       payload: { fit: "none", preserveAspectRatio: { align: "xMidYMid" } },
     });
 
-    const typographyResults = HTML_COMPILER_PHASE0_CASES.slice(28).map((fixture) => compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS }));
+    const typographyCase = (id: string) => htmlCompilerPreviewCaseById(id)!;
+    const typographyResult = (id: string) => compileHtmlCss(typographyCase(id).source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+    const typographyResults = [
+      "html-compiler.typography.text-align-values",
+      "html-compiler.typography.text-spacing-whitespace",
+      "html-compiler.typography.direction-writing-decoration",
+      "html-compiler.typography.font-family-three-fonts",
+      "html-compiler.typography.emoji-fallback",
+      "html-compiler.typography.weight-fallback",
+      "html-compiler.typography.family-fallback",
+      "html-compiler.typography.style-stretch",
+      "html-compiler.typography.line-height-short",
+      "html-compiler.typography.line-height-normal",
+      "html-compiler.typography.line-height-long",
+      "html-compiler.typography.text-overflow-ellipsis",
+      "html-compiler.typography.text-rendering-capability",
+    ].map(typographyResult);
     expect(typographyResults.every((result) => result.status === "success")).toBe(true);
-    const interLayer = typographyResults[0]?.protocol?.layers.find((layer) => layer.id === "font-inter");
+    const fontFamilyResult = typographyResult("html-compiler.typography.font-family-three-fonts");
+    const emojiResult = typographyResult("html-compiler.typography.emoji-fallback");
+    const spacingResult = typographyResult("html-compiler.typography.text-spacing-whitespace");
+    const directionWritingDecorationResult = typographyResult("html-compiler.typography.direction-writing-decoration");
+    const interLayer = fontFamilyResult.protocol?.layers.find((layer) => layer.id === "font-inter");
     expect(interLayer).toMatchObject({ id: "font-inter", type: "text", payload: { source: { text: "Inter — precise interface" } } });
     expect(interLayer && interLayer.type === "text" ? interLayer.payload.chunks[0]?.spans[0]?.font : undefined).toMatchObject({ families: ["Inter", "sans-serif"], size: 72, weight: 400 });
-    expect(typographyResults[0]?.protocol?.layers).toEqual(expect.arrayContaining([
+    expect(fontFamilyResult.protocol?.layers).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "font-lora", type: "text" }),
       expect.objectContaining({ id: "font-roboto", type: "text" }),
     ]));
-    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-single")).toMatchObject({ id: "emoji-single", type: "text", payload: { source: { text: "😀" } } });
-    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-text")).toMatchObject({ id: "emoji-text", type: "text", payload: { source: { text: "Neonix 🚀" } } });
-    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-triple")).toMatchObject({ id: "emoji-triple", type: "text", payload: { source: { text: "🚀 🎬 ✨" } } });
-    expect(typographyResults[1]?.protocol?.assets).toEqual(expect.arrayContaining([
+    expect(emojiResult.protocol?.layers.find((layer) => layer.id === "emoji-single")).toMatchObject({ id: "emoji-single", type: "text", payload: { source: { text: "😀" } } });
+    expect(emojiResult.protocol?.layers.find((layer) => layer.id === "emoji-text")).toMatchObject({ id: "emoji-text", type: "text", payload: { source: { text: "Neonix 🚀" } } });
+    expect(emojiResult.protocol?.layers.find((layer) => layer.id === "emoji-triple")).toMatchObject({ id: "emoji-triple", type: "text", payload: { source: { text: "🚀 🎬 ✨" } } });
+    expect(emojiResult.protocol?.assets).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "preview-font-noto-color-emoji", kind: "font", weight: 400 }),
     ]));
-    const weightFallback = typographyResults[2]?.protocol?.layers.find((layer) => layer.id === "weight-fallback");
+    const letterSpacingLayer = spacingResult.protocol?.layers.find((layer) => layer.id === "spacing-letter");
+    expect(letterSpacingLayer).toMatchObject({
+      type: "text",
+      payload: {
+        layout: { whiteSpace: "normal", wrap: "word" },
+        chunks: [{ spans: [{ letterSpacing: { value: 8, unit: "px" } }] }],
+      },
+    });
+    const wordSpacingLayer = spacingResult.protocol?.layers.find((layer) => layer.id === "spacing-word");
+    expect(wordSpacingLayer).toMatchObject({
+      type: "text",
+      payload: { chunks: [{ spans: [{ wordSpacing: { value: 28, unit: "px" } }] }] },
+    });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-normal")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "normal", wrap: "word" } } });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-nowrap")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "nowrap", wrap: "none" } } });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-pre")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "pre", wrap: "none" } } });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-pre-wrap")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "pre-wrap", wrap: "word" } } });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-pre-line")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "pre-line", wrap: "word" } } });
+    expect(spacingResult.protocol?.layers.find((layer) => layer.id === "whitespace-break-spaces")).toMatchObject({ type: "text", payload: { layout: { whiteSpace: "break-spaces", wrap: "word" } } });
+
+    expect(directionWritingDecorationResult.protocol?.layers.find((layer) => layer.id === "direction-rtl")).toMatchObject({ type: "text", payload: { source: { direction: "rtl", writingMode: "horizontal-tb" }, chunks: [{ textAnchor: "end" }] } });
+    expect(directionWritingDecorationResult.protocol?.layers.find((layer) => layer.id === "writing-vertical-rl")).toMatchObject({ type: "text", payload: { source: { direction: "ltr", writingMode: "vertical-rl" } } });
+    expect(directionWritingDecorationResult.protocol?.layers.find((layer) => layer.id === "writing-vertical-lr")).toMatchObject({ type: "text", payload: { source: { direction: "ltr", writingMode: "vertical-lr" } } });
+    expect(directionWritingDecorationResult.protocol?.layers.find((layer) => layer.id === "decoration-all")).toMatchObject({
+      type: "text",
+      payload: { chunks: [{ spans: [{ textDecoration: { underline: { fill: "#f97316", strokeWidth: { value: 3, unit: "px" } }, overline: { fill: "#f97316", strokeWidth: { value: 3, unit: "px" } }, lineThrough: { fill: "#f97316", strokeWidth: { value: 3, unit: "px" } } } }] }] },
+    });
+
+    const weightFallback = typographyResult("html-compiler.typography.weight-fallback").protocol?.layers.find((layer) => layer.id === "weight-fallback");
     expect(weightFallback && weightFallback.type === "text" ? weightFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-bold"]);
-    const familyFallback = typographyResults[3]?.protocol?.layers.find((layer) => layer.id === "family-fallback");
+    const familyFallback = typographyResult("html-compiler.typography.family-fallback").protocol?.layers.find((layer) => layer.id === "family-fallback");
     expect(familyFallback && familyFallback.type === "text" ? familyFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-regular"]);
-    const styleItalic = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-italic");
+    const styleResult = typographyResult("html-compiler.typography.style-stretch");
+    const styleItalic = styleResult.protocol?.layers.find((layer) => layer.id === "style-italic");
     expect(styleItalic && styleItalic.type === "text" ? styleItalic.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
       resolvedFontAssetIds: ["preview-font-inter-italic"],
       font: { style: "italic", stretch: "normal" },
     });
-    const styleCondensed = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-condensed-regular");
+    const styleCondensed = styleResult.protocol?.layers.find((layer) => layer.id === "style-condensed-regular");
     expect(styleCondensed && styleCondensed.type === "text" ? styleCondensed.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
       resolvedFontAssetIds: ["preview-font-roboto-condensed-regular"],
       font: { style: "normal", stretch: "condensed" },
     });
-    const styleCondensedBold = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-condensed-bold");
+    const styleCondensedBold = styleResult.protocol?.layers.find((layer) => layer.id === "style-condensed-bold");
     expect(styleCondensedBold && styleCondensedBold.type === "text" ? styleCondensedBold.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
       resolvedFontAssetIds: ["preview-font-roboto-condensed-bold"],
       font: { weight: 700, style: "normal", stretch: "condensed" },
     });
-    expect(typographyResults[5]?.protocol?.layers.find((layer) => layer.id === "line-height-short")).toMatchObject({
+    expect(typographyResult("html-compiler.typography.line-height-short").protocol?.layers.find((layer) => layer.id === "line-height-short")).toMatchObject({
       type: "text",
       payload: { layout: { lineHeight: 64 } },
     });
-    const normalLineHeight = typographyResults[6]?.protocol?.layers.find((layer) => layer.id === "line-height-normal");
+    const normalLineHeight = typographyResult("html-compiler.typography.line-height-normal").protocol?.layers.find((layer) => layer.id === "line-height-normal");
     expect(normalLineHeight && normalLineHeight.type === "text" ? normalLineHeight.payload.layout?.lineHeight : undefined).toBeCloseTo(57.6, 6);
-    expect(typographyResults[7]?.protocol?.layers.find((layer) => layer.id === "line-height-long")).toMatchObject({
+    expect(typographyResult("html-compiler.typography.line-height-long").protocol?.layers.find((layer) => layer.id === "line-height-long")).toMatchObject({
       type: "text",
       payload: { layout: { lineHeight: 70 } },
     });

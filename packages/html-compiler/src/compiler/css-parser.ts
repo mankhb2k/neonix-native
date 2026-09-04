@@ -17,10 +17,16 @@ export function declarations(body: string, selector: string, sourceText?: string
     if (!value) throw new CompileError("css-empty-value", `Empty value for ${property}`, location);
     const important = /\s!important\s*$/i.test(value);
     const normalizedValue = important ? value.replace(/\s!important\s*$/i, "").trim() : value;
+    if (property === "white-space" && !["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-white-space-unsupported", `Unsupported white-space value: ${normalizedValue}`, location);
+    if (property === "text-align" && !["start", "end", "left", "right", "center", "justify", "match-parent", "justify-all", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-align-unsupported", `Unsupported text-align value: ${normalizedValue}`, location);
+    if (property === "direction" && !["ltr", "rtl", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-direction-unsupported", `direction must be ltr or rtl: ${normalizedValue}`, location);
+    if (property === "writing-mode" && !["horizontal-tb", "vertical-rl", "vertical-lr", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-writing-mode-unsupported", `Unsupported writing-mode value: ${normalizedValue}`, location);
     if (property === "display" && !["none", "block", "contents", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-display-unsupported", "Phase 3 supports display:none, block and contents", location);
     if (property === "position" && !["static", "relative", "absolute", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-position-invalid", "position must be static, relative or absolute", location);
     if (property === "visibility" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-visibility-invalid", "visibility must be visible or hidden", location);
     if (property === "overflow" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-overflow-invalid", "overflow must be visible or hidden", location);
+    if (property === "text-overflow" && !["clip", "ellipsis", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-overflow-invalid", "text-overflow must be clip or ellipsis", location);
+    if (property === "text-rendering" && !["auto", "optimizespeed", "geometricprecision", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-rendering-invalid", "text-rendering must be auto, optimizeSpeed or geometricPrecision", location);
     if (!property.startsWith("--") && !SUPPORTED_PROPERTIES.has(property)) throw new CompileError("css-property-unsupported", `Phase 2 does not support ${property}`, location);
     result.push({ property, value: normalizedValue, important, order: declarationOrder++ });
   }

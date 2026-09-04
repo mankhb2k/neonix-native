@@ -1064,12 +1064,14 @@ function compileVisualRuntimeInternal(
         throw new Error(`Protocol V2 text layer ${layer.id} has no resolved font asset for family ${firstSpan.font.families[0]}`);
       }
       const textLineHeight = layer.payload.layout?.lineHeight ?? fontSize * 1.2;
+      const layoutTextAlign = layer.payload.layout?.textAlign;
       const textFontFallbacks = resolvedFontAssets;
       const textAlign = firstChunk.textAnchor === "middle"
         ? "center" as const
         : firstChunk.textAnchor === "end"
           ? "right" as const
           : "left" as const;
+      const justify = layoutTextAlign === "justify" ? "line" as const : layoutTextAlign === "justify-all" ? "all" as const : undefined;
       const letterSpacing = firstSpan.letterSpacing === "normal"
         ? 0
         : resolveSvgLength(firstSpan.letterSpacing, layer.frame.width, fontSize) ?? 0;
@@ -1111,8 +1113,10 @@ function compileVisualRuntimeInternal(
         "text.opacity",
         "text.order",
         "text.font",
+        ...(layer.payload.source.textRendering && layer.payload.source.textRendering !== "auto" ? ["text.rendering"] : []),
         sourceText.includes("\n") ? "text.layout.multiline" : "text.layout.singleLine",
         "text.layout.glyphs",
+        ...(layer.payload.layout?.textOverflow === "ellipsis" || layer.clipPath ? ["text.layout.overflow"] : []),
         "text.fill",
         ...(textLength !== undefined ? ["text.length"] : []),
         ...((firstChunk.dx || firstChunk.dy || firstChunk.rotate) ? ["text.positioning"] : []),
@@ -1154,6 +1158,11 @@ function compileVisualRuntimeInternal(
           fontSize,
           lineHeight: textLineHeight,
           letterSpacing,
+          ...(justify ? { justify } : {}),
+          whiteSpace: layer.payload.layout?.whiteSpace ?? "normal",
+          ...(layer.payload.source.textRendering ? { textRendering: layer.payload.source.textRendering } : {}),
+          ...(layer.payload.layout?.textOverflow ? { textOverflow: layer.payload.layout.textOverflow } : {}),
+          ...(layer.payload.layout?.maxLines === undefined ? {} : { maxLines: layer.payload.layout.maxLines }),
           ...(wordSpacing ? { wordSpacing } : {}),
           ...(textLength !== undefined ? { textLength, lengthAdjust: firstSpan.lengthAdjust ?? "spacing" } : {}),
           ...(firstChunk.dx ? { dx: firstChunk.dx.map((value) => resolveSvgLength(value, layer.frame.width, fontSize) ?? 0) } : {}),
@@ -1175,7 +1184,7 @@ function compileVisualRuntimeInternal(
           align: textAlign,
           verticalAlign: "top",
           wrap: layer.payload.layout?.wrap ?? "none",
-          overflow: "visible",
+          overflow: layer.clipPath ? "clip" : "visible",
           direction: layer.payload.source.direction ?? "ltr",
           writingMode: layer.payload.source.writingMode,
           language: layer.payload.source?.language ?? "und",
@@ -1186,6 +1195,10 @@ function compileVisualRuntimeInternal(
           })),
           width: layer.frame.width,
           height: layer.frame.height,
+          ...(layer.payload.layout?.contentWidth === undefined ? {} : { contentWidth: layer.payload.layout.contentWidth }),
+          ...(layer.payload.layout?.contentHeight === undefined ? {} : { contentHeight: layer.payload.layout.contentHeight }),
+          ...(layer.payload.layout?.contentOffsetX === undefined ? {} : { contentOffsetX: layer.payload.layout.contentOffsetX }),
+          ...(layer.payload.layout?.contentOffsetY === undefined ? {} : { contentOffsetY: layer.payload.layout.contentOffsetY }),
           ...(effects ? { effects } : {}),
         },
       };

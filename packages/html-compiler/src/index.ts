@@ -32,8 +32,14 @@ import { parseTransform } from "./compiler/transform";
 import { resolveGeometry } from "./compiler/geometry";
 import { collapseVerticalMargins } from "./compiler/layout";
 import { mediaMimeType, mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "./compiler/media";
-import { parseLineHeight, resolveFontAssets } from "./compiler/typography";
+import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "./compiler/typography";
 import type { Node, Style } from "./compiler/model";
+
+function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
+  if (value === "center") return "middle";
+  if (value === "right" || (value === "end" && direction === "ltr") || (value === "start" && direction === "rtl")) return "end";
+  return "start";
+}
 
 function protocolFontAsset(asset: NonNullable<HtmlCompilerOptions["fontAssets"]>[number]): NonNullable<MotionProtocolV2["assets"]>[number] {
   return { id: asset.id, kind: "font", uri: asset.uri, weight: asset.weight, integrity: asset.integrity };
@@ -124,12 +130,28 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             layers.push({ id: groupId, type: "video", parentLayerId: parent?.tag === "body" ? null : (parent?.atomicId ?? null), order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             return;
           }
-          const text = node.text.trim().normalize("NFC");
+          const rawText = node.text.normalize("NFC");
+          const text = hasChildren ? rawText.trim() : rawText;
           if (text) {
             if (hasChildren) fail("html-text-children-unsupported", "Text elements cannot contain child elements in the typography MVP");
             const font = resolveFontAssets(style, options.fontAssets ?? []);
             addAssets(font.assets.map(protocolFontAsset));
             const textColor = parseColor(style.get("color") ?? parentStyle.get("color") ?? "#000000", "color");
+            const textAlign = parseTextAlign(style.get("text-align"));
+            const renderTextAlign = textAlign === "match-parent" ? parseTextAlign(parentStyle.get("text-align")) : textAlign;
+            const direction = parseTextDirection(style.get("direction"));
+            const writingMode = parseWritingMode(style.get("writing-mode"));
+            const textDecoration = parseTextDecoration(style.get("text-decoration"), textColor, containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
+            const whiteSpace = parseWhiteSpace(style.get("white-space"));
+            const wrap = wrapForWhiteSpace(whiteSpace);
+            const textOverflow = parseTextOverflow(style.get("text-overflow"));
+            const textRendering = parseTextRendering(style.get("text-rendering"));
+            if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
+            if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
+            const textClipId = style.get("overflow") === "hidden" ? `html-text-clip-${clipPaths.length}` : undefined;
+            if (textClipId) clipPaths.push({ id: textClipId, clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: geometry.borderWidth + geometry.padding[3], y: geometry.borderWidth + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }] });
+            const letterSpacing = parseTextSpacing(style.get("letter-spacing"), "letter-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
+            const wordSpacing = parseTextSpacing(style.get("word-spacing"), "word-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
             layers.push({
               id: groupId,
               type: "text",
@@ -139,19 +161,23 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               transform: transformFor(localX, localY, true),
               opacity,
               ...state,
+              ...(textClipId ? { clipPath: textClipId } : {}),
               timing: { start: 0, duration },
               payload: {
-                source: { text, language: node.attributes.get("lang") ?? "und", direction: "ltr", writingMode: "horizontal-tb", whiteSpace: "default", textRendering: "auto" },
-                layout: { lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), textAlign: "left", whiteSpace: "normal", wrap: "word", textOverflow: "clip" },
+                source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
+                layout: { lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderWidth + geometry.padding[3], contentOffsetY: geometry.borderWidth + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
                 chunks: [{
                   id: `${groupId}::chunk`,
                   sourceRange: { start: 0, end: text.length },
-                  textAnchor: "start",
+                  textAnchor: textAnchorForTextAlign(renderTextAlign, direction),
                     spans: [{
                     id: `${groupId}::span`,
                     sourceRange: { start: 0, end: text.length },
                     resolvedFontAssetIds: font.assets.map((asset) => asset.id),
                     font: { families: font.families, size: number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, weight: font.weight, style: font.style, stretch: font.stretch },
+                    letterSpacing,
+                    wordSpacing,
+                    ...(textDecoration ? { textDecoration } : {}),
                     fill: textColor,
                   }],
                 }],

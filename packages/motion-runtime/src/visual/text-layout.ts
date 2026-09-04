@@ -85,7 +85,16 @@ function fontRuns(fonts: ResolvedFont[], value: string): Array<{ start: number; 
   return result;
 }
 
-type SourceLine = { text: string; start: number };
+type SourceLine = { text: string; start: number; isLastInParagraph: boolean };
+
+type RuntimeWhiteSpace = NonNullable<VisualRuntimeText["whiteSpace"]>;
+
+function normalizeWhiteSpace(value: string, mode: RuntimeWhiteSpace): string {
+  const canonical = value.replace(/\r\n?/g, "\n");
+  if (mode === "pre" || mode === "pre-wrap" || mode === "break-spaces") return canonical;
+  if (mode === "pre-line") return canonical.replace(/[ \t\f]+/g, " ").replace(/ *\n */g, "\n").replace(/^ +| +$/gm, "");
+  return canonical.replace(/[ \t\n\f]+/g, " ").trim();
+}
 
 function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], value: string): number {
   let advance = 0;
@@ -106,20 +115,56 @@ function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: 
   return advance;
 }
 
+function ellipsizeSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, contentWidth: number): SourceLine {
+  const ellipsis = "…";
+  if (measureSourceLine(hb, text, fonts, line.text) <= contentWidth) return line;
+  if (measureSourceLine(hb, text, fonts, ellipsis) > contentWidth) return { ...line, text: "" };
+  let prefix = "";
+  for (const cluster of segmentClusters(line.text)) {
+    const candidate = `${prefix}${cluster.text}${ellipsis}`;
+    if (measureSourceLine(hb, text, fonts, candidate) > contentWidth) break;
+    prefix += cluster.text;
+  }
+  return { ...line, text: `${prefix}${ellipsis}` };
+}
+
 function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): SourceLine[] {
+  const sourceText = normalizeWhiteSpace(text.text, text.whiteSpace ?? "normal");
   const explicitLines: SourceLine[] = [];
   let start = 0;
-  while (start <= text.text.length) {
-    const newline = text.text.indexOf("\n", start);
-    const end = newline < 0 ? text.text.length : newline;
-    explicitLines.push({ text: text.text.slice(start, end), start });
+  while (start <= sourceText.length) {
+    const newline = sourceText.indexOf("\n", start);
+    const end = newline < 0 ? sourceText.length : newline;
+    explicitLines.push({ text: sourceText.slice(start, end), start, isLastInParagraph: newline < 0 });
     if (newline < 0) break;
     start = newline + 1;
   }
-  if (text.wrap !== "word" || text.width <= 0) return explicitLines;
-
-  return explicitLines.flatMap((line) => {
+  const contentWidth = text.contentWidth ?? text.width;
+  let lines = text.wrap !== "word" || contentWidth <= 0 ? explicitLines : explicitLines.flatMap((line) => {
     if (!line.text.trim()) return [line];
+    if (text.whiteSpace === "pre-wrap" || text.whiteSpace === "break-spaces") {
+      const tokens = [...line.text.matchAll(/\S+|\s+/g)];
+      const wrapped: SourceLine[] = [];
+      let current = "";
+      let currentStart = line.start;
+      for (const match of tokens) {
+        const token = match[0]!;
+        const tokenStart = line.start + (match.index ?? 0);
+        const candidate = current + token;
+        if (current && measureSourceLine(hb, text, fonts, candidate) > contentWidth) {
+          wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
+          current = token;
+          currentStart = tokenStart;
+        } else {
+          if (!current) currentStart = tokenStart;
+          current = candidate;
+        }
+      }
+      if (current) wrapped.push({ text: current, start: currentStart, isLastInParagraph: line.isLastInParagraph });
+      return wrapped.length
+        ? wrapped.map((wrappedLine, index) => ({ ...wrappedLine, isLastInParagraph: index === wrapped.length - 1 && line.isLastInParagraph }))
+        : [line];
+    }
     const words = [...line.text.matchAll(/\S+(?:\s+|$)/g)];
     const wrapped: SourceLine[] = [];
     let current = "";
@@ -129,8 +174,8 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
       if (!word) continue;
       const wordStart = line.start + (match.index ?? 0);
       const candidate = current ? `${current} ${word}` : word;
-      if (current && measureSourceLine(hb, text, fonts, candidate) > text.width) {
-        wrapped.push({ text: current, start: currentStart });
+      if (current && measureSourceLine(hb, text, fonts, candidate) > contentWidth) {
+        wrapped.push({ text: current, start: currentStart, isLastInParagraph: false });
         current = word;
         currentStart = wordStart;
       } else {
@@ -138,9 +183,29 @@ function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts:
         current = candidate;
       }
     }
-    if (current) wrapped.push({ text: current, start: currentStart });
-    return wrapped.length ? wrapped : [line];
+    if (current) wrapped.push({ text: current, start: currentStart, isLastInParagraph: line.isLastInParagraph });
+    return wrapped.length
+      ? wrapped.map((wrappedLine, index) => ({ ...wrappedLine, isLastInParagraph: index === wrapped.length - 1 && line.isLastInParagraph }))
+      : [line];
   });
+  if (text.textOverflow === "ellipsis" && text.overflow === "clip" && contentWidth > 0) {
+    const maxLines = text.maxLines ?? 1;
+    const truncated = lines.length > maxLines;
+    lines = lines.slice(0, maxLines);
+    if (lines.length && (truncated || measureSourceLine(hb, text, fonts, lines[lines.length - 1]!.text) > contentWidth)) {
+      const last = lines.length - 1;
+      lines[last] = ellipsizeSourceLine(hb, text, fonts, lines[last]!, contentWidth);
+    }
+  }
+  return lines;
+}
+
+function justificationGaps(value: string): number {
+  return (value.match(/\s+(?=\S)/g) ?? []).length;
+}
+
+function justificationGapsBefore(value: string, sourceIndex: number): number {
+  return justificationGaps(value.slice(0, Math.max(0, sourceIndex)));
 }
 
 function colorToHex(color: { red: number; green: number; blue: number; alpha: number }): string {
@@ -197,16 +262,22 @@ function svgGlyphDocument(face: HbFace, glyphId: number): string | undefined {
 function shouldUseMask(text: VisualRuntimeText): boolean {
   const hasStrongRotation = text.rotate?.some((value) => Math.abs(value) > 0.01) ?? false;
   const horizontal = !text.writingMode || text.writingMode === "horizontal-tb";
-  return text.fontSize <= 48 && horizontal && !text.textPath && !hasStrongRotation
+  const maskEligible = horizontal && !text.textPath && !hasStrongRotation
     && !(text.textLength !== undefined && text.lengthAdjust === "spacingAndGlyphs")
     && !text.stroke && !text.textDecoration;
+  if (text.textRendering === "geometricPrecision") return false;
+  return maskEligible && (text.textRendering === "optimizeSpeed" || text.fontSize <= 48);
 }
 
 function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): UnmaterializedTextLayout {
   const primary = fonts[0]!;
   const glyphHeight = (primary.metrics.ascender - primary.metrics.descender) * primary.fontScale;
   const sourceLines = sourceLinesForText(hb, text, fonts);
-  const lineTop = text.verticalAlign === "middle" ? (text.height - text.lineHeight * sourceLines.length) / 2 : text.verticalAlign === "bottom" ? text.height - text.lineHeight * sourceLines.length : 0;
+  const contentWidth = text.contentWidth ?? text.width;
+  const contentHeight = text.contentHeight ?? text.height;
+  const contentOffsetX = text.contentOffsetX ?? 0;
+  const contentOffsetY = text.contentOffsetY ?? 0;
+  const lineTop = contentOffsetY + (text.verticalAlign === "middle" ? (contentHeight - text.lineHeight * sourceLines.length) / 2 : text.verticalAlign === "bottom" ? contentHeight - text.lineHeight * sourceLines.length : 0);
   const lines: VisualRuntimeTextLayout["lines"] = [];
   const decorations: PaintTextDecoration[] = [];
   const runs: GlyphRun[] = [];
@@ -284,25 +355,40 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
       if (glyphRun.glyphs.length) runs.push(glyphRun);
     }
     const naturalAdvance = vertical ? penY : penX;
-    const targetAdvance = !vertical && text.textLength !== undefined ? text.textLength : naturalAdvance;
+    const gapCount = !vertical ? justificationGaps(lineText) : 0;
+    const justifyLine = !vertical && text.textLength === undefined && gapCount > 0 && text.justify !== undefined
+      && (text.justify === "all" || !sourceLine.isLastInParagraph);
+    const targetAdvance = !vertical && text.textLength !== undefined
+      ? text.textLength
+      : justifyLine
+        ? Math.max(naturalAdvance, contentWidth)
+        : naturalAdvance;
+    const extraPerGap = justifyLine ? Math.max(0, targetAdvance - naturalAdvance) / gapCount : 0;
     const lengthScale = naturalAdvance > 0 ? targetAdvance / naturalAdvance : 1;
     const lineTopBaseline = lineTop + lineIndex * text.lineHeight + (text.lineHeight - glyphHeight) / 2 + primary.metrics.ascender * primary.fontScale;
     const baselineY = text.dominantBaseline === "middle" || text.alignmentBaseline === "middle" ? lineTop + lineIndex * text.lineHeight + text.lineHeight / 2 - (primary.metrics.ascender + primary.metrics.descender) * primary.fontScale / 2 : lineTopBaseline;
     const adjustedBaselineY = baselineY + (text.baselineShift ?? 0);
-    const alignedX = vertical ? 0 : text.align === "center" ? (text.width - targetAdvance) / 2 : text.align === "right" ? text.width - targetAdvance : 0;
+    const alignedX = vertical ? 0 : contentOffsetX + (text.align === "center" ? (contentWidth - targetAdvance) / 2 : text.align === "right" ? contentWidth - targetAdvance : 0);
     for (const [glyphIndex, entry] of lineGlyphs.entries()) {
       const glyph = entry.glyph;
       if (!vertical) {
         const useGlyphScale = text.textLength !== undefined && text.lengthAdjust === "spacingAndGlyphs";
         const spacingShift = text.textLength !== undefined && !useGlyphScale && lineGlyphs.length > 1 ? (targetAdvance - naturalAdvance) * glyphIndex / (lineGlyphs.length - 1) : 0;
-        glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift;
+        const justifyShift = extraPerGap * justificationGapsBefore(lineText, glyph.cluster - sourceOffset);
+        glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift + justifyShift;
         glyph.y += adjustedBaselineY;
         if (useGlyphScale) { glyph.width *= lengthScale; glyph.scaleX = (glyph.scaleX ?? 1) * lengthScale; }
           const characterIndex = Math.max(0, Math.min(lineText.length - 1, glyph.cluster - sourceOffset));
         const rotation = text.rotate?.[characterIndex] ?? 0;
         if (rotation) glyph.rotation = rotation;
       } else {
-        const columnX = text.writingMode === "vertical-rl" ? -text.fontSize * lineIndex : text.fontSize * lineIndex;
+        // A vertical line occupies one line-height-wide column in the
+        // inline content box. `vertical-rl` starts at the inline-end edge
+        // and advances columns toward the left; `vertical-lr` starts at the
+        // inline-start edge and advances toward the right.
+        const columnX = text.writingMode === "vertical-rl"
+          ? contentOffsetX + contentWidth - text.lineHeight * (lineIndex + 1)
+          : contentOffsetX + text.lineHeight * lineIndex;
         const verticalOffset = lineTop + lineIndex * text.lineHeight + primary.metrics.ascender * primary.fontScale;
         glyph.x = columnX;
         glyph.y += verticalOffset;

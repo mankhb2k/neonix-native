@@ -80,7 +80,14 @@ export const V2TextLayoutSchema = z
   .object({
     /** Resolved line box height in composition units. */
     lineHeight: V2PositiveNumberSchema,
-    textAlign: z.enum(["left", "right", "center", "start", "end", "justify"]),
+    /** Inline content box width used for wrapping and horizontal alignment. */
+    contentWidth: V2NonNegativeNumberSchema.optional(),
+    /** Inline content box height used for vertical alignment. */
+    contentHeight: V2NonNegativeNumberSchema.optional(),
+    /** Content-box origin inside the layer border box. */
+    contentOffsetX: V2NonNegativeNumberSchema.optional(),
+    contentOffsetY: V2NonNegativeNumberSchema.optional(),
+    textAlign: z.enum(["left", "right", "center", "start", "end", "justify", "match-parent", "justify-all"]),
     whiteSpace: z.enum(["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"]),
     /** Normalized line breaking policy after white-space resolution. */
     wrap: z.enum(["none", "word", "character"]),

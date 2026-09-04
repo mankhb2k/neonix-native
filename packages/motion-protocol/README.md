@@ -455,9 +455,16 @@ Text source is NFC-normalized and ranges use UTF-16 offsets:
 
 The source supports `language`, `direction`, `writingMode`, `whiteSpace`, and
 `textRendering`. The optional normalized `layout` contract supports resolved
-`lineHeight`, `textAlign`, CSS `whiteSpace`, deterministic `wrap`, and
-`textOverflow`. The compiler contract requires `textOverflow: "ellipsis"` to
-provide a layer `clipPath`.
+`lineHeight`, `contentWidth`, `contentHeight`, `contentOffsetX`,
+`contentOffsetY`, `textAlign`, CSS `whiteSpace`, deterministic `wrap`, and
+`textOverflow`. `contentWidth` is the inline content-box width used for
+wrapping and alignment; the offsets locate that box inside the layer frame.
+Text spans carry `letterSpacing` and `wordSpacing` as semantic lengths or
+`"normal"`; runtime resolves them before line alignment and justification.
+The compiler contract requires `textOverflow: "ellipsis"` to provide a layer
+`clipPath`.
+`textAlign` accepts `left`, `right`, `center`, `start`, `end`, `justify`,
+`match-parent`, and `justify-all`.
 Chunks support `x`, `y`, `dx`, `dy`, `rotate` arrays,
 `textAnchor`, and an optional `textPath`. Spans support the SVG font, fill,
 stroke, spacing, baseline, `textLength`, `lengthAdjust`, decoration, kerning,

@@ -90,14 +90,38 @@ describe("Protocol V2 semantic SVG text", () => {
         ...TEXT_LAYER.payload,
         layout: {
           lineHeight: 40,
+          contentWidth: 180,
+          contentHeight: 60,
+          contentOffsetX: 10,
+          contentOffsetY: 8,
           textAlign: "center" as const,
-          whiteSpace: "nowrap" as const,
+          whiteSpace: "pre-wrap" as const,
           wrap: "none" as const,
           textOverflow: "clip" as const,
         },
       },
     };
     expect(V2TextLayerSchema.parse(layer)).toEqual(layer);
+  });
+
+  it("accepts every Protocol V2 textAlign value", () => {
+    const values = ["start", "end", "left", "right", "center", "justify", "match-parent", "justify-all"] as const;
+    for (const textAlign of values) {
+      const layer = {
+        ...TEXT_LAYER,
+        payload: {
+          ...TEXT_LAYER.payload,
+          layout: {
+            lineHeight: 40,
+            textAlign,
+            whiteSpace: "normal" as const,
+            wrap: "word" as const,
+            textOverflow: "clip" as const,
+          },
+        },
+      };
+      expect(V2TextLayerSchema.parse(layer).payload.layout?.textAlign).toBe(textAlign);
+    }
   });
 
   it("accepts ellipsis when the layer provides a clipPath", () => {

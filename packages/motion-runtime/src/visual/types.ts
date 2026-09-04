@@ -202,6 +202,7 @@ export type VisualRuntimeText = {
   fontWeight?: number;
   fontStyle?: "normal" | "italic" | "oblique";
   fontStretch?: "ultra-condensed" | "extra-condensed" | "condensed" | "semi-condensed" | "normal" | "semi-expanded" | "expanded" | "extra-expanded" | "ultra-expanded";
+  textRendering?: "auto" | "optimizeSpeed" | "geometricPrecision";
   variations?: Record<string, number>;
   /** Ordered runtime font candidates; first is the authored face. */
   fontFallbacks?: Array<{
@@ -213,9 +214,13 @@ export type VisualRuntimeText = {
   lineHeight: number;
   letterSpacing: number;
   align: "left" | "center" | "right";
+  justify?: "line" | "all";
+  whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces";
   verticalAlign: "top" | "middle" | "bottom";
   wrap: "none" | "word" | "character";
-  overflow: "visible";
+  overflow: "visible" | "clip";
+  textOverflow?: "clip" | "ellipsis";
+  maxLines?: number;
   direction: "ltr" | "rtl";
   writingMode?: "horizontal-tb" | "vertical-rl" | "vertical-lr";
   language: string;
@@ -248,6 +253,10 @@ export type VisualRuntimeText = {
   };
   width: number;
   height: number;
+  contentWidth?: number;
+  contentHeight?: number;
+  contentOffsetX?: number;
+  contentOffsetY?: number;
   layout?: VisualRuntimeTextLayout;
   effects?: RuntimeEffect[];
 };

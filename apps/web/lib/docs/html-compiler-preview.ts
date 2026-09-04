@@ -1323,6 +1323,163 @@ body {
     }),
   },
   {
+    id: "html-compiler.typography.text-align-values",
+    phase: "P0",
+    topic: "Typography",
+    label: "Typography / text-align values",
+    properties: ["text-align", "start", "end", "left", "right", "center", "justify", "match-parent", "justify-all"],
+    hint: "Eight CSS text-align inputs are normalized into the Protocol V2 text layout contract; match-parent resolves to left for the compiler's fixed LTR text and justify-all preserves its base justify alignment.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        `<body>
+  <div id="align-start">start — logical inline start</div>
+  <div id="align-end">end — logical inline end</div>
+  <div id="align-left">left — physical left edge</div>
+  <div id="align-right">right — physical right edge</div>
+  <div id="align-center">center — centered in the line box</div>
+  <div id="align-justify">justify — expanded line spacing</div>
+  <div id="align-match-parent">match-parent — resolved against the parent</div>
+  <div id="align-justify-all">justify-all — all lines justified</div>
+</body>`,
+      ),
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+#align-start,
+#align-end,
+#align-left,
+#align-right,
+#align-center,
+#align-justify,
+#align-match-parent,
+#align-justify-all {
+  position: absolute;
+  left: 240px;
+  width: 1440px;
+  height: 80px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#align-start { top: 120px; text-align: start; }
+#align-end { top: 220px; text-align: end; }
+#align-left { top: 320px; text-align: left; }
+#align-right { top: 420px; text-align: right; }
+#align-center { top: 520px; text-align: center; }
+#align-justify { top: 620px; text-align: justify; }
+#align-match-parent { top: 720px; text-align: match-parent; }
+#align-justify-all { top: 820px; text-align: justify-all; }`,
+    }),
+  },
+  {
+    id: "html-compiler.typography.text-spacing-whitespace",
+    phase: "P0",
+    topic: "Typography",
+    label: "Typography / spacing and white-space",
+    properties: ["letter-spacing", "word-spacing", "white-space", "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"],
+    hint: "CSS letter-spacing and word-spacing are lowered into text spans; white-space preserves or collapses source whitespace before runtime wrapping and shaping.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        `<body>
+  <div id="spacing-letter">letter spacing: A   B   C</div>
+  <div id="spacing-word">word spacing: A B C</div>
+  <div id="whitespace-normal">normal: A   B
+    C</div>
+  <div id="whitespace-nowrap">nowrap: A   B   C</div>
+  <div id="whitespace-pre">pre: A   B
+    C</div>
+  <div id="whitespace-pre-wrap">pre-wrap: A   B
+    C</div>
+  <div id="whitespace-pre-line">pre-line: A   B
+    C</div>
+  <div id="whitespace-break-spaces">break-spaces: A   B   C</div>
+</body>`,
+      ),
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+#spacing-letter,
+#spacing-word,
+#whitespace-normal,
+#whitespace-nowrap,
+#whitespace-pre,
+#whitespace-pre-wrap,
+#whitespace-pre-line,
+#whitespace-break-spaces {
+  position: absolute;
+  left: 180px;
+  width: 1560px;
+  height: 90px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#spacing-letter { top: 80px; letter-spacing: 8px; }
+#spacing-word { top: 180px; word-spacing: 28px; }
+#whitespace-normal { top: 280px; white-space: normal; }
+#whitespace-nowrap { top: 380px; white-space: nowrap; }
+#whitespace-pre { top: 480px; white-space: pre; }
+#whitespace-pre-wrap { top: 580px; white-space: pre-wrap; }
+#whitespace-pre-line { top: 680px; white-space: pre-line; }
+#whitespace-break-spaces { top: 780px; white-space: break-spaces; }`,
+    }),
+  },
+  {
+    id: "html-compiler.typography.direction-writing-decoration",
+    phase: "P0",
+    topic: "Typography",
+    label: "Typography / direction, writing-mode and decoration",
+    properties: ["direction", "ltr", "rtl", "writing-mode", "horizontal-tb", "vertical-rl", "vertical-lr", "text-decoration", "underline", "overline", "line-through"],
+    hint: "CSS direction and writing-mode are emitted on the text source; text-decoration is lowered into Protocol V2 decoration paints and thickness.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        `<body>
+  <div id="direction-ltr">LTR direction — logical start</div>
+  <div id="direction-rtl">RTL direction — بداية النص</div>
+  <div id="writing-horizontal">horizontal-tb writing mode</div>
+  <div id="writing-vertical-rl">VERTICAL-RL</div>
+  <div id="writing-vertical-lr">VERTICAL-LR</div>
+  <div id="decoration-all">underline overline and line-through</div>
+</body>`,
+      ),
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+#direction-ltr,
+#direction-rtl,
+#writing-horizontal,
+#writing-vertical-rl,
+#writing-vertical-lr,
+#decoration-all {
+  position: absolute;
+  left: 180px;
+  width: 1560px;
+  height: 90px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#direction-ltr { top: 80px; direction: ltr; text-align: start; }
+#direction-rtl { top: 180px; direction: rtl; text-align: start; }
+#writing-horizontal { top: 280px; writing-mode: horizontal-tb; }
+#writing-vertical-rl { top: 380px; left: 720px; width: 480px; height: 560px; writing-mode: vertical-rl; }
+#writing-vertical-lr { top: 380px; left: 1260px; width: 480px; height: 560px; writing-mode: vertical-lr; }
+#decoration-all { top: 980px; text-decoration: underline 3px #f97316 overline line-through; }`,
+    }),
+  },
+  {
     id: "html-compiler.typography.font-family-three-fonts",
     phase: "P0",
     topic: "Typography",
@@ -1619,6 +1776,72 @@ body {
   font-size: 40px;
   line-height: 1.75;
 }`,
+    }),
+  },
+  {
+    id: "html-compiler.typography.text-overflow-ellipsis",
+    phase: "P0",
+    topic: "Typography",
+    label: "Typography / text-overflow ellipsis",
+    properties: ["text-overflow", "ellipsis", "overflow", "nowrap", "deterministic clipping"],
+    hint: "Ellipsis is emitted only for a clipped single-line text box; the runtime trims grapheme clusters before shaping the final ellipsis glyph.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        "<body>\n  <div id=\"text-overflow-ellipsis\">This is a deterministic single-line overflow example that ends with an ellipsis.</div>\n</body>",
+      ),
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+#text-overflow-ellipsis {
+  position: absolute;
+  left: 240px;
+  top: 420px;
+  width: 720px;
+  height: 90px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 48px;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.typography.text-rendering-capability",
+    phase: "P0",
+    topic: "Typography",
+    label: "Typography / text-rendering capability",
+    properties: ["text-rendering", "auto", "optimizeSpeed", "geometricPrecision"],
+    hint: "The authored rendering intent is preserved in Protocol V2; optimizeSpeed may use a mask while geometricPrecision selects vector glyphs.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        "<body>\n  <div id=\"rendering-auto\">auto — balanced text rendering</div>\n  <div id=\"rendering-speed\">optimizeSpeed — mask-capable text rendering</div>\n  <div id=\"rendering-precision\">geometricPrecision — vector text rendering</div>\n</body>",
+      ),
+      css: `body {
+  margin: 0;
+  background: #081018;
+}
+
+#rendering-auto,
+#rendering-speed,
+#rendering-precision {
+  position: absolute;
+  left: 240px;
+  width: 1440px;
+  height: 90px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 48px;
+}
+
+#rendering-auto { top: 240px; text-rendering: auto; }
+#rendering-speed { top: 440px; text-rendering: optimizeSpeed; }
+#rendering-precision { top: 640px; text-rendering: geometricPrecision; }`,
     }),
   },
 ];

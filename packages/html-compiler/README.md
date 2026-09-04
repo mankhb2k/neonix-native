@@ -28,6 +28,14 @@ contract before layout lowering:
 | common shorthands | `margin`, `padding`, `border`, solid `background` | longhand expansion with cascade order preserved | `frame` / `style` | unsupported shorthand fails closed | `html-compiler.p0.cascade-values` |
 | typed value functions | `calc()`, `min()`, `max()`, `clamp()` | fixed 1920×1080 viewport and px normalization | `frame` / `transform` | incompatible units fail closed | `html-compiler.p0.cascade-values` |
 | paint keywords | `none`, `transparent`, `currentColor` | canonical V2 colors | `style.fill` / `style.stroke` | property-invalid colors fail closed | `html-compiler.p0.cascade-values` |
+| text alignment | `start`, `end`, `left`, `right`, `center`, `justify`, `match-parent`, `justify-all` | Preserved as-is in Protocol V2; render anchor resolves `match-parent` against its parent in fixed LTR and falls back to start for `justify-all` | `payload.layout.textAlign` / `contentWidth` / offsets | invalid values fail closed | `html-compiler.typography.text-align-values` |
+| text spacing | `letter-spacing`, `word-spacing` with `normal`, lengths and supported `calc()` units | resolved to px in text spans | `payload.chunks[].spans[].letterSpacing` / `wordSpacing` | invalid lengths fail closed | `html-compiler.typography.text-spacing-whitespace` |
+| whitespace | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line`, `break-spaces` | computed whitespace mode plus derived wrapping policy | `payload.layout.whiteSpace` / `wrap` | unsupported values fail closed | `html-compiler.typography.text-spacing-whitespace` |
+| text direction | `ltr`, `rtl` | logical alignment anchor resolves against direction | `payload.source.direction` / `textAnchor` | unsupported values fail closed | `html-compiler.typography.direction-writing-decoration` |
+| writing mode | `horizontal-tb`, `vertical-rl`, `vertical-lr` | normalized source writing mode | `payload.source.writingMode` | unsupported values fail closed | `html-compiler.typography.direction-writing-decoration` |
+| text decoration | `none`, `underline`, `overline`, `line-through`, combinations with solid color/thickness | decoration lines become semantic span paints | `payload.chunks[].spans[].textDecoration` | dashed/dotted/double/wavy are rejected because no matching V2 atomic exists | `html-compiler.typography.direction-writing-decoration` |
+| text overflow | `clip`, `ellipsis` | `ellipsis` is accepted only with `overflow:hidden`, `white-space:nowrap` and horizontal writing; the text layer receives a deterministic clip path and `maxLines:1` | `payload.layout.textOverflow` / `maxLines` / layer `clipPath` | invalid or non-deterministic combinations fail closed | `html-compiler.typography.text-overflow-ellipsis` |
+| text rendering | `auto`, `optimizeSpeed`, `geometricPrecision` | authored intent is preserved; runtime may choose a mask for speed or vector glyphs for geometric precision | `payload.source.textRendering` | unsupported values fail closed; backend behavior remains capability-gated | `html-compiler.typography.text-rendering-capability` |
 
 The preview route shows the same source in a native browser iframe and in the
 Skia-backed Protocol V2 stage. Its sidebar is generated from registered
@@ -51,7 +59,9 @@ lowering and test coverage.
   flow, `position: static|relative|absolute`, basic visibility and numeric
   `z-index` ordering.
 - Typography MVP: text nodes lower to semantic Protocol V2 text layers with
-  `font-family`, `font-size` and `font-weight`. Exact font binaries must be
+  `font-family`, `font-size`, `font-weight`, `letter-spacing`, `word-spacing`,
+  `white-space`, `text-align`, `direction`, `writing-mode` and solid
+  `text-decoration`. Exact font binaries must be
   supplied through `compileHtmlCss(..., { fontAssets })`; browser/system font
   fallback is never implicit.
 
@@ -91,7 +101,7 @@ The complete lowering matrix is:
 | No paint, has children | `group` or omit wrapper | Supported |
 | Paint + children | `group` + `::paint` | Supported |
 | No paint, no children | no layer | Supported |
-| Text content | `TextLayout` / `GlyphRun` | Deferred to text phase |
+| Text content | `TextLayout` / `GlyphRun` | Supported (typography MVP) |
 | `img` | `image` | Supported (media phase) |
 | `video` | `video` | Supported (media phase) |
 | SVG `<svg>/<g>` | `group` | Supported |
