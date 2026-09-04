@@ -56,16 +56,13 @@ export const V2AudioAssetSchema = z
   })
   .strict();
 
-/** An exact font face. Family names are display metadata; the binary hash is identity. */
+/** A runtime font binary. Family/style metadata belongs to the font catalog. */
 export const V2FontAssetSchema = z
   .object({
     id: V2IdSchema,
     kind: z.literal("font"),
     uri: z.string().trim().min(1),
-    mimeType: z.enum(["font/ttf", "font/otf"]),
-    family: z.string().trim().min(1),
     weight: z.number().int().min(1).max(1000),
-    style: z.enum(["normal", "italic"]),
     integrity: z.string().regex(/^sha256:[a-f0-9]{64}$/i),
   })
   .strict();

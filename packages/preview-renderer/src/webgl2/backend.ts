@@ -791,7 +791,7 @@ export function createWebGL2Backend(
         blend(gl, maskMode ? "normal" : drawBlendMode());
         bindVertexBuffer(quadBuffer);
         const layout = command.op === "drawImage"
-          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio)
+          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio, command.fit)
           : mediaLayout(command.width, command.height, asset.width, asset.height, command.fit);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         gl.uniformMatrix4fv(projectionLocation, false, projection);

@@ -60,8 +60,34 @@ supabase db push
 
 The migrations create profiles, workspaces, projects, immutable source
 revisions, R2 asset metadata, project-to-asset links, system font catalog,
-upload sessions, deletion jobs, and RLS policies. They do not create R2
-objects or invoke Lambda.
+upload sessions, deletion jobs, and RLS policies. System metadata is kept in
+the `system_catalog` schema; user/project/workspace data remains in `public`.
+
+## Sync the preview system fonts to R2
+
+The preview font files are treated as the canonical bundled system-font input.
+The sync CLI reads real font metadata from each binary, uploads private objects
+under `font/{family}/{filename}`, and upserts compiler-facing rows in
+`system_catalog.font_families` and `system_catalog.font_files`:
+
+```powershell
+pnpm --filter @motionvideo/web sync:system-fonts
+pnpm --filter @motionvideo/web sync:system-fonts -- --apply --verify
+```
+
+The first command is a dry-run. `--apply` writes R2 and Supabase;
+`--verify` downloads each R2 object and compares its SHA-256 hash with the
+database metadata. The command is idempotent and never deletes preview files.
+It requires the R2 and Supabase server environment variables in
+`apps/web/.env`, plus `fontTools`/`ttx` on the machine (or `TTX_PATH` pointing
+to `ttx.exe`).
+
+User-uploaded fonts use `public.assets` with `kind = 'font'` and
+`storage_bucket = 'neonix-user-assets'`, then attach metadata through
+`public.user_font_families` and `public.user_font_faces`. Optional
+`public.project_font_families` rows are only needed when a project wants an
+explicit subset or alias; the default resolver can combine workspace fonts
+with the system catalog.
 
 The V2 editor reads and autosaves through the server-only project repository:
 `GET/PATCH /api/projects/:projectId`. The repository validates every document

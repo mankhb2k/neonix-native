@@ -202,10 +202,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
         id: "font-noto-sans-regular",
         kind: "font",
         uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
-        mimeType: "font/ttf",
-        family: "Noto Sans",
         weight: 400,
-        style: "normal",
         integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
       },
       {

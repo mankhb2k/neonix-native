@@ -157,7 +157,7 @@ resource cache.
 | `image` | `id`, `uri`; optional `mimeType`, `width`, `height`, `integrity` |
 | `video` | Image metadata plus optional `duration`, `fps`, `audio` derivative |
 | `audio` | `id`, `uri`, required `mimeType`; optional `duration`, `sampleRate`, `channels`, `integrity` |
-| `font` | `id`, `uri`, `mimeType` (`font/ttf` or `font/otf`), `family`, `weight`, `style`, SHA-256 `integrity` |
+| `font` | `id`, `uri`, CSS selection `weight`, SHA-256 `integrity` |
 
 Video audio is metadata on the video asset:
 
@@ -420,6 +420,13 @@ Text source is NFC-normalized and ranges use UTF-16 offsets:
       "whiteSpace": "default",
       "textRendering": "auto"
     },
+    "layout": {
+      "lineHeight": 48,
+      "textAlign": "center",
+      "whiteSpace": "nowrap",
+      "wrap": "none",
+      "textOverflow": "clip"
+    },
     "chunks": [
       {
         "id": "chunk-1",
@@ -447,11 +454,18 @@ Text source is NFC-normalized and ranges use UTF-16 offsets:
 ```
 
 The source supports `language`, `direction`, `writingMode`, `whiteSpace`, and
-`textRendering`. Chunks support `x`, `y`, `dx`, `dy`, `rotate` arrays,
+`textRendering`. The optional normalized `layout` contract supports resolved
+`lineHeight`, `textAlign`, CSS `whiteSpace`, deterministic `wrap`, and
+`textOverflow`. The compiler contract requires `textOverflow: "ellipsis"` to
+provide a layer `clipPath`.
+Chunks support `x`, `y`, `dx`, `dy`, `rotate` arrays,
 `textAnchor`, and an optional `textPath`. Spans support the SVG font, fill,
 stroke, spacing, baseline, `textLength`, `lengthAdjust`, decoration, kerning,
 optical sizing, and small-caps semantics. Span IDs cannot contain a dot and
 span ranges must be ordered, non-overlapping, and contained by their chunk.
+HTML/CSS lowering may add `resolvedFontAssetIds`, an ordered list of catalog
+face IDs. This keeps the semantic family list readable for AI/user tooling
+while making runtime glyph fallback deterministic.
 
 ## Paint and SVG definitions
 

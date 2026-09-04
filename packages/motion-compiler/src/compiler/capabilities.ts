@@ -38,6 +38,7 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "image.order",
   "image.asset",
   "image.viewport",
+  "image.fit",
   "image.preserveAspectRatio",
   "image.imageRendering",
   "video.transform",

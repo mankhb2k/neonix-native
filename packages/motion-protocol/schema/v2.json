@@ -318,28 +318,10 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "mimeType": {
-                    "type": "string",
-                    "enum": [
-                      "font/ttf",
-                      "font/otf"
-                    ]
-                  },
-                  "family": {
-                    "type": "string",
-                    "minLength": 1
-                  },
                   "weight": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 1000
-                  },
-                  "style": {
-                    "type": "string",
-                    "enum": [
-                      "normal",
-                      "italic"
-                    ]
                   },
                   "integrity": {
                     "type": "string",
@@ -350,10 +332,7 @@
                   "id",
                   "kind",
                   "uri",
-                  "mimeType",
-                  "family",
                   "weight",
-                  "style",
                   "integrity"
                 ],
                 "additionalProperties": false
@@ -4573,6 +4552,15 @@
                       "assetId": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/id"
                       },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover",
+                          "fill",
+                          "none"
+                        ]
+                      },
                       "x": {
                         "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
                       },
@@ -4976,6 +4964,64 @@
                         ],
                         "additionalProperties": false
                       },
+                      "layout": {
+                        "type": "object",
+                        "properties": {
+                          "lineHeight": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                          },
+                          "textAlign": {
+                            "type": "string",
+                            "enum": [
+                              "left",
+                              "right",
+                              "center",
+                              "start",
+                              "end",
+                              "justify"
+                            ]
+                          },
+                          "whiteSpace": {
+                            "type": "string",
+                            "enum": [
+                              "normal",
+                              "nowrap",
+                              "pre",
+                              "pre-wrap",
+                              "pre-line",
+                              "break-spaces"
+                            ]
+                          },
+                          "wrap": {
+                            "type": "string",
+                            "enum": [
+                              "none",
+                              "word",
+                              "character"
+                            ]
+                          },
+                          "textOverflow": {
+                            "type": "string",
+                            "enum": [
+                              "clip",
+                              "ellipsis"
+                            ]
+                          },
+                          "maxLines": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": 0
+                          }
+                        },
+                        "required": [
+                          "lineHeight",
+                          "textAlign",
+                          "whiteSpace",
+                          "wrap",
+                          "textOverflow"
+                        ],
+                        "additionalProperties": false
+                      },
                       "chunks": {
                         "type": "array",
                         "items": {
@@ -5084,6 +5130,13 @@
                                   },
                                   "sourceRange": {
                                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/3/properties/payload/properties/chunks/items/properties/sourceRange"
+                                  },
+                                  "resolvedFontAssetIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                                    },
+                                    "minItems": 1
                                   },
                                   "font": {
                                     "type": "object",

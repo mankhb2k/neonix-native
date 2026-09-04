@@ -62,6 +62,26 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.layers[0]).toMatchObject({ id: "blue-rectangle", type: "shape", style: { fill: "#2563eb" } });
   });
 
+  it("lowers HTML text with exact family, size, weight and emoji fallback assets", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="title">Hello 🚀</div>`,
+      css: `#title { position: absolute; left: 100px; top: 100px; width: 800px; height: 120px; color: #ffffff; font-family: "Inter", "Noto Color Emoji"; font-size: 64px; font-weight: 700; }`,
+    }), {
+      fontAssets: [
+        { id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { id: "noto-emoji", kind: "font", uri: "/fonts/noto-emoji.ttf", mimeType: "font/ttf", family: "Noto Color Emoji", weight: 400, style: "normal", integrity: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      ],
+    });
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers[0]).toMatchObject({
+      id: "title",
+      type: "text",
+      frame: { width: 800, height: 120 },
+      payload: { source: { text: "Hello 🚀" }, chunks: [{ spans: [{ font: { families: ["Inter", "Noto Color Emoji"], size: 64, weight: 700 } }] }] },
+    });
+    expect(result.protocol?.assets?.map((asset) => asset.id)).toEqual(["inter-bold", "noto-emoji"]);
+  });
+
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {
     const result = compileHtmlCss(source);
     expect(result.status).toBe("success");

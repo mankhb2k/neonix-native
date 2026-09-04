@@ -433,6 +433,7 @@ export function evaluateVisualRuntimeProject(
         y: content.y,
         width: content.width,
         height: content.height,
+        ...(content.fit ? { fit: content.fit } : {}),
         ...(content.preserveAspectRatio ? { preserveAspectRatio: content.preserveAspectRatio } : {}),
         ...(content.imageRendering ? { imageRendering: content.imageRendering } : {}),
       });

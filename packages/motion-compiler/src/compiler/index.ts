@@ -939,6 +939,7 @@ function compileVisualRuntimeInternal(
         "image.order",
         "image.asset",
         "image.viewport",
+        "image.fit",
         "image.preserveAspectRatio",
         "image.imageRendering",
       ]) {
@@ -982,6 +983,7 @@ function compileVisualRuntimeInternal(
           y: layer.payload.y ?? 0,
           width,
           height,
+          ...(layer.payload.fit ? { fit: layer.payload.fit } : {}),
           ...(layer.payload.preserveAspectRatio ? { preserveAspectRatio: layer.payload.preserveAspectRatio } : {}),
           ...(layer.payload.imageRendering ? { imageRendering: layer.payload.imageRendering } : {}),
           ...(effects ? { effects } : {}),
@@ -1053,30 +1055,16 @@ function compileVisualRuntimeInternal(
       const firstSpan = firstChunk.spans[0]!;
       const sourceText = layer.payload.source.text;
       const fontSize = resolveSvgLength(firstSpan.font.size, layer.frame.width, 16) ?? 16;
-      const requestedFamilies = firstSpan.font.families.map((family) => family.toLocaleLowerCase());
-      const asset = project.assets?.find((candidate) => candidate.kind === "font"
-        && requestedFamilies.includes(candidate.family.toLocaleLowerCase())
-        && (firstSpan.font.weight === undefined || candidate.weight === firstSpan.font.weight)
-        && (firstSpan.font.style === undefined || candidate.style === firstSpan.font.style));
-      const fallbackAsset = asset ?? project.assets?.find((candidate) => candidate.kind === "font"
-        && requestedFamilies.includes(candidate.family.toLocaleLowerCase()));
-      const textFontAsset = fallbackAsset;
+      const resolvedFontAssetIds = firstSpan.resolvedFontAssetIds ?? [];
+      const resolvedFontAssets = resolvedFontAssetIds
+        .map((assetId) => project.assets?.find((candidate) => candidate.id === assetId))
+        .filter((candidate): candidate is Extract<NonNullable<typeof project.assets>[number], { kind: "font" }> => candidate?.kind === "font");
+      const textFontAsset = resolvedFontAssets[0];
       if (!textFontAsset) {
-        throw new Error(`Protocol V2 text layer ${layer.id} has no font asset for family ${firstSpan.font.families[0]}`);
+        throw new Error(`Protocol V2 text layer ${layer.id} has no resolved font asset for family ${firstSpan.font.families[0]}`);
       }
-      const textLineHeight = fontSize * 1.2;
-      const textFontFallbacks = (project.assets ?? [])
-        .filter((candidate): candidate is Extract<NonNullable<typeof project.assets>[number], { kind: "font" }> => candidate.kind === "font")
-        .filter((candidate) => requestedFamilies.includes(candidate.family.toLocaleLowerCase()))
-        .sort((left, right) => {
-          const leftRequested = requestedFamilies.indexOf(left.family.toLocaleLowerCase());
-          const rightRequested = requestedFamilies.indexOf(right.family.toLocaleLowerCase());
-          if (leftRequested !== rightRequested) return leftRequested - rightRequested;
-          if (firstSpan.font.weight !== undefined) {
-            return Math.abs(left.weight - firstSpan.font.weight) - Math.abs(right.weight - firstSpan.font.weight);
-          }
-          return 0;
-        });
+      const textLineHeight = layer.payload.layout?.lineHeight ?? fontSize * 1.2;
+      const textFontFallbacks = resolvedFontAssets;
       const textAlign = firstChunk.textAnchor === "middle"
         ? "center" as const
         : firstChunk.textAnchor === "end"
@@ -1186,7 +1174,7 @@ function compileVisualRuntimeInternal(
           ...(textDecoration ? { textDecoration } : {}),
           align: textAlign,
           verticalAlign: "top",
-          wrap: "none",
+          wrap: layer.payload.layout?.wrap ?? "none",
           overflow: "visible",
           direction: layer.payload.source.direction ?? "ltr",
           writingMode: layer.payload.source.writingMode,

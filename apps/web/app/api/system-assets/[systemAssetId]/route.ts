@@ -55,6 +55,7 @@ export async function GET(
   const { systemAssetId } = await params;
   const variant = parseVariant(request);
   let query = supabase
+    .schema("system_catalog")
     .from("system_assets")
     .select("id, parent_id, variant_kind, r2_key, mime_type")
     .eq("enabled", true);

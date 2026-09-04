@@ -19,7 +19,27 @@ export type NeonixHtmlSourceV1 = {
 export type HtmlCssSource = NeonixHtmlSourceV1;
 export type HtmlCompilerSourceLocation = { kind: "html" | "css"; offset: number; line: number; column: number };
 export type HtmlCompilerDiagnostic = { severity: "info" | "warning" | "error"; code: string; message: string; source?: HtmlCompilerSourceLocation; selector?: string; property?: string; elementId?: string };
-export type HtmlCompilerOptions = { composition?: { width?: number; height?: number; fps?: number; durationMs?: number; id?: string } };
+/**
+ * Compiler/catalog input. These fields are intentionally not emitted in a
+ * Protocol V2 asset; they are needed only while matching CSS font-family,
+ * font-style and font-stretch against a catalog face.
+ */
+export type HtmlCompilerFontAsset = {
+  id: string;
+  kind: "font";
+  uri: string;
+  weight: number;
+  integrity: string;
+  family: string;
+  style: "normal" | "italic" | "oblique";
+  stretch?: "ultra-condensed" | "extra-condensed" | "condensed" | "semi-condensed" | "normal" | "semi-expanded" | "expanded" | "extra-expanded" | "ultra-expanded";
+  mimeType?: "font/ttf" | "font/otf";
+};
+export type HtmlCompilerOptions = {
+  composition?: { width?: number; height?: number; fps?: number; durationMs?: number; id?: string };
+  /** Exact font binaries available to the compiler/runtime. CSS fallback is never implicit. */
+  fontAssets?: readonly HtmlCompilerFontAsset[];
+};
 export type HtmlCompilerResult = { status: "success" | "error"; source: HtmlCssSource; protocol: MotionProtocolV2 | null; diagnostics: HtmlCompilerDiagnostic[] };
 
 export const DEFAULT_HTML_CSS_COMPOSITION: HtmlCssComposition = Object.freeze({
@@ -61,4 +81,3 @@ export function createNewHtmlProject(input: Partial<Pick<NeonixHtmlSourceV1, "ht
 export function createHtmlCssSource(input: Partial<Pick<HtmlCssSource, "html" | "css">> = {}): HtmlCssSource {
   return createNewHtmlProject(input);
 }
-

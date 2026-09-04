@@ -79,7 +79,16 @@ function parsePathDash(value: string | undefined): { array: number[]; offset?: n
   return { array: parts.map((part) => parsePathNumber(part, "stroke-dasharray", true)!) };
 }
 
-export function parsePathStyle(node: Node, style: Style, currentColor = "#000000"): { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number; strokeOpacity?: number; strokeJoin?: "miter" | "bevel" | "round"; strokeCap?: "butt" | "square" | "round"; strokeDash?: { array: number[]; offset?: number } } {
+function parsePaintOrder(value: string | undefined): Array<"fill" | "stroke" | "markers"> | undefined {
+  if (value === undefined || value.trim().toLowerCase() === "normal") return undefined;
+  const parts = value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (parts.length < 1 || parts.length > 3 || parts.some((part) => !["fill", "stroke", "markers"].includes(part)) || new Set(parts).size !== parts.length) {
+    fail("css-path-paint-order-invalid", `paint-order must contain unique fill, stroke and markers tokens: ${value}`);
+  }
+  return parts as Array<"fill" | "stroke" | "markers">;
+}
+
+export function parsePathStyle(node: Node, style: Style, currentColor = "#000000"): { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number; strokeOpacity?: number; strokeJoin?: "miter" | "bevel" | "round"; strokeCap?: "butt" | "square" | "round"; strokeDash?: { array: number[]; offset?: number }; paintOrder?: Array<"fill" | "stroke" | "markers"> } {
   const fillValue = style.get("fill") ?? node.attributes.get("fill"); const strokeValue = style.get("stroke") ?? node.attributes.get("stroke");
   const fill = fillValue === undefined || fillValue.toLowerCase() === "none" ? undefined : parseColor(fillValue, "fill", currentColor);
   const stroke = strokeValue === undefined || strokeValue.toLowerCase() === "none" ? undefined : parseColor(strokeValue, "stroke", currentColor);
@@ -95,6 +104,6 @@ export function parsePathStyle(node: Node, style: Style, currentColor = "#000000
   const dashValue = style.get("stroke-dasharray") ?? node.attributes.get("stroke-dasharray"); const dash = parsePathDash(dashValue);
   const dashOffset = parsePathNumber(style.get("stroke-dashoffset") ?? node.attributes.get("stroke-dashoffset"), "stroke-dashoffset");
   const strokeDash = dash ? { ...dash, ...(dashOffset === undefined ? {} : { offset: dashOffset }) } : undefined;
-  return { ...(fill === undefined ? {} : { fill }), ...(fillOpacity === undefined ? {} : { fillOpacity }), ...(stroke === undefined ? {} : { stroke }), ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(strokeOpacity === undefined ? {} : { strokeOpacity }), ...(strokeJoinValue === undefined ? {} : { strokeJoin: strokeJoinValue as "miter" | "bevel" | "round" }), ...(strokeCapValue === undefined ? {} : { strokeCap: strokeCapValue as "butt" | "square" | "round" }), ...(strokeDash === undefined ? {} : { strokeDash }) };
+  const paintOrder = parsePaintOrder(style.get("paint-order") ?? node.attributes.get("paint-order"));
+  return { ...(fill === undefined ? {} : { fill }), ...(fillOpacity === undefined ? {} : { fillOpacity }), ...(stroke === undefined ? {} : { stroke }), ...(strokeWidth === undefined ? {} : { strokeWidth }), ...(strokeOpacity === undefined ? {} : { strokeOpacity }), ...(strokeJoinValue === undefined ? {} : { strokeJoin: strokeJoinValue as "miter" | "bevel" | "round" }), ...(strokeCapValue === undefined ? {} : { strokeCap: strokeCapValue as "butt" | "square" | "round" }), ...(strokeDash === undefined ? {} : { strokeDash }), ...(paintOrder === undefined ? {} : { paintOrder }) };
 }
-

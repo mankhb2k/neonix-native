@@ -50,6 +50,10 @@ lowering and test coverage.
 - Phase 3A layout primitives: `display: block|contents|none`, static block
   flow, `position: static|relative|absolute`, basic visibility and numeric
   `z-index` ordering.
+- Typography MVP: text nodes lower to semantic Protocol V2 text layers with
+  `font-family`, `font-size` and `font-weight`. Exact font binaries must be
+  supplied through `compileHtmlCss(..., { fontAssets })`; browser/system font
+  fallback is never implicit.
 
 ### Stable element identity
 
@@ -76,8 +80,8 @@ The tag name supplies the allowlist and default HTML structure; CSS paint,
 layout and compositing determine the lowering. Interactive/native tags such as
 `button`, `input`, `form`, `canvas`, `iframe`, `audio` and `script` are outside
 Phase 2 and return `html-tag-unsupported` rather than becoming a placeholder
-rectangle. Text and media remain dedicated later phases; SVG path lowering is
-supported below.
+rectangle. Text remains a dedicated later phase; media and SVG path lowering
+are supported below.
 
 The complete lowering matrix is:
 
@@ -88,8 +92,8 @@ The complete lowering matrix is:
 | Paint + children | `group` + `::paint` | Supported |
 | No paint, no children | no layer | Supported |
 | Text content | `TextLayout` / `GlyphRun` | Deferred to text phase |
-| `img` | `image` | Deferred to image phase |
-| `video` | `video` | Deferred to media phase |
+| `img` | `image` | Supported (media phase) |
+| `video` | `video` | Supported (media phase) |
 | SVG `<svg>/<g>` | `group` | Supported |
 | SVG `<path>` | `path` | Supported (`M/L/H/V/C/Z`) |
 
@@ -118,6 +122,26 @@ sample up to eight stops for linear/radial/conic gradients; device-level pixel
 parity remains an end-to-end validation gate.
 
 Preview Lab exposes these cases under **HTML compiler / Phase 4**.
+
+## Media lowering
+
+The media slice lowers `<img>` and `<video>` into Protocol V2 media layers and
+registers each source in the project asset manifest. The supported image
+properties are `object-fit: contain | cover | fill | none`, the MVP keyword
+and edge forms of `object-position`, and renderer-safe `image-rendering`
+values (`auto`, `smooth`, `high-quality`, `crisp-edges` and `pixelated`).
+`object-fit: none` is represented explicitly by `payload.fit`; it must not be
+inferred from `preserveAspectRatio.align: "none"`, because that alignment means
+stretch/fill in the SVG-compatible Protocol field. Parent `overflow: hidden`
+is lowered to a clip path, and media viewport clipping is applied by the Skia
+and 2D replay paths.
+
+The four media fixtures are exposed under **HTML compiler / Media**:
+
+- `object-fit: contain` with a landscape image;
+- `object-fit: cover` with `object-position: right top`;
+- `object-fit: fill` with `image-rendering: pixelated`;
+- `object-fit: none` inside a clipped viewport.
 
 ## SVG/path lowering
 
@@ -153,8 +177,8 @@ perspective parsing remain a later HTML compiler slice.
 
 ## Explicitly deferred
 
-Flex/grid layout, overflow clipping, images, masks, filters, text shaping,
-advanced transform matrices, 3D context, animation and transitions are later compiler phases. Unsupported
+Flex/grid layout, masks, filters, text shaping, advanced transform matrices,
+3D context, animation and transitions are later compiler phases. Unsupported
 properties, selectors, text nodes and invalid values fail closed with a
 diagnostic; they are not silently ignored.
 
@@ -314,6 +338,21 @@ normalize to zero. `display:none` removes the complete subtree. Invalid units,
 values or incompatible `calc()` expressions
 produce `css-unit-unsupported`, `css-value-invalid` or
 `css-calc-incompatible`.
+
+### Typography font assets
+
+HTML text is NFC-normalized and emitted as one V2 text chunk/span per visual
+text element. `font-family` remains an ordered family list in the span; the
+compiler resolves every concrete family against the supplied `fontAssets`
+catalog and writes the selected ordered face IDs to
+`resolvedFontAssetIds`. `normal` and `bold` resolve to weights 400 and 700;
+numeric weights from 1 through 1000 are accepted. If a requested face is
+missing, deterministic CSS weight/style/stretch matching selects the nearest
+available catalog face. If no concrete family binary exists, compilation fails
+with `css-font-asset-missing` instead of silently using a browser-installed
+font. Protocol V2 assets contain only runtime identity (`id`, `uri`, CSS
+selection `weight`, and `integrity`); catalog fields such as family and style
+stay in compiler input/DB metadata.
 
 ### Output and diagnostics
 

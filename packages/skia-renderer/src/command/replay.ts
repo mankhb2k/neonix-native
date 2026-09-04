@@ -171,36 +171,33 @@ export function replaySkiaCommands(
       const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
-      const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
-      if (command.shape === "rectangle") {
-        if (command.cornerRadius) canvas.drawRRect([0, 0, command.width, command.height, command.cornerRadius, command.cornerRadius], fill);
-        else canvas.drawRect([0, 0, command.width, command.height], fill);
-      } else if (command.shape === "ellipse") {
-        canvas.drawOval([0, 0, command.width, command.height], fill);
-      } else {
-        const polygon = kit.Path.MakeFromSVGString(polygonSvg(command.points ?? []));
-        if (polygon) {
-          canvas.drawPath(polygon, fill);
-          polygon.delete();
-        }
-      }
-      fill.delete();
-      if (command.stroke) {
-        const stroke = createSkiaPaint(kit, command.stroke, commandAlpha * (command.strokeOpacity ?? 1), kit.PaintStyle.Stroke, command.strokePaint, command.width, command.height);
-        configureStroke(kit, stroke, command);
+      const drawShape = (paint: Parameters<SkiaCanvas["drawRect"]>[1]) => {
         if (command.shape === "rectangle") {
-          if (command.cornerRadius) canvas.drawRRect([0, 0, command.width, command.height, command.cornerRadius, command.cornerRadius], stroke);
-          else canvas.drawRect([0, 0, command.width, command.height], stroke);
+          if (command.cornerRadius) canvas.drawRRect([0, 0, command.width, command.height, command.cornerRadius, command.cornerRadius], paint);
+          else canvas.drawRect([0, 0, command.width, command.height], paint);
         } else if (command.shape === "ellipse") {
-          canvas.drawOval([0, 0, command.width, command.height], stroke);
+          canvas.drawOval([0, 0, command.width, command.height], paint);
         } else {
           const polygon = kit.Path.MakeFromSVGString(polygonSvg(command.points ?? []));
           if (polygon) {
-            canvas.drawPath(polygon, stroke);
+            canvas.drawPath(polygon, paint);
             polygon.delete();
           }
         }
-        stroke.delete();
+      };
+      const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
+      for (const paintType of paintOrder) {
+        if (paintType === "fill") {
+          const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+          drawShape(fill);
+          fill.delete();
+        } else if (paintType === "stroke" && command.stroke) {
+          const stroke = createSkiaPaint(kit, command.stroke, commandAlpha * (command.strokeOpacity ?? 1), kit.PaintStyle.Stroke, command.strokePaint, command.width, command.height);
+          const effect = configureStroke(kit, stroke, command);
+          drawShape(stroke);
+          effect?.delete();
+          stroke.delete();
+        }
       }
       canvas.restore();
       stats.drawCalls++;
@@ -217,16 +214,21 @@ export function replaySkiaCommands(
         canvas.restore();
         continue;
       }
-      if (command.fill) {
-        const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width ?? 1, command.height ?? 1);
-        canvas.drawPath(path, fill);
-        fill.delete();
-      }
-      if (command.stroke) {
-        const stroke = createSkiaPaint(kit, command.stroke, commandAlpha * (command.strokeOpacity ?? 1), kit.PaintStyle.Stroke, command.strokePaint, command.width ?? 1, command.height ?? 1);
-        configureStroke(kit, stroke, command);
-        canvas.drawPath(path, stroke);
-        stroke.delete();
+      const fillType = command.fillRule === "evenodd" ? kit.FillType?.EvenOdd : kit.FillType?.Winding;
+      if (fillType !== undefined) path.setFillType?.(fillType);
+      const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
+      for (const paintType of paintOrder) {
+        if (paintType === "fill" && command.fill) {
+          const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width ?? 1, command.height ?? 1);
+          canvas.drawPath(path, fill);
+          fill.delete();
+        } else if (paintType === "stroke" && command.stroke) {
+          const stroke = createSkiaPaint(kit, command.stroke, commandAlpha * (command.strokeOpacity ?? 1), kit.PaintStyle.Stroke, command.strokePaint, command.width ?? 1, command.height ?? 1);
+          const effect = configureStroke(kit, stroke, command);
+          canvas.drawPath(path, stroke);
+          effect?.delete();
+          stroke.delete();
+        }
       }
       path.delete();
       canvas.restore();

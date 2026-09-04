@@ -54,7 +54,32 @@ function multiply(a: PaintTransform, b: PaintTransform): PaintTransform {
 }
 
 function objectBoundingBoxTransform(width: number, height: number, value: V2PaintTransform | undefined): PaintTransform {
-  return multiply({ a: width, b: 0, c: 0, d: height, e: 0, f: 0 }, transform(value));
+  const toLocal: PaintTransform = { a: width, b: 0, c: 0, d: height, e: 0, f: 0 };
+  const fromLocal: PaintTransform = { a: 1 / Math.max(width, 0.000001), b: 0, c: 0, d: 1 / Math.max(height, 0.000001), e: 0, f: 0 };
+  // Coordinates are canonicalized to local pixels below. Conjugating the
+  // authoring transform keeps it in that same pixel space instead of scaling
+  // already-resolved coordinates a second time.
+  return multiply(multiply(toLocal, transform(value)), fromLocal);
+}
+
+function localCoordinate(
+  value: V2SvgLength | undefined,
+  axisSize: number,
+  units: "objectBoundingBox" | "userSpaceOnUse",
+  fallback: number,
+): number {
+  const coordinate = paintCoordinate(value, axisSize, units, fallback);
+  return units === "objectBoundingBox" ? coordinate * axisSize : coordinate;
+}
+
+function localLength(
+  value: V2SvgLength | undefined,
+  reference: number,
+  units: "objectBoundingBox" | "userSpaceOnUse",
+  fallback: number,
+): number {
+  const length = paintCoordinate(value, reference, units, fallback);
+  return units === "objectBoundingBox" ? length * reference : length;
 }
 
 function normalizedStop(stop: { offset: number; color: string; stopOpacity?: number }, currentColor = "#000000") {
@@ -197,10 +222,10 @@ export function canonicalizePaint(
     const angle = ((paint.angle ?? 0) * Math.PI) / 180;
     return {
       ...paint,
-      x1: paintCoordinate(paint.x1, width, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.cos(angle) * 0.5),
-      y1: paintCoordinate(paint.y1, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.sin(angle) * 0.5),
-      x2: paintCoordinate(paint.x2, width, gradientUnits, paint.angle === undefined ? 1 : 0.5 + Math.cos(angle) * 0.5),
-      y2: paintCoordinate(paint.y2, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 + Math.sin(angle) * 0.5),
+      x1: localCoordinate(paint.x1, width, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.cos(angle) * 0.5),
+      y1: localCoordinate(paint.y1, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.sin(angle) * 0.5),
+      x2: localCoordinate(paint.x2, width, gradientUnits, paint.angle === undefined ? 1 : 0.5 + Math.cos(angle) * 0.5),
+      y2: localCoordinate(paint.y2, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 + Math.sin(angle) * 0.5),
       gradientUnits: "userSpaceOnUse",
       gradientTransform,
       stops,
@@ -208,16 +233,17 @@ export function canonicalizePaint(
   }
 
   if (paint.type === "radial-gradient") {
+    const radius = localLength(paint.radius, Math.min(width, height), gradientUnits, 0.5);
     return {
       ...paint,
-      cx: paintCoordinate(paint.cx, width, gradientUnits, 0.5),
-      cy: paintCoordinate(paint.cy, height, gradientUnits, 0.5),
-      fx: paintCoordinate(paint.fx ?? paint.cx, width, gradientUnits, 0.5),
-      fy: paintCoordinate(paint.fy ?? paint.cy, height, gradientUnits, 0.5),
-      radius: paintCoordinate(paint.radius, Math.min(width, height), gradientUnits, 0.5),
-      radiusX: paintCoordinate(paint.radius, width, gradientUnits, 0.5),
-      radiusY: paintCoordinate(paint.radius, height, gradientUnits, 0.5),
-      fr: paintCoordinate(paint.fr, Math.min(width, height), gradientUnits, 0),
+      cx: localCoordinate(paint.cx, width, gradientUnits, 0.5),
+      cy: localCoordinate(paint.cy, height, gradientUnits, 0.5),
+      fx: localCoordinate(paint.fx ?? paint.cx, width, gradientUnits, 0.5),
+      fy: localCoordinate(paint.fy ?? paint.cy, height, gradientUnits, 0.5),
+      radius,
+      radiusX: radius,
+      radiusY: radius,
+      fr: localLength(paint.fr, Math.min(width, height), gradientUnits, 0),
       gradientUnits: "userSpaceOnUse",
       gradientTransform,
       stops,
@@ -226,6 +252,8 @@ export function canonicalizePaint(
 
   return {
     ...paint,
+    cx: localCoordinate(paint.cx, width, gradientUnits, 0.5),
+    cy: localCoordinate(paint.cy, height, gradientUnits, 0.5),
     gradientUnits: "userSpaceOnUse",
     gradientTransform,
     stops,

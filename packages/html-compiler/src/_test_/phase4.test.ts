@@ -19,11 +19,27 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
     });
   });
 
+  it("resolves color/currentColor and border longhands including none", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="solid"></div><div id="none"></div>`,
+      css: `#solid { color: #38bdf8; width: 200px; height: 100px; background-color: #172554; border-width: 8px; border-style: solid; border-color: currentColor; border-radius: 20px; } #none { width: 200px; height: 100px; background: #172554; border: 8px none #fb7185; border-radius: 20px; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "solid")).toMatchObject({
+      frame: { width: 216, height: 116 },
+      payload: { cornerRadius: 20 },
+      style: { fill: "#172554", stroke: "#38bdf8", strokeWidth: 8 },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "none")).not.toHaveProperty("style.stroke");
+  });
+
   it("lowers linear and radial gradients with normalized multi-stop colors", () => {
     const linear = compile("background: linear-gradient(90deg, #ff0000 0%, #00ff00 50%, #0000ff 100%);");
-    expect(linear?.style.fill).toMatchObject({ type: "linear-gradient", angle: 90, stops: [
+    expect(linear?.style.fill).toMatchObject({ type: "linear-gradient", angle: 0, stops: [
       { offset: 0, color: "#ff0000" }, { offset: 0.5, color: "#00ff00" }, { offset: 1, color: "#0000ff" },
     ] });
+    const defaultLinear = compile("background: linear-gradient(#ff0000, #0000ff);");
+    expect(defaultLinear?.style.fill).toMatchObject({ type: "linear-gradient", angle: 90 });
     const radial = compile("background: radial-gradient(circle at 25% 75%, #ffffff, #000000 80%);");
     expect(radial?.style.fill).toMatchObject({ type: "radial-gradient", cx: 0.25, cy: 0.75, stops: [{ offset: 0, color: "#ffffff" }, { offset: 0.8, color: "#000000" }] });
   });
@@ -34,6 +50,7 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="paint"></div>`, css: `#paint { width: 100px; height: 100px; background: linear-gradient(90deg, #ff0000, #0000ff), #101820; }` }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers.map((layer) => layer.id)).toEqual(["paint::paint:0", "paint::paint:1"]);
+    expect(result.protocol?.layers[0]?.order).toBeGreaterThan(result.protocol?.layers[1]?.order ?? Number.POSITIVE_INFINITY);
   });
 
   it("rejects non-uniform radius instead of silently approximating CSS", () => {

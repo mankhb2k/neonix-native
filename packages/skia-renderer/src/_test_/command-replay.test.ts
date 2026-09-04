@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import { matrix4ToSkia3x3, replaySkiaCommands } from "../command";
-import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaTypeface } from "../canvas-kit";
+import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaPath, SkiaPathEffect, SkiaTypeface } from "../canvas-kit";
 
 describe("Skia command replay transforms", () => {
   it("maps the runtime column-major Matrix4 to CanvasKit's 3x3", () => {
@@ -85,5 +85,80 @@ describe("Skia command replay transforms", () => {
     expect(stats.nativeTextGlyphs).toBe(1);
     expect(stats.outlineTextGlyphs).toBe(0);
     expect(glyphCalls).toEqual([{ glyphs: [36], positions: [99.5999984741211, 50.400001525878906], subpixel: true }]);
+  });
+
+  it("applies the runtime SVG fill rule to CanvasKit paths", () => {
+    const fillTypes: unknown[] = [];
+    const dashCalls: Array<{ intervals: number[]; phase: number }> = [];
+    const drawOrder: unknown[] = [];
+    const path: SkiaPath = {
+      setFillType(value) { fillTypes.push(value); },
+      delete() {},
+    };
+    const pathEffect: SkiaPathEffect = { delete() {} };
+    class Paint implements SkiaPaint {
+      style: unknown;
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle(value: unknown) { this.style = value; }
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setBlendMode() {}
+      setPathEffect() {}
+      setShader() {}
+    }
+    const canvas: Pick<SkiaCanvas, "clear" | "save" | "restore" | "concat" | "drawPath"> = {
+      clear() {}, save: () => 1, restore() {}, concat() {}, drawPath(_path, paint) { drawOrder.push((paint as Paint).style); },
+    };
+    const kit = {
+      Color: () => 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      FillType: { Winding: "winding", EvenOdd: "evenodd" },
+      PathEffect: { MakeDash: (intervals: number[], phase = 0) => { dashCalls.push({ intervals, phase }); return pathEffect; } },
+      StrokeCap: { Butt: 0, Square: 1, Round: 2 },
+      StrokeJoin: { Miter: 0, Bevel: 1, Round: 2 },
+      Path: { MakeFromSVGString: () => path },
+    } as unknown as SkiaCanvasKit;
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 320, height: 180, background: "#000000" },
+        { op: "setTransform", matrix4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], alpha: 1, visible: true },
+        {
+          op: "drawPath", key: "ring", layerId: "ring", width: 320, height: 180,
+          contours: [{
+            id: "outer",
+            start: { x: 0, y: 0 },
+            segments: [
+              { kind: "line", to: { x: 320, y: 0 } },
+              { kind: "line", to: { x: 320, y: 180 } },
+              { kind: "line", to: { x: 0, y: 180 } },
+            ],
+            closed: true,
+          }, {
+            id: "inner",
+            start: { x: 80, y: 45 },
+            segments: [
+              { kind: "line", to: { x: 240, y: 45 } },
+              { kind: "line", to: { x: 240, y: 135 } },
+              { kind: "line", to: { x: 80, y: 135 } },
+            ],
+            closed: true,
+          }],
+          fill: "#ffffff", fillRule: "evenodd", stroke: "#facc15", strokeWidth: 18,
+          strokeDash: { array: [30, 16], offset: 12 }, paintOrder: ["stroke", "fill", "markers"],
+        },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    replaySkiaCommands(kit, canvas as SkiaCanvas, buffer);
+
+    expect(fillTypes).toEqual(["evenodd"]);
+    expect(dashCalls).toEqual([{ intervals: [30, 16], phase: 12 }]);
+    expect(drawOrder).toEqual([1, 0]);
   });
 });

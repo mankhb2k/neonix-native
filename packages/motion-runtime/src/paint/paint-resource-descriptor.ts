@@ -208,6 +208,7 @@ export function extractPaintFrameProperty(
   if (cmd.op === "drawImage") {
     base.x = cmd.x;
     base.y = cmd.y;
+    base.fit = cmd.fit;
     base.preserveAspectRatio = cmd.preserveAspectRatio;
     base.imageRendering = cmd.imageRendering;
   }

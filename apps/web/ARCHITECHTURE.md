@@ -191,7 +191,7 @@ uploading → queued → processing → ready
 ### System asset fallback và xóa user asset
 
 System placeholder nằm trong bucket R2 riêng `neonix-system-assets` và được
-đăng ký trong bảng `system_assets`. Catalog dùng một bảng self-reference cho cả
+đăng ký trong bảng `system_catalog.system_assets`. Catalog dùng một bảng self-reference cho cả
 asset gốc và derivative:
 
 ```text

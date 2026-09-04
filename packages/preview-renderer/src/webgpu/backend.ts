@@ -662,7 +662,7 @@ export function createWebGPUBackend(
         transientBuffers.add(uniform);
         const data = new Float32Array(UNIFORM_FLOATS);
         const layout = command.op === "drawImage"
-          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio)
+          ? imageLayout(command.width, command.height, asset.width, asset.height, command.x, command.y, command.preserveAspectRatio, command.fit)
           : mediaLayout(command.width, command.height, asset.width, asset.height, command.fit);
         const baseMatrix = packMatrix4F32(transform.matrix4);
         writeMatrix4(data, 0, projection);

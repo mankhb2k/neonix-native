@@ -63,10 +63,7 @@ function fontAsset() {
     id: FONT_ID,
     kind: "font" as const,
     uri: FONT_URI,
-    mimeType: "font/ttf" as const,
-    family: "Noto Sans",
     weight: 400,
-    style: "normal" as const,
     integrity: FONT_INTEGRITY,
   };
 }

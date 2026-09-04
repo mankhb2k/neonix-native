@@ -5,6 +5,7 @@ import type { Style } from "./model";
 
 export type GradientStop = { offset: number; color: string };
 export type Paint = string | { type: "linear-gradient"; angle?: number; stops: GradientStop[] } | { type: "radial-gradient"; cx?: number; cy?: number; radius?: number; stops: GradientStop[] } | { type: "conic-gradient"; from?: number; cx?: number; cy?: number; stops: GradientStop[] };
+type GradientBox = { width: number; height: number };
 
 export function parseColor(value: string, property: string, currentColor = "#000000"): string {
   const v = value.trim().toLowerCase();
@@ -23,6 +24,16 @@ function parseStopOffset(value: string | undefined, property: string): number | 
   const offset = Number(parsed[1]) / (parsed[2] ? 100 : 1);
   if (!Number.isFinite(offset) || offset < 0 || offset > 1) fail("css-gradient-stop-invalid", `${property} color-stop offset must be between 0% and 100%: ${value}`);
   return offset;
+}
+
+/**
+ * CSS linear-gradient angles start at the bottom-to-top direction (0deg),
+ * while the runtime paint convention starts on the positive X axis. Lower
+ * CSS angles once at the HTML compiler boundary so every runtime backend
+ * receives the same semantic gradient geometry.
+ */
+function cssLinearGradientAngleToRuntime(value: number): number {
+  return value - 90;
 }
 
 function normalizeStops(parts: string[], property: string, currentColor = "#000000"): GradientStop[] {
@@ -47,7 +58,7 @@ function normalizeStops(parts: string[], property: string, currentColor = "#0000
   return stops as GradientStop[];
 }
 
-function parseGradient(value: string, property: string, currentColor = "#000000"): Exclude<Paint, string> {
+function parseGradient(value: string, property: string, currentColor = "#000000", box?: GradientBox): Exclude<Paint, string> {
   const match = value.trim().match(/^(linear|radial|conic)-gradient\((.*)\)$/i);
   if (!match) fail("css-gradient-unsupported", `${property} supports linear-gradient(), radial-gradient() and conic-gradient()`);
   const parsed = match as RegExpMatchArray; const kind = parsed[1]!.toLowerCase(); const args = splitTopLevel(parsed[2]!, ",");
@@ -58,22 +69,33 @@ function parseGradient(value: string, property: string, currentColor = "#000000"
   if (kind === "linear") {
     let angle: number | undefined;
     const angleMatch = descriptor.match(/^(-?(?:\d+\.?\d*|\.\d+))deg$/i);
-    if (angleMatch) angle = Number(angleMatch[1]);
+    if (angleMatch) angle = cssLinearGradientAngleToRuntime(Number(angleMatch[1]));
     else if (/^to\s+/i.test(descriptor)) {
       const direction = descriptor.toLowerCase().replace(/^to\s+/, ""); const angles: Record<string, number> = { top: 0, right: 90, bottom: 180, left: 270, "top right": 45, "right top": 45, "bottom right": 135, "right bottom": 135, "bottom left": 225, "left bottom": 225, "top left": 315, "left top": 315 };
-      angle = angles[direction]; if (angle === undefined) fail("css-gradient-direction-invalid", `${property} does not support direction: ${descriptor}`);
-    } else if (stopParts === args) angle = undefined;
+      angle = angles[direction]; if (angle === undefined) fail("css-gradient-direction-invalid", `${property} does not support direction: ${descriptor}`); angle = cssLinearGradientAngleToRuntime(angle);
+    } else if (stopParts === args) angle = cssLinearGradientAngleToRuntime(180);
     else fail("css-gradient-direction-invalid", `${property} has an invalid linear direction: ${descriptor}`);
     return angle === undefined ? { type: "linear-gradient", stops } : { type: "linear-gradient", angle, stops };
   }
   const center = descriptor.match(/\bat\s+(-?(?:\d+\.?\d*|\.\d+))%\s+(-?(?:\d+\.?\d*|\.\d+))%/i);
-  if (kind === "radial") return center ? { type: "radial-gradient", cx: Number(center[1]) / 100, cy: Number(center[2]) / 100, stops } : { type: "radial-gradient", stops };
+  if (kind === "radial") {
+    const cx = center ? Number(center[1]) / 100 : 0.5;
+    const cy = center ? Number(center[2]) / 100 : 0.5;
+    // CSS `circle` with no explicit size defaults to farthest-corner. The V2
+    // radial primitive stores one scalar radius, normalized against the
+    // smaller local axis, so lower the physical farthest-corner radius into
+    // that scalar before the protocol is emitted.
+    const circleRadius = /\bcircle\b/i.test(descriptor) && box
+      ? Math.hypot(Math.max(cx * box.width, (1 - cx) * box.width), Math.max(cy * box.height, (1 - cy) * box.height)) / Math.min(box.width, box.height)
+      : undefined;
+    return { type: "radial-gradient", ...(center ? { cx, cy } : {}), ...(circleRadius === undefined ? {} : { radius: circleRadius }), stops };
+  }
   const from = descriptor.match(/\bfrom\s+(-?(?:\d+\.?\d*|\.\d+))deg/i);
   return { type: "conic-gradient", ...(from ? { from: Number(from[1]) } : {}), ...(center ? { cx: Number(center[1]) / 100, cy: Number(center[2]) / 100 } : {}), stops };
 }
 
-export function parsePaintLayers(value: string, property: string, currentColor = "#000000"): Paint[] {
-  return splitTopLevel(value, ",").map((layer) => /^\w+-gradient\(/i.test(layer.trim()) ? parseGradient(layer, property, currentColor) : parseColor(layer, property, currentColor));
+export function parsePaintLayers(value: string, property: string, currentColor = "#000000", box?: GradientBox): Paint[] {
+  return splitTopLevel(value, ",").map((layer) => /^\w+-gradient\(/i.test(layer.trim()) ? parseGradient(layer, property, currentColor, box) : parseColor(layer, property, currentColor));
 }
 
 export function parseAspectRatio(value: string | undefined): number | undefined {

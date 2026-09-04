@@ -400,15 +400,9 @@ export function SchemaInspector() {
     return null;
   }, [document, selectedLayerIds]);
   const fontOptions = useMemo(() => {
-    const fonts = document.assets
-      .filter((asset) => asset.kind === "font")
-      .map((asset) => ({ value: asset.family, label: asset.family }));
     const fontFamily = selected?.type === "text" ? selected.payload.chunks[0]?.spans[0]?.font.families[0] : undefined;
-    if (fontFamily && !fonts.some((option) => option.value === fontFamily)) {
-      fonts.unshift({ value: fontFamily, label: fontFamily });
-    }
-    return fonts;
-  }, [document.assets, selected]);
+    return fontFamily ? [{ value: fontFamily, label: fontFamily }] : [];
+  }, [selected]);
   const languageOptions = useMemo(() => {
     const language = selected?.type === "text" ? (selected.payload.source?.language ?? "und") : undefined;
     if (selected?.type !== "text" || SHIPPED_TEXT_LANGUAGES.some((option) => option.value === language)) {

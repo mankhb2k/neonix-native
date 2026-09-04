@@ -75,8 +75,16 @@ function normalizeLayerTiming(layer: V2Layer): V2Layer {
   };
 }
 
-function normalizeAssetTiming(asset: MotionProtocolV2["assets"][number]): MotionProtocolV2["assets"][number] {
-  if (asset.kind === "image" || asset.kind === "font") return asset;
+type PreviewFontAsset = Extract<MotionProtocolV2["assets"][number], { kind: "font" }> & {
+  family: string;
+  style: "normal" | "italic";
+  mimeType: "font/ttf" | "font/otf";
+};
+type PreviewAsset = MotionProtocolV2["assets"][number] | PreviewFontAsset;
+
+function normalizeAssetTiming(asset: PreviewAsset): MotionProtocolV2["assets"][number] {
+  if (asset.kind === "font") return { id: asset.id, kind: "font", uri: asset.uri, weight: asset.weight, integrity: asset.integrity };
+  if (asset.kind === "image") return asset;
   return {
     ...asset,
     ...(asset.duration !== undefined ? { duration: asset.duration * 1000 } : {}),
@@ -164,7 +172,7 @@ function project(
   id: string,
   layers: V2Layer[],
   view: MotionProtocolV2["composition"]["view"] = ORTHOGRAPHIC_VIEW,
-  assets: MotionProtocolV2["assets"] = [],
+  assets: readonly PreviewAsset[] = [],
 ): MotionProtocolV2 {
   return {
     format: "motion-protocol",
@@ -2344,6 +2352,9 @@ function textLayer(options: {
         spans: [{
           id: `${options.id}-span`,
           sourceRange: { start: 0, end: source.length },
+          resolvedFontAssetIds: [PREVIEW_NOTO_SANS_REGULAR_FONT, PREVIEW_NOTO_SANS_ARABIC_FONT, PREVIEW_NOTO_COLOR_EMOJI_FONT]
+            .filter((asset) => (options.fontFamilies ?? [PREVIEW_NOTO_SANS_REGULAR_FONT.family]).includes(asset.family))
+            .map((asset) => asset.id),
           font: { families: options.fontFamilies ?? [PREVIEW_NOTO_SANS_REGULAR_FONT.family], size: fontSize },
           fill: "#f8fafc",
           ...(options.wordSpacing !== undefined ? { wordSpacing: options.wordSpacing } : {}),

@@ -94,6 +94,7 @@ export function computePaintItemFingerprint(
   if (drawCmd.op === "drawImage" || drawCmd.op === "drawVideo") {
     if (drawCmd.op === "drawVideo" && drawCmd.fit) parts.push(`fit:${drawCmd.fit}`);
     if (drawCmd.op === "drawImage") {
+      if (drawCmd.fit) parts.push(`fit:${drawCmd.fit}`);
       parts.push(`xy:${round3(drawCmd.x)},${round3(drawCmd.y)}`);
       if (drawCmd.preserveAspectRatio) parts.push(`par:${JSON.stringify(drawCmd.preserveAspectRatio)}`);
       if (drawCmd.imageRendering) parts.push(`ir:${drawCmd.imageRendering}`);

@@ -20,6 +20,7 @@ export function declarations(body: string, selector: string, sourceText?: string
     if (property === "display" && !["none", "block", "contents", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-display-unsupported", "Phase 3 supports display:none, block and contents", location);
     if (property === "position" && !["static", "relative", "absolute", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-position-invalid", "position must be static, relative or absolute", location);
     if (property === "visibility" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-visibility-invalid", "visibility must be visible or hidden", location);
+    if (property === "overflow" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-overflow-invalid", "overflow must be visible or hidden", location);
     if (!property.startsWith("--") && !SUPPORTED_PROPERTIES.has(property)) throw new CompileError("css-property-unsupported", `Phase 2 does not support ${property}`, location);
     result.push({ property, value: normalizedValue, important, order: declarationOrder++ });
   }
@@ -42,4 +43,3 @@ export function parseRules(css: string): Rule[] {
   if (text.slice(consumed).trim()) fail("css-invalid-rule", "CSS rule is missing a closing brace");
   return rules;
 }
-

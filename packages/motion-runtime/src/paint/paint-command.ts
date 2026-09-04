@@ -164,6 +164,7 @@ export type PaintCommand =
       y: number;
       width: number;
       height: number;
+      fit?: RenderMediaFit;
       preserveAspectRatio?: RenderImagePreserveAspectRatio;
       imageRendering?: RenderImageRendering;
     }

@@ -217,6 +217,7 @@ export function StageViewport() {
           <PreviewStage
             project={document}
             hiddenLayerIds={hiddenLayerIds}
+            backend="skia"
             externalPlayback
             onVideoElement={registerPlaybackVideo}
             registerPlaybackFrameSink={registerPlaybackFrameSink}

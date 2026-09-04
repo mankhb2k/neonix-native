@@ -35,12 +35,16 @@ export const V2ImageRenderingSchema = z.enum([
   "pixelated",
 ]);
 
+/** CSS object-fit semantics for an image viewport. */
+export const V2ImageFitSchema = z.enum(["contain", "cover", "fill", "none"]);
+
 export const V2ImageLayerSchema = V2LayerBaseSchema.extend({
   type: z.literal("image"),
   effects: V2EffectListSchema.optional(),
   payload: z
     .object({
       assetId: V2IdSchema,
+      fit: V2ImageFitSchema.optional(),
       /** SVG image viewport origin. Defaults to 0 when omitted. */
       x: V2FiniteNumberSchema.optional(),
       y: V2FiniteNumberSchema.optional(),
@@ -56,4 +60,5 @@ export const V2ImageLayerSchema = V2LayerBaseSchema.extend({
 export type V2ImageAlign = z.infer<typeof V2ImageAlignSchema>;
 export type V2ImagePreserveAspectRatio = z.infer<typeof V2ImagePreserveAspectRatioSchema>;
 export type V2ImageRendering = z.infer<typeof V2ImageRenderingSchema>;
+export type V2ImageFit = z.infer<typeof V2ImageFitSchema>;
 export type V2ImageLayer = z.infer<typeof V2ImageLayerSchema>;

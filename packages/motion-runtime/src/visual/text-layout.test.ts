@@ -71,6 +71,21 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.glyphs[0]?.fontIntegrity).toBe("sha256:roboto");
   });
 
+  it("wraps word lines against the frame width and advances by line-height", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello world from Neonix", width: 150, lineHeight: 48, wrap: "word" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines.length).toBeGreaterThan(1);
+    expect(content.layout?.lines[1]!.baselineY - content.layout?.lines[0]!.baselineY).toBe(48);
+    expect(content.layout?.glyphs.every((glyph) => glyph.x <= 150)).toBe(true);
+  });
+
   it("resolves a different font run when the primary face lacks a grapheme", async () => {
     const [notoSans, notoEmoji] = await Promise.all([readFile(notoSansPath), readFile(notoEmojiPath)]);
     const result = await prepareVisualRuntimeProjectText(

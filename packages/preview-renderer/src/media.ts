@@ -30,8 +30,19 @@ export function imageLayout(
   x: number,
   y: number,
   preserveAspectRatio: RenderImagePreserveAspectRatio | undefined,
+  fit?: RenderMediaFit,
 ): MediaLayout {
   const align = preserveAspectRatio?.align ?? "xMidYMid";
+  const factors = alignFactors(align);
+  if (fit === "none") {
+    return {
+      x: x + (boxWidth - assetWidth) * factors.x,
+      y: y + (boxHeight - assetHeight) * factors.y,
+      width: assetWidth,
+      height: assetHeight,
+      uv: { x: 0, y: 0, width: 1, height: 1 },
+    };
+  }
   if (align === "none") {
     return { x, y, width: boxWidth, height: boxHeight, uv: { x: 0, y: 0, width: 1, height: 1 } };
   }
@@ -42,8 +53,6 @@ export function imageLayout(
     : Math.min(boxWidth / assetWidth, boxHeight / assetHeight);
   const drawWidth = assetWidth * scale;
   const drawHeight = assetHeight * scale;
-  const factors = alignFactors(align);
-
   if (meetOrSlice === "slice") {
     const uvWidth = boxWidth / drawWidth;
     const uvHeight = boxHeight / drawHeight;

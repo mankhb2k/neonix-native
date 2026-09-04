@@ -19,10 +19,10 @@ export function expandShorthand(property: string, value: string): Array<[string,
     }
     return [[property, value], ...(width === undefined ? [] : [["border-width", width] as [string, string]]), ...(style === undefined ? [] : [["border-style", style] as [string, string]]), ...(color === undefined ? [] : [["border-color", color] as [string, string]])];
   }
-  if (property !== "margin" && property !== "padding") return [[property, value]];
+  if (property !== "margin" && property !== "padding" && property !== "inset") return [[property, value]];
   const values = splitTopLevel(value, " ");
   if (values.length < 1 || values.length > 4) fail("css-shorthand-invalid", `${property} expects one to four values`);
   const expanded = values.length === 1 ? [values[0], values[0], values[0], values[0]] : values.length === 2 ? [values[0], values[1], values[0], values[1]] : values.length === 3 ? [values[0], values[1], values[2], values[1]] : values;
-  return [[property, value], [`${property}-top`, expanded[0]!], [`${property}-right`, expanded[1]!], [`${property}-bottom`, expanded[2]!], [`${property}-left`, expanded[3]!]];
+  const sides = property === "inset" ? ["top", "right", "bottom", "left"] : ["top", "right", "bottom", "left"].map((side) => `${property}-${side}`);
+  return [[property, value], [sides[0]!, expanded[0]!], [sides[1]!, expanded[1]!], [sides[2]!, expanded[2]!], [sides[3]!, expanded[3]!]];
 }
-

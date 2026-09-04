@@ -57,6 +57,7 @@ export {
 export {
   V2TextFontSchema,
   V2TextDecorationStyleSchema,
+  V2TextLayoutSchema,
   V2TextSpanSchema,
   V2TextPathSchema,
   V2TextChunkSchema,
@@ -65,6 +66,7 @@ export {
   type V2TextRange,
   type V2TextFont,
   type V2TextDecorationStyle,
+  type V2TextLayout,
   type V2TextSpan,
   type V2TextPath,
   type V2TextChunk,

@@ -45,6 +45,7 @@ export async function listSystemAssetCatalog(ids: string[]): Promise<SystemAsset
   if (ids.length === 0) return [];
   const client = await createSupabaseServerClient();
   const { data, error } = await client
+    .schema("system_catalog")
     .from("system_assets")
     .select("id, parent_id, kind, variant_kind, r2_key, mime_type, byte_size, width, height, duration_ms, metadata_json, enabled")
     .in("id", ids)

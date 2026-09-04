@@ -9,10 +9,24 @@ function imageRectForCommand(
 ): { source: [number, number, number, number]; destination: [number, number, number, number]; clip?: [number, number, number, number] } {
   const viewportWidth = command.width;
   const viewportHeight = command.height;
-  const fit = command.op === "drawVideo" ? command.fit : undefined;
+  const fit = command.op === "drawImage" ? command.fit : undefined;
+  const videoFit = command.op === "drawVideo" ? command.fit : undefined;
   const preserve = command.op === "drawImage" ? command.preserveAspectRatio : undefined;
   const align = preserve?.align ?? "xMidYMid";
-  const none = fit === "none" || align === "none";
+  const alignX = align.includes("xMin") ? 0 : align.includes("xMax") ? 1 : 0.5;
+  const alignY = align.includes("YMin") ? 0 : align.includes("YMax") ? 1 : 0.5;
+  if (fit === "none") {
+    const x0 = command.op === "drawImage" ? command.x : 0;
+    const y0 = command.op === "drawImage" ? command.y : 0;
+    const x = x0 + (viewportWidth - asset.width) * alignX;
+    const y = y0 + (viewportHeight - asset.height) * alignY;
+    return {
+      source: [0, 0, asset.width, asset.height],
+      destination: [x, y, x + asset.width, y + asset.height],
+      clip: [x0, y0, x0 + viewportWidth, y0 + viewportHeight],
+    };
+  }
+  const none = videoFit === "none" || align === "none";
   if (none) {
     const x = command.op === "drawImage" ? command.x : 0;
     const y = command.op === "drawImage" ? command.y : 0;
@@ -21,7 +35,7 @@ function imageRectForCommand(
       destination: [x, y, x + viewportWidth, y + viewportHeight],
     };
   }
-  const forceFill = fit === "fill" || (command.op === "drawVideo" && !fit);
+  const forceFill = fit === "fill" || (command.op === "drawVideo" && !videoFit);
   if (forceFill) {
     const x = command.op === "drawImage" ? command.x : 0;
     const y = command.op === "drawImage" ? command.y : 0;

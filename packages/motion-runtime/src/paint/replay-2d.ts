@@ -13,6 +13,7 @@ import type {
   RenderImageAlign,
   RenderImagePreserveAspectRatio,
   RenderImageRendering,
+  RenderMediaFit,
 } from "./paint-types";
 import { flattenPathContourAny } from "../geometry/path/flatten";
 
@@ -243,9 +244,14 @@ function applyFill(
     if (!ctx.createConicGradient) {
       throw new Error("Canvas2D replay requires createConicGradient for conic-gradient paint");
     }
-    const startAngle = ((fillPaint.from ?? 0) * Math.PI) / 180;
-    const cx = (fillPaint.cx ?? 0.5) * width;
-    const cy = (fillPaint.cy ?? 0.5) * height;
+    const units = fillPaint.gradientUnits ?? "objectBoundingBox";
+    const scaleX = units === "objectBoundingBox" ? width : 1;
+    const scaleY = units === "objectBoundingBox" ? height : 1;
+    // CSS conic angles start at 12 o'clock; Canvas2D angles start at
+    // 3 o'clock. Both increase clockwise in the canvas coordinate system.
+    const startAngle = (((fillPaint.from ?? 0) - 90) * Math.PI) / 180;
+    const cx = (fillPaint.cx ?? 0.5) * scaleX;
+    const cy = (fillPaint.cy ?? 0.5) * scaleY;
     const gradient = ctx.createConicGradient(startAngle, cx, cy);
     for (const stop of fillPaint.stops) {
       gradient.addColorStop(stop.offset, gradientStopColor(stop.color, stop.stopOpacity ?? 1));
@@ -271,7 +277,7 @@ function applyFill(
       document?: { createElement(name: "canvas"): {
         width: number;
         height: number;
-        getContext(kind: "2d"): any;
+        getContext(kind: "2d"): Canvas2DReplayContext | null;
       } };
     };
     const tileWidth = Math.max(1, Math.ceil(fillPaint.patternUnits === "objectBoundingBox" ? fillPaint.width * width : fillPaint.width));
@@ -485,6 +491,7 @@ function drawSvgImage(
   viewportHeight: number,
   preserveAspectRatio?: RenderImagePreserveAspectRatio,
   imageRendering?: RenderImageRendering,
+  fit?: RenderMediaFit,
 ): void {
   const smoothing = imageRendering !== "optimizeSpeed" && imageRendering !== "crisp-edges" && imageRendering !== "pixelated";
   if (ctx.imageSmoothingEnabled !== undefined) ctx.imageSmoothingEnabled = smoothing;
@@ -495,6 +502,23 @@ function drawSvgImage(
   }
 
   const align = preserveAspectRatio?.align ?? "xMidYMid";
+  const alignX = align.includes("xMin") ? 0 : align.includes("xMax") ? 1 : 0.5;
+  const alignY = align.includes("YMin") ? 0 : align.includes("YMax") ? 1 : 0.5;
+  if (fit === "none") {
+    const drawWidth = size.width;
+    const drawHeight = size.height;
+    if (ctx.save && ctx.clip) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, viewportWidth, viewportHeight);
+      ctx.clip();
+      ctx.drawImage(image, x + (viewportWidth - drawWidth) * alignX, y + (viewportHeight - drawHeight) * alignY, drawWidth, drawHeight);
+      ctx.restore();
+    } else {
+      ctx.drawImage(image, x + (viewportWidth - drawWidth) * alignX, y + (viewportHeight - drawHeight) * alignY, drawWidth, drawHeight);
+    }
+    return;
+  }
   if (align === "none") {
     ctx.drawImage(image, x, y, viewportWidth, viewportHeight);
     return;
@@ -669,6 +693,7 @@ export function replayPaintCommands2D(
             cmd.height,
             cmd.preserveAspectRatio,
             cmd.imageRendering,
+            cmd.fit,
           );
         } else {
           drawFittedVideo(ctx, image, cmd.width, cmd.height, cmd.fit);

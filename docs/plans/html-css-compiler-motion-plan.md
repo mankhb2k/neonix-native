@@ -29,7 +29,7 @@ Compiler không nhằm sao chép toàn bộ browser CSS. JSON V2 là visual scen
 - Keyframe time ở biên Protocol V2 dùng milliseconds. Runtime có thể đổi sang seconds nội bộ.
 - Transform angle và gradient angle giữ convention degrees của runtime hiện tại. Parser có thể nhận `rad`/`turn` rồi normalize về degrees.
 - Màu đầu vào được canonicalize về format mà V2/renderer hỗ trợ; không tự thêm một color schema CSS mới vào V2.
-- `size`/`layout` nếu cần chỉ là compiler IR. Kết quả cuối phải lower vào `frame` và `transform` của V2.
+- `size`/`layout` của geometry có thể là compiler IR và phải lower vào `frame`/`transform`; riêng `payload.layout` của text là semantic V2 contract đã được chuẩn hóa cho AI, user và HTML/CSS compiler.
 
 ## P0 — Thuộc tính phổ biến cần xử lý trước
 
@@ -355,3 +355,12 @@ Không thêm property vào `SUPPORTED` chỉ vì parser đọc được. Chỉ t
 - Seek đến cùng một time cho kết quả deterministic.
 - Unsupported property tạo diagnostic có code, property, selector và source location.
 - Preview `/docs/preview/html-compiler` chỉ hiển thị các fixture CSS đã được thêm lại có chủ đích.
+
+### Protocol V2 text layout contract
+
+Typography P0 lowers CSS into an optional, CSS-independent `payload.layout`
+contract. V2 keeps `source` for text, language, direction and writing semantics
+and `chunks[].spans[]` for SVG-compatible ranges, font and paint. The layout
+contract carries resolved `lineHeight`, `textAlign`, `whiteSpace`, `wrap` and
+`textOverflow`; ellipsis is valid only with deterministic layer clipping.
+Runtime glyph shaping remains a separate materialization step.

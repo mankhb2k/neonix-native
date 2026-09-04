@@ -83,7 +83,7 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
   if (colorPaths.has(path)) return new Set(["color"]);
 
   const enumPaths = layer.type === "image"
-      ? new Set(["payload.preserveAspectRatio.align", "payload.preserveAspectRatio.meetOrSlice", "payload.imageRendering"])
+      ? new Set(["payload.fit", "payload.preserveAspectRatio.align", "payload.preserveAspectRatio.meetOrSlice", "payload.imageRendering"])
       : layer.type === "video"
         ? new Set(["payload.fit"])
       : new Set<string>();
@@ -143,7 +143,17 @@ export const MotionProtocolV2Schema = z
     const ids = new Set<string>();
     const ordersByParent = new Map<string | null, Set<number>>();
     const assetIds = new Set<string>();
+    const assetById = new Map<string, MotionProtocolV2["assets"][number]>();
     const layerById = new Map(project.layers.map((layer) => [layer.id, layer]));
+    for (const [index, layer] of project.layers.entries()) {
+      if (layer.type === "text" && layer.payload.layout?.textOverflow === "ellipsis" && layer.clipPath === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Text ellipsis requires a deterministic clipPath",
+          path: ["layers", index, "payload", "layout", "textOverflow"],
+        });
+      }
+    }
 
     const checkPaintReferences = (paint: V2Paint | undefined, path: (string | number)[], seen = new Set<string>()): void => {
       if (!paint || typeof paint === "string") return;
@@ -182,6 +192,23 @@ export const MotionProtocolV2Schema = z
         });
       }
       assetIds.add(asset.id);
+      assetById.set(asset.id, asset);
+    }
+    for (const [layerIndex, layer] of project.layers.entries()) {
+      if (layer.type !== "text") continue;
+      for (const [chunkIndex, chunk] of layer.payload.chunks.entries()) {
+        for (const [spanIndex, span] of chunk.spans.entries()) {
+          for (const [assetIndex, assetId] of (span.resolvedFontAssetIds ?? []).entries()) {
+            const asset = assetById.get(assetId);
+            const path = ["layers", layerIndex, "payload", "chunks", chunkIndex, "spans", spanIndex, "resolvedFontAssetIds", assetIndex] as (string | number)[];
+            if (!asset) {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown resolved font asset: ${assetId}`, path });
+            } else if (asset.kind !== "font") {
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Resolved text asset must be a font: ${assetId}`, path });
+            }
+          }
+        }
+      }
     }
     const trackIds = new Set<string>();
     const audioClipIds = new Set<string>();

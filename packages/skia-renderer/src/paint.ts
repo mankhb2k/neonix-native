@@ -17,29 +17,8 @@ function mapPoint(point: Point, transform: PaintTransform | undefined): Point {
   ];
 }
 
-function multiplyMatrix3(left: Matrix3, right: Matrix3): Matrix3 {
-  return [
-    left[0] * right[0] + left[1] * right[3] + left[2] * right[6],
-    left[0] * right[1] + left[1] * right[4] + left[2] * right[7],
-    left[0] * right[2] + left[1] * right[5] + left[2] * right[8],
-    left[3] * right[0] + left[4] * right[3] + left[5] * right[6],
-    left[3] * right[1] + left[4] * right[4] + left[5] * right[7],
-    left[3] * right[2] + left[4] * right[5] + left[5] * right[8],
-    left[6] * right[0] + left[7] * right[3] + left[8] * right[6],
-    left[6] * right[1] + left[7] * right[4] + left[8] * right[7],
-    left[6] * right[2] + left[7] * right[5] + left[8] * right[8],
-  ];
-}
-
 function transformMatrix(transform: PaintTransform | undefined): Matrix3 {
   return [transform?.a ?? 1, transform?.c ?? 0, transform?.e ?? 0, transform?.b ?? 0, transform?.d ?? 1, transform?.f ?? 0, 0, 0, 1];
-}
-
-function rotationAround(center: Point, degrees: number): Matrix3 {
-  const radians = (degrees * Math.PI) / 180;
-  const cosine = Math.cos(radians);
-  const sine = Math.sin(radians);
-  return [cosine, -sine, center[0] - cosine * center[0] + sine * center[1], sine, cosine, center[1] - sine * center[0] - cosine * center[1], 0, 0, 1];
 }
 
 function tileMode(kit: SkiaCanvasKit, spreadMethod: PaintFillGradient["spreadMethod"]): unknown {
@@ -63,15 +42,51 @@ function gradientScale(gradient: PaintFillGradient, width: number, height: numbe
   return gradient.gradientUnits === "objectBoundingBox" ? [width, height] : [1, 1];
 }
 
-function gradientLocalMatrix(gradient: PaintFillGradient, width: number, height: number, rotation = 0): number[] | undefined {
-  const [scaleX, scaleY] = gradientScale(gradient, width, height);
+function gradientLocalMatrix(gradient: PaintFillGradient): number[] | undefined {
   const transform = gradient.gradientTransform;
-  const scale: Matrix3 = [scaleX, 0, 0, 0, scaleY, 0, 0, 0, 1];
-  const matrix = multiplyMatrix3(scale, transformMatrix(transform));
-  if (rotation === 0 && !transform && scaleX === 1 && scaleY === 1) return undefined;
-  if (rotation === 0) return matrix;
-  const center: Point = [gradient.cx ?? 0.5, gradient.cy ?? 0.5];
-  return multiplyMatrix3(matrix, rotationAround(center, rotation));
+  if (!transform || (transform.a === 1 && transform.b === 0 && transform.c === 0 && transform.d === 1 && transform.e === 0 && transform.f === 0)) return undefined;
+  return transformMatrix(transform);
+}
+
+function conicLocalMatrix(
+  gradient: PaintFillGradient,
+  center: Point,
+): number[] | undefined {
+  // CanvasKit applies the local matrix in the inverse direction when
+  // evaluating shader coordinates, so negate the CSS start angle here.
+  const angle = (-(gradient.from ?? 0) * Math.PI) / 180;
+  if (Math.abs(angle) < 1e-12) return gradientLocalMatrix(gradient);
+
+  // CanvasKit's sweep-gradient angle overload is not reliable across the
+  // raster and GPU builds we support. Rotate shader coordinates around the
+  // gradient center instead, so the default 0° ray (positive X) represents
+  // the CSS conic-gradient start ray.
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const rotation: Matrix3 = [
+    cos,
+    -sin,
+    center[0] - cos * center[0] + sin * center[1],
+    sin,
+    cos,
+    center[1] - sin * center[0] - cos * center[1],
+    0,
+    0,
+    1,
+  ];
+  const transform = gradientLocalMatrix(gradient);
+  if (!transform) return rotation;
+  return [
+    transform[0] * rotation[0] + transform[1] * rotation[3] + transform[2] * rotation[6],
+    transform[0] * rotation[1] + transform[1] * rotation[4] + transform[2] * rotation[7],
+    transform[0] * rotation[2] + transform[1] * rotation[5] + transform[2] * rotation[8],
+    transform[3] * rotation[0] + transform[4] * rotation[3] + transform[5] * rotation[6],
+    transform[3] * rotation[1] + transform[4] * rotation[4] + transform[5] * rotation[7],
+    transform[3] * rotation[2] + transform[4] * rotation[5] + transform[5] * rotation[8],
+    0,
+    0,
+    1,
+  ];
 }
 
 function linearPoints(gradient: PaintFillGradient, width: number, height: number): { start: Point; end: Point } {
@@ -93,14 +108,16 @@ function radialGeometry(gradient: PaintFillGradient, width: number, height: numb
   radius: number;
   focusRadius: number;
 } {
-  const [scaleX, scaleY] = gradientScale(gradient, width, height);
-  const center: Point = [gradient.cx ?? 0.5, gradient.cy ?? 0.5];
-  const focus: Point = [gradient.fx ?? gradient.cx ?? 0.5, gradient.fy ?? gradient.cy ?? 0.5];
+  const units = gradient.gradientUnits ?? "objectBoundingBox";
+  const scaleX = units === "objectBoundingBox" ? width : 1;
+  const scaleY = units === "objectBoundingBox" ? height : 1;
+  const center: Point = [(gradient.cx ?? 0.5) * scaleX, (gradient.cy ?? 0.5) * scaleY];
+  const focus: Point = [(gradient.fx ?? gradient.cx ?? 0.5) * scaleX, (gradient.fy ?? gradient.cy ?? 0.5) * scaleY];
   return {
     center,
     focus,
-    radius: (gradient.radius ?? 0.5) * (gradient.gradientUnits === "objectBoundingBox" ? 1 : Math.min(scaleX || width, scaleY || height)),
-    focusRadius: (gradient.fr ?? 0) * (gradient.gradientUnits === "objectBoundingBox" ? 1 : Math.min(scaleX || width, scaleY || height)),
+    radius: (gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
+    focusRadius: (gradient.fr ?? 0) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
   };
 }
 
@@ -132,15 +149,17 @@ function makeGradientShader(
         colors,
         positions,
         mode,
-        gradientLocalMatrix(gradient, width, height),
+        gradientLocalMatrix(gradient),
         0,
       );
     }
-    return kit.Shader.MakeRadialGradient(geometry.center, geometry.radius, colors, positions, mode, gradientLocalMatrix(gradient, width, height), 0);
+    return kit.Shader.MakeRadialGradient(geometry.center, geometry.radius, colors, positions, mode, gradientLocalMatrix(gradient), 0);
   }
-  const center: Point = [gradient.cx ?? 0.5, gradient.cy ?? 0.5];
-  const startAngle = gradient.from ?? 0;
-  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, gradientLocalMatrix(gradient, width, height, startAngle), 0);
+  const units = gradient.gradientUnits ?? "objectBoundingBox";
+  const scaleX = units === "objectBoundingBox" ? width : 1;
+  const scaleY = units === "objectBoundingBox" ? height : 1;
+  const center: Point = [(gradient.cx ?? 0.5) * scaleX, (gradient.cy ?? 0.5) * scaleY];
+  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, conicLocalMatrix(gradient, center), 0, 0, 360);
 }
 
 /** Creates one backend-neutral paint from Runtime paint semantics. */

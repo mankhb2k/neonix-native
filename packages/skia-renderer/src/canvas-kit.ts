@@ -8,6 +8,10 @@ export type SkiaCanvasKit = {
   TileMode: { Clamp: unknown; Repeat: unknown; Mirror: unknown; Decal: unknown };
   Paint: new () => SkiaPaint;
   PaintStyle: { Fill: unknown; Stroke: unknown };
+  /** CanvasKit fill rules used when rasterizing nested path contours. */
+  FillType?: { Winding: unknown; EvenOdd: unknown };
+  /** CanvasKit path effects used for dashed strokes. */
+  PathEffect?: { MakeDash(intervals: number[], phase?: number): SkiaPathEffect | null };
   StrokeCap: { Butt: unknown; Square: unknown; Round: unknown };
   StrokeJoin: { Miter: unknown; Bevel: unknown; Round: unknown };
   /** Skia blend modes use the same Porter-Duff/CSS names as CanvasKit. */
@@ -71,6 +75,7 @@ export type SkiaPaint = {
   setStrokeCap(value: unknown): void;
   setStrokeJoin(value: unknown): void;
   setBlendMode(value: unknown): void;
+  setPathEffect?(value: SkiaPathEffect | null): void;
   setImageFilter?(value: SkiaImageFilter | null): void;
   setShader(value: unknown): void;
   delete(): void;
@@ -79,7 +84,8 @@ export type SkiaPaint = {
 export type SkiaShader = { delete(): void };
 export type SkiaColorFilter = { delete(): void };
 export type SkiaImageFilter = { delete(): void };
-export type SkiaPath = { delete(): void };
+export type SkiaPathEffect = { delete(): void };
+export type SkiaPath = { delete(): void; setFillType?(value: unknown): void };
 export type SkiaPathBuilder = { transform(...args: unknown[]): SkiaPathBuilder; snapshot(): SkiaPath; delete(): void };
 export type SkiaTypeface = { delete(): void };
 export type SkiaFont = { delete(): void; setSubpixel(value: boolean): void };

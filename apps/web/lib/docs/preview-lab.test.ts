@@ -8,7 +8,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PHASE0_CASES, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -52,7 +52,7 @@ describe("Protocol V2 preview lab fixtures", () => {
   });
 
   it("keeps the HTML compiler sidebar backed by real P0 fixtures", () => {
-    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(10);
+    expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(36);
     expect(htmlCompilerPreviewCaseById(null).id).toBe(HTML_COMPILER_DEFAULT_CASE_ID);
     expect(HTML_COMPILER_PHASE0_CASES[0]?.id).toBe("html-compiler.new-project.blue-rectangle");
     expect(HTML_COMPILER_PHASE0_CASES[0]?.source.composition).toEqual({
@@ -92,11 +92,60 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PHASE0_CASES[8]?.source.css).toContain("margin-left: 34px");
     expect(HTML_COMPILER_PHASE0_CASES[9]?.source.css).toContain("padding: 12px 28px");
     expect(HTML_COMPILER_PHASE0_CASES[9]?.source.css).toContain("padding-left: 34px");
+    expect(HTML_COMPILER_PHASE0_CASES[10]?.source.html).toContain('id="position-relative"');
+    expect(HTML_COMPILER_PHASE0_CASES[10]?.source.css).toContain("position: absolute");
+    expect(HTML_COMPILER_PHASE0_CASES[11]?.source.html).toContain('id="inset-frame"');
+    expect(HTML_COMPILER_PHASE0_CASES[11]?.source.css).toContain("inset: 80px 120px 100px 160px");
+    expect(HTML_COMPILER_PHASE0_CASES[12]?.source.html).toContain('id="display-contents"');
+    expect(HTML_COMPILER_PHASE0_CASES[12]?.source.css).toContain("visibility: hidden");
+    expect(HTML_COMPILER_PHASE0_CASES[13]?.source.html).toContain('id="overflow-hidden"');
+    expect(HTML_COMPILER_PHASE0_CASES[13]?.source.css).toContain("opacity: 0.55");
+    expect(HTML_COMPILER_PHASE0_CASES[13]?.source.css).toContain("z-index: 3");
+    expect(HTML_COMPILER_PHASE0_CASES[14]?.source.html).toContain('id="transform-rotate-z"');
+    expect(HTML_COMPILER_PHASE0_CASES[14]?.source.css).toContain("transform-origin: right bottom");
+    expect(HTML_COMPILER_PHASE0_CASES[15]?.source.html).toContain('id="rotate-single"');
+    expect(HTML_COMPILER_PHASE0_CASES[15]?.source.css).toContain("transform: rotate(17deg)");
+    expect(HTML_COMPILER_PHASE0_CASES[16]?.source.html).toContain('id="paint-background-layers"');
+    expect(HTML_COMPILER_PHASE0_CASES[16]?.source.css).toContain("background-color: #14b8a6");
+    expect(HTML_COMPILER_PHASE0_CASES[16]?.source.css).toContain("linear-gradient");
+    expect(HTML_COMPILER_PHASE0_CASES[17]?.source.html).toContain('id="paint-border-longhand"');
+    expect(HTML_COMPILER_PHASE0_CASES[17]?.source.css).toContain("border: 12px solid currentColor");
+    expect(HTML_COMPILER_PHASE0_CASES[17]?.source.css).toContain("border-style: none");
+    expect(HTML_COMPILER_PHASE0_CASES[18]?.source.html).toContain('id="fill-rule-evenodd"');
+    expect(HTML_COMPILER_PHASE0_CASES[18]?.source.css).toContain("fill-opacity: 0.72");
+    expect(HTML_COMPILER_PHASE0_CASES[18]?.source.css).toContain("fill-rule: evenodd");
+    expect(HTML_COMPILER_PHASE0_CASES[19]?.source.html).toContain('id="stroke-style"');
+    expect(HTML_COMPILER_PHASE0_CASES[19]?.source.css).toContain("stroke-linecap: round");
+    expect(HTML_COMPILER_PHASE0_CASES[20]?.source.html).toContain('id="dash-order"');
+    expect(HTML_COMPILER_PHASE0_CASES[20]?.source.css).toContain("stroke-dasharray: 30px 16px");
+    expect(HTML_COMPILER_PHASE0_CASES[20]?.source.css).toContain("paint-order: stroke fill");
+    expect(HTML_COMPILER_PHASE0_CASES[21]?.source.html).toContain('id="linear-gradient"');
+    expect(HTML_COMPILER_PHASE0_CASES[21]?.source.css).toContain("linear-gradient(90deg");
+    expect(HTML_COMPILER_PHASE0_CASES[22]?.source.html).toContain('id="radial-gradient"');
+    expect(HTML_COMPILER_PHASE0_CASES[22]?.source.css).toContain("radial-gradient(circle at 50% 50%");
+    expect(HTML_COMPILER_PHASE0_CASES[23]?.source.html).toContain('id="conic-gradient"');
+    expect(HTML_COMPILER_PHASE0_CASES[23]?.source.css).toContain("conic-gradient(from 45deg at 50% 50%");
+    expect(HTML_COMPILER_PHASE0_CASES[24]?.source.html).toContain('src="/preview/image/photo-landscape.jpg"');
+    expect(HTML_COMPILER_PHASE0_CASES[24]?.source.css).toContain("object-fit: contain");
+    expect(HTML_COMPILER_PHASE0_CASES[25]?.source.html).toContain('src="/preview/image/photo-portrait.jpg"');
+    expect(HTML_COMPILER_PHASE0_CASES[25]?.source.css).toContain("object-position: right top");
+    expect(HTML_COMPILER_PHASE0_CASES[26]?.source.css).toContain("image-rendering: pixelated");
+    expect(HTML_COMPILER_PHASE0_CASES[27]?.source.css).toContain("object-fit: none");
+    expect(HTML_COMPILER_PHASE0_CASES[27]?.source.css).toContain("overflow: hidden");
+    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.html).toContain('id="font-inter"');
+    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.css).toContain('font-family: "Lora"');
+    expect(HTML_COMPILER_PHASE0_CASES[28]?.source.css).toContain("font-weight: 700");
+    expect(HTML_COMPILER_PHASE0_CASES[29]?.source.html).toContain('id="emoji-triple"');
+    expect(HTML_COMPILER_PHASE0_CASES[29]?.source.css).toContain('font-family: "Noto Color Emoji"');
     expect(htmlCompilerPreviewGroups().map((group) => group.topic)).toEqual([
       "New project",
       "Composition & geometry",
       "HTML tags",
       "Cascade & values",
+      "Transform 2D",
+      "Paint",
+      "Media",
+      "Typography",
     ]);
     expect(htmlCompilerPreviewGroups().every((group) => group.cases.length > 0)).toBe(true);
 
@@ -117,6 +166,242 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect.objectContaining({ id: "max-height-case", frame: { width: 320, height: 120 } }),
     ]));
 
+    const position = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[10]!.source);
+    expect(position.status).toBe("success");
+    expect(position.protocol?.layers.find((layer) => layer.id === "position-static")).toMatchObject({
+      transform: { translate: { x: 80, y: 60, z: 0 } },
+    });
+    expect(position.protocol?.layers.find((layer) => layer.id === "position-relative")).toMatchObject({
+      transform: { translate: { x: 400, y: 224, z: 0 } },
+    });
+    expect(position.protocol?.layers.find((layer) => layer.id === "position-absolute")).toMatchObject({
+      transform: { translate: { x: 980, y: 220, z: 0 } },
+    });
+
+    const inset = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[11]!.source);
+    expect(inset.status).toBe("success");
+    expect(inset.protocol?.layers.find((layer) => layer.id === "inset-frame")).toMatchObject({
+      frame: { width: 1160, height: 580 },
+      transform: { translate: { x: 160, y: 80, z: 0 } },
+    });
+    expect(inset.protocol?.layers.find((layer) => layer.id === "right-bottom-box")).toMatchObject({
+      frame: { width: 300, height: 160 },
+      transform: { translate: { x: 980, y: 480, z: 0 } },
+    });
+
+    const displayVisibility = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[12]!.source);
+    expect(displayVisibility.status).toBe("success");
+    expect(displayVisibility.protocol?.layers.find((layer) => layer.id === "display-contents")).toBeUndefined();
+    expect(displayVisibility.protocol?.layers.find((layer) => layer.id === "display-none")).toBeUndefined();
+    expect(displayVisibility.protocol?.layers.find((layer) => layer.id === "contents-cyan")).toMatchObject({
+      transform: { translate: { x: 80, y: 180, z: 0 } },
+    });
+    expect(displayVisibility.protocol?.layers.find((layer) => layer.id === "contents-purple")).toMatchObject({
+      transform: { translate: { x: 80, y: 272, z: 0 } },
+    });
+    expect(displayVisibility.protocol?.layers.find((layer) => layer.id === "visibility-hidden")).toMatchObject({
+      enabled: false,
+      transform: { translate: { x: 1020, y: 160, z: 0 } },
+    });
+    const visibleLayer = displayVisibility.protocol?.layers.find((layer) => layer.id === "visibility-visible");
+    expect(visibleLayer).toMatchObject({ transform: { translate: { x: 1020, y: 300, z: 0 } } });
+    expect(visibleLayer).not.toHaveProperty("enabled");
+
+    const effects = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[13]!.source);
+    expect(effects.status).toBe("success");
+    expect(effects.protocol?.layers.find((layer) => layer.id === "opacity-overlay")).toMatchObject({
+      opacity: 0.55,
+      transform: { translate: { x: 280, y: 260, z: 0 } },
+    });
+    const zLayers = ["z-back", "z-middle", "z-front"].map((id) => effects.protocol?.layers.find((layer) => layer.id === id));
+    expect(zLayers[0]?.order).toBeLessThan(zLayers[1]?.order ?? 0);
+    expect(zLayers[1]?.order).toBeLessThan(zLayers[2]?.order ?? 0);
+    const hiddenOverflow = effects.protocol?.layers.find((layer) => layer.id === "overflow-hidden");
+    expect(hiddenOverflow).toMatchObject({ clipPath: "html-overflow-clip-0" });
+    expect(effects.protocol?.clipPaths).toEqual([
+      expect.objectContaining({
+        id: "html-overflow-clip-0",
+        children: [expect.objectContaining({ type: "rect", x: 0, y: 0, width: 300, height: 160 })],
+      }),
+    ]);
+    expect(effects.protocol?.layers.find((layer) => layer.id === "overflow-visible")).not.toHaveProperty("clipPath");
+
+    const transforms = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[14]!.source);
+    expect(transforms.status).toBe("success");
+    expect(transforms.protocol?.layers.find((layer) => layer.id === "transform-translate")).toMatchObject({
+      transform: {
+        translate: { x: 120, y: 180, z: 0 },
+        operations: [{ type: "translate", x: 40, y: 24 }],
+      },
+    });
+    expect(transforms.protocol?.layers.find((layer) => layer.id === "transform-scale")).toMatchObject({
+      transform: {
+        scale: { x: 1.2, y: 0.75, z: 1 },
+        anchor: { x: 110, y: 60, z: 0 },
+      },
+    });
+    expect(transforms.protocol?.layers.find((layer) => layer.id === "transform-rotate-z")).toMatchObject({
+      transform: { operations: [{ type: "extension", name: "motion.rotateZ", value: -12 }] },
+    });
+    expect(transforms.protocol?.layers.find((layer) => layer.id === "transform-skew-y")).toMatchObject({
+      transform: { operations: [{ type: "skewY", angle: 10 }] },
+    });
+
+    const singleRotate = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[15]!.source);
+    expect(singleRotate.status).toBe("success");
+    expect(singleRotate.protocol?.layers).toHaveLength(1);
+    expect(singleRotate.protocol?.layers[0]).toMatchObject({
+      id: "rotate-single",
+      type: "shape",
+      frame: { width: 320, height: 180 },
+      transform: {
+        translate: { x: 800, y: 420, z: 0 },
+        anchor: { x: 160, y: 90, z: 0 },
+        operations: [{ type: "rotate", angle: 17 }],
+      },
+      style: { fill: "#38bdf8" },
+    });
+
+    const paint = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[16]!.source);
+    expect(paint.status).toBe("success");
+    expect(paint.protocol?.layers.find((layer) => layer.id === "paint-background-color")).toMatchObject({
+      style: { fill: "#14b8a6" },
+    });
+    expect(paint.protocol?.layers.find((layer) => layer.id === "paint-background-solid")).toMatchObject({
+      style: { fill: "#a78bfa" },
+    });
+    const paintLayers = paint.protocol?.layers.filter((layer) => layer.id.startsWith("paint-background-layers::paint:")) ?? [];
+    expect(paintLayers).toHaveLength(2);
+    expect(paintLayers[0]?.style.fill).toMatchObject({ type: "linear-gradient", angle: 0 });
+    expect(paintLayers[1]?.style.fill).toBe("#172554");
+    expect(paintLayers[0]?.order).toBeGreaterThan(paintLayers[1]?.order ?? Number.POSITIVE_INFINITY);
+
+    const colorBorder = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[17]!.source);
+    expect(colorBorder.status).toBe("success");
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-color-border")).toMatchObject({
+      frame: { width: 444, height: 244 },
+      payload: { cornerRadius: 28 },
+      style: { fill: "#172554", stroke: "#38bdf8", strokeWidth: 12 },
+    });
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-longhand")).toMatchObject({
+      frame: { width: 436, height: 236 },
+      payload: { cornerRadius: 28 },
+      style: { stroke: "#facc15", strokeWidth: 8 },
+    });
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-none")).not.toHaveProperty("style.stroke");
+
+    const fill = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[18]!.source);
+    expect(fill.status).toBe("success");
+    expect(fill.protocol?.layers.find((layer) => layer.id === "fill-rule-evenodd")).toMatchObject({
+      type: "path",
+      payload: { fillRule: "evenodd", contours: [{ id: "contour-0" }, { id: "contour-1" }] },
+      style: { fill: "#38bdf8", fillOpacity: 0.72 },
+    });
+
+    const stroke = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[19]!.source);
+    expect(stroke.status).toBe("success");
+    expect(stroke.protocol?.layers.find((layer) => layer.id === "stroke-style")).toMatchObject({
+      type: "path",
+      style: { stroke: "#facc15", strokeWidth: 28, strokeOpacity: 0.82, strokeJoin: "bevel", strokeCap: "round" },
+    });
+
+    const dashOrder = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[20]!.source);
+    expect(dashOrder.status).toBe("success");
+    expect(dashOrder.protocol?.layers.find((layer) => layer.id === "dash-order")).toMatchObject({
+      type: "path",
+      style: {
+        strokeDash: { array: [30, 16], offset: 12 },
+        paintOrder: ["stroke", "fill"],
+      },
+    });
+
+    const linearGradient = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[21]!.source);
+    expect(linearGradient.status).toBe("success");
+    expect(linearGradient.protocol?.layers.find((layer) => layer.id === "linear-gradient")).toMatchObject({
+      style: { fill: { type: "linear-gradient", angle: 0, stops: [{ offset: 0 }, { offset: 0.5 }, { offset: 1 }] } },
+    });
+
+    const radialGradient = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[22]!.source);
+    expect(radialGradient.status).toBe("success");
+    expect(radialGradient.protocol?.layers.find((layer) => layer.id === "radial-gradient")).toMatchObject({
+      style: { fill: { type: "radial-gradient", cx: 0.5, cy: 0.5, radius: expect.closeTo(Math.sqrt(5) / 2, 6), stops: [{ offset: 0 }, { offset: 0.42 }, { offset: 1 }] } },
+    });
+
+    const conicGradient = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[23]!.source);
+    expect(conicGradient.status).toBe("success");
+    expect(conicGradient.protocol?.layers.find((layer) => layer.id === "conic-gradient")).toMatchObject({
+      style: { fill: { type: "conic-gradient", from: 45, cx: 0.5, cy: 0.5, stops: [{ offset: 0 }, { offset: 0.33 }, { offset: 0.66 }, { offset: 1 }] } },
+    });
+
+    const mediaCases = HTML_COMPILER_PHASE0_CASES.slice(24);
+    const mediaResults = mediaCases.slice(0, 4).map((fixture) => compileHtmlCss(fixture.source));
+    expect(mediaResults.every((result) => result.status === "success")).toBe(true);
+    expect(mediaResults[0]?.protocol?.layers.find((layer) => layer.id === "media-contain")).toMatchObject({
+      type: "image",
+      payload: { fit: "contain", preserveAspectRatio: { align: "xMidYMid", meetOrSlice: "meet" } },
+    });
+    expect(mediaResults[1]?.protocol?.layers.find((layer) => layer.id === "media-cover")).toMatchObject({
+      type: "image",
+      payload: { fit: "cover", preserveAspectRatio: { align: "xMaxYMin", meetOrSlice: "slice" } },
+    });
+    expect(mediaResults[2]?.protocol?.layers.find((layer) => layer.id === "media-fill")).toMatchObject({
+      type: "image",
+      payload: { fit: "fill", preserveAspectRatio: { align: "none" }, imageRendering: "pixelated" },
+    });
+    expect(mediaResults[3]?.protocol?.layers.find((layer) => layer.id === "media-none-viewport")).toMatchObject({
+      type: "group",
+      clipPath: "html-overflow-clip-0",
+    });
+    expect(mediaResults[3]?.protocol?.layers.find((layer) => layer.id === "media-none")).toMatchObject({
+      type: "image",
+      payload: { fit: "none", preserveAspectRatio: { align: "xMidYMid" } },
+    });
+
+    const typographyResults = HTML_COMPILER_PHASE0_CASES.slice(28).map((fixture) => compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS }));
+    expect(typographyResults.every((result) => result.status === "success")).toBe(true);
+    const interLayer = typographyResults[0]?.protocol?.layers.find((layer) => layer.id === "font-inter");
+    expect(interLayer).toMatchObject({ id: "font-inter", type: "text", payload: { source: { text: "Inter — precise interface" } } });
+    expect(interLayer && interLayer.type === "text" ? interLayer.payload.chunks[0]?.spans[0]?.font : undefined).toMatchObject({ families: ["Inter", "sans-serif"], size: 72, weight: 400 });
+    expect(typographyResults[0]?.protocol?.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "font-lora", type: "text" }),
+      expect.objectContaining({ id: "font-roboto", type: "text" }),
+    ]));
+    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-single")).toMatchObject({ id: "emoji-single", type: "text", payload: { source: { text: "😀" } } });
+    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-text")).toMatchObject({ id: "emoji-text", type: "text", payload: { source: { text: "Neonix 🚀" } } });
+    expect(typographyResults[1]?.protocol?.layers.find((layer) => layer.id === "emoji-triple")).toMatchObject({ id: "emoji-triple", type: "text", payload: { source: { text: "🚀 🎬 ✨" } } });
+    expect(typographyResults[1]?.protocol?.assets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "preview-font-noto-color-emoji", kind: "font", weight: 400 }),
+    ]));
+    const weightFallback = typographyResults[2]?.protocol?.layers.find((layer) => layer.id === "weight-fallback");
+    expect(weightFallback && weightFallback.type === "text" ? weightFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-bold"]);
+    const familyFallback = typographyResults[3]?.protocol?.layers.find((layer) => layer.id === "family-fallback");
+    expect(familyFallback && familyFallback.type === "text" ? familyFallback.payload.chunks[0]?.spans[0]?.resolvedFontAssetIds : undefined).toEqual(["preview-font-inter-regular"]);
+    const styleItalic = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-italic");
+    expect(styleItalic && styleItalic.type === "text" ? styleItalic.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
+      resolvedFontAssetIds: ["preview-font-inter-italic"],
+      font: { style: "italic", stretch: "normal" },
+    });
+    const styleCondensed = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-condensed-regular");
+    expect(styleCondensed && styleCondensed.type === "text" ? styleCondensed.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
+      resolvedFontAssetIds: ["preview-font-roboto-condensed-regular"],
+      font: { style: "normal", stretch: "condensed" },
+    });
+    const styleCondensedBold = typographyResults[4]?.protocol?.layers.find((layer) => layer.id === "style-condensed-bold");
+    expect(styleCondensedBold && styleCondensedBold.type === "text" ? styleCondensedBold.payload.chunks[0]?.spans[0] : undefined).toMatchObject({
+      resolvedFontAssetIds: ["preview-font-roboto-condensed-bold"],
+      font: { weight: 700, style: "normal", stretch: "condensed" },
+    });
+    expect(typographyResults[5]?.protocol?.layers.find((layer) => layer.id === "line-height-short")).toMatchObject({
+      type: "text",
+      payload: { layout: { lineHeight: 64 } },
+    });
+    const normalLineHeight = typographyResults[6]?.protocol?.layers.find((layer) => layer.id === "line-height-normal");
+    expect(normalLineHeight && normalLineHeight.type === "text" ? normalLineHeight.payload.layout?.lineHeight : undefined).toBeCloseTo(57.6, 6);
+    expect(typographyResults[7]?.protocol?.layers.find((layer) => layer.id === "line-height-long")).toMatchObject({
+      type: "text",
+      payload: { layout: { lineHeight: 70 } },
+    });
+
     const shape = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[3]!.source);
     expect(shape.status).toBe("success");
     expect(shape.protocol?.layers[0]).toMatchObject({
@@ -132,6 +417,12 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect.objectContaining({ id: "card-background", parentLayerId: "card", type: "shape" }),
       expect.objectContaining({ id: "card-accent", parentLayerId: "card", type: "shape" }),
     ]));
+    expect(group.protocol?.layers.find((layer) => layer.id === "card-background")).toMatchObject({
+      transform: { translate: { x: 40, y: 40 } },
+    });
+    expect(group.protocol?.layers.find((layer) => layer.id === "card-accent")).toMatchObject({
+      transform: { translate: { x: 40, y: 40 } },
+    });
 
     const path = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[5]!.source);
     expect(path.status).toBe("success");

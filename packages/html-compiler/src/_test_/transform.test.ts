@@ -13,7 +13,7 @@ function compileTransform(transform: string, origin?: string) {
 describe("HTML/CSS compiler transforms", () => {
   it("lowers translate and translateX/Y to numeric Protocol values", () => {
     const layer = compileTransform("translate(24px, 16px)");
-    expect(layer?.transform.translate).toMatchObject({ x: 124, y: 96, z: 0 });
+    expect(layer?.transform.translate).toMatchObject({ x: 100, y: 80, z: 0 });
     expect(layer?.transform.operations).toEqual([
       { type: "translate", x: 24, y: 16 },
     ]);
@@ -29,8 +29,24 @@ describe("HTML/CSS compiler transforms", () => {
   it("normalizes rotate units and keeps ordered operations", () => {
     const layer = compileTransform("translateX(10px) rotate(0.25turn) skewX(12deg)");
     expect(layer?.transform.rotate.z).toBe(90);
-    expect(layer?.transform.translate.x).toBe(110);
+    expect(layer?.transform.translate.x).toBe(100);
     expect(layer?.transform.operations).toHaveLength(3);
     expect(layer?.transform.operations?.map((operation) => operation.type)).toEqual(["translate", "rotate", "skewX"]);
+  });
+
+  it("lowers the remaining transform function spellings", () => {
+    const layer = compileTransform("translateY(12px) scaleX(1.25) scaleY(0.8) rotateZ(15deg) skew(8deg, 4deg)");
+    expect(layer?.transform.translate).toMatchObject({ x: 100, y: 80, z: 0 });
+    expect(layer?.transform.scale).toMatchObject({ x: 1.25, y: 0.8, z: 1 });
+    expect(layer?.transform.rotate).toMatchObject({ x: 0, y: 0, z: 15 });
+    expect(layer?.transform.skew).toMatchObject({ x: 8, y: 4 });
+    expect(layer?.transform.operations?.map((operation) => operation.type)).toEqual([
+      "translate",
+      "scale",
+      "scale",
+      "extension",
+      "skewX",
+      "skewY",
+    ]);
   });
 });

@@ -4,6 +4,7 @@ import {
   V2IdSchema,
   V2NonNegativeNumberSchema,
   V2PaintOrderSchema,
+  V2PositiveNumberSchema,
   V2PositiveSvgLengthSchema,
   V2SvgLengthSchema,
 } from "../common";
@@ -74,11 +75,27 @@ const V2BaselineShiftSchema = z.union([
   V2SvgLengthSchema,
 ]);
 
+/** Normalized CSS-independent text layout contract for AI, authoring and HTML/CSS lowering. */
+export const V2TextLayoutSchema = z
+  .object({
+    /** Resolved line box height in composition units. */
+    lineHeight: V2PositiveNumberSchema,
+    textAlign: z.enum(["left", "right", "center", "start", "end", "justify"]),
+    whiteSpace: z.enum(["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"]),
+    /** Normalized line breaking policy after white-space resolution. */
+    wrap: z.enum(["none", "word", "character"]),
+    textOverflow: z.enum(["clip", "ellipsis"]),
+    maxLines: V2NonNegativeNumberSchema.int().positive().optional(),
+  })
+  .strict();
+
 /** A normalized, non-overlapping SVG text/tspan style range. */
 export const V2TextSpanSchema = z
   .object({
     id: V2TextRunIdSchema,
     sourceRange: V2TextRangeSchema,
+    /** Ordered compiler result for deterministic font-face and glyph fallback. */
+    resolvedFontAssetIds: z.array(V2IdSchema).min(1).optional(),
     font: V2TextFontSchema,
     fill: V2PaintSchema.optional(),
     fillOpacity: V2FiniteNumberSchema.min(0).max(1).optional(),
@@ -193,6 +210,8 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
   payload: z
     .object({
       source: V2TextSourceSchema,
+      /** Optional for backward compatibility; required when CSS text layout is authored. */
+      layout: V2TextLayoutSchema.optional(),
       chunks: z.array(V2TextChunkSchema).min(1),
     })
     .strict()
@@ -224,6 +243,7 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
 export type V2TextRange = z.infer<typeof V2TextRangeSchema>;
 export type V2TextFont = z.infer<typeof V2TextFontSchema>;
 export type V2TextDecorationStyle = z.infer<typeof V2TextDecorationStyleSchema>;
+export type V2TextLayout = z.infer<typeof V2TextLayoutSchema>;
 export type V2TextSpan = z.infer<typeof V2TextSpanSchema>;
 export type V2TextPath = z.infer<typeof V2TextPathSchema>;
 export type V2TextChunk = z.infer<typeof V2TextChunkSchema>;

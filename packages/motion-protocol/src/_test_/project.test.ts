@@ -748,10 +748,7 @@ describe("Motion Protocol V2 schema", () => {
         id: "noto-sans-regular",
         kind: "font" as const,
         uri: "/preview/font/Noto_Sans/NotoSans-Regular.ttf",
-        mimeType: "font/ttf" as const,
-        family: "Noto Sans",
         weight: 400,
-        style: "normal" as const,
         integrity: "sha256:fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
       }],
       layers: [{
@@ -765,6 +762,13 @@ describe("Motion Protocol V2 schema", () => {
         timing: { start: 0, duration: 1000 },
         payload: {
           source: { text: "NeonVideo", language: "en" },
+          layout: {
+            lineHeight: 56,
+            textAlign: "center" as const,
+            whiteSpace: "nowrap" as const,
+            wrap: "none" as const,
+            textOverflow: "clip" as const,
+          },
           chunks: [{
             id: "headline-chunk",
             sourceRange: { start: 0, end: 9 },
@@ -772,6 +776,7 @@ describe("Motion Protocol V2 schema", () => {
             spans: [{
               id: "headline-span",
               sourceRange: { start: 0, end: 9 },
+              resolvedFontAssetIds: ["noto-sans-regular"],
               font: { families: ["Noto Sans", "sans-serif"], size: 48, weight: 700, variations: { wght: 700 } },
               fill: "#ffffff",
             }],
@@ -780,6 +785,16 @@ describe("Motion Protocol V2 schema", () => {
       }],
     };
     expect(MotionProtocolV2Schema.parse(text)).toEqual(text);
+    expect(() => MotionProtocolV2Schema.parse({
+      ...text,
+      layers: [{
+        ...text.layers[0],
+        payload: {
+          ...text.layers[0].payload,
+          layout: { ...text.layers[0].payload.layout!, textOverflow: "ellipsis" as const },
+        },
+      }],
+    })).toThrow(/deterministic clipPath/);
     expect(MotionProtocolV2Schema.parse({
       ...text,
       layers: [{
@@ -798,10 +813,23 @@ describe("Motion Protocol V2 schema", () => {
         ],
       }],
     }).layers[0]?.tracks).toHaveLength(2);
-    expect(MotionProtocolV2Schema.parse({
+    expect(MotionProtocolV2Schema.parse(text)).toEqual(text);
+    expect(() => MotionProtocolV2Schema.parse({
       ...text,
-      assets: [{ ...text.assets[0], family: "Missing Font" }],
-    })).toEqual({ ...text, assets: [{ ...text.assets[0], family: "Missing Font" }] });
+      layers: [{
+        ...text.layers[0],
+        payload: {
+          ...text.layers[0].payload,
+          chunks: [{
+            ...text.layers[0].payload.chunks[0],
+            spans: [{
+              ...text.layers[0].payload.chunks[0]!.spans[0],
+              resolvedFontAssetIds: ["missing-font"],
+            }],
+          }],
+        },
+      }],
+    })).toThrow(/Unknown resolved font asset/);
   });
 
   it("requires one explicit view projection with complete parameters", () => {

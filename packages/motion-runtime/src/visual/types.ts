@@ -127,6 +127,7 @@ export type VisualRuntimeImage = {
   y: number;
   width: number;
   height: number;
+  fit?: RenderMediaFit;
   preserveAspectRatio?: import("../paint/paint-types").RenderImagePreserveAspectRatio;
   imageRendering?: import("../paint/paint-types").RenderImageRendering;
   effects?: RuntimeEffect[];
@@ -213,7 +214,7 @@ export type VisualRuntimeText = {
   letterSpacing: number;
   align: "left" | "center" | "right";
   verticalAlign: "top" | "middle" | "bottom";
-  wrap: "none";
+  wrap: "none" | "word" | "character";
   overflow: "visible";
   direction: "ltr" | "rtl";
   writingMode?: "horizontal-tb" | "vertical-rl" | "vertical-lr";

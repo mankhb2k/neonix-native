@@ -85,6 +85,64 @@ function fontRuns(fonts: ResolvedFont[], value: string): Array<{ start: number; 
   return result;
 }
 
+type SourceLine = { text: string; start: number };
+
+function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], value: string): number {
+  let advance = 0;
+  for (const runRange of fontRuns(fonts, value)) {
+    const resolved = fonts[runRange.fontIndex]!;
+    const buffer = new hb.Buffer();
+    buffer.addText(value.slice(runRange.start, runRange.end));
+    buffer.setLanguage(text.language);
+    buffer.setDirection(text.direction === "rtl" ? 5 : 4);
+    buffer.guessSegmentProperties();
+    hb.shape(resolved.font, buffer);
+    const positions = buffer.getGlyphPositions();
+    advance += positions.reduce((total, position) => total + position.xAdvance * resolved.fontScale, 0);
+  }
+  const clusters = segmentClusters(value);
+  advance += Math.max(0, clusters.length - 1) * text.letterSpacing;
+  advance += clusters.filter((cluster) => /\s/.test(cluster.text)).length * (text.wordSpacing ?? 0);
+  return advance;
+}
+
+function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): SourceLine[] {
+  const explicitLines: SourceLine[] = [];
+  let start = 0;
+  while (start <= text.text.length) {
+    const newline = text.text.indexOf("\n", start);
+    const end = newline < 0 ? text.text.length : newline;
+    explicitLines.push({ text: text.text.slice(start, end), start });
+    if (newline < 0) break;
+    start = newline + 1;
+  }
+  if (text.wrap !== "word" || text.width <= 0) return explicitLines;
+
+  return explicitLines.flatMap((line) => {
+    if (!line.text.trim()) return [line];
+    const words = [...line.text.matchAll(/\S+(?:\s+|$)/g)];
+    const wrapped: SourceLine[] = [];
+    let current = "";
+    let currentStart = line.start;
+    for (const match of words) {
+      const word = match[0]!.trim();
+      if (!word) continue;
+      const wordStart = line.start + (match.index ?? 0);
+      const candidate = current ? `${current} ${word}` : word;
+      if (current && measureSourceLine(hb, text, fonts, candidate) > text.width) {
+        wrapped.push({ text: current, start: currentStart });
+        current = word;
+        currentStart = wordStart;
+      } else {
+        if (!current) currentStart = wordStart;
+        current = candidate;
+      }
+    }
+    if (current) wrapped.push({ text: current, start: currentStart });
+    return wrapped.length ? wrapped : [line];
+  });
+}
+
 function colorToHex(color: { red: number; green: number; blue: number; alpha: number }): string {
   const channel = (value: number) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0");
   return `#${channel(color.red)}${channel(color.green)}${channel(color.blue)}${channel(color.alpha)}`;
@@ -147,22 +205,23 @@ function shouldUseMask(text: VisualRuntimeText): boolean {
 function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): UnmaterializedTextLayout {
   const primary = fonts[0]!;
   const glyphHeight = (primary.metrics.ascender - primary.metrics.descender) * primary.fontScale;
-  const sourceLines = text.text.split("\n");
+  const sourceLines = sourceLinesForText(hb, text, fonts);
   const lineTop = text.verticalAlign === "middle" ? (text.height - text.lineHeight * sourceLines.length) / 2 : text.verticalAlign === "bottom" ? text.height - text.lineHeight * sourceLines.length : 0;
   const lines: VisualRuntimeTextLayout["lines"] = [];
   const decorations: PaintTextDecoration[] = [];
   const runs: GlyphRun[] = [];
-  let sourceOffset = 0;
   const vertical = text.writingMode === "vertical-rl" || text.writingMode === "vertical-lr";
   const textPath = text.textPath?.contours[0] ? measureContour(flattenPathContourAny(text.textPath.contours[0])) : null;
 
   for (const [lineIndex, sourceLine] of sourceLines.entries()) {
+    const sourceOffset = sourceLine.start;
+    const lineText = sourceLine.text;
     const lineGlyphs: LineGlyph[] = [];
     let penX = 0;
     let penY = 0;
-    for (const [runIndex, runRange] of fontRuns(fonts, sourceLine).entries()) {
+    for (const [runIndex, runRange] of fontRuns(fonts, lineText).entries()) {
       const resolved = fonts[runRange.fontIndex]!;
-      const runText = sourceLine.slice(runRange.start, runRange.end);
+      const runText = lineText.slice(runRange.start, runRange.end);
       const buffer = new hb.Buffer();
       buffer.addText(runText);
       buffer.setLanguage(text.language);
@@ -219,7 +278,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         else {
           penX += position.xAdvance * resolved.fontScale;
           if (index < infos.length - 1) penX += text.letterSpacing;
-          if (/\s/.test(sourceLine[Math.max(0, Math.min(sourceLine.length - 1, sourceCharacter))] ?? "")) penX += text.wordSpacing ?? 0;
+          if (/\s/.test(lineText[Math.max(0, Math.min(lineText.length - 1, sourceCharacter))] ?? "")) penX += text.wordSpacing ?? 0;
         }
       }
       if (glyphRun.glyphs.length) runs.push(glyphRun);
@@ -239,7 +298,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift;
         glyph.y += adjustedBaselineY;
         if (useGlyphScale) { glyph.width *= lengthScale; glyph.scaleX = (glyph.scaleX ?? 1) * lengthScale; }
-        const characterIndex = Math.max(0, Math.min(sourceLine.length - 1, glyph.cluster - sourceOffset));
+          const characterIndex = Math.max(0, Math.min(lineText.length - 1, glyph.cluster - sourceOffset));
         const rotation = text.rotate?.[characterIndex] ?? 0;
         if (rotation) glyph.rotation = rotation;
       } else {
@@ -247,7 +306,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const verticalOffset = lineTop + lineIndex * text.lineHeight + primary.metrics.ascender * primary.fontScale;
         glyph.x = columnX;
         glyph.y += verticalOffset;
-        const characterIndex = Math.max(0, Math.min(sourceLine.length - 1, glyph.cluster - sourceOffset));
+        const characterIndex = Math.max(0, Math.min(lineText.length - 1, glyph.cluster - sourceOffset));
         glyph.rotation = (text.rotate?.[characterIndex] ?? 0) + 90;
       }
     }
@@ -282,7 +341,6 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
       addDecoration(text.textDecoration.lineThrough, adjustedBaselineY - text.fontSize * 0.32);
     }
     lines.push({ baselineY: vertical ? (text.writingMode === "vertical-rl" ? -text.fontSize * lineIndex : text.fontSize * lineIndex) : adjustedBaselineY, advanceWidth: finalAdvance });
-    sourceOffset += sourceLine.length + 1;
   }
   return { unitsPerEm: primary.face.upem, ascender: primary.metrics.ascender, descender: primary.metrics.descender, runs, lines, ...(decorations.length ? { decorations } : {}) };
 }

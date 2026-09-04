@@ -83,7 +83,42 @@ describe("Protocol V2 semantic SVG text", () => {
     })).toThrow(/exceeds source text/);
   });
 
-  it("rejects the former glyph-layout payload", () => {
+  it("accepts the normalized text layout contract", () => {
+    const layer = {
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        layout: {
+          lineHeight: 40,
+          textAlign: "center" as const,
+          whiteSpace: "nowrap" as const,
+          wrap: "none" as const,
+          textOverflow: "clip" as const,
+        },
+      },
+    };
+    expect(V2TextLayerSchema.parse(layer)).toEqual(layer);
+  });
+
+  it("accepts ellipsis when the layer provides a clipPath", () => {
+    expect(V2TextLayerSchema.parse({
+      ...TEXT_LAYER,
+      clipPath: "title-clip",
+      payload: {
+        ...TEXT_LAYER.payload,
+        layout: {
+          lineHeight: 40,
+          textAlign: "center" as const,
+          whiteSpace: "nowrap" as const,
+          wrap: "none" as const,
+          textOverflow: "ellipsis" as const,
+          maxLines: 1,
+        },
+      },
+    })).toMatchObject({ clipPath: "title-clip" });
+  });
+
+  it("rejects an incomplete text layout payload", () => {
     expect(() => V2TextLayerSchema.parse({
       ...BASE_LAYER,
       payload: { source: { text: "A" }, layout: {} },
