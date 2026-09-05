@@ -17,4 +17,32 @@ describe("runtime shadow effects", () => {
       { source: "effect:shadow-1", output: "effect:shadow-2" },
     ]);
   });
+
+  it("keeps semantic filter operators ordered with dedicated surfaces", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "brightness", type: "color-adjust", brightness: -0.1, contrast: 0.8, saturation: 1, hueRotate: 0 },
+      { id: "blur", type: "blur", radius: 8 },
+      { id: "grayscale", type: "grayscale", amount: 0.4 },
+      { id: "filter-opacity", type: "filter-opacity", amount: 0.5 },
+    ]);
+
+    expect(program?.ops.map((op) => op.kind)).toEqual(["color-adjust", "blur", "color-matrix", "alpha"]);
+    expect(program?.ops.map((op) => [op.input, op.output])).toEqual([
+      ["source", "effect:brightness"],
+      ["effect:brightness", "effect:blur"],
+      ["effect:blur", "effect:grayscale"],
+      ["effect:grayscale", "effect:filter-opacity"],
+    ]);
+    expect(program?.requiresOffscreen).toBe(true);
+  });
+
+  it("feeds a preceding blur surface into drop-shadow", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "blur", type: "blur", radius: 8 },
+      { id: "drop-shadow", type: "shadow", source: "alpha", offset: { x: 8, y: 10 }, blur: 12, spread: 0, color: "#00000099", inset: false },
+    ]);
+
+    expect(program?.ops.find((op) => op.kind === "alpha-mask")).toMatchObject({ input: "effect:blur" });
+    expect(program?.ops.at(-1)).toMatchObject({ kind: "composite", source: "effect:blur", output: "effect:drop-shadow" });
+  });
 });

@@ -59,6 +59,10 @@ function colorAdjustMatrix(op: Extract<RuntimeEffectOp, { kind: "color-adjust" }
   ], matrix);
 }
 
+function alphaMatrix(op: Extract<RuntimeEffectOp, { kind: "alpha" }>): ColorMatrix {
+  return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, op.amount, 0];
+}
+
 function tintColor(kit: SkiaCanvasKit, color: string, opacity: number): unknown {
   const [red, green, blue, alpha] = cssColorToRgba(color);
   return kit.Color(red * 255, green * 255, blue * 255, Math.max(0, Math.min(1, alpha * opacity)));
@@ -150,6 +154,38 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     const filter = kit.ImageFilter.MakeDropShadow(0, 0, sigma, sigma, tintColor(kit, tint.color, tint.opacity), null);
     return { filter, supported: Boolean(filter) };
   }
+  // CSS filter order: blur(...) drop-shadow(...). The shadow must receive
+  // the blurred source silhouette, while the owner and shadow remain one
+  // ordered image-filter program.
+  const leadingBlur = ops[0];
+  const shadowAlpha = ops[1];
+  const shadowBlur = ops[2];
+  const shadowTint = ops[3];
+  const shadowOffset = ops[4];
+  const shadowComposite = ops[5];
+  if (
+    leadingBlur?.kind === "blur" &&
+    shadowAlpha?.kind === "alpha-mask" && shadowAlpha.input === leadingBlur.output &&
+    shadowBlur?.kind === "blur" && shadowBlur.input === shadowAlpha.output &&
+    shadowTint?.kind === "tint" && shadowTint.input === shadowBlur.output &&
+    shadowOffset?.kind === "offset" && shadowOffset.input === shadowTint.output &&
+    shadowComposite?.kind === "composite" && shadowComposite.backdrop === shadowOffset.output && shadowComposite.source === leadingBlur.output &&
+    shadowComposite.output === program.output && kit.ImageFilter.MakeDropShadow
+  ) {
+    const blurredSource = kit.ImageFilter.MakeBlur(leadingBlur.radius, leadingBlur.radius, kit.TileMode.Decal, null);
+    const filter = blurredSource
+      ? kit.ImageFilter.MakeDropShadow(
+          shadowOffset.x,
+          shadowOffset.y,
+          cssBlurRadiusToSkiaSigma(shadowBlur.radius),
+          cssBlurRadiusToSkiaSigma(shadowBlur.radius),
+          tintColor(kit, shadowTint.color, shadowTint.opacity),
+          blurredSource,
+        )
+      : null;
+    blurredSource?.delete();
+    return { filter, supported: Boolean(filter) };
+  }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
     const blurred = kit.ImageFilter.MakeBlur(blur.radius, blur.radius, kit.TileMode.Decal, null);
     const inside = blurred ? kit.ImageFilter.MakeBlend(kit.BlendMode.DstOut, null, blurred) : null;
@@ -162,14 +198,15 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     tinted?.delete();
     return { filter, supported: Boolean(filter) };
   }
-  if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust") && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
+  if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust" || op.kind === "color-matrix" || op.kind === "alpha") && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
     let filter: SkiaImageFilter | null = null;
     for (const op of ops) {
       let next: SkiaImageFilter | null;
       if (op.kind === "blur") {
         next = kit.ImageFilter.MakeBlur(op.radius, op.radius, kit.TileMode.Decal, filter);
       } else if (kit.ColorFilter?.MakeMatrix && kit.ImageFilter.MakeColorFilter) {
-        const colorFilter = kit.ColorFilter.MakeMatrix(colorAdjustMatrix(op));
+        const matrix = op.kind === "color-adjust" ? colorAdjustMatrix(op) : op.kind === "color-matrix" ? op.matrix : alphaMatrix(op);
+        const colorFilter = kit.ColorFilter.MakeMatrix(matrix);
         next = colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, filter) : null;
         colorFilter?.delete();
       } else {

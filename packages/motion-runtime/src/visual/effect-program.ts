@@ -16,6 +16,22 @@ export type RuntimeColorAdjustEffectOp = {
   colorInterpolationFilters?: "sRGB" | "linearRGB";
 };
 
+export type RuntimeColorMatrixEffectOp = {
+  id: string;
+  kind: "color-matrix";
+  input: SurfaceRef;
+  output: SurfaceRef;
+  matrix: number[];
+};
+
+export type RuntimeAlphaEffectOp = {
+  id: string;
+  kind: "alpha";
+  input: SurfaceRef;
+  output: SurfaceRef;
+  amount: number;
+};
+
 export type RuntimeBlurEffectOp = {
   id: string;
   kind: "blur";
@@ -81,6 +97,8 @@ export type RuntimeCompositeEffectOp = {
 
 export type RuntimeEffectOp =
   | RuntimeColorAdjustEffectOp
+  | RuntimeColorMatrixEffectOp
+  | RuntimeAlphaEffectOp
   | RuntimeBlurEffectOp
   | RuntimeAlphaMaskEffectOp
   | RuntimeInnerAlphaEffectOp
@@ -122,7 +140,7 @@ function inputsFor(op: RuntimeEffectOp): SurfaceRef[] {
 }
 
 function isSpatial(op: RuntimeEffectOp): boolean {
-  return op.kind !== "color-adjust";
+  return op.kind !== "color-adjust" && op.kind !== "color-matrix" && op.kind !== "alpha";
 }
 
 function validateOpFields(
@@ -136,6 +154,14 @@ function validateOpFields(
   if (op.kind === "color-adjust") {
     if (![op.brightness, op.contrast, op.saturation, op.hueRotate].every(finite)) {
       invalid(`Effect operator "${op.id}" color-adjust values must be finite`);
+    }
+  } else if (op.kind === "color-matrix") {
+    if (op.matrix.length !== 20 || !op.matrix.every(finite)) {
+      invalid(`Effect operator "${op.id}" color-matrix must contain 20 finite values`);
+    }
+  } else if (op.kind === "alpha") {
+    if (!finite(op.amount) || op.amount < 0 || op.amount > 1) {
+      invalid(`Effect operator "${op.id}" alpha amount must be within 0..1`);
     }
   } else if (op.kind === "blur") {
     if (!finite(op.radius) || op.radius < 0 || op.radius > 256) {

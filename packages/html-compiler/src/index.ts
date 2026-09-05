@@ -36,6 +36,7 @@ import { resolveFlexLayout } from "./compiler/flex";
 import { resolveGridLayout } from "./compiler/grid";
 import { mediaMimeType, mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "./compiler/media";
 import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, type BackgroundBox, type BackgroundImage } from "./compiler/background";
+import { parseFilter } from "./compiler/filter";
 import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "./compiler/typography";
 import type { Node, Style } from "./compiler/model";
 
@@ -302,6 +303,9 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
          const textShadows = parseShadows(style, "text-shadow", containingWidth, font, viewport, currentColor);
          const boxShadows = parseShadows(style, "box-shadow", containingWidth, font, viewport, currentColor);
+         const filterEffects = parseFilter(style.get("filter"), containingWidth, font, viewport, currentColor);
+         const paintEffects = [...boxShadows, ...filterEffects];
+         const textEffects = [...paintEffects, ...textShadows];
          const hasOutline = outline.style !== "none" && outline.width > 0;
          const emitOutline = (insideGroup: boolean) => {
            if (!hasOutline) return;
@@ -365,14 +369,14 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            const imageAspect = fit === "fill"
              ? { align: "none" as const }
              : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
-            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(boxShadows.length ? { effects: boxShadows } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
+            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
            emitOutline(false);
            return;
          }
           if (node.tag === "video") {
             const source = mediaSource(node);
             const fit = parseImageFit(style);
-             layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(boxShadows.length ? { effects: boxShadows } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
+             layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             emitOutline(false);
             return;
           }
@@ -407,7 +411,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               transform: transformFor(localX, localY, true),
               opacity,
               ...state,
-              ...((textShadows.length || boxShadows.length) ? { effects: [...boxShadows, ...textShadows] } : {}),
+              ...(textEffects.length ? { effects: textEffects } : {}),
               ...(textClipId ? { clipPath: textClipId } : {}),
               timing: { start: 0, duration },
               payload: {
@@ -446,14 +450,14 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          if (isPath) {
            const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
            if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
           // scope. A border is a separate pass so its centered stroke can be
           // inset without changing the element's sibling order.
           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || hasBorder || hasOutline || boxShadows.length > 0;
-           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(boxShadows.length ? { effects: boxShadows } : {}), ...(overflowClipId ? { clipPath: overflowClipId } : {}), timing: { start: 0, duration } });
+           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || hasBorder || hasOutline || paintEffects.length > 0;
+           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(overflowClipId ? { clipPath: overflowClipId } : {}), timing: { start: 0, duration } });
            const paintLayerBaseOrder = layers.length;
            paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;

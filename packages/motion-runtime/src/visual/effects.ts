@@ -11,6 +11,29 @@ function outputSurfaceFor(effectId: string): SurfaceRef {
   return `effect:${effectId}`;
 }
 
+const LUMA_R = 0.2126;
+const LUMA_G = 0.7152;
+const LUMA_B = 0.0722;
+
+function identityMatrix(): number[] {
+  return [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+}
+
+function interpolatedMatrix(amount: number, full: readonly number[]): number[] {
+  const identity = identityMatrix();
+  return identity.map((value, index) => value + (full[index]! - value) * amount);
+}
+
+function matrixForEffect(effect: Extract<RuntimeEffect, { type: "grayscale" | "sepia" | "invert" }>): number[] {
+  if (effect.type === "grayscale") {
+    return interpolatedMatrix(effect.amount, [LUMA_R, LUMA_G, LUMA_B, 0, 0, LUMA_R, LUMA_G, LUMA_B, 0, 0, LUMA_R, LUMA_G, LUMA_B, 0, 0, 0, 0, 0, 1, 0]);
+  }
+  if (effect.type === "sepia") {
+    return interpolatedMatrix(effect.amount, [0.393, 0.769, 0.189, 0, 0, 0.349, 0.686, 0.168, 0, 0, 0.272, 0.534, 0.131, 0, 0, 0, 0, 0, 1, 0]);
+  }
+  return interpolatedMatrix(effect.amount, [-1, 0, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0, -1, 0, 1, 0, 0, 0, 1, 0]);
+}
+
 /**
  * Lower ordered Atomic V2 effects into a backend-neutral Runtime program.
  * Physical passes such as capture, pyramid levels, and Gaussian taps remain
@@ -23,6 +46,7 @@ export function buildRuntimeEffectProgram(
 
   let input: SurfaceRef = RUNTIME_EFFECT_SOURCE_SURFACE;
   const ops: RuntimeEffectOp[] = [];
+  let previousEffectWasShadow = false;
   for (const effect of effects) {
     if (effect.type === "shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
       if (effect.type === "shadow" && (effect.spread !== 0 || effect.inset)) {
@@ -33,12 +57,12 @@ export function buildRuntimeEffectProgram(
       const inner = `effect:${effect.id}:inner-alpha`;
       const tinted = `effect:${effect.id}:tint`;
       const output = outputSurfaceFor(effect.id);
+      const alphaInput = previousEffectWasShadow ? RUNTIME_EFFECT_SOURCE_SURFACE : input;
       ops.push(
-        // Every CSS shadow is derived from the owner's original silhouette.
-        // The composited result is only used as the backdrop for the next
-        // shadow; otherwise a comma list would recursively shadow its own
-        // previously rendered shadows.
-        { id: `${effect.id}:alpha`, kind: "alpha-mask", input: effect.type === "shadow" ? RUNTIME_EFFECT_SOURCE_SURFACE : input, output: alpha },
+        // Consecutive comma-separated shadows all use the owner's silhouette.
+        // A shadow after another spatial/color filter instead uses that
+        // filter's output, preserving CSS filter order without recursion.
+        { id: `${effect.id}:alpha`, kind: "alpha-mask", input: effect.type === "shadow" ? alphaInput : input, output: alpha },
         {
           id: `${effect.id}:blur`,
           kind: "blur",
@@ -70,15 +94,21 @@ export function buildRuntimeEffectProgram(
         ops.push({ id: `${effect.id}:composite`, kind: "composite", backdrop: input, source: tinted, output, mode: "source-over" });
       }
       input = output;
+      previousEffectWasShadow = effect.type === "shadow";
       continue;
     }
-    if (
-      effect.type === "grayscale" ||
-      effect.type === "sepia" ||
-      effect.type === "invert" ||
-      effect.type === "filter-opacity"
-    ) {
-      throw new Error(`Runtime semantic effect ${effect.type} is not lowered yet`);
+    previousEffectWasShadow = false;
+    if (effect.type === "grayscale" || effect.type === "sepia" || effect.type === "invert") {
+      const output = outputSurfaceFor(effect.id);
+      ops.push({ id: effect.id, kind: "color-matrix", input, output, matrix: matrixForEffect(effect) });
+      input = output;
+      continue;
+    }
+    if (effect.type === "filter-opacity") {
+      const output = outputSurfaceFor(effect.id);
+      ops.push({ id: effect.id, kind: "alpha", input, output, amount: effect.amount });
+      input = output;
+      continue;
     }
     const output = outputSurfaceFor(effect.id);
     const op: RuntimeEffectOp = effect.type === "noise"
@@ -119,6 +149,6 @@ export function buildRuntimeEffectProgram(
     input: RUNTIME_EFFECT_SOURCE_SURFACE,
     ops,
     output: input,
-    requiresOffscreen: ops.some((op) => op.kind !== "color-adjust"),
+    requiresOffscreen: ops.some((op) => op.kind !== "color-adjust" && op.kind !== "color-matrix" && op.kind !== "alpha"),
   });
 }

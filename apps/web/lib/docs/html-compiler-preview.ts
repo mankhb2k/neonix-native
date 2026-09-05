@@ -13,7 +13,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -2685,9 +2685,256 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.filter-blur",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter blur",
+    properties: ["filter", "blur()", "spatial effect"],
+    hint: "CSS blur lowers to an ordered blur operator over the element surface without changing its layout frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-blur\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-blur {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  filter: blur(14px);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-brightness",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter brightness",
+    properties: ["filter", "brightness()", "color-adjust"],
+    hint: "Brightness is lowered to the existing color-adjust atom as an exact channel multiplication for the supported range.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-brightness\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-brightness {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  filter: brightness(1.25);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-contrast",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter contrast",
+    properties: ["filter", "contrast()", "color-adjust"],
+    hint: "Contrast lowers to a color-adjust operator and remains in the authored filter position.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-contrast\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-contrast {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #a78bfa;
+  filter: contrast(1.45);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-grayscale",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter grayscale",
+    properties: ["filter", "grayscale()", "color matrix"],
+    hint: "Grayscale lowers to a runtime color-matrix operator with its own input and output surface.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-grayscale\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-grayscale {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: linear-gradient(90deg, #f43f5e, #facc15, #38bdf8);
+  filter: grayscale(1);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-sepia",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter sepia",
+    properties: ["filter", "sepia()", "color matrix"],
+    hint: "Sepia is represented as an interpolated color matrix rather than a backend-specific shader shortcut.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-sepia\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-sepia {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  filter: sepia(.85);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-invert",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter invert",
+    properties: ["filter", "invert()", "color matrix"],
+    hint: "Invert lowers to the ordered color-matrix path and keeps partial amounts deterministic.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-invert\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-invert {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #f97316;
+  filter: invert(.8);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-opacity-layer-opacity",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter opacity vs layer opacity",
+    properties: ["filter", "opacity()", "layer opacity", "separate alpha stages"],
+    hint: "filter:opacity() is an ordered source-surface alpha operator; CSS opacity remains the layer alpha and is not merged into it.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-opacity-layer\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-opacity-layer {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  opacity: .82;
+  filter: opacity(.48);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow",
+    properties: ["filter", "drop-shadow()", "alpha shadow"],
+    hint: "drop-shadow() uses the element alpha silhouette, unlike box-shadow which uses the box geometry atom.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(24px 22px 18px #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-color-chain",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / consecutive color filters",
+    properties: ["brightness()", "contrast()", "invert()", "ordered list"],
+    hint: "Consecutive color filters remain separate ordered atoms; a backend may fuse only when that preserves the same order.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-color-chain\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-color-chain {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: linear-gradient(90deg, #f43f5e, #facc15, #38bdf8);
+  filter: brightness(.86) contrast(1.24) invert(.12);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-blur-between-colors",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / blur between color filters",
+    properties: ["brightness()", "blur()", "contrast()", "spatial order"],
+    hint: "The blur remains between the two color operators; it is never reordered into a fused color-only pass.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-blur-between-colors\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-blur-between-colors {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  filter: brightness(.9) blur(10px) contrast(1.15);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-after-blur",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / drop shadow after blur",
+    properties: ["blur()", "drop-shadow()", "source/output surfaces"],
+    hint: "The drop shadow samples the preceding blurred surface, proving that spatial filter order is preserved end to end.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-after-blur\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-after-blur {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  filter: blur(8px) drop-shadow(22px 18px 12px #f9731699);
+}`,
+    }),
+  },
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -2697,5 +2944,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

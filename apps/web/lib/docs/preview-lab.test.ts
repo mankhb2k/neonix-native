@@ -8,7 +8,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -62,6 +62,7 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(7);
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(3);
+    expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(11);
     for (const fixture of HTML_COMPILER_PAINT_PHASE2_1_CASES) {
       const compiled = compileHtmlCss(fixture.source);
       expect(compiled.status, fixture.id).toBe("success");
@@ -83,6 +84,11 @@ describe("Protocol V2 preview lab fixtures", () => {
     }
     for (const fixture of HTML_COMPILER_PAINT_PHASE2_4_CASES) {
       const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => (layer.effects?.length ?? 0) > 0), fixture.id).toBe(true);
+    }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_5_CASES) {
+      const compiled = compileHtmlCss(fixture.source);
       expect(compiled.status, fixture.id).toBe("success");
       expect(compiled.protocol?.layers.some((layer) => (layer.effects?.length ?? 0) > 0), fixture.id).toBe(true);
     }
@@ -186,6 +192,7 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Layout",
       "Layout",
       "Layout",
+      "Paint",
       "Paint",
       "Paint",
       "Paint",

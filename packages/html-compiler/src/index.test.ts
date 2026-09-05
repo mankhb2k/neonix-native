@@ -227,6 +227,27 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     });
   });
 
+  it("lowers CSS filter functions as an ordered semantic effect list", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="filtered"></div>`,
+      css: '#filtered { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #38bdf8; filter: brightness(.8) blur(6px) grayscale(.25) opacity(.6) drop-shadow(8px 10px 12px #00000099); }',
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const filtered = result.protocol?.layers.find((layer) => layer.id === "filtered");
+    expect(filtered).toMatchObject({
+      type: "group",
+      effects: [
+        { type: "color-adjust", contrast: 0.8, saturation: 1, hueRotate: 0 },
+        { type: "blur", radius: 6 },
+        { type: "grayscale", amount: 0.25 },
+        { type: "filter-opacity", amount: 0.6 },
+        { type: "shadow", source: "alpha", offset: { x: 8, y: 10 }, blur: 12, spread: 0, inset: false },
+      ],
+    });
+    expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
+  });
+
   it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="shadow"></div>`,
