@@ -37,7 +37,14 @@ function parseTransformOrigin(value: string | undefined, width: number, height: 
 
 export function parseTransform(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): ParsedTransform {
   const identity: ParsedTransform = { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } };
-  const value = style.get("transform"); if (value === undefined || value.trim().toLowerCase() === "none") return identity;
+  const value = style.get("transform");
+  // CSS transform-origin is still the pivot for an animated transform even
+  // when the base declaration has no transform property. Keep the default
+  // center anchor in the layer so sampled transform tracks rotate/scale in
+  // the same local coordinate system as the browser.
+  if (value === undefined || value.trim().toLowerCase() === "none") {
+    return { ...identity, anchor: parseTransformOrigin(style.get("transform-origin"), width, height, fontSize, viewport) };
+  }
   const result: ParsedTransform = { ...identity, anchor: parseTransformOrigin(style.get("transform-origin"), width, height, fontSize, viewport), operations: [] };
   const operationPattern = /([A-Za-z][\w-]*)\(([^()]*)\)/g; let cursor = 0; let match: RegExpExecArray | null;
   while ((match = operationPattern.exec(value)) !== null) {
@@ -62,4 +69,3 @@ export function parseTransform(style: Style, width: number, height: number, font
   if (value.slice(cursor).trim()) fail("css-transform-invalid", `Unsupported transform syntax near ${value.slice(cursor)}`);
   return result.operations!.length ? { ...result, extensions: { anchor: result.anchor } } : identity;
 }
-

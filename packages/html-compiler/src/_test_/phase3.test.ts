@@ -146,14 +146,14 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     expect(invalidBoxSizing.diagnostics[0]?.code).toBe("css-box-sizing-invalid");
   });
 
-  it("bounds full-size geometry to the fixed composition", () => {
+  it("keeps CSS geometry intact and clips only at the fixed composition surface", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="full"></div>`,
       css: `#full { position: absolute; left: 100px; top: 80px; width: 100%; height: 100%; background: #2563eb; }`,
     }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers[0]).toMatchObject({
-      frame: { width: 1820, height: 1000 },
+      frame: { width: 1920, height: 1080 },
       transform: { translate: { x: 100, y: 80 } },
     });
   });

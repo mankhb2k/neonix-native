@@ -5,7 +5,7 @@ import type { Style } from "./model";
 
 export type GradientStop = { offset: number; color: string };
 export type GradientSpreadMethod = "pad" | "repeat";
-export type Paint = string | { type: "linear-gradient"; angle?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "radial-gradient"; cx?: number; cy?: number; radius?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "conic-gradient"; from?: number; cx?: number; cy?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] };
+export type Paint = string | { type: "linear-gradient"; angle?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "radial-gradient"; cx?: number; cy?: number; radius?: number; radiusX?: number; radiusY?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] } | { type: "conic-gradient"; from?: number; cx?: number; cy?: number; spreadMethod?: GradientSpreadMethod; stops: GradientStop[] };
 type GradientBox = { width: number; height: number };
 
 export function parseColor(value: string, property: string, currentColor = "#000000"): string {
@@ -13,6 +13,15 @@ export function parseColor(value: string, property: string, currentColor = "#000
   if (v === "transparent" || (v === "none" && ["background", "background-color"].includes(property))) return "#00000000";
   if (v === "currentcolor") return parseColor(currentColor, "currentColor");
   if (/^#[0-9a-f]{3}$/i.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  const rgba = v.match(/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|1|0?\.\d+|100%|\d{1,2}%)\s*\)$/i);
+  if (rgba) {
+    const channels = [rgba[1], rgba[2], rgba[3]].map((channel) => Number(channel));
+    const alphaToken = rgba[4]!;
+    const alpha = alphaToken.endsWith("%") ? Number(alphaToken.slice(0, -1)) / 100 : Number(alphaToken);
+    if (channels.some((channel) => channel < 0 || channel > 255) || !Number.isFinite(alpha) || alpha < 0 || alpha > 1) fail("css-color-invalid", `${property} contains an invalid rgba color: ${value}`);
+    const bytes = [...channels, Math.round(alpha * 255)].map((channel) => Math.round(channel).toString(16).padStart(2, "0"));
+    return `#${bytes.join("")}`;
+  }
   if (!/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(v)) fail("css-color-unsupported", `${property} must resolve to a hex color: ${value}`);
   return v;
 }
@@ -98,7 +107,16 @@ function parseGradient(value: string, property: string, currentColor = "#000000"
     const circleRadius = /\bcircle\b/i.test(descriptor) && box
       ? Math.hypot(Math.max(cx * box.width, (1 - cx) * box.width), Math.max(cy * box.height, (1 - cy) * box.height)) / Math.min(box.width, box.height)
       : undefined;
-    return { type: "radial-gradient", ...(center ? { cx, cy } : {}), ...(circleRadius === undefined ? {} : { radius: circleRadius }), ...(spreadMethod ? { spreadMethod } : {}), stops };
+    // CSS radial gradients default to an ellipse. The farthest-side ellipse
+    // has independent horizontal/vertical radii (the farthest side on each
+    // axis); farthest-corner then scales both by sqrt(2) to pass through the
+    // farthest corner. Keep these normalized until V2 resolves each axis.
+    const farthestSideX = Math.max(cx, 1 - cx);
+    const farthestSideY = Math.max(cy, 1 - cy);
+    const ellipseRadii = !/\bcircle\b/i.test(descriptor) && box
+      ? { radiusX: farthestSideX * Math.SQRT2, radiusY: farthestSideY * Math.SQRT2 }
+      : undefined;
+    return { type: "radial-gradient", ...(center ? { cx, cy } : {}), ...(circleRadius === undefined ? {} : { radius: circleRadius }), ...(ellipseRadii ?? {}), ...(spreadMethod ? { spreadMethod } : {}), stops };
   }
   const from = descriptor.match(/\bfrom\s+(-?(?:\d+\.?\d*|\.\d+))deg/i);
   return { type: "conic-gradient", ...(from ? { from: Number(from[1]) } : {}), ...(center ? { cx: Number(center[1]) / 100, cy: Number(center[2]) / 100 } : {}), ...(spreadMethod ? { spreadMethod } : {}), stops };
@@ -119,12 +137,12 @@ export function parseAspectRatio(value: string | undefined): number | undefined 
   return ratio;
 }
 
-export type BorderStyle = "solid" | "none" | "dashed" | "dotted" | "double";
+export type BorderStyle = "solid" | "none" | "dashed" | "dotted" | "double" | "groove" | "ridge" | "inset" | "outset";
 export type BorderSide = { width: number; style: BorderStyle; color: string };
 export type BorderEdges = { top: BorderSide; right: BorderSide; bottom: BorderSide; left: BorderSide };
 export type CornerRadius = number | { topLeft: { rx: number; ry: number }; topRight: { rx: number; ry: number }; bottomRight: { rx: number; ry: number }; bottomLeft: { rx: number; ry: number } };
 
-const BORDER_STYLES = ["solid", "none", "dashed", "dotted", "double"] as const;
+const BORDER_STYLES = ["solid", "none", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"] as const;
 const BORDER_WIDTH_KEYWORDS: Record<string, number> = { thin: 1, medium: 3, thick: 5 };
 
 function quadValues(value: string | undefined): string[] {

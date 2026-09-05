@@ -44,6 +44,18 @@ describe("canonical gradient paint", () => {
     });
   });
 
+  it("preserves independent ellipse radii in local pixels", () => {
+    const paint = canonicalizePaint({ type: "radial-gradient", cx: 0.7, cy: 0.45, radiusX: 0.7, radiusY: 0.55, stops }, 920, 420);
+    expect(paint).toMatchObject({
+      type: "radial-gradient",
+      cx: 644,
+      cy: 189,
+      radiusX: 644,
+      gradientUnits: "userSpaceOnUse",
+    });
+    expect(paint.radiusY).toBeCloseTo(231, 8);
+  });
+
   it("resolves conic center in local pixels without changing the source angle", () => {
     expect(canonicalizePaint({ type: "conic-gradient", from: 45, cx: 0.5, cy: 0.5, stops }, 480, 240)).toMatchObject({
       type: "conic-gradient",

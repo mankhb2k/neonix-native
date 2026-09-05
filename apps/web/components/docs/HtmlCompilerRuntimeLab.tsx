@@ -1,7 +1,10 @@
 "use client";
 
+import { Pause, Play } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -23,6 +26,8 @@ import {
   HTML_COMPILER_PAINT_PHASE2_5_CASES,
   HTML_COMPILER_PAINT_PHASE2_6_CASES,
   HTML_COMPILER_PAINT_PHASE2_7_CASES,
+  HTML_COMPILER_PAINT_PHASE2_8_CASES,
+  HTML_COMPILER_MOTION_PHASE3_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
   htmlCompilerPreviewCaseById,
   htmlCompilerPreviewGroups,
@@ -33,7 +38,11 @@ export function HtmlCompilerRuntimeLab() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const browserStageRef = useRef<HTMLDivElement>(null);
+  const browserIframeRef = useRef<HTMLIFrameElement>(null);
   const [browserScale, setBrowserScale] = useState(0.4);
+  const [previewTime, setPreviewTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
   const selected = htmlCompilerPreviewCaseById(searchParams.get("case"));
   const groups = useMemo(() => htmlCompilerPreviewGroups(), []);
   const compilation = useMemo(
@@ -47,6 +56,54 @@ export function HtmlCompilerRuntimeLab() {
     () => htmlCssSrcDoc(selected.source, HTML_COMPILER_PREVIEW_FONT_ASSETS),
     [selected.source],
   );
+  const syncBrowserPlayback = useCallback((time: number, playing: boolean) => {
+    const document = browserIframeRef.current?.contentDocument;
+    if (!document) return;
+    document.documentElement.dataset.neonixPlayback = playing ? "running" : "paused";
+    for (const animation of document.getAnimations()) {
+      if (playing) animation.play();
+      else animation.pause();
+      // Calling play() on an idle CSS Animation may initialize its current
+      // time to zero. Set the shared playhead after changing transport state
+      // so Browser CSS and the sampled V2/Skia preview stay aligned on seek.
+      animation.currentTime = Math.max(0, time * 1000);
+    }
+  }, []);
+  const duration = useMemo(() => {
+    const layers = compilation.protocol?.layers ?? [];
+    return Math.max(
+      0.1,
+      ...layers.map((layer) => (layer.timing.start + layer.timing.duration) / 1000),
+    );
+  }, [compilation.protocol]);
+
+  useEffect(() => {
+    setPreviewTime(0);
+    setIsPlaying(false);
+  }, [selected.id]);
+
+  useEffect(() => {
+    syncBrowserPlayback(previewTime, isPlaying);
+  }, [isPlaying, previewTime, sourceDocument, syncBrowserPlayback]);
+
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    let previousAt = performance.now();
+    const tick = (now: number) => {
+      const delta = Math.max(0, now - previousAt) / 1000;
+      previousAt = now;
+      setPreviewTime((current) => {
+        const next = current + delta;
+        return next >= duration ? 0 : next;
+      });
+      animationFrameRef.current = requestAnimationFrame(tick);
+    };
+    animationFrameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    };
+  }, [duration, isPlaying]);
 
   useLayoutEffect(() => {
     const stage = browserStageRef.current;
@@ -84,8 +141,8 @@ export function HtmlCompilerRuntimeLab() {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium">HTML compiler</h2>
             <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">
-              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length}{" "}
-              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length === 1 ? "case" : "cases"}
+              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PAINT_PHASE2_8_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length + HTML_COMPILER_MOTION_PHASE3_CASES.length}{" "}
+              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PAINT_PHASE2_8_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length + HTML_COMPILER_MOTION_PHASE3_CASES.length === 1 ? "case" : "cases"}
             </span>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
@@ -173,13 +230,14 @@ export function HtmlCompilerRuntimeLab() {
           data-testid="html-compiler-two-panel"
         >
           <Panel title="Browser CSS reference" badge="Native HTML / CSS">
-            <div
-              ref={browserStageRef}
+              <div
+                ref={browserStageRef}
               className="relative aspect-video overflow-hidden bg-[#081018]"
-              data-testid="html-compiler-browser-stage"
-            >
-              <iframe
-                title={`Native browser HTML CSS reference: ${selected.label}`}
+                data-testid="html-compiler-browser-stage"
+              >
+                <iframe
+                  ref={browserIframeRef}
+                  title={`Native browser HTML CSS reference: ${selected.label}`}
                 className="absolute left-0 top-0 border-0"
                 style={{
                   width: `${selected.source.composition.width}px`,
@@ -189,24 +247,54 @@ export function HtmlCompilerRuntimeLab() {
                 }}
                 // Keep scripts disabled, but retain the parent origin so local
                 // catalog fonts are allowed to load in the browser reference.
-                sandbox="allow-same-origin"
-                srcDoc={sourceDocument}
+                  sandbox="allow-same-origin"
+                  onLoad={() => syncBrowserPlayback(previewTime, isPlaying)}
+                  srcDoc={sourceDocument}
+                />
+              </div>
+              <PreviewTransport
+                testId="html-compiler-browser-transport"
+                playToggleTestId="html-compiler-browser-play-toggle"
+                timeTestId="html-compiler-browser-preview-time"
+                time={previewTime}
+                duration={duration}
+                isPlaying={isPlaying}
+                onToggle={() => setIsPlaying((playing) => !playing)}
+                onTimeChange={(time) => {
+                  setIsPlaying(false);
+                  setPreviewTime(time);
+                }}
               />
-            </div>
           </Panel>
 
           <Panel title="Compiler output" badge="HTML/CSS → JSON V2 → Skia">
             {compilation.protocol ? (
               <div
-                className="aspect-video overflow-hidden bg-[#101820]"
+                className="bg-[#101820]"
                 data-testid="html-compiler-runtime-stage"
               >
-                <PreviewStage
-                  key={selected.id}
-                  project={compilation.protocol}
-                  backend="skia"
-                  time={0}
-                  testId="html-compiler-runtime-canvas"
+                <div className="aspect-video overflow-hidden">
+                  <PreviewStage
+                    key={selected.id}
+                    project={compilation.protocol}
+                    backend="skia"
+                    time={previewTime}
+                    isPlaying={isPlaying}
+                    testId="html-compiler-runtime-canvas"
+                  />
+                </div>
+                <PreviewTransport
+                  testId="html-compiler-skia-transport"
+                  playToggleTestId="html-compiler-skia-play-toggle"
+                  timeTestId="html-compiler-skia-preview-time"
+                  time={previewTime}
+                  duration={duration}
+                  isPlaying={isPlaying}
+                  onToggle={() => setIsPlaying((playing) => !playing)}
+                  onTimeChange={(time) => {
+                    setIsPlaying(false);
+                    setPreviewTime(time);
+                  }}
                 />
               </div>
             ) : (
@@ -250,6 +338,63 @@ function Panel({
       </div>
       {children}
     </article>
+  );
+}
+
+function PreviewTransport({
+  testId,
+  time,
+  duration,
+  isPlaying,
+  onToggle,
+  onTimeChange,
+  playToggleTestId,
+  timeTestId,
+}: {
+  testId: string;
+  time: number;
+  duration: number;
+  isPlaying: boolean;
+  onToggle: () => void;
+  onTimeChange: (time: number) => void;
+  playToggleTestId?: string;
+  timeTestId?: string;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 border-t border-white/10 bg-[#0a1018] px-4 py-3"
+      data-testid={testId}
+    >
+      <button
+        type="button"
+        data-testid={playToggleTestId ?? `${testId}-play-toggle`}
+        aria-label={isPlaying ? "Pause preview" : "Play preview"}
+        title={isPlaying ? "Pause preview" : "Play preview"}
+        aria-pressed={isPlaying}
+        onClick={onToggle}
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-300/10 text-cyan-200 transition hover:bg-cyan-300/20 focus-visible:outline-2 focus-visible:outline-cyan-300"
+      >
+        {isPlaying ? <Pause size={15} fill="currentColor" strokeWidth={0} /> : <Play size={15} fill="currentColor" strokeWidth={0} className="ml-0.5" />}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={duration}
+        step={1 / 30}
+        value={Math.min(time, duration)}
+        aria-label="Preview timeline"
+        data-testid={`${testId}-time-slider`}
+        onChange={(event) => onTimeChange(Number(event.target.value))}
+        className="h-1 min-w-0 flex-1 accent-cyan-300"
+      />
+      <span
+        data-testid={timeTestId ?? `${testId}-preview-time`}
+        data-time={time.toFixed(6)}
+        className="min-w-24 text-right font-mono text-[11px] text-slate-400"
+      >
+        {time.toFixed(2)}s / {duration.toFixed(2)}s
+      </span>
+    </div>
   );
 }
 
@@ -364,7 +509,7 @@ function htmlCssSrcDoc(
         `@font-face { font-family: "${asset.family}"; src: url("${asset.uri}") format("truetype"); font-style: ${asset.style}; font-stretch: ${asset.stretch ?? "normal"}; font-weight: ${asset.weight}; }`,
     )
     .join("\n");
-  const injectedStyles = `<meta charset="utf-8"><style>${fontFaces}\n${css}</style><style>html, body { width: ${width}px; height: ${height}px; margin: 0; overflow: hidden; background: ${background}; }</style>`;
+  const injectedStyles = `<meta charset="utf-8"><style>${fontFaces}\n${css}</style><style>html, body { width: ${width}px; height: ${height}px; margin: 0; overflow: hidden; background: ${background}; } html:not([data-neonix-playback="running"]) * { animation-play-state: paused !important; }</style>`;
   if (/<html(?:\s|>)/i.test(html))
     return html.replace(/<head([^>]*)>/i, `<head$1>${injectedStyles}`);
   return `<!DOCTYPE html><html><head>${injectedStyles}</head><body>${html}</body></html>`;

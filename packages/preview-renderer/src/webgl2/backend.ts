@@ -1140,6 +1140,9 @@ export function createWebGL2Backend(
           pushDiagnostic({ severity: "error", code: "preview_nested_layer_unsupported", message: "Nested effect scopes are not implemented yet", key: command.key, layerId: command.layerId });
           continue;
         }
+        if (command.mask?.layers && command.mask.layers.length > 1) {
+          pushDiagnostic({ severity: "warning", code: "preview_mask_composite_unsupported", message: "WebGL2 preview currently supports one mask layer; CSS mask-composite layers are rendered using the first layer only", key: command.key, layerId: command.layerId });
+        }
         ensureEffectTargets(physicalWidth, physicalHeight);
         if (!createLayerTarget) {
           pushDiagnostic({ severity: "error", code: "preview_layer_surface_unavailable", message: "Layer surface factory is unavailable", key: command.key, layerId: command.layerId });

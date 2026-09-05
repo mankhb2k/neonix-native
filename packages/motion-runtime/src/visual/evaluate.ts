@@ -649,6 +649,8 @@ export function evaluateVisualRuntimeProject(
                   mode: node.mask.mode,
                   sourceKey: node.mask.sourceId,
                   ...(node.mask.sourceIds ? { sourceKeys: node.mask.sourceIds } : {}),
+                  ...(node.mask.layers ? { composites: node.mask.layers.map((layer) => layer.composite) } : {}),
+                  ...(node.mask.layers ? { layers: node.mask.layers.map((layer) => ({ mode: layer.mode, sourceKeys: layer.sourceIds, composite: layer.composite })) } : {}),
                 },
               }
             : {}),
@@ -697,6 +699,8 @@ export function evaluateVisualRuntimeProject(
                 mode: node.mask.mode,
                 sourceKey: node.mask.sourceId,
                 ...(node.mask.sourceIds ? { sourceKeys: node.mask.sourceIds } : {}),
+                ...(node.mask.layers ? { composites: node.mask.layers.map((layer) => layer.composite) } : {}),
+                ...(node.mask.layers ? { layers: node.mask.layers.map((layer) => ({ mode: layer.mode, sourceKeys: layer.sourceIds, composite: layer.composite })) } : {}),
               },
             }
           : {}),

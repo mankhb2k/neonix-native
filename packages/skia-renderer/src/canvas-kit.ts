@@ -45,6 +45,7 @@ export type SkiaCanvasKit = {
 
 export type SkiaSurface = {
   getCanvas(): SkiaCanvas;
+  makeImageSnapshot?(): SkiaImage | null;
   flush(): void;
   dispose(): void;
 };

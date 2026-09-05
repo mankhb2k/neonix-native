@@ -44,7 +44,24 @@ export function parseBackgroundImages(
   currentColor: string,
   box: { width: number; height: number },
 ): BackgroundImage[] {
-  const raw = style.get("background-image");
+  return parsePaintImages(style, "background-image", currentColor, box);
+}
+
+export function parseMaskImages(
+  style: Style,
+  currentColor: string,
+  box: { width: number; height: number },
+): BackgroundImage[] {
+  return parsePaintImages(style, "mask-image", currentColor, box);
+}
+
+function parsePaintImages(
+  style: Style,
+  property: "background-image" | "mask-image",
+  currentColor: string,
+  box: { width: number; height: number },
+): BackgroundImage[] {
+  const raw = style.get(property);
   if (raw === undefined || raw.trim().toLowerCase() === "none") return [];
   return splitTopLevel(raw, ",").map((layer) => {
     const value = layer.trim();
@@ -52,15 +69,15 @@ export function parseBackgroundImages(
     const url = value.match(/^url\(\s*(?:(["'])(.*?)\1|([^)]*))\s*\)$/i);
     if (url) {
       const uri = (url[2] ?? url[3] ?? "").trim();
-      if (!uri) fail("css-background-image-invalid", "background-image url() must contain an asset URI");
+      if (!uri) fail(`css-${property}-invalid`, `${property} url() must contain an asset URI`);
       return { type: "asset" as const, uri };
     }
     if (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(value)) {
-      const paints = parsePaintLayers(value, "background-image", currentColor, box);
-      if (paints.length !== 1 || typeof paints[0] === "string") fail("css-background-image-invalid", `Invalid gradient background image: ${value}`);
+      const paints = parsePaintLayers(value, property, currentColor, box);
+      if (paints.length !== 1 || typeof paints[0] === "string") fail(`css-${property}-invalid`, `Invalid gradient ${property}: ${value}`);
       return { type: "paint" as const, paint: paints[0] as Exclude<Paint, string> };
     }
-    fail("css-background-image-unsupported", `background-image supports url() and gradients: ${value}`);
+    fail(`css-${property}-unsupported`, `${property} supports url() and gradients: ${value}`);
   }).filter((layer): layer is BackgroundImage => layer !== null);
 }
 

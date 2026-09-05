@@ -66,6 +66,8 @@ export type PaintCommand =
         mode: PaintMaskMode;
         sourceKey: string;
         sourceKeys?: string[];
+        composites?: Array<"add" | "subtract" | "intersect" | "exclude">;
+        layers?: Array<{ mode: PaintMaskMode; sourceKeys: string[]; composite: "add" | "subtract" | "intersect" | "exclude" }>;
       };
     }
   | { op: "endLayer"; key: string }

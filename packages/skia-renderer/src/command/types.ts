@@ -23,6 +23,7 @@ export type ReplayLayer = {
   clipSourceKeys: Set<string>;
   maskMode?: "alpha" | "luma";
   maskSourceKeys: Set<string>;
+  maskLayers?: Array<{ mode: "alpha" | "luma"; sourceKeys: string[]; composite: "add" | "subtract" | "intersect" | "exclude" }>;
   noiseEffect?: RuntimeNoiseEffectOp;
   noiseBounds?: DrawBounds;
 };

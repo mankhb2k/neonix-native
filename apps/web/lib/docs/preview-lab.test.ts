@@ -8,7 +8,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -59,12 +59,14 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PHASE1_4_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
-    expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(7);
+    expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PAINT_PHASE2_6_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_7_CASES).toHaveLength(8);
+    expect(HTML_COMPILER_PAINT_PHASE2_8_CASES).toHaveLength(5);
+    expect(HTML_COMPILER_MOTION_PHASE3_CASES).toHaveLength(39);
     for (const fixture of HTML_COMPILER_PAINT_PHASE2_1_CASES) {
       const compiled = compileHtmlCss(fixture.source);
       expect(compiled.status, fixture.id).toBe("success");
@@ -105,6 +107,47 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect(compiled.status, fixture.id).toBe("success");
       expect(compiled.protocol?.layers.some((layer) => layer.composite !== undefined), fixture.id).toBe(true);
     }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_8_CASES) {
+      const compiled = compileHtmlCss(fixture.source);
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => (layer.maskLayers?.length ?? 0) > 0), fixture.id).toBe(true);
+      expect(compiled.protocol?.masks?.length, fixture.id).toBeGreaterThan(0);
+    }
+    for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES) {
+      const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      if (fixture.id === "html-compiler.motion.keyframes-unknown-name") {
+        expect(compiled.status, fixture.id).toBe("error");
+        expect(compiled.diagnostics[0]?.code, fixture.id).toBe("css-animation-name-unknown");
+      } else if (fixture.id === "html-compiler.motion.easing-invalid") {
+        expect(compiled.status, fixture.id).toBe("error");
+        expect(compiled.diagnostics[0]?.code, fixture.id).toBe("css-animation-easing-invalid");
+      } else {
+        expect(compiled.status, fixture.id).toBe("success");
+        expect(compiled.protocol?.layers.some((layer) => (layer.tracks?.length ?? 0) > 0), fixture.id).toBe(true);
+      }
+    }
+    for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES.filter((item) => item.id.includes("delay") || item.id.includes("fill-") || item.id.includes("play-state"))) {
+      const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      expect(compiled.status, fixture.id).toBe("success");
+      const playback = compiled.protocol?.layers.flatMap((layer) => layer.tracks ?? []).map((track) => track.playback).find(Boolean);
+      expect(playback, fixture.id).toMatchObject({ durationMs: expect.any(Number), fillMode: expect.any(String), playState: expect.any(String) });
+    }
+    for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES.filter((item) => item.id.includes("combo-"))) {
+      const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => (layer.tracks?.length ?? 0) > 0), fixture.id).toBe(true);
+    }
+    const borderCombo = compileHtmlCss(HTML_COMPILER_MOTION_PHASE3_CASES.find((item) => item.id === "html-compiler.motion.combo-border-paint")!.source);
+    expect(borderCombo.status).toBe("success");
+    expect(borderCombo.protocol?.layers.find((layer) => layer.id.endsWith("::border"))?.tracks?.map((track) => track.path)).toEqual(expect.arrayContaining(["style.stroke", "style.strokeWidth"]));
+    const isolateCombo = compileHtmlCss(HTML_COMPILER_MOTION_PHASE3_CASES.find((item) => item.id === "html-compiler.motion.combo-isolated-blend")!.source);
+    expect(isolateCombo.protocol?.layers.some((layer) => layer.composite?.isolation === "isolate")).toBe(true);
+    expect(isolateCombo.protocol?.layers.some((layer) => layer.composite?.blendMode === "multiply")).toBe(true);
+    const clipCombo = compileHtmlCss(HTML_COMPILER_MOTION_PHASE3_CASES.find((item) => item.id === "html-compiler.motion.combo-clip-path")!.source);
+    expect(clipCombo.protocol?.layers.some((layer) => layer.clipPath !== undefined)).toBe(true);
+    const imageCombo = compileHtmlCss(HTML_COMPILER_MOTION_PHASE3_CASES.find((item) => item.id === "html-compiler.motion.combo-image-clipping")!.source);
+    expect(imageCombo.protocol?.layers.some((layer) => layer.type === "image")).toBe(true);
+    expect(imageCombo.protocol?.layers.some((layer) => layer.clipPath !== undefined)).toBe(true);
     expect(htmlCompilerPreviewCaseById(null).id).toBe(HTML_COMPILER_DEFAULT_CASE_ID);
     expect(HTML_COMPILER_PHASE0_CASES[0]?.id).toBe("html-compiler.new-project.blue-rectangle");
     expect(HTML_COMPILER_PHASE0_CASES[0]?.source.composition).toEqual({
@@ -213,6 +256,8 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Paint",
       "Paint",
       "Paint",
+      "Paint",
+      "Motion & animation",
     ]);
     expect(htmlCompilerPreviewGroups().every((group) => group.cases.length > 0)).toBe(true);
 

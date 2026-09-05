@@ -124,7 +124,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     // to physical scale used by the GPU preview backends.
     canvas.save();
     if (dpr !== 1) canvas.concat([dpr, 0, 0, 0, dpr, 0, 0, 0, 1]);
-    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, typefaceFor);
+    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, typefaceFor, dpr);
     canvas.restore();
     if (replay.skippedCommands) {
       add({ severity: "warning", code: "skia_command_unsupported", message: `Skia skipped ${replay.skippedCommands} command(s)`, key: "skia" });

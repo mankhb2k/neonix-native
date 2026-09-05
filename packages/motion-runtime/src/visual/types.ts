@@ -64,6 +64,12 @@ export type VisualRuntimeMask = {
   sourceId: string;
   /** Multiple SVG definition children can contribute to one mask surface. */
   sourceIds?: string[];
+  /** CSS mask-image layers. Tiles inside one entry are unioned; composite applies between entries. */
+  layers?: Array<{
+    mode: PaintMaskMode;
+    sourceIds: string[];
+    composite: "add" | "subtract" | "intersect" | "exclude";
+  }>;
 };
 
 /** Runtime-normalized SVG clipPath coverage relation. */

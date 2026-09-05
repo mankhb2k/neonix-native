@@ -275,6 +275,18 @@ export const MotionProtocolV2Schema = z
       if (layer.mask !== undefined && !maskIds.has(layer.mask)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown mask reference: ${layer.mask}`, path: ["layers", index, "mask"] });
       }
+      for (const [maskLayerIndex, maskLayer] of (layer.maskLayers ?? []).entries()) {
+        for (const [maskIdIndex, maskId] of maskLayer.maskIds.entries()) {
+          if (!maskIds.has(maskId)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown mask reference: ${maskId}`, path: ["layers", index, "maskLayers", maskLayerIndex, "maskIds", maskIdIndex] });
+          }
+        }
+      }
+      for (const [maskIndex, mask] of (project.masks ?? []).entries()) {
+        if (mask.image && !assetIds.has(mask.image.assetId)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown mask image asset: ${mask.image.assetId}`, path: ["masks", maskIndex, "image", "assetId"] });
+        }
+      }
       if (layer.filter !== undefined && !filterIds.has(layer.filter)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Unknown filter reference: ${layer.filter}`, path: ["layers", index, "filter"] });
       }

@@ -1015,6 +1015,9 @@ export function createWebGPUBackend(
           pushDiagnostic({ severity: "error", code: "preview_nested_layer_unsupported", message: "Nested effect scopes are not supported by the layer surface path", key: command.key, layerId: command.layerId });
           continue;
         }
+        if (command.mask?.layers && command.mask.layers.length > 1) {
+          pushDiagnostic({ severity: "warning", code: "preview_mask_composite_unsupported", message: "WebGPU preview currently supports one mask layer; CSS mask-composite layers are rendered using the first layer only", key: command.key, layerId: command.layerId });
+        }
         ensureEffectTargets(physicalWidth, physicalHeight);
         if (!createLayerTexture) {
           pushDiagnostic({ severity: "error", code: "preview_layer_surface_unavailable", message: "Layer surface factory is unavailable", key: command.key, layerId: command.layerId });

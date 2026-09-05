@@ -9,11 +9,12 @@ export type HtmlCompilerPreviewTopic =
   | "Paint"
   | "Media"
   | "Typography"
-  | "Layout";
+  | "Layout"
+  | "Motion & animation";
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -2444,6 +2445,94 @@ export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
     }),
   },
   {
+    id: "html-compiler.paint.border-groove",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / groove border",
+    properties: ["groove", "deterministic shading", "paint bands"],
+    hint: "Groove is lowered to two fixed-lighting bands per side; the shading is paint-only and does not change the layout frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-groove\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-groove {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border: 24px groove #38bdf8;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-ridge",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / ridge border",
+    properties: ["ridge", "deterministic shading", "paint bands"],
+    hint: "Ridge reverses the fixed groove lighting contract while preserving the same border geometry.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-ridge\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-ridge {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border: 24px ridge #a78bfa;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-inset",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / inset border",
+    properties: ["inset", "side shading", "paint-only"],
+    hint: "Inset applies the fixed recessed side shading contract without adding border width to layout twice.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-inset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-inset {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border: 24px inset #facc15;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-outset",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / outset border",
+    properties: ["outset", "side shading", "paint-only"],
+    hint: "Outset applies the inverse fixed side shading contract and keeps the authored box geometry unchanged.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-outset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-outset {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border: 24px outset #fb7185;
+}`,
+    }),
+  },
+  {
     id: "html-compiler.paint.border-radius-uniform",
     phase: "P2.2",
     topic: "Paint",
@@ -3255,9 +3344,705 @@ export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+export const HTML_COMPILER_PAINT_PHASE2_8_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.mask-alpha-gradient",
+    phase: "P2.8",
+    topic: "Paint",
+    label: "Paint / alpha mask gradient",
+    properties: ["mask-image", "linear-gradient", "mask-mode: alpha"],
+    hint: "The gradient is rendered on a private mask surface; its alpha coverage clips the blue rectangle without creating a visible sibling.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"mask-alpha-gradient\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#mask-alpha-gradient {
+  position: absolute;
+  left: 520px;
+  top: 320px;
+  width: 880px;
+  height: 360px;
+  background: #2563eb;
+  mask-image: linear-gradient(90deg, #00000000 0%, #000000ff 50%, #00000000 100%);
+  mask-mode: alpha;
+  mask-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.mask-luminance-image",
+    phase: "P2.8",
+    topic: "Paint",
+    label: "Paint / luminance mask image",
+    properties: ["mask-image", "asset URL", "mask-mode: luminance", "mask-size"],
+    hint: "The image asset is registered in Protocol V2 and sampled as luminance coverage inside the mask source surface.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"mask-luminance-image\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#mask-luminance-image {
+  position: absolute;
+  left: 560px;
+  top: 300px;
+  width: 800px;
+  height: 420px;
+  background: #f97316;
+  mask-image: url(/preview/image/img-alpha.png);
+  mask-mode: luminance;
+  mask-position: center;
+  mask-size: 520px 300px;
+  mask-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.mask-add-intersect",
+    phase: "P2.8",
+    topic: "Paint",
+    label: "Paint / mask add + intersect",
+    properties: ["multiple mask layers", "add", "intersect", "layer order"],
+    hint: "Two authored mask layers remain ordered in JSON: the first is added, then the second intersects the accumulated coverage.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"mask-add-intersect\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#mask-add-intersect {
+  position: absolute;
+  left: 500px;
+  top: 300px;
+  width: 920px;
+  height: 420px;
+  background: #22c55e;
+  mask-image: linear-gradient(90deg, #000000ff 0%, #000000ff 100%), radial-gradient(ellipse at 70% 45%, #000000ff 0%, #00000000 70%);
+  mask-mode: alpha, alpha;
+  mask-composite: intersect;
+  mask-repeat: no-repeat, no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.mask-subtract-edge",
+    phase: "P2.8",
+    topic: "Paint",
+    label: "Paint / mask subtract at composition edge",
+    properties: ["mask-composite", "subtract", "composition clipping"],
+    hint: "The subtractive mask operation is evaluated on the private surface before the result is clipped by the composition boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"mask-subtract-edge\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#mask-subtract-edge {
+  position: absolute;
+  left: 1420px;
+  top: 260px;
+  width: 720px;
+  height: 440px;
+  background: #a855f7;
+  mask-image: linear-gradient(90deg, #000000ff 0%, #000000ff 100%), radial-gradient(circle at 30% 50%, #000000ff 0%, #000000ff 28%, #00000000 30%);
+  mask-mode: alpha, alpha;
+  mask-composite: subtract;
+  mask-repeat: no-repeat, no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.mask-clip-isolation",
+    phase: "P2.8",
+    topic: "Paint",
+    label: "Paint / mask + clip-path + isolation",
+    properties: ["mask-image", "clip-path", "isolation", "mix-blend-mode"],
+    hint: "The mask surface is applied inside the isolated group after clip-path coverage and before the group opacity/blend boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"mask-clip-isolation\">\n    <div id=\"mask-clip-isolation-child\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #0f172a; }
+
+#mask-clip-isolation {
+  position: absolute;
+  left: 520px;
+  top: 280px;
+  width: 880px;
+  height: 460px;
+  background: #1e3a8a;
+  isolation: isolate;
+  clip-path: inset(18px round 54px);
+  mask-image: radial-gradient(ellipse at 50% 50%, #ffffff 0%, #000000 72%);
+  mask-mode: alpha;
+  mask-repeat: no-repeat;
+}
+
+#mask-clip-isolation-child {
+  position: absolute;
+  left: 180px;
+  top: 90px;
+  width: 760px;
+  height: 300px;
+  background: #f97316;
+  mix-blend-mode: screen;
+}`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.motion.opacity-delay-fill",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / opacity + delay + fill",
+    properties: ["@keyframes", "opacity", "animation-delay", "animation-fill-mode"],
+    hint: "The runtime samples opacity from the shared V2 track, including the backwards delay sample and forwards end sample.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-opacity\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-opacity { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-opacity { position: absolute; left: 620px; top: 360px; width: 680px; height: 320px; background: #22d3ee; animation-name: motion-opacity; animation-duration: 1200ms; animation-delay: 200ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.transform-alternate",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / transform alternate",
+    properties: ["transform", "translateX", "rotate", "alternate", "cubic-bezier"],
+    hint: "Transform components are typed tracks; alternate reverses the sampled direction on the second iteration.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-transform\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-transform { from { transform: translateX(0px) rotate(-8deg); } to { transform: translateX(260px) rotate(8deg); } }
+#motion-transform { position: absolute; left: 500px; top: 400px; width: 360px; height: 180px; background: #a78bfa; transform-origin: center; animation-name: motion-transform; animation-duration: 1000ms; animation-iteration-count: 2; animation-direction: alternate; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.steps-color",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / steps color",
+    properties: ["background-color", "steps()", "animation-play-state"],
+    hint: "A color track keeps its typed RGBA values while steps(4, jump-start) produces deterministic discrete plateaus.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-steps\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-steps { from { background-color: #2563eb; } 50% { background-color: #facc15; } to { background-color: #fb7185; } }
+#motion-steps { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; animation-name: motion-steps; animation-duration: 1000ms; animation-timing-function: steps(4, start); animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.transform-scale",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / transform scale",
+    properties: ["transform", "scale", "transform-origin"],
+    hint: "A scale track keeps the element's layout frame fixed and applies the declared center pivot at runtime.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-scale\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-scale { from { transform: scale(0.55); } to { transform: scale(1.25); } }
+#motion-scale { position: absolute; left: 540px; top: 390px; width: 360px; height: 180px; background: #a78bfa; transform-origin: center; animation-name: motion-scale; animation-duration: 1000ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.transform-rotate-origin",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / rotate percentage origin",
+    properties: ["transform", "rotate", "transform-origin"],
+    hint: "Rotation is sampled around a non-central percentage origin, matching the browser's local pivot.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-rotate-origin\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-rotate-origin { from { transform: rotate(-18deg); } to { transform: rotate(18deg); } }
+#motion-rotate-origin { position: absolute; left: 560px; top: 390px; width: 360px; height: 180px; background: #fb7185; transform-origin: 25% 75%; animation-name: motion-rotate-origin; animation-duration: 1000ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.background-color-rgba",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / RGBA color",
+    properties: ["background-color", "RGBA", "color track"],
+    hint: "Background color is interpolated as a typed RGBA track, including alpha, instead of a CSS string.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-rgba\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-rgba { from { background-color: rgba(34, 211, 238, 0.25); } to { background-color: rgba(249, 115, 22, 0.85); } }
+#motion-rgba { position: absolute; left: 620px; top: 360px; width: 520px; height: 240px; animation-name: motion-rgba; animation-duration: 1000ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.frame-size-border-box",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / frame size + border-box",
+    properties: ["width", "height", "box-sizing", "frame tracks"],
+    hint: "Width and height animate the V2 frame directly under border-box without changing the element's layout origin.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-frame\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-frame { from { width: 240px; height: 120px; } to { width: 520px; height: 300px; } }
+#motion-frame { position: absolute; left: 700px; top: 340px; width: 240px; height: 120px; box-sizing: border-box; padding: 20px; background: #22d3ee; animation-name: motion-frame; animation-duration: 1000ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-from-to",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / keyframes from + to",
+    properties: ["@keyframes", "from", "to"],
+    hint: "The canonical from/to declaration becomes a two-point opacity track with millisecond timestamps.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-from-to\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-from-to { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-from-to { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-from-to; animation-duration: 1000ms; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-three-stops",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / keyframes 0 50 100",
+    properties: ["0%", "50%", "100%", "ordered stops"],
+    hint: "Three authored offsets remain three ordered runtime keyframes instead of being collapsed to endpoints.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-three-stops\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-three-stops { 0% { opacity: 0.1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
+#motion-three-stops { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-three-stops; animation-duration: 1200ms; animation-timing-function: linear; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-missing-start",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / missing first keyframe",
+    properties: ["30%", "to", "underlying value"],
+    hint: "When 0% is absent, the compiler inserts the element's underlying computed opacity before the first authored offset.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-missing-start\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-missing-start { 30% { opacity: 0.35; } to { opacity: 1; } }
+#motion-missing-start { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; opacity: 0.1; background: #22d3ee; animation-name: motion-missing-start; animation-duration: 1000ms; animation-timing-function: linear; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-two-names",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / two keyframe names",
+    properties: ["animation-name", "sibling layers", "independent tracks"],
+    hint: "Two sibling layers resolve separate @keyframes definitions without sharing declarations or track state.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-fade\"></div>\n  <div id=\"motion-tint\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-fade { from { opacity: 0.1; } to { opacity: 1; } }
+@keyframes motion-tint { from { background-color: #22d3ee; } to { background-color: #f97316; } }
+#motion-fade { position: absolute; left: 430px; top: 360px; width: 320px; height: 160px; background: #22d3ee; animation-name: motion-fade; animation-duration: 1000ms; }
+#motion-tint { position: absolute; left: 850px; top: 360px; width: 320px; height: 160px; animation-name: motion-tint; animation-duration: 1000ms; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-duplicate-offset",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / duplicate keyframe offset",
+    properties: ["duplicate offset", "source order", "cascade"],
+    hint: "At 50%, the later keyframe block wins for opacity, so the runtime receives one deterministic keyframe at that timestamp.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-duplicate\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-duplicate { from { opacity: 0.1; } 50% { opacity: 0.2; } 50% { opacity: 0.8; } to { opacity: 1; } }
+#motion-duplicate { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #facc15; animation-name: motion-duplicate; animation-duration: 1000ms; animation-timing-function: linear; animation-fill-mode: both; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.keyframes-unknown-name",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / unknown animation diagnostic",
+    properties: ["animation-name", "diagnostic", "unsupported reference"],
+    hint: "An animation-name without a matching @keyframes rule is a compiler diagnostic, never a silent no-op.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-unknown\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#motion-unknown { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #fb7185; animation-name: no-such-keyframes; animation-duration: 1000ms; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.delay-fill-none",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / delay + no fill",
+    properties: ["animation-delay", "fill-mode: none"],
+    hint: "During the positive delay and after the animation, the underlying opacity remains active because no fill is requested.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-delay-none\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-delay-none { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-delay-none { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; opacity: 0.35; background: #22d3ee; animation-name: motion-delay-none; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: none; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.delay-fill-backwards",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / delay + backwards",
+    properties: ["animation-delay", "fill-mode: backwards"],
+    hint: "The first keyframe is visible during the positive delay, then the active animation begins at the scheduled time.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-delay-backwards\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-delay-backwards { from { opacity: 0.1; } to { opacity: 1; } }
+#motion-delay-backwards { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; opacity: 0.8; background: #a78bfa; animation-name: motion-delay-backwards; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: backwards; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.fill-forwards",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / forwards end hold",
+    properties: ["animation-fill-mode: forwards", "end sample"],
+    hint: "After the active interval, the final keyframe remains applied instead of returning to the underlying opacity.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-forwards\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-forwards { from { opacity: 1; } to { opacity: 0.2; } }
+#motion-forwards { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-forwards; animation-duration: 700ms; animation-fill-mode: forwards; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.fill-both",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / both delay + end",
+    properties: ["animation-delay", "animation-fill-mode: both"],
+    hint: "Both applies the first keyframe during delay and keeps the final keyframe after completion.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-both\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-both { from { opacity: 0.15; } to { opacity: 0.85; } }
+#motion-both { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #facc15; animation-name: motion-both; animation-duration: 700ms; animation-delay: 300ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.delay-negative",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / negative delay",
+    properties: ["animation-delay: -350ms", "initial progress"],
+    hint: "A negative delay starts the sample inside the animation rather than waiting for a future start time.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-negative-delay\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-negative-delay { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-negative-delay { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-negative-delay; animation-duration: 700ms; animation-delay: -350ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.play-state-paused",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / play-state paused",
+    properties: ["animation-play-state: paused", "transport"],
+    hint: "An authored paused animation stays at its initial sample until transport explicitly changes the preview state.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-paused\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-paused { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-paused { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-paused; animation-duration: 700ms; animation-fill-mode: both; animation-play-state: paused; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.iteration-two",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / two iterations",
+    properties: ["animation-iteration-count: 2", "cycle boundary"],
+    hint: "Two complete cycles reuse one normalized keyframe track without duplicating runtime geometry.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-iteration-two\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-iteration-two { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-iteration-two { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-iteration-two; animation-duration: 600ms; animation-iteration-count: 2; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.iteration-fractional",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / fractional iteration",
+    properties: ["animation-iteration-count: 2.5", "fractional endpoint"],
+    hint: "A 2.5 iteration animation ends halfway through its third cycle, including at the exact active-duration boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-iteration-fractional\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-iteration-fractional { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-iteration-fractional { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-iteration-fractional; animation-duration: 500ms; animation-iteration-count: 2.5; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.iteration-infinite",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / infinite loop",
+    properties: ["animation-iteration-count: infinite", "loop"],
+    hint: "Infinite playback keeps a bounded track and wraps sampled progress without accumulating timeline drift.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-iteration-infinite\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-iteration-infinite { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-iteration-infinite { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #facc15; animation-name: motion-iteration-infinite; animation-duration: 450ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.direction-normal",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / direction normal",
+    properties: ["animation-direction: normal"],
+    hint: "Normal samples each iteration from the first keyframe toward the last keyframe.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-direction-normal\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-direction-normal { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-direction-normal { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-direction-normal; animation-duration: 1000ms; animation-direction: normal; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.direction-reverse",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / direction reverse",
+    properties: ["animation-direction: reverse"],
+    hint: "Reverse starts at the last keyframe and samples toward the first keyframe.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-direction-reverse\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-direction-reverse { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-direction-reverse { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-direction-reverse; animation-duration: 1000ms; animation-direction: reverse; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.direction-alternate",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / direction alternate",
+    properties: ["animation-direction: alternate", "iteration boundary"],
+    hint: "Alternate reverses every second iteration while keeping the same authored keyframe sequence.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-direction-alternate\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-direction-alternate { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-direction-alternate { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-direction-alternate; animation-duration: 500ms; animation-iteration-count: 2; animation-direction: alternate; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.direction-alternate-reverse",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / direction alternate-reverse",
+    properties: ["animation-direction: alternate-reverse", "iteration boundary"],
+    hint: "Alternate-reverse starts reversed, then alternates direction at each iteration boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-direction-alternate-reverse\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-direction-alternate-reverse { from { opacity: 0.1; } to { opacity: 0.9; } }
+#motion-direction-alternate-reverse { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #f97316; animation-name: motion-direction-alternate-reverse; animation-duration: 500ms; animation-iteration-count: 2; animation-direction: alternate-reverse; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-linear",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / easing linear",
+    properties: ["animation-timing-function: linear", "opacity"],
+    hint: "Linear easing keeps equal progress between each pair of keyframes.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-linear\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-linear { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-easing-linear { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #22d3ee; animation-name: motion-easing-linear; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-steps-end",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / easing steps jump-end",
+    properties: ["animation-timing-function: steps(4, jump-end)", "discrete plateaus"],
+    hint: "Jump-end holds the current plateau until each step boundary, then advances.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-steps-end\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-steps-end { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-easing-steps-end { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #f97316; animation-name: motion-easing-steps-end; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-end); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-steps-start",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / easing steps jump-start",
+    properties: ["animation-timing-function: steps(4, jump-start)", "first instant"],
+    hint: "Jump-start advances to the first plateau at the first instant of the active interval.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-steps-start\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-steps-start { from { opacity: 0.15; } to { opacity: 1; } }
+#motion-easing-steps-start { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #a78bfa; animation-name: motion-easing-steps-start; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-start); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-cubic-bezier",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / easing cubic-bezier",
+    properties: ["animation-timing-function: cubic-bezier", "transform"],
+    hint: "The canonical ease curve is stored as typed cubic-bezier control points in each track.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-cubic\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-cubic { from { transform: translateX(0px); } to { transform: translateX(260px); } }
+#motion-easing-cubic { position: absolute; left: 500px; top: 360px; width: 360px; height: 180px; background: #22d3ee; animation-name: motion-easing-cubic; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-per-segment",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / easing per segment",
+    properties: ["keyframe-local timing", "steps()", "cubic-bezier()"],
+    hint: "Each segment keeps the timing function authored on its starting keyframe; the global value is only the fallback.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-segments\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-segments {
+  from { opacity: 0.1; animation-timing-function: steps(2, jump-start); }
+  50% { opacity: 0.55; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+  to { opacity: 1; }
+}
+#motion-easing-segments { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #facc15; animation-name: motion-easing-segments; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.easing-invalid",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / invalid easing diagnostic",
+    properties: ["steps(0)", "diagnostic", "no silent fallback"],
+    hint: "Invalid step counts and cubic-bezier control points fail compilation with a specific diagnostic.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-easing-invalid\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-easing-invalid { from { opacity: 0.1; } to { opacity: 1; } }
+#motion-easing-invalid { position: absolute; left: 700px; top: 360px; width: 520px; height: 240px; background: #fb7185; animation-name: motion-easing-invalid; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: steps(0, jump-end); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-transform-opacity",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / transform + opacity",
+    properties: ["transform", "opacity", "one animation"],
+    hint: "Transform and layer opacity remain separate typed tracks while sharing the same animation playback metadata.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-transform-opacity\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-combo-transform-opacity { from { opacity: 0.15; transform: translateX(0px) rotate(-6deg); } to { opacity: 1; transform: translateX(260px) rotate(6deg); } }
+#motion-combo-transform-opacity { position: absolute; left: 500px; top: 360px; width: 360px; height: 180px; background: #22d3ee; transform-origin: center; animation-name: motion-combo-transform-opacity; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-transform-color",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / transform + background color",
+    properties: ["transform", "background-color", "two animation tracks", "different easing"],
+    hint: "Two authored animations keep transform and background-color as independent tracks with their own easing list entries.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-transform-color\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-combo-move { from { transform: translateX(0px); } to { transform: translateX(260px); } }
+@keyframes motion-combo-tint { from { background-color: #22d3ee; } to { background-color: #f97316; } }
+#motion-combo-transform-color { position: absolute; left: 500px; top: 360px; width: 360px; height: 180px; animation-name: motion-combo-move, motion-combo-tint; animation-duration: 1000ms, 1000ms; animation-fill-mode: both, both; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1), steps(4, jump-end); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-filter-opacity",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / filter opacity vs layer opacity",
+    properties: ["filter: opacity()", "layer opacity", "separate alpha"],
+    hint: "The animated layer alpha stays on the group while filter: opacity() remains an ordered source-surface effect.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-filter-opacity\"></div>\n</body>"),
+      css: `body { margin: 0; background: #16324f; }
+@keyframes motion-combo-filter-opacity { from { opacity: 0.2; transform: translateX(0px); } to { opacity: 0.9; transform: translateX(180px); } }
+#motion-combo-filter-opacity { position: absolute; left: 560px; top: 360px; width: 420px; height: 220px; background: #f97316; opacity: 0.72; filter: opacity(0.48) contrast(1.08); animation-name: motion-combo-filter-opacity; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-border-paint",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / animated border paint",
+    properties: ["border-color", "border-width", "paint-only track"],
+    hint: "Animated border color and width target the generated border paint pass without adding a second layout computation.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-border\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-combo-border { from { border-color: #22d3ee; border-width: 8px; } to { border-color: #f97316; border-width: 18px; } }
+#motion-combo-border { position: absolute; left: 600px; top: 350px; width: 420px; height: 220px; box-sizing: border-box; border: 8px solid #22d3ee; background: #1e3a8a; animation-name: motion-combo-border; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-clip-path",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / animated shape with clip-path",
+    properties: ["transform", "opacity", "fixed clip-path", "geometric clip"],
+    hint: "The clip-path remains geometric and fixed while the animated shape transform and opacity are sampled on the layer.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-clip-path\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-combo-clip-path { from { opacity: 0.2; transform: translateX(0px) rotate(-8deg); } to { opacity: 1; transform: translateX(240px) rotate(8deg); } }
+#motion-combo-clip-path { position: absolute; left: 500px; top: 350px; width: 520px; height: 260px; background: #a78bfa; clip-path: polygon(8% 88%, 50% 8%, 92% 88%); animation-name: motion-combo-clip-path; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-isolated-blend",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / isolated group + child blend",
+    properties: ["isolation: isolate", "mix-blend-mode: multiply", "child animation"],
+    hint: "The child animation is sampled inside the isolated group boundary so its blend does not leak into the outside backdrop.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-isolated\"><div id=\"motion-combo-isolated-child\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #17324d; }
+@keyframes motion-combo-isolated-child { from { opacity: 0.25; transform: translateX(0px); } to { opacity: 0.9; transform: translateX(160px); } }
+#motion-combo-isolated { position: absolute; left: 480px; top: 300px; width: 760px; height: 360px; background: #facc15; isolation: isolate; }
+#motion-combo-isolated-child { position: absolute; left: 160px; top: 70px; width: 420px; height: 220px; background: #ef4444; mix-blend-mode: multiply; animation-name: motion-combo-isolated-child; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion.combo-image-clipping",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion / image transform + composition clip",
+    properties: ["img", "transform", "overflow: hidden", "composition edge"],
+    hint: "The image transform is animated inside a fixed overflow viewport and remains clipped at the composition boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-combo-image-viewport\"><img id=\"motion-combo-image\" src=\"/preview/image/photo-landscape.jpg\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-combo-image { from { transform: translateX(-220px); } to { transform: translateX(220px); } }
+#motion-combo-image-viewport { position: absolute; left: 1400px; top: 330px; width: 520px; height: 300px; overflow: hidden; background: #1e3a8a; }
+#motion-combo-image { position: absolute; left: 0; top: 0; width: 760px; height: 300px; object-fit: cover; animation-name: motion-combo-image; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -3267,5 +4052,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

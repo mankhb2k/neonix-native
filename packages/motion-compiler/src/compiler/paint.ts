@@ -239,6 +239,8 @@ export function canonicalizePaint(
 
   if (paint.type === "radial-gradient") {
     const radius = localLength(paint.radius, Math.min(width, height), gradientUnits, 0.5);
+    const radiusX = paint.radiusX === undefined ? radius : localLength(paint.radiusX, width, gradientUnits, 0.5);
+    const radiusY = paint.radiusY === undefined ? radius : localLength(paint.radiusY, height, gradientUnits, 0.5);
     return {
       ...paint,
       cx: localCoordinate(paint.cx, width, gradientUnits, 0.5),
@@ -246,8 +248,8 @@ export function canonicalizePaint(
       fx: localCoordinate(paint.fx ?? paint.cx, width, gradientUnits, 0.5),
       fy: localCoordinate(paint.fy ?? paint.cy, height, gradientUnits, 0.5),
       radius,
-      radiusX: radius,
-      radiusY: radius,
+      radiusX,
+      radiusY,
       fr: localLength(paint.fr, Math.min(width, height), gradientUnits, 0),
       gradientUnits: "userSpaceOnUse",
       gradientTransform,

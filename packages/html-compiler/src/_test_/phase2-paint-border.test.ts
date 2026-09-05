@@ -20,6 +20,21 @@ describe("HTML/CSS compiler P2.2 borders", () => {
     });
   });
 
+  it("accepts deterministic 3D border styles in shorthand and longhands", () => {
+    const edges = parseBorderEdges(new Map([
+      ["border", "12px groove #38bdf8"],
+      ["border-right-style", "ridge"],
+      ["border-bottom", "12px inset #38bdf8"],
+      ["border-left-style", "outset"],
+    ]), 720, 16, viewport);
+    expect(edges).toMatchObject({
+      top: { width: 12, style: "groove", color: "#38bdf8" },
+      right: { width: 12, style: "ridge", color: "#38bdf8" },
+      bottom: { width: 12, style: "inset", color: "#38bdf8" },
+      left: { width: 12, style: "outset", color: "#38bdf8" },
+    });
+  });
+
   it("clamps per-corner and elliptical radii using adjacent sums", () => {
     expect(parseCornerRadii(new Map([["border-radius", "80px 40px 80px 40px"]]), 100, 60, 16, viewport)).toEqual({
       topLeft: { rx: 40, ry: 40 }, topRight: { rx: 20, ry: 20 }, bottomRight: { rx: 40, ry: 40 }, bottomLeft: { rx: 20, ry: 20 },
@@ -90,6 +105,26 @@ describe("HTML/CSS compiler P2.2 borders", () => {
       "box::border:top", "box::border:right", "box::border:bottom", "box::border:left",
     ]);
     expect(borders?.every((layer) => layer.type === "shape" && layer.payload.shape === "polygon")).toBe(true);
+  });
+
+  it("lowers advanced border styles to deterministic paint-only bands", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box"></div>`,
+      css: `#box { width: 240px; height: 120px; background: #172554; border-top: 12px groove #38bdf8; border-right: 12px ridge #38bdf8; border-bottom: 12px inset #38bdf8; border-left: 12px groove #38bdf8; }`,
+    }));
+    expect(result.status).toBe("success");
+    const layers = result.protocol?.layers ?? [];
+    const borders = layers.filter((layer) => layer.id.startsWith("box::border:"));
+    expect(borders).toHaveLength(7);
+    expect(borders.every((layer) => layer.type === "shape" && layer.payload.shape === "polygon")).toBe(true);
+    expect(new Set(borders.map((layer) => layer.type === "shape" ? layer.style.fill : ""))).toEqual(new Set(["#70cffa", "#2888b3"]));
+    const leftBand = borders.find((layer) => layer.id === "box::border:left:band-0");
+    expect(leftBand?.type).toBe("shape");
+    if (leftBand?.type === "shape") expect(leftBand.payload.points).toEqual([
+      { x: 0, y: 0 }, { x: 0, y: 144 }, { x: 6, y: 138 }, { x: 6, y: 6 },
+    ]);
+    const content = layers.find((layer) => layer.id === "box");
+    expect(content?.frame).toEqual({ width: 264, height: 144 });
   });
 
   it("uses path geometry for per-corner radius while keeping uniform radius compact", () => {

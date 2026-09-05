@@ -55,6 +55,10 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
     expect(defaultLinear?.style.fill).toMatchObject({ type: "linear-gradient", angle: 90 });
     const radial = compile("background: radial-gradient(circle at 25% 75%, #ffffff, #000000 80%);");
     expect(radial?.style.fill).toMatchObject({ type: "radial-gradient", cx: 0.25, cy: 0.75, stops: [{ offset: 0, color: "#ffffff" }, { offset: 0.8, color: "#000000" }] });
+    const ellipse = compile("background: radial-gradient(ellipse at 70% 45%, #ffffff 0%, #000000 70%);");
+    expect(ellipse?.style.fill).toMatchObject({ type: "radial-gradient", cx: 0.7, cy: 0.45 });
+    expect((ellipse?.style.fill as { radiusX: number; radiusY: number }).radiusX).toBeCloseTo(0.7 * Math.SQRT2, 8);
+    expect((ellipse?.style.fill as { radiusX: number; radiusY: number }).radiusY).toBeCloseTo(0.55 * Math.SQRT2, 8);
   });
 
   it("lowers conic gradients and preserves multiple background layer order", () => {

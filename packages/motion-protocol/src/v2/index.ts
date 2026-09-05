@@ -81,14 +81,22 @@ export {
   V2MaskUnitsSchema,
   V2MaskContentUnitsSchema,
   V2MaskTypeSchema,
+  V2MaskCompositeSchema,
   V2MaskLengthSchema,
+  V2MaskImageSourceSchema,
   V2MaskSchema,
+  V2MaskLayerSchema,
+  V2MaskLayerListSchema,
   V2MaskListSchema,
   type V2MaskUnits,
   type V2MaskContentUnits,
   type V2MaskType,
+  type V2MaskComposite,
+  type V2MaskImageSource,
   type V2MaskLength,
   type V2Mask,
+  type V2MaskLayer,
+  type V2MaskLayerList,
   type V2MaskList,
 } from "./mask";
 export {
@@ -242,6 +250,7 @@ export {
 } from "./transform";
 export {
   V2AnimatableValueSchema,
+  V2TrackPlaybackSchema,
   V2EasingSchema,
   V2InterpolationSchema,
   V2KeyframeSchema,
@@ -249,6 +258,7 @@ export {
   V2TrackSchema,
   V2TrackListSchema,
   type V2AnimatableValue,
+  type V2TrackPlayback,
   type V2Easing,
   type V2Interpolation,
   type V2Keyframe,

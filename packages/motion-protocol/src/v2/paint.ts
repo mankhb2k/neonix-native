@@ -74,6 +74,9 @@ export const V2GradientFillSchema = z.discriminatedUnion("type", [
       cx: V2SvgLengthSchema.optional(),
       cy: V2SvgLengthSchema.optional(),
       radius: V2PositiveSvgLengthSchema.optional(),
+      /** Independent radii preserve CSS ellipse geometry. */
+      radiusX: V2PositiveSvgLengthSchema.optional(),
+      radiusY: V2PositiveSvgLengthSchema.optional(),
       fx: V2SvgLengthSchema.optional(),
       fy: V2SvgLengthSchema.optional(),
       fr: V2NonNegativeSvgLengthSchema.optional(),

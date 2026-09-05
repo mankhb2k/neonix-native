@@ -44,6 +44,12 @@ INITIAL_VALUES.filter = "none";
 INITIAL_VALUES["mix-blend-mode"] = "normal";
 INITIAL_VALUES.isolation = "auto";
 INITIAL_VALUES["clip-path"] = "none";
+INITIAL_VALUES["mask-image"] = "none";
+INITIAL_VALUES["mask-position"] = "0% 0%";
+INITIAL_VALUES["mask-size"] = "auto";
+INITIAL_VALUES["mask-repeat"] = "repeat";
+INITIAL_VALUES["mask-mode"] = "alpha";
+INITIAL_VALUES["mask-composite"] = "add";
 for (const side of ["top", "right", "bottom", "left"]) {
   INITIAL_VALUES[`border-${side}-style`] = "none";
   INITIAL_VALUES[`border-${side}-width`] = "0px";

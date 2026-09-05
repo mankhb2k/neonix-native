@@ -12,7 +12,7 @@ export function expandShorthand(property: string, value: string): Array<[string,
     let style: string | undefined;
     let color: string | undefined;
     for (const token of tokens) {
-      if (["solid", "none", "dashed", "dotted", "double"].includes(token.toLowerCase())) style = token.toLowerCase();
+      if (["solid", "none", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset"].includes(token.toLowerCase())) style = token.toLowerCase();
       else if (isPaintToken(token)) color = token;
       else if (width === undefined) width = token;
       else return [[property, value]];

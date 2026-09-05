@@ -23,7 +23,7 @@ export type {
 } from "./source";
 import { CompileError, fail } from "./compiler/errors";
 import { parseHtml, neonixManifest, withoutNeonixManifest } from "./compiler/html";
-import { parseRules } from "./compiler/css-parser";
+import { parseAnimationStyles, parseRules } from "./compiler/css-parser";
 import { computed } from "./compiler/cascade";
 import { edges, number, resolveVar } from "./compiler/values";
 import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, parseShadows, type CornerRadius, type Paint, type Outline } from "./compiler/paint";
@@ -35,11 +35,13 @@ import { assertLayoutBox, compositionRect, paddingBox, type LayoutRect } from ".
 import { resolveFlexLayout } from "./compiler/flex";
 import { resolveGridLayout } from "./compiler/grid";
 import { mediaMimeType, mediaSource, parseImageFit, parseImageRendering, parseObjectPosition } from "./compiler/media";
-import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, type BackgroundBox, type BackgroundImage } from "./compiler/background";
+import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, parseMaskImages, type BackgroundBox, type BackgroundImage } from "./compiler/background";
 import { parseFilter } from "./compiler/filter";
 import { parseComposite } from "./compiler/composite";
 import { parseClipPath, type ClipReferenceBoxes } from "./compiler/clip";
 import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "./compiler/typography";
+import { splitTopLevel } from "./compiler/utils";
+import { animationTimelineDuration, lowerAnimationTracks } from "./compiler/animation";
 import type { Node, Style } from "./compiler/model";
 
 function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
@@ -97,7 +99,28 @@ function borderRegion(side: "top" | "right" | "bottom" | "left", width: number, 
   if (side === "top") return [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width - right, y: top }, { x: left, y: top }];
   if (side === "right") return [{ x: width, y: 0 }, { x: width, y: height }, { x: width - right, y: height - bottom }, { x: width - right, y: top }];
   if (side === "bottom") return [{ x: 0, y: height }, { x: width, y: height }, { x: width - right, y: height - bottom }, { x: left, y: height - bottom }];
-  return [{ x: 0, y: 0 }, { x: left, y: top }, { x: left, y: height - bottom }, { x: 0, y: height }];
+  // Keep the same correspondence as the other sides: outer edge first,
+  // inner edge second. This lets borderBand split by thickness rather than
+  // accidentally splitting the left edge along its length.
+  return [{ x: 0, y: 0 }, { x: 0, y: height }, { x: left, y: height - bottom }, { x: left, y: top }];
+}
+
+function shadeBorderColor(color: string, amount: number): string {
+  const match = color.match(/^#([0-9a-f]{6})([0-9a-f]{2})?$/i);
+  if (!match) return color;
+  const rgb = [0, 2, 4].map((offset) => Number.parseInt(match[1]!.slice(offset, offset + 2), 16));
+  const adjusted = rgb.map((channel) => Math.round(amount >= 0 ? channel + (255 - channel) * amount : channel * (1 + amount)));
+  return `#${adjusted.map((channel) => channel.toString(16).padStart(2, "0")).join("")}${match[2] ?? ""}`;
+}
+
+function borderBand(region: HtmlPoint[], from: number, to: number): HtmlPoint[] {
+  const lerp = (outer: HtmlPoint, inner: HtmlPoint, amount: number): HtmlPoint => ({
+    x: outer.x + (inner.x - outer.x) * amount,
+    y: outer.y + (inner.y - outer.y) * amount,
+  });
+  const startAt = (amount: number) => lerp(region[0]!, region[3]!, amount);
+  const endAt = (amount: number) => lerp(region[1]!, region[2]!, amount);
+  return [startAt(from), endAt(from), endAt(to), startAt(to)];
 }
 
 function circlePolygon(center: HtmlPoint, radius: number, count = 32): HtmlPoint[] {
@@ -230,18 +253,91 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     // The source envelope is the canonical composition contract. Keep the
     // legacy options as an escape hatch for duration/id, but never let them
     // make the browser and compiler disagree about the render viewport.
-    const embeddedComposition = neonixManifest(source.html); const composition = { ...DEFAULT_HTML_CSS_COMPOSITION, ...(options.composition ?? {}), ...source.composition, ...(embeddedComposition ?? {}) }; if (composition.width !== 1920 || composition.height !== 1080 || composition.fps !== 30 || composition.background !== "#081018" || composition.colorSpace !== "srgb") fail("html-composition-invalid", "HTML/CSS sources must use the fixed 1920x1080 @ 30 composition with #081018 srgb"); const width = composition.width; const height = composition.height; const fps = composition.fps; const duration = options.composition?.durationMs ?? 1000; const root = parseHtml(withoutNeonixManifest(source.html)); const rules = parseRules(source.css); const viewport = { width, height }; const findNode = (node: Node, tag: string): Node | undefined => node.tag === tag ? node : node.children.map((child) => findNode(child, tag)).find(Boolean); const body = findNode(root, "body"); const rootVars = new Map<string, string>(); for (const rule of rules) if (rule.selectors.some((selector) => selector.trim() === ":root")) for (const declaration of rule.declarations) if (declaration.property.startsWith("--")) rootVars.set(declaration.property, declaration.value);
+    const embeddedComposition = neonixManifest(source.html); const composition = { ...DEFAULT_HTML_CSS_COMPOSITION, ...(options.composition ?? {}), ...source.composition, ...(embeddedComposition ?? {}) }; if (composition.width !== 1920 || composition.height !== 1080 || composition.fps !== 30 || composition.background !== "#081018" || composition.colorSpace !== "srgb") fail("html-composition-invalid", "HTML/CSS sources must use the fixed 1920x1080 @ 30 composition with #081018 srgb"); const width = composition.width; const height = composition.height; const fps = composition.fps; const baseDuration = options.composition?.durationMs ?? 1000; const root = parseHtml(withoutNeonixManifest(source.html)); const parsedStylesheet = parseAnimationStyles(source.css); const rules = parseRules(parsedStylesheet.css); const keyframes = parsedStylesheet.keyframes; const viewport = { width, height }; const findNode = (node: Node, tag: string): Node | undefined => node.tag === tag ? node : node.children.map((child) => findNode(child, tag)).find(Boolean); const body = findNode(root, "body"); const rootVars = new Map<string, string>(); for (const rule of rules) if (rule.selectors.some((selector) => selector.trim() === ":root")) for (const declaration of rule.declarations) if (declaration.property.startsWith("--")) rootVars.set(declaration.property, declaration.value);
     const allNodes: Node[] = []; const visit = (node: Node) => { allNodes.push(node); node.children.forEach(visit); }; root.children.forEach(visit); const styles = new Map<Node, Style>();
-     const walkStyles = (node: Node, parent: Style) => { const style = computed(node, rules, parent); const scopedVars = new Map<string, string>(); for (const [property, value] of style) if (property.startsWith("--")) scopedVars.set(property, value); for (const [property, value] of [...style]) { const resolved = resolveVar(value, scopedVars, new Set()); style.set(property, resolved); if (property.startsWith("--")) scopedVars.set(property, resolved); } const currentColor = style.get("color") ?? parent.get("color") ?? "#000000"; for (const [property, value] of style) { if (property === "background" || property === "background-color") parsePaintLayers(value, property, currentColor); else if (property === "color" || property === "border-color" || property === "fill" || property === "stroke") { if (!(property === "fill" || property === "stroke") || value.toLowerCase() !== "none") parseColor(value, property, currentColor); } } styles.set(node, style); node.children.forEach((child) => walkStyles(child, style)); }; if (body) walkStyles(body, rootVars); else root.children.forEach((child) => walkStyles(child, rootVars));
-    if (body && !styles.has(body)) styles.set(body, computed(body, rules, new Map())); const bodyStyle = body ? styles.get(body)! : new Map<string, string>(); const backgroundColor = parseColor(composition.background, "composition background");
+    const walkStyles = (node: Node, parent: Style) => { const style = computed(node, rules, parent); const scopedVars = new Map<string, string>(); for (const [property, value] of style) if (property.startsWith("--")) scopedVars.set(property, value); for (const [property, value] of [...style]) { const resolved = resolveVar(value, scopedVars, new Set()); style.set(property, resolved); if (property.startsWith("--")) scopedVars.set(property, resolved); } const currentColor = style.get("color") ?? parent.get("color") ?? "#000000"; for (const [property, value] of style) { if (property === "background" || property === "background-color") parsePaintLayers(value, property, currentColor); else if (property === "mask-image") parseMaskImages(style, currentColor, { width, height }); else if (property === "color" || property === "border-color" || property === "fill" || property === "stroke") { if (!(property === "fill" || property === "stroke") || value.toLowerCase() !== "none") parseColor(value, property, currentColor); } } styles.set(node, style); node.children.forEach((child) => walkStyles(child, style)); }; if (body) walkStyles(body, rootVars); else root.children.forEach((child) => walkStyles(child, rootVars));
+    if (body && !styles.has(body)) styles.set(body, computed(body, rules, new Map())); const duration = Math.max(baseDuration, ...[...styles.values()].map(animationTimelineDuration)); const bodyStyle = body ? styles.get(body)! : new Map<string, string>(); const backgroundColor = parseColor(composition.background, "composition background");
     type ContainingBlock = LayoutRect;
     type FlowState = { flowY: number; previousBottomMargin: number; hasFlowChild: boolean };
-    const layers: MotionProtocolV2["layers"] = []; const assets: NonNullable<MotionProtocolV2["assets"]> = []; const clipPaths: NonNullable<MotionProtocolV2["clipPaths"]> = []; const origins = new Map<Node, { x: number; y: number }>(); const flowOrigins = new Map<Node, { x: number; y: number }>(); const sizes = new Map<Node, { width: number; height: number }>(); const layoutBoxes = new Map<Node, ReturnType<typeof resolveGeometry>["layoutBox"]>(); const layoutOverrides = new Map<Node, { x: number; y: number; width: number; height: number }>();
+    const layers: MotionProtocolV2["layers"] = []; const assets: NonNullable<MotionProtocolV2["assets"]> = []; const clipPaths: NonNullable<MotionProtocolV2["clipPaths"]> = []; const masks: NonNullable<MotionProtocolV2["masks"]> = []; const origins = new Map<Node, { x: number; y: number }>(); const flowOrigins = new Map<Node, { x: number; y: number }>(); const sizes = new Map<Node, { width: number; height: number }>(); const layoutBoxes = new Map<Node, ReturnType<typeof resolveGeometry>["layoutBox"]>(); const layoutOverrides = new Map<Node, { x: number; y: number; width: number; height: number }>();
     const addAssets = (items: readonly NonNullable<MotionProtocolV2["assets"]>[number][]) => { for (const asset of items) if (!assets.some((candidate) => candidate.id === asset.id)) assets.push(asset); };
     const mediaAsset = (node: Node, kind: "image" | "video", uri: string, suffix = "asset") => {
       const id = `${node.atomicId}-${suffix}`;
       if (!assets.some((asset) => asset.id === id)) assets.push({ id, kind, uri, mimeType: mediaMimeType(uri, kind) });
       return id;
+    };
+    const maskSourceStyle = (style: Style): Style => new Map([
+      ["background-position", style.get("mask-position") ?? "0% 0%"],
+      ["background-size", style.get("mask-size") ?? "auto"],
+      ["background-repeat", style.get("mask-repeat") ?? "repeat"],
+    ]);
+    const maskListValue = (value: string | undefined, index: number, fallback: string): string => {
+      const values = splitTopLevel(value ?? fallback, ",").map((item) => item.trim()).filter(Boolean);
+      return values[index] ?? values[values.length - 1] ?? fallback;
+    };
+    const parseMaskMode = (style: Style, index: number): "alpha" | "luminance" => {
+      const value = maskListValue(style.get("mask-mode"), index, "alpha").toLowerCase();
+      if (value !== "alpha" && value !== "luminance") fail("css-mask-mode-unsupported", `Unsupported mask-mode value: ${value}`);
+      return value as "alpha" | "luminance";
+    };
+    const parseMaskComposite = (style: Style, index: number): "add" | "subtract" | "intersect" | "exclude" => {
+      const value = maskListValue(style.get("mask-composite"), index, "add").toLowerCase();
+      if (!["add", "subtract", "intersect", "exclude"].includes(value)) fail("css-mask-composite-unsupported", `Unsupported mask-composite value: ${value}`);
+      return value as "add" | "subtract" | "intersect" | "exclude";
+    };
+    const lowerMaskImages = (node: Node, style: Style, currentColor: string, targetWidth: number, targetHeight: number): NonNullable<MotionProtocolV2["layers"][number]["maskLayers"]> | undefined => {
+      const images = parseMaskImages(style, currentColor, { width: targetWidth, height: targetHeight });
+      if (images.length === 0) return undefined;
+      const maskRefs: Array<{ maskIds: string[]; mode: "alpha" | "luminance"; composite: "add" | "subtract" | "intersect" | "exclude" }> = [];
+      const sourceStyle = maskSourceStyle(style);
+      images.forEach((image, imageIndex) => {
+        const mode = parseMaskMode(style, imageIndex);
+        // CSS has one composite operator between each pair of mask layers;
+        // a stack of N images therefore consumes N - 1 values. The first
+        // layer establishes the initial coverage and does not consume one.
+        const composite = imageIndex === 0 ? "add" : parseMaskComposite(style, imageIndex - 1);
+        const position = parseBackgroundPosition(sourceStyle, 0);
+        const size = parseBackgroundSize(sourceStyle, 0, targetWidth, targetHeight);
+        const repeat = parseBackgroundRepeat(sourceStyle, 0);
+        const origin = { x: 0, y: 0, width: targetWidth, height: targetHeight };
+        const drawWidth = size.type === "length" ? Math.max(1, size.width) : origin.width;
+        const drawHeight = size.type === "length" ? Math.max(1, size.height) : origin.height;
+        const startX = origin.x + (origin.width - drawWidth) * position.x;
+        const startY = origin.y + (origin.height - drawHeight) * position.y;
+        const xRepeats = repeat === "repeat" || repeat === "repeat-x";
+        const yRepeats = repeat === "repeat" || repeat === "repeat-y";
+        if ((xRepeats || yRepeats) && size.type !== "length") fail("css-mask-repeat-needs-size", "Repeating a CSS mask requires an explicit two-dimensional mask-size");
+        const xStart = xRepeats ? Math.floor((origin.x - startX) / drawWidth) - 1 : 0;
+        const xEnd = xRepeats ? Math.ceil((origin.x + origin.width - startX) / drawWidth) + 1 : 0;
+        const yStart = yRepeats ? Math.floor((origin.y - startY) / drawHeight) - 1 : 0;
+        const yEnd = yRepeats ? Math.ceil((origin.y + origin.height - startY) / drawHeight) + 1 : 0;
+        const tileCount = Math.max(1, xEnd - xStart + 1) * Math.max(1, yEnd - yStart + 1);
+        if (tileCount > 4096) fail("css-mask-repeat-too-many-tiles", "mask-repeat would generate more than 4096 deterministic tiles");
+        const maskIds: string[] = [];
+        if (image.type === "paint") {
+          const children: Array<{ type: "rect"; x: number; y: number; width: number; height: number; fill: Exclude<Paint, string> }> = [];
+          let tileIndex = 0;
+          for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
+            if (xRepeats || yRepeats || tileIndex === 0) children.push({ type: "rect", x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fill: image.paint });
+            tileIndex += 1;
+          }
+          const id = `${node.atomicId}-mask-${imageIndex}`;
+          masks.push({ id, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", maskType: mode, children });
+          maskIds.push(id);
+        } else {
+          let tileIndex = 0;
+          for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
+            if (xRepeats || yRepeats || tileIndex === 0) {
+              const id = `${node.atomicId}-mask-${imageIndex}-${tileIndex}`;
+              masks.push({ id, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", maskType: mode, image: { type: "image", assetId: mediaAsset(node, "image", image.uri, `mask-${imageIndex}-${tileIndex}-asset`), x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fit: "fill" } });
+              maskIds.push(id);
+            }
+            tileIndex += 1;
+          }
+        }
+        maskRefs.push({ maskIds, mode, composite });
+      });
+      return maskRefs;
     };
     const backgroundBox = (geometry: ReturnType<typeof resolveGeometry>, box: BackgroundBox): LayoutRect => {
       const border = geometry.borderEdges;
@@ -324,6 +420,24 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const cornerRadius = parseCornerRadii(style, w, h, font, viewport);
          const outline = parseOutline(style, containingWidth, font, viewport);
          const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
+         const animationTracks = lowerAnimationTracks(style, keyframes, {
+           width: w,
+           height: h,
+           fontSize: font,
+           viewport,
+           currentColor,
+           layoutTranslate: { x: localX, y: localY },
+           containingWidth,
+           containingHeight,
+           baseFrame: { width: w, height: h },
+           boxSizing: geometry.boxSizing,
+           frameDecorations: { width: Math.max(0, w - geometry.contentWidth), height: Math.max(0, h - geometry.contentHeight) },
+         });
+         const paintAnimationTracks = [
+           ...animationTracks.paint.filter((track) => track.path === "style.fill"),
+           ...animationTracks.group.filter((track) => track.path === "frame.width" || track.path === "frame.height"),
+         ];
+         const borderAnimationTracks = animationTracks.paint.filter((track) => track.path === "style.stroke" || track.path === "style.strokeWidth");
          const textShadows = parseShadows(style, "text-shadow", containingWidth, font, viewport, currentColor);
          const boxShadows = parseShadows(style, "box-shadow", containingWidth, font, viewport, currentColor);
          const filterEffects = parseFilter(style.get("filter"), containingWidth, font, viewport, currentColor);
@@ -365,7 +479,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                order: outlineOrder + index,
                frame: { width: w, height: h },
                transform,
-               opacity,
+               opacity: insideGroup ? 1 : opacity,
                ...state,
                timing: { start: 0, duration },
                payload: { shape: "polygon", points: side.points },
@@ -380,13 +494,14 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
              order: outlineOrder,
              frame: { width: w, height: h },
              transform,
-             opacity,
+             opacity: insideGroup ? 1 : opacity,
              ...state,
              timing: { start: 0, duration },
              payload: { contours: outlineContours(w, h, cornerRadius, outline, `${groupId}::outline-contour`), fillRule: "evenodd" },
              style: { fill: outline.color },
            } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
          };
+         const maskLayerRefs = lowerMaskImages(node, style, style.get("color") ?? parentStyle.get("color") ?? "#000000", w, h);
          if (node.tag === "img") {
            const source = mediaSource(node);
            const fit = parseImageFit(style);
@@ -396,7 +511,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
              ? { align: "none" as const }
              : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
             const clipPathId = elementClipPath();
-            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
+            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
            emitOutline(false);
            return;
          }
@@ -404,7 +519,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const source = mediaSource(node);
             const fit = parseImageFit(style);
              const clipPathId = elementClipPath();
-             layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
+            layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             emitOutline(false);
             return;
           }
@@ -443,6 +558,8 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               ...compositeState,
               ...(textEffects.length ? { effects: textEffects } : {}),
               ...(textClipId ? { clipPath: textClipId } : {}),
+              ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}),
+              ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}),
               timing: { start: 0, duration },
               payload: {
                 source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
@@ -481,15 +598,19 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
            if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
            const clipPathId = elementClipPath();
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
           // scope. A border is a separate pass so its centered stroke can be
           // inset without changing the element's sibling order.
           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
            const clipPathId = elementClipPath();
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined;
-           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), timing: { start: 0, duration } });
+           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0;
+           // Element opacity belongs to the stacking group. Generated paint
+           // passes are children of that group and must remain opaque, or a
+           // non-default CSS opacity would be multiplied twice by runtime.
+           const paintOpacity = needsPaintGroup ? 1 : opacity;
+           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
            const paintLayerBaseOrder = layers.length;
            paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;
@@ -508,9 +629,9 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             // generated path contours. A union of local rectangle/ellipse
             // atoms keeps the exact CSS rounded silhouette while the border
             // itself remains a path contour below.
-            roundedRectFillPieces(paintBox.width, paintBox.height, cornerRadius).forEach((piece, pieceIndex) => layers.push({ id: `${paintId}:fill:${pieceIndex}`, type: "shape", parentLayerId: needsPaintGroup ? groupId : parentId, order: order + pieceIndex, frame: { width: piece.width, height: piece.height }, transform: transformFor((needsPaintGroup ? paintBox.x : localX + paintBox.x) + piece.x, (needsPaintGroup ? paintBox.y : localY + paintBox.y) + piece.y, !needsPaintGroup), opacity, ...state, timing: { start: 0, duration }, payload: { shape: piece.shape }, style: { fill } }));
+            roundedRectFillPieces(paintBox.width, paintBox.height, cornerRadius).forEach((piece, pieceIndex) => layers.push({ id: `${paintId}:fill:${pieceIndex}`, type: "shape", parentLayerId: needsPaintGroup ? groupId : parentId, order: order + pieceIndex, frame: { width: piece.width, height: piece.height }, transform: transformFor((needsPaintGroup ? paintBox.x : localX + paintBox.x) + piece.x, (needsPaintGroup ? paintBox.y : localY + paintBox.y) + piece.y, !needsPaintGroup), opacity: paintOpacity, ...state, ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}), timing: { start: 0, duration }, payload: { shape: piece.shape }, style: { fill } }));
           }
-          else layers.push({ id: paintId, type: "shape", parentLayerId: needsPaintGroup ? groupId : parentId, order, frame: { width: paintBox.width, height: paintBox.height }, transform: paintTransform, opacity, ...state, timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius === undefined ? {} : { cornerRadius }) }, style: { fill } });
+          else layers.push({ id: paintId, type: "shape", parentLayerId: needsPaintGroup ? groupId : parentId, order, frame: { width: paintBox.width, height: paintBox.height }, transform: paintTransform, opacity: paintOpacity, ...state, ...(paintAnimationTracks.length ? { tracks: paintAnimationTracks } : {}), timing: { start: 0, duration }, payload: { shape: "rectangle", ...(cornerRadius === undefined ? {} : { cornerRadius }) }, style: { fill } });
            });
            if (backgroundImages.length > 0) {
              const alignFor = (position: ReturnType<typeof parseBackgroundPosition>) => `${position.x === 0 ? "xMin" : position.x === 1 ? "xMax" : "xMid"}${position.y === 0 ? "YMin" : position.y === 1 ? "YMax" : "YMid"}` as "xMinYMin" | "xMidYMin" | "xMaxYMin" | "xMinYMid" | "xMidYMid" | "xMaxYMid" | "xMinYMax" | "xMidYMax" | "xMaxYMax";
@@ -522,11 +643,11 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                const id = `${groupId}::background:${imageIndex}${tileIndex === 0 ? "" : `:${tileIndex}`}`;
                const parentLayerId = groupId;
                if (image.type === "paint") {
-                 layers.push({ id, type: "shape", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { shape: "rectangle" }, style: { fill: image.paint } });
+                 layers.push({ id, type: "shape", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { shape: "rectangle" }, style: { fill: image.paint } });
                  return;
                }
                const preserveAspectRatio = fit === "fill" ? { align: "none" as const } : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
-               layers.push({ id, type: "image", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", image.uri, `background-${imageIndex}-${tileIndex}-asset`), x: 0, y: 0, width: drawWidth, height: drawHeight, fit, preserveAspectRatio } });
+               layers.push({ id, type: "image", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", image.uri, `background-${imageIndex}-${tileIndex}-asset`), x: 0, y: 0, width: drawWidth, height: drawHeight, fit, preserveAspectRatio } });
              };
              backgroundImages.forEach((image, imageIndex) => {
                const origin = boxFor(parseBackgroundBox(style, "background-origin", imageIndex));
@@ -570,10 +691,25 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                order: borderOrder,
                frame: { width: borderBox.width, height: borderBox.height },
                transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
-               opacity,
+               opacity: paintOpacity,
                ...state,
+               ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                timing: { start: 0, duration },
                payload: { contours: [roundedRectContour(borderBox.width, borderBox.height, cornerRadius)] },
+               style: { fill: "none", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width },
+             } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
+             else if (uniformBorder && borderAnimationTracks.length > 0) layers.push({
+               id: borderId,
+               type: "path",
+               parentLayerId: needsPaintGroup ? groupId : parentId,
+               order: borderOrder,
+               frame: { width: borderBox.width, height: borderBox.height },
+               transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
+               opacity: paintOpacity,
+               ...state,
+               tracks: borderAnimationTracks,
+               timing: { start: 0, duration },
+               payload: { contours: [rectangleContour(borderBox.width, borderBox.height, Object.values(border)[0]!.width / 2, `${borderId}:animated-contour`)] },
                style: { fill: "none", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width },
              } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
              else if (uniformBorder) layers.push({
@@ -583,8 +719,9 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                order: borderOrder,
                frame: { width: borderWidth, height: borderHeight },
                transform: transformFor(needsPaintGroup ? inset : localX + inset, needsPaintGroup ? inset : localY + inset, !needsPaintGroup),
-               opacity,
+               opacity: paintOpacity,
                ...state,
+               ...(borderAnimationTracks.length ? { tracks: borderAnimationTracks } : {}),
                timing: { start: 0, duration },
                payload: { shape: "rectangle", ...(typeof cornerRadius === "number" ? { cornerRadius: Math.max(0, cornerRadius - inset) } : {}) },
                style: { fill: "#00000000", stroke: Object.values(border)[0]!.color, strokeWidth: Object.values(border)[0]!.width },
@@ -608,7 +745,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                  order: borderOrder,
                  frame: { width: borderBox.width, height: borderBox.height },
                  transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
-                 opacity,
+                 opacity: paintOpacity,
                  ...state,
                  timing: { start: 0, duration },
                  payload: {
@@ -629,6 +766,37 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
              else {
                const emitBorderSide = (side: "top" | "right" | "bottom" | "left", index: number) => {
                  const config = border[side]; if (config.width <= 0 || config.style === "none") return;
+                 if (config.style === "groove" || config.style === "ridge" || config.style === "inset" || config.style === "outset") {
+                   const region = borderRegion(side, borderBox.width, borderBox.height, border.top.width, border.right.width, border.bottom.width, border.left.width);
+                   const light = shadeBorderColor(config.color, 0.28);
+                   const dark = shadeBorderColor(config.color, -0.28);
+                   const topOrLeft = side === "top" || side === "left";
+                   const pushBand = (bandIndex: number, from: number, to: number, color: string) => layers.push({
+                     id: `${borderId}:${side}:band-${bandIndex}`,
+                     type: "shape",
+                     parentLayerId: needsPaintGroup ? groupId : parentId,
+                     order: borderOrder + index * 100 + bandIndex,
+                     frame: { width: borderBox.width, height: borderBox.height },
+                     transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
+                     opacity: paintOpacity,
+                     ...state,
+                     timing: { start: 0, duration },
+                     payload: { shape: "polygon", points: borderBand(region, from, to) },
+                     style: { fill: color },
+                   } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
+                   if (config.style === "inset" || config.style === "outset") {
+                     const lightSide = config.style === "outset" ? topOrLeft : !topOrLeft;
+                     pushBand(0, 0, 1, lightSide ? light : dark);
+                   } else {
+                     // Fixed lighting contract: groove is recessed and ridge is
+                     // raised. Each side is split across its physical border
+                     // width, so shading never changes layout geometry.
+                     const outerDark = config.style === "groove" ? topOrLeft : !topOrLeft;
+                     pushBand(0, 0, 0.5, outerDark ? dark : light);
+                     pushBand(1, 0.5, 1, outerDark ? light : dark);
+                   }
+                   return;
+                 }
                  // CSS does not paint unequal solid borders as four centered
                  // strokes. Each edge owns a trapezoid and adjacent edges
                  // meet on a diagonal at the corner. Using a butt-capped
@@ -656,7 +824,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                      order: borderOrder + index * 10,
                      frame: { width, height },
                      transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup),
-                     opacity,
+                     opacity: paintOpacity,
                      ...state,
                      timing: { start: 0, duration },
                      payload: { shape: "polygon", points },
@@ -677,7 +845,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                          : [{ x: side === "left" ? 0 : borderBox.width - config.width, y: run.offset }, { x: side === "left" ? config.width : borderBox.width, y: run.offset }, { x: side === "left" ? config.width : borderBox.width, y: run.offset + run.length }, { x: side === "left" ? 0 : borderBox.width - config.width, y: run.offset + run.length }];
                        const points = clipConvexPolygon(base, region);
                        if (points.length < 3) return;
-                       layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(0, 0, false), opacity, ...state, timing: { start: 0, duration }, payload: { shape: "polygon", points }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
+                       layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(0, 0, false), opacity: paintOpacity, ...state, timing: { start: 0, duration }, payload: { shape: "polygon", points }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
                        return;
                      }
                      const center = horizontal
@@ -687,12 +855,12 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                      if (cornerRun) {
                        const points = clipConvexPolygon(circlePolygon(center, config.width / 2), region);
                        if (points.length < 3) return;
-                       layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(0, 0, false), opacity, ...state, timing: { start: 0, duration }, payload: { shape: "polygon", points }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
+                       layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(0, 0, false), opacity: paintOpacity, ...state, timing: { start: 0, duration }, payload: { shape: "polygon", points }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
                        return;
                      }
                      const offsetX = horizontal ? center.x - config.width / 2 : side === "left" ? 0 : borderBox.width - config.width;
                      const offsetY = horizontal ? (side === "top" ? 0 : borderBox.height - config.width) : center.y - config.width / 2;
-                     layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: config.width, height: config.width }, transform: transformFor(offsetX, offsetY, false), opacity, ...state, timing: { start: 0, duration }, payload: { shape: "ellipse" }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
+                     layers.push({ id: `${borderId}:${side}:${runIndex}`, type: "shape", parentLayerId: groupId, order: borderOrder + index * 10000 + runIndex, frame: { width: config.width, height: config.width }, transform: transformFor(offsetX, offsetY, false), opacity: paintOpacity, ...state, timing: { start: 0, duration }, payload: { shape: "ellipse" }, style: { fill: config.color } } as Extract<MotionProtocolV2["layers"][number], { type: "shape" }>);
                    });
                    return;
                  }
@@ -725,7 +893,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                    const movedEnd = horizontal
                      ? { x: isDouble && pass === 1 ? borderBox.width - config.width : end.x, y: movedStart.y }
                      : { x: movedStart.x, y: isDouble && pass === 1 ? borderBox.height - config.width : end.y };
-                   layers.push({ id: `${borderId}:${side}:${pass}`, type: "path", parentLayerId: needsPaintGroup ? groupId : parentId, order: borderOrder + index * 10 + pass, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup), opacity, ...state, timing: { start: 0, duration }, payload: { contours: [{ id: `${borderId}:${side}:${pass}-contour`, start: movedStart, segments: [{ kind: "line", to: movedEnd }], closed: false }] }, style: { fill: "none", stroke: config.color, strokeWidth: isDouble ? config.width / 3 : config.width, strokeCap: config.style === "dotted" ? "round" : "butt", ...(dash ? { strokeDash: dash } : {}) } } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
+                   layers.push({ id: `${borderId}:${side}:${pass}`, type: "path", parentLayerId: needsPaintGroup ? groupId : parentId, order: borderOrder + index * 10 + pass, frame: { width: borderBox.width, height: borderBox.height }, transform: transformFor(needsPaintGroup ? 0 : localX, needsPaintGroup ? 0 : localY, !needsPaintGroup), opacity: paintOpacity, ...state, timing: { start: 0, duration }, payload: { contours: [{ id: `${borderId}:${side}:${pass}-contour`, start: movedStart, segments: [{ kind: "line", to: movedEnd }], closed: false }] }, style: { fill: "none", stroke: config.color, strokeWidth: isDouble ? config.width / 3 : config.width, strokeCap: config.style === "dotted" ? "round" : "butt", ...(dash ? { strokeDash: dash } : {}) } } as Extract<MotionProtocolV2["layers"][number], { type: "path" }>);
                  }
                };
                (["top", "right", "bottom", "left"] as const).forEach((side, index) => emitBorderSide(side, index));
@@ -801,7 +969,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     }
     const rootContainingBlock: ContainingBlock = compositionRect(width, height);
     if (body) layoutFlowChildren(body.children, body, 0, 0, width, height, bodyStyle, rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false }); else layoutFlowChildren(root.children, null, 0, 0, width, height, new Map(), rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false });
-    const protocol = MotionProtocolV2Schema.parse({ format: "motion-protocol", formatVersion: 2, id: options.composition?.id ?? "gold-01-rectangle-solid-v1", composition: { width, height, fps, background: backgroundColor, colorSpace: composition.colorSpace, view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } }, assets, layers, ...(clipPaths.length ? { clipPaths } : {}), audio: { sampleRate: 48000, tracks: [] } });
+    const protocol = MotionProtocolV2Schema.parse({ format: "motion-protocol", formatVersion: 2, id: options.composition?.id ?? "gold-01-rectangle-solid-v1", composition: { width, height, fps, background: backgroundColor, colorSpace: composition.colorSpace, view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } }, assets, layers, ...(clipPaths.length ? { clipPaths } : {}), ...(masks.length ? { masks } : {}), audio: { sampleRate: 48000, tracks: [] } });
     return { status: "success", source, protocol, diagnostics: [] };
   } catch (error) { const diagnostic = error instanceof CompileError ? { severity: "error" as const, code: error.code, message: error.message, ...(error.source ? { source: error.source } : {}) } : { severity: "error" as const, code: "html-compiler-internal", message: error instanceof Error ? error.message : String(error) }; return { status: "error", source, protocol: null, diagnostics: [diagnostic] }; }
 }

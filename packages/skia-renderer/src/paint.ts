@@ -112,6 +112,20 @@ function gradientLocalMatrix(gradient: PaintFillGradient): number[] | undefined 
   return transformMatrix(transform);
 }
 
+function multiplyMatrix3(a: number[], b: number[]): number[] {
+  return [
+    a[0]! * b[0]! + a[1]! * b[3]! + a[2]! * b[6]!,
+    a[0]! * b[1]! + a[1]! * b[4]! + a[2]! * b[7]!,
+    a[0]! * b[2]! + a[1]! * b[5]! + a[2]! * b[8]!,
+    a[3]! * b[0]! + a[4]! * b[3]! + a[5]! * b[6]!,
+    a[3]! * b[1]! + a[4]! * b[4]! + a[5]! * b[7]!,
+    a[3]! * b[2]! + a[4]! * b[5]! + a[5]! * b[8]!,
+    a[6]! * b[0]! + a[7]! * b[3]! + a[8]! * b[6]!,
+    a[6]! * b[1]! + a[7]! * b[4]! + a[8]! * b[7]!,
+    a[6]! * b[2]! + a[7]! * b[5]! + a[8]! * b[8]!,
+  ];
+}
+
 function conicLocalMatrix(
   gradient: PaintFillGradient,
   center: Point,
@@ -170,6 +184,8 @@ function radialGeometry(gradient: PaintFillGradient, width: number, height: numb
   center: Point;
   focus: Point;
   radius: number;
+  radiusX: number;
+  radiusY: number;
   focusRadius: number;
 } {
   const units = gradient.gradientUnits ?? "objectBoundingBox";
@@ -177,12 +193,45 @@ function radialGeometry(gradient: PaintFillGradient, width: number, height: numb
   const scaleY = units === "objectBoundingBox" ? height : 1;
   const center: Point = [(gradient.cx ?? 0.5) * scaleX, (gradient.cy ?? 0.5) * scaleY];
   const focus: Point = [(gradient.fx ?? gradient.cx ?? 0.5) * scaleX, (gradient.fy ?? gradient.cy ?? 0.5) * scaleY];
+  const radius = (gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? Math.min(width, height) : 1);
+  const radiusX = (gradient.radiusX ?? gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? width : 1);
+  const radiusY = (gradient.radiusY ?? gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? height : 1);
   return {
     center,
     focus,
-    radius: (gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
+    radius,
+    radiusX,
+    radiusY,
     focusRadius: (gradient.fr ?? 0) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
   };
+}
+
+function radialLocalMatrix(gradient: PaintFillGradient, geometry: ReturnType<typeof radialGeometry>): number[] | undefined {
+  const isEllipse = Math.abs(geometry.radiusX - geometry.radiusY) > 1e-6;
+  const transform = gradientLocalMatrix(gradient);
+  if (!isEllipse) return transform;
+
+  // MakeRadialGradient is circular. Keep its canonical radius and stretch
+  // that circle by the X/Y ratios around the existing gradient center. Using
+  // ratios is important because the shader already owns a physical radius;
+  // an absolute-pixel scale would move the center in shader-local space.
+  const baseRadius = Math.max(Math.abs(geometry.radius), 1e-6);
+  const rx = Math.max(Math.abs(geometry.radiusX), 1e-6) / baseRadius;
+  const ry = Math.max(Math.abs(geometry.radiusY), 1e-6) / baseRadius;
+  const cx = geometry.center[0];
+  const cy = geometry.center[1];
+  const ellipse: Matrix3 = [
+    rx,
+    0,
+    cx - rx * cx,
+    0,
+    ry,
+    cy - ry * cy,
+    0,
+    0,
+    1,
+  ];
+  return transform ? multiplyMatrix3(transform, ellipse) : ellipse;
 }
 
 function makeGradientShader(
@@ -203,6 +252,8 @@ function makeGradientShader(
   }
   if (paintGradient.type === "radial-gradient") {
     const geometry = radialGeometry(paintGradient, width, height);
+    const isEllipse = Math.abs(geometry.radiusX - geometry.radiusY) > 1e-6;
+    const shaderRadius = geometry.radius;
     if (
       kit.Shader.MakeTwoPointConicalGradient &&
       (geometry.focus[0] !== geometry.center[0] || geometry.focus[1] !== geometry.center[1] || geometry.focusRadius !== 0)
@@ -211,15 +262,15 @@ function makeGradientShader(
         geometry.focus,
         geometry.focusRadius,
         geometry.center,
-        geometry.radius,
+        shaderRadius,
         colors,
         positions,
         mode,
-        gradientLocalMatrix(paintGradient),
+        radialLocalMatrix(paintGradient, geometry),
         0,
       );
     }
-    return kit.Shader.MakeRadialGradient(geometry.center, geometry.radius, colors, positions, mode, gradientLocalMatrix(paintGradient), 0);
+    return kit.Shader.MakeRadialGradient(geometry.center, shaderRadius, colors, positions, mode, radialLocalMatrix(paintGradient, geometry), 0);
   }
   const units = paintGradient.gradientUnits ?? "objectBoundingBox";
   const scaleX = units === "objectBoundingBox" ? width : 1;

@@ -1,7 +1,6 @@
 import { fail } from "./errors";
 import { edges, number } from "./values";
 import { parseAspectRatio, parseBorderEdges } from "./paint";
-import { constrainToComposition } from "./layout";
 import { makeLayoutBox, type LayoutBox } from "./layout-ir";
 import type { Style } from "./model";
 
@@ -172,21 +171,26 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   }
   const contentWidth = Math.max(0, borderBoxWidth - horizontalDecorations);
   const contentHeight = Math.max(0, borderBoxHeight - verticalDecorations);
-  const bounded = constrainToComposition(requestedX, requestedY, borderBoxWidth, borderBoxHeight, viewport.width, viewport.height);
-
   return {
-    x: bounded.x,
-    y: bounded.y,
+    // Keep the CSS layout box intact even when it crosses the composition
+    // edge. The renderer's composition surface performs the final clip;
+    // clamping here would change mask/background reference geometry and make
+    // an overflowing element differ from browser CSS.
+    x: requestedX,
+    y: requestedY,
     normalX,
     normalY,
-    width: bounded.width,
-    height: bounded.height,
+    width: borderBoxWidth,
+    height: borderBoxHeight,
     contentWidth,
     contentHeight,
     padding,
     borderEdges,
     borderWidth,
     boxSizing,
-    layoutBox: makeLayoutBox(bounded, { x: bounded.x + borderEdges[3] + padding[3], y: bounded.y + borderEdges[0] + padding[0], width: contentWidth, height: contentHeight }),
+    layoutBox: makeLayoutBox(
+      { x: requestedX, y: requestedY, width: borderBoxWidth, height: borderBoxHeight },
+      { x: requestedX + borderEdges[3] + padding[3], y: requestedY + borderEdges[0] + padding[0], width: contentWidth, height: contentHeight },
+    ),
   };
 }

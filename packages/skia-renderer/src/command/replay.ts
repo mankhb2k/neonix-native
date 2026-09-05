@@ -5,7 +5,7 @@ import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
 import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, unionBounds } from "./geometry";
 import { effectFilterFor } from "./effects";
-import { applyClipPath, applyMaskSource, maskColorAlpha, sourcePathCommands } from "./masks";
+import { applyClipPath, drawMaskSource, sourcePathCommands } from "./masks";
 import { drawAsset } from "./images";
 import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
 import { blendModeFor, configureStroke } from "./paint";
@@ -29,6 +29,7 @@ export function replaySkiaCommands(
   assets: ReadonlyMap<string, SkiaAsset> = new Map(),
   defaultBackground = "#000000",
   typefaceFor: SkiaTypefaceResolver = () => null,
+  deviceScale = 1,
 ): SkiaReplayStats {
   const stats: SkiaReplayStats = {
     drawCalls: 0,
@@ -45,11 +46,15 @@ export function replaySkiaCommands(
   const semanticSources = sourcePathCommands(buffer);
   const layers: ReplayLayer[] = [];
   let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  let frameWidth = 0;
+  let frameHeight = 0;
   const isBlocked = () => layers.some((layer) => layer.blocked);
   const addDiagnostic = (value: string) => stats.diagnostics.push(value);
 
   for (const command of buffer.commands) {
     if (command.op === "beginFrame") {
+      frameWidth = command.width;
+      frameHeight = command.height;
       const [backgroundR, backgroundG, backgroundB, backgroundA] = cssColorToRgba(command.background ?? defaultBackground);
       canvas.clear(kit.Color(backgroundR * 255, backgroundG * 255, backgroundB * 255, backgroundA));
       pendingTransform = null;
@@ -68,7 +73,10 @@ export function replaySkiaCommands(
     }
     if (command.op === "beginLayer") {
       const clipSourceKeys = new Set(command.clipPath?.sourceKeys ?? (command.clipPath ? [command.clipPath.sourceKey] : []));
-      const maskSourceKeys = new Set(command.mask?.sourceKeys ?? (command.mask ? [command.mask.sourceKey] : []));
+      const maskSourceKeys = new Set([
+        ...(command.mask?.sourceKeys ?? (command.mask ? [command.mask.sourceKey] : [])),
+        ...(command.mask?.layers?.flatMap((maskLayer) => maskLayer.sourceKeys) ?? []),
+      ]);
       const layer: ReplayLayer = {
         key: command.key,
         saved: false,
@@ -76,6 +84,7 @@ export function replaySkiaCommands(
         clipSourceKeys,
         maskMode: command.mask?.mode === "alpha" || command.mask?.mode === "luma" ? command.mask.mode : undefined,
         maskSourceKeys,
+        maskLayers: command.mask?.layers?.flatMap((maskLayer) => maskLayer.mode === "clip" ? [] : [{ mode: maskLayer.mode, sourceKeys: maskLayer.sourceKeys, composite: maskLayer.composite }]),
         noiseEffect: command.effectProgram?.ops.length === 1 && command.effectProgram.ops[0]?.kind === "noise"
           ? command.effectProgram.ops[0]
           : undefined,
@@ -83,24 +92,15 @@ export function replaySkiaCommands(
       layers.push(layer);
       const effectFilter = effectFilterFor(kit, command.effectProgram);
       if (command.effectProgram && !effectFilter.supported) addDiagnostic(`skia_effect_unsupported:${command.key}`);
-      let maskCoverage = 1;
-      if (command.mask && command.mask.mode !== "clip") {
-        for (const sourceKey of maskSourceKeys) {
-          const source = semanticSources.get(sourceKey);
-          if (!source) {
-            addDiagnostic(`skia_mask_source_unsupported:${command.key}:${sourceKey}`);
-            continue;
-          }
-          maskCoverage = Math.min(maskCoverage, maskColorAlpha(source.command, command.mask.mode));
-        }
-        layer.maskMode = undefined;
-      }
+      // CSS masks are rendered into a separate coverage surface at endLayer.
+      // Keeping this out of saveLayer alpha is important for gradients and
+      // for subtract/exclude, which cannot be represented by one scalar.
       const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter) || (command.blendMode !== undefined && command.blendMode !== "normal");
       if (shouldSaveLayer) {
         const paint = new kit.Paint();
         paint.setAntiAlias(true);
         paint.setStyle(kit.PaintStyle.Fill);
-        paint.setAlphaf(Math.max(0, Math.min(1, (command.compositeAlpha ?? 1) * maskCoverage)));
+        paint.setAlphaf(Math.max(0, Math.min(1, command.compositeAlpha ?? 1)));
         paint.setBlendMode(blendModeFor(kit, command.blendMode));
         if (effectFilter.filter && paint.setImageFilter) paint.setImageFilter(effectFilter.filter);
         canvas.saveLayer(paint);
@@ -110,12 +110,6 @@ export function replaySkiaCommands(
         canvas.save();
       }
       layer.saved = true;
-      if (command.mask && command.mask.mode !== "clip") {
-        for (const sourceKey of maskSourceKeys) {
-          const source = semanticSources.get(sourceKey);
-          if (source && !applyClipPath(kit, canvas, source)) addDiagnostic(`skia_mask_source_unsupported:${command.key}:${sourceKey}`);
-        }
-      }
       if (command.clipPath) {
         const sources = command.clipPath.sourceKeys ?? [command.clipPath.sourceKey];
         for (const sourceKey of sources) {
@@ -127,10 +121,83 @@ export function replaySkiaCommands(
     }
     if (command.op === "endLayer") {
       const layer = layers.pop();
-      if (layer?.saved && layer.maskMode) {
-        for (const sourceKey of layer.maskSourceKeys) {
-          const source = semanticSources.get(sourceKey);
-          if (!source || !applyMaskSource(kit, canvas, source, layer.maskMode)) addDiagnostic(`skia_mask_source_unsupported:${layer.key}:${sourceKey}`);
+      if (layer?.saved && layer.maskSourceKeys.size > 0) {
+        const maskLayers = layer.maskLayers ?? [{ mode: layer.maskMode ?? "alpha", sourceKeys: [...layer.maskSourceKeys], composite: "intersect" as const }];
+        const maskSurface = kit.MakeSurface(Math.max(1, Math.ceil(frameWidth * deviceScale)), Math.max(1, Math.ceil(frameHeight * deviceScale)));
+        if (!maskSurface?.makeImageSnapshot) {
+          addDiagnostic(`skia_mask_surface_unsupported:${layer.key}`);
+        } else if (!maskSurface) {
+          addDiagnostic(`skia_mask_surface_unavailable:${layer.key}`);
+        } else {
+          const maskCanvas = maskSurface.getCanvas();
+          maskCanvas.clear(kit.TRANSPARENT);
+          if (deviceScale !== 1) maskCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+          let firstLayer = true;
+          for (const maskLayer of maskLayers) {
+            // Build each CSS mask-image layer separately. Tiles in one layer
+            // are unioned with SrcOver; only then is the authored composite
+            // operator applied between the accumulated layers.
+            const layerSurface = kit.MakeSurface(Math.max(1, Math.ceil(frameWidth * deviceScale)), Math.max(1, Math.ceil(frameHeight * deviceScale)));
+            if (!layerSurface?.makeImageSnapshot) {
+              addDiagnostic(`skia_mask_surface_unsupported:${layer.key}`);
+              layerSurface?.dispose();
+              continue;
+            }
+            if (!layerSurface) {
+              addDiagnostic(`skia_mask_surface_unavailable:${layer.key}`);
+              continue;
+            }
+            const layerCanvas = layerSurface.getCanvas();
+            layerCanvas.clear(kit.TRANSPARENT);
+            if (deviceScale !== 1) layerCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+            const sourceBlendMode = kit.BlendMode.SrcOver;
+            for (const sourceKey of maskLayer.sourceKeys) {
+              const source = semanticSources.get(sourceKey);
+              if (!source || !drawMaskSource(kit, layerCanvas, source, maskLayer.mode, assets, sourceBlendMode)) {
+                addDiagnostic(`skia_mask_source_unsupported:${layer.key}:${sourceKey}`);
+              }
+            }
+            layerSurface.flush();
+            const layerImage = layerSurface.makeImageSnapshot();
+            if (!layerImage) {
+              addDiagnostic(`skia_mask_snapshot_unsupported:${layer.key}`);
+              layerSurface.dispose();
+              continue;
+            }
+            const operation = firstLayer ? "add" as const : maskLayer.composite;
+            const modeKey = operation === "add" ? "SrcOver" : operation === "intersect" ? "DstIn" : operation === "subtract" ? "DstOut" : "Xor";
+            const blendMode = kit.BlendMode[modeKey];
+            if (blendMode === undefined) {
+              addDiagnostic(`skia_mask_composite_unsupported:${layer.key}:${operation}`);
+              layerImage.delete();
+              layerSurface.dispose();
+              continue;
+            }
+            const layerPaint = new kit.Paint();
+            layerPaint.setAntiAlias(true);
+            layerPaint.setStyle(kit.PaintStyle.Fill);
+            layerPaint.setAlphaf(1);
+            layerPaint.setBlendMode(blendMode);
+            maskCanvas.drawImageRect(layerImage, [0, 0, frameWidth * deviceScale, frameHeight * deviceScale], [0, 0, frameWidth, frameHeight], layerPaint, false);
+            layerPaint.delete();
+            layerImage.delete();
+            layerSurface.dispose();
+            firstLayer = false;
+          }
+          maskSurface.flush();
+          const snapshot = maskSurface.makeImageSnapshot();
+          if (!snapshot) addDiagnostic(`skia_mask_snapshot_unsupported:${layer.key}`);
+          else {
+            const paint = new kit.Paint();
+            paint.setAntiAlias(true);
+            paint.setStyle(kit.PaintStyle.Fill);
+            paint.setAlphaf(1);
+            paint.setBlendMode(kit.BlendMode.DstIn);
+            canvas.drawImageRect(snapshot, [0, 0, frameWidth, frameHeight], [0, 0, frameWidth, frameHeight], paint, false);
+            paint.delete();
+            snapshot.delete();
+          }
+          maskSurface.dispose();
         }
       }
       if (layer?.noiseEffect && layer.noiseBounds) stats.noiseRegions.push({ effect: layer.noiseEffect, bounds: layer.noiseBounds });
@@ -146,7 +213,7 @@ export function replaySkiaCommands(
       if (["drawPath", "drawShape", "drawSolid", "drawText", "drawImage", "drawVideo"].includes(command.op)) pendingTransform = null;
       continue;
     }
-    if (command.op === "drawPath" && layers.some((layer) => layer.clipSourceKeys.has(command.key) || layer.maskSourceKeys.has(command.key))) {
+    if ((command.op === "drawPath" || command.op === "drawImage") && layers.some((layer) => layer.clipSourceKeys.has(command.key) || layer.maskSourceKeys.has(command.key))) {
       // Compiler-lowered clipPath/mask geometry is a source node, not visible content.
       pendingTransform = null;
       continue;

@@ -799,6 +799,12 @@
                                       }
                                     ]
                                   },
+                                  "radiusX": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                  },
+                                  "radiusY": {
+                                    "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/1/properties/radius"
+                                  },
                                   "fx": {
                                     "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/fill/anyOf/2/anyOf/2/anyOf/0/properties/x1"
                                   },
@@ -2095,11 +2101,84 @@
                   "$ref": "#/definitions/MotionProtocolV2/properties/clipPaths/items/properties/children/items"
                 },
                 "minItems": 1
+              },
+              "image": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "image"
+                  },
+                  "assetId": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                  },
+                  "x": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "y": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "width": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "height": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "fill",
+                      "none"
+                    ],
+                    "default": "fill"
+                  },
+                  "preserveAspectRatio": {
+                    "type": "object",
+                    "properties": {
+                      "defer": {
+                        "type": "boolean"
+                      },
+                      "align": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "xMinYMin",
+                          "xMidYMin",
+                          "xMaxYMin",
+                          "xMinYMid",
+                          "xMidYMid",
+                          "xMaxYMid",
+                          "xMinYMax",
+                          "xMidYMax",
+                          "xMaxYMax"
+                        ]
+                      },
+                      "meetOrSlice": {
+                        "type": "string",
+                        "enum": [
+                          "meet",
+                          "slice"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "type",
+                  "assetId",
+                  "x",
+                  "y",
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
-              "id",
-              "children"
+              "id"
             ],
             "additionalProperties": false
           },
@@ -3690,6 +3769,41 @@
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
+                  "maskLayers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "maskIds": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/id"
+                          },
+                          "minItems": 1,
+                          "maxItems": 4096
+                        },
+                        "mode": {
+                          "$ref": "#/definitions/MotionProtocolV2/properties/masks/items/properties/maskType"
+                        },
+                        "composite": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "subtract",
+                            "intersect",
+                            "exclude"
+                          ],
+                          "default": "add"
+                        }
+                      },
+                      "required": [
+                        "maskIds"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
@@ -3973,6 +4087,21 @@
                                       "type": {
                                         "type": "string",
                                         "const": "step"
+                                      },
+                                      "count": {
+                                        "type": "integer",
+                                        "exclusiveMinimum": 0,
+                                        "default": 1
+                                      },
+                                      "position": {
+                                        "type": "string",
+                                        "enum": [
+                                          "jump-start",
+                                          "jump-end",
+                                          "jump-none",
+                                          "jump-both"
+                                        ],
+                                        "default": "jump-end"
                                       }
                                     },
                                     "required": [
@@ -4070,6 +4199,70 @@
                             "type"
                           ],
                           "additionalProperties": false
+                        },
+                        "playback": {
+                          "type": "object",
+                          "properties": {
+                            "durationMs": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
+                            },
+                            "delayMs": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                            },
+                            "iterations": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "infinite"
+                                }
+                              ]
+                            },
+                            "direction": {
+                              "type": "string",
+                              "enum": [
+                                "normal",
+                                "reverse",
+                                "alternate",
+                                "alternate-reverse"
+                              ]
+                            },
+                            "fillMode": {
+                              "type": "string",
+                              "enum": [
+                                "none",
+                                "forwards",
+                                "backwards",
+                                "both"
+                              ]
+                            },
+                            "playState": {
+                              "type": "string",
+                              "enum": [
+                                "running",
+                                "paused"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "durationMs",
+                            "delayMs",
+                            "iterations",
+                            "direction",
+                            "fillMode",
+                            "playState"
+                          ],
+                          "additionalProperties": false,
+                          "default": {
+                            "durationMs": 1,
+                            "delayMs": 0,
+                            "iterations": 1,
+                            "direction": "normal",
+                            "fillMode": "none",
+                            "playState": "running"
+                          }
                         }
                       },
                       "required": [
@@ -4527,6 +4720,9 @@
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
                   },
+                  "maskLayers": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/maskLayers"
+                  },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
@@ -4673,6 +4869,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "maskLayers": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/maskLayers"
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
@@ -4894,6 +5093,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "maskLayers": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/maskLayers"
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
@@ -5428,6 +5630,9 @@
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
                   },
+                  "maskLayers": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/maskLayers"
+                  },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
@@ -5636,6 +5841,9 @@
                   },
                   "mask": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/mask"
+                  },
+                  "maskLayers": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/maskLayers"
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
