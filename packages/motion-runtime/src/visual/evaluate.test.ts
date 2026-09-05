@@ -110,4 +110,33 @@ describe("Runtime V2 border fragment batching", () => {
       "box::border:top:2",
     ]);
   });
+
+  it("composes blend mode with an effect program on one isolated layer", () => {
+    const base = pathNode("filtered-blend", 1, "#38bdf8", 0);
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([groupNode, {
+        ...base,
+        blendMode: "multiply",
+        content: { ...base.content, effects: [{ id: "gray", type: "grayscale", amount: 0.5 }] },
+      }]),
+      0,
+    );
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "filtered-blend")).toMatchObject({
+      isolation: true,
+      offscreen: true,
+      compositeAlpha: 1,
+      blendMode: "multiply",
+      effectProgram: { ops: [{ kind: "color-matrix" }] },
+    });
+  });
+
+  it("keeps an isolated group boundary around a child blend layer", () => {
+    const child = pathNode("isolated-child", 1, "#38bdf8", 0);
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([{ ...groupNode, isolation: "isolate" }, { ...child, blendMode: "screen" }]),
+      0,
+    );
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "border-group")).toMatchObject({ isolation: true, offscreen: true });
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "isolated-child")).toMatchObject({ blendMode: "screen", isolation: true, offscreen: true });
+  });
 });

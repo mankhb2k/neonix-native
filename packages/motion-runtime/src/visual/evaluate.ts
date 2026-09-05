@@ -307,28 +307,17 @@ export function evaluateVisualRuntimeProject(
       ? undefined
       : buildRuntimeEffectProgram(content.effects);
     const blendMode = node.blendMode ?? "normal";
-    if (effectProgram && blendMode !== "normal") {
-      throw new Error(`Runtime V2 blend modes on an effected layer are not certified yet: ${node.id}`);
-    }
     const blendIsolation = blendMode !== "normal";
-    if (blendIsolation) {
+    if (blendIsolation || effectProgram) {
       commands.push({
         op: "beginLayer",
         key: node.id,
         layerId: node.id,
-        isolation: true,
-        offscreen: true,
-        compositeAlpha: node.opacity,
+        isolation: blendIsolation || effectProgram?.requiresOffscreen === true,
+        offscreen: blendIsolation || effectProgram?.requiresOffscreen === true,
+        ...(blendIsolation ? { compositeAlpha: node.opacity } : {}),
         blendMode,
-      });
-    } else if (effectProgram) {
-      commands.push({
-        op: "beginLayer",
-        key: node.id,
-        layerId: node.id,
-        isolation: effectProgram.requiresOffscreen,
-        offscreen: effectProgram.requiresOffscreen,
-        effectProgram,
+        ...(effectProgram ? { effectProgram } : {}),
       });
     }
     const nonScalingStrokeMesh = content.kind === "path" &&

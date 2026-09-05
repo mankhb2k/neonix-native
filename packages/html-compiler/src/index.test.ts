@@ -248,6 +248,37 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
   });
 
+  it("lowers CSS blend mode and isolation to compositing state", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="multiply"></div><div id="isolated"><div id="screen-child"></div></div><div id="combined"></div>`,
+      css: `body { margin: 0; background: #172554; }
+#multiply { position: absolute; left: 120px; top: 120px; width: 240px; height: 120px; background: #facc15; mix-blend-mode: multiply; }
+#isolated { position: absolute; left: 420px; top: 120px; width: 300px; height: 160px; isolation: isolate; background: #1e3a8a; }
+#screen-child { position: absolute; left: 60px; top: 40px; width: 180px; height: 80px; background: #38bdf8; mix-blend-mode: screen; }
+#combined { position: absolute; left: 780px; top: 120px; width: 240px; height: 120px; background: #f97316; opacity: .7; mix-blend-mode: screen; filter: grayscale(.4); }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "multiply")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "multiply" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "isolated")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "normal", isolation: "isolate" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "screen-child")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "screen" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({
+      type: "group",
+      opacity: 0.7,
+      composite: { blendMode: "screen" },
+      effects: [{ type: "grayscale", amount: 0.4 }],
+    });
+  });
+
   it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="shadow"></div>`,

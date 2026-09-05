@@ -13,7 +13,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -2932,9 +2932,141 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.blend-multiply",
+    phase: "P2.6",
+    topic: "Paint",
+    label: "Paint / multiply over colored background",
+    properties: ["mix-blend-mode: multiply", "colored backdrop", "composite"],
+    hint: "The layer is isolated for compositing and blends with the colored backdrop without changing its layout order.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"blend-multiply\"></div>\n</body>"),
+      css: `body { margin: 0; background: #facc15; }
+
+#blend-multiply {
+  position: absolute;
+  left: 600px;
+  top: 360px;
+  width: 720px;
+  height: 300px;
+  background: #2563eb;
+  mix-blend-mode: multiply;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.blend-sibling-order",
+    phase: "P2.6",
+    topic: "Paint",
+    label: "Paint / sibling blend modes",
+    properties: ["multiply", "screen", "sibling order", "backdrop"],
+    hint: "Two overlapping siblings keep their source order while each blend mode samples the backdrop at its own paint position.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"blend-sibling-multiply\"></div>\n  <div id=\"blend-sibling-screen\"></div>\n</body>"),
+      css: `body { margin: 0; background: #172554; }
+
+#blend-sibling-multiply {
+  position: absolute;
+  left: 480px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  background: #f43f5e;
+  mix-blend-mode: multiply;
+}
+
+#blend-sibling-screen {
+  position: absolute;
+  left: 840px;
+  top: 480px;
+  width: 600px;
+  height: 300px;
+  background: #38bdf8;
+  mix-blend-mode: screen;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.blend-isolated-group",
+    phase: "P2.6",
+    topic: "Paint",
+    label: "Paint / isolated group with child blend",
+    properties: ["isolation: isolate", "group boundary", "child blend"],
+    hint: "The group forms an offscreen compositing boundary, so the child blends with the group backdrop rather than an outside sibling.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"blend-outside\"></div>\n  <div id=\"blend-isolated-group\">\n    <div id=\"blend-isolated-child\"></div>\n    <div id=\"blend-isolated-highlight\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#blend-outside {
+  position: absolute;
+  left: 420px;
+  top: 360px;
+  width: 720px;
+  height: 300px;
+  background: #facc15;
+}
+
+#blend-isolated-group {
+  position: absolute;
+  left: 600px;
+  top: 420px;
+  width: 720px;
+  height: 300px;
+  isolation: isolate;
+  background: #1e3a8a;
+}
+
+#blend-isolated-child {
+  position: absolute;
+  left: 80px;
+  top: 50px;
+  width: 360px;
+  height: 200px;
+  background: #f97316;
+  mix-blend-mode: multiply;
+}
+
+#blend-isolated-highlight {
+  position: absolute;
+  left: 280px;
+  top: 100px;
+  width: 360px;
+  height: 120px;
+  background: #38bdf8;
+  mix-blend-mode: screen;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.blend-opacity-filter",
+    phase: "P2.6",
+    topic: "Paint",
+    label: "Paint / blend with opacity and filter",
+    properties: ["mix-blend-mode: screen", "opacity", "filter", "offscreen group"],
+    hint: "Layer opacity is applied at the compositing boundary while the filter remains an ordered effect program inside that boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"blend-opacity-filter\"></div>\n</body>"),
+      css: `body { margin: 0; background: #7c3aed; }
+
+#blend-opacity-filter {
+  position: absolute;
+  left: 600px;
+  top: 360px;
+  width: 720px;
+  height: 300px;
+  background: linear-gradient(90deg, #f43f5e, #38bdf8);
+  opacity: .68;
+  mix-blend-mode: screen;
+  filter: grayscale(.35) brightness(1.1);
+}`,
+    }),
+  },
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -2944,5 +3076,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }
