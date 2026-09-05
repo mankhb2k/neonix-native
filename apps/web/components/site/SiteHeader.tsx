@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { SiteNavButton } from "@/components/site/SiteNavButton";
 import { buttonClassName } from "@/components/ui";
 import { APP_NAME } from "@/lib/app-config";
-import { appUrl, dashboardUrl } from "@/lib/hosts";
+import { dashboardUrl } from "@/lib/hosts";
 import { SITE_HEADER_HEIGHT, SITE_HEADER_SHELL_X } from "@/lib/site-shell";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -16,7 +16,7 @@ const headerOuterClass =
 export function SiteHeader({
   active,
 }: {
-  active?: "docs" | "app" | "home" | "preview";
+  active?: "docs" | "home" | "mcp";
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -50,50 +50,39 @@ export function SiteHeader({
 
   return (
     <header className={headerOuterClass}>
-      <div
-        className={`flex ${SITE_HEADER_HEIGHT} items-center gap-3 ${SITE_HEADER_SHELL_X}`}
-      >
-        <div className="flex items-center gap-8">
-          <Link
-            href="/"
-            className="flex shrink-0 items-center gap-4 no-underline"
-            aria-label={APP_NAME}
-          >
-            <Image
-              src="/neonix-logo.svg"
-              alt=""
-              width={95}
-              height={70}
-              priority
-              className="h-7 w-auto"
-            />
-            <span className="text-[15px] font-semibold tracking-tight text-[var(--fg-primary)]">
-              {APP_NAME}
-            </span>
-          </Link>
-          <nav className="flex items-center gap-6">
-            <SiteNavButton href="/" active={active === "home"}>
-              Home
-            </SiteNavButton>
-            <SiteNavButton href="/docs" active={active === "docs"}>
-              Docs
-            </SiteNavButton>
-            <SiteNavButton
-              href="/docs/preview"
-              active={active === "preview"}
-            >
-              Preview
-            </SiteNavButton>
-            <SiteNavButton
-              href={appUrl()}
-              active={active === "app"}
-              external
-            >
-              App
-            </SiteNavButton>
-          </nav>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
+      <div className={SITE_HEADER_SHELL_X}>
+        <div
+          className={`grid ${SITE_HEADER_HEIGHT} grid-cols-[1fr_auto_1fr] items-center gap-3`}
+        >
+        <Link
+          href="/"
+          className="flex min-w-0 shrink-0 items-center gap-4 no-underline"
+          aria-label={APP_NAME}
+        >
+          <Image
+            src="/neonix-logo.svg"
+            alt=""
+            width={95}
+            height={70}
+            priority
+            className="h-7 w-auto"
+          />
+          <span className="text-[15px] font-semibold tracking-tight text-[var(--fg-primary)]">
+            {APP_NAME}
+          </span>
+        </Link>
+        <nav className="flex items-center justify-self-center gap-6">
+          <SiteNavButton href="/" active={active === "home"}>
+            Home
+          </SiteNavButton>
+          <SiteNavButton href="/docs" active={active === "docs"}>
+            Docs
+          </SiteNavButton>
+          <SiteNavButton href="/docs/ai" active={active === "mcp"}>
+            MCP
+          </SiteNavButton>
+        </nav>
+        <div className="flex items-center justify-self-end gap-2">
           {showDashboard ? (
             <a
               href={dashboardUrl("/dashboard")}
@@ -126,6 +115,7 @@ export function SiteHeader({
               </Link>
             </>
           ) : null}
+        </div>
         </div>
       </div>
     </header>

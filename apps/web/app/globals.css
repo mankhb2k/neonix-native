@@ -145,7 +145,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* App scrollbars — compact cyan treatment used throughout the editor/docs UI. */
+/* App scrollbars — compact charcoal treatment used throughout the editor/docs UI. */
+html {
+  scrollbar-color: rgba(31, 41, 55, 0.62) transparent;
+  scrollbar-width: thin;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -156,18 +161,18 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(125, 211, 252, 0.18);
+  background: rgba(31, 41, 55, 0.62);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 211, 252, 0.32);
+  background: rgba(17, 24, 39, 0.82);
 }
 
 [data-surface="editor"] aside.editor-panel,
 [data-surface="editor"] aside.editor-panel * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(125, 211, 252, 0.28) transparent;
+  scrollbar-color: rgba(31, 41, 55, 0.62) transparent;
 }
 
 [data-surface="editor"] aside.editor-panel::-webkit-scrollbar,
@@ -178,13 +183,13 @@ body {
 
 [data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb,
 [data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb {
-  background: rgba(125, 211, 252, 0.28);
+  background: rgba(31, 41, 55, 0.62);
   border-radius: 999px;
 }
 
 [data-surface="editor"] aside.editor-panel::-webkit-scrollbar-thumb:hover,
 [data-surface="editor"] aside.editor-panel ::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 211, 252, 0.45);
+  background: rgba(17, 24, 39, 0.82);
 }
 
 body:has([data-surface="editor"]) {
