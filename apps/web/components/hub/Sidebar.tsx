@@ -2,11 +2,7 @@
 
 import {
   Boxes,
-  CreditCard,
   Download,
-  Gauge,
-  HardDrive,
-  KeyRound,
   LayoutDashboard,
   LogOut,
   Plug,
@@ -17,6 +13,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { dashboardHref } from "@/components/AppLink";
+import { getStorageUsage, type StorageUsage } from "@/lib/api/storage";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const navItems = [
@@ -24,9 +21,10 @@ const navItems = [
   { label: "Assets", href: "/assets", icon: Boxes },
   { label: "Exports", href: "/exports", icon: Download },
   { label: "MCP", href: "/mcp", icon: Plug },
-  { label: "API Keys", href: "/api-keys", icon: KeyRound },
-  { label: "Usage", href: "/usage", icon: Gauge },
-  { label: "Billing", href: "/billing", icon: CreditCard },
+  // Temporarily hidden from the dashboard navigation:
+  // { label: "API Keys", href: "/api-keys", icon: KeyRound },
+  // { label: "Usage", href: "/usage", icon: Gauge },
+  // { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ] as const;
 
@@ -61,6 +59,7 @@ export function Sidebar() {
     name: "Your account",
     email: "Free plan",
   });
+  const [storage, setStorage] = useState<StorageUsage | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -85,11 +84,18 @@ export function Sidebar() {
       }
     }
 
+    async function loadStorage() {
+      const usage = await getStorageUsage();
+      if (mounted && usage) setStorage(usage);
+    }
+
     const handleDemoAuth = () => {
       void loadAccount();
+      void loadStorage();
     };
 
     void loadAccount();
+    void loadStorage();
     window.addEventListener("neonix:dev-demo-authenticated", handleDemoAuth);
     return () => {
       mounted = false;
@@ -132,7 +138,7 @@ export function Sidebar() {
           <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
             Connect
           </p>
-          {navItems.slice(3, 5).map((item) => (
+          {navItems.slice(3, 4).map((item) => (
             <NavItem key={item.label} item={item} pathname={pathname} />
           ))}
         </div>
@@ -140,23 +146,35 @@ export function Sidebar() {
         <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
           Account
         </p>
-        {navItems.slice(5).map((item) => (
+        {navItems.slice(4).map((item) => (
           <NavItem key={item.label} item={item} pathname={pathname} />
         ))}
       </nav>
 
       <div className="space-y-4 border-t border-[var(--hub-border)] p-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-caption">
-            <span className="flex items-center gap-1.5 text-[var(--fg-muted)]">
-              <HardDrive className="size-3.5" /> Storage
-            </span>
-            <span className="font-mono text-[var(--fg-secondary)]">0 / 2 GB</span>
+        {storage ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-caption">
+              <span className="text-[var(--fg-muted)]">Storage</span>
+              <span className="font-mono text-[var(--fg-secondary)]">
+                {formatBytes(storage.usedBytes)} / {formatBytes(storage.quotaBytes)}
+              </span>
+            </div>
+            <div
+              className="h-1.5 overflow-hidden rounded-full bg-[var(--hub-divider)]"
+              role="progressbar"
+              aria-label="Storage usage"
+              aria-valuemin={0}
+              aria-valuemax={storage.quotaBytes}
+              aria-valuenow={storage.usedBytes}
+            >
+              <div
+                className="h-full rounded-full bg-[var(--hub-accent)] transition-[width]"
+                style={{ width: `${storage.usedPercent}%` }}
+              />
+            </div>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--hub-divider)]">
-            <div className="h-full w-0 rounded-full bg-[var(--hub-accent)]" />
-          </div>
-        </div>
+        ) : null}
 
         <button
           type="button"
@@ -179,4 +197,17 @@ export function Sidebar() {
       </div>
     </aside>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const unitIndex = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+  );
+  const value = bytes / 1024 ** unitIndex;
+  const decimals = unitIndex === 0 || value >= 10 ? 0 : 1;
+  return `${value.toFixed(decimals)} ${units[unitIndex]}`;
 }

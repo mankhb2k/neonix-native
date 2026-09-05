@@ -9,6 +9,7 @@ type ProjectCardData = {
   title: string;
   href: string;
   layers: string;
+  duration: string;
   updated: string;
   accent: string;
 };
@@ -18,6 +19,7 @@ const fallbackProjects: ProjectCardData[] = [
     title: "Three Kingdoms",
     href: "/editor/three-kingdoms",
     layers: "14 layers",
+    duration: "—",
     updated: "Updated today",
     accent: "from-cyan-400/25 via-slate-900 to-violet-500/20",
   },
@@ -25,6 +27,7 @@ const fallbackProjects: ProjectCardData[] = [
     title: "Shape composition",
     href: "/editor/shape",
     layers: "1 layer",
+    duration: "—",
     updated: "Updated yesterday",
     accent: "from-cyan-300/20 via-slate-900 to-slate-900",
   },
@@ -32,6 +35,7 @@ const fallbackProjects: ProjectCardData[] = [
     title: "Overlap study",
     href: "/editor/overlap",
     layers: "2 layers",
+    duration: "—",
     updated: "Updated 2 days ago",
     accent: "from-violet-400/25 via-slate-900 to-fuchsia-500/15",
   },
@@ -39,6 +43,7 @@ const fallbackProjects: ProjectCardData[] = [
     title: "Timeline prototype",
     href: "/editor/timeline",
     layers: "6 layers",
+    duration: "—",
     updated: "Updated 3 days ago",
     accent: "from-amber-300/20 via-slate-900 to-cyan-500/15",
   },
@@ -58,7 +63,7 @@ function ProjectCard({ project }: { project: ProjectCardData }) {
           Protocol V2
         </span>
         <span className="absolute right-3 bottom-3 rounded-md bg-black/45 px-2 py-1 font-mono text-caption text-slate-200 backdrop-blur-sm">
-          00:19
+          {project.duration}
         </span>
       </div>
       <div className="space-y-1.5 px-4 py-3.5">
@@ -83,6 +88,7 @@ export async function HubShell() {
         title: project.title,
         href: `/editor/${project.projectId}`,
         layers: `${project.layerCount} ${project.layerCount === 1 ? "layer" : "layers"}`,
+        duration: formatDuration(project.durationMs),
         updated: formatUpdated(project.updatedAt),
         accent: [
           "from-cyan-400/25 via-slate-900 to-violet-500/20",
@@ -156,4 +162,19 @@ function formatUpdated(value: string): string {
   if (days <= 0) return "Updated today";
   if (days === 1) return "Updated yesterday";
   return `Updated ${days} days ago`;
+}
+
+function formatDuration(durationMs: number): string {
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return "—";
+
+  const totalSeconds = Math.ceil(durationMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const paddedMinutes = String(minutes).padStart(2, "0");
+  const paddedSeconds = String(seconds).padStart(2, "0");
+
+  return hours > 0
+    ? `${hours}:${paddedMinutes}:${paddedSeconds}`
+    : `${paddedMinutes}:${paddedSeconds}`;
 }
