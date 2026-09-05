@@ -45,6 +45,7 @@ export type EditorProjectListItem = Pick<
 > & {
   updatedAt: string;
   layerCount: number;
+  durationMs: number;
 };
 
 export type ProjectRepositoryErrorCode =
@@ -74,6 +75,41 @@ function hashDocument(document: JsonObject): string {
 
 function documentByteSize(document: JsonObject): number {
   return Buffer.byteLength(JSON.stringify(document), "utf8");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function timingEnd(value: unknown): number {
+  if (!isRecord(value) || !isRecord(value.timing)) return 0;
+
+  const start = Number(value.timing.start);
+  const duration = Number(value.timing.duration);
+  if (!Number.isFinite(start) || !Number.isFinite(duration)) return 0;
+  return Math.max(0, start) + Math.max(0, duration);
+}
+
+function documentDurationMs(value: unknown): number {
+  if (!isRecord(value)) return 0;
+
+  let durationMs = 0;
+  if (Array.isArray(value.layers)) {
+    for (const layer of value.layers) {
+      durationMs = Math.max(durationMs, timingEnd(layer));
+    }
+  }
+
+  if (isRecord(value.audio) && Array.isArray(value.audio.tracks)) {
+    for (const track of value.audio.tracks) {
+      if (!isRecord(track) || !Array.isArray(track.clips)) continue;
+      for (const clip of track.clips) {
+        durationMs = Math.max(durationMs, timingEnd(clip));
+      }
+    }
+  }
+
+  return durationMs;
 }
 
 function parseFailureDetail(error: unknown): string {
@@ -360,20 +396,21 @@ export async function listProjects(
     }
   }
 
-  return rows.map((project) => ({
-    projectId: project.id,
-    publicRef: project.public_ref,
-    workspaceId: project.workspace_id,
-    title: project.title,
-    revisionNo: project.current_revision_no,
-    updatedAt: project.updated_at,
-    layerCount: (() => {
-      const document = latestByProject.get(project.id);
-      return document && typeof document === "object" && "layers" in document && Array.isArray(document.layers)
+  return rows.map((project) => {
+    const document = latestByProject.get(project.id);
+    return {
+      projectId: project.id,
+      publicRef: project.public_ref,
+      workspaceId: project.workspace_id,
+      title: project.title,
+      revisionNo: project.current_revision_no,
+      updatedAt: project.updated_at,
+      layerCount: isRecord(document) && Array.isArray(document.layers)
         ? document.layers.length
-        : 0;
-    })(),
-  }));
+        : 0,
+      durationMs: documentDurationMs(document),
+    };
+  });
 }
 
 export async function saveProject(
