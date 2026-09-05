@@ -64,6 +64,8 @@ export function applyClipPath(
   if (!canvas.clipPath) return false;
   const path = kit.Path.MakeFromSVGString(pathSvg(source.command));
   if (!path) return false;
+  const fillType = source.command.fillRule === "evenodd" ? kit.FillType?.EvenOdd : kit.FillType?.Winding;
+  if (fillType !== undefined) path.setFillType?.(fillType);
   const transform = source.transform?.matrix4;
   if (transform) {
     // SkPath is immutable in CanvasKit. Transform through a PathBuilder so

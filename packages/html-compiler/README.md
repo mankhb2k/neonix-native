@@ -188,6 +188,21 @@ parity remains an end-to-end validation gate.
 
 Preview Lab exposes these cases under **HTML compiler / Phase 4**.
 
+## P2.7 geometric clip-path
+
+The HTML compiler lowers `clip-path: inset()`, `circle()`, `ellipse()`
+and `polygon()` into normalized local Protocol V2 path definitions. CSS
+`path()` accepts the same deterministic `M/L/H/V/C/Z` grammar as SVG paths,
+including multiple closed contours with `evenodd` fill semantics. Percentages
+resolve against the selected `border-box`, `padding-box` or `content-box`;
+`inset()` also supports elliptical `round` radii.
+
+The layer keeps a geometric `clipPath` reference instead of becoming an alpha
+mask. When `overflow: hidden` is present, its rectangle is added to the same
+clip scope so the runtime intersects both clips before applying the element's
+transform and composition bounds. The eight P2.7 fixtures are split by shape
+and combination so Browser CSS and Skia can be compared independently.
+
 ## Media lowering
 
 The media slice lowers `<img>` and `<video>` into Protocol V2 media layers and

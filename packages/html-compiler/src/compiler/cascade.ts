@@ -43,6 +43,7 @@ const INITIAL_VALUES: Record<string, string> = {
 INITIAL_VALUES.filter = "none";
 INITIAL_VALUES["mix-blend-mode"] = "normal";
 INITIAL_VALUES.isolation = "auto";
+INITIAL_VALUES["clip-path"] = "none";
 for (const side of ["top", "right", "bottom", "left"]) {
   INITIAL_VALUES[`border-${side}-style`] = "none";
   INITIAL_VALUES[`border-${side}-width`] = "0px";

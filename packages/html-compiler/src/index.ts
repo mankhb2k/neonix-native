@@ -1,4 +1,4 @@
-import { MotionProtocolV2Schema, type MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import { MotionProtocolV2Schema, type MotionProtocolV2, type V2SvgDefinitionNode } from "@motionvideo/motion-protocol/v2";
 import {
   DEFAULT_HTML_CSS_COMPOSITION,
   type HtmlCompilerOptions,
@@ -38,6 +38,7 @@ import { mediaMimeType, mediaSource, parseImageFit, parseImageRendering, parseOb
 import { parseBackgroundBox, parseBackgroundImages, parseBackgroundPosition, parseBackgroundRepeat, parseBackgroundSize, type BackgroundBox, type BackgroundImage } from "./compiler/background";
 import { parseFilter } from "./compiler/filter";
 import { parseComposite } from "./compiler/composite";
+import { parseClipPath, type ClipReferenceBoxes } from "./compiler/clip";
 import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "./compiler/typography";
 import type { Node, Style } from "./compiler/model";
 
@@ -283,7 +284,28 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
       if (node.tag !== "body" && style.get("display") !== "none" && w > 0 && h > 0) {
         const opacityValue = style.get("opacity"); const opacity = opacityValue === undefined ? 1 : Number(opacityValue); if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) fail("css-opacity-invalid", `opacity must be between 0 and 1: ${opacityValue}`);
         const parentId = parent?.tag === "body" ? null : (parent?.atomicId ?? null); const groupId = node.atomicId; const hasChildren = node.children.length > 0; const localX = parent?.children.length ? x - (origins.get(parent)?.x ?? parentX) : x; const localY = parent?.children.length ? y - (origins.get(parent)?.y ?? parentY) : y;
-        const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {}; const overflowClipId = hasChildren && style.get("overflow") === "hidden" ? `html-overflow-clip-${clipPaths.length}` : undefined; if (overflowClipId) clipPaths.push({ id: overflowClipId, clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: 0, y: 0, width: w, height: h }] });
+        const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {};
+        const clipBoxes: ClipReferenceBoxes = {
+          borderBox: { x: 0, y: 0, width: w, height: h },
+          paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]) },
+          contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight },
+        };
+        const clipShape = parseClipPath(style.get("clip-path"), clipBoxes);
+        const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [{ type: "rect", x: 0, y: 0, width: w, height: h }] : [];
+        const baseClipChildren: V2SvgDefinitionNode[] = clipShape ? [clipShape, ...overflowClipChildren] : overflowClipChildren;
+        const registerClipPath = (additional: V2SvgDefinitionNode[] = [], legacyPrefix?: string): string | undefined => {
+          const children = [...baseClipChildren, ...additional];
+          if (children.length === 0) return undefined;
+          const id = legacyPrefix && clipShape === undefined ? `${legacyPrefix}-${clipPaths.length}` : `html-clip-path-${clipPaths.length}`;
+          clipPaths.push({ id, clipPathUnits: "userSpaceOnUse", children });
+          return id;
+        };
+        let elementClipPathId: string | undefined;
+        const elementClipPath = (): string | undefined => {
+          if (elementClipPathId !== undefined) return elementClipPathId;
+          elementClipPathId = registerClipPath([], clipShape ? undefined : "html-overflow-clip");
+          return elementClipPathId;
+        };
          const parsedTransform = parseTransform(style, w, h, font, viewport);
          const transformFor = (translateX: number, translateY: number, includeCssTransform: boolean) => {
            const cssOperations = includeCssTransform ? parsedTransform.operations ?? [] : [];
@@ -373,14 +395,16 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            const imageAspect = fit === "fill"
              ? { align: "none" as const }
              : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
-            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
+            const clipPathId = elementClipPath();
+            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
            emitOutline(false);
            return;
          }
           if (node.tag === "video") {
             const source = mediaSource(node);
             const fit = parseImageFit(style);
-             layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
+             const clipPathId = elementClipPath();
+             layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             emitOutline(false);
             return;
           }
@@ -402,8 +426,9 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const textRendering = parseTextRendering(style.get("text-rendering"));
             if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
             if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
-            const textClipId = style.get("overflow") === "hidden" ? `html-text-clip-${clipPaths.length}` : undefined;
-            if (textClipId) clipPaths.push({ id: textClipId, clipPathUnits: "userSpaceOnUse", children: [{ type: "rect", x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }] });
+            const textClipId = style.get("overflow") === "hidden"
+              ? registerClipPath([{ type: "rect", x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }], "html-text-clip")
+              : elementClipPath();
             const letterSpacing = parseTextSpacing(style.get("letter-spacing"), "letter-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
             const wordSpacing = parseTextSpacing(style.get("word-spacing"), "word-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
             layers.push({
@@ -455,14 +480,16 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          if (isPath) {
            const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
            if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           const clipPathId = elementClipPath();
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
           // scope. A border is a separate pass so its centered stroke can be
           // inset without changing the element's sibling order.
           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup;
-           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(overflowClipId ? { clipPath: overflowClipId } : {}), timing: { start: 0, duration } });
+           const clipPathId = elementClipPath();
+           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined;
+           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), timing: { start: 0, duration } });
            const paintLayerBaseOrder = layers.length;
            paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;

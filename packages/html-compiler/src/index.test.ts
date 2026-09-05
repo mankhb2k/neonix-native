@@ -279,6 +279,29 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     });
   });
 
+  it("lowers CSS clip-path shapes into geometric V2 clip paths", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="inset"></div><div id="circle"></div><div id="ellipse"></div><div id="triangle"></div><div id="hole"></div><div id="combined"><div id="combined-child"></div></div>`,
+      css: `body { margin: 0; }
+#inset, #circle, #ellipse, #triangle, #hole, #combined { position: absolute; width: 300px; height: 180px; background: #38bdf8; }
+#inset { left: 40px; top: 40px; clip-path: inset(20px 30px round 18px / 10px); }
+#circle { left: 380px; top: 40px; clip-path: circle(65px at 30% 60%); }
+#ellipse { left: 720px; top: 40px; clip-path: ellipse(110px 55px at 65% 35%); }
+#triangle { left: 1060px; top: 40px; clip-path: polygon(10% 90%, 50% 10%, 90% 90%); }
+#hole { left: 1400px; top: 40px; clip-path: path(evenodd, "M 0 0 H 300 V 180 H 0 Z M 80 40 H 220 V 140 H 80 Z"); }
+#combined { left: 40px; top: 300px; overflow: hidden; transform: rotate(4deg); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+#combined-child { position: absolute; left: -40px; top: -20px; width: 380px; height: 220px; background: #f97316; }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const clipIds = result.protocol?.layers.filter((layer) => layer.clipPath).map((layer) => layer.clipPath);
+    expect(clipIds).toHaveLength(6);
+    expect(result.protocol?.clipPaths).toHaveLength(6);
+    expect(result.protocol?.clipPaths?.some((clip) => clip.children[0]?.type === "path" && clip.children[0].contours[0]?.segments.some((segment) => segment.kind === "arc"))).toBe(true);
+    expect(result.protocol?.clipPaths?.some((clip) => clip.children[0]?.type === "path" && clip.children[0].fillRule === "evenodd")).toBe(true);
+    expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({ clipPath: expect.any(String), transform: { operations: expect.any(Array) } });
+  });
+
   it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="shadow"></div>`,

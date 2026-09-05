@@ -13,7 +13,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -3064,9 +3064,200 @@ export const HTML_COMPILER_PAINT_PHASE2_6_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+export const HTML_COMPILER_PAINT_PHASE2_7_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.clip-inset-round",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path inset round",
+    properties: ["clip-path: inset()", "round corner", "reference box"],
+    hint: "An inset clip lowers to a normalized rounded local path without creating a mask alpha surface.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-inset-round\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-inset-round {
+  position: absolute;
+  left: 520px;
+  top: 360px;
+  width: 880px;
+  height: 360px;
+  background: #38bdf8;
+  border: 24px solid #1e3a8a;
+  clip-path: inset(20px 36px 44px 52px round 42px / 26px);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-circle-offset",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path circle offset center",
+    properties: ["clip-path: circle()", "percentage center", "geometric clip"],
+    hint: "The circle center resolves against the element reference box, not against the composition.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-circle-offset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-circle-offset {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #f97316;
+  clip-path: circle(148px at 28% 64%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-ellipse-offset",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path ellipse offset center",
+    properties: ["clip-path: ellipse()", "independent radii", "percentage center"],
+    hint: "Horizontal and vertical radii resolve independently while the center stays in local element coordinates.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-ellipse-offset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-ellipse-offset {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #a78bfa;
+  clip-path: ellipse(260px 112px at 68% 34%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-polygon-three",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path polygon three points",
+    properties: ["clip-path: polygon()", "3 points", "normalized percentages"],
+    hint: "A triangle is lowered as one closed path contour with percentage points resolved in the border box.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-polygon-three\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-polygon-three {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #facc15;
+  clip-path: polygon(8% 88%, 50% 8%, 92% 88%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-polygon-five",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path polygon five points",
+    properties: ["clip-path: polygon()", "5 points", "closed path"],
+    hint: "A five-point polygon remains one deterministic contour and keeps source point order.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-polygon-five\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-polygon-five {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #fb7185;
+  clip-path: polygon(50% 4%, 94% 38%, 76% 92%, 24% 92%, 6% 38%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-polygon-six",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path polygon six points",
+    properties: ["clip-path: polygon()", "6 points", "closed path"],
+    hint: "A six-point polygon exercises the general point-list lowering path independently from the triangle and pentagon cases.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-polygon-six\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-polygon-six {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #34d399;
+  clip-path: polygon(18% 8%, 82% 8%, 98% 50%, 82% 92%, 18% 92%, 2% 50%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-path-hole-evenodd",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path path hole evenodd",
+    properties: ["clip-path: path()", "evenodd", "hole contour"],
+    hint: "The path keeps two closed contours and lowers evenodd as geometric fill semantics, so the inner contour remains a hole.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-path-hole-evenodd\"></div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-path-hole-evenodd {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  background: #38bdf8;
+  clip-path: path(evenodd, "M 0 0 H 800 V 360 H 0 Z M 220 90 H 580 V 270 H 220 Z");
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.clip-transform-overflow",
+    phase: "P2.7",
+    topic: "Paint",
+    label: "Paint / clip-path with transform and overflow",
+    properties: ["clip-path", "transform", "overflow: hidden", "intersection"],
+    hint: "The geometric clip and overflow rectangle are intersected in one layer scope before the transformed subtree is composited.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-transform-overflow\">\n    <div id=\"clip-transform-overflow-child\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #111827; }
+
+#clip-transform-overflow {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  overflow: hidden;
+  transform: rotate(-6deg);
+  background: #1e3a8a;
+  clip-path: inset(24px round 64px);
+}
+
+#clip-transform-overflow-child {
+  position: absolute;
+  left: -100px;
+  top: -80px;
+  width: 1000px;
+  height: 520px;
+  background: linear-gradient(90deg, #f97316, #38bdf8);
+}`,
+    }),
+  },
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -3076,5 +3267,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

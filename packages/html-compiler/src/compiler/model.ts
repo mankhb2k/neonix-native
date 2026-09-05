@@ -4,6 +4,7 @@ export const SUPPORTED_PROPERTIES = new Set(["position", "inset", "left", "right
 SUPPORTED_PROPERTIES.add("filter");
 SUPPORTED_PROPERTIES.add("mix-blend-mode");
 SUPPORTED_PROPERTIES.add("isolation");
+SUPPORTED_PROPERTIES.add("clip-path");
 export const SUPPORTED_TAGS = new Set(["html", "head", "meta", "div", "span", "p", "main", "section", "article", "header", "footer", "nav", "aside", "body", "img", "video", "svg", "g", "path"]);
 export const INHERITED_PROPERTIES = new Set(["color", "font-size", "font-family", "font-weight", "font-style", "font-stretch", "line-height", "letter-spacing", "word-spacing", "white-space", "text-align", "direction", "writing-mode", "text-rendering", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity", "stroke-linejoin", "stroke-linecap", "stroke-dasharray", "stroke-dashoffset", "paint-order"]);
 export const EXPLICIT_ID = /^[A-Za-z][A-Za-z0-9_-]{0,199}$/;
