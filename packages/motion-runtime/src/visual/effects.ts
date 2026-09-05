@@ -34,7 +34,11 @@ export function buildRuntimeEffectProgram(
       const tinted = `effect:${effect.id}:tint`;
       const output = outputSurfaceFor(effect.id);
       ops.push(
-        { id: `${effect.id}:alpha`, kind: "alpha-mask", input, output: alpha },
+        // Every CSS shadow is derived from the owner's original silhouette.
+        // The composited result is only used as the backdrop for the next
+        // shadow; otherwise a comma list would recursively shadow its own
+        // previously rendered shadows.
+        { id: `${effect.id}:alpha`, kind: "alpha-mask", input: effect.type === "shadow" ? RUNTIME_EFFECT_SOURCE_SURFACE : input, output: alpha },
         {
           id: `${effect.id}:blur`,
           kind: "blur",

@@ -191,6 +191,51 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.diagnostics[0]?.code).toBe("css-text-overflow-requires-clipping");
   });
 
+  it("lowers outline as paint-only geometry without inflating the layout frame", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="outlined"></div>`,
+      css: `#outlined { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #172554; outline: 12px solid #facc15; outline-offset: 18px; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const group = result.protocol?.layers.find((layer) => layer.id === "outlined");
+    const outlines = result.protocol?.layers.filter((layer) => layer.id.startsWith("outlined::outline")) ?? [];
+    expect(group).toMatchObject({ type: "group", frame: { width: 320, height: 160 } });
+    expect(outlines).toHaveLength(4);
+    expect(outlines.every((layer) => layer.parentLayerId === "outlined" && layer.type === "shape")).toBe(true);
+    expect(outlines[0]).toMatchObject({ frame: { width: 320, height: 160 }, style: { fill: "#facc15" }, payload: { shape: "polygon" } });
+  });
+
+  it("lowers text-shadow and box-shadow into ordered Protocol V2 effects", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box-shadow"></div><div id="text-shadow">Shadow</div>`,
+      css: `#box-shadow { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #2563eb; box-shadow: 12px 16px 24px #00000099; }
+#text-shadow { position: absolute; left: 240px; top: 420px; width: 600px; height: 120px; color: #ffffff; font-family: Inter; font-size: 64px; font-weight: 700; text-shadow: 4px 6px 8px #38bdf899; }`,
+    }), {
+      fontAssets: [{ id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "box-shadow")).toMatchObject({
+      type: "group",
+      frame: { width: 320, height: 160 },
+      effects: [{ type: "shadow", source: "box", offset: { x: 12, y: 16 }, blur: 24, spread: 0, inset: false, color: "#00000099" }],
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "text-shadow")).toMatchObject({
+      type: "text",
+      effects: [{ type: "shadow", source: "alpha", offset: { x: 4, y: 6 }, blur: 8, spread: 0, inset: false, color: "#38bdf899" }],
+    });
+  });
+
+  it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="shadow"></div>`,
+      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 8px 12px 6px #00000099 inset; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-box-shadow-spread-inset-unsupported");
+  });
+
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {
     const result = compileHtmlCss(source);
     expect(result.status).toBe("success");
@@ -218,7 +263,7 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="gold-01"></div>`,
       css: `body { margin: 0; background: #081018; }
-#gold-01 { position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; background: #14b8a6; display: grid; }`,
+#gold-01 { position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; background: #14b8a6; display: inline; }`,
     }));
     expect(result.status).toBe("error");
     expect(result.protocol).toBeNull();

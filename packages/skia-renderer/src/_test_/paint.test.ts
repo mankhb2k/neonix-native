@@ -3,6 +3,50 @@ import { createSkiaPaint } from "../paint";
 import type { SkiaCanvasKit, SkiaPaint, SkiaShader } from "../canvas-kit";
 
 describe("Skia gradient paint", () => {
+  it("materializes a short repeat period for CanvasKit builds that clamp tile mode", () => {
+    let positions: number[] | undefined;
+    let mode: unknown;
+    const shader: SkiaShader = { delete() {} };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setShader() {}
+    }
+    const kit = {
+      Color: () => 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      Shader: {
+        MakeLinearGradient: (_start: unknown, _end: unknown, _colors: unknown[], nextPositions: number[], nextMode: unknown) => {
+          positions = nextPositions;
+          mode = nextMode;
+          return shader;
+        },
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#38bdf8", 1, kit.PaintStyle.Fill, {
+      type: "linear-gradient",
+      angle: 0,
+      spreadMethod: "repeat",
+      stops: [
+        { offset: 0, color: "#38bdf8" },
+        { offset: 0.08, color: "#38bdf8" },
+        { offset: 0.08, color: "#a78bfa" },
+        { offset: 0.16, color: "#a78bfa" },
+      ],
+    }, 1200, 260);
+
+    expect(mode).toBe(kit.TileMode.Clamp);
+    expect(positions?.[0]).toBe(0);
+    expect(positions?.at(-1)).toBe(1);
+    expect(positions?.filter((position) => position === 0.16).length).toBeGreaterThan(0);
+  });
+
   it("lowers CSS conic start angle into the sweep shader matrix", () => {
     let sweepCall: { center: [number, number]; matrix?: number[]; startAngle?: number; endAngle?: number } | undefined;
     const shader: SkiaShader = { delete() {} };

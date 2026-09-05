@@ -706,7 +706,7 @@ function lowerDefinitionDrawables(
 }
 
 function lowerSemanticMask(
-  layer: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  layer: ProtocolLayer,
   project: MotionProtocolV2,
   context: LayerContext,
   paintServers?: PaintServerLookup,
@@ -759,7 +759,7 @@ function lowerSemanticMask(
 }
 
 function definitionRuntimeNode(
-  target: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  target: ProtocolLayer,
   context: LayerContext,
   drawable: DefinitionDrawable,
   id: string,
@@ -889,6 +889,12 @@ function compileVisualRuntimeInternal(
     const blendMode = lowerBlendMode(layer);
     const isolation = layer.composite?.isolation;
     const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
+    const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
+    semanticMaskNodes.push(...semanticMask.nodes);
+    const semanticState = {
+      ...(semanticMask.clipPath ? { clipPath: semanticMask.clipPath } : {}),
+      ...(semanticMask.mask ? { mask: semanticMask.mask } : {}),
+    };
     if (layer.type === "group") {
       for (const capability of [
         "group.transform",
@@ -903,10 +909,6 @@ function compileVisualRuntimeInternal(
         }
       }
       if (context.timing.duration <= 0) return null;
-      const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
-      semanticMaskNodes.push(...semanticMask.nodes);
-      const clipPath = semanticMask.clipPath;
-      const mask = semanticMask.mask;
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -915,9 +917,8 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
-        ...(clipPath ? { clipPath } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
-        ...(mask ? { mask } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -971,6 +972,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1021,6 +1023,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1138,6 +1141,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1297,6 +1301,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1443,6 +1448,7 @@ function compileVisualRuntimeInternal(
       opacity: context.opacity,
       blendMode,
       ...(isolation ? { isolation } : {}),
+      ...semanticState,
       backfaceVisibility: layer.backfaceVisibility,
       visible: context.visible,
       localMatrix: context.localMatrix,

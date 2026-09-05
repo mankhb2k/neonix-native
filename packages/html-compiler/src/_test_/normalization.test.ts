@@ -80,7 +80,9 @@ describe("HTML/CSS normalization contract", () => {
       css: `#box { position: absolute; width: 100px; height: 100px; box-sizing: border-box; background: #112233; background-color: #445566; border: 4px solid #ffffff; border-width: 8px; padding: 10px; padding-left: 24px; }`,
     }));
     expect(result.status).toBe("success");
-    expect(result.protocol?.layers[0]).toMatchObject({ frame: { width: 100, height: 100 }, style: { fill: "#445566", strokeWidth: 8 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "box")).toMatchObject({ type: "group", frame: { width: 100, height: 100 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "box::paint")).toMatchObject({ style: { fill: "#445566" } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "box::border")).toMatchObject({ style: { strokeWidth: 8 } });
   });
 
   it("accepts only the Phase 2 visual/container tag allowlist", () => {

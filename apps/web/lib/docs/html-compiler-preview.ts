@@ -8,11 +8,12 @@ export type HtmlCompilerPreviewTopic =
   | "Transform 2D"
   | "Paint"
   | "Media"
-  | "Typography";
+  | "Typography"
+  | "Layout";
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -1848,16 +1849,853 @@ body {
 
 export const HTML_COMPILER_DEFAULT_CASE_ID = HTML_COMPILER_PHASE0_CASES[0].id;
 
-export function htmlCompilerPreviewGroups(): Array<{ topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
-  const groups = new Map<HtmlCompilerPreviewTopic, HtmlCompilerPreviewCase[]>();
-  for (const item of HTML_COMPILER_PHASE0_CASES) {
-    const cases = groups.get(item.topic) ?? [];
-    cases.push(item);
-    groups.set(item.topic, cases);
+export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.flex-row-fixed",
+    phase: "P1.1",
+    topic: "Layout",
+    label: "Layout / flex row",
+    properties: ["display:flex", "flex-direction:row", "fixed items"],
+    hint: "A single-line row places fixed-size children in source order inside the composition frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-row\">\n    <div id=\"row-cyan\"></div>\n    <div id=\"row-violet\"></div>\n    <div id=\"row-yellow\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#flex-row { position: absolute; left: 240px; top: 360px; width: 960px; height: 240px; display: flex; flex-direction: row; }
+#row-cyan, #row-violet, #row-yellow { width: 240px; height: 120px; }
+#row-cyan { background: #38bdf8; }
+#row-violet { background: #a78bfa; }
+#row-yellow { background: #facc15; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-column-gap",
+    phase: "P1.1",
+    topic: "Layout",
+    label: "Layout / column + gap",
+    properties: ["flex-direction:column", "gap", "row-gap", "column-gap"],
+    hint: "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside P1.1.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-column\">\n    <div id=\"column-one\"></div>\n    <div id=\"column-two\"></div>\n    <div id=\"column-three\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#flex-column { position: absolute; left: 360px; top: 220px; width: 480px; height: 640px; display: flex; flex-direction: column; gap: 28px; }
+#column-one, #column-two, #column-three { width: 260px; height: 120px; }
+#column-one { background: #22d3ee; }
+#column-two { background: #fb7185; }
+#column-three { background: #4ade80; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-justify-align",
+    phase: "P1.1",
+    topic: "Layout",
+    label: "Layout / justify + align",
+    properties: ["justify-content:space-between", "align-items:center", "align-self"],
+    hint: "Main-axis distribution and cross-axis centering resolve to explicit composition coordinates.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-distribution\">\n    <div id=\"distribution-one\"></div>\n    <div id=\"distribution-two\"></div>\n    <div id=\"distribution-three\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#flex-distribution { position: absolute; left: 220px; top: 330px; width: 1200px; height: 360px; display: flex; justify-content: space-between; align-items: center; }
+#distribution-one, #distribution-two, #distribution-three { width: 180px; height: 100px; }
+#distribution-one { background: #38bdf8; }
+#distribution-two { align-self: flex-end; background: #f472b6; }
+#distribution-three { background: #facc15; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-grow-shrink",
+    phase: "P1.1",
+    topic: "Layout",
+    label: "Layout / flex grow + shrink",
+    properties: ["flex", "flex-grow", "flex-shrink", "flex-basis"],
+    hint: "The flex shorthand expands to grow, shrink and basis before free space is distributed.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-grow\">\n    <div id=\"grow-one\"></div>\n    <div id=\"grow-two\"></div>\n    <div id=\"grow-three\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#flex-grow { position: absolute; left: 240px; top: 400px; width: 1440px; height: 180px; display: flex; gap: 24px; }
+#grow-one { flex: 1; background: #38bdf8; }
+#grow-two { flex: 2; background: #a78bfa; }
+#grow-three { flex: 1; background: #fb7185; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-order",
+    phase: "P1.1",
+    topic: "Layout",
+    label: "Layout / order",
+    properties: ["order", "source order", "paint order"],
+    hint: "Order changes the flex placement sequence while the lowered layers retain deterministic paint ordering.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-order\">\n    <div id=\"order-first\"></div>\n    <div id=\"order-middle\"></div>\n    <div id=\"order-last\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#flex-order { position: absolute; left: 260px; top: 380px; width: 1200px; height: 220px; display: flex; gap: 32px; align-items: center; }
+#order-first, #order-middle, #order-last { width: 240px; height: 120px; }
+#order-first { order: 3; background: #38bdf8; }
+#order-middle { order: 1; background: #a78bfa; }
+#order-last { order: 2; background: #fb7185; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PHASE1_2_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.flex-wrap-lines",
+    phase: "P1.2",
+    topic: "Layout",
+    label: "Layout / flex wrap lines",
+    properties: ["flex-wrap:wrap", "row-gap", "column-gap"],
+    hint: "Items form deterministic flex lines when the main-axis content box is full; row and column gaps stay in their CSS axes.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"wrap-lines\">\n    <div id=\"wrap-one\"></div>\n    <div id=\"wrap-two\"></div>\n    <div id=\"wrap-three\"></div>\n    <div id=\"wrap-four\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#wrap-lines { position: absolute; left: 220px; top: 260px; width: 960px; height: 420px; display: flex; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; row-gap: 32px; column-gap: 24px; }
+#wrap-one, #wrap-two, #wrap-three, #wrap-four { width: 300px; height: 100px; }
+#wrap-one { background: #38bdf8; } #wrap-two { background: #a78bfa; }
+#wrap-three { background: #fb7185; } #wrap-four { background: #4ade80; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-align-content",
+    phase: "P1.2",
+    topic: "Layout",
+    label: "Layout / align-content",
+    properties: ["align-content:space-between", "multi-line alignment", "align-items:center"],
+    hint: "After line formation, align-content distributes the remaining cross-axis space between flex lines.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"align-lines\">\n    <div id=\"align-one\"></div>\n    <div id=\"align-two\"></div>\n    <div id=\"align-three\"></div>\n    <div id=\"align-four\"></div>\n    <div id=\"align-five\"></div>\n    <div id=\"align-six\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#align-lines { position: absolute; left: 220px; top: 220px; width: 960px; height: 600px; display: flex; flex-wrap: wrap; align-content: space-between; align-items: center; column-gap: 24px; row-gap: 20px; }
+#align-one, #align-two, #align-three, #align-four, #align-five, #align-six { width: 280px; height: 100px; }
+#align-one { background: #22d3ee; } #align-two { background: #a78bfa; } #align-three { background: #facc15; }
+#align-four { background: #fb7185; } #align-five { background: #4ade80; } #align-six { background: #f97316; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.flex-wrap-reverse",
+    phase: "P1.2",
+    topic: "Layout",
+    label: "Layout / wrap-reverse",
+    properties: ["flex-wrap:wrap-reverse", "cross-axis reversal", "align-self"],
+    hint: "wrap-reverse reverses the cross-axis line order while IDs and source order remain stable.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"reverse-lines\">\n    <div id=\"reverse-one\"></div>\n    <div id=\"reverse-two\"></div>\n    <div id=\"reverse-three\"></div>\n    <div id=\"reverse-four\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#reverse-lines { position: absolute; left: 280px; top: 200px; width: 840px; height: 620px; display: flex; flex-wrap: wrap-reverse; align-content: flex-start; align-items: flex-start; row-gap: 28px; column-gap: 24px; }
+#reverse-one, #reverse-two, #reverse-three, #reverse-four { width: 360px; height: 120px; }
+#reverse-one { background: #38bdf8; } #reverse-two { background: #a78bfa; }
+#reverse-three { background: #fb7185; } #reverse-four { background: #4ade80; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PHASE1_3_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.grid-explicit-columns",
+    phase: "P1.3",
+    topic: "Layout",
+    label: "Layout / grid columns",
+    properties: ["display:grid", "grid-template-columns", "px", "%", "fr"],
+    hint: "Explicit px and fr columns resolve to fixed composition tracks; unassigned children use deterministic row-major placement.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"grid-columns\">\n    <div id=\"columns-one\"></div>\n    <div id=\"columns-two\"></div>\n    <div id=\"columns-three\"></div>\n    <div id=\"columns-four\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#grid-columns { position: absolute; left: 220px; top: 220px; width: 1080px; height: 560px; display: grid; grid-template-columns: 25% 1fr 2fr; grid-template-rows: 180px 180px; column-gap: 24px; row-gap: 28px; }
+#columns-one, #columns-two, #columns-three, #columns-four { background: #38bdf8; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.grid-explicit-placement",
+    phase: "P1.3",
+    topic: "Layout",
+    label: "Layout / grid placement",
+    properties: ["grid-column-start/end", "grid-row-start/end", "explicit cells"],
+    hint: "Explicit grid line placement maps directly to deterministic track rectangles.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"grid-placement\">\n    <div id=\"placement-one\"></div>\n    <div id=\"placement-two\"></div>\n    <div id=\"placement-three\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#grid-placement { position: absolute; left: 240px; top: 180px; width: 960px; height: 680px; display: grid; grid-template-columns: 240px 240px 240px; grid-template-rows: 160px 200px 180px; gap: 24px; }
+#placement-one { grid-column-start: 1; grid-column-end: 3; grid-row-start: 1; grid-row-end: 2; background: #22d3ee; }
+#placement-two { grid-column-start: 3; grid-column-end: 4; grid-row-start: 1; grid-row-end: 3; background: #a78bfa; }
+#placement-three { grid-column-start: 1; grid-column-end: 2; grid-row-start: 3; grid-row-end: 4; background: #fb7185; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.grid-gap-alignment",
+    phase: "P1.3",
+    topic: "Layout",
+    label: "Layout / grid gap + alignment",
+    properties: ["gap", "place-items", "justify-content", "align-content"],
+    hint: "Track gaps, track-area alignment and item alignment are resolved independently inside the composition content box.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"grid-alignment\">\n    <div id=\"alignment-one\"></div>\n    <div id=\"alignment-two\"></div>\n    <div id=\"alignment-three\"></div>\n    <div id=\"alignment-four\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#grid-alignment { position: absolute; left: 220px; top: 180px; width: 1000px; height: 680px; display: grid; grid-template-columns: repeat(2, 240px); grid-template-rows: repeat(2, 160px); column-gap: 32px; row-gap: 28px; justify-content: center; align-content: flex-end; place-items: center; }
+#alignment-one, #alignment-two, #alignment-three, #alignment-four { width: 120px; height: 80px; }
+#alignment-one { background: #38bdf8; } #alignment-two { background: #a78bfa; }
+#alignment-three { background: #facc15; } #alignment-four { background: #4ade80; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.grid-spans",
+    phase: "P1.3",
+    topic: "Layout",
+    label: "Layout / grid spans",
+    properties: ["grid-column", "grid-row", "span"],
+    hint: "The grid shorthand and span syntax expand to explicit start/end lines before the item is lowered.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"grid-spans\">\n    <div id=\"span-hero\"></div>\n    <div id=\"span-side\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#grid-spans { position: absolute; left: 260px; top: 180px; width: 960px; height: 680px; display: grid; grid-template-columns: 240px 1fr 1fr; grid-template-rows: 220px 220px; gap: 24px; }
+#span-hero { grid-column: 1 / span 2; grid-row: 1 / span 2; background: #38bdf8; }
+#span-side { grid-column: 3 / 4; grid-row: 1 / 3; background: #fb7185; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.flex-order-minmax",
+    phase: "P1.4",
+    topic: "Layout",
+    label: "Layout / flex order + min-max",
+    properties: ["order", "min-width", "max-width", "flex distribution"],
+    hint: "Flex order is applied before placement and min/max constraints are enforced after free-space distribution.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"edge-flex\">\n    <div id=\"edge-flex-first\"></div>\n    <div id=\"edge-flex-second\"></div>\n    <div id=\"edge-flex-third\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#edge-flex { position: absolute; left: 220px; top: 360px; width: 1440px; height: 220px; display: flex; gap: 24px; align-items: center; }
+#edge-flex-first, #edge-flex-second, #edge-flex-third { height: 120px; }
+#edge-flex-first { order: 3; flex: 1; min-width: 280px; max-width: 360px; background: #38bdf8; }
+#edge-flex-second { order: 1; flex: 2; background: #a78bfa; }
+#edge-flex-third { order: 2; flex: 1; background: #fb7185; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.grid-order",
+    phase: "P1.4",
+    topic: "Layout",
+    label: "Layout / grid order",
+    properties: ["order", "grid auto-placement", "stable ids"],
+    hint: "Grid auto-placement follows the order-modified sequence while the source IDs remain stable in Protocol V2.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"edge-grid\">\n    <div id=\"edge-grid-first\"></div>\n    <div id=\"edge-grid-second\"></div>\n    <div id=\"edge-grid-third\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#edge-grid { position: absolute; left: 260px; top: 320px; width: 1200px; height: 260px; display: grid; grid-template-columns: repeat(3, 240px); grid-template-rows: 120px; column-gap: 32px; align-content: center; }
+#edge-grid-first { order: 3; background: #38bdf8; }
+#edge-grid-second { order: 1; background: #a78bfa; }
+#edge-grid-third { order: 2; background: #fb7185; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.relative-margins",
+    phase: "P1.4",
+    topic: "Layout",
+    label: "Layout / relative + margins",
+    properties: ["position:relative", "relative offset", "non-collapsing margins"],
+    hint: "Relative offsets move the painted item after its flex slot is resolved; adjacent flex margins are summed, not collapsed.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"edge-relative\">\n    <div id=\"edge-relative-one\"></div>\n    <div id=\"edge-relative-two\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#edge-relative { position: absolute; left: 260px; top: 360px; width: 1100px; height: 220px; display: flex; align-items: flex-start; }
+#edge-relative-one { position: relative; left: 24px; top: 18px; width: 240px; height: 120px; margin-right: 36px; background: #38bdf8; }
+#edge-relative-two { width: 240px; height: 120px; margin-left: 44px; background: #facc15; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.contents-parent",
+    phase: "P1.4",
+    topic: "Layout",
+    label: "Layout / contents parent",
+    properties: ["display:contents", "grid parent", "parent layer"],
+    hint: "A display:contents wrapper contributes no layer; its visual child is placed and parented directly under the formatting context.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"edge-contents-grid\">\n    <div id=\"edge-contents\"><div id=\"edge-contents-child\"></div></div>\n    <div id=\"edge-contents-peer\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#edge-contents-grid { position: absolute; left: 300px; top: 340px; width: 960px; height: 260px; display: grid; grid-template-columns: 420px 420px; grid-template-rows: 140px; column-gap: 32px; align-content: center; }
+#edge-contents { display: contents; }
+#edge-contents-child { background: #38bdf8; }
+#edge-contents-peer { background: #a78bfa; }`,
+    }),
+  },
+  {
+    id: "html-compiler.layout.containing-block-clip",
+    phase: "P1.4",
+    topic: "Layout",
+    label: "Layout / containing block + clip",
+    properties: ["absolute child", "flex containing block", "overflow:hidden"],
+    hint: "A flex container establishes the absolute child's containing block and its overflow clip remains attached to the parent group.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"edge-clip\">\n    <div id=\"edge-clip-absolute\"></div>\n    <div id=\"edge-clip-wide\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#edge-clip { position: absolute; left: 320px; top: 320px; width: 700px; height: 220px; padding: 20px; display: flex; overflow: hidden; }
+#edge-clip-absolute { position: absolute; left: 40px; top: 30px; width: 120px; height: 80px; background: #fb7185; }
+#edge-clip-wide { flex-shrink: 0; width: 1000px; height: 120px; background: #38bdf8; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.background-image-position-size",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / background image position + size",
+    properties: ["background-image", "background-position", "background-size", "no-repeat"],
+    hint: "A URL background is lowered to an image atomic with deterministic cover sizing, center positioning and a border-box clip.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-background-cover\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-background-cover {
+  position: absolute;
+  left: 360px;
+  top: 300px;
+  width: 1200px;
+  height: 480px;
+  background-color: #172554;
+  background-image: url("/preview/image/photo-landscape.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.background-origin-clip",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / background origin + clip",
+    properties: ["background-origin", "background-clip", "padding-box", "content-box"],
+    hint: "The image is positioned from the padding box while its paint is clipped to the content box inside an explicit border and padding.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-background-boxes\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-background-boxes {
+  position: absolute;
+  left: 480px;
+  top: 300px;
+  width: 960px;
+  height: 480px;
+  box-sizing: border-box;
+  padding: 48px;
+  border: 20px solid #38bdf8;
+  background-color: #172554;
+  background-image: url("/preview/image/photo-portrait.jpg");
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-origin: padding-box;
+  background-clip: content-box;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.background-image-repeat",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / background image repeat",
+    properties: ["background-image", "background-size", "repeat-x", "repeat-y", "clip"],
+    hint: "An explicitly sized image is tiled into bounded image atomics and each tile is clipped to the owner paint box.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-background-repeat\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-background-repeat {
+  position: absolute;
+  left: 360px;
+  top: 300px;
+  width: 1200px;
+  height: 480px;
+  background-color: #172554;
+  background-image: url("/preview/image/img-alpha.png");
+  background-position: 0% 0%;
+  background-size: 160px 120px;
+  background-repeat: repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.background-image-list",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / background image layers",
+    properties: ["multiple URL layers", "layer order", "position list", "size list"],
+    hint: "CSS image layers retain their authored order while the compiler emits independent image atomics above the solid base paint.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-background-layers\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-background-layers {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: url("/preview/image/photo-landscape.jpg"), url("/preview/image/img-alpha.png");
+  background-position: center, right bottom;
+  background-size: cover, 180px 120px;
+  background-repeat: no-repeat, no-repeat;
+}`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.repeating-linear-gradient",
+    phase: "P2.1",
+    topic: "Paint",
+    label: "Paint / repeating linear gradient",
+    properties: ["repeating-linear-gradient", "short period", "wrap boundary"],
+    hint: "A short normalized stop period repeats across the full paint box while preserving the authored angle.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-repeating-linear\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-repeating-linear {
+  position: absolute;
+  left: 360px;
+  top: 300px;
+  width: 1200px;
+  height: 260px;
+  background: repeating-linear-gradient(90deg, #38bdf8 0%, #38bdf8 8%, #a78bfa 8%, #a78bfa 16%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.repeating-radial-gradient",
+    phase: "P2.1",
+    topic: "Paint",
+    label: "Paint / repeating radial gradient",
+    properties: ["repeating-radial-gradient", "off-center", "wrap boundary"],
+    hint: "An off-center radial gradient repeats from its normalized center, including samples on both sides of the period.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-repeating-radial\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-repeating-radial {
+  position: absolute;
+  left: 420px;
+  top: 260px;
+  width: 1080px;
+  height: 520px;
+  background: repeating-radial-gradient(circle at 28% 62%, #f8fafc 0%, #38bdf8 12%, #1e3a8a 24%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.repeating-conic-gradient",
+    phase: "P2.1",
+    topic: "Paint",
+    label: "Paint / repeating conic gradient",
+    properties: ["repeating-conic-gradient", "from 45deg", "off-center"],
+    hint: "The repeating conic primitive keeps its start angle and off-center normalized origin while wrapping through the period.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-repeating-conic\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-repeating-conic {
+  position: absolute;
+  left: 620px;
+  top: 260px;
+  width: 680px;
+  height: 560px;
+  background: repeating-conic-gradient(from 45deg at 32% 62%, #facc15 0%, #fb7185 12.5%, #38bdf8 25%, #a78bfa 37.5%, #facc15 50%);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.repeating-gradient-background",
+    phase: "P2.1",
+    topic: "Paint",
+    label: "Paint / repeating gradient over solid",
+    properties: ["repeating gradient", "solid background", "layer order"],
+    hint: "The repeating image layer remains above the solid background layer, with both bounded by the same paint box.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-repeating-over-solid\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-repeating-over-solid {
+  position: absolute;
+  left: 360px;
+  top: 320px;
+  width: 1200px;
+  height: 360px;
+  background: repeating-linear-gradient(135deg, #38bdf8 0%, #38bdf8 10%, transparent 10%, transparent 20%), #172554;
+}`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PAINT_PHASE2_2_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.border-four-sides",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / border four sides",
+    properties: ["border-top/right/bottom/left", "width", "style", "color"],
+    hint: "Each border side resolves independently, so width, style and color do not leak across adjacent edges.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-four-sides\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-four-sides {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border-top: 12px solid #38bdf8;
+  border-right: 20px solid #a78bfa;
+  border-bottom: 28px solid #facc15;
+  border-left: 8px solid #fb7185;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-none-mixed",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / border none mixed",
+    properties: ["none", "solid", "per-side resolution"],
+    hint: "A none side contributes no visible border while neighboring solid sides remain deterministic.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-none-mixed\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-none-mixed {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border-top: 18px solid #38bdf8;
+  border-right: 18px none #a78bfa;
+  border-bottom: 18px solid #facc15;
+  border-left: 18px none #fb7185;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-dashed-dotted",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / dashed + dotted border",
+    properties: ["dashed", "dotted", "stroke dash", "side paths"],
+    hint: "Dashed and dotted borders lower to fitted edge fragments: rectangles for dashes and ellipses for dots.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-dashed-dotted\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-dashed-dotted {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border-top: 16px dashed #38bdf8;
+  border-right: 16px dotted #a78bfa;
+  border-bottom: 16px dashed #facc15;
+  border-left: 16px dotted #fb7185;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-double",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / double border",
+    properties: ["double", "stroke", "stable side order"],
+    hint: "The double style becomes two deterministic inset strokes on each side; it does not change the layout frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-border-double\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-border-double {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #172554;
+  border: 24px double #38bdf8;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-radius-uniform",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / uniform radius",
+    properties: ["border-radius", "uniform", "clamped corners"],
+    hint: "A single radius remains the compact rectangle atom and is clamped to half of the resolved box dimensions.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-radius-uniform\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-radius-uniform {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #38bdf8;
+  border: 18px solid #f8fafc;
+  border-radius: 72px;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-radius-per-corner",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / per-corner radius",
+    properties: ["border-radius", "four corners", "path contour"],
+    hint: "Four independent corner radii are clamped by adjacent sums and lowered to a rounded path contour.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-radius-per-corner\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-radius-per-corner {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #a78bfa;
+  border: 18px solid #38bdf8;
+  border-radius: 96px 24px 120px 36px;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.border-radius-elliptical",
+    phase: "P2.2",
+    topic: "Paint",
+    label: "Paint / elliptical radius",
+    properties: ["border-radius", "horizontal / vertical radii", "ellipse arcs"],
+    hint: "The slash form resolves horizontal radii against width and vertical radii against height before CSS adjacent-sum clamping.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-radius-elliptical\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-radius-elliptical {
+  position: absolute;
+  left: 600px;
+  top: 320px;
+  width: 720px;
+  height: 360px;
+  background: #facc15;
+  border: 18px solid #fb7185;
+  border-radius: 140px 48px / 64px 120px;
+}`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PAINT_PHASE2_3_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.outline-layout-preserving",
+    phase: "P2.3",
+    topic: "Paint",
+    label: "Paint / outline preserves layout",
+    properties: ["outline", "no layout space", "sibling position"],
+    hint: "The outline expands only the paint bounds; the flex sibling keeps the same layout slot and gap.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"outline-layout\">\n    <div id=\"outline-target\"></div>\n    <div id=\"outline-sibling\"></div>\n  </div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#outline-layout {
+  position: absolute;
+  left: 300px;
+  top: 300px;
+  width: 1320px;
+  height: 300px;
+  display: flex;
+  gap: 180px;
+  align-items: center;
+  background: #172554;
+}
+
+#outline-target,
+#outline-sibling {
+  width: 360px;
+  height: 160px;
+  background: #38bdf8;
+}
+
+#outline-target {
+  margin-left: 180px;
+  outline: 14px solid #facc15;
+  outline-offset: 18px;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.outline-offsets",
+    phase: "P2.3",
+    topic: "Paint",
+    label: "Paint / outline offsets",
+    properties: ["outline-width", "outline-style", "outline-color", "outline-offset"],
+    hint: "Positive offset moves the outline outward and negative offset moves it into the border box without changing either frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"outline-positive\"></div>\n  <div id=\"outline-negative\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#outline-positive,
+#outline-negative {
+  position: absolute;
+  top: 360px;
+  width: 360px;
+  height: 180px;
+  background: #172554;
+  border: 8px solid #334155;
+  outline: 14px solid #38bdf8;
+}
+
+#outline-positive {
+  left: 420px;
+  outline-offset: 22px;
+}
+
+#outline-negative {
+  left: 1140px;
+  outline-color: #f97316;
+  outline-offset: -10px;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.outline-per-corner-radius",
+    phase: "P2.3",
+    topic: "Paint",
+    label: "Paint / outline around per-corner radius",
+    properties: ["outline", "outline-offset", "per-corner radius"],
+    hint: "The outline reuses the normalized four-corner geometry and follows the same elliptical corner radii without changing layout.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"outline-rounded\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#outline-rounded {
+  position: absolute;
+  left: 600px;
+  top: 300px;
+  width: 720px;
+  height: 360px;
+  background: #a78bfa;
+  border-radius: 96px 24px 120px 36px;
+  outline: 12px solid #facc15;
+  outline-offset: 16px;
+}`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.paint.box-shadow",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / box shadow",
+    properties: ["box-shadow", "offset", "blur", "color"],
+    hint: "A box shadow is lowered to the Protocol V2 box shadow effect without changing the owner's frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"box-shadow\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#box-shadow {
+  position: absolute;
+  left: 600px;
+  top: 360px;
+  width: 720px;
+  height: 300px;
+  border-radius: 32px;
+  background: #2563eb;
+  box-shadow: 28px 32px 36px #00000099;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.box-shadow-list",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / multiple box shadows",
+    properties: ["box-shadow", "comma list", "source order"],
+    hint: "Comma-separated box shadows remain separate ordered effects in the normalized layer contract.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"box-shadow-list\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#box-shadow-list {
+  position: absolute;
+  left: 600px;
+  top: 360px;
+  width: 720px;
+  height: 300px;
+  background: #172554;
+  box-shadow: 0 24px 28px #00000088, 18px 0 0 #38bdf866;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow",
+    properties: ["text-shadow", "alpha source", "blur"],
+    hint: "Text shadow uses the text alpha silhouette, so the shadow follows glyphs and fallback-font runs.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 18px 20px 18px #38bdf899;
+}`,
+    }),
+  },
+];
+
+export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
+  const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES]) {
+    const key = `${item.phase}:${item.topic}`;
+    const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
+    group.cases.push(item);
+    groups.set(key, group);
   }
-  return [...groups.entries()].map(([topic, cases]) => ({ topic, cases }));
+  return [...groups.values()];
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return HTML_COMPILER_PHASE0_CASES.find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

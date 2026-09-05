@@ -8,7 +8,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -53,6 +53,39 @@ describe("Protocol V2 preview lab fixtures", () => {
 
   it("keeps the HTML compiler sidebar backed by real P0 fixtures", () => {
     expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(41);
+    expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
+    expect(HTML_COMPILER_PHASE1_2_CASES).toHaveLength(3);
+    expect(HTML_COMPILER_PHASE1_3_CASES).toHaveLength(4);
+    expect(HTML_COMPILER_PHASE1_4_CASES).toHaveLength(5);
+    expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(4);
+    expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
+    expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(7);
+    expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
+    expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(3);
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_1_CASES) {
+      const compiled = compileHtmlCss(fixture.source);
+      expect(compiled.status, fixture.id).toBe("success");
+      const hasRepeatingPaint = compiled.protocol?.layers.some((layer) => {
+        const fill = layer.style?.fill;
+        return typeof fill === "object" && fill !== null && "spreadMethod" in fill && fill.spreadMethod === "repeat";
+      });
+      expect(hasRepeatingPaint, fixture.id).toBe(true);
+    }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_2_CASES) {
+      const compiled = compileHtmlCss(fixture.source);
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.length, fixture.id).toBeGreaterThan(0);
+    }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_3_CASES) {
+      const compiled = compileHtmlCss(fixture.source);
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => layer.id.endsWith("::outline")), fixture.id).toBe(true);
+    }
+    for (const fixture of HTML_COMPILER_PAINT_PHASE2_4_CASES) {
+      const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => (layer.effects?.length ?? 0) > 0), fixture.id).toBe(true);
+    }
     expect(htmlCompilerPreviewCaseById(null).id).toBe(HTML_COMPILER_DEFAULT_CASE_ID);
     expect(HTML_COMPILER_PHASE0_CASES[0]?.id).toBe("html-compiler.new-project.blue-rectangle");
     expect(HTML_COMPILER_PHASE0_CASES[0]?.source.composition).toEqual({
@@ -149,6 +182,15 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Paint",
       "Media",
       "Typography",
+      "Layout",
+      "Layout",
+      "Layout",
+      "Layout",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Paint",
+      "Paint",
     ]);
     expect(htmlCompilerPreviewGroups().every((group) => group.cases.length > 0)).toBe(true);
 
@@ -281,14 +323,24 @@ describe("Protocol V2 preview lab fixtures", () => {
 
     const colorBorder = compileHtmlCss(HTML_COMPILER_PHASE0_CASES[17]!.source);
     expect(colorBorder.status).toBe("success");
-    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-color-border")).toMatchObject({
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-color-border::paint")).toMatchObject({
       frame: { width: 444, height: 244 },
       payload: { cornerRadius: 28 },
-      style: { fill: "#172554", stroke: "#38bdf8", strokeWidth: 12 },
+      style: { fill: "#172554" },
     });
-    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-longhand")).toMatchObject({
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-color-border::border")).toMatchObject({
+      frame: { width: 432, height: 232 },
+      transform: { translate: { x: 6, y: 6, z: 0 } },
+      style: { stroke: "#38bdf8", strokeWidth: 12 },
+    });
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-longhand::paint")).toMatchObject({
       frame: { width: 436, height: 236 },
       payload: { cornerRadius: 28 },
+      style: { fill: "#172554" },
+    });
+    expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-longhand::border")).toMatchObject({
+      frame: { width: 428, height: 228 },
+      transform: { translate: { x: 4, y: 4, z: 0 } },
       style: { stroke: "#facc15", strokeWidth: 8 },
     });
     expect(colorBorder.protocol?.layers.find((layer) => layer.id === "paint-border-none")).not.toHaveProperty("style.stroke");

@@ -12,10 +12,21 @@ function compile(css: string) {
 
 describe("HTML/CSS compiler Phase 4 paint", () => {
   it("lowers a uniform rounded rectangle and solid border", () => {
-    const layer = compile("background: #14b8a6; border: 8px solid #ffffff; border-radius: 24px;");
-    expect(layer).toMatchObject({
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="paint"></div>`,
+      css: `#paint { position: absolute; left: 100px; top: 80px; width: 400px; height: 240px; background: #14b8a6; border: 8px solid #ffffff; border-radius: 24px; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "paint")).toMatchObject({ type: "group", frame: { width: 416, height: 256 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "paint::paint")).toMatchObject({
       payload: { shape: "rectangle", cornerRadius: 24 },
-      style: { fill: "#14b8a6", stroke: "#ffffff", strokeWidth: 8 },
+      style: { fill: "#14b8a6" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "paint::border")).toMatchObject({
+      frame: { width: 408, height: 248 },
+      transform: { translate: { x: 4, y: 4 } },
+      payload: { shape: "rectangle", cornerRadius: 20 },
+      style: { fill: "#00000000", stroke: "#ffffff", strokeWidth: 8 },
     });
   });
 
@@ -25,11 +36,13 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
       css: `#solid { color: #38bdf8; width: 200px; height: 100px; background-color: #172554; border-width: 8px; border-style: solid; border-color: currentColor; border-radius: 20px; } #none { width: 200px; height: 100px; background: #172554; border: 8px none #fb7185; border-radius: 20px; }`,
     }));
     expect(result.status).toBe("success");
-    expect(result.protocol?.layers.find((layer) => layer.id === "solid")).toMatchObject({
+    expect(result.protocol?.layers.find((layer) => layer.id === "solid")).toMatchObject({ type: "group", frame: { width: 216, height: 116 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "solid::paint")).toMatchObject({
       frame: { width: 216, height: 116 },
       payload: { cornerRadius: 20 },
-      style: { fill: "#172554", stroke: "#38bdf8", strokeWidth: 8 },
+      style: { fill: "#172554" },
     });
+    expect(result.protocol?.layers.find((layer) => layer.id === "solid::border")).toMatchObject({ style: { stroke: "#38bdf8", strokeWidth: 8 } });
     expect(result.protocol?.layers.find((layer) => layer.id === "none")).not.toHaveProperty("style.stroke");
   });
 
@@ -53,9 +66,9 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
     expect(result.protocol?.layers[0]?.order).toBeGreaterThan(result.protocol?.layers[1]?.order ?? Number.POSITIVE_INFINITY);
   });
 
-  it("rejects non-uniform radius instead of silently approximating CSS", () => {
+  it("lowers non-uniform radius into deterministic path geometry", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="paint"></div>`, css: `#paint { width: 100px; height: 100px; background: #fff; border-radius: 8px 16px; }` }));
-    expect(result.status).toBe("error");
-    expect(result.diagnostics[0]?.code).toBe("css-border-radius-unsupported");
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.some((layer) => layer.id.startsWith("paint:fill:") && layer.type === "shape")).toBe(true);
   });
 });

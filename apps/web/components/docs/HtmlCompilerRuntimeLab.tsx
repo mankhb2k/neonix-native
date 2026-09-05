@@ -11,6 +11,15 @@ import {
 import { PreviewStage } from "@/components/docs/PreviewStage";
 import {
   HTML_COMPILER_PHASE0_CASES,
+  HTML_COMPILER_PHASE1_1_CASES,
+  HTML_COMPILER_PHASE1_2_CASES,
+  HTML_COMPILER_PHASE1_3_CASES,
+  HTML_COMPILER_PHASE1_4_CASES,
+  HTML_COMPILER_PAINT_PHASE2_0_CASES,
+  HTML_COMPILER_PAINT_PHASE2_1_CASES,
+  HTML_COMPILER_PAINT_PHASE2_2_CASES,
+  HTML_COMPILER_PAINT_PHASE2_3_CASES,
+  HTML_COMPILER_PAINT_PHASE2_4_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
   htmlCompilerPreviewCaseById,
   htmlCompilerPreviewGroups,
@@ -72,8 +81,8 @@ export function HtmlCompilerRuntimeLab() {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium">HTML compiler</h2>
             <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">
-              {HTML_COMPILER_PHASE0_CASES.length}{" "}
-              {HTML_COMPILER_PHASE0_CASES.length === 1 ? "case" : "cases"}
+              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length}{" "}
+              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length === 1 ? "case" : "cases"}
             </span>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
@@ -83,10 +92,10 @@ export function HtmlCompilerRuntimeLab() {
 
         <nav className="space-y-4 p-3" aria-label="HTML compiler fixtures">
           {groups.map((group) => (
-            <section key={group.topic} aria-label={`P0 ${group.topic}`}>
+            <section key={`${group.phase}-${group.topic}`} aria-label={`${group.phase} ${group.topic}`}>
               <div className="mb-1 flex items-center gap-2 px-1">
                 <span className="font-mono text-[10px] text-cyan-300/80">
-                  P0
+                  {group.phase}
                 </span>
                 <p className="text-[10px] font-semibold tracking-[.12em] text-slate-500 uppercase">
                   {group.topic}

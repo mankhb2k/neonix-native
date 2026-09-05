@@ -181,11 +181,14 @@ export function validateVisualRuntimeProject(
     ids.add(node.id);
     if (node.parentId !== null) {
       const parent = nodeById.get(node.parentId);
-      if (!parent || parent.content.kind !== "group") {
+      const isSemanticSourceChild = parent !== undefined &&
+        (parent.clipPath !== undefined || parent.mask !== undefined) &&
+        node.content.kind === "path";
+      if (!parent || (parent.content.kind !== "group" && !isSemanticSourceChild)) {
         diagnostics.push({
           severity: "error",
           code: "runtime_v2_parent_group",
-          message: `Runtime V2 node ${node.id} must reference an existing Runtime group parent`,
+          message: `Runtime V2 node ${node.id} must reference an existing Runtime group or semantic clip/mask parent`,
           nodeId: node.id,
         });
       }
@@ -454,7 +457,7 @@ export function validateVisualRuntimeProject(
       const sourceIds = node.mask.sourceIds ?? [node.mask.sourceId];
       const sources = sourceIds.map((sourceId) => nodeById.get(sourceId));
       if (
-        node.content.kind !== "group" ||
+        (node.content.kind !== "group" && node.clipPath === undefined && node.mask === undefined) ||
         !["clip", "alpha", "luma"].includes(node.mask.mode) ||
         sources.some((source) => !source || source.parentId !== node.id || source.content.kind === "group") ||
         // Compiler V2 lowers protocol shapes to path geometry, so clip masks

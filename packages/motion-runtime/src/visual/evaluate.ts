@@ -4,10 +4,12 @@ import {
   matrix4ToArray,
   multiplyMatrix4,
   projectPoint3D,
+  type Matrix4,
   type Point3D,
 } from "../geometry/matrix4";
 import { isAffine2DMatrix, tessellateNonScalingStroke } from "../geometry/path";
 import type { PaintCommand } from "../paint/paint-command";
+import type { PathContour } from "../paint/paint-types";
 import { normalizeVisualRuntimeProject, validateVisualRuntimeProject } from "./validate";
 import { buildRuntimeEffectProgram } from "./effects";
 import type { VisualRuntimeFrame, VisualRuntimeNode, VisualRuntimeProject, VisualRuntimeVideo } from "./types";
@@ -47,6 +49,79 @@ function quantizeVideoFrame(
 function current3dNode(node: VisualRuntimeNode): boolean {
   if (node.content.kind === "group" && node.content.render3d) return true;
   return !isAffine2DMatrix(node.localMatrix) || !isAffine2DMatrix(node.worldMatrix);
+}
+
+/**
+ * Border fragments lowered by the HTML compiler are many adjacent filled
+ * paths. Keeping their individual transforms/draws makes Skia antialias each
+ * shared edge independently, which can expose seams that CSS paints as one
+ * border. Only translation-only fragments are eligible: all other geometry
+ * keeps the normal per-node path semantics.
+ */
+function isTranslationOnlyMatrix(matrix: Matrix4): boolean {
+  return (
+    matrix.length === 16 &&
+    Array.from(matrix).every(Number.isFinite) &&
+    Math.abs(matrix[0]! - 1) < 1e-9 &&
+    Math.abs(matrix[1]!) < 1e-9 &&
+    Math.abs(matrix[2]!) < 1e-9 &&
+    Math.abs(matrix[3]!) < 1e-9 &&
+    Math.abs(matrix[4]!) < 1e-9 &&
+    Math.abs(matrix[5]! - 1) < 1e-9 &&
+    Math.abs(matrix[6]!) < 1e-9 &&
+    Math.abs(matrix[7]!) < 1e-9 &&
+    Math.abs(matrix[8]!) < 1e-9 &&
+    Math.abs(matrix[9]!) < 1e-9 &&
+    Math.abs(matrix[10]! - 1) < 1e-9 &&
+    Math.abs(matrix[11]!) < 1e-9 &&
+    Math.abs(matrix[14]!) < 1e-9 &&
+    Math.abs(matrix[15]! - 1) < 1e-9
+  );
+}
+
+function translatePathContour(contour: PathContour, matrix: Matrix4, id: string): PathContour {
+  const translate = (point: { x: number; y: number }) => ({
+    x: point.x + matrix[12]!,
+    y: point.y + matrix[13]!,
+  });
+  return {
+    id,
+    start: translate(contour.start),
+    segments: contour.segments.map((segment) => {
+      if (segment.kind === "line") return { kind: "line", to: translate(segment.to) };
+      if (segment.kind === "quadratic") {
+        return {
+          kind: "quadratic",
+          control: translate(segment.control),
+          to: translate(segment.to),
+        };
+      }
+      if (segment.kind === "cubic") {
+        return {
+          kind: "cubic",
+          control1: translate(segment.control1),
+          control2: translate(segment.control2),
+          to: translate(segment.to),
+        };
+      }
+      return {
+        kind: "arc",
+        radii: { ...segment.radii },
+        rotation: segment.rotation,
+        largeArc: segment.largeArc,
+        sweep: segment.sweep,
+        to: translate(segment.to),
+      };
+    }),
+    closed: contour.closed,
+    ...(contour.pathLength !== undefined ? { pathLength: contour.pathLength } : {}),
+  };
+}
+
+function borderFragmentSide(node: VisualRuntimeNode): "top" | "right" | "bottom" | "left" | undefined {
+  if (node.content.kind !== "path") return undefined;
+  const match = /::border:(top|right|bottom|left):\d+$/.exec(node.id);
+  return match?.[1] as "top" | "right" | "bottom" | "left" | undefined;
 }
 
 function resolveVideoMedia(
@@ -486,10 +561,115 @@ export function evaluateVisualRuntimeProject(
     }
   };
 
+  const canBatchBorderFragment = (
+    node: VisualRuntimeNode,
+    side: "top" | "right" | "bottom" | "left",
+    reference: VisualRuntimeNode,
+  ): boolean => {
+    if (borderFragmentSide(node) !== side || node.content.kind !== "path" || reference.content.kind !== "path") {
+      return false;
+    }
+    const content = node.content;
+    const referenceContent = reference.content;
+    return (
+      nodeIsActive(node, time) &&
+      node.clipPath === undefined &&
+      node.mask === undefined &&
+      (node.blendMode === undefined || node.blendMode === "normal") &&
+      content.effects === undefined &&
+      content.stroke === undefined &&
+      content.fill !== undefined &&
+      content.fillPaint === undefined &&
+      content.fill === referenceContent.fill &&
+      content.fillOpacity === referenceContent.fillOpacity &&
+      node.opacity === reference.opacity &&
+      node.visible === reference.visible &&
+      node.timing.start === reference.timing.start &&
+      node.timing.duration === reference.timing.duration &&
+      isTranslationOnlyMatrix(node.localMatrix) &&
+      content.contours.every((contour) => contour.pathLength === undefined)
+    );
+  };
+
+  const emitBorderBatch = (
+    parent: VisualRuntimeNode,
+    fragments: VisualRuntimeNode[],
+  ): void => {
+    const first = fragments[0]!;
+    if (first.content.kind !== "path" || parent.content.kind !== "group") return;
+    const contours = fragments.flatMap((fragment) => {
+      if (fragment.content.kind !== "path") return [];
+      return fragment.content.contours.map((contour) =>
+        translatePathContour(contour, fragment.localMatrix, `${fragment.id}:${contour.id}`),
+      );
+    });
+    if (contours.length === 0) return;
+    const key = `${parent.id}:border-batch:${borderFragmentSide(first)}`;
+    commands.push({
+      op: "setTransform",
+      key,
+      matrix4: matrix4ToArray(parent.worldMatrix),
+      alpha: first.opacity,
+      visible: true,
+      order: first.order,
+    });
+    commands.push({
+      op: "drawPath",
+      key,
+      layerId: parent.id,
+      contours,
+      width: parent.content.width,
+      height: parent.content.height,
+      fillRule: "nonzero",
+      fill: first.content.fill,
+      ...(first.content.fillOpacity !== undefined
+        ? { fillOpacity: first.content.fillOpacity }
+        : {}),
+    });
+  };
+
   const emitNode = (node: VisualRuntimeNode): void => {
     if (!nodeIsActive(node, time)) return;
     if (node.content.kind !== "group") {
-      emitDrawable(node);
+      // Semantic clip/mask definitions are compiled as sibling source nodes
+      // under their target. Drawable layers need the same compositing scope as
+      // groups so image/video/path/shape clips are applied before the content
+      // is painted. Previously only group nodes entered this path, which made
+      // Protocol V2 image clipPaths silently disappear at runtime.
+      if (node.clipPath !== undefined || node.mask !== undefined) {
+        commands.push({
+          op: "beginLayer",
+          key: node.id,
+          layerId: node.id,
+          isolation: true,
+          offscreen: true,
+          // The drawable below still owns its opacity/blend/effect semantics;
+          // this scope exists only to install the semantic clip/mask.
+          compositeAlpha: 1,
+          ...(node.clipPath
+            ? {
+                clipPath: {
+                  sourceKey: node.clipPath.sourceId,
+                  ...(node.clipPath.sourceIds ? { sourceKeys: node.clipPath.sourceIds } : {}),
+                },
+              }
+            : {}),
+          ...(node.mask
+            ? {
+                mask: {
+                  mode: node.mask.mode,
+                  sourceKey: node.mask.sourceId,
+                  ...(node.mask.sourceIds ? { sourceKeys: node.mask.sourceIds } : {}),
+                },
+              }
+            : {}),
+        });
+        for (const child of childrenOf(node.id)) emitNode(child);
+        emitDrawable(node);
+        commands.push({ op: "endLayer", key: node.id });
+      } else {
+        emitDrawable(node);
+      }
       return;
     }
     if (!subtreeHasActiveDrawable(node)) return;
@@ -535,8 +715,32 @@ export function evaluateVisualRuntimeProject(
     } else {
       commands.push({ op: "beginGroup", key: node.id, layerId: node.id });
     }
-    for (const child of childrenOf(node.id)) {
+    const children = childrenOf(node.id);
+    for (let index = 0; index < children.length;) {
+      const child = children[index]!;
+      const side = borderFragmentSide(child);
+      if (
+        side !== undefined &&
+        child.content.kind === "path" &&
+        canBatchBorderFragment(child, side, child)
+      ) {
+        const batch = [child];
+        let next = index + 1;
+        while (
+          next < children.length &&
+          canBatchBorderFragment(children[next]!, side, child)
+        ) {
+          batch.push(children[next]!);
+          next += 1;
+        }
+        if (batch.length > 1) {
+          emitBorderBatch(node, batch);
+          index = next;
+          continue;
+        }
+      }
       emitNode(child);
+      index += 1;
     }
     commands.push(needsIsolation
       ? { op: "endLayer", key: node.id }
