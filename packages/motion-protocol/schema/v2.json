@@ -3807,6 +3807,129 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/id"
                   },
+                  "motion": {
+                    "type": "object",
+                    "properties": {
+                      "offsetPath": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "path"
+                          },
+                          "contours": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/definitions/MotionProtocolV2/properties/markers/items/properties/content/properties/contours/items"
+                            },
+                            "minItems": 1
+                          },
+                          "coordinateSpace": {
+                            "type": "string",
+                            "enum": [
+                              "parent-local",
+                              "layer-local"
+                            ],
+                            "default": "parent-local"
+                          },
+                          "referenceBox": {
+                            "type": "string",
+                            "enum": [
+                              "border-box",
+                              "fill-box",
+                              "view-box"
+                            ],
+                            "default": "border-box"
+                          },
+                          "pathLength": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "sampling": {
+                            "type": "object",
+                            "properties": {
+                              "method": {
+                                "type": "string",
+                                "const": "adaptive-flatness"
+                              },
+                              "tolerance": {
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                              },
+                              "maxSegments": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0
+                              }
+                            },
+                            "required": [
+                              "method",
+                              "tolerance",
+                              "maxSegments"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "contours"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "offsetDistance": {
+                        "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x",
+                        "default": 0
+                      },
+                      "offsetRotate": {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "auto-reverse",
+                              "fixed"
+                            ]
+                          },
+                          "angle": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "angle"
+                        ],
+                        "additionalProperties": false,
+                        "default": {
+                          "mode": "auto",
+                          "angle": 0
+                        }
+                      },
+                      "offsetAnchor": {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          },
+                          "y": {
+                            "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/view/properties/transform/properties/translate/properties/x"
+                          }
+                        },
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false,
+                        "default": {
+                          "x": 0,
+                          "y": 0
+                        }
+                      }
+                    },
+                    "required": [
+                      "offsetPath"
+                    ],
+                    "additionalProperties": false
+                  },
                   "composite": {
                     "type": "object",
                     "properties": {
@@ -4726,6 +4849,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "motion": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/motion"
+                  },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
                   },
@@ -4875,6 +5001,9 @@
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
+                  },
+                  "motion": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/motion"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
@@ -5099,6 +5228,9 @@
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
+                  },
+                  "motion": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/motion"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
@@ -5644,6 +5776,9 @@
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
                   },
+                  "motion": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/motion"
+                  },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"
                   },
@@ -5855,6 +5990,9 @@
                   },
                   "filter": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/filter"
+                  },
+                  "motion": {
+                    "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/motion"
                   },
                   "composite": {
                     "$ref": "#/definitions/MotionProtocolV2/properties/layers/items/anyOf/0/properties/composite"

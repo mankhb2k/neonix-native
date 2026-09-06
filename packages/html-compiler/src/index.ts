@@ -28,7 +28,7 @@ import { computed } from "./compiler/cascade";
 import { edges, number, resolveVar } from "./compiler/values";
 import { parseBorderEdges, parseColor, parseCornerRadii, parseOutline, parsePaintLayers, parseShadows, type CornerRadius, type Paint, type Outline } from "./compiler/paint";
 import { parsePathStyle, parseSvgPathData } from "./compiler/path";
-import { parseTransform } from "./compiler/transform";
+import { parsePerspectiveContext, parseTransform } from "./compiler/transform";
 import { resolveGeometry, resizeResolvedGeometry } from "./compiler/geometry";
 import { collapseVerticalMargins } from "./compiler/layout";
 import { assertLayoutBox, compositionRect, paddingBox, type LayoutRect } from "./compiler/layout-ir";
@@ -42,6 +42,7 @@ import { parseClipPath, type ClipReferenceBoxes } from "./compiler/clip";
 import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirection, parseTextOverflow, parseTextRendering, parseTextSpacing, parseWhiteSpace, parseWritingMode, resolveFontAssets, type HtmlCompilerTextAlign, type HtmlCompilerTextDirection, wrapForWhiteSpace } from "./compiler/typography";
 import { splitTopLevel } from "./compiler/utils";
 import { animationTimelineDuration, lowerAnimationTracks } from "./compiler/animation";
+import { motionPathLength, parseMotionPath } from "./compiler/motion-path";
 import type { Node, Style } from "./compiler/model";
 
 function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
@@ -402,13 +403,23 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
           elementClipPathId = registerClipPath([], clipShape ? undefined : "html-overflow-clip");
           return elementClipPathId;
         };
+         const motion = parseMotionPath(style, w, h, font, viewport);
          const parsedTransform = parseTransform(style, w, h, font, viewport);
+         const perspective = parsePerspectiveContext(style, w, h, font, viewport);
+         const transformStyleValue = (style.get("transform-style") ?? "flat").trim().toLowerCase();
+         if (transformStyleValue !== "flat" && transformStyleValue !== "preserve-3d") fail("css-transform-style-unsupported", `Unsupported transform-style value: ${transformStyleValue}`);
+         const render3d = hasChildren && (perspective !== undefined || transformStyleValue === "preserve-3d")
+           ? { transformStyle: transformStyleValue as "flat" | "preserve-3d", ...(perspective ? { perspective } : {}) }
+           : undefined;
+         const backfaceVisibilityValue = (style.get("backface-visibility") ?? "visible").trim().toLowerCase();
+         if (backfaceVisibilityValue !== "visible" && backfaceVisibilityValue !== "hidden") fail("css-backface-visibility-unsupported", `Unsupported backface-visibility value: ${backfaceVisibilityValue}`);
+         const backfaceVisibility = backfaceVisibilityValue as "visible" | "hidden";
          const transformFor = (translateX: number, translateY: number, includeCssTransform: boolean) => {
            const cssOperations = includeCssTransform ? parsedTransform.operations ?? [] : [];
            const operations = cssOperations.length ? cssOperations : undefined;
            const hasOrderedTransform = cssOperations.length > 0;
            return {
-             translate: { x: translateX + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.x : 0), y: translateY + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.y : 0), z: includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.z : 0 },
+             translate: { x: (motion ? 0 : translateX) + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.x : 0), y: (motion ? 0 : translateY) + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.y : 0), z: includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.z : 0 },
              scale: includeCssTransform ? parsedTransform.scale : { x: 1, y: 1, z: 1 },
              rotate: includeCssTransform ? parsedTransform.rotate : { x: 0, y: 0, z: 0 },
              skew: includeCssTransform ? parsedTransform.skew : { x: 0, y: 0 },
@@ -432,6 +443,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            baseFrame: { width: w, height: h },
            boxSizing: geometry.boxSizing,
            frameDecorations: { width: Math.max(0, w - geometry.contentWidth), height: Math.max(0, h - geometry.contentHeight) },
+           motionPathLength: motion ? motionPathLength(motion.offsetPath.contours) : undefined,
          });
          const paintAnimationTracks = [
            ...animationTracks.paint.filter((track) => track.path === "style.fill"),
@@ -511,7 +523,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
              ? { align: "none" as const }
              : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
             const clipPathId = elementClipPath();
-            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
+            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
            emitOutline(false);
            return;
          }
@@ -519,7 +531,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const source = mediaSource(node);
             const fit = parseImageFit(style);
              const clipPathId = elementClipPath();
-            layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
+            layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             emitOutline(false);
             return;
           }
@@ -562,6 +574,8 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               transform: transformFor(localX, localY, true),
               opacity,
               ...state,
+              ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}),
+              ...(motion ? { motion } : {}),
               ...compositeState,
               ...(textEffects.length ? { effects: textEffects } : {}),
               ...(textClipId ? { clipPath: textClipId } : {}),
@@ -605,19 +619,19 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
            if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
            const clipPathId = elementClipPath();
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
           // scope. A border is a separate pass so its centered stroke can be
           // inset without changing the element's sibling order.
           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
            const clipPathId = elementClipPath();
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0;
+           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
            // Element opacity belongs to the stacking group. Generated paint
            // passes are children of that group and must remain opaque, or a
            // non-default CSS opacity would be multiplied twice by runtime.
            const paintOpacity = needsPaintGroup ? 1 : opacity;
-           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
+           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(render3d ? { render3d } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
            const paintLayerBaseOrder = layers.length;
            paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;

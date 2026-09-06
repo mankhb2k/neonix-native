@@ -218,6 +218,7 @@ Common optional fields:
 | `clipPath` | ID in root `clipPaths[]` |
 | `mask` | ID in root `masks[]` |
 | `filter` | ID in root `filters[]` |
+| `motion` | Layer-owned CSS motion-path source and resolved offset values |
 | `composite` | SVG/CSS blend and isolation state |
 | `tracks` | Typed local-time property animation |
 | `effects` | Ordered normalized render effects; available on every current layer type |
@@ -287,6 +288,87 @@ pivot for an ordered operation list; it falls back to `transform.anchor`.
 For additive compatibility, the component fields remain required even when
 `operations[]` is present. Consumers that support `operations[]` must treat it
 as authoritative for order.
+
+### CSS motion path
+
+Motion path is owned by the layer, matching the CSS model. It is not a visible
+paint and it does not create a second layout pass. The optional `motion` object
+contains a typed path plus resolved offset values:
+
+```json
+{
+  "motion": {
+    "offsetPath": {
+      "type": "path",
+      "contours": [
+        {
+          "id": "motion-contour-1",
+          "start": { "x": 100, "y": 100 },
+          "segments": [
+            { "kind": "line", "to": { "x": 500, "y": 100 } }
+          ],
+          "closed": false
+        }
+      ],
+      "coordinateSpace": "parent-local",
+      "referenceBox": "border-box",
+      "pathLength": 400,
+      "sampling": {
+        "method": "adaptive-flatness",
+        "tolerance": 0.25,
+        "maxSegments": 4096
+      }
+    },
+    "offsetDistance": 0.5,
+    "offsetRotate": { "mode": "auto", "angle": 0 },
+    "offsetAnchor": { "x": 40, "y": 40 }
+  }
+}
+```
+
+The CSS compiler resolves `offset-path: path(...)` into the typed contour,
+resolves CSS lengths and percentages, and stores `offset-distance` as a
+normalized ratio where `0` is the path start and `1` is the path end.
+`offset-anchor` is stored in layer-local units after resolution. `offset-rotate`
+preserves tangent alignment through `auto`, adds a half-turn for
+`auto-reverse`, or uses `fixed` for an explicit angle.
+
+Motion-path animation uses ordinary layer tracks:
+
+```json
+{
+  "tracks": [
+    {
+      "id": "motion-distance",
+      "path": "motion.offsetDistance",
+      "keyframes": [
+        { "time": 0, "value": { "type": "number", "value": 0 } },
+        { "time": 1400, "value": { "type": "number", "value": 1 } }
+      ],
+      "playback": {
+        "durationMs": 1400,
+        "delayMs": 0,
+        "iterations": 1,
+        "direction": "normal",
+        "fillMode": "both",
+        "playState": "running"
+      }
+    }
+  ]
+}
+```
+
+Runtime samples the declared path and tangent, then composes translation,
+rotation, anchor, and the authored transform into the final layer matrix.
+Skia receives that resolved matrix; it does not run a separate CSS animation
+or motion-path engine. Geometric clipping, opacity, blend, masks, and paint
+order remain independent layer concerns.
+
+Current deterministic CSS lowering accepts `path()` with one contour. Empty
+paths, unsupported path grammar, zero-length paths, and non-finite values must
+produce diagnostics instead of being silently ignored. A project-level path
+registry may be used internally for deduplication, but it is not required by
+the Protocol V2 semantic contract.
 
 ### Local 3D group context
 

@@ -1,9 +1,67 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { matrix4ToSkia3x3, replaySkiaCommands } from "../command";
+import { matrix4ToSkia3x3, matrix4ToSkiaCanvasMatrix, projectiveMeshSvg, projectiveShapeSvg, replaySkiaCommands } from "../command";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaPath, SkiaPathEffect, SkiaTypeface } from "../canvas-kit";
 
 describe("Skia command replay transforms", () => {
+  it("clips a general surface mesh against the homogeneous near plane before division", () => {
+    const svg = projectiveMeshSvg({
+      vertices: [0, 0, 100, 0, 100, 100, 0, 100],
+      indices: [0, 1, 2, 0, 2, 3],
+    }, [
+      1, 0, 0, -0.01,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ], { projection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] });
+
+    expect(svg).not.toBeNull();
+    expect(svg).toContain("M 0 0");
+    // The right edge is on w=0 and must be replaced by an intersection,
+    // never emitted as an infinite post-divide coordinate.
+    expect(svg).not.toContain("100 0");
+    expect(svg).not.toContain("100 100");
+  });
+
+  it("tessellates projected ellipse surfaces while preserving local paint coordinates", () => {
+    const svg = projectiveShapeSvg({
+      op: "drawShape", key: "ellipse", layerId: "ellipse", shape: "ellipse",
+      fill: "#ffffff", width: 120, height: 80,
+    }, [
+      1, 0, 0, 0.002,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ], { projection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] });
+
+    expect(svg).not.toBeNull();
+    expect(svg?.split("M ").length ?? 0).toBeGreaterThan(20);
+    expect(svg).not.toContain("Infinity");
+  });
+
+  it("returns an empty surface for a mesh fully behind the camera", () => {
+    expect(projectiveMeshSvg({
+      vertices: [0, 0, 20, 0, 20, 20], indices: [0, 1, 2],
+    }, [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, -1,
+    ], { projection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] })).toBe("");
+  });
+
+  it("keeps CSS-perspective geometry whose clip Z is outside global range", () => {
+    const matrix = [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, -1, 1,
+    ];
+    const mesh = { vertices: [0, 0, 100, 0, 100, 100, 0, 100], indices: [0, 1, 2, 0, 2, 3] };
+    expect(projectiveMeshSvg(mesh, matrix, { projection: matrix })).toBe("");
+    expect(projectiveMeshSvg(mesh, matrix, { projection: matrix, depthClip: "w-only" })).toContain("M 0 0");
+  });
+
   it("maps the runtime column-major Matrix4 to CanvasKit's 3x3", () => {
     expect(matrix4ToSkia3x3([
       2, 0, 0, 0,
@@ -15,6 +73,93 @@ describe("Skia command replay transforms", () => {
       0, 3, 50,
       0, 0, 1,
     ]);
+  });
+
+  it("preserves planar projective w terms instead of flattening them", () => {
+    expect(matrix4ToSkia3x3([
+      1, 0, 0.2, 0.1,
+      0, 1, 0.3, 0.2,
+      0, 0, 1, 0.4,
+      12, 18, 40, 0.9,
+    ])).toEqual([
+      1, 0, 12,
+      0, 1, 18,
+      0.1, 0.2, 0.9,
+    ]);
+  });
+
+  it("maps the Runtime clip projection into logical canvas pixels", () => {
+    expect(matrix4ToSkiaCanvasMatrix([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ], { width: 100, height: 80, projection: [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ] })).toEqual([
+      50, 0, 0, 0,
+      0, -40, 0, 0,
+      0, 0, 1, 0,
+      50, 40, 0, 1,
+    ]);
+  });
+
+  it("replays draw commands with the composed projective canvas matrix", () => {
+    const concatCalls: number[][] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setBlendMode() {}
+      setShader() {}
+    }
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat(matrix: number[]) { concatCalls.push([...matrix]); },
+      drawRect() {},
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: () => 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+    } as unknown as SkiaCanvasKit;
+    replaySkiaCommands(kit, canvas, {
+      commands: [
+        {
+          op: "beginFrame", width: 100, height: 80, background: "#000000",
+          graphId: "projective", frame: 0, time: 0,
+          projection: { worldToClipMatrix: [
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+          ] },
+        },
+        { op: "setTransform", key: "solid", matrix4: [
+          1, 0, 0, 0.1,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1,
+        ], alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "solid", width: 10, height: 10, fill: "#ffffff" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer);
+
+    expect(concatCalls).toHaveLength(1);
+    expect(concatCalls[0]?.slice(6)).toEqual([0.1, 0, 1]);
   });
 
   it("rejects malformed matrices before touching Skia", () => {

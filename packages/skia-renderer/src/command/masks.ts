@@ -3,7 +3,7 @@ import { cssColorToRgba } from "../color";
 import type { SkiaCanvas, SkiaCanvasKit } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
-import { matrix4ToSkia3x3, pathSvg } from "./geometry";
+import { matrix4ToSkia3x3, pathSvg, transformForSkiaCanvas, type SkiaProjectionContext } from "./geometry";
 import { drawAsset } from "./images";
 
 export type MaskSource = {
@@ -101,14 +101,22 @@ export function drawMaskSource(
   return true;
 }
 
-export function sourcePathCommands(buffer: PaintCommandBuffer): Map<string, MaskSource> {
+export function sourcePathCommands(
+  buffer: PaintCommandBuffer,
+  projectionContext?: SkiaProjectionContext,
+): Map<string, MaskSource> {
   const result = new Map<string, MaskSource>();
   let transform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
   for (const command of buffer.commands) {
     if (command.op === "setTransform") {
       transform = command;
     } else if (command.op === "drawPath" || command.op === "drawImage") {
-      result.set(command.key, { command, transform });
+      result.set(command.key, {
+        command,
+        transform: transform && projectionContext
+          ? transformForSkiaCanvas(transform, projectionContext)
+          : transform,
+      });
       transform = null;
     } else if (command.op !== "beginFrame" && command.op !== "endFrame") {
       transform = null;

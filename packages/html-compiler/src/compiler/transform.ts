@@ -35,6 +35,16 @@ function parseTransformOrigin(value: string | undefined, width: number, height: 
   return { x: transformNumber(xValue, "transform-origin", width, fontSize, viewport), y: transformNumber(yValue, "transform-origin", height, fontSize, viewport), z: tokens[2] === undefined ? 0 : transformNumber(tokens[2], "transform-origin", 1, fontSize, viewport) };
 }
 
+/** Lower CSS parent perspective into the Protocol V2 group context. */
+export function parsePerspectiveContext(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): { distance: number; origin: { x: number; y: number } } | undefined {
+  const value = style.get("perspective");
+  if (value === undefined || value.trim().toLowerCase() === "none") return undefined;
+  const distance = transformNumber(value, "perspective", 1, fontSize, viewport);
+  if (distance <= 0) fail("css-perspective-invalid", "perspective requires a positive length");
+  const origin = parseTransformOrigin(style.get("perspective-origin"), width, height, fontSize, viewport);
+  return { distance, origin: { x: origin.x, y: origin.y } };
+}
+
 export function parseTransform(style: Style, width: number, height: number, fontSize: number, viewport: { width: number; height: number }): ParsedTransform {
   const identity: ParsedTransform = { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } };
   const value = style.get("transform");
@@ -56,10 +66,14 @@ export function parseTransform(style: Style, width: number, height: number, font
       result.operations!.push(z !== 0 || name === "translate3d" ? { type: "extension", name: "motion.translate3d", value: { x, y, z } } : { type: "translate", x, y });
     } else if (name === "translatex" || name === "translatey") {
       if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one value`); const x = name === "translatex" ? transformNumber(args[0]!, name, width, fontSize, viewport) : 0; const y = name === "translatey" ? transformNumber(args[0]!, name, height, fontSize, viewport) : 0; result.translate.x += x; result.translate.y += y; result.operations!.push({ type: "translate", x, y });
+    } else if (name === "translatez") {
+      if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one value`); const z = transformNumber(args[0]!, name, 1, fontSize, viewport); result.translate.z += z; result.operations!.push({ type: "extension", name: "motion.translate3d", value: { x: 0, y: 0, z } });
     } else if (name === "scale" || name === "scale3d") {
       if (args.length < 1 || args.length > 3) fail("css-transform-arguments-invalid", `${name} expects one to three values`); const x = Number(args[0]); const y = args[1] === undefined ? x : Number(args[1]); const z = args[2] === undefined ? 1 : Number(args[2]); if (![x, y, z].every(Number.isFinite)) fail("css-transform-value-invalid", `${name} requires numeric values`); result.scale.x *= x; result.scale.y *= y; result.scale.z *= z; result.operations!.push(name === "scale" ? { type: "scale", x, y } : { type: "extension", name: "motion.scale3d", value: { x, y, z } });
-    } else if (name === "scalex" || name === "scaley") {
-      if (args.length !== 1 || !Number.isFinite(Number(args[0]))) fail("css-transform-value-invalid", `${name} requires one numeric value`); const x = name === "scalex" ? Number(args[0]) : 1; const y = name === "scaley" ? Number(args[0]) : 1; result.scale.x *= x; result.scale.y *= y; result.operations!.push({ type: "scale", x, y });
+    } else if (name === "scalex" || name === "scaley" || name === "scalez") {
+      if (args.length !== 1 || !Number.isFinite(Number(args[0]))) fail("css-transform-value-invalid", `${name} requires one numeric value`); const x = name === "scalex" ? Number(args[0]) : 1; const y = name === "scaley" ? Number(args[0]) : 1; const z = name === "scalez" ? Number(args[0]) : 1; result.scale.x *= x; result.scale.y *= y; result.scale.z *= z; result.operations!.push(name === "scalez" ? { type: "extension", name: "motion.scale3d", value: { x: 1, y: 1, z } } : { type: "scale", x, y });
+    } else if (name === "perspective") {
+      if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one value`); const distance = transformNumber(args[0]!, name, 1, fontSize, viewport); if (distance <= 0) fail("css-perspective-invalid", "transform perspective() requires a positive length"); result.operations!.push({ type: "extension", name: "motion.perspective", value: distance });
     } else if (["rotate", "rotatez", "rotatex", "rotatey"].includes(name)) {
       if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one angle`); const angle = transformAngle(args[0]!, name); const x = name === "rotatex" ? angle : 0; const y = name === "rotatey" ? angle : 0; const z = name === "rotatex" || name === "rotatey" ? 0 : angle; result.rotate.x += x; result.rotate.y += y; result.rotate.z += z; result.operations!.push(name === "rotate" ? { type: "rotate", angle } : { type: "extension", name: name === "rotatex" ? "motion.rotateX" : name === "rotatey" ? "motion.rotateY" : "motion.rotateZ", value: angle });
     } else if (["skew", "skewx", "skewy"].includes(name)) {

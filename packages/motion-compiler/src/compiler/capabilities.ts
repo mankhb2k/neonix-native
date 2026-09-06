@@ -6,9 +6,16 @@ export const COMPILER_SUPPORTED_FEATURES = [
   "group.order",
   "group.effects",
   "group.isolation",
+  "motion.path",
+  "motion.path.sampling",
+  "motion.path.tangent",
+  "motion.path.rotate",
+  "motion.path.anchor",
   "layer.enabled",
   "layer.visibility",
   "layer.backfaceVisibility",
+  "matrix4.transform",
+  "matrix4.projective",
   "group.render3d.transformStyle",
   "group.render3d.perspective",
   "composite.blend.normal",
@@ -159,7 +166,7 @@ export const COMPILER_SUPPORTED_FEATURES = [
 ] as const;
 
 /** Bump when the compiler support catalog changes. */
-export const COMPILER_SUPPORTED_FEATURES_VERSION = "compiler-v1";
+export const COMPILER_SUPPORTED_FEATURES_VERSION = "compiler-v2";
 
 export type CompilerSupportedFeature = (typeof COMPILER_SUPPORTED_FEATURES)[number];
 

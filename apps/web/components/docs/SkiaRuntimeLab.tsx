@@ -3,13 +3,14 @@
 import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { samplePreviewProtocolAtTime } from "@/lib/docs/preview-animation";
-import { SKIA_ANIMATION_CASES, SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
+import { SKIA_ANIMATION_CASES, SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_PROJECTIVE_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { compileProtocol } from "@motionvideo/motion-compiler";
-import { evaluateRuntimeProjectV3, frameIndexAtTime } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, frameIndexAtTime, hasPerspectiveTerms } from "@motionvideo/motion-runtime";
+import { projectiveMeshScreenSvg, projectiveShapeScreenSvg } from "@motionvideo/skia-renderer";
 import { PreviewStage } from "./PreviewStage";
 import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
-const CASES = [...SKIA_ANIMATION_CASES, ...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
+const CASES = [...SKIA_ANIMATION_CASES, ...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_PROJECTIVE_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];
 const DEFAULT_CASE = CASES[0];
 if (!DEFAULT_CASE) throw new Error("Skia preview fixtures are empty");
 
@@ -501,6 +502,8 @@ function runtimeFrameToSvg(frame: RuntimeFrameV3, fixtureId?: string): string {
   const begin = frame.commands.find((command): command is Extract<PaintCommand, { op: "beginFrame" }> => command.op === "beginFrame");
   const width = begin?.width ?? 1;
   const height = begin?.height ?? 1;
+  const projection = begin?.projection?.worldToClipMatrix;
+  const projectionContext = { width, height, projection };
   const defs: string[] = [];
   const body: string[] = [];
   const sourceCommands = new Map<string, { command: Extract<PaintCommand, { op: "drawPath" }>; transform: Extract<PaintCommand, { op: "setTransform" }> | null }>();
@@ -578,14 +581,31 @@ function runtimeFrameToSvg(frame: RuntimeFrameV3, fixtureId?: string): string {
         pendingTransform = null;
         continue;
       }
-      const drawable = svgDrawCommand(command, defs);
+      const usesProjectiveCamera = Boolean(
+        pendingTransform && projection &&
+        (hasPerspectiveTerms(projection) || hasPerspectiveTerms(pendingTransform.matrix4)),
+      );
+      const projectivePath = usesProjectiveCamera && pendingTransform
+        ? command.op === "drawShape"
+          ? projectiveShapeScreenSvg(command, pendingTransform.matrix4, projectionContext)
+          : command.op === "drawPath" && command.mesh
+            ? projectiveMeshScreenSvg(command.mesh, pendingTransform.matrix4, projectionContext)
+            : null
+        : null;
+      const drawable = projectivePath !== null && command.op === "drawShape"
+        ? `<path d="${svgEscape(projectivePath)}" fill="${svgPaint(command.fill, command.fillPaint, command.width, command.height, defs, `${command.key}-projective-fill`)}" fill-opacity="${svgNumber((command.fillOpacity ?? 1) * (command.fillPaint?.type === "solid" ? command.fillPaint.opacity ?? 1 : 1))}"/>`
+        : projectivePath !== null && command.op === "drawPath"
+          ? `<path d="${svgEscape(projectivePath)}" fill="${command.fill ? svgPaint(command.fill, command.fillPaint, command.width ?? 1, command.height ?? 1, defs, `${command.key}-projective-fill`) : "none"}" fill-rule="${command.fillRule}" fill-opacity="${svgNumber(command.fillOpacity ?? 1)}"/>`
+          : svgDrawCommand(command, defs);
       if (!drawable) continue;
       if (!pendingTransform) {
         body.push(drawable);
         continue;
       }
-      const matrix = svgMatrix(pendingTransform.matrix4);
-      if (matrix && pendingTransform.visible && pendingTransform.alpha > 0) {
+      const matrix = projectivePath !== null ? "" : svgMatrix(pendingTransform.matrix4);
+      if (projectivePath !== null && pendingTransform.visible && pendingTransform.alpha > 0) {
+        body.push(`<g opacity="${svgNumber(pendingTransform.alpha)}">${drawable}</g>`);
+      } else if (matrix && pendingTransform.visible && pendingTransform.alpha > 0) {
         body.push(`<g transform="${matrix}" opacity="${svgNumber(pendingTransform.alpha)}">${drawable}</g>`);
       }
       pendingTransform = null;

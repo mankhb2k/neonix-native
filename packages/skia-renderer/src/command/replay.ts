@@ -1,11 +1,11 @@
-import type { PaintCommandBuffer, PaintCommand } from "@motionvideo/motion-runtime";
+import { hasPerspectiveTerms, type PaintCommandBuffer, type PaintCommand } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvas, SkiaCanvasKit } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
-import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, unionBounds } from "./geometry";
+import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
 import { effectFilterFor } from "./effects";
-import { applyClipPath, drawMaskSource, sourcePathCommands } from "./masks";
+import { applyClipPath, drawMaskSource, sourcePathCommands, type MaskSource } from "./masks";
 import { drawAsset } from "./images";
 import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
 import { blendModeFor, configureStroke } from "./paint";
@@ -43,11 +43,12 @@ export function replaySkiaCommands(
     diagnostics: [],
     noiseRegions: [],
   };
-  const semanticSources = sourcePathCommands(buffer);
+  let semanticSources = new Map<string, MaskSource>();
   const layers: ReplayLayer[] = [];
   let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null = null;
   let frameWidth = 0;
   let frameHeight = 0;
+  let projectionContext: SkiaProjectionContext | undefined;
   const isBlocked = () => layers.some((layer) => layer.blocked);
   const addDiagnostic = (value: string) => stats.diagnostics.push(value);
 
@@ -55,6 +56,13 @@ export function replaySkiaCommands(
     if (command.op === "beginFrame") {
       frameWidth = command.width;
       frameHeight = command.height;
+      projectionContext = {
+        width: command.width,
+        height: command.height,
+        projection: command.projection?.worldToClipMatrix,
+        depthClip: command.projection?.depthClip,
+      };
+      semanticSources = sourcePathCommands(buffer, projectionContext);
       const [backgroundR, backgroundG, backgroundB, backgroundA] = cssColorToRgba(command.background ?? defaultBackground);
       canvas.clear(kit.Color(backgroundR * 255, backgroundG * 255, backgroundB * 255, backgroundA));
       pendingTransform = null;
@@ -206,7 +214,9 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "setTransform") {
-      pendingTransform = command;
+      pendingTransform = projectionContext
+        ? transformForSkiaCanvas(command, projectionContext)
+        : command;
       continue;
     }
     if (isBlocked()) {
@@ -235,10 +245,22 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "drawShape") {
-      const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
+      const activeTransform = pendingTransform;
+      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
+      const projectedShape = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4)
+        ? projectiveShapeSvg(command, activeTransform.matrix4, projectionContext)
+        : null;
       const drawShape = (paint: Parameters<SkiaCanvas["drawRect"]>[1]) => {
+        if (projectedShape !== null) {
+          const projectedPath = kit.Path.MakeFromSVGString(projectedShape);
+          if (projectedPath) {
+            canvas.drawPath(projectedPath, paint);
+            projectedPath.delete();
+          }
+          return;
+        }
         if (command.shape === "rectangle") {
           if (command.cornerRadius) canvas.drawRRect([0, 0, command.width, command.height, command.cornerRadius, command.cornerRadius], paint);
           else canvas.drawRect([0, 0, command.width, command.height], paint);
@@ -271,7 +293,8 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "drawPath") {
-      const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
+      const activeTransform = pendingTransform;
+      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       const path = kit.Path.MakeFromSVGString(pathSvg(command));
@@ -283,11 +306,23 @@ export function replaySkiaCommands(
       }
       const fillType = command.fillRule === "evenodd" ? kit.FillType?.EvenOdd : kit.FillType?.Winding;
       if (fillType !== undefined) path.setFillType?.(fillType);
+      const projectedFill = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4) && command.mesh
+        ? projectiveMeshSvg(command.mesh, activeTransform.matrix4, projectionContext)
+        : null;
       const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
       for (const paintType of paintOrder) {
         if (paintType === "fill" && command.fill) {
           const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width ?? 1, command.height ?? 1);
-          canvas.drawPath(path, fill);
+          if (projectedFill === null) {
+            canvas.drawPath(path, fill);
+          } else {
+            const projectedPath = kit.Path.MakeFromSVGString(projectedFill);
+            if (projectedPath) {
+              projectedPath.setFillType?.(fillType);
+              canvas.drawPath(projectedPath, fill);
+              projectedPath.delete();
+            }
+          }
           fill.delete();
         } else if (paintType === "stroke" && command.stroke) {
           const stroke = createSkiaPaint(kit, command.stroke, commandAlpha * (command.strokeOpacity ?? 1), kit.PaintStyle.Stroke, command.strokePaint, command.width ?? 1, command.height ?? 1);

@@ -36,6 +36,65 @@ export type Matrix4Like = {
   readonly [index: number]: number;
 };
 
+/** Matrix4 values are always validated at runtime boundaries, never guessed. */
+export function isFiniteMatrix4(matrix: Matrix4Like): boolean {
+  return (
+    matrix.length === 16 &&
+    Array.from({ length: 16 }, (_, index) => matrix[index]!).every(Number.isFinite)
+  );
+}
+
+/**
+ * True when the homogeneous row is affine (`w` remains 1 for every point).
+ * A 3D affine transform is still affine; it is not an affine 2D transform.
+ */
+export function isAffineMatrix4(matrix: Matrix4Like): boolean {
+  return (
+    isFiniteMatrix4(matrix) &&
+    Math.abs(matrix[3]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[7]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[11]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[15]! - 1) <= GEOMETRY_EPSILON
+  );
+}
+
+/** True when the matrix contains an actual homogeneous/projective term. */
+export function hasPerspectiveTerms(matrix: Matrix4Like): boolean {
+  return (
+    isFiniteMatrix4(matrix) &&
+    !isAffineMatrix4(matrix)
+  );
+}
+
+/** True for any transform that cannot be represented by the SVG 2D affine subset. */
+export function is3DMatrix4(matrix: Matrix4Like): boolean {
+  return (
+    isFiniteMatrix4(matrix) &&
+    (
+      Math.abs(matrix[2]!) > GEOMETRY_EPSILON ||
+      Math.abs(matrix[6]!) > GEOMETRY_EPSILON ||
+      Math.abs(matrix[8]!) > GEOMETRY_EPSILON ||
+      Math.abs(matrix[9]!) > GEOMETRY_EPSILON ||
+      Math.abs(matrix[10]! - 1) > GEOMETRY_EPSILON ||
+      Math.abs(matrix[14]!) > GEOMETRY_EPSILON ||
+      hasPerspectiveTerms(matrix)
+    )
+  );
+}
+
+/** True only for the SVG-compatible XY affine subset used by 2D fast paths. */
+export function isAffine2DMatrix4(matrix: Matrix4Like): boolean {
+  return (
+    isAffineMatrix4(matrix) &&
+    Math.abs(matrix[2]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[6]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[8]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[9]!) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[10]! - 1) <= GEOMETRY_EPSILON &&
+    Math.abs(matrix[14]!) <= GEOMETRY_EPSILON
+  );
+}
+
 /** A point after multiplication by a Matrix4, before perspective division. */
 export type HomogeneousPoint4 = Point3D & { w: number };
 
@@ -408,6 +467,7 @@ export function transformPoint4(
 export function projectPoint3D(
   m: Matrix4Like,
   point: Point3D,
+  options: { depthClip?: "global" | "w-only" } = {},
 ): ProjectPoint3DResult {
   const raw = transformPoint4(m, point);
   if (![raw.x, raw.y, raw.z, raw.w].every(Number.isFinite)) {
@@ -424,11 +484,13 @@ export function projectPoint3D(
   if (!Number.isFinite(clipZ)) {
     return { kind: "clipped", reason: "non-finite", w: raw.w };
   }
-  if (clipZ < -GEOMETRY_EPSILON) {
-    return { kind: "clipped", reason: "near-plane", w: raw.w };
-  }
-  if (clipZ > 1 + GEOMETRY_EPSILON) {
-    return { kind: "clipped", reason: "far-plane", w: raw.w };
+  if (options.depthClip !== "w-only") {
+    if (clipZ < -GEOMETRY_EPSILON) {
+      return { kind: "clipped", reason: "near-plane", w: raw.w };
+    }
+    if (clipZ > 1 + GEOMETRY_EPSILON) {
+      return { kind: "clipped", reason: "far-plane", w: raw.w };
+    }
   }
 
   return {
@@ -499,10 +561,29 @@ export type LocalTransform3D = {
   extensions?: { anchor?: Point3D };
 };
 
+/**
+ * Build a CSS-style perspective context around a local origin. The origin is
+ * kept in local units so the caller can place the context before the child
+ * transform without changing the child's authored frame.
+ */
+export function perspectiveMatrix3D(
+  distance: number,
+  origin: { x: number; y: number } = { x: 0, y: 0 },
+): Matrix4 {
+  const perspective = identityMatrix4();
+  perspective[11] = -1 / Math.max(distance, GEOMETRY_EPSILON);
+  if (origin.x === 0 && origin.y === 0) return perspective;
+  return multiplyMatrix4(
+    multiplyMatrix4(
+      translationMatrix3D(origin.x, origin.y, 0),
+      perspective,
+    ),
+    translationMatrix3D(-origin.x, -origin.y, 0),
+  );
+}
+
 function localPerspectiveMatrix(distance: number): Matrix4 {
-  const matrix = identityMatrix4();
-  matrix[11] = -1 / Math.max(distance, GEOMETRY_EPSILON);
-  return matrix;
+  return perspectiveMatrix3D(distance);
 }
 
 /**

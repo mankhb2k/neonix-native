@@ -4157,6 +4157,87 @@ export const PREVIEW_LAB_CASES: PreviewLabCase[] = [
     ),
   },
   {
+    id: "rectangle.mat4.near-plane.rotate-y",
+    label: "Matrix4 / near-plane rotate Y",
+    group: "Task 3.5 / Matrix4 rectangle",
+    hint: "A rectangle crosses the canonical near plane; Runtime and Skia clip its tessellated surface before perspective division.",
+    project: project(
+      "preview-rectangle-near-plane-rotate-y-v2",
+      [
+        rectangle({
+          id: "rectangle",
+          order: 0,
+          fill: "#22d3ee",
+          frame: { width: 520, height: 300 },
+          transform: {
+            ...IDENTITY_TRANSFORM,
+            translate: { x: 700, y: 380, z: 900 },
+            rotate: { x: 0, y: -58, z: 0 },
+            anchor: { x: 260, y: 150, z: 0 },
+          },
+        }),
+      ],
+      {
+        projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+        transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
+      },
+    ),
+  },
+  {
+    id: "rectangle.mat4.near-plane.rotate-x",
+    label: "Matrix4 / near-plane rotate X",
+    group: "Task 3.5 / Matrix4 rectangle",
+    hint: "A tall surface crosses the near plane on its Y axis and exercises a second homogeneous clipping orientation.",
+    project: project(
+      "preview-rectangle-near-plane-rotate-x-v2",
+      [
+        rectangle({
+          id: "rectangle",
+          order: 0,
+          fill: "#f59e0b",
+          frame: { width: 360, height: 520 },
+          transform: {
+            ...IDENTITY_TRANSFORM,
+            translate: { x: 780, y: 300, z: 900 },
+            rotate: { x: 58, y: 0, z: 0 },
+            anchor: { x: 180, y: 260, z: 0 },
+          },
+        }),
+      ],
+      {
+        projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+        transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
+      },
+    ),
+  },
+  {
+    id: "rectangle.mat4.near-plane.ellipse",
+    label: "Matrix4 / near-plane ellipse",
+    group: "Task 3.5 / Matrix4 rectangle",
+    hint: "A curved surface is tessellated into deterministic triangles before the near-plane clip.",
+    project: project(
+      "preview-ellipse-near-plane-v2",
+      [
+        ellipse({
+          id: "ellipse",
+          order: 0,
+          fill: "#a78bfa",
+          frame: { width: 520, height: 320 },
+          transform: {
+            ...IDENTITY_TRANSFORM,
+            translate: { x: 700, y: 380, z: 900 },
+            rotate: { x: 0, y: 52, z: 0 },
+            anchor: { x: 260, y: 160, z: 0 },
+          },
+        }),
+      ],
+      {
+        projection: { kind: "perspective", fov: 60, near: 1, far: 4000 },
+        transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } },
+      },
+    ),
+  },
+  {
     id: "rectangle.timing",
     label: "Timing / active window",
     group: "Rectangle properties (Task 3)",

@@ -40,6 +40,8 @@ export type PaintCommand =
       /** Canonical V2 world-space to clip-space Matrix4. */
       projection: {
         worldToClipMatrix: number[];
+        /** Runtime clipping policy for projective surfaces. */
+        depthClip?: "global" | "w-only";
       };
     }
   | { op: "endFrame" }

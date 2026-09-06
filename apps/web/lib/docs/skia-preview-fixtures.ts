@@ -43,6 +43,15 @@ export const SKIA_TRANSFORM_CASES: readonly SkiaPreviewFixture[] = [
   fixture("group.nested-transform", "Nested parent and child 2D transforms composed by Runtime.", ["beginGroup", "setTransform", "nested"]),
 ];
 
+/** Phase 3/4 projective surface fixtures. These deliberately cross the
+ * Runtime canonical near plane so a browser/SVG reference cannot hide a
+ * backend that divides by w before clipping. */
+export const SKIA_PROJECTIVE_CASES: readonly SkiaPreviewFixture[] = [
+  fixture("rectangle.mat4.near-plane.rotate-y", "Near-plane crossing rectangle clipped as a projective surface.", ["Matrix4", "rotateY", "near-plane", "tessellation"]),
+  fixture("rectangle.mat4.near-plane.rotate-x", "Near-plane crossing rectangle with the orthogonal cut orientation.", ["Matrix4", "rotateX", "near-plane", "tessellation"]),
+  fixture("rectangle.mat4.near-plane.ellipse", "Near-plane crossing ellipse tessellated before projection.", ["Matrix4", "ellipse", "near-plane", "tessellation"]),
+];
+
 /** Protocol V2 animation fixtures. Their `tracks[]` and local-millisecond
  * keyframes are sampled by the Skia Runtime Lab on every playback tick. */
 export const SKIA_ANIMATION_CASES: readonly SkiaPreviewFixture[] = [

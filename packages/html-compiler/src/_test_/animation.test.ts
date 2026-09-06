@@ -17,6 +17,28 @@ describe("CSS animation lowering", () => {
     expect(tracks[0]?.playback).toMatchObject({ durationMs: 1000, delayMs: 100, iterations: 2, direction: "alternate", fillMode: "both" });
   });
 
+  it("lowers CSS offset-* to a layer-owned motion path and typed distance track", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+        #box { position: absolute; width: 80px; height: 40px; background: #22d3ee; offset-path: path(\"M 100 100 L 500 100\"); offset-distance: 0%; offset-rotate: auto 15deg; offset-anchor: 50% 100%; animation-name: travel; animation-duration: 1s; animation-timing-function: linear; animation-fill-mode: both; }
+      `,
+    }));
+    expect(result.status).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "box");
+    expect(layer?.motion).toMatchObject({
+      offsetPath: { type: "path", coordinateSpace: "parent-local", referenceBox: "border-box" },
+      offsetDistance: 0,
+      offsetRotate: { mode: "auto", angle: 15 },
+      offsetAnchor: { x: 40, y: 40 },
+    });
+    expect(layer?.tracks?.find((track) => track.path === "motion.offsetDistance")?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "number", value: 0 },
+      { type: "number", value: 1 },
+    ]);
+  });
+
   it("preserves steps count and position", () => {
     const result = compileHtmlCss({ kind: "neonix-html-source", sourceSchemaVersion: 1, composition, html, css: `
       @keyframes pulse { from { opacity: 0; } to { opacity: 1; } }

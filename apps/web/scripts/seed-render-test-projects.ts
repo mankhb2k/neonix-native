@@ -40,6 +40,8 @@ type AssetRef = {
   sampleRate?: number;
 };
 
+type ProtocolAsset = NonNullable<MotionProtocolV2["assets"]>[number];
+
 const view: MotionProtocolV2["composition"]["view"] = {
   projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 },
   transform: {
@@ -226,7 +228,7 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
 
 function withAssets(project: MotionProtocolV2, assets: AssetRef[]) {
   const seenAssetIds = new Set(project.assets.map((asset) => asset.id));
-  const nextAssets = assets.flatMap((asset) => {
+  const nextAssets: ProtocolAsset[] = assets.flatMap((asset): ProtocolAsset[] => {
     if (seenAssetIds.has(asset.id)) return [];
     seenAssetIds.add(asset.id);
     if (asset.kind === "image") return [{

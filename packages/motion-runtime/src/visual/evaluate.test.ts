@@ -71,6 +71,53 @@ const groupNode: VisualRuntimeNode = {
 };
 
 describe("Runtime V2 border fragment batching", () => {
+  it("keeps a flat 3D context marker compatible with affine rendering", () => {
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([{
+        ...groupNode,
+        content: { kind: "group", width: 320, height: 180, render3d: { transformStyle: "flat" } },
+      }, { ...pathNode("flat-child", 1, "#38bdf8", 0), parentId: "border-group" }]),
+      0,
+    );
+    expect(frame.diagnostics).toEqual([]);
+    expect(frame.commands.some((command) => command.op === "drawPath")).toBe(true);
+  });
+
+  it("keeps a projective context marker in the runtime paint scope", () => {
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([{
+        ...groupNode,
+        content: {
+          kind: "group",
+          width: 320,
+          height: 180,
+          render3d: {
+            transformStyle: "preserve-3d",
+            perspective: { distance: 800, origin: { x: 160, y: 90 } },
+          },
+        },
+      }, { ...pathNode("projective-child", 1, "#38bdf8", 0), parentId: "border-group" }]),
+      0,
+    );
+    expect(frame.diagnostics).toEqual([]);
+    expect(frame.commands.filter((command) => command.op === "drawPath")).toHaveLength(1);
+  });
+
+  it("does not fully clip a CSS-perspective surface at the global near plane", () => {
+    const surfaceMatrix = identityMatrix4();
+    surfaceMatrix[14] = -1;
+    const frame = evaluateVisualRuntimeProject(
+      {
+        ...projectWith([groupNode, { ...pathNode("css-perspective-surface", 1, "#38bdf8", 0), worldMatrix: surfaceMatrix }]),
+        view: { worldToClipMatrix: identityMatrix4(), depthClip: "w-only" },
+      },
+      0,
+    );
+    expect(frame.diagnostics).toEqual([]);
+    expect(frame.commands.some((command) => command.op === "drawPath")).toBe(true);
+    expect(frame.commands[0]).toMatchObject({ op: "beginFrame", projection: { depthClip: "w-only" } });
+  });
+
   it("combines adjacent same-paint border fragments into one path", () => {
     const frame = evaluateVisualRuntimeProject(
       projectWith([

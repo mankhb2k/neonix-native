@@ -279,6 +279,55 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     });
   });
 
+  it("lowers CSS perspective properties to a group render3d context", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="scene"><div id="card"></div></div>`,
+      css: `body { margin: 0; } #scene { position: absolute; left: 300px; top: 180px; width: 600px; height: 400px; perspective: 800px; perspective-origin: 25% 75%; transform-style: preserve-3d; } #card { position: absolute; left: 120px; top: 100px; width: 240px; height: 160px; background: #38bdf8; transform: translateZ(120px) rotateY(24deg); backface-visibility: hidden; }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "scene")).toMatchObject({
+      type: "group",
+      render3d: { transformStyle: "preserve-3d", perspective: { distance: 800, origin: { x: 150, y: 300 } } },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "card")).toMatchObject({
+      transform: {
+        operations: [
+          { type: "extension", name: "motion.translate3d", value: { x: 0, y: 0, z: 120 } },
+          { type: "extension", name: "motion.rotateY", value: 24 },
+        ],
+      },
+      backfaceVisibility: "hidden",
+    });
+  });
+
+  it("keeps transform perspective ordered separately from parent perspective", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="perspective"></div>`,
+      css: `#perspective { position: absolute; left: 420px; top: 240px; width: 320px; height: 180px; background: #a78bfa; transform-origin: 50% 50%; transform: perspective(600px) rotateX(18deg) translateZ(80px); }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = result.protocol?.layers.find((item) => item.id === "perspective");
+    expect(layer).toMatchObject({
+      transform: {
+        operations: [
+          { type: "extension", name: "motion.perspective", value: 600 },
+          { type: "extension", name: "motion.rotateX", value: 18 },
+          { type: "extension", name: "motion.translate3d", value: { x: 0, y: 0, z: 80 } },
+        ],
+      },
+    });
+  });
+
+  it("fails closed for invalid CSS 3D values", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="invalid"></div>`,
+      css: `#invalid { position: absolute; width: 200px; height: 100px; perspective: 0px; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-perspective-invalid");
+  });
+
   it("lowers CSS clip-path shapes into geometric V2 clip paths", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="inset"></div><div id="circle"></div><div id="ellipse"></div><div id="triangle"></div><div id="hole"></div><div id="combined"><div id="combined-child"></div></div>`,

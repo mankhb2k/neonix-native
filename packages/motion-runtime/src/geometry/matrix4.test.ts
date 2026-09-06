@@ -9,11 +9,15 @@ import {
   multiplyMatrix4,
   orthographicProjectionMatrix,
   perspectiveProjectionMatrix,
+  perspectiveMatrix3D,
   scaleMatrix3D,
   translationMatrix3D,
   transformPoint4,
   transformPoint3D,
   projectPoint3D,
+  hasPerspectiveTerms,
+  is3DMatrix4,
+  isAffine2DMatrix4,
 } from "./matrix4";
 
 const identityValues = [
@@ -169,6 +173,32 @@ describe("Canonical local Matrix4 composition", () => {
 });
 
 describe("Matrix4 homogeneous projection safety", () => {
+  it("classifies 2D, 3D affine, and projective matrices without losing z", () => {
+    const twoD = identityMatrix4();
+    const threeD = translationMatrix3D(0, 0, 48);
+    const projective = perspectiveMatrix3D(800);
+
+    expect(isAffine2DMatrix4(twoD)).toBe(true);
+    expect(is3DMatrix4(twoD)).toBe(false);
+    expect(is3DMatrix4(threeD)).toBe(true);
+    expect(hasPerspectiveTerms(threeD)).toBe(false);
+    expect(hasPerspectiveTerms(projective)).toBe(true);
+    expect(is3DMatrix4(projective)).toBe(true);
+  });
+
+  it("applies a local perspective origin around the unchanged pivot", () => {
+    const origin = { x: 120, y: 80 };
+    const perspective = perspectiveMatrix3D(800, origin);
+    expect(transformPoint3D(perspective, origin.x, origin.y, 0)).toEqual({
+      x: origin.x,
+      y: origin.y,
+      z: 0,
+    });
+    const projected = transformPoint3D(perspective, origin.x + 80, origin.y, 200);
+    expect(projected?.x).toBeCloseTo(origin.x + 80 / 0.75, 8);
+    expect(projected?.y).toBeCloseTo(origin.y, 8);
+  });
+
   it("uses centered zoom and canonical clip Z for orthographic projection", () => {
     const projection = orthographicProjectionMatrix(320, 180, 2, 1, 4000);
 
@@ -237,6 +267,23 @@ describe("Matrix4 homogeneous projection safety", () => {
       x: 2,
       y: -3,
       z: 0.5,
+      w: 1,
+    });
+  });
+
+  it("keeps valid CSS-perspective points when only the homogeneous camera plane applies", () => {
+    const cssPerspectiveSurface = identityMatrix4();
+    cssPerspectiveSurface[14] = -1;
+
+    expect(projectPoint3D(cssPerspectiveSurface, { x: 40, y: 20, z: 0 })).toMatchObject({
+      kind: "clipped",
+      reason: "near-plane",
+    });
+    expect(projectPoint3D(cssPerspectiveSurface, { x: 40, y: 20, z: 0 }, { depthClip: "w-only" })).toEqual({
+      kind: "projected",
+      x: 40,
+      y: 20,
+      z: -1,
       w: 1,
     });
   });

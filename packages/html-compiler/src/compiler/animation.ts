@@ -19,6 +19,8 @@ type LowerAnimationOptions = {
   baseFrame: { width: number; height: number };
   boxSizing: "content-box" | "border-box";
   frameDecorations: { width: number; height: number };
+  /** Arc length of the resolved offset-path in CSS user units. */
+  motionPathLength?: number;
 };
 
 function list(value: string | undefined, fallback: string): string[] {
@@ -85,8 +87,12 @@ function transformValues(value: string, options: LowerAnimationOptions): Map<str
     // while lowering the animated local transform value.
     ["transform.translate.x", { type: "number", value: options.layoutTranslate.x + parsed.translate.x }],
     ["transform.translate.y", { type: "number", value: options.layoutTranslate.y + parsed.translate.y }],
+    ["transform.translate.z", { type: "number", value: parsed.translate.z }],
     ["transform.scale.x", { type: "number", value: parsed.scale.x }],
     ["transform.scale.y", { type: "number", value: parsed.scale.y }],
+    ["transform.scale.z", { type: "number", value: parsed.scale.z }],
+    ["transform.rotate.x", { type: "number", value: parsed.rotate.x }],
+    ["transform.rotate.y", { type: "number", value: parsed.rotate.y }],
     ["transform.rotate.z", { type: "number", value: parsed.rotate.z }],
     ["transform.skew.x", { type: "number", value: parsed.skew.x }],
     ["transform.skew.y", { type: "number", value: parsed.skew.y }],
@@ -108,6 +114,26 @@ function borderSize(value: string, options: LowerAnimationOptions): number {
   return resolved;
 }
 
+function motionDistance(value: string, options: LowerAnimationOptions): number {
+  const length = options.motionPathLength ?? 0;
+  if (!(length > 0)) { fail("css-motion-path-invalid", "offset-distance requires a non-empty offset-path"); throw new Error("unreachable motion path length"); }
+  const source = value.trim().toLowerCase();
+  const percent = source.match(/^(-?(?:\d+\.?\d*|\.\d+))%$/);
+  if (percent) return Number(percent[1]) / 100;
+  const resolved = calcExpression(value, "offset-distance", length, options.fontSize, 16, options.viewport).value;
+  if (!Number.isFinite(resolved)) { fail("css-motion-distance-invalid", `offset-distance requires a finite length or percentage: ${value}`); throw new Error("unreachable motion distance"); }
+  return resolved / length;
+}
+
+function motionAngle(value: string): number {
+  if (!value.trim()) return 0;
+  const match = value.trim().match(/^(-?(?:\d+\.?\d*|\.\d+))(deg|rad|turn)$/i);
+  if (!match) { fail("css-motion-rotate-invalid", `offset-rotate animation requires an angle: ${value}`); throw new Error("unreachable motion angle"); }
+  const amount = Number(match[1]);
+  const unit = match[2]!.toLowerCase();
+  return unit === "rad" ? (amount * 180) / Math.PI : unit === "turn" ? amount * 360 : amount;
+}
+
 function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, playback: NonNullable<V2Track["playback"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
   const entries = definition.steps.flatMap((step) => step.selectors.map((selector) => ({
     at: offset(selector),
@@ -125,10 +151,12 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
   const transform = property === "transform";
   const paths = transform
     ? [...transformValues(known[0]!.declaration!.value, options).keys()]
-    : [
+        : [
         property === "background-color" ? "style.fill"
           : property === "border-color" ? "style.stroke"
             : property === "border-width" ? "style.strokeWidth"
+              : property === "offset-distance" ? "motion.offsetDistance"
+                : property === "offset-rotate" ? "motion.offsetRotate.angle"
               : property === "width" || property === "height" ? `frame.${property}` : property,
       ];
   return paths.map((path) => {
@@ -138,7 +166,9 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
         ? transformValues(raw, options).get(path)!
         : property === "width" || property === "height" ? { type: "number" as const, value: frameSize(property as "width" | "height", raw, options) }
         : property === "border-width" ? { type: "number" as const, value: borderSize(raw, options) }
-          : property === "opacity" ? { type: "number" as const, value: number(raw, 1) } : color(raw, options.currentColor);
+          : property === "offset-distance" ? { type: "number" as const, value: motionDistance(raw, options) }
+            : property === "offset-rotate" ? { type: "number" as const, value: motionAngle(raw.replace(/^\s*(?:auto(?:-reverse)?|reverse)\s*/i, "")) }
+              : property === "opacity" ? { type: "number" as const, value: number(raw, 1) } : color(raw, options.currentColor);
       return { time: Math.round(entry.at * durationMs), value, easing: easing(styleTiming(definition, entry.at) ?? defaultTiming) };
     });
     if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options), easing: { type: "linear" } });
@@ -162,9 +192,13 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): {
   if (path === "opacity") return { type: "number", value: typeof base === "number" ? base : number(String(base ?? "1"), 1) };
   if (path === "transform.translate.x") return { type: "number", value: options.layoutTranslate.x };
   if (path === "transform.translate.y") return { type: "number", value: options.layoutTranslate.y };
+  if (path === "transform.translate.z" || path === "transform.rotate.x" || path === "transform.rotate.y") return { type: "number", value: 0 };
   if (path === "frame.width") return { type: "number", value: options.baseFrame.width };
   if (path === "frame.height") return { type: "number", value: options.baseFrame.height };
+  if (path === "motion.offsetDistance") return { type: "number", value: typeof base === "number" ? base : motionDistance(String(base ?? "0%"), options) };
+  if (path === "motion.offsetRotate.angle") return { type: "number", value: typeof base === "number" ? base : 0 };
   if (path === "transform.scale.x" || path === "transform.scale.y") return { type: "number", value: 1 };
+  if (path === "transform.scale.z") return { type: "number", value: 1 };
   return { type: "number", value: 0 };
 }
 
@@ -189,7 +223,11 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
     const iterationValue = iterationToken === "infinite" ? "infinite" as const : Math.max(0, number(iterationToken, 1));
     const playback = { durationMs, delayMs: timeMs(delays[index % delays.length] ?? delays[0]!, true), iterations: iterationValue, direction: (directions[index % directions.length] ?? directions[0]!) as NonNullable<V2Track["playback"]>["direction"], fillMode: (fills[index % fills.length] ?? fills[0]!) as NonNullable<V2Track["playback"]>["fillMode"], playState: (states[index % states.length] ?? states[0]!) as NonNullable<V2Track["playback"]>["playState"] };
     const easingValue = timings[index % timings.length] ?? timings[0]!;
-    const supported = ["opacity", "transform", "background-color", "border-color", "border-width", "width", "height"] as const;
+    const supported: string[] = ["opacity", "transform", "background-color", "border-color", "border-width", "width", "height"];
+    const offsetPathValue = style.get("offset-path");
+    if (offsetPathValue !== undefined && offsetPathValue.trim().toLowerCase() !== "none") {
+      supported.push("offset-distance", "offset-rotate");
+    }
     for (const property of supported) {
       const base = property === "opacity"
         ? style.get("opacity") ?? "1"
@@ -199,16 +237,28 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
             ? style.get("border-top-color") ?? style.get("border-color") ?? options.currentColor
             : property === "border-width"
               ? style.get("border-top-width") ?? style.get("border-width") ?? "0px"
-          : property === "width" || property === "height"
+              : property === "offset-distance"
+                ? style.get("offset-distance") ?? "0%"
+                : property === "offset-rotate"
+                  ? style.get("offset-rotate") ?? "auto"
+            : property === "transform"
+              ? style.get("transform") ?? "none"
+            : property === "width" || property === "height"
             ? options.baseFrame[property]
             : "none";
       const baseValue = property === "opacity"
         ? (typeof base === "number" ? base : number(base, 1))
+        : property === "transform"
+          ? base
         : property === "border-width"
           ? borderSize(String(base), options)
+          : property === "offset-distance"
+            ? motionDistance(String(base), options)
+            : property === "offset-rotate"
+              ? (() => { const raw = String(base).replace(/^\s*(?:auto(?:-reverse)?|reverse)\s*/i, ""); return raw ? motionAngle(raw) : 0; })()
           : base;
       const tracks = buildTrack(property, definition, durationMs, playback, baseValue, options, easingValue);
-      for (const track of tracks) (track.path.startsWith("transform.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
+      for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
     }
   });
   return { group, paint };

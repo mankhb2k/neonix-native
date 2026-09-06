@@ -1,5 +1,246 @@
-import type { PaintCommand } from "@motionvideo/motion-runtime";
+import {
+  createMatrix4,
+  identityMatrix4,
+  multiplyMatrix4,
+  transformPoint4,
+  type PaintCommand,
+} from "@motionvideo/motion-runtime";
 import type { DrawBounds } from "./types";
+
+export type SkiaProjectionContext = {
+  width: number;
+  height: number;
+  projection?: readonly number[];
+  depthClip?: "global" | "w-only";
+};
+
+type SurfaceMesh = {
+  vertices: readonly number[];
+  indices: readonly number[];
+};
+
+type HomogeneousSurfaceVertex = {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  localX: number;
+  localY: number;
+  localZ: number;
+};
+
+type ClipPlane = (vertex: HomogeneousSurfaceVertex) => number;
+
+const PROJECTIVE_CLIP_EPSILON = 1e-7;
+
+function interpolateSurfaceVertex(
+  left: HomogeneousSurfaceVertex,
+  right: HomogeneousSurfaceVertex,
+  t: number,
+): HomogeneousSurfaceVertex {
+  return {
+    x: left.x + (right.x - left.x) * t,
+    y: left.y + (right.y - left.y) * t,
+    z: left.z + (right.z - left.z) * t,
+    w: left.w + (right.w - left.w) * t,
+    localX: left.localX + (right.localX - left.localX) * t,
+    localY: left.localY + (right.localY - left.localY) * t,
+    localZ: left.localZ + (right.localZ - left.localZ) * t,
+  };
+}
+
+function clipPolygon(
+  polygon: HomogeneousSurfaceVertex[],
+  plane: ClipPlane,
+): HomogeneousSurfaceVertex[] {
+  if (polygon.length === 0) return polygon;
+  const output: HomogeneousSurfaceVertex[] = [];
+  let previous = polygon[polygon.length - 1]!;
+  let previousDistance = plane(previous);
+  let previousInside = previousDistance >= 0;
+  for (const current of polygon) {
+    const currentDistance = plane(current);
+    const currentInside = currentDistance >= 0;
+    if (currentInside !== previousInside) {
+      const denominator = previousDistance - currentDistance;
+      const t = Math.abs(denominator) <= PROJECTIVE_CLIP_EPSILON
+        ? 0
+        : Math.max(0, Math.min(1, previousDistance / denominator));
+      output.push(interpolateSurfaceVertex(previous, current, t));
+    }
+    if (currentInside) output.push(current);
+    previous = current;
+    previousDistance = currentDistance;
+    previousInside = currentInside;
+  }
+  return output;
+}
+
+function finiteSurfaceMesh(mesh: SurfaceMesh): boolean {
+  return mesh.vertices.length >= 6 && mesh.vertices.length % 2 === 0 &&
+    mesh.indices.length >= 3 && mesh.indices.length % 3 === 0 &&
+    mesh.vertices.every(Number.isFinite) &&
+    mesh.indices.every((index) => Number.isSafeInteger(index) && index >= 0 && index < mesh.vertices.length / 2);
+}
+
+/**
+ * Convert a local Runtime triangle mesh into a clipped local-space SVG path.
+ *
+ * The clipping is performed on the homogeneous result of `matrix`, not after
+ * perspective division. Returned vertices remain in local coordinates so the
+ * active CanvasKit transform still applies gradients and other local paint
+ * sources in the same coordinate system as the original command.
+ */
+export function projectiveMeshSvg(
+  mesh: SurfaceMesh,
+  matrix: readonly number[],
+  context?: Pick<SkiaProjectionContext, "projection" | "depthClip">,
+): string | null {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value)) || !finiteSurfaceMesh(mesh)) return null;
+  const clipPlanes: ClipPlane[] = [
+    (vertex) => vertex.w - PROJECTIVE_CLIP_EPSILON,
+  ];
+  if (context?.projection && context.depthClip !== "w-only") {
+    // Runtime V2 canonical clip-space depth is [0, 1]. Clipping before the
+    // divide is essential when only part of a surface crosses the near plane.
+    clipPlanes.push(
+      (vertex) => vertex.z,
+      (vertex) => vertex.w - vertex.z,
+    );
+  }
+  const pathParts: string[] = [];
+  for (let offset = 0; offset < mesh.indices.length; offset += 3) {
+    const triangle = [0, 1, 2].map((corner) => {
+      const index = mesh.indices[offset + corner]!;
+      const localX = mesh.vertices[index * 2]!;
+      const localY = mesh.vertices[index * 2 + 1]!;
+      const transformed = transformPoint4(matrix, localX, localY, 0);
+      return { ...transformed, localX, localY, localZ: 0 };
+    });
+    const clipped = clipPlanes.reduce((polygon, plane) => clipPolygon(polygon, plane), triangle);
+    if (clipped.length < 3) continue;
+    const points = clipped.map((vertex) => `${vertex.localX} ${vertex.localY}`);
+    pathParts.push(`M ${points.join(" L ")} Z`);
+  }
+  return pathParts.join(" ");
+}
+
+/** Project the same clipped surface into frame pixels for the SVG golden
+ * reference. This intentionally shares the exact homogeneous clipping rules
+ * with the Skia path, so the two panes compare geometry rather than two
+ * unrelated approximations of a near-plane cut. */
+export function projectiveMeshScreenSvg(
+  mesh: SurfaceMesh,
+  matrix: readonly number[],
+  context: SkiaProjectionContext,
+): string | null {
+  const canvasMatrix = matrix4ToSkiaCanvasMatrix(matrix, context);
+  if (canvasMatrix.length !== 16 || !finiteSurfaceMesh(mesh)) return null;
+  const clipPlanes: ClipPlane[] = [(vertex) => vertex.w - PROJECTIVE_CLIP_EPSILON];
+  if (context.projection && context.depthClip !== "w-only") {
+    clipPlanes.push((vertex) => vertex.z, (vertex) => vertex.w - vertex.z);
+  }
+  const pathParts: string[] = [];
+  for (let offset = 0; offset < mesh.indices.length; offset += 3) {
+    const triangle = [0, 1, 2].map((corner) => {
+      const index = mesh.indices[offset + corner]!;
+      const localX = mesh.vertices[index * 2]!;
+      const localY = mesh.vertices[index * 2 + 1]!;
+      const transformed = transformPoint4(canvasMatrix, localX, localY, 0);
+      return { ...transformed, localX, localY, localZ: 0 };
+    });
+    const clipped = clipPlanes.reduce((polygon, plane) => clipPolygon(polygon, plane), triangle);
+    if (clipped.length < 3) continue;
+    const points = clipped.map((vertex) => {
+      const w = Math.abs(vertex.w) <= PROJECTIVE_CLIP_EPSILON ? PROJECTIVE_CLIP_EPSILON : vertex.w;
+      return `${vertex.x / w} ${vertex.y / w}`;
+    });
+    pathParts.push(`M ${points.join(" L ")} Z`);
+  }
+  return pathParts.join(" ");
+}
+
+function rectangleSurfaceMesh(width: number, height: number): SurfaceMesh {
+  return {
+    vertices: [0, 0, width, 0, width, height, 0, height],
+    indices: [0, 1, 2, 0, 2, 3],
+  };
+}
+
+function ellipseSurfaceMesh(width: number, height: number): SurfaceMesh {
+  const segments = 96;
+  const vertices = [width / 2, height / 2];
+  for (let index = 0; index < segments; index += 1) {
+    const angle = (index / segments) * Math.PI * 2;
+    vertices.push(width / 2 + Math.cos(angle) * width / 2, height / 2 + Math.sin(angle) * height / 2);
+  }
+  const indices: number[] = [];
+  for (let index = 0; index < segments; index += 1) {
+    const next = index + 1 === segments ? 0 : index + 1;
+    indices.push(0, index + 1, next + 1);
+  }
+  return { vertices, indices };
+}
+
+function isConvexPolygon(points: readonly { x: number; y: number }[]): boolean {
+  if (points.length < 3) return false;
+  let sign = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const a = points[index]!;
+    const b = points[(index + 1) % points.length]!;
+    const c = points[(index + 2) % points.length]!;
+    const cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (Math.abs(cross) <= PROJECTIVE_CLIP_EPSILON) continue;
+    const nextSign = Math.sign(cross);
+    if (sign === 0) sign = nextSign;
+    else if (sign !== nextSign) return false;
+  }
+  return sign !== 0;
+}
+
+function polygonSurfaceMesh(points: readonly { x: number; y: number }[]): SurfaceMesh | null {
+  if (!isConvexPolygon(points)) return null;
+  const vertices = points.flatMap((point) => [point.x, point.y]);
+  const indices: number[] = [];
+  for (let index = 1; index < points.length - 1; index += 1) indices.push(0, index, index + 1);
+  return { vertices, indices };
+}
+
+export function projectiveShapeSvg(
+  command: Extract<PaintCommand, { op: "drawShape" }>,
+  matrix: readonly number[],
+  context?: Pick<SkiaProjectionContext, "projection">,
+): string | null {
+  if (command.shape === "rectangle" && !command.cornerRadius) {
+    return projectiveMeshSvg(rectangleSurfaceMesh(command.width, command.height), matrix, context);
+  }
+  if (command.shape === "ellipse") {
+    return projectiveMeshSvg(ellipseSurfaceMesh(command.width, command.height), matrix, context);
+  }
+  if (command.shape === "polygon") {
+    const mesh = polygonSurfaceMesh(command.points ?? []);
+    return mesh ? projectiveMeshSvg(mesh, matrix, context) : null;
+  }
+  return null;
+}
+
+export function projectiveShapeScreenSvg(
+  command: Extract<PaintCommand, { op: "drawShape" }>,
+  matrix: readonly number[],
+  context: SkiaProjectionContext,
+): string | null {
+  if (command.shape === "rectangle" && !command.cornerRadius) {
+    return projectiveMeshScreenSvg(rectangleSurfaceMesh(command.width, command.height), matrix, context);
+  }
+  if (command.shape === "ellipse") {
+    return projectiveMeshScreenSvg(ellipseSurfaceMesh(command.width, command.height), matrix, context);
+  }
+  if (command.shape === "polygon") {
+    const mesh = polygonSurfaceMesh(command.points ?? []);
+    return mesh ? projectiveMeshScreenSvg(mesh, matrix, context) : null;
+  }
+  return null;
+}
 
 export function pathSvg(command: Extract<PaintCommand, { op: "drawPath" }>): string {
   return command.contours.map((contour) => {
@@ -21,8 +262,54 @@ export function polygonSvg(points: Array<{ x: number; y: number }>): string {
 
 export function matrix4ToSkia3x3(matrix: readonly number[]): number[] {
   if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) throw new Error("Skia requires a finite Matrix4");
-  const [a, b, , , c, d, , , , , , , e, f] = matrix;
-  return [a!, c!, e!, b!, d!, f!, 0, 0, 1];
+  // All Runtime V2 drawables are local z=0 planes. Keeping the homogeneous
+  // row here preserves rotateX/Y and perspective for that plane instead of
+  // silently dropping the Matrix4 w terms.
+  return [
+    matrix[0]!, matrix[4]!, matrix[12]!,
+    matrix[1]!, matrix[5]!, matrix[13]!,
+    matrix[3]!, matrix[7]!, matrix[15]!,
+  ];
+}
+
+/** Convert canonical clip-space coordinates into logical Skia canvas pixels. */
+function clipToCanvasMatrix4(width: number, height: number): Float64Array {
+  const matrix = identityMatrix4();
+  matrix[0] = Math.max(width, 1) / 2;
+  matrix[5] = -Math.max(height, 1) / 2;
+  matrix[12] = Math.max(width, 1) / 2;
+  matrix[13] = Math.max(height, 1) / 2;
+  return matrix;
+}
+
+/**
+ * Compose Runtime's world-to-clip projection with a node transform and map it
+ * to the logical pixel coordinate system used by CanvasKit.
+ */
+export function matrix4ToSkiaCanvasMatrix(
+  matrix: readonly number[],
+  context: SkiaProjectionContext,
+): number[] {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) {
+    throw new Error("Skia requires a finite Matrix4");
+  }
+  if (!context.projection) return [...matrix];
+  const projection = createMatrix4(context.projection);
+  const world = createMatrix4(matrix);
+  return Array.from(multiplyMatrix4(
+    clipToCanvasMatrix4(context.width, context.height),
+    multiplyMatrix4(projection, world),
+  ));
+}
+
+export function transformForSkiaCanvas(
+  transform: Extract<PaintCommand, { op: "setTransform" }>,
+  context: SkiaProjectionContext,
+): Extract<PaintCommand, { op: "setTransform" }> {
+  return {
+    ...transform,
+    matrix4: matrix4ToSkiaCanvasMatrix(transform.matrix4, context),
+  };
 }
 
 export function unionBounds(current: DrawBounds | undefined, next: DrawBounds): DrawBounds {
@@ -55,8 +342,18 @@ export function drawCommandBounds(command: PaintCommand, transform: Extract<Pain
     return undefined;
   }
   if (!(width > 0 && height > 0) || (transform && (!transform.visible || transform.alpha <= 0))) return undefined;
-  const [a, c, e, b, d, f] = transform ? matrix4ToSkia3x3(transform.matrix4) : [1, 0, 0, 0, 1, 0];
-  const points = [[x, y], [x + width, y], [x, y + height], [x + width, y + height]].map(([px, py]) => ({ x: a! * px + c! * py + e!, y: b! * px + d! * py + f! }));
+  const matrix = transform ? matrix4ToSkia3x3(transform.matrix4) : [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  const points = [[x, y], [x + width, y], [x, y + height], [x + width, y + height]]
+    .map(([px, py]) => {
+      const w = matrix[6]! * px + matrix[7]! * py + matrix[8]!;
+      if (Math.abs(w) < 1e-12 || !Number.isFinite(w)) return undefined;
+      return {
+        x: (matrix[0]! * px + matrix[1]! * py + matrix[2]!) / w,
+        y: (matrix[3]! * px + matrix[4]! * py + matrix[5]!) / w,
+      };
+    })
+    .filter((point): point is { x: number; y: number } => point !== undefined && Number.isFinite(point.x) && Number.isFinite(point.y));
+  if (points.length === 0) return undefined;
   return {
     left: Math.min(...points.map((point) => point.x)),
     top: Math.min(...points.map((point) => point.y)),

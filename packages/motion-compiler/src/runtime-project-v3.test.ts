@@ -140,6 +140,74 @@ describe("canonical compiler V3 projection", () => {
     expect(path).toMatchObject({ vectorEffect: "non-scaling-stroke" });
   });
 
+  it("keeps composition perspective and layer z in the canonical Runtime Matrix4", () => {
+    const project = filterProject({ id: "perspective-layer", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.composition.view.projection = {
+      kind: "perspective",
+      fov: 60,
+      near: 1,
+      far: 4000,
+    };
+    project.layers[0].transform.translate.z = 120;
+    project.layers[0].transform.rotate.y = 18;
+
+    const runtime = compileProtocol(project);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(runtime.visual.view.worldToClipMatrix[11]).not.toBe(0);
+    expect(runtime.visual.view.depthClip).toBe("global");
+    expect(node?.localMatrix).toHaveLength(16);
+    expect(node?.worldMatrix[14]).toBeCloseTo(120, 8);
+    expect(node?.worldMatrix[2]).not.toBeCloseTo(0, 8);
+  });
+
+  it("applies group perspective-origin to descendants without changing their authored local matrix", () => {
+    const project = filterProject({ id: "perspective-group", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    const group = {
+      type: "group",
+      id: "perspective-group-layer",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 960, height: 540 },
+      transform: {
+        translate: { x: 0, y: 0, z: 0 },
+        scale: { x: 1, y: 1, z: 1 },
+        rotate: { x: 0, y: 0, z: 0 },
+        skew: { x: 0, y: 0 },
+        anchor: { x: 0, y: 0, z: 0 },
+      },
+      opacity: 1,
+      timing: { start: 0, duration: 3000 },
+      render3d: {
+        transformStyle: "preserve-3d",
+        perspective: { distance: 800, origin: { x: 480, y: 270 } },
+      },
+    };
+    project.layers[0] = {
+      ...project.layers[0],
+      parentLayerId: group.id,
+      order: 0,
+      transform: {
+        ...project.layers[0].transform,
+        translate: { x: 100, y: 0, z: 120 },
+      },
+    };
+    project.layers.unshift(group);
+
+    const runtime = compileProtocol(project);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(runtime.visual.view.depthClip).toBe("w-only");
+    expect(node?.localMatrix[14]).toBeCloseTo(120, 8);
+    expect(node?.worldMatrix[11]).toBeCloseTo(-1 / 800, 12);
+    // Homogeneous translation stores the pre-divide numerator. The x=100
+    // authored position is projected around origin.x=480 at z=120:
+    // 100 - 480 * (120 / 800) = 28, then divided by w=0.85.
+    expect(node?.worldMatrix[12]).toBeCloseTo(28, 8);
+  });
+
   it("samples protocol tracks before visual lowering", () => {
     const project = filterProject({ id: "animated", primitives: [] }) as any;
     project.filters = [];
@@ -155,6 +223,47 @@ describe("canonical compiler V3 projection", () => {
     }];
     const runtime = compileProtocolAtTime(project, 0.5);
     expect(runtime.visual.nodes.find((node) => node.id === "filtered-path")?.opacity).toBeCloseTo(0.5);
+  });
+
+  it("culls a reversed layer when backface-visibility is hidden", () => {
+    const project = filterProject({ id: "backface", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].backfaceVisibility = "hidden";
+    project.layers[0].transform.operations = [{ type: "extension", name: "motion.rotateY", value: 180 }];
+    const runtime = compileProtocol(project);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(node?.visible).toBe(false);
+  });
+
+  it("samples layer-owned motion path distance into a tangent-aligned runtime matrix", () => {
+    const project = filterProject({ id: "motion-path", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].motion = {
+      offsetPath: {
+        type: "path",
+        contours: [{ id: "motion", start: { x: 100, y: 100 }, segments: [{ kind: "line", to: { x: 500, y: 100 } }], closed: false }],
+        coordinateSpace: "parent-local",
+        referenceBox: "border-box",
+      },
+      offsetDistance: 0,
+      offsetRotate: { mode: "auto", angle: 0 },
+      offsetAnchor: { x: 0, y: 0 },
+    };
+    project.layers[0].tracks = [{
+      id: "motion-distance",
+      path: "motion.offsetDistance",
+      keyframes: [
+        { time: 0, value: { type: "number", value: 0 } },
+        { time: 1000, value: { type: "number", value: 1 } },
+      ],
+      playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+    }];
+    const runtime = compileProtocolAtTime(project, 0.5);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(node?.worldMatrix[12]).toBeCloseTo(300);
+    expect(node?.worldMatrix[13]).toBeCloseTo(100);
   });
 
   it("applies delay and fill-mode without changing the underlying layer when inactive", () => {

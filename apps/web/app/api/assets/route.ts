@@ -96,6 +96,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const { supabase, user, workspaceId } = result.context;
   const previewBody = body.preview;
   const optionalNumber = (value: unknown): number | undefined => {
     if (value === undefined || value === null || value === "") return undefined;
@@ -126,8 +127,6 @@ export async function POST(request: Request) {
   const previewKey = hasPreview || isVideo ? derivativeObjectKey(workspaceId, assetId, "poster", "poster.webp") : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
-  const { supabase, user, workspaceId } = result.context;
-
   const { error: assetError } = await supabase.from("assets").insert({
     id: assetId,
     workspace_id: workspaceId,

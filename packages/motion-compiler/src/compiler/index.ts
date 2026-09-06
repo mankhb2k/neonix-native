@@ -3,6 +3,7 @@ import {
   composeLocalMatrix4,
   orthographicProjectionMatrix,
   perspectiveProjectionMatrix,
+  perspectiveMatrix3D,
   rotationMatrixX,
   rotationMatrixY,
   rotationMatrixZ,
@@ -22,8 +23,11 @@ import {
   interpolatePathContours,
   flattenPathContourAny,
   measureContour,
+  sampleContourAtDistance,
   tessellateClosedPath,
-      tessellatePathStroke,
+  tessellatePathStroke,
+  is3DMatrix4,
+  hasPerspectiveTerms,
 } from "@motionvideo/motion-runtime";
 import {
   parseMotionProtocol,
@@ -190,6 +194,7 @@ type ProtocolEffect = NonNullable<
 
 function viewProjectionMatrix4(project: MotionProtocolV2): {
   worldToClipMatrix: Matrix4;
+  depthClip: "global" | "w-only";
 } {
   const { width, height } = project.composition;
   const view = project.composition.view;
@@ -225,6 +230,15 @@ function viewProjectionMatrix4(project: MotionProtocolV2): {
         );
   return {
     worldToClipMatrix: multiplyMatrix4(projectionMatrix, viewMatrix),
+    // A CSS parent perspective is a local homogeneous transform. Applying
+    // the view's orthographic near/far planes again after that transform
+    // incorrectly clips valid descendants based on their varying w.
+    depthClip: project.layers.some((layer) =>
+      (layer.type === "group" && layer.render3d?.perspective !== undefined) ||
+      layer.transform.operations?.some((operation) =>
+        operation.type === "extension" && operation.name === "motion.perspective",
+      ),
+    ) ? "w-only" : "global",
   };
 }
 
@@ -849,11 +863,47 @@ function definitionRuntimeNode(
 type LayerContext = {
   localMatrix: Matrix4;
   worldMatrix: Matrix4;
+  /** Matrix inherited by direct descendants, including group perspective. */
+  childWorldMatrix: Matrix4;
   opacity: number;
   visible: boolean;
   timing: { start: number; duration: number };
   currentColor: string;
 };
+
+/** CSS backface-visibility checks the transformed local +Z surface normal. */
+function isHiddenBackface(matrix: Matrix4, visibility: MotionProtocolV2["layers"][number]["backfaceVisibility"]): boolean {
+  return visibility === "hidden" && matrix.length === 16 && Number.isFinite(matrix[10]) && matrix[10]! <= 0;
+}
+
+function motionPathLocalMatrix(layer: MotionProtocolV2["layers"][number]): Matrix4 {
+  const motion = layer.motion;
+  if (!motion) return composeLocalMatrix4(layer.transform);
+  const contour = motion.offsetPath.contours[0];
+  if (!contour) throw new Error(`Motion path ${layer.id} has no contour`);
+  const measured = measureContour(flattenPathContourAny(contour));
+  if (!(measured.length > 0)) throw new Error(`Motion path ${layer.id} has zero length`);
+  const sampled = sampleContourAtDistance(measured, motion.offsetDistance * measured.length);
+  const tangentAngle = (Math.atan2(sampled.tangent.y, sampled.tangent.x) * 180) / Math.PI;
+  const angle = motion.offsetRotate.mode === "fixed"
+    ? motion.offsetRotate.angle
+    : tangentAngle + motion.offsetRotate.angle + (motion.offsetRotate.mode === "auto-reverse" ? 180 : 0);
+  const motionMatrix = multiplyMatrix4(
+    multiplyMatrix4(
+      translationMatrix3D(sampled.point.x, sampled.point.y, 0),
+      rotationMatrixZ(angle),
+    ),
+    translationMatrix3D(-motion.offsetAnchor.x, -motion.offsetAnchor.y, 0),
+  );
+  // CSS layout placement is replaced by the path position. Keep authored
+  // transform operations and their own transform-origin, but remove the
+  // layout translation so it is not applied a second time.
+  const authoredTransform = {
+    ...layer.transform,
+    translate: { ...layer.transform.translate, x: 0, y: 0 },
+  };
+  return multiplyMatrix4(motionMatrix, composeLocalMatrix4(authoredTransform));
+}
 
 /** Options accepted by the canonical Protocol compiler. */
 export type CompileProtocolOptions = Record<string, never>;
@@ -872,13 +922,14 @@ function compileVisualRuntimeInternal(
   const resolveLayerContext = (layer: MotionProtocolV2["layers"][number]): LayerContext => {
     const cached = contextCache.get(layer.id);
     if (cached) return cached;
-    const localMatrix = composeLocalMatrix4(layer.transform);
+    const localMatrix = motionPathLocalMatrix(layer);
     const parent = layer.parentLayerId === null ? null : layerById.get(layer.parentLayerId) ?? null;
     const parentContext = parent
       ? resolveLayerContext(parent)
       : {
           localMatrix: identityMatrix4(),
           worldMatrix: identityMatrix4(),
+          childWorldMatrix: identityMatrix4(),
           opacity: 1,
         visible: true,
         timing: { start: 0, duration: Number.POSITIVE_INFINITY },
@@ -889,9 +940,21 @@ function compileVisualRuntimeInternal(
       parentContext.timing.start + parentContext.timing.duration,
       start + toRuntimeSeconds(layer.timing.duration),
     );
+    const worldMatrix = multiplyMatrix4(parentContext.childWorldMatrix, localMatrix);
+    const hiddenBackface = isHiddenBackface(worldMatrix, layer.backfaceVisibility);
+    const childWorldMatrix = layer.type === "group" && layer.render3d?.perspective
+      ? multiplyMatrix4(
+          worldMatrix,
+          perspectiveMatrix3D(
+            layer.render3d.perspective.distance,
+            layer.render3d.perspective.origin,
+          ),
+        )
+      : worldMatrix;
     const context: LayerContext = {
       localMatrix,
-      worldMatrix: multiplyMatrix4(parentContext.worldMatrix, localMatrix),
+      worldMatrix,
+      childWorldMatrix,
       // Group opacity is deliberately not folded into child alpha. Runtime
       // preserves group nodes so it can flatten their subtree and apply that
       // alpha exactly once at the compositing boundary.
@@ -901,6 +964,7 @@ function compileVisualRuntimeInternal(
         layer.enabled !== false &&
         (layer.visibility ?? "visible") === "visible" &&
         layer.opacity > 0 &&
+        !hiddenBackface &&
         end > start,
       timing: { start, duration: Math.max(0, end - start) },
       currentColor: layer.color ?? parentContext.currentColor,
@@ -912,10 +976,23 @@ function compileVisualRuntimeInternal(
   const compiledLayerNodes = project.layers.map((layer): VisualRuntimeNode | null => {
     const context = resolveLayerContext(layer);
     for (const capability of [
+      ...(is3DMatrix4(context.localMatrix) || is3DMatrix4(context.worldMatrix)
+        ? ["matrix4.transform"]
+        : []),
+      ...(hasPerspectiveTerms(projection.worldToClipMatrix) || hasPerspectiveTerms(context.childWorldMatrix)
+        ? ["matrix4.projective"]
+        : []),
+    ]) {
+      if (!isV2AtomCertified(capability)) {
+        throw new Error(`Uncertified Protocol V2 atom: ${capability}`);
+      }
+    }
+    for (const capability of [
       ...(layer.enabled !== undefined ? ["layer.enabled"] : []),
       ...(layer.visibility !== undefined ? ["layer.visibility"] : []),
       ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
       ...(layer.filter !== undefined ? ["filter.svg.graph"] : []),
+      ...(layer.motion ? ["motion.path", "motion.path.sampling", "motion.path.tangent", "motion.path.rotate", "motion.path.anchor"] : []),
     ]) {
       if (!isV2AtomCertified(capability)) {
         throw new Error(`Uncertified Protocol V2 atom: ${capability}`);

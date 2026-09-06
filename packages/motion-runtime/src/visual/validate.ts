@@ -166,6 +166,13 @@ export function validateVisualRuntimeProject(
       message: "Runtime V2 view.worldToClipMatrix must be a finite 4x4 matrix",
     });
   }
+  if (project.view.depthClip !== undefined && project.view.depthClip !== "global" && project.view.depthClip !== "w-only") {
+    diagnostics.push({
+      severity: "error",
+      code: "runtime_v2_depth_clip",
+      message: "Runtime V2 view.depthClip must be global or w-only",
+    });
+  }
 
   const ids = new Set<string>();
   const nodeById = new Map(project.nodes.map((node) => [node.id, node]));
@@ -218,6 +225,30 @@ export function validateVisualRuntimeProject(
         message: "Runtime V2 node matrices must be finite 4x4 matrices",
         nodeId: node.id,
       });
+    }
+    if (node.content.kind === "group" && node.content.render3d) {
+      if (!(["flat", "preserve-3d"] as const).includes(node.content.render3d.transformStyle)) {
+        diagnostics.push({
+          severity: "error",
+          code: "runtime_v2_transform_style",
+          message: "Runtime V2 group transformStyle must be flat or preserve-3d",
+          nodeId: node.id,
+        });
+      }
+      const perspective = node.content.render3d.perspective;
+      if (perspective && (
+        !Number.isFinite(perspective.distance) ||
+        perspective.distance <= 0 ||
+        !Number.isFinite(perspective.origin.x) ||
+        !Number.isFinite(perspective.origin.y)
+      )) {
+        diagnostics.push({
+          severity: "error",
+          code: "runtime_v2_perspective_context",
+          message: "Runtime V2 group perspective requires a positive distance and finite origin",
+          nodeId: node.id,
+        });
+      }
     }
     if (
       !Number.isFinite(node.timing.start) ||

@@ -14,7 +14,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -4038,11 +4038,186 @@ export const HTML_COMPILER_MOTION_PHASE3_CASES: HtmlCompilerPreviewCase[] = [
 #motion-combo-image { position: absolute; left: 0; top: 0; width: 760px; height: 300px; object-fit: cover; animation-name: motion-combo-image; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
     }),
   },
+  {
+    id: "html-compiler.motion-path.line-distance",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion path / line distance",
+    properties: ["offset-path", "offset-distance", "linear path"],
+    hint: "A layer-owned path keeps the CSS element frame while offset-distance samples a normalized point along the parent-local line.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-path-line\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-path-line { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+#motion-path-line { position: absolute; left: 0; top: 0; width: 180px; height: 100px; background: #22d3ee; offset-path: path("M 180 420 L 1500 420"); offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 50% 50%; animation-name: motion-path-line; animation-duration: 1400ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion-path.cubic-auto",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion path / cubic auto rotate",
+    properties: ["offset-path", "offset-rotate: auto", "cubic tangent"],
+    hint: "The runtime follows a cubic path and aligns the layer to the sampled tangent, making direction changes visible at the midpoint.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-path-cubic\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-path-cubic { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+#motion-path-cubic { position: absolute; left: 0; top: 0; width: 150px; height: 80px; background: #a78bfa; offset-path: path("M 180 650 C 420 220, 920 980, 1540 520"); offset-distance: 0%; offset-rotate: auto 0deg; offset-anchor: 50% 50%; animation-name: motion-path-cubic; animation-duration: 1800ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion-path.reverse-anchor",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion path / reverse + anchor",
+    properties: ["offset-rotate: reverse", "offset-anchor", "path endpoint"],
+    hint: "Reverse adds the CSS half-turn after tangent alignment while the bottom-center anchor keeps the layer attached to the path.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-path-reverse\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+@keyframes motion-path-reverse { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+#motion-path-reverse { position: absolute; left: 0; top: 0; width: 180px; height: 100px; background: #fb7185; offset-path: path("M 260 820 L 1320 820"); offset-distance: 0%; offset-rotate: reverse 0deg; offset-anchor: 50% 100%; animation-name: motion-path-reverse; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: steps(4, jump-end); }`,
+    }),
+  },
+  {
+    id: "html-compiler.motion-path.clip-edge",
+    phase: "P3",
+    topic: "Motion & animation",
+    label: "Motion path / composition clipping",
+    properties: ["offset-path", "overflow: hidden", "composition clip"],
+    hint: "Motion remains layer-owned and is clipped by the composition boundary when the path carries the frame beyond the right edge.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"motion-path-edge\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+@keyframes motion-path-edge { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+#motion-path-edge { position: absolute; left: 0; top: 0; width: 260px; height: 140px; background: #facc15; offset-path: path("M 1540 180 L 2100 180"); offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 0% 0%; animation-name: motion-path-edge; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.perspective.group-translate-z",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / group + translateZ",
+    properties: ["perspective", "perspective-origin", "translateZ", "Matrix4"],
+    hint: "A parent perspective becomes a group render3d context while the child keeps translateZ in its ordered Matrix4 transform.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"perspective-scene\"><div id=\"perspective-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#perspective-scene { position: absolute; left: 520px; top: 250px; width: 880px; height: 520px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#perspective-card { position: absolute; left: 260px; top: 150px; width: 360px; height: 220px; background: #22d3ee; transform: translateZ(140px) rotateY(-16deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.rotate-x",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / rotateX plane",
+    properties: ["perspective", "rotateX", "transform-origin"],
+    hint: "The child plane rotates around its center in 3D; the compiler preserves the authored transform origin and parent camera context.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"rotate-x-scene\"><div id=\"rotate-x-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#rotate-x-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 900px; }
+#rotate-x-card { position: absolute; left: 260px; top: 160px; width: 360px; height: 220px; background: #a78bfa; transform-origin: 50% 50%; transform: rotateX(28deg) translateZ(80px); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.origin-offset",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / off-center origin",
+    properties: ["perspective-origin", "rotateY", "translateZ"],
+    hint: "An off-center perspective-origin changes the convergence point without changing the child's layout frame.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"origin-scene\"><div id=\"origin-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#origin-scene { position: absolute; left: 520px; top: 240px; width: 880px; height: 500px; perspective: 700px; perspective-origin: 18% 82%; }
+#origin-card { position: absolute; left: 270px; top: 140px; width: 340px; height: 220px; background: #f97316; transform: rotateY(-32deg) translateZ(120px); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.flat-preserve-3d",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / flat vs preserve-3d",
+    properties: ["transform-style", "flat", "preserve-3d", "nested groups"],
+    hint: "Two independent group contexts keep transform-style explicit in JSON so the runtime can apply the intended flattening boundary.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flat-scene\"><div id=\"flat-card\"></div></div><div id=\"preserve-scene\"><div id=\"preserve-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#flat-scene, #preserve-scene { position: absolute; top: 260px; width: 620px; height: 400px; perspective: 760px; }
+#flat-scene { left: 220px; transform-style: flat; }
+#preserve-scene { left: 1080px; transform-style: preserve-3d; }
+#flat-card, #preserve-card { position: absolute; left: 170px; top: 110px; width: 280px; height: 180px; background: #38bdf8; transform: rotateY(30deg) translateZ(120px); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.transform-function",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / transform() function",
+    properties: ["transform: perspective()", "ordered operations", "rotateY"],
+    hint: "transform: perspective() remains an ordered motion.perspective operation and is kept distinct from a parent perspective context.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"transform-perspective\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#transform-perspective { position: absolute; left: 700px; top: 360px; width: 520px; height: 280px; background: #facc15; transform-origin: 50% 50%; transform: perspective(620px) rotateY(-24deg) translateZ(80px); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.backface-hidden",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / hidden backface",
+    properties: ["backface-visibility", "rotateY(180deg)", "layer state"],
+    hint: "backface-visibility is preserved on the transformed layer; the runtime decides whether the reverse surface is paintable.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"backface-scene\"><div id=\"backface-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#backface-scene { position: absolute; left: 620px; top: 270px; width: 680px; height: 400px; perspective: 800px; }
+#backface-card { position: absolute; left: 190px; top: 90px; width: 300px; height: 220px; background: #fb7185; transform: rotateY(180deg); backface-visibility: hidden; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.near-far-clipping",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / near and far clipping",
+    properties: ["perspective", "translateZ", "near/far clip"],
+    hint: "The perspective context keeps the layer's authored frame while Runtime V2 clips projected geometry at the camera planes.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"clip-scene\"><div id=\"clip-visible\"></div><div id=\"clip-edge\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+#clip-scene { position: absolute; left: 580px; top: 270px; width: 760px; height: 420px; perspective: 180px; }
+#clip-visible, #clip-edge { position: absolute; left: 250px; top: 100px; width: 260px; height: 200px; background: #34d399; transform: rotateY(18deg); }
+#clip-visible { transform: translateZ(80px) rotateY(18deg); }
+#clip-edge { transform: translateZ(320px) rotateY(18deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.animated-3d",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / animated translateZ + rotateY",
+    properties: ["@keyframes", "translateZ", "rotateY", "tracks"],
+    hint: "3D transform keyframes lower to typed Matrix4 operations on the shared timeline; no CSS animation engine is introduced in Runtime V2.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"animated-scene\"><div id=\"animated-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#animated-scene { position: absolute; left: 560px; top: 250px; width: 800px; height: 480px; perspective: 820px; perspective-origin: 35% 60%; transform-style: preserve-3d; }
+@keyframes animated-3d { from { transform: translateZ(0px) rotateY(-30deg); } to { transform: translateZ(180px) rotateY(30deg); } }
+#animated-card { position: absolute; left: 270px; top: 120px; width: 260px; height: 220px; background: #f472b6; animation-name: animated-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+    }),
+  },
 ];
 
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -4052,5 +4227,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

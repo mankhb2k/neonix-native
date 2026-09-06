@@ -1,4 +1,4 @@
-import type { Matrix4Like } from "../matrix4";
+import { isAffine2DMatrix4, type Matrix4Like } from "../matrix4";
 import type { PathContour, PathStrokeMesh, PathStrokeOptions } from "./types";
 import { flattenPathContourAny } from "./flatten";
 import { tessellateStrokeOutline } from "./stroke-outline";
@@ -39,20 +39,5 @@ export function tessellateNonScalingStroke(
 
 /** Matrix4 with only the SVG-compatible XY affine portion in use. */
 export function isAffine2DMatrix(matrix: Matrix4Like): boolean {
-  if (matrix.length !== 16) return false;
-  if (Array.from({ length: 16 }, (_, index) => matrix[index]!).some((value) => !Number.isFinite(value))) {
-    return false;
-  }
-  return (
-    Math.abs(matrix[2]!) < 1e-9 &&
-    Math.abs(matrix[3]!) < 1e-9 &&
-    Math.abs(matrix[6]!) < 1e-9 &&
-    Math.abs(matrix[7]!) < 1e-9 &&
-    Math.abs(matrix[8]!) < 1e-9 &&
-    Math.abs(matrix[9]!) < 1e-9 &&
-    Math.abs(matrix[10]! - 1) < 1e-9 &&
-    Math.abs(matrix[11]!) < 1e-9 &&
-    Math.abs(matrix[14]!) < 1e-9 &&
-    Math.abs(matrix[15] - 1) < 1e-9
-  );
+  return isAffine2DMatrix4(matrix);
 }

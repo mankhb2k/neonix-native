@@ -7,7 +7,7 @@ import {
   type Matrix4,
   type Point3D,
 } from "../geometry/matrix4";
-import { isAffine2DMatrix, tessellateNonScalingStroke } from "../geometry/path";
+import { tessellateNonScalingStroke } from "../geometry/path";
 import type { PaintCommand } from "../paint/paint-command";
 import type { PathContour } from "../paint/paint-types";
 import { normalizeVisualRuntimeProject, validateVisualRuntimeProject } from "./validate";
@@ -44,11 +44,6 @@ function quantizeVideoFrame(
   if (policy === "round") return Math.round(frame);
   if (policy === "ceil") return Math.ceil(frame);
   return Math.floor(frame);
-}
-
-function current3dNode(node: VisualRuntimeNode): boolean {
-  if (node.content.kind === "group" && node.content.render3d) return true;
-  return !isAffine2DMatrix(node.localMatrix) || !isAffine2DMatrix(node.worldMatrix);
 }
 
 /**
@@ -198,33 +193,11 @@ export function evaluateVisualRuntimeProject(
       time,
       projection: {
         worldToClipMatrix: matrix4ToArray(project.view.worldToClipMatrix),
+        ...(project.view.depthClip ? { depthClip: project.view.depthClip } : {}),
       },
     },
   ];
   const diagnostics = [] as NonNullable<VisualRuntimeFrame["diagnostics"]>;
-
-  const unsupported3dNodes = project.nodes.filter(current3dNode);
-  if (unsupported3dNodes.length > 0) {
-    for (const node of unsupported3dNodes) {
-      diagnostics.push({
-        severity: "error",
-        code: "current_3d_unsupported",
-        message: `Current 2D renderer does not support 3D content for node "${node.id}"`,
-        layerId: node.id,
-        key: node.id,
-      });
-    }
-    commands.push({ op: "endFrame" });
-    return {
-      runtimeFormat: "motion-runtime",
-      runtimeVersion: 2,
-      frame,
-      time,
-      version: 1,
-      commands,
-      diagnostics,
-    };
-  }
 
   const childrenByParent = new Map<string | null, VisualRuntimeNode[]>();
   for (const node of project.nodes) {
@@ -286,8 +259,27 @@ export function evaluateVisualRuntimeProject(
       { x: localBounds.x, y: localBounds.y + localBounds.height, z: 0 },
     ];
     const projectedCorners = corners.map((corner) =>
-      projectPoint3D(nodeViewProjection, corner),
+      projectPoint3D(nodeViewProjection, corner, { depthClip: project.view.depthClip }),
     );
+    const fullyClipped = projectedCorners.every((corner) => corner.kind === "clipped");
+    if (fullyClipped) {
+      const reasons = new Set(projectedCorners.map((corner) => corner.kind === "clipped" ? corner.reason : undefined));
+      const reason = reasons.has("behind-camera")
+        ? "behind-camera"
+        : reasons.has("near-plane")
+          ? "near-plane"
+          : reasons.has("far-plane")
+            ? "far-plane"
+            : "non-finite";
+      diagnostics.push({
+        severity: "warning",
+        code: "layer_fully_clipped",
+        message: `Runtime V2 layer ${node.id} was fully clipped (${reason})`,
+        layerId: node.id,
+        key: node.id,
+      });
+      return;
+    }
     if (
       projectedCorners.length > 0 &&
       projectedCorners.every(

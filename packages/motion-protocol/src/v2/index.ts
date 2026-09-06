@@ -53,6 +53,16 @@ export {
 export { MotionProtocolV2Schema } from "./project";
 export type { MotionProtocolV2 } from "./types";
 export {
+  V2OffsetPathSchema,
+  V2OffsetRotateSchema,
+  V2OffsetAnchorSchema,
+  V2MotionPathSchema,
+  type V2OffsetPath,
+  type V2OffsetRotate,
+  type V2OffsetAnchor,
+  type V2MotionPath,
+} from "./motion-path";
+export {
   V2MarkerUnitsSchema,
   V2MarkerOrientSchema,
   V2MarkerViewBoxSchema,

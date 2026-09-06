@@ -1,4 +1,12 @@
 export { replaySkiaCommands } from "./replay";
-export { matrix4ToSkia3x3 } from "./geometry";
+export {
+  matrix4ToSkia3x3,
+  matrix4ToSkiaCanvasMatrix,
+  projectiveMeshSvg,
+  projectiveMeshScreenSvg,
+  projectiveShapeSvg,
+  projectiveShapeScreenSvg,
+  transformForSkiaCanvas,
+} from "./geometry";
 export { skiaTextGlyphAssetId } from "./text";
 export type { SkiaReplayStats, SkiaTypefaceResolver } from "./types";

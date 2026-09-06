@@ -127,6 +127,13 @@ export function validatePaintCommandBuffer(
             message: "Projection worldToClipMatrix must contain exactly 16 finite values",
           });
         }
+        if (cmd.projection?.depthClip !== undefined && cmd.projection.depthClip !== "global" && cmd.projection.depthClip !== "w-only") {
+          issues.push({
+            severity: "error",
+            code: "invalid_projection_depth_clip",
+            message: "Projection depthClip must be global or w-only",
+          });
+        }
         break;
       }
       case "endFrame": {

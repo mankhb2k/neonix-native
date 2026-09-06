@@ -32,6 +32,13 @@ export type VisualRuntimeComposition = {
 export type VisualRuntimeView = {
   /** The only view value Runtime V2 exposes to painters: world space to clip space. */
   worldToClipMatrix: Matrix4;
+  /**
+   * Selects the depth contract for projective surfaces. CSS parent
+   * perspective already supplies the homogeneous camera divide, so its
+   * descendants must only be clipped at the camera plane. Ordinary view
+   * projection keeps the canonical [0, 1] near/far clip range.
+   */
+  depthClip?: "global" | "w-only";
 };
 
 export type VisualRuntimeTiming = {

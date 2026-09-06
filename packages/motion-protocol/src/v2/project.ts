@@ -29,6 +29,10 @@ const COMMON_NUMBER_PATHS = new Set([
   "transform.anchor.x",
   "transform.anchor.y",
   "transform.anchor.z",
+  "motion.offsetDistance",
+  "motion.offsetRotate.angle",
+  "motion.offsetAnchor.x",
+  "motion.offsetAnchor.y",
 ]);
 
 const COMMON_ENUM_PATHS = new Set([

@@ -92,7 +92,9 @@ export {
   type V2TransformStyle,
 } from "../render3d";
 
-export const V2LayerSchema = z.discriminatedUnion("type", [
+export type V2Layer = V2GroupLayer | V2ImageLayer | V2VideoLayer | V2ShapeLayer | V2PathLayer | V2TextLayer;
+
+export const V2LayerSchema: z.ZodType<V2Layer, z.ZodTypeDef, unknown> = z.discriminatedUnion("type", [
   V2GroupLayerSchema,
   V2ImageLayerSchema,
   V2ShapeLayerSchema,
@@ -100,6 +102,5 @@ export const V2LayerSchema = z.discriminatedUnion("type", [
   V2PathLayerSchema,
   V2VideoLayerSchema,
 ]);
-export type V2Layer = V2GroupLayer | V2ImageLayer | V2VideoLayer | V2ShapeLayer | V2PathLayer | V2TextLayer;
 
-export const V2LayerListSchema = z.array(V2LayerSchema);
+export const V2LayerListSchema: z.ZodType<V2Layer[], z.ZodTypeDef, unknown> = z.array(V2LayerSchema);
