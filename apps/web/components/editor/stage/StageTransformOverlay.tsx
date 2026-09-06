@@ -7,6 +7,7 @@ import {
   useEditorDocument,
   useEditorLocks,
   useEditorSelection,
+  useEditorTextEditSession,
   useEditorVisibility,
 } from "@/hooks/editor/use-editor-store";
 import { useTransportStore } from "@/hooks/editor/use-transport-store";
@@ -28,11 +29,11 @@ import {
 import {
   measureEditorTextLayer,
   measureEditorTextMinimumWidth,
-} from "@/lib/editor/text-measurement";
+} from "@/lib/editor/text/measurement";
 import {
   buildTextScaleResizeUpdate,
   buildWrappedTextResizeUpdate,
-} from "@/lib/editor/text-sizing";
+} from "@/lib/editor/text/sizing";
 import {
   stageInteractionStore,
   useStagePreviewCommit,
@@ -222,9 +223,10 @@ export function StageTransformOverlay({
   compositionWidth,
   compositionHeight,
 }: Props) {
-  const { setSelectedLayerIds, applyCommand } = useEditorActions();
+  const { setSelectedLayerIds, applyCommand, startTextEditing } = useEditorActions();
   const document = useEditorDocument();
   const selectedLayerIds = useEditorSelection();
+  const textEditSession = useEditorTextEditSession();
   const hiddenLayerIds = useEditorVisibility();
   const lockedLayerIds = useEditorLocks();
   const currentTime = useTransportStore((state) => state.currentTime);
@@ -611,6 +613,23 @@ export function StageTransformOverlay({
     setRotatePreview(null);
   }, [clearInteractionCursor]);
 
+  const onTextDoubleClick = useCallback((
+    event: React.MouseEvent<HTMLDivElement>,
+    layerId: string,
+  ) => {
+    const layer = activeVisualLayers.find((candidate) => candidate.id === layerId);
+    if (!layer || layer.type !== "text") return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelMove();
+    setSelectedLayerIds([layerId]);
+    const point = toCompositionPoint(event.clientX, event.clientY);
+    startTextEditing(
+      layerId,
+      point ? { x: point.x, y: point.y, mode: "word" } : undefined,
+    );
+  }, [activeVisualLayers, cancelMove, setSelectedLayerIds, startTextEditing, toCompositionPoint]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -929,6 +948,7 @@ export function StageTransformOverlay({
         return null;
       })}
       {activeVisualLayers.map((layer) => (
+        textEditSession?.layerId === layer.id ? null :
         <div
           key={`hit-${layer.id}`}
           aria-label={`Select ${layer.id}`}
@@ -939,6 +959,7 @@ export function StageTransformOverlay({
             background: "transparent",
           }}
           onPointerDown={(event) => onMovePointerDown(event, layer.id)}
+          onDoubleClick={(event) => onTextDoubleClick(event, layer.id)}
           onPointerMove={onTransformPointerMove}
           onPointerUp={onTransformPointerUp}
           onPointerCancel={cancelMove}
@@ -951,12 +972,16 @@ export function StageTransformOverlay({
             ...boundsStyle(selectedBounds, compositionWidth, compositionHeight),
             outline: "1px solid var(--accent)",
             boxShadow: "0 0 0 1px color-mix(in srgb, var(--bg-site) 70%, transparent)",
-            pointerEvents: "auto",
+            pointerEvents: textEditSession ? "none" : "auto",
             touchAction: "none",
             transform: selectedBounds.rotation ? `rotate(${selectedBounds.rotation}deg)` : undefined,
             transformOrigin: `${percent(selectedBounds.transformOriginX ?? selectedBounds.width / 2, selectedBounds.width)} ${percent(selectedBounds.transformOriginY ?? selectedBounds.height / 2, selectedBounds.height)}`,
           }}
           onPointerDown={onMovePointerDown}
+          onDoubleClick={(event) => {
+            const layer = selectedLayers[0];
+            if (layer?.type === "text") onTextDoubleClick(event, layer.id);
+          }}
           onPointerMove={onTransformPointerMove}
           onPointerUp={onTransformPointerUp}
           onPointerCancel={cancelMove}

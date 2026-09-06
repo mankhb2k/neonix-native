@@ -16,3 +16,6 @@ export const useEditorDocument = () => useEditorStore((state) => state.document)
 export const useEditorSelection = () => useEditorStore((state) => state.selectedLayerIds);
 export const useEditorVisibility = () => useEditorStore((state) => state.hiddenLayerIds);
 export const useEditorLocks = () => useEditorStore((state) => state.lockedLayerIds);
+export const useEditorTextEditSession = () => useEditorStore((state) => state.textEditSession);
+export const useEditorTextEditStartPoint = () => useEditorStore((state) => state.textEditStartPoint);
+export const useEditorTextEditCommitVersion = () => useEditorStore((state) => state.textEditCommitVersion);

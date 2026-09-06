@@ -18,6 +18,8 @@ import {
   useEditorDocument,
   useEditorSelection,
   useEditorStore,
+  useEditorTextEditCommitVersion,
+  useEditorTextEditSession,
 } from "@/hooks/editor/use-editor-store";
 import { useTransportStore } from "@/hooks/editor/use-transport-store";
 import { listFonts, type FontOption } from "@/lib/api/fonts";
@@ -28,8 +30,8 @@ import {
   layerLocalTimeAtPlayhead,
 } from "@/lib/editor/animation/keyframes";
 import { buildAlignmentPatches, compensateAnchor } from "@/lib/editor/inspector/transform";
-import { measureEditorTextLayer } from "@/lib/editor/text-measurement";
-import { buildIntrinsicTextFrameUpdate } from "@/lib/editor/text-sizing";
+import { measureEditorTextLayer } from "@/lib/editor/text/measurement";
+import { buildIntrinsicTextFrameUpdate } from "@/lib/editor/text/sizing";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
 import { StepperInput } from "./StepperInput";
@@ -691,6 +693,8 @@ export function SchemaInspector() {
   const { applyCommand, applyCommands, applyCoalescedCommand } = useEditorActions();
   const document = useEditorDocument();
   const selectedLayerIds = useEditorSelection();
+  const textEditSession = useEditorTextEditSession();
+  const textEditCommitVersion = useEditorTextEditCommitVersion();
   const diagnostics = useEditorStore((state) => state.diagnostics);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     timing: true,
@@ -714,6 +718,7 @@ export function SchemaInspector() {
   const currentTime = useTransportStore((state) => state.currentTime);
   const documentRef = useRef(document);
   const currentTimeRef = useRef(currentTime);
+  const lastTextEditCommitVersionRef = useRef(textEditCommitVersion);
   documentRef.current = document;
   currentTimeRef.current = currentTime;
   const selectedTextFingerprint = useMemo(() => {
@@ -727,6 +732,11 @@ export function SchemaInspector() {
     return JSON.stringify({ id: evaluated.id, payload: evaluated.payload, frame: evaluated.frame });
   }, [currentTime, selected]);
   useEffect(() => {
+    if (textEditSession) return undefined;
+    if (lastTextEditCommitVersionRef.current !== textEditCommitVersion) {
+      lastTextEditCommitVersionRef.current = textEditCommitVersion;
+      return undefined;
+    }
     if (selected?.type !== "text") return undefined;
     const sizing = selected.payload.layout?.sizing;
     if (sizing !== "auto-width-height" && sizing !== "fixed-width-auto-height") return undefined;
@@ -769,7 +779,7 @@ export function SchemaInspector() {
       });
     }).catch(() => undefined);
     return () => { cancelled = true; };
-  }, [applyCommand, selected, selectedAnimatedTextFingerprint, selectedTextFingerprint]);
+  }, [applyCommand, selected, selectedAnimatedTextFingerprint, selectedTextFingerprint, textEditCommitVersion, textEditSession]);
   const selectedLayers = useMemo(
     () => selectedLayerIds.map((id) => document.layers.find((layer) => layer.id === id)).filter((layer): layer is (typeof document.layers)[number] => Boolean(layer)),
     [document, selectedLayerIds],

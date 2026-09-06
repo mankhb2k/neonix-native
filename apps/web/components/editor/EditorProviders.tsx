@@ -30,6 +30,7 @@ import {
   createEditorStore,
   type EditorHistoryEntry,
   type EditorStoreApi,
+  type TextEditStartPoint,
 } from "@/lib/editor/state/editor-store";
 import {
   appendOrCoalesceUndoEntry,
@@ -38,8 +39,14 @@ import {
 } from "@/lib/editor/state/history-policy";
 import {
   applyEditorCommand,
+  applyTextDraftToLayer,
+  createTextEditSession,
+  textEditChanged,
+  updateTextEditDraft as updateTextEditSession,
   type EditorCommand,
   type EditorDiagnostic,
+  type TextEditSession,
+  type TextSelection,
 } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
@@ -157,6 +164,9 @@ export function EditorProviders({
   }>());
   const currentTimeRef = useRef(0);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
+  const [textEditSession, setTextEditSession] = useState<TextEditSession | null>(null);
+  const [textEditStartPoint, setTextEditStartPoint] = useState<TextEditStartPoint | null>(null);
+  const [textEditCommitVersion, setTextEditCommitVersion] = useState(0);
   // Visibility and lock are editor-session metadata. They intentionally stay
   // outside MotionProtocolV2, which only stores renderable layer data.
   const [hiddenLayerIds, setHiddenLayerIds] = useState<string[]>([]);
@@ -177,6 +187,19 @@ export function EditorProviders({
   const saveInFlightRef = useRef(false);
   const saveQueuedRef = useRef(false);
   const historySequenceRef = useRef(0);
+
+  const renderDocument = useMemo(() => {
+    if (!textEditSession) return document;
+    const layer = document.layers.find((candidate) => candidate.id === textEditSession.layerId);
+    if (!layer || layer.type !== "text") return document;
+    const draftLayer = applyTextDraftToLayer(layer, textEditSession.draftText);
+    return {
+      ...document,
+      layers: document.layers.map((candidate) =>
+        candidate.id === draftLayer.id ? draftLayer : candidate,
+      ),
+    };
+  }, [document, textEditSession]);
 
   const createHistoryEntry = useCallback(
     (
@@ -202,7 +225,7 @@ export function EditorProviders({
   // document after a command has already been committed.
   useLayoutEffect(() => {
     editorStore.setState({
-      document,
+      document: renderDocument,
       selectedLayerIds,
       hiddenLayerIds,
       lockedLayerIds,
@@ -210,6 +233,9 @@ export function EditorProviders({
       redoStack,
       diagnostics,
       persistenceStatus,
+      textEditSession,
+      textEditStartPoint,
+      textEditCommitVersion,
     });
   }, [
     diagnostics,
@@ -218,8 +244,12 @@ export function EditorProviders({
     hiddenLayerIds,
     lockedLayerIds,
     persistenceStatus,
+    renderDocument,
     redoStack,
     selectedLayerIds,
+    textEditSession,
+    textEditStartPoint,
+    textEditCommitVersion,
     undoStack,
   ]);
 
@@ -493,6 +523,46 @@ export function EditorProviders({
     (command: EditorCommand) => commitCommands([command]),
     [commitCommands],
   );
+  const startTextEditing = useCallback((layerId: string, startPoint?: TextEditStartPoint): boolean => {
+    const layer = document.layers.find((candidate) => candidate.id === layerId);
+    if (!layer || layer.type !== "text") return false;
+    if (textEditSession?.layerId === layerId) return true;
+    if (textEditSession) setTextEditSession(null);
+    setSelectedLayerIds([layerId]);
+    setTextEditStartPoint(startPoint ?? null);
+    setTextEditSession(createTextEditSession(layer));
+    return true;
+  }, [document, textEditSession]);
+  const updateTextEditDraft = useCallback(
+    (draftText: string, selection?: TextSelection) => {
+      setTextEditSession((session) =>
+        session
+          ? updateTextEditSession(session, draftText, selection)
+          : session,
+      );
+    },
+    [],
+  );
+  const commitTextEdit = useCallback((): boolean => {
+    const session = textEditSession;
+    if (!session) return false;
+    setTextEditSession(null);
+    setTextEditStartPoint(null);
+    setTextEditCommitVersion((version) => version + 1);
+    if (!textEditChanged(session)) return true;
+    const layer = document.layers.find((candidate) => candidate.id === session.layerId);
+    if (!layer || layer.type !== "text") return false;
+    const draftLayer = applyTextDraftToLayer(layer, session.draftText);
+    return commitCommands([{
+      type: "patch-layer",
+      layerId: layer.id,
+      patch: { payload: draftLayer.payload },
+    }]);
+  }, [commitCommands, document, textEditSession]);
+  const cancelTextEdit = useCallback(() => {
+    setTextEditSession(null);
+    setTextEditStartPoint(null);
+  }, []);
   const getPlaybackResourceStats = useCallback(
     () => ({
       registeredVideos: 0,
@@ -528,6 +598,10 @@ export function EditorProviders({
       undo,
       redo,
       deleteSelectedLayers,
+      startTextEditing,
+      updateTextEditDraft,
+      commitTextEdit,
+      cancelTextEdit,
     }),
     [
       applyCommand,
@@ -536,6 +610,10 @@ export function EditorProviders({
       deleteSelectedLayers,
       redo,
       setSelectedLayerIds,
+      startTextEditing,
+      updateTextEditDraft,
+      commitTextEdit,
+      cancelTextEdit,
       toggleLayerLock,
       toggleLayerVisibility,
       undo,

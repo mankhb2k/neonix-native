@@ -195,6 +195,10 @@ export type PaintTextGlyph = {
   y: number;
   width: number;
   height: number;
+  /** Logical pen position and advance used for editor caret placement. */
+  advanceStart?: number;
+  advanceX?: number;
+  advanceY?: number;
   path: string;
   pathScale: number;
   outline: { x: number; y: number; width: number; height: number };

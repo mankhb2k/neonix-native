@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { EditorCommand, EditorDiagnostic } from "@motionvideo/editor-core";
+import type { EditorCommand, EditorDiagnostic, TextEditSession } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type EditorHistoryEntry = {
@@ -14,6 +14,12 @@ export type EditorHistoryEntry = {
 
 export type EditorPersistenceStatus = "idle" | "saving" | "saved" | "error" | "conflict";
 
+export type TextEditStartPoint = {
+  x: number;
+  y: number;
+  mode: "caret" | "word";
+};
+
 export type EditorStoreState = {
   document: MotionProtocolV2;
   selectedLayerIds: string[];
@@ -23,6 +29,9 @@ export type EditorStoreState = {
   redoStack: readonly EditorHistoryEntry[];
   diagnostics: readonly EditorDiagnostic[];
   persistenceStatus: EditorPersistenceStatus;
+  textEditSession: TextEditSession | null;
+  textEditStartPoint: TextEditStartPoint | null;
+  textEditCommitVersion: number;
 };
 
 export type EditorStoreApi = StoreApi<EditorStoreState>;
@@ -37,5 +46,8 @@ export function createEditorStore(initialDocument: MotionProtocolV2): EditorStor
     redoStack: [],
     diagnostics: [],
     persistenceStatus: "idle",
+    textEditSession: null,
+    textEditStartPoint: null,
+    textEditCommitVersion: 0,
   }));
 }

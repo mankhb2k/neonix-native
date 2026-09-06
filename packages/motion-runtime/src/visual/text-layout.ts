@@ -387,8 +387,15 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const justifyShift = extraPerGap * justificationGapsBefore(lineText, glyph.cluster - sourceOffset);
         glyph.x = (useGlyphScale ? glyph.x * lengthScale : glyph.x) + alignedX + spacingShift + justifyShift;
         glyph.y += adjustedBaselineY;
-        if (useGlyphScale) { glyph.width *= lengthScale; glyph.scaleX = (glyph.scaleX ?? 1) * lengthScale; }
-          const characterIndex = Math.max(0, Math.min(lineText.length - 1, glyph.cluster - sourceOffset));
+        if (useGlyphScale) {
+          glyph.width *= lengthScale;
+          glyph.advanceX *= lengthScale;
+          glyph.scaleX = (glyph.scaleX ?? 1) * lengthScale;
+        }
+        // `x` is the outline's left edge. The editor caret must use the
+        // logical pen position, which also includes the glyph's side bearing.
+        glyph.advanceStart = glyph.x - glyph.xBearing * entry.font.fontScale * (useGlyphScale ? lengthScale : 1);
+        const characterIndex = Math.max(0, Math.min(lineText.length - 1, glyph.cluster - sourceOffset));
         const rotation = text.rotate?.[characterIndex] ?? 0;
         if (rotation) glyph.rotation = rotation;
       } else {
@@ -457,7 +464,11 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
       const renderMode = useMask ? "grayscale-mask" as const : "vector" as const;
       const paintGlyph: PaintTextGlyph = {
         glyphId: glyph.glyphId, cluster: glyph.cluster, clusterEnd: glyph.clusterEnd, ...(fill ? { fill } : {}),
-        x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height, path, pathScale: resolved.fontScale, outline,
+        x: glyph.x, y: glyph.y, width: glyph.width, height: glyph.height,
+        advanceStart: glyph.advanceStart,
+        advanceX: glyph.advanceX,
+        advanceY: glyph.advanceY,
+        path, pathScale: resolved.fontScale, outline,
         fontAssetId: glyph.fontAssetId, fontIntegrity: glyph.fontIntegrity, renderMode,
         fontSize: text.fontSize,
         ...(variation ? { variationKey: variation } : {}), ...(glyph.rotation ? { rotation: glyph.rotation } : {}), ...(glyph.scaleX ? { scaleX: glyph.scaleX } : {}),

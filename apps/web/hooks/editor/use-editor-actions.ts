@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, type Dispatch, type SetStateAction } from "react";
-import type { EditorCommand } from "@motionvideo/editor-core";
+import type { EditorCommand, TextSelection } from "@motionvideo/editor-core";
+import type { TextEditStartPoint } from "@/lib/editor/state/editor-store";
 
 export type EditorActions = {
   setSelectedLayerIds: Dispatch<SetStateAction<string[]>>;
@@ -13,6 +14,10 @@ export type EditorActions = {
   undo: () => boolean;
   redo: () => boolean;
   deleteSelectedLayers: () => boolean;
+  startTextEditing: (layerId: string, startPoint?: TextEditStartPoint) => boolean;
+  updateTextEditDraft: (draftText: string, selection?: TextSelection) => void;
+  commitTextEdit: () => boolean;
+  cancelTextEdit: () => void;
 };
 
 export const EditorActionsContext = createContext<EditorActions | null>(null);

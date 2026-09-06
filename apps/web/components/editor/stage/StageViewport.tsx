@@ -2,6 +2,7 @@
 
 import { Minus, Plus, Scan } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -13,7 +14,12 @@ import { Button } from "@/components/ui";
 import { useEditorDocument, useEditorVisibility } from "@/hooks/editor/use-editor-store";
 import { usePlaybackController } from "@/hooks/editor/use-playback-controller";
 import { StageToolRail } from "./StageToolRail";
+import {
+  StageTextEditOverlay,
+  type StageTextEditOverlayHandle,
+} from "./StageTextEditOverlay";
 import { StageTransformOverlay } from "./StageTransformOverlay";
+import type { RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
 const STAGE_ZOOM_MIN = 0.5;
 const STAGE_ZOOM_MAX = 2;
@@ -32,6 +38,8 @@ export function StageViewport() {
   const [fitScale, setFitScale] = useState(0.5);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false);
+  const textEditFrameRef = useRef<RuntimeFrameV3 | null>(null);
+  const textEditOverlayRef = useRef<StageTextEditOverlayHandle | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const panGestureRef = useRef<{
     pointerId: number;
@@ -41,6 +49,10 @@ export function StageViewport() {
     originY: number;
   } | null>(null);
   const zoomPercent = Math.round(stageZoom * fitScale * 100);
+  const onPreviewFrameReady = useCallback((frame: RuntimeFrameV3) => {
+    textEditFrameRef.current = frame;
+    textEditOverlayRef.current?.refresh();
+  }, []);
 
   useLayoutEffect(() => {
     const frame = frameRef.current;
@@ -221,6 +233,13 @@ export function StageViewport() {
             externalPlayback
             onVideoElement={registerPlaybackVideo}
             registerPlaybackFrameSink={registerPlaybackFrameSink}
+            onFrameReady={onPreviewFrameReady}
+          />
+          <StageTextEditOverlay
+            ref={textEditOverlayRef}
+            compositionWidth={document.composition.width}
+            compositionHeight={document.composition.height}
+            frameRef={textEditFrameRef}
           />
           <StageTransformOverlay
             compositionWidth={document.composition.width}
