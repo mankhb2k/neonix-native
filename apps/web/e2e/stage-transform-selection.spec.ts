@@ -1,6 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("V2 preview layer hit testing", () => {
+  test("keeps the preview surface locked to the composition aspect ratio", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    const stage = page.getByTestId("preview-v2-stage");
+    await expect(stage).toBeVisible();
+    const box = await stage.boundingBox();
+    if (!box) throw new Error("preview stage has no layout box");
+    expect(box.width / box.height).toBeCloseTo(16 / 9, 2);
+  });
+
   test("selects the highest-order overlapping layer", async ({ page }) => {
     await page.goto("/app/editor/three-kingdoms");
     await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
@@ -36,6 +45,31 @@ test.describe("V2 preview layer hit testing", () => {
     await page.mouse.up();
 
     await expect(widthInput).not.toHaveValue("960");
+  });
+
+  test("keeps the default cursor while moving a selected layer", async ({ page }) => {
+    await page.goto("/app/editor/shape");
+    await expect(page.getByTestId("preview-v2-stage")).toBeVisible();
+
+    await page.locator('[data-layer-hit="shape"]').click();
+    const selection = page.getByTestId("stage-selection-bounds");
+    const box = await selection.boundingBox();
+    if (!box) throw new Error("selection bounds are not visible");
+
+    const startX = box.x + box.width / 2;
+    const startY = box.y + box.height / 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 12, startY + 8);
+
+    await expect.poll(async () =>
+      page.evaluate(() => document.documentElement.style.cursor),
+    ).toBe("default");
+
+    await page.mouse.up();
+    await expect.poll(async () =>
+      page.evaluate(() => document.documentElement.style.cursor),
+    ).toBe("");
   });
 
   test("routes clicks through a selected full-canvas media layer", async ({ page }) => {

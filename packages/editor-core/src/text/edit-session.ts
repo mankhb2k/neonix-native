@@ -106,13 +106,23 @@ export function applyTextDraftToLayer(
 ): V2TextLayer {
   const text = draftText.normalize("NFC");
   const previousText = layer.payload.source.text;
+  const preserveLineBreaks = text.includes("\n");
+  const draftLayout = preserveLineBreaks && layer.payload.layout
+    ? { ...layer.payload.layout, whiteSpace: "pre-wrap" as const }
+    : layer.payload.layout;
+  const draftPayload = {
+    ...layer.payload,
+    source: {
+      ...layer.payload.source,
+      text,
+      ...(preserveLineBreaks ? { whiteSpace: "preserve" as const } : {}),
+    },
+    ...(draftLayout ? { layout: draftLayout } : {}),
+  };
   if (text.length === previousText.length) {
     return {
       ...layer,
-      payload: {
-        ...layer.payload,
-        source: { ...layer.payload.source, text },
-      },
+      payload: draftPayload,
     };
   }
 
@@ -122,8 +132,7 @@ export function applyTextDraftToLayer(
   return {
     ...layer,
     payload: {
-      ...layer.payload,
-      source: { ...layer.payload.source, text },
+      ...draftPayload,
       chunks: [{
         ...firstChunk,
         sourceRange: fullRange,

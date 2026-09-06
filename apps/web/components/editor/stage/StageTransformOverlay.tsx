@@ -470,7 +470,7 @@ export function StageTransformOverlay({
           });
           return;
         }
-        const minimumWidth = measureEditorTextMinimumWidth(
+        const minimumWidth = await measureEditorTextMinimumWidth(
           {
             ...document,
             layers: document.layers.map((candidate) =>
@@ -704,7 +704,10 @@ export function StageTransformOverlay({
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setInteractionCursor("grabbing");
+    // Moving an object is a direct-manipulation action, not a canvas pan.
+    // Keep the browser's default cursor while the pointer is captured so the
+    // cursor does not switch to grab/grabbing during the drag.
+    setInteractionCursor("default");
     activeMoveRef.current = { primaryId: primary.id, bases };
     sessionRef.current?.beginMove(
       {
@@ -855,7 +858,7 @@ export function StageTransformOverlay({
           worldBounds: getV2LayerBounds(layer),
           pointer,
           screenPointer: { x: event.clientX, y: event.clientY },
-          constraints: { snapThreshold: 2 },
+          constraints: { snapAngle: true, snapThreshold: 2 },
         },
         {
           onPreview: (payload) => {

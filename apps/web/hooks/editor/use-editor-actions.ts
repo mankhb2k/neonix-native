@@ -16,6 +16,7 @@ export type EditorActions = {
   deleteSelectedLayers: () => boolean;
   startTextEditing: (layerId: string, startPoint?: TextEditStartPoint) => boolean;
   updateTextEditDraft: (draftText: string, selection?: TextSelection) => void;
+  updateTextEditFramePreview: (preview: { layerId: string; height: number } | null) => void;
   commitTextEdit: () => boolean;
   cancelTextEdit: () => void;
 };

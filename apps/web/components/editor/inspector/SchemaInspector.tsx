@@ -104,18 +104,6 @@ const TEXT_OVERFLOW_OPTIONS = [
   { value: "ellipsis", label: "Ellipsis" },
 ] as const;
 
-const TEXT_STRETCH_OPTIONS = [
-  { value: "ultra-condensed", label: "Ultra condensed" },
-  { value: "extra-condensed", label: "Extra condensed" },
-  { value: "condensed", label: "Condensed" },
-  { value: "semi-condensed", label: "Semi condensed" },
-  { value: "normal", label: "Normal" },
-  { value: "semi-expanded", label: "Semi expanded" },
-  { value: "expanded", label: "Expanded" },
-  { value: "extra-expanded", label: "Extra expanded" },
-  { value: "ultra-expanded", label: "Ultra expanded" },
-] as const;
-
 const TEXT_RENDERING_OPTIONS = [
   { value: "auto", label: "Auto" },
   { value: "optimizeSpeed", label: "Optimize speed" },
@@ -852,7 +840,10 @@ export function SchemaInspector() {
       ?? selectedFontFaces[0];
   }, [fontCatalog, selected, selectedFontFaces]);
   const fontStyleOptions = useMemo(() => [...new Map(selectedFontFaces.map((font) => [font.style, font])).values()]
-    .sort((left, right) => left.style.localeCompare(right.style))
+    .sort((left, right) => {
+      const order = { normal: 0, italic: 1, oblique: 2 } as const;
+      return order[left.style] - order[right.style];
+    })
     .map((font) => ({ value: font.style, label: font.style[0].toUpperCase() + font.style.slice(1) })), [selectedFontFaces]);
   const fontWeightOptions = useMemo(() => {
     const faces = selectedFontFaces.filter((font) => !activeFontFace || font.style === activeFontFace.style);
@@ -1326,7 +1317,6 @@ export function SchemaInspector() {
               options={fontWeightOptions}
               onChange={selectFontWeight}
             />
-            <InspectorSelect label="Stretch" value={selectedTextSpan?.font.stretch ?? "normal"} options={TEXT_STRETCH_OPTIONS} onChange={(value) => patchTextSpans((span) => ({ ...span, font: { ...span.font, stretch: value as TextSpan["font"]["stretch"] } }))} />
             <NumberField label="Font size" step={1} integer suffix="px" value={selectedTextFontSize} onChange={(value) => patchTextSpans((span) => ({ ...span, font: { ...span.font, size: Math.max(0.001, value) } }))} />
             <NumberField label="Letter spacing" step={0.1} suffix="px" value={numericSvgLength(selectedTextSpan?.letterSpacing, 0)} onChange={(value) => patchTextSpans((span) => ({ ...span, letterSpacing: value === 0 ? "normal" : value }))} />
             <NumberField label="Word spacing" step={0.1} suffix="px" value={numericSvgLength(selectedTextSpan?.wordSpacing, 0)} onChange={(value) => patchTextSpans((span) => ({ ...span, wordSpacing: value === 0 ? "normal" : value }))} />

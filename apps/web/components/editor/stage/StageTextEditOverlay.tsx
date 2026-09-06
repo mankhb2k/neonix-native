@@ -22,6 +22,7 @@ import {
   getV2LayerSelectionBox,
   type StageLayerBounds,
 } from "@/lib/editor/stage/transform";
+import { measureEditorTextLayer } from "@/lib/editor/text/measurement";
 import {
   moveTextCaret,
   replaceTextAtSelection,
@@ -181,7 +182,12 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
     const session = useEditorTextEditSession();
     const startPoint = useEditorTextEditStartPoint();
     const currentTime = useTransportStore((state) => state.currentTime);
-    const { updateTextEditDraft, commitTextEdit, cancelTextEdit } = useEditorActions();
+    const {
+      updateTextEditDraft,
+      updateTextEditFramePreview,
+      commitTextEdit,
+      cancelTextEdit,
+    } = useEditorActions();
     const rootRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -191,7 +197,10 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
     const caretVisibleRef = useRef(true);
     const caretBlinkTimerRef = useRef<number | null>(null);
     const drawRef = useRef<() => void>(() => undefined);
+    const applyStartPointRef = useRef<() => void>(() => undefined);
     const appliedStartPointRef = useRef<string | null>(null);
+    const documentRef = useRef(document);
+    documentRef.current = document;
     sessionRef.current = session;
 
     const activeLayer = (() => {
@@ -201,7 +210,57 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       return evaluateLayerAtPlayhead(layer, currentTime) as V2TextLayer;
     })();
 
+    const editLayerId = activeLayer?.id ?? null;
+    const editFrameWidth = session?.before.frame.width ?? 0;
+    const editMinimumHeight = session?.before.frame.height ?? 0;
+    const editLineHeight = activeLayer
+      ? Math.max(
+          1,
+          activeLayer.payload.layout?.lineHeight
+            ?? Number(activeLayer.payload.chunks[0]?.spans[0]?.font.size ?? 64) * 1.2,
+        )
+      : 0;
+    const editDraftText = session?.draftText ?? null;
+
     useEffect(() => {
+      if (!session || !editLayerId || !(editDraftText ?? "").includes("\n")) {
+        updateTextEditFramePreview(null);
+        return undefined;
+      }
+
+      const layerId = editLayerId;
+      const width = Math.max(1, editFrameWidth);
+      const minimumHeight = Math.max(1, editMinimumHeight);
+      const lineHeight = Math.max(1, editLineHeight);
+      const lineCount = Math.max(1, (editDraftText ?? "").split("\n").length);
+      let cancelled = false;
+
+      // Give the user an immediate downward-growing frame, then replace the
+      // estimate with the exact CanvasKit/HarfBuzz measurement below.
+      updateTextEditFramePreview({
+        layerId,
+        height: Math.max(minimumHeight, lineHeight * lineCount),
+      });
+
+      void measureEditorTextLayer(documentRef.current, layerId, { width })
+        .then((measurement) => {
+          if (cancelled) return;
+          updateTextEditFramePreview({
+            layerId,
+            height: Math.max(minimumHeight, measurement?.height ?? lineHeight * lineCount),
+          });
+        })
+        .catch(() => {
+          // The deterministic line-height estimate remains active when the
+          // browser font or HarfBuzz asset is temporarily unavailable.
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [editDraftText, editFrameWidth, editLayerId, editLineHeight, editMinimumHeight, session, updateTextEditFramePreview]);
+
+    const applyStartPoint = useCallback(() => {
       if (!session || !activeLayer || !startPoint) {
         appliedStartPointRef.current = null;
         return;
@@ -210,6 +269,10 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       if (appliedStartPointRef.current === pointKey) return;
       const local = inverseTransformPoint(activeLayer, startPoint);
       const command = textCommandFor(frameRef.current, activeLayer.id);
+      // Do not use frame-width interpolation while the runtime paragraph is
+      // still shaping. That fallback puts a double-click caret at the frame
+      // edge instead of beside the actual glyphs.
+      if (session.draftText.length > 0 && !(command?.glyphs?.length)) return;
       const index = nearestCaretIndex(
         command?.glyphs ?? [],
         local,
@@ -222,6 +285,12 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       appliedStartPointRef.current = pointKey;
       updateTextEditDraft(session.draftText, selection);
     }, [activeLayer, frameRef, session, startPoint, updateTextEditDraft]);
+
+    applyStartPointRef.current = applyStartPoint;
+
+    useEffect(() => {
+      applyStartPoint();
+    }, [applyStartPoint]);
 
     const draw = useCallback(() => {
       const canvas = canvasRef.current;
@@ -374,7 +443,12 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       }, CARET_BLINK_MS);
     }, [stopCaretBlink]);
 
-    useImperativeHandle(ref, () => ({ refresh: draw }), [draw]);
+    useImperativeHandle(ref, () => ({
+      refresh: () => {
+        applyStartPointRef.current();
+        draw();
+      },
+    }), [draw]);
 
     useLayoutEffect(() => {
       const root = rootRef.current;
@@ -479,7 +553,13 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       }
       if (event.key === "Enter") {
         event.preventDefault();
-        commitTextEdit();
+        if (event.shiftKey) {
+          const next = replaceTextAtSelection(currentSession, "\n");
+          updateTextEditDraft(next.draftText, next.selection);
+          resetCaretBlink();
+        } else {
+          commitTextEdit();
+        }
         return;
       }
       if (modifier && event.key.toLowerCase() === "a") {

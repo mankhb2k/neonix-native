@@ -34,6 +34,25 @@ test.describe("Canvas text editing", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("double-click does not add a line before Shift+Enter", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
+    await titleHitbox.click();
+    const selection = page.getByTestId("stage-selection-bounds");
+    const before = await selection.boundingBox();
+    if (!before) throw new Error("selection bounds are not visible");
+
+    await selection.dblclick();
+    const editHitbox = page.getByTestId("stage-text-edit-hitbox");
+    await expect(editHitbox).toBeVisible();
+    await page.waitForTimeout(700);
+    const after = await editHitbox.boundingBox();
+    if (!after) throw new Error("text edit hitbox is not visible");
+    expect(Math.abs(after.height - before.height)).toBeLessThan(3);
+
+    await page.keyboard.press("Escape");
+  });
+
   test("commits one text edit and Escape restores the draft", async ({ page }) => {
     await page.goto("/app/editor/three-kingdoms");
     const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
@@ -71,6 +90,36 @@ test.describe("Canvas text editing", () => {
     await page.keyboard.press("End");
     await page.keyboard.type("!");
     await expect(textField).toHaveValue(`${original}!`);
+    await page.keyboard.press("Escape");
+  });
+
+  test("Shift+Enter inserts a line break and grows the frame downward", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    await page.locator('[data-layer-hit="chapter-1-title"]').click();
+    await page.getByTestId("stage-selection-bounds").dblclick();
+
+    const hitbox = page.getByTestId("stage-text-edit-hitbox");
+    const textField = page.getByRole("textbox", { name: "Text", exact: true });
+    const before = await hitbox.boundingBox();
+    expect(before).not.toBeNull();
+
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type("First line");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("Second line");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("Third line");
+
+    await expect(textField).toHaveValue("First line\nSecond line\nThird line");
+    await expect.poll(
+      async () => (await hitbox.boundingBox())?.height ?? 0,
+      { timeout: 5_000 },
+    ).toBeGreaterThan(before?.height ?? 0);
+    await expect.poll(
+      async () => (await hitbox.boundingBox())?.y ?? 0,
+      { timeout: 5_000 },
+    ).toBeCloseTo(before?.y ?? 0, 0);
+
     await page.keyboard.press("Escape");
   });
 });

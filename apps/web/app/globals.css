@@ -222,4 +222,8 @@ body:has([data-surface="editor"]) {
   [data-surface="editor"].editor-shell-grid > aside.editor-panel {
     display: none;
   }
+
+  [data-surface="editor"].editor-shell-grid > [data-testid="editor-layout-resizers"] {
+    display: none;
+  }
 }
