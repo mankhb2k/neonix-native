@@ -14,7 +14,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -4376,6 +4376,33 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
 #nested-clip-card { position: absolute; left: 90px; top: 70px; width: 480px; height: 340px; background: #a855f7; transform: translateZ(210px) rotateY(-34deg) rotateX(9deg); clip-path: polygon(8% 0, 100% 12%, 88% 100%, 0 84%); }`,
     }),
   },
+  {
+    id: "html-compiler.perspective.parallax-three-depths",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective / slow stroke parallax camera shot",
+    properties: ["parallax video", "camera translateZ", "perspective", "slow depth zoom", "circle + triangle + rectangle stroke"],
+    hint: "A slow looping camera shot travels through three flat stroke planes. The circle is nearest, the triangle is intermediate, and the rectangle is farthest, so their apparent scale changes at different rates.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"parallax-viewport\"><div id=\"parallax-world\"><div id=\"parallax-rectangle\"></div><div id=\"parallax-triangle\"><svg viewBox=\"0 0 800 560\" width=\"800\" height=\"560\" aria-hidden=\"true\"><path d=\"M 400 12 L 788 548 L 12 548 Z\" fill=\"none\" stroke=\"#facc15\" stroke-width=\"24\" stroke-linejoin=\"miter\"></path></svg></div><div id=\"parallax-circle\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+#parallax-viewport { position: absolute; left: 260px; top: 150px; width: 1400px; height: 780px; perspective: 680px; perspective-origin: 50% 50%; overflow: hidden; }
+#parallax-world { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; animation-name: parallax-camera; animation-duration: 12000ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }
+@keyframes parallax-camera {
+  0% { transform: translateZ(-80px); }
+  30% { transform: translateZ(80px); }
+  55% { transform: translateZ(150px); }
+  68% { transform: translateZ(180px); }
+  76% { transform: translateZ(180px); }
+  100% { transform: translateZ(-80px); }
+}
+#parallax-rectangle, #parallax-triangle, #parallax-circle { position: absolute; transform-origin: 50% 50%; }
+#parallax-rectangle { left: 100px; top: 65px; width: 1200px; height: 650px; background: transparent; border: 12px solid #38bdf8; transform: translateZ(-380px); }
+#parallax-triangle { left: 300px; top: 110px; width: 800px; height: 560px; background: transparent; transform: translateZ(-90px); }
+#parallax-triangle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#parallax-circle { left: 490px; top: 180px; width: 420px; height: 420px; background: transparent; border: 14px solid #fb7185; border-radius: 50%; transform: translateZ(140px); }`,
+    }),
+  },
 ];
 
 const perspectiveAnimationCase = (
@@ -4662,9 +4689,59 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] =
   ),
 ];
 
+const perspectiveMaskFilterCase = (
+  id: string,
+  label: string,
+  properties: string[],
+  hint: string,
+  body: string,
+  css: string,
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.perspective.${id}`,
+  phase: "P9",
+  topic: "Motion & animation",
+  label,
+  properties,
+  hint,
+  source: createNewHtmlProject({
+    html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", `<body>\n  ${body}\n</body>`),
+    css: `body { margin: 0; background: #081018; overflow: hidden; }\n${css}`,
+  }),
+});
+
+export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] = [
+  perspectiveMaskFilterCase("mask-alpha-near-plane", "Mask/filter / alpha mask near-plane", ["mask-image", "alpha", "near-plane", "homogeneous clip"], "The alpha mask follows the projective surface and remains partially visible across the near camera plane.", `<div id="p9-alpha-scene"><div id="p9-alpha-card"></div></div>`, `#p9-alpha-scene { position: absolute; left: 580px; top: 240px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+#p9-alpha-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #22d3ee; mask-image: linear-gradient(90deg, #00000000 0%, #ffffffff 38%, #ffffffff 100%); mask-mode: alpha; mask-repeat: no-repeat; transform: translateZ(160px) rotateY(28deg); }`),
+  perspectiveMaskFilterCase("mask-luminance-near-plane", "Mask/filter / luminance mask near-plane", ["mask-image", "luminance", "asset URL", "near-plane"], "Luminance coverage is sampled from the projective image mask and converted to deterministic alpha.", `<div id="p9-luma-scene"><div id="p9-luma-card"></div></div>`, `#p9-luma-scene { position: absolute; left: 580px; top: 240px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+#p9-luma-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #f97316; mask-image: url(/preview/image/img-alpha.png); mask-mode: luminance; mask-size: 420px 280px; mask-position: center; mask-repeat: no-repeat; transform: translateZ(160px) rotateY(28deg); }`),
+  perspectiveMaskFilterCase("mask-add-intersect-near-plane", "Mask/filter / add then intersect", ["two mask layers", "add", "intersect", "near-plane"], "Mask sources remain ordered: the first establishes coverage and the second intersects it on the projective plane.", `<div id="p9-add-intersect-scene"><div id="p9-add-intersect-card"></div></div>`, `#p9-add-intersect-scene { position: absolute; left: 470px; top: 220px; width: 980px; height: 600px; perspective: 260px; transform-style: preserve-3d; }
+#p9-add-intersect-card { position: absolute; left: 250px; top: 130px; width: 480px; height: 300px; background: #a78bfa; mask-image: linear-gradient(90deg, #ffffffff 0%, #ffffffff 100%), radial-gradient(ellipse at 72% 44%, #ffffffff 0%, #ffffffff 34%, #000000 72%); mask-mode: alpha, alpha; mask-composite: intersect; mask-repeat: no-repeat, no-repeat; transform: translateZ(180px) rotateY(-24deg); }`),
+  perspectiveMaskFilterCase("mask-subtract-composition-edge", "Mask/filter / subtract at composition edge", ["mask-composite", "subtract", "composition clip", "private surface"], "Subtract is evaluated on the private mask surface before the layer is clipped at the composition boundary.", `<div id="p9-subtract-scene"><div id="p9-subtract-card"></div></div>`, `#p9-subtract-scene { position: absolute; left: 1360px; top: 260px; width: 760px; height: 520px; perspective: 520px; transform-style: preserve-3d; }
+#p9-subtract-card { position: absolute; left: 90px; top: 90px; width: 620px; height: 360px; background: #c026d3; mask-image: linear-gradient(90deg, #ffffffff 0%, #ffffffff 100%), radial-gradient(circle at 28% 50%, #ffffffff 0%, #ffffffff 24%, #000000 28%); mask-mode: alpha, alpha; mask-composite: subtract; mask-repeat: no-repeat, no-repeat; transform: translateZ(180px) rotateY(-36deg); }`),
+  perspectiveMaskFilterCase("mask-exclude-inclined", "Mask/filter / exclude on inclined surface", ["mask-composite", "exclude", "rotateX", "rotateY"], "Exclude preserves the symmetric difference of two coverage sources while the visible surface is inclined.", `<div id="p9-exclude-scene"><div id="p9-exclude-card"></div></div>`, `#p9-exclude-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 620px; perspective-origin: 65% 32%; transform-style: preserve-3d; }
+#p9-exclude-card { position: absolute; left: 350px; top: 150px; width: 520px; height: 320px; background: #38bdf8; mask-image: radial-gradient(circle at 35% 50%, #ffffffff 0%, #ffffffff 36%, #000000 38%), radial-gradient(circle at 68% 50%, #ffffffff 0%, #ffffffff 34%, #000000 36%); mask-mode: alpha, alpha; mask-composite: exclude; mask-repeat: no-repeat, no-repeat; transform: translateZ(150px) rotateX(22deg) rotateY(-28deg); }`),
+  perspectiveMaskFilterCase("filter-blur-near-plane", "Mask/filter / blur source near-plane", ["filter", "blur", "near-plane", "offscreen surface"], "Blur is applied to the projectively clipped source surface and cannot leak outside the composition edge.", `<div id="p9-blur-scene"><div id="p9-blur-card"></div></div>`, `#p9-blur-scene { position: absolute; left: 580px; top: 240px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+#p9-blur-card { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; background: #34d399; filter: blur(14px); transform: translateZ(160px) rotateY(28deg); }`),
+  perspectiveMaskFilterCase("filter-drop-shadow-after-blur-near-plane", "Mask/filter / drop-shadow after blur", ["blur", "drop-shadow", "ordered effects", "near-plane"], "The drop-shadow samples the preceding blurred source, preserving CSS filter order.", `<div id="p9-drop-shadow-scene"><div id="p9-drop-shadow-card"></div></div>`, `#p9-drop-shadow-scene { position: absolute; left: 470px; top: 210px; width: 980px; height: 620px; perspective: 250px; transform-style: preserve-3d; }
+#p9-drop-shadow-card { position: absolute; left: 260px; top: 140px; width: 460px; height: 300px; background: #fb7185; filter: blur(8px) drop-shadow(24px 20px 14px #38bdf899); transform: translateZ(180px) rotateY(-24deg); }`),
+  perspectiveMaskFilterCase("filter-mask-clip-path", "Mask/filter / mask + clip-path", ["mask-image", "clip-path", "filter", "intersected coverage"], "Geometric clip coverage is intersected with the mask before the filtered projective surface is composited.", `<div id="p9-mask-clip-scene"><div id="p9-mask-clip-card"></div></div>`, `#p9-mask-clip-scene { position: absolute; left: 380px; top: 180px; width: 1160px; height: 680px; perspective: 600px; transform-style: preserve-3d; }
+#p9-mask-clip-card { position: absolute; left: 300px; top: 150px; width: 520px; height: 320px; background: #facc15; mask-image: radial-gradient(ellipse at 52% 48%, #ffffffff 0%, #ffffffff 54%, #000000 82%); mask-mode: alpha; mask-repeat: no-repeat; clip-path: polygon(8% 0, 100% 14%, 88% 100%, 0 82%); filter: blur(6px); transform: translateZ(160px) rotateX(10deg) rotateY(26deg); }`),
+  perspectiveMaskFilterCase("isolated-mask-filter-projective", "Mask/filter / isolated projective group", ["isolation", "mask", "filter", "projective group"], "The isolated group owns its mask and filter offscreen surface; its child blend remains inside that boundary.", `<div id="p9-isolated-scene"><div id="p9-isolated-group"><div id="p9-isolated-card"></div><div id="p9-isolated-accent"></div></div></div>`, `#p9-isolated-scene { position: absolute; left: 320px; top: 170px; width: 1280px; height: 720px; perspective: 720px; transform-style: preserve-3d; }
+#p9-isolated-group { position: absolute; left: 240px; top: 130px; width: 760px; height: 460px; isolation: isolate; mask-image: linear-gradient(90deg, #00000000 0%, #ffffffff 22%, #ffffffff 88%, #00000000 100%); mask-mode: alpha; mask-repeat: no-repeat; filter: contrast(1.12) blur(3px); transform: translateZ(120px) rotateY(-18deg); }
+#p9-isolated-card { position: absolute; left: 100px; top: 80px; width: 520px; height: 300px; background: #8b5cf6; }
+#p9-isolated-accent { position: absolute; left: 260px; top: 130px; width: 360px; height: 180px; background: #22d3ee; mix-blend-mode: screen; }`),
+  perspectiveMaskFilterCase("mask-different-perspective-boundary", "Mask/filter / nested mask camera", ["nested perspective", "mask source", "different boundary", "Matrix4 chain"], "The mask source is resolved in the element box while the visible child inherits a different nested perspective context.", `<div id="p9-boundary-outer"><div id="p9-boundary-inner"><div id="p9-boundary-card"></div></div></div>`, `#p9-boundary-outer { position: absolute; left: 280px; top: 150px; width: 1360px; height: 760px; perspective: 900px; transform-style: preserve-3d; }
+#p9-boundary-inner { position: absolute; left: 300px; top: 120px; width: 760px; height: 500px; perspective: 360px; perspective-origin: 24% 72%; transform-style: preserve-3d; }
+#p9-boundary-card { position: absolute; left: 140px; top: 100px; width: 500px; height: 300px; background: #4ade80; mask-image: radial-gradient(ellipse at 68% 42%, #ffffffff 0%, #ffffffff 38%, #000000 76%); mask-mode: alpha; mask-repeat: no-repeat; filter: brightness(1.08) blur(4px); transform: translateZ(190px) rotateY(-30deg); }`),
+  perspectiveMaskFilterCase("filter-far-plane-bounds", "Mask/filter / filter bounds at far-plane", ["filter", "far-plane", "expanded bounds", "composition clip"], "The filtered surface keeps expanded offscreen bounds while far-plane and composition clipping remain deterministic.", `<div id="p9-far-scene"><div id="p9-far-card"></div></div>`, `#p9-far-scene { position: absolute; left: 260px; top: 160px; width: 1400px; height: 760px; perspective: 420px; transform-style: preserve-3d; }
+#p9-far-card { position: absolute; left: 420px; top: 200px; width: 520px; height: 300px; background: #f97316; filter: blur(18px) drop-shadow(-28px 18px 12px #a855f799); transform: translateZ(-260px) rotateY(34deg); }`),
+  perspectiveMaskFilterCase("mask-one-corner-near-plane", "Mask/filter / one-corner near-plane cut", ["mask-image", "one corner", "rotateX + rotateY", "partial source clip"], "Only one corner of the mask source crosses the near plane; remaining coverage is retained without alpha inversion.", `<div id="p9-corner-scene"><div id="p9-corner-card"></div></div>`, `#p9-corner-scene { position: absolute; left: 420px; top: 190px; width: 1080px; height: 660px; perspective: 260px; perspective-origin: 74% 24%; transform-style: preserve-3d; }
+#p9-corner-card { position: absolute; left: 290px; top: 150px; width: 520px; height: 320px; background: #60a5fa; mask-image: linear-gradient(135deg, #00000000 0%, #ffffffff 30%, #ffffffff 100%); mask-mode: alpha; mask-repeat: no-repeat; filter: blur(7px); transform: translateZ(210px) rotateX(25deg) rotateY(-32deg); }`),
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -4674,5 +4751,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

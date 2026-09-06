@@ -282,7 +282,10 @@ local surface
 - `subtract` và `exclude` được kiểm tra bằng nền màu tương phản.
 - Diagnostic xuất hiện khi backend không thể tạo offscreen projective surface.
 
-## Phase 10 — Full WebGPU parity
+## Phase 10 (superseded) — Full WebGPU parity
+
+> This original Phase 10 scope is deferred to Phase 11. The active Phase 10
+> scope is the Skia hardening section in the roadmap amendment below.
 
 ### Mục tiêu
 
@@ -349,7 +352,9 @@ Phase 8: Image/video texture
         ↓
 Phase 9: Mask/filter near-plane
         ↓
-Phase 10: WebGPU parity
+Phase 10: Skia hardening & optimization
+        ↓
+Phase 11: WebGPU parity (deferred)
 ```
 
 Mỗi phase cần hoàn thành theo chuỗi:
@@ -380,3 +385,43 @@ và WebGPU.
 - Playwright E2E với Browser CSS reference.
 - Golden screenshot set cho từng phase.
 - Capability diagnostics và báo cáo pixel parity.
+
+## Roadmap amendment — Phase 10 is Skia hardening first
+
+The previous Phase 10 WebGPU parity section is deferred. The active Phase 10
+scope is now Skia hardening and production optimization; it must not change the
+backend-neutral JSON V2 or RuntimeFrame contract.
+
+### Phase 10 deliverables
+
+- Reuse decoded image/video resources by asset revision and invalidate them on
+  `resourceGeneration`, `contentRevision`, or decoded frame revision changes.
+- Reuse compatible offscreen surfaces through a bounded pool and release every
+  temporary surface deterministically.
+- Cache ordered Skia filter programs, projective texture meshes, and composed
+  mask snapshots with bounded eviction and explicit disposal.
+- Keep projective texture/video sampling perspective-correct, including
+  near-plane clipping and frame-version invalidation.
+- Expose render-cache hits, texture uploads, offscreen creation/reuse and
+  frame time through `SkiaRenderStats` and preview data attributes.
+- Emit specific diagnostics for unsupported assets, masks, filters, snapshots,
+  composites and command replay; never silently drop an effect.
+- Add golden screenshot repeatability and production E2E coverage for image,
+  video, projective texture, mask/filter and repeated offscreen rendering.
+
+### Phase 10 acceptance
+
+- Repainting the same static frame produces byte-stable canvas pixels.
+- Repeated video instances share a decoded texture when their frame revision is
+  unchanged, and upload again only when the revision changes.
+- Changing a filter, mask source, projective matrix or asset revision cannot
+  reuse stale pixels.
+- All pooled surfaces, cached images, filters and masks are released by
+  `dispose()`; cache sizes remain bounded.
+- Skia golden fixtures continue to pass for Phases 8–9.
+
+## Phase 11 — Full WebGPU parity (deferred)
+
+After Phase 10 is stable, implement the former WebGPU parity scope using the
+same RuntimeFrame, Matrix4, clipping, mask/filter ordering and diagnostics.
+WebGPU remains an adapter, not a reason to add Skia-specific fields to JSON V2.

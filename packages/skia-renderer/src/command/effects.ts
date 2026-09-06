@@ -170,11 +170,16 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     shadowTint?.kind === "tint" && shadowTint.input === shadowBlur.output &&
     shadowOffset?.kind === "offset" && shadowOffset.input === shadowTint.output &&
     shadowComposite?.kind === "composite" && shadowComposite.backdrop === shadowOffset.output && shadowComposite.source === leadingBlur.output &&
-    shadowComposite.output === program.output && kit.ImageFilter.MakeDropShadow
+    shadowComposite.output === program.output && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend
   ) {
-    const blurredSource = kit.ImageFilter.MakeBlur(leadingBlur.radius, leadingBlur.radius, kit.TileMode.Decal, null);
-    const filter = blurredSource
-      ? kit.ImageFilter.MakeDropShadow(
+    const blurredSource = kit.ImageFilter.MakeBlur(
+      cssBlurRadiusToSkiaSigma(leadingBlur.radius),
+      cssBlurRadiusToSkiaSigma(leadingBlur.radius),
+      kit.TileMode.Decal,
+      null,
+    );
+    const shadowOnly = blurredSource
+      ? kit.ImageFilter.MakeDropShadowOnly(
           shadowOffset.x,
           shadowOffset.y,
           cssBlurRadiusToSkiaSigma(shadowBlur.radius),
@@ -183,6 +188,13 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
           blurredSource,
         )
       : null;
+    // MakeDropShadowOnly deliberately supplies only the shadow branch. Blend
+    // the blurred owner back above it so the ordered CSS program cannot lose
+    // the source while crossing a projective/near-plane boundary.
+    const filter = shadowOnly && blurredSource
+      ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, shadowOnly, blurredSource)
+      : null;
+    shadowOnly?.delete();
     blurredSource?.delete();
     return { filter, supported: Boolean(filter) };
   }

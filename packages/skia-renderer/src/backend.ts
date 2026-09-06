@@ -1,6 +1,6 @@
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import { loadCanvasKit, type SkiaSurface, type SkiaTypeface } from "./canvas-kit";
-import { replaySkiaCommands } from "./command";
+import { replaySkiaCommands, type SkiaReplayResources } from "./command";
 import type { SkiaDiagnostic, SkiaRenderer, SkiaRendererOptions, SkiaRenderStats, SkiaAsset, SkiaFontAsset } from "./types";
 
 function fract(value: number): number {
@@ -78,11 +78,56 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     frameTimeMs: 0,
     textureUploads: 0,
     videoTextureUploads: 0,
+    imageCacheHits: 0,
+    filterCacheHits: 0,
+    maskCacheHits: 0,
+    projectiveMeshCacheHits: 0,
+    offscreenSurfaceCreates: 0,
+    offscreenSurfaceReuses: 0,
+    imageCacheEntries: 0,
+    filterCacheEntries: 0,
+    maskCacheEntries: 0,
+    projectiveMeshCacheEntries: 0,
+    pooledSurfaceCount: 0,
+    estimatedCacheBytes: 0,
     diagnostics,
   };
   const assets = new Map<string, SkiaAsset>(options.assets ?? []);
   const fonts = new Map<string, SkiaFontAsset>(options.fonts ?? []);
   const typefaces = new Map<string, { source: SkiaFontAsset; typeface: SkiaTypeface }>();
+  const imageCache = new Map<string, { identity: string; image: import("./canvas-kit").SkiaImage }>();
+  const filterCache = new Map<string, { filter: import("./canvas-kit").SkiaImageFilter | null; supported: boolean }>();
+  const maskCache = new Map<string, import("./canvas-kit").SkiaImage>();
+  const projectiveMeshCache = new Map<string, import("./command/geometry").ProjectiveTextureMesh | null>();
+  const pooledSurfaces = new Map<string, SkiaSurface[]>();
+  const maxPooledSurfaces = 8;
+  const replayResources: SkiaReplayResources = {
+    imageCache,
+    filterCache,
+    maskCache,
+    projectiveMeshCache,
+    surfacePool: {
+      acquire(surfaceWidth, surfaceHeight) {
+        const key = `${surfaceWidth}x${surfaceHeight}`;
+        const bucket = pooledSurfaces.get(key);
+        const pooled = bucket?.pop();
+        return { surface: pooled ?? kit.MakeSurface(surfaceWidth, surfaceHeight), reused: Boolean(pooled) };
+      },
+      release(surfaceWidth, surfaceHeight, value) {
+        const key = `${surfaceWidth}x${surfaceHeight}`;
+        const bucket = pooledSurfaces.get(key) ?? [];
+        if (bucket.length >= maxPooledSurfaces) value.dispose();
+        else {
+          bucket.push(value);
+          pooledSurfaces.set(key, bucket);
+        }
+      },
+      dispose() {
+        for (const bucket of pooledSurfaces.values()) for (const value of bucket) value.dispose();
+        pooledSurfaces.clear();
+      },
+    },
+  };
   const releaseTypeface = (fontAssetId: string) => {
     const cached = typefaces.get(fontAssetId);
     cached?.typeface.delete();
@@ -99,6 +144,23 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     if (!typeface) return null;
     typefaces.set(fontAssetId, { source, typeface });
     return typeface;
+  };
+  const cacheMetrics = () => {
+    const pooledSurfaceCount = [...pooledSurfaces.values()].reduce((total, bucket) => total + bucket.length, 0);
+    const imageBytes = [...imageCache.keys()].reduce((total, assetId) => {
+      const asset = assets.get(assetId);
+      return total + (asset ? Math.max(1, Math.ceil(asset.width)) * Math.max(1, Math.ceil(asset.height)) * 4 : 0);
+    }, 0);
+    const maskBytes = [...maskCache.values()].reduce((total) => total + backingWidth * backingHeight * 4, 0);
+    const meshBytes = [...projectiveMeshCache.values()].reduce((total, mesh) => total + (mesh ? mesh.positions.byteLength + mesh.texCoords.byteLength + mesh.indices.byteLength : 0), 0);
+    return {
+      imageCacheEntries: imageCache.size,
+      filterCacheEntries: filterCache.size,
+      maskCacheEntries: maskCache.size,
+      projectiveMeshCacheEntries: projectiveMeshCache.size,
+      pooledSurfaceCount,
+      estimatedCacheBytes: imageBytes + maskBytes + meshBytes + pooledSurfaceCount * backingWidth * backingHeight * 4,
+    };
   };
   const recreateSurface = (nextWidth: number, nextHeight: number, nextDpr: number) => {
     const normalizedDpr = Number.isFinite(nextDpr) && nextDpr > 0 ? nextDpr : 1;
@@ -124,7 +186,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     // to physical scale used by the GPU preview backends.
     canvas.save();
     if (dpr !== 1) canvas.concat([dpr, 0, 0, 0, dpr, 0, 0, 0, 1]);
-    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, typefaceFor, dpr);
+    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, typefaceFor, dpr, replayResources);
     canvas.restore();
     if (replay.skippedCommands) {
       add({ severity: "warning", code: "skia_command_unsupported", message: `Skia skipped ${replay.skippedCommands} command(s)`, key: "skia" });
@@ -137,7 +199,17 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
           : replayDiagnostic.startsWith("skia_effect_unsupported")
             ? "skia_effect_unsupported"
             : replayDiagnostic.startsWith("skia_clip_path_unsupported")
-              ? "skia_clip_path_unsupported"
+            ? "skia_clip_path_unsupported"
+              : replayDiagnostic.startsWith("skia_mask_surface_unsupported")
+                ? "skia_mask_surface_unsupported"
+                : replayDiagnostic.startsWith("skia_mask_surface_unavailable")
+                  ? "skia_mask_surface_unavailable"
+                  : replayDiagnostic.startsWith("skia_mask_snapshot_unsupported")
+                    ? "skia_mask_snapshot_unsupported"
+                    : replayDiagnostic.startsWith("skia_mask_composite_unsupported")
+                      ? "skia_mask_composite_unsupported"
+                      : replayDiagnostic.startsWith("drawImage:") || replayDiagnostic.startsWith("drawVideo:")
+                        ? "skia_asset_unsupported"
               : "skia_replay_diagnostic";
       add({ severity: "warning", code, message: replayDiagnostic, key: "skia" });
     }
@@ -169,6 +241,13 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       nativeColorTextGlyphs: replay.nativeColorTextGlyphs,
       outlineTextGlyphs: replay.outlineTextGlyphs,
       colorTextGlyphs: replay.colorTextGlyphs,
+      imageCacheHits: replay.imageCacheHits,
+      filterCacheHits: replay.filterCacheHits,
+      maskCacheHits: replay.maskCacheHits,
+      projectiveMeshCacheHits: replay.projectiveMeshCacheHits,
+      offscreenSurfaceCreates: replay.offscreenSurfaceCreates,
+      offscreenSurfaceReuses: replay.offscreenSurfaceReuses,
+      ...cacheMetrics(),
       frameTimeMs: performance.now() - started,
     };
     return stats;
@@ -187,9 +266,13 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       recreateSurface(nextWidth, nextHeight, nextDpr);
     },
     setAsset(assetId, asset) {
+      imageCache.get(assetId)?.image.delete();
+      imageCache.delete(assetId);
       assets.set(assetId, asset);
     },
     removeAsset(assetId) {
+      imageCache.get(assetId)?.image.delete();
+      imageCache.delete(assetId);
       assets.delete(assetId);
     },
     setFont(fontAssetId, font) {
@@ -210,6 +293,14 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     dispose() {
       surface?.dispose();
       surface = null;
+      for (const entry of imageCache.values()) entry.image.delete();
+      imageCache.clear();
+      for (const entry of filterCache.values()) entry.filter?.delete();
+      filterCache.clear();
+      for (const image of maskCache.values()) image.delete();
+      maskCache.clear();
+      projectiveMeshCache.clear();
+      replayResources.surfacePool.dispose();
       assets.clear();
       for (const fontAssetId of [...typefaces.keys()]) releaseTypeface(fontAssetId);
       fonts.clear();

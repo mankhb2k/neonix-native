@@ -45,6 +45,19 @@ export type SkiaRenderStats = {
   readonly frameTimeMs: number;
   readonly textureUploads: number;
   readonly videoTextureUploads: number;
+  readonly imageCacheHits: number;
+  readonly filterCacheHits: number;
+  readonly maskCacheHits: number;
+  readonly projectiveMeshCacheHits: number;
+  readonly offscreenSurfaceCreates: number;
+  readonly offscreenSurfaceReuses: number;
+  readonly imageCacheEntries: number;
+  readonly filterCacheEntries: number;
+  readonly maskCacheEntries: number;
+  readonly projectiveMeshCacheEntries: number;
+  readonly pooledSurfaceCount: number;
+  /** Conservative RGBA-equivalent estimate for renderer-owned cached surfaces. */
+  readonly estimatedCacheBytes: number;
   readonly diagnostics: readonly SkiaDiagnostic[];
 };
 

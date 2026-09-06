@@ -9,6 +9,7 @@ const cases: Array<{ id: string; json: string; extra: string; painted?: boolean 
   { id: "backface-hidden", json: "backfaceVisibility", extra: "hidden", painted: false },
   { id: "near-far-clipping", json: "perspective", extra: "motion.translate3d" },
   { id: "animated-3d", json: "transform.translate.z", extra: "tracks" },
+  { id: "parallax-three-depths", json: "tracks", extra: "motion.translate3d" },
 ] as const;
 
 test.describe("HTML compiler Phase 5 perspective", () => {

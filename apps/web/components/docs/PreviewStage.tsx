@@ -83,6 +83,18 @@ type StageRenderer = {
     colorTextGlyphs?: number;
     textureUploads?: number;
     videoTextureUploads?: number;
+    imageCacheHits?: number;
+    filterCacheHits?: number;
+    maskCacheHits?: number;
+    projectiveMeshCacheHits?: number;
+    offscreenSurfaceCreates?: number;
+    offscreenSurfaceReuses?: number;
+    imageCacheEntries?: number;
+    filterCacheEntries?: number;
+    maskCacheEntries?: number;
+    projectiveMeshCacheEntries?: number;
+    pooledSurfaceCount?: number;
+    estimatedCacheBytes?: number;
     diagnostics: readonly { code: string }[];
   };
   dispose(): void;
@@ -1149,6 +1161,18 @@ function paintFrame(
     rendererCanvas.dataset.skiaColorTextGlyphs = String(stats.colorTextGlyphs ?? 0);
     rendererCanvas.dataset.skiaTextureUploads = String(stats.textureUploads ?? 0);
     rendererCanvas.dataset.skiaVideoTextureUploads = String(stats.videoTextureUploads ?? 0);
+    rendererCanvas.dataset.skiaImageCacheHits = String(stats.imageCacheHits ?? 0);
+    rendererCanvas.dataset.skiaFilterCacheHits = String(stats.filterCacheHits ?? 0);
+    rendererCanvas.dataset.skiaMaskCacheHits = String(stats.maskCacheHits ?? 0);
+    rendererCanvas.dataset.skiaProjectiveMeshCacheHits = String(stats.projectiveMeshCacheHits ?? 0);
+    rendererCanvas.dataset.skiaOffscreenSurfaceCreates = String(stats.offscreenSurfaceCreates ?? 0);
+    rendererCanvas.dataset.skiaOffscreenSurfaceReuses = String(stats.offscreenSurfaceReuses ?? 0);
+    rendererCanvas.dataset.skiaImageCacheEntries = String(stats.imageCacheEntries ?? 0);
+    rendererCanvas.dataset.skiaFilterCacheEntries = String(stats.filterCacheEntries ?? 0);
+    rendererCanvas.dataset.skiaMaskCacheEntries = String(stats.maskCacheEntries ?? 0);
+    rendererCanvas.dataset.skiaProjectiveMeshCacheEntries = String(stats.projectiveMeshCacheEntries ?? 0);
+    rendererCanvas.dataset.skiaPooledSurfaceCount = String(stats.pooledSurfaceCount ?? 0);
+    rendererCanvas.dataset.skiaEstimatedCacheBytes = String(stats.estimatedCacheBytes ?? 0);
     if (collectPerformanceMetrics) {
       const paintEndedAt = performance.now();
       const previousPaintAt = Number(rendererCanvas.dataset.paintAtMs);

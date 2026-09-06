@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { matrix4ToSkia3x3, matrix4ToSkiaCanvasMatrix, projectiveMeshSvg, projectiveTextureMesh, projectiveShapeSvg, replaySkiaCommands } from "../command";
+import { matrix4ToSkia3x3, matrix4ToSkiaCanvasMatrix, projectiveMeshCanvasSvg, projectiveMeshSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, projectiveShapeSvg, replaySkiaCommands } from "../command";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaPath, SkiaPathEffect, SkiaTypeface } from "../canvas-kit";
 
 describe("Skia command replay transforms", () => {
@@ -21,6 +21,78 @@ describe("Skia command replay transforms", () => {
     expect(mesh?.texCoords.length).toBe(mesh?.positions.length);
     expect(mesh?.indices.length).toBeGreaterThanOrEqual(6);
     expect([...mesh!.texCoords].every(Number.isFinite)).toBe(true);
+  });
+
+  it("clips a near-plane texture to the composition edge before CanvasKit vertex rasterization", () => {
+    const mesh = projectiveTextureMesh(
+      [-40, 0, 460, 280],
+      [0, 0, 1920, 1080],
+      [
+        3.2550144364, 1.2354514810, -0.4694715628, 0.0024709030,
+        0, 1, 0, 0,
+        -3.9917373274, -2.3235462970, 0.8829475929, -0.0046470926,
+        -471.9740842774, -340.4974425922, 258.5890281850, -0.3609948852,
+      ],
+      { width: 1920, height: 1080, depthClip: "w-only", localClip: [0, 0, 420, 280] },
+    );
+
+    expect(mesh).not.toBeNull();
+    expect(mesh?.indices.length).toBeGreaterThan(6);
+    const positions = Array.from(mesh!.positions);
+    const xValues = positions.filter((_value, index) => index % 2 === 0);
+    expect(Math.min(...xValues)).toBeGreaterThan(146);
+    expect(Math.max(...xValues)).toBeCloseTo(420, 4);
+    expect(xValues.every((value) => value >= 0 && value <= 420)).toBe(true);
+  });
+
+  it("can emit projective texture vertices in finite screen space", () => {
+    const mesh = projectiveTextureMesh(
+      [-40, 0, 460, 280],
+      [0, 0, 1920, 1080],
+      [
+        3.2550144364, 1.2354514810, -0.4694715628, 0.0024709030,
+        0, 1, 0, 0,
+        -3.9917373274, -2.3235462970, 0.8829475929, -0.0046470926,
+        -471.9740842774, -340.4974425922, 258.5890281850, -0.3609948852,
+      ],
+      { width: 1920, height: 1080, depthClip: "w-only", localClip: [0, 0, 420, 280], outputSpace: "screen" },
+    );
+
+    expect(mesh).not.toBeNull();
+    const positions = Array.from(mesh!.positions);
+    const xValues = positions.filter((_value, index) => index % 2 === 0);
+    const yValues = positions.filter((_value, index) => index % 2 === 1);
+    expect(Math.min(...xValues)).toBeGreaterThanOrEqual(-1e-4);
+    expect(Math.max(...xValues)).toBeLessThanOrEqual(1920.0001);
+    expect(Math.min(...yValues)).toBeGreaterThanOrEqual(-1e-4);
+    expect(Math.max(...yValues)).toBeLessThanOrEqual(1080.0001);
+    expect(Math.max(...xValues) - Math.min(...xValues)).toBeGreaterThan(500);
+  });
+
+  it("builds a source-to-screen homography for projective image shaders", () => {
+    const matrix = projectiveTextureShaderMatrix(
+      [0, 0, 420, 280],
+      [0, 0, 1920, 1080],
+      [
+        2, 0, 0, 0.001,
+        0, 3, 0, 0.002,
+        0, 0, 1, 0,
+        10, 20, 0, 1,
+      ],
+    );
+    expect(matrix).not.toBeNull();
+    expect(matrix).toHaveLength(9);
+    expect(matrix?.every(Number.isFinite)).toBe(true);
+  });
+
+  it("clips projective semantic mask geometry in canvas space", () => {
+    const path = projectiveMeshCanvasSvg(
+      { vertices: [0, 0, 420, 0, 420, 280, 0, 280], indices: [0, 1, 2, 0, 2, 3] },
+      [3.2550144364, 1.2354514810, -0.4694715628, 0.0024709030, 0, 1, 0, 0, -3.9917373274, -2.3235462970, 0.8829475929, -0.0046470926, -471.9740842774, -340.4974425922, 258.5890281850, -0.3609948852],
+      { width: 1920, height: 1080, depthClip: "w-only" },
+    );
+    expect(path).toContain("M");
+    expect(path).not.toMatch(/NaN|Infinity/);
   });
 
   it("clips a general surface mesh against the homogeneous near plane before division", () => {

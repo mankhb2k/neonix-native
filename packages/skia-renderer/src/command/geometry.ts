@@ -12,6 +12,10 @@ export type SkiaProjectionContext = {
   height: number;
   projection?: readonly number[];
   depthClip?: "global" | "w-only";
+  /** Local content clip used by object-fit/object-position before projection. */
+  localClip?: readonly [number, number, number, number];
+  /** Projective texture vertices can be emitted in logical screen space. */
+  outputSpace?: "local" | "screen";
 };
 
 type SurfaceMesh = {
@@ -24,6 +28,71 @@ export type ProjectiveTextureMesh = {
   texCoords: Float32Array;
   indices: Uint16Array;
 };
+
+type Matrix3 = [number, number, number, number, number, number, number, number, number];
+
+function multiplyMatrix3(a: Matrix3, b: Matrix3): Matrix3 {
+  return [
+    a[0] * b[0] + a[1] * b[3] + a[2] * b[6],
+    a[0] * b[1] + a[1] * b[4] + a[2] * b[7],
+    a[0] * b[2] + a[1] * b[5] + a[2] * b[8],
+    a[3] * b[0] + a[4] * b[3] + a[5] * b[6],
+    a[3] * b[1] + a[4] * b[4] + a[5] * b[7],
+    a[3] * b[2] + a[4] * b[5] + a[5] * b[8],
+    a[6] * b[0] + a[7] * b[3] + a[8] * b[6],
+    a[6] * b[1] + a[7] * b[4] + a[8] * b[7],
+    a[6] * b[2] + a[7] * b[5] + a[8] * b[8],
+  ];
+}
+
+function invertMatrix3(matrix: Matrix3): Matrix3 | null {
+  const [a, b, c, d, e, f, g, h, i] = matrix;
+  const A = e * i - f * h;
+  const B = f * g - d * i;
+  const C = d * h - e * g;
+  const D = c * h - b * i;
+  const E = a * i - c * g;
+  const F = b * g - a * h;
+  const G = b * f - c * e;
+  const H = c * d - a * f;
+  const I = a * e - b * d;
+  const determinant = a * A + b * B + c * C;
+  if (!Number.isFinite(determinant) || Math.abs(determinant) <= PROJECTIVE_CLIP_EPSILON) return null;
+  return [
+    A / determinant, D / determinant, G / determinant,
+    B / determinant, E / determinant, H / determinant,
+    C / determinant, F / determinant, I / determinant,
+  ];
+}
+
+/**
+ * Build the source-to-canvas homography used by an image shader. CanvasKit
+ * evaluates a shader local matrix in the inverse direction, so passing this
+ * matrix makes a screen-space vertex sample the corresponding source pixel
+ * after the full projective transform.
+ */
+export function projectiveTextureShaderMatrix(
+  destination: readonly [number, number, number, number],
+  source: readonly [number, number, number, number],
+  matrix: readonly number[],
+): number[] | null {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) return null;
+  const [x0, y0, x1, y1] = destination;
+  const [u0, v0, u1, v1] = source;
+  const localToSource: Matrix3 = [
+    (u1 - u0) / (x1 - x0), 0, u0 - ((u1 - u0) / (x1 - x0)) * x0,
+    0, (v1 - v0) / (y1 - y0), v0 - ((v1 - v0) / (y1 - y0)) * y0,
+    0, 0, 1,
+  ];
+  const sourceToLocal = invertMatrix3(localToSource);
+  if (!sourceToLocal) return null;
+  const localToCanvas: Matrix3 = [
+    matrix[0]!, matrix[4]!, matrix[12]!,
+    matrix[1]!, matrix[5]!, matrix[13]!,
+    matrix[3]!, matrix[7]!, matrix[15]!,
+  ];
+  return multiplyMatrix3(localToCanvas, sourceToLocal);
+}
 
 type HomogeneousSurfaceVertex = {
   x: number;
@@ -185,7 +254,7 @@ export function projectiveTextureMesh(
   destination: readonly [number, number, number, number],
   source: readonly [number, number, number, number],
   matrix: readonly number[],
-  context?: Pick<SkiaProjectionContext, "projection" | "depthClip">,
+  context?: Pick<SkiaProjectionContext, "projection" | "depthClip" | "width" | "height" | "localClip" | "outputSpace">,
 ): ProjectiveTextureMesh | null {
   if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) return null;
   const [x0, y0, x1, y1] = destination;
@@ -195,6 +264,30 @@ export function projectiveTextureMesh(
   ];
   if (context?.projection && context.depthClip !== "w-only") {
     clipPlanes.push((vertex) => vertex.z, (vertex) => vertex.w - vertex.z);
+  }
+  // A vertex crossing w=0 can project to infinity before CanvasKit gets a
+  // chance to apply its device clip. CanvasKit's vertex path may then reject
+  // the whole triangle, leaving only the far-side sliver of a near-plane
+  // surface. Clip against the logical composition viewport in homogeneous
+  // space first; x/w and y/w are the coordinates produced by
+  // matrix4ToSkiaCanvasMatrix(). This is also the CSS overflow/composition
+  // edge contract for projective image planes.
+  if (context && context.width > 0 && context.height > 0) {
+    clipPlanes.push(
+      (vertex) => vertex.x,
+      (vertex) => context.width * vertex.w - vertex.x,
+      (vertex) => vertex.y,
+      (vertex) => context.height * vertex.w - vertex.y,
+    );
+  }
+  if (context?.localClip) {
+    const [clipX0, clipY0, clipX1, clipY1] = context.localClip;
+    clipPlanes.push(
+      (vertex) => vertex.localX - clipX0,
+      (vertex) => clipX1 - vertex.localX,
+      (vertex) => vertex.localY - clipY0,
+      (vertex) => clipY1 - vertex.localY,
+    );
   }
   const vertexAt = (xAmount: number, yAmount: number): HomogeneousTextureVertex => {
     const localX = x0 + (x1 - x0) * xAmount;
@@ -212,12 +305,19 @@ export function projectiveTextureMesh(
   const corners = [vertexAt(0, 0), vertexAt(1, 0), vertexAt(1, 1), vertexAt(0, 1)];
   const finiteW = corners.map((vertex) => Math.abs(vertex.w)).filter((value) => Number.isFinite(value) && value > PROJECTIVE_CLIP_EPSILON);
   const distortion = finiteW.length > 1 ? Math.max(...finiteW) / Math.min(...finiteW) : 1;
+  const crossesNearPlane = corners.some((vertex) => vertex.w <= PROJECTIVE_CLIP_EPSILON)
+    && corners.some((vertex) => vertex.w > PROJECTIVE_CLIP_EPSILON);
   // A single projective quad is exact for geometry, but a backend may still
   // interpolate texture coordinates linearly inside each triangle. Increase
   // the sampling grid for high w variation so that image/video UVs remain
   // stable even on strongly inclined planes. All cells are emitted in one
   // vertex draw, so there are no inter-cell compositing seams.
-  const subdivisions = distortion > 5 ? 8 : distortion > 2.5 ? 4 : distortion > 1.25 ? 2 : 1;
+  // Screen-space vertices use affine UV interpolation. A surface crossing
+  // the near plane has a hyperbolic UV mapping after division, so the normal
+  // 1/2/4/8 heuristic is not enough: the near-side cell would stretch one
+  // texture interval across most of the composition edge. Use a denser,
+  // deterministic grid only for that singular case.
+  const subdivisions = crossesNearPlane ? 32 : distortion > 5 ? 8 : distortion > 2.5 ? 4 : distortion > 1.25 ? 2 : 1;
   const positions: number[] = [];
   const texCoords: number[] = [];
   const indices: number[] = [];
@@ -233,7 +333,12 @@ export function projectiveTextureMesh(
         if (clipped.length < 3) continue;
         const base = positions.length / 2;
         for (const vertex of clipped) {
-          positions.push(vertex.localX, vertex.localY);
+          if (context?.outputSpace === "screen") {
+            const w = vertex.w <= PROJECTIVE_CLIP_EPSILON ? PROJECTIVE_CLIP_EPSILON : vertex.w;
+            positions.push(vertex.x / w, vertex.y / w);
+          } else {
+            positions.push(vertex.localX, vertex.localY);
+          }
           texCoords.push(vertex.u, vertex.v);
         }
         for (let index = 1; index < clipped.length - 1; index += 1) {
@@ -278,6 +383,46 @@ export function projectiveMeshScreenSvg(
     if (clipped.length < 3) continue;
     const points = clipped.map((vertex) => {
       const w = Math.abs(vertex.w) <= PROJECTIVE_CLIP_EPSILON ? PROJECTIVE_CLIP_EPSILON : vertex.w;
+      return `${vertex.x / w} ${vertex.y / w}`;
+    });
+    pathParts.push(`M ${points.join(" L ")} Z`);
+  }
+  return pathParts.join(" ");
+}
+
+/**
+ * Project a semantic mask/clip mesh whose matrix has already been resolved
+ * into logical canvas pixels by transformForSkiaCanvas(). Unlike
+ * projectiveMeshScreenSvg(), this helper must not apply the composition
+ * projection a second time.
+ */
+export function projectiveMeshCanvasSvg(
+  mesh: SurfaceMesh,
+  canvasMatrix: readonly number[],
+  context: Pick<SkiaProjectionContext, "width" | "height" | "depthClip">,
+): string | null {
+  if (canvasMatrix.length !== 16 || canvasMatrix.some((value) => !Number.isFinite(value)) || !finiteSurfaceMesh(mesh)) return null;
+  const clipPlanes: ClipPlane[] = [(vertex) => vertex.w - PROJECTIVE_CLIP_EPSILON];
+  if (context.depthClip !== "w-only") clipPlanes.push((vertex) => vertex.z, (vertex) => vertex.w - vertex.z);
+  clipPlanes.push(
+    (vertex) => vertex.x,
+    (vertex) => context.width * vertex.w - vertex.x,
+    (vertex) => vertex.y,
+    (vertex) => context.height * vertex.w - vertex.y,
+  );
+  const pathParts: string[] = [];
+  for (let offset = 0; offset < mesh.indices.length; offset += 3) {
+    const triangle = [0, 1, 2].map((corner) => {
+      const index = mesh.indices[offset + corner]!;
+      const localX = mesh.vertices[index * 2]!;
+      const localY = mesh.vertices[index * 2 + 1]!;
+      const transformed = transformPoint4(canvasMatrix, localX, localY, 0);
+      return { ...transformed, localX, localY, localZ: 0 };
+    });
+    const clipped = clipPlanes.reduce((polygon, plane) => clipPolygon(polygon, plane), triangle);
+    if (clipped.length < 3) continue;
+    const points = clipped.map((vertex) => {
+      const w = vertex.w <= PROJECTIVE_CLIP_EPSILON ? PROJECTIVE_CLIP_EPSILON : vertex.w;
       return `${vertex.x / w} ${vertex.y / w}`;
     });
     pathParts.push(`M ${points.join(" L ")} Z`);

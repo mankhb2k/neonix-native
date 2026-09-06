@@ -1,10 +1,12 @@
-import type { PaintCommand, PaintCommandBuffer, PaintFill } from "@motionvideo/motion-runtime";
+import { hasPerspectiveTerms, type PaintCommand, type PaintCommandBuffer, type PaintFill } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvas, SkiaCanvasKit } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
-import { matrix4ToSkia3x3, pathSvg, transformForSkiaCanvas, type SkiaProjectionContext } from "./geometry";
+import { matrix4ToSkia3x3, pathSvg, projectiveMeshSvg, transformForSkiaCanvas, type SkiaProjectionContext } from "./geometry";
 import { drawAsset } from "./images";
+import type { DrawAssetResult } from "./images";
+import type { SkiaReplayResources } from "./types";
 
 export type MaskSource = {
   command: Extract<PaintCommand, { op: "drawPath" | "drawImage" }>;
@@ -42,12 +44,17 @@ export function drawMaskSource(
   mode: "alpha" | "luma",
   assets: ReadonlyMap<string, SkiaAsset>,
   blendMode: unknown,
-): boolean {
+  projectionContext?: SkiaProjectionContext,
+  resources?: SkiaReplayResources,
+): boolean | DrawAssetResult {
   if (source.command.op === "drawImage") {
-    canvas.save();
-    if (source.transform) canvas.concat(matrix4ToSkia3x3(source.transform.matrix4));
     const asset = assets.get(source.command.assetId);
-    let drawn = false;
+    let drawn: false | DrawAssetResult = false;
+    const projective = source.transform && projectionContext && hasPerspectiveTerms(source.transform.matrix4)
+      ? { matrix: source.transform.matrix4, context: { ...projectionContext, outputSpace: "screen" as const } }
+      : undefined;
+    canvas.save();
+    if (source.transform && !projective) canvas.concat(matrix4ToSkia3x3(source.transform.matrix4));
     if (asset && mode === "luma") {
       const colorFilter = kit.ColorFilter?.MakeMatrix?.([
         0, 0, 0, 0, 0,
@@ -67,14 +74,14 @@ export function drawMaskSource(
         layerPaint.setBlendMode(blendMode);
         layerPaint.setImageFilter?.(imageFilter);
         canvas.saveLayer(layerPaint);
-        drawn = drawAsset(kit, canvas, source.command, asset, 1, kit.BlendMode.SrcOver);
+        drawn = drawAsset(kit, canvas, source.command, asset, 1, kit.BlendMode.SrcOver, projective, resources);
         canvas.restore();
         layerPaint.delete();
         imageFilter.delete();
       }
       colorFilter?.delete();
     } else if (asset) {
-      drawn = drawAsset(kit, canvas, source.command, asset, 1, blendMode);
+      drawn = drawAsset(kit, canvas, source.command, asset, 1, blendMode, projective, resources);
     }
     canvas.restore();
     return drawn;
@@ -92,13 +99,30 @@ export function drawMaskSource(
     source.command.height ?? 1,
   );
   paint.setBlendMode(blendMode);
+  const projectivePath = source.transform && projectionContext && hasPerspectiveTerms(source.transform.matrix4) && source.command.mesh
+    ? projectiveMeshSvg(source.command.mesh, source.transform.matrix4, projectionContext)
+    : null;
   canvas.save();
-  if (source.transform) canvas.concat(matrix4ToSkia3x3(source.transform.matrix4));
-  canvas.drawPath(path, paint);
+  if (projectivePath !== null) {
+    const projected = kit.Path.MakeFromSVGString(projectivePath);
+    if (projected) {
+      projected.setFillType?.(source.command.fillRule === "evenodd" ? kit.FillType?.EvenOdd : kit.FillType?.Winding);
+      // Keep the clipped path in local coordinates and apply the projective
+      // matrix once. This preserves CSS gradient/mask shader coordinates;
+      // drawing a screen-space path made the local gradient collapse to a
+      // narrow strip for inclined surfaces.
+      canvas.concat(matrix4ToSkia3x3(source.transform!.matrix4));
+      canvas.drawPath(projected, paint);
+      projected.delete();
+    }
+  } else {
+    if (source.transform) canvas.concat(matrix4ToSkia3x3(source.transform.matrix4));
+    canvas.drawPath(path, paint);
+  }
   canvas.restore();
   paint.delete();
   path.delete();
-  return true;
+  return { drawn: true, imageCacheHit: false, projectiveMeshCacheHit: false, uploaded: false };
 }
 
 export function sourcePathCommands(
@@ -129,6 +153,7 @@ export function applyClipPath(
   kit: SkiaCanvasKit,
   canvas: SkiaCanvas,
   source: MaskSource,
+  projectionContext?: SkiaProjectionContext,
 ): boolean {
   if (source.command.op !== "drawPath") return false;
   if (!canvas.clipPath) return false;
@@ -137,6 +162,29 @@ export function applyClipPath(
   const fillType = source.command.fillRule === "evenodd" ? kit.FillType?.EvenOdd : kit.FillType?.Winding;
   if (fillType !== undefined) path.setFillType?.(fillType);
   const transform = source.transform?.matrix4;
+  const projectivePath = transform && projectionContext && hasPerspectiveTerms(transform) && source.command.mesh
+    ? projectiveMeshSvg(source.command.mesh, transform, projectionContext)
+    : null;
+  if (projectivePath !== null) {
+    const projected = kit.Path.MakeFromSVGString(projectivePath);
+    if (!projected) {
+      path.delete();
+      return false;
+    }
+    if (fillType !== undefined) projected.setFillType?.(fillType);
+    // The helper returns a homogeneous-clipped local contour. Transform a
+    // temporary path into parent canvas space so the installed clip does not
+    // leak a temporary CTM into following draw commands.
+    const builder = new kit.PathBuilder(projected);
+    builder.transform(matrix4ToSkia3x3(transform!));
+    const transformed = builder.snapshot();
+    canvas.clipPath(transformed, kit.ClipOp.Intersect, true);
+    transformed.delete();
+    builder.delete();
+    projected.delete();
+    path.delete();
+    return true;
+  }
   if (transform) {
     // SkPath is immutable in CanvasKit. Transform through a PathBuilder so
     // the clip is installed in the parent canvas coordinate space without

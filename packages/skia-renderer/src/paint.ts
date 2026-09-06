@@ -252,7 +252,6 @@ function makeGradientShader(
   }
   if (paintGradient.type === "radial-gradient") {
     const geometry = radialGeometry(paintGradient, width, height);
-    const isEllipse = Math.abs(geometry.radiusX - geometry.radiusY) > 1e-6;
     const shaderRadius = geometry.radius;
     if (
       kit.Shader.MakeTwoPointConicalGradient &&
