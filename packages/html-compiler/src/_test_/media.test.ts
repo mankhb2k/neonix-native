@@ -44,4 +44,23 @@ describe("HTML/CSS compiler media", () => {
       payload: { fit: "contain", assetId: "clip-asset" },
     });
   });
+
+  it("copies video catalog metadata so Runtime can validate its source range", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<video id="clip" src="/preview/video/demo-video.mp4"></video>`,
+      css: `#clip { position: absolute; left: 100px; top: 100px; width: 480px; height: 270px; object-fit: cover; }`,
+    }), {
+      mediaAssets: [{ uri: "/preview/video/demo-video.mp4", kind: "video", duration: 60500, fps: 30, width: 1920, height: 1080 }],
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.protocol?.assets).toContainEqual(expect.objectContaining({
+      id: "clip-asset",
+      kind: "video",
+      duration: 60500,
+      fps: 30,
+      width: 1920,
+      height: 1080,
+    }));
+  });
 });

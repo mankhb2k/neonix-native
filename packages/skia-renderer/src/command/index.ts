@@ -4,6 +4,7 @@ export {
   matrix4ToSkiaCanvasMatrix,
   projectiveMeshSvg,
   projectiveMeshScreenSvg,
+  projectiveTextureMesh,
   projectiveShapeSvg,
   projectiveShapeScreenSvg,
   transformForSkiaCanvas,

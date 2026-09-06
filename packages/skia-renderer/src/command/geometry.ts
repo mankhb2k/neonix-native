@@ -19,6 +19,12 @@ type SurfaceMesh = {
   indices: readonly number[];
 };
 
+export type ProjectiveTextureMesh = {
+  positions: Float32Array;
+  texCoords: Float32Array;
+  indices: Uint16Array;
+};
+
 type HomogeneousSurfaceVertex = {
   x: number;
   y: number;
@@ -27,6 +33,11 @@ type HomogeneousSurfaceVertex = {
   localX: number;
   localY: number;
   localZ: number;
+};
+
+type HomogeneousTextureVertex = HomogeneousSurfaceVertex & {
+  u: number;
+  v: number;
 };
 
 type ClipPlane = (vertex: HomogeneousSurfaceVertex) => number;
@@ -49,6 +60,18 @@ function interpolateSurfaceVertex(
   };
 }
 
+function interpolateTextureVertex(
+  left: HomogeneousTextureVertex,
+  right: HomogeneousTextureVertex,
+  t: number,
+): HomogeneousTextureVertex {
+  return {
+    ...interpolateSurfaceVertex(left, right, t),
+    u: left.u + (right.u - left.u) * t,
+    v: left.v + (right.v - left.v) * t,
+  };
+}
+
 function clipPolygon(
   polygon: HomogeneousSurfaceVertex[],
   plane: ClipPlane,
@@ -67,6 +90,33 @@ function clipPolygon(
         ? 0
         : Math.max(0, Math.min(1, previousDistance / denominator));
       output.push(interpolateSurfaceVertex(previous, current, t));
+    }
+    if (currentInside) output.push(current);
+    previous = current;
+    previousDistance = currentDistance;
+    previousInside = currentInside;
+  }
+  return output;
+}
+
+function clipTexturePolygon(
+  polygon: HomogeneousTextureVertex[],
+  plane: (vertex: HomogeneousTextureVertex) => number,
+): HomogeneousTextureVertex[] {
+  if (polygon.length === 0) return polygon;
+  const output: HomogeneousTextureVertex[] = [];
+  let previous = polygon[polygon.length - 1]!;
+  let previousDistance = plane(previous);
+  let previousInside = previousDistance >= 0;
+  for (const current of polygon) {
+    const currentDistance = plane(current);
+    const currentInside = currentDistance >= 0;
+    if (currentInside !== previousInside) {
+      const denominator = previousDistance - currentDistance;
+      const t = Math.abs(denominator) <= PROJECTIVE_CLIP_EPSILON
+        ? 0
+        : Math.max(0, Math.min(1, previousDistance / denominator));
+      output.push(interpolateTextureVertex(previous, current, t));
     }
     if (currentInside) output.push(current);
     previous = current;
@@ -123,6 +173,81 @@ export function projectiveMeshSvg(
     pathParts.push(`M ${points.join(" L ")} Z`);
   }
   return pathParts.join(" ");
+}
+
+/**
+ * Build a Skia textured triangle mesh from a local image rectangle. Texture
+ * coordinates stay in source-image pixels while positions stay in the local
+ * Runtime plane, so CanvasKit's projective CTM can interpolate the surface
+ * without falling back to an affine bounding-box draw.
+ */
+export function projectiveTextureMesh(
+  destination: readonly [number, number, number, number],
+  source: readonly [number, number, number, number],
+  matrix: readonly number[],
+  context?: Pick<SkiaProjectionContext, "projection" | "depthClip">,
+): ProjectiveTextureMesh | null {
+  if (matrix.length !== 16 || matrix.some((value) => !Number.isFinite(value))) return null;
+  const [x0, y0, x1, y1] = destination;
+  const [u0, v0, u1, v1] = source;
+  const clipPlanes: Array<(vertex: HomogeneousTextureVertex) => number> = [
+    (vertex) => vertex.w - PROJECTIVE_CLIP_EPSILON,
+  ];
+  if (context?.projection && context.depthClip !== "w-only") {
+    clipPlanes.push((vertex) => vertex.z, (vertex) => vertex.w - vertex.z);
+  }
+  const vertexAt = (xAmount: number, yAmount: number): HomogeneousTextureVertex => {
+    const localX = x0 + (x1 - x0) * xAmount;
+    const localY = y0 + (y1 - y0) * yAmount;
+    const transformed = transformPoint4(matrix, localX, localY, 0);
+    return {
+      ...transformed,
+      localX,
+      localY,
+      localZ: 0,
+      u: u0 + (u1 - u0) * xAmount,
+      v: v0 + (v1 - v0) * yAmount,
+    };
+  };
+  const corners = [vertexAt(0, 0), vertexAt(1, 0), vertexAt(1, 1), vertexAt(0, 1)];
+  const finiteW = corners.map((vertex) => Math.abs(vertex.w)).filter((value) => Number.isFinite(value) && value > PROJECTIVE_CLIP_EPSILON);
+  const distortion = finiteW.length > 1 ? Math.max(...finiteW) / Math.min(...finiteW) : 1;
+  // A single projective quad is exact for geometry, but a backend may still
+  // interpolate texture coordinates linearly inside each triangle. Increase
+  // the sampling grid for high w variation so that image/video UVs remain
+  // stable even on strongly inclined planes. All cells are emitted in one
+  // vertex draw, so there are no inter-cell compositing seams.
+  const subdivisions = distortion > 5 ? 8 : distortion > 2.5 ? 4 : distortion > 1.25 ? 2 : 1;
+  const positions: number[] = [];
+  const texCoords: number[] = [];
+  const indices: number[] = [];
+  for (let row = 0; row < subdivisions; row += 1) {
+    for (let column = 0; column < subdivisions; column += 1) {
+      const left = column / subdivisions;
+      const right = (column + 1) / subdivisions;
+      const top = row / subdivisions;
+      const bottom = (row + 1) / subdivisions;
+      const cell = [vertexAt(left, top), vertexAt(right, top), vertexAt(right, bottom), vertexAt(left, bottom)];
+      for (const triangle of [[cell[0]!, cell[1]!, cell[2]!], [cell[0]!, cell[2]!, cell[3]!]]) {
+        const clipped = clipPlanes.reduce((polygon, plane) => clipTexturePolygon(polygon, plane), triangle);
+        if (clipped.length < 3) continue;
+        const base = positions.length / 2;
+        for (const vertex of clipped) {
+          positions.push(vertex.localX, vertex.localY);
+          texCoords.push(vertex.u, vertex.v);
+        }
+        for (let index = 1; index < clipped.length - 1; index += 1) {
+          indices.push(base, base + index, base + index + 1);
+        }
+      }
+    }
+  }
+  if (positions.length < 6 || indices.length < 3 || indices.some((index) => index > 65535)) return null;
+  return {
+    positions: new Float32Array(positions),
+    texCoords: new Float32Array(texCoords),
+    indices: new Uint16Array(indices),
+  };
 }
 
 /** Project the same clipped surface into frame pixels for the SVG golden

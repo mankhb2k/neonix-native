@@ -4,6 +4,7 @@ import {
   type HtmlCompilerOptions,
   type HtmlCompilerResult,
   type HtmlCssSource,
+  type HtmlCompilerMediaAsset,
 } from "./source";
 export {
   DEFAULT_HTML_CSS_COMPOSITION,
@@ -16,6 +17,7 @@ export type {
   HtmlCompilerOptions,
   HtmlCompilerFontAsset,
   HtmlCompilerResult,
+  HtmlCompilerMediaAsset,
   HtmlCssComposition,
   HtmlCssSource,
   HtmlCompilerSourceLocation,
@@ -264,7 +266,17 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     const addAssets = (items: readonly NonNullable<MotionProtocolV2["assets"]>[number][]) => { for (const asset of items) if (!assets.some((candidate) => candidate.id === asset.id)) assets.push(asset); };
     const mediaAsset = (node: Node, kind: "image" | "video", uri: string, suffix = "asset") => {
       const id = `${node.atomicId}-${suffix}`;
-      if (!assets.some((asset) => asset.id === id)) assets.push({ id, kind, uri, mimeType: mediaMimeType(uri, kind) });
+      const catalog = options.mediaAssets?.find((asset) => asset.uri === uri && asset.kind === kind);
+      if (!assets.some((asset) => asset.id === id)) assets.push({
+        id,
+        kind,
+        uri,
+        mimeType: catalog?.mimeType ?? mediaMimeType(uri, kind),
+        ...(catalog?.width !== undefined ? { width: catalog.width } : {}),
+        ...(catalog?.height !== undefined ? { height: catalog.height } : {}),
+        ...(catalog?.duration !== undefined ? { duration: catalog.duration } : {}),
+        ...(catalog?.fps !== undefined ? { fps: catalog.fps } : {}),
+      });
       return id;
     };
     const maskSourceStyle = (style: Style): Style => new Map([

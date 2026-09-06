@@ -188,6 +188,10 @@ uv
 - Sample image/video bằng UV.
 - Resolve `object-fit`, `object-position` và crop trước khi project.
 - Image và video dùng chung textured-surface pipeline.
+- Compiler nhận metadata media từ catalog (`uri`, intrinsic size, duration, fps)
+  để video source-range được validate deterministic thay vì đoán từ CSS.
+- Skia dùng `drawVertices` + image shader khi CanvasKit có capability; fallback
+  `drawImageRect` chỉ dùng cho surface không projective hoặc backend thiếu mesh.
 - Video chỉ cập nhật texture frame nếu geometry không đổi.
 - Giữ `image-rendering` theo capability renderer.
 

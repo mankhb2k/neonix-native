@@ -373,7 +373,8 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "drawImage" || command.op === "drawVideo") {
-      const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
+      const activeTransform = pendingTransform;
+      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       if (command.op === "drawVideo" && command.mediaVisible === false) {
@@ -381,7 +382,10 @@ export function replaySkiaCommands(
         continue;
       }
       const asset = assets.get(command.assetId);
-      if (!asset || !drawAsset(kit, canvas, command, asset, commandAlpha)) {
+      const projective = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4)
+        ? { matrix: activeTransform.matrix4, context: projectionContext }
+        : undefined;
+      if (!asset || !drawAsset(kit, canvas, command, asset, commandAlpha, undefined, projective)) {
         stats.skippedCommands++;
         stats.diagnostics.push(`${command.op}:${command.key}`);
       } else {

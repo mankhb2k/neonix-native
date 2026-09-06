@@ -35,10 +35,21 @@ export type HtmlCompilerFontAsset = {
   stretch?: "ultra-condensed" | "extra-condensed" | "condensed" | "semi-condensed" | "normal" | "semi-expanded" | "expanded" | "extra-expanded" | "ultra-expanded";
   mimeType?: "font/ttf" | "font/otf";
 };
+export type HtmlCompilerMediaAsset = {
+  uri: string;
+  kind: "image" | "video";
+  width?: number;
+  height?: number;
+  duration?: number;
+  fps?: number;
+  mimeType?: string;
+};
 export type HtmlCompilerOptions = {
   composition?: { width?: number; height?: number; fps?: number; durationMs?: number; id?: string };
   /** Exact font binaries available to the compiler/runtime. CSS fallback is never implicit. */
   fontAssets?: readonly HtmlCompilerFontAsset[];
+  /** Optional catalog metadata for CSS image/video URLs. */
+  mediaAssets?: readonly HtmlCompilerMediaAsset[];
 };
 export type HtmlCompilerResult = { status: "success" | "error"; source: HtmlCssSource; protocol: MotionProtocolV2 | null; diagnostics: HtmlCompilerDiagnostic[] };
 

@@ -1,4 +1,4 @@
-import { createHtmlCssSource, createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT, type HtmlCompilerFontAsset, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { createHtmlCssSource, createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT, type HtmlCompilerFontAsset, type HtmlCompilerMediaAsset, type HtmlCssSource } from "@motionvideo/html-compiler";
 
 export type HtmlCompilerPreviewTopic =
   | "New project"
@@ -14,7 +14,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -4215,6 +4215,10 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
 ];
 
+export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
+  { kind: "video", uri: "/preview/video/demo-video.mp4", mimeType: "video/mp4", width: 1920, height: 1080, duration: 60500, fps: 30 },
+];
+
 export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
   {
     id: "html-compiler.perspective.nested-distance",
@@ -4524,9 +4528,143 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] =
   ),
 ];
 
+const perspectiveTextureCase = (
+  id: string,
+  label: string,
+  properties: string[],
+  hint: string,
+  body: string,
+  css: string,
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.texture.${id}`,
+  phase: "P8",
+  topic: "Motion & animation",
+  label,
+  properties,
+  hint,
+  source: createNewHtmlProject({
+    html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", `<body>\n  ${body}\n</body>`),
+    css: `body { margin: 0; background: #081018; overflow: hidden; }\n${css}`,
+  }),
+});
+
+export const HTML_COMPILER_PERSPECTIVE_PHASE8_CASES: HtmlCompilerPreviewCase[] = [
+  perspectiveTextureCase(
+    "image-contain-rotate-y",
+    "Texture / image contain on rotateY",
+    ["img", "object-fit: contain", "rotateY", "projective UV"],
+    "Contain resolves the source and destination rectangles before the image plane is projected by the accumulated Matrix4.",
+    `<div id="texture-contain-scene"><img id="texture-contain" src="/preview/image/photo-landscape.jpg"></div>`,
+    `#texture-contain-scene { position: absolute; left: 360px; top: 220px; width: 1200px; height: 620px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#texture-contain { position: absolute; left: 350px; top: 150px; width: 500px; height: 300px; object-fit: contain; object-position: center; transform: translateZ(120px) rotateY(-28deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-cover-off-center",
+    "Texture / cover with off-center origin",
+    ["img", "object-fit: cover", "object-position", "perspective-origin"],
+    "Cover cropping and object-position are resolved in image space; the cropped quad then follows the off-center perspective camera.",
+    `<div id="texture-cover-scene"><img id="texture-cover" src="/preview/image/photo-portrait.jpg"></div>`,
+    `#texture-cover-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 680px; perspective-origin: 18% 78%; transform-style: preserve-3d; }
+#texture-cover { position: absolute; left: 360px; top: 170px; width: 480px; height: 300px; object-fit: cover; object-position: right top; transform: translateZ(130px) rotateY(26deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-alpha-tilt",
+    "Texture / alpha image on inclined plane",
+    ["alpha PNG", "rotateX", "rotateY", "transparent texture"],
+    "Transparent pixels remain texture alpha on the projective surface instead of becoming a solid bounding rectangle.",
+    `<div id="texture-alpha-scene"><img id="texture-alpha" src="/preview/image/img-alpha.png"></div>`,
+    `#texture-alpha-scene { position: absolute; left: 360px; top: 190px; width: 1200px; height: 660px; perspective: 720px; transform-style: preserve-3d; }
+#texture-alpha { position: absolute; left: 380px; top: 150px; width: 440px; height: 320px; object-fit: fill; transform: translateZ(100px) rotateX(24deg) rotateY(-22deg); }`,
+  ),
+  perspectiveTextureCase(
+    "video-projective-quad",
+    "Texture / video frame on projective quad",
+    ["video", "frame source", "rotateY", "shared texture path"],
+    "Video uses the same projective textured-surface path as image; only the decoded frame source changes per playback timestamp.",
+    `<div id="texture-video-scene"><video id="texture-video" src="/preview/video/demo-video.mp4" muted playsinline></video></div>`,
+    `#texture-video-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#texture-video { position: absolute; left: 340px; top: 150px; width: 520px; height: 300px; object-fit: cover; transform: translateZ(130px) rotateY(-24deg); }`,
+  ),
+  perspectiveTextureCase(
+    "media-object-position",
+    "Texture / image object-position",
+    ["image", "object-position: left bottom", "UV crop", "projective plane"],
+    "Object-position changes UV crop selection without changing the projected layout frame.",
+    `<div id="texture-position-scene"><img id="texture-position" src="/preview/image/photo-portrait.jpg"></div>`,
+    `#texture-position-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 720px; perspective-origin: 72% 28%; transform-style: preserve-3d; }
+#texture-position { position: absolute; left: 360px; top: 170px; width: 480px; height: 300px; object-fit: cover; object-position: left bottom; transform: translateZ(120px) rotateX(-16deg) rotateY(24deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-composition-edge",
+    "Texture / composition edge clipping",
+    ["image", "composition clip", "projective bounds", "edge"],
+    "The projected image is clipped at the composition edge after projective placement, without leaking pixels outside the frame.",
+    `<div id="texture-edge-scene"><img id="texture-edge" src="/preview/image/photo-landscape.jpg"></div>`,
+    `#texture-edge-scene { position: absolute; left: 1380px; top: 260px; width: 720px; height: 500px; perspective: 520px; transform-style: preserve-3d; }
+#texture-edge { position: absolute; left: 120px; top: 90px; width: 620px; height: 360px; object-fit: cover; transform: translateZ(180px) rotateY(-36deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-clip-path",
+    "Texture / image with clip-path",
+    ["image", "clip-path: polygon", "geometric clip", "projective UV"],
+    "A geometric clip remains a clip path intersected with the textured projective surface, not a sibling alpha image.",
+    `<div id="texture-clip-scene"><img id="texture-clip" src="/preview/image/photo-landscape.jpg"></div>`,
+    `#texture-clip-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 740px; transform-style: preserve-3d; }
+#texture-clip { position: absolute; left: 350px; top: 160px; width: 500px; height: 300px; object-fit: cover; transform: translateZ(120px) rotateY(-20deg); clip-path: polygon(8% 0, 100% 14%, 86% 100%, 0 82%); }`,
+  ),
+  perspectiveTextureCase(
+    "video-opacity-blend",
+    "Texture / video opacity + blend",
+    ["video", "opacity", "mix-blend-mode: screen", "offscreen"],
+    "Video texture is sampled first, then layer opacity and blend scope are applied to the rendered surface.",
+    `<div id="texture-blend-scene"><div id="texture-blend-backdrop"></div><video id="texture-blend" src="/preview/video/demo-video.mp4" muted playsinline></video></div>`,
+    `#texture-blend-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 760px; transform-style: preserve-3d; }
+#texture-blend-backdrop { position: absolute; left: 300px; top: 120px; width: 620px; height: 420px; background: #7c3aed; }
+#texture-blend { position: absolute; left: 360px; top: 170px; width: 520px; height: 300px; object-fit: cover; opacity: .72; mix-blend-mode: screen; transform: translateZ(140px) rotateY(22deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-animated-z",
+    "Texture / animated translateZ",
+    ["image", "@keyframes", "translateZ", "typed texture track"],
+    "The texture stays attached to the image plane while translateZ changes over the shared Runtime V2 timeline.",
+    `<div id="texture-animated-scene"><img id="texture-animated" src="/preview/image/photo-landscape.jpg"></div>`,
+    `@keyframes texture-animated-z { from { transform: translateZ(0px) rotateY(-28deg); } to { transform: translateZ(220px) rotateY(28deg); } }
+#texture-animated-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; perspective: 720px; transform-style: preserve-3d; }
+#texture-animated { position: absolute; left: 350px; top: 160px; width: 500px; height: 300px; object-fit: cover; animation-name: texture-animated-z; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+  ),
+  perspectiveTextureCase(
+    "image-near-plane",
+    "Texture / near-plane partial clipping",
+    ["image", "translateZ", "near-plane", "homogeneous clip"],
+    "Only the part of the image plane outside the near camera plane is removed before perspective division.",
+    `<div id="texture-near-scene"><img id="texture-near" src="/preview/image/photo-landscape.jpg"></div>`,
+    `#texture-near-scene { position: absolute; left: 580px; top: 240px; width: 760px; height: 520px; perspective: 190px; transform-style: preserve-3d; }
+#texture-near { position: absolute; left: 230px; top: 100px; width: 420px; height: 280px; object-fit: cover; transform: translateZ(160px) rotateY(28deg); }`,
+  ),
+  perspectiveTextureCase(
+    "nested-image-perspective",
+    "Texture / nested perspective",
+    ["nested perspective", "image", "preserve-3d", "Matrix4 chain"],
+    "Nested cameras compose in order and the image receives the final projective transform as one textured surface.",
+    `<div id="texture-nested-outer"><div id="texture-nested-inner"><img id="texture-nested" src="/preview/image/photo-landscape.jpg"></div></div>`,
+    `#texture-nested-outer { position: absolute; left: 300px; top: 150px; width: 1320px; height: 760px; perspective: 900px; transform-style: preserve-3d; }
+#texture-nested-inner { position: absolute; left: 220px; top: 120px; width: 880px; height: 520px; perspective: 430px; perspective-origin: 22% 78%; transform-style: preserve-3d; transform: rotateY(-12deg); }
+#texture-nested { position: absolute; left: 250px; top: 140px; width: 500px; height: 300px; object-fit: contain; transform: translateZ(170px) rotateX(14deg) rotateY(-28deg); }`,
+  ),
+  perspectiveTextureCase(
+    "image-high-distortion",
+    "Texture / high projective distortion",
+    ["image", "rotateX + rotateY", "subdivision", "seam check"],
+    "A strongly inclined plane exercises the projective texture path and its subdivision/seam contract.",
+    `<div id="texture-distortion-scene"><img id="texture-distortion" src="/preview/image/photo-landscape.jpg"></div>`,
+    `#texture-distortion-scene { position: absolute; left: 300px; top: 120px; width: 1320px; height: 820px; perspective: 460px; perspective-origin: 68% 30%; transform-style: preserve-3d; }
+#texture-distortion { position: absolute; left: 350px; top: 180px; width: 620px; height: 360px; object-fit: cover; transform: translateZ(180px) rotateX(34deg) rotateY(-42deg); }`,
+  ),
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -4536,5 +4674,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

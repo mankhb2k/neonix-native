@@ -2,6 +2,7 @@ import type { PaintCommand } from "@motionvideo/motion-runtime";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaImage } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
+import { projectiveTextureMesh, type SkiaProjectionContext } from "./geometry";
 
 function imageRectForCommand(
   command: Extract<PaintCommand, { op: "drawImage" | "drawVideo" }>,
@@ -87,6 +88,7 @@ export function drawAsset(
   asset: SkiaAsset,
   alpha: number,
   blendMode?: unknown,
+  projective?: { matrix: readonly number[]; context?: Pick<SkiaProjectionContext, "projection" | "depthClip"> },
 ): boolean {
   // CanvasKit's browser helper is reliable for Image/Canvas/ImageBitmap but
   // older CanvasKit builds can throw while reading an HTMLVideoElement. The
@@ -108,7 +110,38 @@ export function drawAsset(
   }
   const fastSample = command.op === "drawImage"
     && (command.imageRendering === "optimizeSpeed" || command.imageRendering === "crisp-edges" || command.imageRendering === "pixelated");
-  canvas.drawImageRect(image, rects.source, rects.destination, imagePaint, fastSample);
+  const projectiveMesh = projective && kit.MakeVertices && canvas.drawVertices && image.makeShaderOptions
+    ? projectiveTextureMesh(rects.destination, rects.source, projective.matrix, projective.context)
+    : null;
+  if (projectiveMesh && kit.MakeVertices && canvas.drawVertices && image.makeShaderOptions) {
+    const shader = image.makeShaderOptions(
+      kit.TileMode.Clamp,
+      kit.TileMode.Clamp,
+      fastSample ? kit.FilterMode?.Nearest ?? 0 : kit.FilterMode?.Linear ?? 1,
+      kit.MipmapMode?.None ?? 0,
+      [1, 0, 0, 0, 1, 0, 0, 0, 1],
+    );
+    const vertices = shader
+      ? kit.MakeVertices(
+        kit.VertexMode?.Triangles ?? 0,
+        projectiveMesh.positions,
+        projectiveMesh.texCoords,
+        undefined,
+        projectiveMesh.indices,
+        false,
+      )
+      : null;
+    if (shader && vertices) {
+      imagePaint.setShader(shader);
+      canvas.drawVertices(vertices, blendMode ?? kit.BlendMode.SrcOver, imagePaint);
+      vertices.delete();
+      shader.delete();
+    } else {
+      canvas.drawImageRect(image, rects.source, rects.destination, imagePaint, fastSample);
+    }
+  } else {
+    canvas.drawImageRect(image, rects.source, rects.destination, imagePaint, fastSample);
+  }
   if (rects.clip) canvas.restore();
   imagePaint.delete();
   image.delete();

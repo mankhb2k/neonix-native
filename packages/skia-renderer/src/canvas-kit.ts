@@ -16,6 +16,11 @@ export type SkiaCanvasKit = {
   StrokeJoin: { Miter: unknown; Bevel: unknown; Round: unknown };
   /** Skia blend modes use the same Porter-Duff/CSS names as CanvasKit. */
   BlendMode: Record<string, unknown>;
+  /** CanvasKit 0.42 exposes textured triangle vertices for projective planes. */
+  VertexMode?: { Triangles: unknown };
+  FilterMode?: { Nearest: unknown; Linear: unknown };
+  MipmapMode?: { None: unknown };
+  MakeVertices?(mode: unknown, positions: Float32Array, texCoords?: Float32Array, colors?: Uint32Array, indices?: Uint16Array, isVolatile?: boolean): SkiaVertices | null;
   ColorFilter?: {
     MakeMatrix(matrix: number[]): SkiaColorFilter | null;
     MakeBlend?(color: unknown, mode: unknown): SkiaColorFilter | null;
@@ -61,6 +66,7 @@ export type SkiaCanvas = {
   drawPath(path: SkiaPath, paint: SkiaPaint): void;
   drawGlyphs(glyphs: Uint16Array, positions: Float32Array, x: number, y: number, font: SkiaFont, paint: SkiaPaint): void;
   drawImageRect(image: SkiaImage, sourceRect: unknown, destinationRect: unknown, paint: SkiaPaint | null, fastSample?: boolean): void;
+  drawVertices?(vertices: SkiaVertices, blendMode: unknown, paint: SkiaPaint): void;
   saveLayer(paint?: SkiaPaint | null, bounds?: unknown, backdrop?: SkiaImageFilter | null, flags?: number, tileMode?: unknown): number;
   clipRect(rect: unknown, op?: unknown, antialias?: boolean): void;
   clipPath?(path: SkiaPath, op?: unknown, antialias?: boolean): void;
@@ -90,7 +96,13 @@ export type SkiaPath = { delete(): void; setFillType?(value: unknown): void };
 export type SkiaPathBuilder = { transform(...args: unknown[]): SkiaPathBuilder; snapshot(): SkiaPath; delete(): void };
 export type SkiaTypeface = { delete(): void };
 export type SkiaFont = { delete(): void; setSubpixel(value: boolean): void };
-export type SkiaImage = { delete(): void; width?: () => number; height?: () => number };
+export type SkiaImage = {
+  delete(): void;
+  width?: () => number;
+  height?: () => number;
+  makeShaderOptions?(tileModeX: unknown, tileModeY: unknown, filterMode: unknown, mipmapMode: unknown, localMatrix?: number[]): SkiaShader | null;
+};
+export type SkiaVertices = { delete(): void };
 
 let kitPromise: Promise<SkiaCanvasKit> | null = null;
 

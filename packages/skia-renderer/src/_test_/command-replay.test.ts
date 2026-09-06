@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { matrix4ToSkia3x3, matrix4ToSkiaCanvasMatrix, projectiveMeshSvg, projectiveShapeSvg, replaySkiaCommands } from "../command";
+import { matrix4ToSkia3x3, matrix4ToSkiaCanvasMatrix, projectiveMeshSvg, projectiveTextureMesh, projectiveShapeSvg, replaySkiaCommands } from "../command";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint, SkiaPath, SkiaPathEffect, SkiaTypeface } from "../canvas-kit";
 
 describe("Skia command replay transforms", () => {
+  it("tessellates projective texture UVs and clips them in homogeneous space", () => {
+    const mesh = projectiveTextureMesh(
+      [0, 0, 200, 120],
+      [10, 20, 410, 260],
+      [
+        1, 0, 0, 0.004,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+      ],
+      { projection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+    );
+    expect(mesh).not.toBeNull();
+    expect(mesh?.positions.length).toBeGreaterThan(8);
+    expect(mesh?.texCoords.length).toBe(mesh?.positions.length);
+    expect(mesh?.indices.length).toBeGreaterThanOrEqual(6);
+    expect([...mesh!.texCoords].every(Number.isFinite)).toBe(true);
+  });
+
   it("clips a general surface mesh against the homogeneous near plane before division", () => {
     const svg = projectiveMeshSvg({
       vertices: [0, 0, 100, 0, 100, 100, 0, 100],
