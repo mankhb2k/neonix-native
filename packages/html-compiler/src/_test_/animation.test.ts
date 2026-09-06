@@ -17,6 +17,43 @@ describe("CSS animation lowering", () => {
     expect(tracks[0]?.playback).toMatchObject({ durationMs: 1000, delayMs: 100, iterations: 2, direction: "alternate", fillMode: "both" });
   });
 
+  it("lowers perspective distance into a group render3d track", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"scene\"><div id=\"card\"></div></div>",
+      css: `
+        @keyframes camera-distance { from { perspective: 400px; } to { perspective: 900px; } }
+        #scene { position: absolute; left: 200px; top: 120px; width: 800px; height: 500px; perspective: 400px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: camera-distance; animation-duration: 1s; animation-fill-mode: both; animation-timing-function: linear; }
+        #card { position: absolute; left: 200px; top: 120px; width: 240px; height: 160px; background: #22d3ee; transform: translateZ(120px) rotateY(-18deg); }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const scene = result.protocol?.layers.find((layer) => layer.id === "scene");
+    const track = scene?.tracks?.find((candidate) => candidate.path === "render3d.perspective.distance");
+    expect(scene?.render3d?.perspective).toEqual({ distance: 400, origin: { x: 400, y: 250 } });
+    expect(track?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "number", value: 400 },
+      { type: "number", value: 900 },
+    ]);
+  });
+
+  it("lowers perspective-origin X and Y into a typed vec2 track", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"scene\"><div id=\"card\"></div></div>",
+      css: `
+        @keyframes camera-origin { from { perspective-origin: 10% 20%; } to { perspective-origin: right bottom; } }
+        #scene { position: absolute; width: 800px; height: 500px; perspective: 600px; perspective-origin: 10% 20%; animation-name: camera-origin; animation-duration: 1s; animation-fill-mode: both; animation-timing-function: linear; }
+        #card { position: absolute; width: 240px; height: 160px; background: #a78bfa; transform: translateZ(100px); }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const scene = result.protocol?.layers.find((layer) => layer.id === "scene");
+    const track = scene?.tracks?.find((candidate) => candidate.path === "render3d.perspective.origin");
+    expect(track?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "vec2", value: [80, 100] },
+      { type: "vec2", value: [800, 500] },
+    ]);
+  });
+
   it("lowers CSS offset-* to a layer-owned motion path and typed distance track", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: "<div id=\"box\"></div>",

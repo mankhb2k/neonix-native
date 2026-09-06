@@ -178,6 +178,14 @@ function toPropertyValue(value: V2AnimatableValue): unknown {
 }
 
 function applyTrackValue(layer: V2Layer, path: string, value: unknown): V2Layer {
+  // V2 tracks use the canonical vec2 tuple representation, while the
+  // render3d perspective context remains an ergonomic named-coordinate
+  // object in the layer schema. Materialize that boundary explicitly before
+  // the generic path writer runs.
+  if (path === "render3d.perspective.origin" && Array.isArray(value) && value.length === 2
+    && value.every((item) => typeof item === "number")) {
+    return assignPath(layer, ["render3d", "perspective", "origin"], { x: value[0], y: value[1] }) as V2Layer;
+  }
   const segments = path.split(".");
   if (segments[0] === "effects") {
     const effectId = segments[1];

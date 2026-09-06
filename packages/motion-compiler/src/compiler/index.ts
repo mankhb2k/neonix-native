@@ -28,6 +28,7 @@ import {
   tessellatePathStroke,
   is3DMatrix4,
   hasPerspectiveTerms,
+  transformPoint4,
 } from "@motionvideo/motion-runtime";
 import {
   parseMotionProtocol,
@@ -869,7 +870,113 @@ type LayerContext = {
   visible: boolean;
   timing: { start: number; duration: number };
   currentColor: string;
+  /** Placement of this layer inside the nearest CSS flat boundary. */
+  flatPlacement?: FlatBoundaryPlacement;
+  /** Placement inherited by this layer's direct descendants. */
+  flatBoundaryForChildren?: FlatBoundaryPlacement;
 };
+
+type FlatBoundaryPlacement = {
+  /** The group whose local plane owns this flattening context. */
+  boundaryLayerId: string;
+  boundaryWorldMatrix: Matrix4;
+  projectionMatrix: Matrix4;
+  relativeMatrix: Matrix4;
+};
+
+/** Generated group paint is the group's own surface, not a perspective child. */
+function isGeneratedGroupPaintLayer(layer: MotionProtocolV2["layers"][number]): boolean {
+  return layer.type !== "group" && layer.id.endsWith("::paint");
+}
+
+/** Keep an element's planar XY transform when its parent is a flat surface. */
+function flattenLocalMatrixForCssPlane(matrix: Matrix4): Matrix4 {
+  const flattened = new Float64Array(matrix);
+  flattened[2] = 0;
+  flattened[6] = 0;
+  flattened[8] = 0;
+  flattened[9] = 0;
+  flattened[10] = 1;
+  flattened[14] = 0;
+  flattened[3] = 0;
+  flattened[7] = 0;
+  flattened[11] = 0;
+  flattened[15] = 1;
+  return flattened;
+}
+
+type FlatBoundaryHomogeneousPoint = { x: number; y: number; z: number; w: number };
+
+function clipFlatBoundaryPolygon(points: FlatBoundaryHomogeneousPoint[]): FlatBoundaryHomogeneousPoint[] {
+  if (points.length === 0) return points;
+  const output: FlatBoundaryHomogeneousPoint[] = [];
+  let previous = points[points.length - 1]!;
+  let previousDistance = previous.w - 1e-7;
+  let previousInside = previousDistance >= 0;
+  for (const current of points) {
+    const currentDistance = current.w - 1e-7;
+    const currentInside = currentDistance >= 0;
+    if (currentInside !== previousInside) {
+      const denominator = previousDistance - currentDistance;
+      const t = Math.abs(denominator) <= 1e-12
+        ? 0
+        : Math.max(0, Math.min(1, previousDistance / denominator));
+      output.push({
+        x: previous.x + (current.x - previous.x) * t,
+        y: previous.y + (current.y - previous.y) * t,
+        z: previous.z + (current.z - previous.z) * t,
+        w: previous.w + (current.w - previous.w) * t,
+      });
+    }
+    if (currentInside) output.push(current);
+    previous = current;
+    previousDistance = currentDistance;
+    previousInside = currentInside;
+  }
+  return output;
+}
+
+/**
+ * Bake a descendant into a flat CSS boundary. Projective paths are clipped in
+ * homogeneous space before division; dividing raw vertices first can create
+ * enormous self-intersecting contours when a mask/clip path crosses w=0.
+ */
+function transformContourForFlatBoundary(contour: PathContour, matrix: Matrix4): PathContour | undefined {
+  const canonical = flattenPathContourAny(contour).points;
+  const homogeneous = canonical.map((point) => transformPoint4(matrix, point.x, point.y, 0));
+  const clipped = contour.closed ? clipFlatBoundaryPolygon(homogeneous) : homogeneous.filter((point) => point.w > 1e-7);
+  const points = clipped
+    .filter((point) => Number.isFinite(point.w) && point.w > 1e-7)
+    .map((point) => ({ x: point.x / point.w, y: point.y / point.w }));
+  if (points.length < (contour.closed ? 3 : 2) || points.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return undefined;
+  return {
+    id: contour.id,
+    start: points[0]!,
+    segments: points.slice(1).map((point) => ({ kind: "line" as const, to: point })),
+    closed: contour.closed,
+  };
+}
+
+function flattenPathNodeAtBoundary(node: VisualRuntimeNode, placement: FlatBoundaryPlacement): VisualRuntimeNode {
+  if (node.content.kind !== "path") return node;
+  const matrix = multiplyMatrix4(placement.projectionMatrix, placement.relativeMatrix);
+  const contours = node.content.contours.flatMap((contour) => {
+    const transformed = transformContourForFlatBoundary(contour, matrix);
+    return transformed ? [transformed] : [];
+  });
+  const mesh = contours.length > 0 && node.content.fill !== undefined
+    ? tessellateClosedPath(contours, node.content.fillRule)
+    : undefined;
+  return {
+    ...node,
+    worldMatrix: placement.boundaryWorldMatrix,
+    content: {
+      ...node.content,
+      contours,
+      ...(mesh ? { mesh } : { mesh: undefined }),
+    },
+  };
+}
 
 /** CSS backface-visibility checks the transformed local +Z surface normal. */
 function isHiddenBackface(matrix: Matrix4, visibility: MotionProtocolV2["layers"][number]["backfaceVisibility"]): boolean {
@@ -940,9 +1047,18 @@ function compileVisualRuntimeInternal(
       parentContext.timing.start + parentContext.timing.duration,
       start + toRuntimeSeconds(layer.timing.duration),
     );
-    const worldMatrix = multiplyMatrix4(parentContext.childWorldMatrix, localMatrix);
+    const inheritedFlatBoundary = parentContext.flatBoundaryForChildren;
+    const isOwnGroupPaint = parent?.type === "group" && parent.render3d?.transformStyle === "flat" && isGeneratedGroupPaintLayer(layer);
+    const parentWorldMatrix = parent && isGeneratedGroupPaintLayer(layer)
+      ? parentContext.worldMatrix
+      : parentContext.childWorldMatrix;
+    const worldMatrix = multiplyMatrix4(parentWorldMatrix, localMatrix);
     const hiddenBackface = isHiddenBackface(worldMatrix, layer.backfaceVisibility);
-    const childWorldMatrix = layer.type === "group" && layer.render3d?.perspective
+    // A flat CSS group rasterizes its descendants into the group's plane. Its
+    // local perspective must not be chained as another homogeneous transform
+    // onto the descendant world matrix; doing so double-projects the subtree
+    // when an ancestor already owns the active perspective context.
+    const composedChildWorldMatrix = layer.type === "group" && layer.render3d?.perspective && layer.render3d.transformStyle !== "flat"
       ? multiplyMatrix4(
           worldMatrix,
           perspectiveMatrix3D(
@@ -951,6 +1067,33 @@ function compileVisualRuntimeInternal(
           ),
         )
       : worldMatrix;
+    const flatPlacement = inheritedFlatBoundary && !isOwnGroupPaint
+      ? {
+          ...inheritedFlatBoundary,
+          relativeMatrix: isGeneratedGroupPaintLayer(layer)
+            ? inheritedFlatBoundary.relativeMatrix
+            : multiplyMatrix4(
+                inheritedFlatBoundary.relativeMatrix,
+                parent?.type === "group" &&
+                parent.id !== inheritedFlatBoundary.boundaryLayerId &&
+                parent.render3d?.transformStyle !== "preserve-3d" &&
+                layer.type !== "group"
+                  ? flattenLocalMatrixForCssPlane(localMatrix)
+                  : localMatrix,
+              ),
+        }
+      : undefined;
+    const flatBoundaryForChildren = layer.type === "group" && layer.render3d?.transformStyle === "flat"
+      ? {
+          boundaryLayerId: layer.id,
+          boundaryWorldMatrix: worldMatrix,
+          projectionMatrix: perspectiveMatrix3D(layer.render3d.perspective?.distance ?? 1, layer.render3d.perspective?.origin),
+          relativeMatrix: identityMatrix4(),
+        }
+      : flatPlacement;
+    const childWorldMatrix = layer.type === "group" && layer.render3d?.transformStyle === "flat"
+      ? worldMatrix
+      : composedChildWorldMatrix;
     const context: LayerContext = {
       localMatrix,
       worldMatrix,
@@ -968,6 +1111,8 @@ function compileVisualRuntimeInternal(
         end > start,
       timing: { start, duration: Math.max(0, end - start) },
       currentColor: layer.color ?? parentContext.currentColor,
+      ...(flatPlacement ? { flatPlacement } : {}),
+      ...(flatBoundaryForChildren ? { flatBoundaryForChildren } : {}),
     };
     contextCache.set(layer.id, context);
     return context;
@@ -1640,7 +1785,30 @@ function compileVisualRuntimeInternal(
       } as VisualRuntimeNode["content"],
     };
   }).filter((node): node is VisualRuntimeNode => node !== null);
-  const nodes = [...compiledLayerNodes, ...semanticMaskNodes];
+  const flattenNodeAtBoundary = (node: VisualRuntimeNode): VisualRuntimeNode => {
+    const layer = layerById.get(node.id);
+    // Clip/mask definitions are emitted as semantic sibling nodes. They use
+    // the target layer as parent, so they must share the target's flattened
+    // geometry or the clip would be evaluated in a different 3D space.
+    const targetContext = layer
+      ? contextCache.get(layer.id)
+      : node.parentId
+        ? contextCache.get(node.parentId)
+        : undefined;
+    const context = targetContext;
+    const parent = layer?.parentLayerId === null || layer?.parentLayerId === undefined
+      ? undefined
+      : layerById.get(layer.parentLayerId);
+    // The flat group's own generated paint is its surface and must stay in
+    // the group's plane. Other drawable descendants are baked into that
+    // plane before the ancestor world matrix is applied.
+    if (
+      !context?.flatPlacement ||
+      (parent?.type === "group" && parent.render3d?.transformStyle === "flat" && layer !== undefined && isGeneratedGroupPaintLayer(layer))
+    ) return node;
+    return flattenPathNodeAtBoundary(node, context.flatPlacement);
+  };
+  const nodes = [...compiledLayerNodes, ...semanticMaskNodes].map(flattenNodeAtBoundary);
 
   const visualDuration = nodes.reduce(
     (duration, node) => Math.max(duration, node.timing.start + node.timing.duration),

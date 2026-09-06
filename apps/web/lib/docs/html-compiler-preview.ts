@@ -14,7 +14,7 @@ export type HtmlCompilerPreviewTopic =
 
 export type HtmlCompilerPreviewCase = {
   id: string;
-  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5";
+  phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7";
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -4215,9 +4215,318 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
   },
 ];
 
+export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.perspective.nested-distance",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested distances",
+    properties: ["nested perspective", "distance", "Matrix4 chain"],
+    hint: "Each nested group keeps its own perspective distance; Runtime composes both contexts instead of collapsing them into one camera.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-distance-outer\"><div id=\"nested-distance-inner\"><div id=\"nested-distance-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-distance-outer { position: absolute; left: 360px; top: 180px; width: 1200px; height: 720px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-distance-inner { position: absolute; left: 180px; top: 110px; width: 840px; height: 500px; perspective: 420px; perspective-origin: 75% 25%; transform-style: preserve-3d; }
+#nested-distance-card { position: absolute; left: 250px; top: 130px; width: 340px; height: 220px; background: #22d3ee; transform: translateZ(160px) rotateY(-22deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-origins",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested origins",
+    properties: ["perspective-origin", "nested origin", "rotateX", "rotateY"],
+    hint: "Outer and inner perspective-origin values remain local to their own boxes, so convergence changes twice without changing layout frames.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-origin-outer\"><div id=\"nested-origin-inner\"><div id=\"nested-origin-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-origin-outer { position: absolute; left: 360px; top: 160px; width: 1200px; height: 760px; perspective: 820px; perspective-origin: 15% 80%; transform-style: preserve-3d; }
+#nested-origin-inner { position: absolute; left: 220px; top: 130px; width: 760px; height: 500px; perspective: 460px; perspective-origin: 85% 20%; transform-style: preserve-3d; }
+#nested-origin-card { position: absolute; left: 220px; top: 120px; width: 320px; height: 230px; background: #f97316; transform: translateZ(130px) rotateY(-28deg) rotateX(12deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-flat-boundary",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested flat boundary",
+    properties: ["nested perspective", "transform-style: flat", "flatten boundary"],
+    hint: "The inner group declares a flat boundary while its own perspective remains explicit for its direct child surface.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-flat-outer\"><div id=\"nested-flat-inner\"><div id=\"nested-flat-card\"><div id=\"nested-flat-face\"></div></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-flat-outer { position: absolute; left: 300px; top: 180px; width: 1320px; height: 700px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-flat-inner { position: absolute; left: 260px; top: 110px; width: 800px; height: 500px; perspective: 400px; perspective-origin: 35% 65%; transform-style: flat; }
+#nested-flat-card { position: absolute; left: 250px; top: 120px; width: 300px; height: 240px; transform: translateZ(150px) rotateY(-26deg); background: #a78bfa; }
+#nested-flat-face { position: absolute; left: 50px; top: 45px; width: 200px; height: 150px; background: #facc15; transform: translateZ(120px) rotateX(26deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-preserve-depth",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested preserve-3d depth",
+    properties: ["nested perspective", "preserve-3d", "sibling depth", "paint order"],
+    hint: "Two descendants retain independent depth inside the nested preserve-3d context while their paint order remains deterministic.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-depth-outer\"><div id=\"nested-depth-inner\"><div id=\"nested-depth-back\"></div><div id=\"nested-depth-front\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-depth-outer { position: absolute; left: 300px; top: 170px; width: 1320px; height: 720px; perspective: 860px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-depth-inner { position: absolute; left: 270px; top: 110px; width: 780px; height: 500px; perspective: 520px; perspective-origin: 50% 50%; transform-style: preserve-3d; transform: rotateY(-12deg); }
+#nested-depth-back, #nested-depth-front { position: absolute; left: 220px; top: 120px; width: 340px; height: 240px; transform: rotateY(18deg); }
+#nested-depth-back { background: #38bdf8; transform: translateZ(40px) rotateY(18deg); }
+#nested-depth-front { background: #fb7185; transform: translateZ(190px) rotateY(18deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-near-plane",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested near-plane",
+    properties: ["nested perspective", "near-plane", "partial surface clip"],
+    hint: "Only the inner perspective surface crosses its homogeneous camera plane; the outer surface remains visible and is not clipped as a whole.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-near-outer\"><div id=\"nested-near-inner\"><div id=\"nested-near-visible\"></div><div id=\"nested-near-edge\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+#nested-near-outer { position: absolute; left: 300px; top: 150px; width: 1320px; height: 760px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-near-inner { position: absolute; left: 230px; top: 130px; width: 820px; height: 500px; perspective: 170px; perspective-origin: 22% 78%; transform-style: preserve-3d; }
+#nested-near-visible, #nested-near-edge { position: absolute; left: 250px; top: 120px; width: 300px; height: 220px; background: #34d399; transform: rotateY(24deg); }
+#nested-near-visible { transform: translateZ(70px) rotateY(24deg); }
+#nested-near-edge { left: 570px; transform: translateZ(240px) rotateY(24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-overflow-clip",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested overflow clipping",
+    properties: ["nested perspective", "overflow: hidden", "composition clip"],
+    hint: "The inner perspective result is clipped by its own overflow boundary and then by the composition edge without leaking outside either scope.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-overflow-outer\"><div id=\"nested-overflow-inner\"><div id=\"nested-overflow-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+#nested-overflow-outer { position: absolute; left: 180px; top: 140px; width: 1580px; height: 800px; perspective: 880px; perspective-origin: 50% 50%; transform-style: preserve-3d; overflow: hidden; }
+#nested-overflow-inner { position: absolute; left: 980px; top: 180px; width: 520px; height: 360px; perspective: 360px; perspective-origin: 18% 70%; transform-style: preserve-3d; overflow: hidden; }
+#nested-overflow-card { position: absolute; left: 170px; top: 70px; width: 360px; height: 260px; background: #fb7185; transform: translateZ(170px) rotateY(-38deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-backface",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested backface",
+    properties: ["nested perspective", "backface-visibility", "rotateY(180deg)"],
+    hint: "Backface visibility is evaluated after the accumulated nested Matrix4 transform, not at an isolated child transform.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-backface-outer\"><div id=\"nested-backface-inner\"><div id=\"nested-backface-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-backface-outer { position: absolute; left: 320px; top: 180px; width: 1280px; height: 700px; perspective: 820px; transform-style: preserve-3d; }
+#nested-backface-inner { position: absolute; left: 240px; top: 100px; width: 800px; height: 500px; perspective: 440px; perspective-origin: 76% 24%; transform-style: preserve-3d; transform: rotateY(18deg); }
+#nested-backface-card { position: absolute; left: 230px; top: 120px; width: 340px; height: 240px; background: #f43f5e; transform: translateZ(140px) rotateY(180deg); backface-visibility: hidden; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-same-origin",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested shared origin",
+    properties: ["nested perspective", "shared origin", "center convergence"],
+    hint: "Matching percentage origins are resolved in each local box; equal percentages do not imply a shared absolute point.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-same-outer\"><div id=\"nested-same-inner\"><div id=\"nested-same-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-same-outer { position: absolute; left: 300px; top: 160px; width: 1320px; height: 760px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-same-inner { position: absolute; left: 250px; top: 130px; width: 820px; height: 500px; perspective: 440px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-same-card { position: absolute; left: 240px; top: 120px; width: 340px; height: 230px; background: #22c55e; transform: translateZ(150px) rotateY(-24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-between-boundaries",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / layer between boundaries",
+    properties: ["nested perspective", "intermediate layer", "stable ancestor order"],
+    hint: "A direct child surface and a nested perspective subtree retain separate ancestor chains instead of inheriting the inner camera.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-between-outer\"><div id=\"nested-between-direct\"></div><div id=\"nested-between-inner\"><div id=\"nested-between-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#nested-between-outer { position: absolute; left: 240px; top: 150px; width: 1440px; height: 780px; perspective: 880px; perspective-origin: 45% 55%; transform-style: preserve-3d; }
+#nested-between-direct { position: absolute; left: 180px; top: 190px; width: 300px; height: 220px; background: #f59e0b; transform: translateZ(90px) rotateY(18deg); }
+#nested-between-inner { position: absolute; left: 700px; top: 130px; width: 600px; height: 500px; perspective: 380px; perspective-origin: 70% 30%; transform-style: preserve-3d; }
+#nested-between-card { position: absolute; left: 120px; top: 140px; width: 300px; height: 220px; background: #38bdf8; transform: translateZ(180px) rotateY(-26deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.nested-clip-path",
+    phase: "P6",
+    topic: "Motion & animation",
+    label: "Perspective / nested clip-path",
+    properties: ["nested perspective", "clip-path", "overflow", "composition clip"],
+    hint: "Geometric clip-path and nested overflow are intersected after the complete Matrix4 chain, before the composition edge clip.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"nested-clip-outer\"><div id=\"nested-clip-inner\"><div id=\"nested-clip-card\"></div></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; overflow: hidden; }
+#nested-clip-outer { position: absolute; left: 220px; top: 130px; width: 1500px; height: 820px; perspective: 860px; perspective-origin: 50% 50%; transform-style: preserve-3d; overflow: hidden; }
+#nested-clip-inner { position: absolute; left: 780px; top: 160px; width: 620px; height: 440px; perspective: 360px; perspective-origin: 20% 75%; transform-style: preserve-3d; overflow: hidden; }
+#nested-clip-card { position: absolute; left: 90px; top: 70px; width: 480px; height: 340px; background: #a855f7; transform: translateZ(210px) rotateY(-34deg) rotateX(9deg); clip-path: polygon(8% 0, 100% 12%, 88% 100%, 0 84%); }`,
+    }),
+  },
+];
+
+const perspectiveAnimationCase = (
+  id: string,
+  label: string,
+  properties: string[],
+  hint: string,
+  body: string,
+  css: string,
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.perspective.${id}`,
+  phase: "P7",
+  topic: "Motion & animation",
+  label,
+  properties,
+  hint,
+  source: createNewHtmlProject({
+    html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", `<body>\n  ${body}\n</body>`),
+    css: `body { margin: 0; background: #081018; }\n${css}`,
+  }),
+});
+
+export const HTML_COMPILER_PERSPECTIVE_PHASE7_CASES: HtmlCompilerPreviewCase[] = [
+  perspectiveAnimationCase(
+    "animation-distance-linear",
+    "Perspective animation / distance linear",
+    ["perspective", "@keyframes", "linear", "distance"],
+    "The group camera distance is a numeric render3d track; the child keeps translateZ while the perspective matrix is rebuilt per sample.",
+    `<div id="p7-distance-linear"><div class="p7-card"></div></div>`,
+    `@keyframes p7-distance-linear { from { perspective: 360px; } to { perspective: 900px; } }
+#p7-distance-linear { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 360px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: p7-distance-linear; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #22d3ee; transform: translateZ(150px) rotateY(-22deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-distance-cubic",
+    "Perspective animation / cubic-bezier",
+    ["perspective", "cubic-bezier", "typed number track"],
+    "Cubic-bezier easing stays on the distance track segment and is evaluated by the shared Runtime V2 sampler.",
+    `<div id="p7-distance-cubic"><div class="p7-card"></div></div>`,
+    `@keyframes p7-distance-cubic { from { perspective: 420px; } to { perspective: 980px; } }
+#p7-distance-cubic { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 420px; perspective-origin: 30% 65%; transform-style: preserve-3d; animation-name: p7-distance-cubic; animation-duration: 1400ms; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); animation-fill-mode: both; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #a78bfa; transform: translateZ(170px) rotateY(24deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-distance-steps",
+    "Perspective animation / steps distance",
+    ["perspective", "steps(4, jump-start)", "discrete camera plateaus"],
+    "Steps easing creates deterministic discrete perspective distances without a separate CSS animation engine.",
+    `<div id="p7-distance-steps"><div class="p7-card"></div></div>`,
+    `@keyframes p7-distance-steps { from { perspective: 300px; } 25% { perspective: 500px; } 50% { perspective: 700px; } to { perspective: 1000px; } }
+#p7-distance-steps { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 300px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: p7-distance-steps; animation-duration: 1600ms; animation-timing-function: steps(4, jump-start); animation-fill-mode: both; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #facc15; transform: translateZ(160px) rotateY(-18deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-origin-corner",
+    "Perspective animation / center to corner",
+    ["perspective-origin", "center", "right bottom", "vec2"],
+    "Perspective-origin animates as one typed vec2 track while X and Y resolve against the group's own frame.",
+    `<div id="p7-origin-corner"><div class="p7-card"></div></div>`,
+    `@keyframes p7-origin-corner { from { perspective-origin: center; } to { perspective-origin: right bottom; } }
+#p7-origin-corner { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 620px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: p7-origin-corner; animation-duration: 1200ms; animation-timing-function: linear; animation-fill-mode: both; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #fb7185; transform: translateZ(180px) rotateY(-26deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-origin-xy",
+    "Perspective animation / X + Y origin",
+    ["perspective-origin", "percentage X", "percentage Y", "simultaneous interpolation"],
+    "Both origin coordinates interpolate independently, preserving local percentage resolution and the named object contract.",
+    `<div id="p7-origin-xy"><div class="p7-card"></div></div>`,
+    `@keyframes p7-origin-xy { from { perspective-origin: 8% 88%; } to { perspective-origin: 92% 12%; } }
+#p7-origin-xy { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 560px; perspective-origin: 8% 88%; transform-style: preserve-3d; animation-name: p7-origin-xy; animation-duration: 1300ms; animation-fill-mode: both; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #34d399; transform: translateZ(150px) rotateX(14deg) rotateY(22deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-delay-backwards",
+    "Perspective animation / delay + backwards",
+    ["perspective", "animation-delay", "backwards fill"],
+    "During the positive delay, backwards fill exposes the first camera distance through the shared playback metadata.",
+    `<div id="p7-delay-backwards"><div class="p7-card"></div></div>`,
+    `@keyframes p7-delay-backwards { from { perspective: 360px; } to { perspective: 860px; } }
+#p7-delay-backwards { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 360px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: p7-delay-backwards; animation-duration: 900ms; animation-delay: 300ms; animation-fill-mode: backwards; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #f97316; transform: translateZ(170px) rotateY(-20deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-alternate",
+    "Perspective animation / alternate iterations",
+    ["perspective", "iteration-count", "alternate", "cycle boundary"],
+    "Alternate playback reverses the distance track on the second iteration while preserving the local perspective origin.",
+    `<div id="p7-alternate"><div class="p7-card"></div></div>`,
+    `@keyframes p7-alternate { from { perspective: 400px; } to { perspective: 900px; } }
+#p7-alternate { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 400px; perspective-origin: 70% 30%; transform-style: preserve-3d; animation-name: p7-alternate; animation-duration: 700ms; animation-iteration-count: 2; animation-direction: alternate; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #38bdf8; transform: translateZ(150px) rotateY(26deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-paused",
+    "Perspective animation / paused transport",
+    ["perspective-origin", "animation-play-state", "paused", "transport"],
+    "The authored paused state remains playback metadata; the preview transport can still seek a deterministic sample.",
+    `<div id="p7-paused"><div class="p7-card"></div></div>`,
+    `@keyframes p7-paused { from { perspective-origin: 20% 80%; } to { perspective-origin: 80% 20%; } }
+#p7-paused { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 650px; perspective-origin: 20% 80%; transform-style: preserve-3d; animation-name: p7-paused; animation-duration: 1000ms; animation-play-state: paused; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #a78bfa; transform: translateZ(180px) rotateY(-24deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-rotate",
+    "Perspective animation / distance + rotateY",
+    ["perspective", "rotateY", "transform order", "combined tracks"],
+    "Camera distance and child rotateY remain independent typed tracks while the transform order is preserved.",
+    `<div id="p7-rotate"><div class="p7-card"></div></div>`,
+    `@keyframes p7-camera-rotate { from { perspective: 420px; } to { perspective: 900px; } }
+@keyframes p7-card-rotate { from { transform: translateZ(120px) rotateY(-30deg); } to { transform: translateZ(220px) rotateY(30deg); } }
+#p7-rotate { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 420px; perspective-origin: 35% 60%; transform-style: preserve-3d; animation-name: p7-camera-rotate; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #22d3ee; animation-name: p7-card-rotate; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-nested-origin",
+    "Perspective animation / nested origin",
+    ["nested perspective", "perspective-origin", "local track", "ancestor chain"],
+    "Only the inner camera origin animates; the outer perspective remains a separate ancestor context in the Matrix4 chain.",
+    `<div id="p7-nested-outer"><div id="p7-nested-inner"><div class="p7-card"></div></div></div>`,
+    `@keyframes p7-inner-origin { from { perspective-origin: 15% 80%; } to { perspective-origin: 85% 20%; } }
+#p7-nested-outer { position: absolute; left: 300px; top: 140px; width: 1320px; height: 760px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#p7-nested-inner { position: absolute; left: 220px; top: 120px; width: 880px; height: 520px; perspective: 430px; perspective-origin: 15% 80%; transform-style: preserve-3d; animation-name: p7-inner-origin; animation-duration: 1400ms; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 260px; top: 150px; width: 360px; height: 240px; background: #fb7185; transform: translateZ(180px) rotateX(12deg) rotateY(-24deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-origin-outside",
+    "Perspective animation / origin outside box",
+    ["perspective-origin", "negative length", "outside border-box", "no clamp"],
+    "Origin coordinates outside the border-box remain valid local camera coordinates and are not clamped during lowering.",
+    `<div id="p7-origin-outside"><div class="p7-card"></div></div>`,
+    `@keyframes p7-origin-outside { from { perspective-origin: -160px 720px; } to { perspective-origin: 1240px -120px; } }
+#p7-origin-outside { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 600px; perspective-origin: -160px 720px; transform-style: preserve-3d; animation-name: p7-origin-outside; animation-duration: 1100ms; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #f59e0b; transform: translateZ(160px) rotateY(20deg); }`,
+  ),
+  perspectiveAnimationCase(
+    "animation-sibling-tracks",
+    "Perspective animation / sibling camera tracks",
+    ["two sibling groups", "perspective", "perspective-origin", "independent tracks"],
+    "Sibling perspective groups keep independent distance and origin tracks; no track is merged across layer scope.",
+    `<div id="p7-sibling-left"><div class="p7-sibling-card left"></div></div><div id="p7-sibling-right"><div class="p7-sibling-card right"></div></div>`,
+    `@keyframes p7-sibling-left { from { perspective: 380px; perspective-origin: 15% 50%; } to { perspective: 820px; perspective-origin: 85% 50%; } }
+@keyframes p7-sibling-right { from { perspective: 820px; perspective-origin: 85% 50%; } to { perspective: 380px; perspective-origin: 15% 50%; } }
+#p7-sibling-left, #p7-sibling-right { position: absolute; top: 260px; width: 520px; height: 360px; transform-style: preserve-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+#p7-sibling-left { left: 260px; perspective: 380px; perspective-origin: 15% 50%; animation-name: p7-sibling-left; }
+#p7-sibling-right { left: 1140px; perspective: 820px; perspective-origin: 85% 50%; animation-name: p7-sibling-right; }
+.p7-sibling-card { position: absolute; left: 110px; top: 90px; width: 300px; height: 180px; transform: translateZ(120px) rotateY(-18deg); }
+.p7-sibling-card.left { background: #22d3ee; }
+.p7-sibling-card.right { background: #a78bfa; transform: translateZ(180px) rotateY(18deg); }`,
+  ),
+];
+
 export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
   const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES]) {
+  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES]) {
     const key = `${item.phase}:${item.topic}`;
     const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
     group.cases.push(item);
@@ -4227,5 +4536,5 @@ export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewC
 }
 
 export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
 }

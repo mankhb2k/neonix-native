@@ -319,6 +319,42 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     });
   });
 
+  it("lowers nested perspective contexts without collapsing their distances", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="outer"><div id="inner"><div id="card"></div></div></div>`,
+      css: `body { margin: 0; } #outer { position: absolute; left: 200px; top: 120px; width: 1000px; height: 700px; perspective: 900px; perspective-origin: 15% 80%; transform-style: preserve-3d; } #inner { position: absolute; left: 180px; top: 100px; width: 700px; height: 480px; perspective: 420px; perspective-origin: 85% 20%; transform-style: preserve-3d; } #card { position: absolute; left: 200px; top: 100px; width: 280px; height: 180px; background: #38bdf8; transform: translateZ(140px) rotateY(22deg); }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layers = result.protocol?.layers ?? [];
+    expect(layers.filter((layer) => layer.type === "group" && layer.render3d?.perspective)).toHaveLength(2);
+    expect(layers.find((layer) => layer.id === "outer")).toMatchObject({
+      render3d: { perspective: { distance: 900, origin: { x: 150, y: 560 } } },
+    });
+    expect(layers.find((layer) => layer.id === "inner")).toMatchObject({
+      render3d: { perspective: { distance: 420, origin: { x: 595, y: 96 } } },
+    });
+    expect(layers.find((layer) => layer.id === "card")?.parentLayerId).toBe("inner");
+  });
+
+  it("lowers overflow clipping as a CSS flat 3D boundary", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="outer"><div id="inner"><div id="card"></div></div></div>`,
+      css: `body { margin: 0; } #outer { position: absolute; left: 180px; top: 140px; width: 1580px; height: 800px; perspective: 880px; transform-style: preserve-3d; overflow: hidden; } #inner { position: absolute; left: 980px; top: 180px; width: 520px; height: 360px; perspective: 360px; transform-style: preserve-3d; overflow: hidden; } #card { position: absolute; left: 170px; top: 70px; width: 360px; height: 260px; background: #fb7185; transform: translateZ(170px) rotateY(-38deg); }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layers = result.protocol?.layers ?? [];
+    expect(layers.find((layer) => layer.id === "outer")).toMatchObject({
+      type: "group",
+      clipPath: "html-overflow-clip-0",
+      render3d: { transformStyle: "flat", perspective: { distance: 880 } },
+    });
+    expect(layers.find((layer) => layer.id === "inner")).toMatchObject({
+      type: "group",
+      clipPath: "html-overflow-clip-1",
+      render3d: { transformStyle: "flat", perspective: { distance: 360 } },
+    });
+  });
+
   it("fails closed for invalid CSS 3D values", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="invalid"></div>`,

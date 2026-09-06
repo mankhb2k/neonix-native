@@ -47,6 +47,10 @@ function trackValueKinds(path: string, layer: MotionProtocolV2["layers"][number]
   if (COMMON_NUMBER_PATHS.has(path)) return new Set(["number"]);
   if (COMMON_ENUM_PATHS.has(path)) return new Set(["enum"]);
   if (COMMON_BOOLEAN_PATHS.has(path)) return new Set(["boolean"]);
+  if (layer.type === "group" && layer.render3d?.perspective !== undefined) {
+    if (path === "render3d.perspective.distance") return new Set(["number"]);
+    if (path === "render3d.perspective.origin") return new Set(["vec2"]);
+  }
 
   const layerPaths: Record<string, Set<string>> = {
     shape: new Set(["payload.cornerRadius", "style.fillOpacity", "style.strokeWidth", "style.strokeOpacity"]),

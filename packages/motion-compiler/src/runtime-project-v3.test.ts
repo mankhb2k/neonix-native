@@ -208,6 +208,148 @@ describe("canonical compiler V3 projection", () => {
     expect(node?.worldMatrix[12]).toBeCloseTo(28, 8);
   });
 
+  it("samples perspective distance and origin tracks before rebuilding the Matrix4 chain", () => {
+    const project = filterProject({ id: "animated-perspective", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    const group = {
+      type: "group",
+      id: "animated-perspective-group",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 800, height: 500 },
+      transform: { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 1000 },
+      render3d: { transformStyle: "preserve-3d", perspective: { distance: 400, origin: { x: 80, y: 100 } } },
+      tracks: [
+        {
+          id: "camera-distance",
+          path: "render3d.perspective.distance",
+          keyframes: [{ time: 0, value: { type: "number", value: 400 } }, { time: 1000, value: { type: "number", value: 900 } }],
+          playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        },
+        {
+          id: "camera-origin",
+          path: "render3d.perspective.origin",
+          keyframes: [{ time: 0, value: { type: "vec2", value: [80, 100] } }, { time: 1000, value: { type: "vec2", value: [800, 500] } }],
+          playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        },
+      ],
+    };
+    project.layers[0] = {
+      ...project.layers[0],
+      parentLayerId: group.id,
+      transform: { ...project.layers[0].transform, translate: { x: 120, y: 90, z: 140 } },
+    };
+    project.layers.unshift(group);
+
+    const sampled = sampleMotionProtocolAtTime(project, 0.5);
+    expect(sampled.layers[0]?.render3d?.perspective).toEqual({ distance: 650, origin: { x: 440, y: 300 } });
+    const start = compileProtocolAtTime(project, 0);
+    const middle = compileProtocolAtTime(project, 0.5);
+    const startNode = start.visual.nodes.find((node) => node.id === "filtered-path");
+    const middleNode = middle.visual.nodes.find((node) => node.id === "filtered-path");
+    expect(startNode?.localMatrix[14]).toBeCloseTo(140, 8);
+    expect(middleNode?.localMatrix[14]).toBeCloseTo(140, 8);
+    expect(startNode?.worldMatrix[11]).not.toBeCloseTo(middleNode?.worldMatrix[11] ?? 0, 12);
+    expect(startNode?.worldMatrix[12]).not.toBeCloseTo(middleNode?.worldMatrix[12] ?? 0, 8);
+  });
+
+  it("composes nested group perspectives in stable ancestor-to-descendant order", () => {
+    const project = filterProject({ id: "nested-perspective", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    const outer = {
+      type: "group",
+      id: "outer-perspective",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 960, height: 540 },
+      transform: { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3000 },
+      render3d: { transformStyle: "preserve-3d", perspective: { distance: 900, origin: { x: 480, y: 270 } } },
+    };
+    const inner = {
+      ...outer,
+      id: "inner-perspective",
+      parentLayerId: outer.id,
+      render3d: { transformStyle: "preserve-3d", perspective: { distance: 420, origin: { x: 220, y: 140 } } },
+    };
+    project.layers[0] = {
+      ...project.layers[0],
+      parentLayerId: inner.id,
+      transform: { ...project.layers[0].transform, translate: { x: 100, y: 0, z: 140 } },
+    };
+    project.layers.unshift(inner, outer);
+
+    const runtime = compileProtocol(project);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(runtime.visual.view.depthClip).toBe("w-only");
+    expect(node?.worldMatrix[11]).toBeCloseTo(-1 / 900 - 1 / 420, 12);
+    expect(node?.worldMatrix[14]).toBeCloseTo(140, 8);
+  });
+
+  it("flattens descendants at a CSS flat boundary while keeping the element paint projective", () => {
+    const project = filterProject({ id: "flat-boundary", primitives: [] }) as any;
+    project.filters = [];
+    const base = project.layers[0];
+    const outer = {
+      type: "group",
+      id: "flat-outer",
+      parentLayerId: null,
+      order: 0,
+      frame: { width: 960, height: 540 },
+      transform: { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3000 },
+      render3d: { transformStyle: "preserve-3d", perspective: { distance: 760, origin: { x: 480, y: 270 } } },
+    };
+    const flat = {
+      ...outer,
+      id: "flat-inner",
+      parentLayerId: outer.id,
+      render3d: { transformStyle: "flat", perspective: { distance: 400, origin: { x: 280, y: 325 } },
+      },
+    };
+    const card = {
+      id: "flat-card",
+      type: "group",
+      parentLayerId: flat.id,
+      order: 0,
+      frame: { width: 300, height: 240 },
+      transform: { ...base.transform, translate: { x: 240, y: 120, z: 150 }, rotate: { x: 0, y: -26, z: 0 } },
+      opacity: 1,
+      timing: { start: 0, duration: 3000 },
+    };
+    const paint = {
+      ...base,
+      id: "flat-card::paint",
+      parentLayerId: card.id,
+      order: 0,
+      filter: undefined,
+      transform: { ...base.transform, translate: { x: 0, y: 0, z: 0 } },
+    };
+    const face = {
+      ...base,
+      id: "flat-face",
+      parentLayerId: card.id,
+      order: 1,
+      filter: undefined,
+      transform: { ...base.transform, translate: { x: 50, y: 45, z: 120 }, rotate: { x: 26, y: 0, z: 0 } },
+    };
+    project.layers = [outer, flat, card, paint, face];
+
+    const runtime = compileProtocol(project);
+    const cardPaint = runtime.visual.nodes.find((node) => node.id === paint.id);
+    const childFace = runtime.visual.nodes.find((node) => node.id === face.id);
+    expect(cardPaint?.worldMatrix[11]).not.toBeCloseTo(0, 12);
+    // The ancestor's perspective remains active; the inner flat group's
+    // projective terms are baked into the descendant geometry instead.
+    expect(childFace?.worldMatrix[11]).toBeCloseTo(-1 / 760, 12);
+  });
+
   it("samples protocol tracks before visual lowering", () => {
     const project = filterProject({ id: "animated", primitives: [] }) as any;
     project.filters = [];

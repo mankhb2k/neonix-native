@@ -408,8 +408,19 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const perspective = parsePerspectiveContext(style, w, h, font, viewport);
          const transformStyleValue = (style.get("transform-style") ?? "flat").trim().toLowerCase();
          if (transformStyleValue !== "flat" && transformStyleValue !== "preserve-3d") fail("css-transform-style-unsupported", `Unsupported transform-style value: ${transformStyleValue}`);
+         // CSS grouping properties flatten a 3D rendering context even when
+         // the authored transform-style says preserve-3d. In particular,
+         // overflow:hidden establishes a local clipping/flattening boundary:
+         // the element's own perspective still applies to its direct child,
+         // but an ancestor perspective must not be chained through the
+         // flattened subtree. Store the effective value in Protocol V2 so
+         // Runtime/Skia can preserve the browser's paint order and clip scope.
+         const overflowValue = (style.get("overflow") ?? "visible").trim().toLowerCase();
+         const effectiveTransformStyleValue = overflowValue !== "visible" && overflowValue !== "clip"
+           ? "flat"
+           : transformStyleValue;
          const render3d = hasChildren && (perspective !== undefined || transformStyleValue === "preserve-3d")
-           ? { transformStyle: transformStyleValue as "flat" | "preserve-3d", ...(perspective ? { perspective } : {}) }
+           ? { transformStyle: effectiveTransformStyleValue as "flat" | "preserve-3d", ...(perspective ? { perspective } : {}) }
            : undefined;
          const backfaceVisibilityValue = (style.get("backface-visibility") ?? "visible").trim().toLowerCase();
          if (backfaceVisibilityValue !== "visible" && backfaceVisibilityValue !== "hidden") fail("css-backface-visibility-unsupported", `Unsupported backface-visibility value: ${backfaceVisibilityValue}`);
@@ -444,6 +455,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            boxSizing: geometry.boxSizing,
            frameDecorations: { width: Math.max(0, w - geometry.contentWidth), height: Math.max(0, h - geometry.contentHeight) },
            motionPathLength: motion ? motionPathLength(motion.offsetPath.contours) : undefined,
+           perspective,
          });
          const paintAnimationTracks = [
            ...animationTracks.paint.filter((track) => track.path === "style.fill"),

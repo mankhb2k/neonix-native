@@ -1,4 +1,4 @@
-import type { V2Easing, V2Track } from "@motionvideo/motion-protocol/v2";
+import type { V2AnimatableValue, V2Easing, V2Track } from "@motionvideo/motion-protocol/v2";
 import { parseColor } from "./paint";
 import { parseTransform } from "./transform";
 import { splitTopLevel } from "./utils";
@@ -21,6 +21,8 @@ type LowerAnimationOptions = {
   frameDecorations: { width: number; height: number };
   /** Arc length of the resolved offset-path in CSS user units. */
   motionPathLength?: number;
+  /** Static perspective context used as the base for perspective tracks. */
+  perspective?: { distance: number; origin: { x: number; y: number } };
 };
 
 function list(value: string | undefined, fallback: string): string[] {
@@ -134,6 +136,39 @@ function motionAngle(value: string): number {
   return unit === "rad" ? (amount * 180) / Math.PI : unit === "turn" ? amount * 360 : amount;
 }
 
+function perspectiveDistance(value: string, options: LowerAnimationOptions): number {
+  const resolved = calcExpression(value, "perspective", 1, options.fontSize, 16, options.viewport).value;
+  if (!Number.isFinite(resolved) || resolved <= 0) {
+    fail("css-animation-perspective-invalid", `perspective keyframe requires a positive length: ${value}`);
+  }
+  return resolved;
+}
+
+function perspectiveOrigin(value: string, options: LowerAnimationOptions): { type: "vec2"; value: [number, number] } {
+  const tokens = value.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 1 || tokens.length > 2) {
+    fail("css-animation-perspective-origin-invalid", `perspective-origin keyframe expects one or two values: ${value}`);
+  }
+  const keywordX: Record<string, string> = { left: "0%", center: "50%", right: "100%" };
+  const keywordY: Record<string, string> = { top: "0%", center: "50%", bottom: "100%" };
+  const first = tokens[0]!.toLowerCase();
+  const second = tokens[1]?.toLowerCase();
+  const xToken = first === "top" || first === "bottom"
+    ? (second !== undefined && keywordX[second] !== undefined ? keywordX[second]! : "50%")
+    : keywordX[first] ?? tokens[0]!;
+  const yToken = first === "top" || first === "bottom"
+    ? keywordY[first]!
+    : second === undefined
+      ? "50%"
+      : keywordY[second] ?? tokens[1]!;
+  const x = calcExpression(xToken, "perspective-origin", options.width, options.fontSize, 16, options.viewport).value;
+  const y = calcExpression(yToken, "perspective-origin", options.height, options.fontSize, 16, options.viewport).value;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    fail("css-animation-perspective-origin-invalid", `perspective-origin keyframe requires finite coordinates: ${value}`);
+  }
+  return { type: "vec2", value: [x, y] };
+}
+
 function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, playback: NonNullable<V2Track["playback"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
   const entries = definition.steps.flatMap((step) => step.selectors.map((selector) => ({
     at: offset(selector),
@@ -157,6 +192,8 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
             : property === "border-width" ? "style.strokeWidth"
               : property === "offset-distance" ? "motion.offsetDistance"
                 : property === "offset-rotate" ? "motion.offsetRotate.angle"
+              : property === "perspective" ? "render3d.perspective.distance"
+                : property === "perspective-origin" ? "render3d.perspective.origin"
               : property === "width" || property === "height" ? `frame.${property}` : property,
       ];
   return paths.map((path) => {
@@ -168,10 +205,12 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
         : property === "border-width" ? { type: "number" as const, value: borderSize(raw, options) }
           : property === "offset-distance" ? { type: "number" as const, value: motionDistance(raw, options) }
             : property === "offset-rotate" ? { type: "number" as const, value: motionAngle(raw.replace(/^\s*(?:auto(?:-reverse)?|reverse)\s*/i, "")) }
+              : property === "perspective" ? { type: "number" as const, value: perspectiveDistance(raw, options) }
+                : property === "perspective-origin" ? perspectiveOrigin(raw, options)
               : property === "opacity" ? { type: "number" as const, value: number(raw, 1) } : color(raw, options.currentColor);
       return { time: Math.round(entry.at * durationMs), value, easing: easing(styleTiming(definition, entry.at) ?? defaultTiming) };
     });
-    if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options), easing: { type: "linear" } });
+    if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options) as typeof keyframes[number]["value"], easing: { type: "linear" } });
     if (keyframes.at(-1)!.time < durationMs) keyframes.push({ time: durationMs, value: keyframes.at(-1)!.value, easing: { type: "linear" } });
     return { id: `animation:${definition.name}:${path}`, path, keyframes, playback } as V2Track;
   });
@@ -185,7 +224,7 @@ function styleTiming(definition: KeyframeDefinition, at: number): string | undef
   return [...(step?.declarations ?? [])].reverse().find((declaration) => declaration.property === "animation-timing-function")?.value;
 }
 
-function baseFor(path: string, base: unknown, options: LowerAnimationOptions): { type: "number"; value: number } | { type: "color"; value: [number, number, number, number] } {
+function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V2AnimatableValue {
   if (path === "style.fill") return color(typeof base === "string" ? base : options.currentColor, options.currentColor);
   if (path === "style.stroke") return color(typeof base === "string" ? base : options.currentColor, options.currentColor);
   if (path === "style.strokeWidth") return { type: "number", value: typeof base === "number" ? base : borderSize(String(base ?? "0px"), options) };
@@ -197,6 +236,11 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): {
   if (path === "frame.height") return { type: "number", value: options.baseFrame.height };
   if (path === "motion.offsetDistance") return { type: "number", value: typeof base === "number" ? base : motionDistance(String(base ?? "0%"), options) };
   if (path === "motion.offsetRotate.angle") return { type: "number", value: typeof base === "number" ? base : 0 };
+  if (path === "render3d.perspective.distance") return { type: "number", value: typeof base === "number" ? base : options.perspective?.distance ?? 1 };
+  if (path === "render3d.perspective.origin") {
+    if (Array.isArray(base) && base.length === 2 && base.every((value) => typeof value === "number")) return { type: "vec2", value: [base[0]!, base[1]!] };
+    return { type: "vec2", value: [options.perspective?.origin.x ?? options.width / 2, options.perspective?.origin.y ?? options.height / 2] };
+  }
   if (path === "transform.scale.x" || path === "transform.scale.y") return { type: "number", value: 1 };
   if (path === "transform.scale.z") return { type: "number", value: 1 };
   return { type: "number", value: 0 };
@@ -223,7 +267,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
     const iterationValue = iterationToken === "infinite" ? "infinite" as const : Math.max(0, number(iterationToken, 1));
     const playback = { durationMs, delayMs: timeMs(delays[index % delays.length] ?? delays[0]!, true), iterations: iterationValue, direction: (directions[index % directions.length] ?? directions[0]!) as NonNullable<V2Track["playback"]>["direction"], fillMode: (fills[index % fills.length] ?? fills[0]!) as NonNullable<V2Track["playback"]>["fillMode"], playState: (states[index % states.length] ?? states[0]!) as NonNullable<V2Track["playback"]>["playState"] };
     const easingValue = timings[index % timings.length] ?? timings[0]!;
-    const supported: string[] = ["opacity", "transform", "background-color", "border-color", "border-width", "width", "height"];
+    const supported: string[] = ["opacity", "transform", "background-color", "border-color", "border-width", "width", "height", "perspective", "perspective-origin"];
     const offsetPathValue = style.get("offset-path");
     if (offsetPathValue !== undefined && offsetPathValue.trim().toLowerCase() !== "none") {
       supported.push("offset-distance", "offset-rotate");
@@ -239,8 +283,12 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
               ? style.get("border-top-width") ?? style.get("border-width") ?? "0px"
               : property === "offset-distance"
                 ? style.get("offset-distance") ?? "0%"
-                : property === "offset-rotate"
+              : property === "offset-rotate"
                   ? style.get("offset-rotate") ?? "auto"
+            : property === "perspective"
+              ? style.get("perspective") ?? (options.perspective ? `${options.perspective.distance}px` : "none")
+              : property === "perspective-origin"
+                ? style.get("perspective-origin") ?? (options.perspective ? `${options.perspective.origin.x}px ${options.perspective.origin.y}px` : "50% 50%")
             : property === "transform"
               ? style.get("transform") ?? "none"
             : property === "width" || property === "height"
@@ -254,11 +302,17 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
           ? borderSize(String(base), options)
           : property === "offset-distance"
             ? motionDistance(String(base), options)
-            : property === "offset-rotate"
+          : property === "offset-rotate"
               ? (() => { const raw = String(base).replace(/^\s*(?:auto(?:-reverse)?|reverse)\s*/i, ""); return raw ? motionAngle(raw) : 0; })()
+          : property === "perspective"
+            ? (String(base).trim().toLowerCase() === "none"
+              ? options.perspective?.distance ?? 1
+              : perspectiveDistance(String(base), options))
+            : property === "perspective-origin"
+              ? perspectiveOrigin(String(base), options).value
           : base;
       const tracks = buildTrack(property, definition, durationMs, playback, baseValue, options, easingValue);
-      for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
+      for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
     }
   });
   return { group, paint };
