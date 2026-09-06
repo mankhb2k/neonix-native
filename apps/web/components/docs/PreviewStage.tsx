@@ -1065,17 +1065,15 @@ async function prepareVideoFrames(
 }
 
 function frameContainsPreparedText(
-  project: ReturnType<typeof MotionProtocolV2Schema.parse>,
   candidate: RuntimeFrameV3,
 ): boolean {
-  const textLayerCount = project.layers.filter((layer) => layer.type === "text").length;
-  if (textLayerCount === 0) return true;
   const textCommands = candidate.commands.filter((command) => command.op === "drawText");
-  // An inactive text layer legitimately emits no drawText command. For an
-  // active layer, Runtime V3 must carry the resolved glyph array; an older
-  // unprepared frame must never win over the prepared runtime below.
+  // Inactive text layers legitimately emit no drawText command. Validate only
+  // the commands emitted for this frame; requiring glyphs for every text
+  // layer prevents the editor from receiving the active layer's layout when
+  // the composition contains timed text layers.
   if (textCommands.length === 0) return !candidate.diagnostics.some((diagnostic) => diagnostic.code === "runtime_v2_text_unprepared");
-  return textCommands.length >= textLayerCount && textCommands.every((command) => command.glyphs !== undefined);
+  return textCommands.every((command) => command.glyphs !== undefined);
 }
 
 function paintFrame(
@@ -1106,7 +1104,7 @@ function paintFrame(
     frameOverride != null &&
     !projectHasAnimatedLayers &&
     Math.abs(frameOverride.time - renderTime) < 1e-6 &&
-    frameContainsPreparedText(project, frameOverride)
+    frameContainsPreparedText(frameOverride)
       ? frameOverride
       : null;
   const canvasScale = renderer.canvas instanceof HTMLCanvasElement
@@ -1128,7 +1126,12 @@ function paintFrame(
   if (requestId !== requestRef.current) return;
   const painted = applyStagePreviewOverrides(evaluated, previewOverrides);
   renderer.paintFrame(painted);
-  if (frameContainsPreparedText(project, painted)) onFrameReady?.(painted);
+  // Consumers such as the editor text overlay need the current frame even
+  // while a text layer is transitioning from unprepared to shaped. They can
+  // inspect the command glyphs themselves; gating this callback by the whole
+  // project's text-layer inventory leaves caret geometry stale or missing for
+  // compositions with timed/inactive text layers.
+  onFrameReady?.(painted);
   const rendererCanvas = renderer.canvas;
   if (rendererCanvas instanceof HTMLCanvasElement) {
     const stats = renderer.getStats();

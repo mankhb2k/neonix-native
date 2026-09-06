@@ -9,3 +9,4 @@ export * from "./document/commands";
 export * from "./selection/clip-selection";
 export * from "./timeline/model/timeline-types";
 export * from "./interactions";
+export * from "./text";
