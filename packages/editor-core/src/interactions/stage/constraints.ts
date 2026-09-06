@@ -108,8 +108,9 @@ export function applyRotateConstraints(
 ): { values: StageTransformValues; guides: StageGuide[] } {
   const guides: StageGuide[] = [];
   let rotation = next.rotation;
-  // Chỉ snap khi Shift được giữ; dùng các góc chuẩn 15° như Figma.
-  const step = 15;
+  // Snap rotation to the canonical 45° directions. The stage session enables
+  // this by default; Ctrl/Cmd can still disable snapping for free rotation.
+  const step = 45;
   const threshold = ctx.snapThreshold ?? 0;
   if (ctx.snapAngle && threshold > 0) {
     const snapped = Math.round(rotation / step) * step;

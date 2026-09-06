@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clampTextSelection,
+  applyTextDraftToLayer,
   createTextEditSession,
   textEditChanged,
   updateTextEditDraft,
@@ -52,5 +53,27 @@ describe("text edit session", () => {
     expect(session.draftText).toBe("Hi");
     expect(session.selection).toEqual({ start: 1, end: 1 });
     expect(textEditChanged(session)).toBe(true);
+  });
+
+  it("preserves explicit line breaks in a multiline draft", () => {
+    const multilineLayer = {
+      ...layer,
+      payload: {
+        ...layer.payload,
+        layout: {
+          sizing: "auto-width-height",
+          lineHeight: 40,
+          textAlign: "left",
+          whiteSpace: "normal",
+          wrap: "none",
+          textOverflow: "clip",
+        },
+      },
+    } as V2TextLayer;
+    const session = updateTextEditDraft(createTextEditSession(multilineLayer), "First\nSecond");
+
+    const draft = applyTextDraftToLayer(multilineLayer, session.draftText);
+    expect(draft.payload.source.whiteSpace).toBe("preserve");
+    expect(draft.payload.layout?.whiteSpace).toBe("pre-wrap");
   });
 });

@@ -126,6 +126,13 @@ function styleFromMetadata(subfamilyName: string, fsSelection: number | null): F
 }
 
 function cssWeightFromMetadata(subfamilyName: string, os2WeightClass: number): number {
+  // OS/2 usWeightClass is the authoritative binary metadata. Some families
+  // (for example Lora) encode Medium/SemiBold as a `Regular` subfamily while
+  // the actual weight is stored correctly in OS/2. Reading the subfamily first
+  // collapses those faces into weight 400 in the catalog.
+  if (Number.isFinite(os2WeightClass) && os2WeightClass >= 1 && os2WeightClass <= 1000) {
+    return Math.round(os2WeightClass);
+  }
   const name = subfamilyName.toLowerCase();
   const named: Array<[RegExp, number]> = [
     [/hairline|thin/, 100],

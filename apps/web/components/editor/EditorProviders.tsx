@@ -165,6 +165,10 @@ export function EditorProviders({
   const currentTimeRef = useRef(0);
   const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [textEditSession, setTextEditSession] = useState<TextEditSession | null>(null);
+  const [textEditFramePreview, setTextEditFramePreview] = useState<{
+    layerId: string;
+    height: number;
+  } | null>(null);
   const [textEditStartPoint, setTextEditStartPoint] = useState<TextEditStartPoint | null>(null);
   const [textEditCommitVersion, setTextEditCommitVersion] = useState(0);
   // Visibility and lock are editor-session metadata. They intentionally stay
@@ -193,13 +197,22 @@ export function EditorProviders({
     const layer = document.layers.find((candidate) => candidate.id === textEditSession.layerId);
     if (!layer || layer.type !== "text") return document;
     const draftLayer = applyTextDraftToLayer(layer, textEditSession.draftText);
+    const preview = textEditFramePreview?.layerId === draftLayer.id
+      ? textEditFramePreview
+      : null;
+    const previewLayer = preview
+      ? {
+          ...draftLayer,
+          frame: { ...draftLayer.frame, height: preview.height },
+        }
+      : draftLayer;
     return {
       ...document,
       layers: document.layers.map((candidate) =>
-        candidate.id === draftLayer.id ? draftLayer : candidate,
+        candidate.id === previewLayer.id ? previewLayer : candidate,
       ),
     };
-  }, [document, textEditSession]);
+  }, [document, textEditFramePreview, textEditSession]);
 
   const createHistoryEntry = useCallback(
     (
@@ -528,6 +541,7 @@ export function EditorProviders({
     if (!layer || layer.type !== "text") return false;
     if (textEditSession?.layerId === layerId) return true;
     if (textEditSession) setTextEditSession(null);
+    setTextEditFramePreview(null);
     setSelectedLayerIds([layerId]);
     setTextEditStartPoint(startPoint ?? null);
     setTextEditSession(createTextEditSession(layer));
@@ -543,10 +557,20 @@ export function EditorProviders({
     },
     [],
   );
+  const updateTextEditFramePreview = useCallback(
+    (preview: { layerId: string; height: number } | null) => {
+      setTextEditFramePreview(preview);
+    },
+    [],
+  );
   const commitTextEdit = useCallback((): boolean => {
     const session = textEditSession;
     if (!session) return false;
+    const preview = textEditFramePreview?.layerId === session.layerId
+      ? textEditFramePreview
+      : null;
     setTextEditSession(null);
+    setTextEditFramePreview(null);
     setTextEditStartPoint(null);
     setTextEditCommitVersion((version) => version + 1);
     if (!textEditChanged(session)) return true;
@@ -556,11 +580,15 @@ export function EditorProviders({
     return commitCommands([{
       type: "patch-layer",
       layerId: layer.id,
-      patch: { payload: draftLayer.payload },
+      patch: {
+        payload: draftLayer.payload,
+        ...(preview ? { frame: { ...layer.frame, height: preview.height } } : {}),
+      },
     }]);
-  }, [commitCommands, document, textEditSession]);
+  }, [commitCommands, document, textEditFramePreview, textEditSession]);
   const cancelTextEdit = useCallback(() => {
     setTextEditSession(null);
+    setTextEditFramePreview(null);
     setTextEditStartPoint(null);
   }, []);
   const getPlaybackResourceStats = useCallback(
@@ -600,6 +628,7 @@ export function EditorProviders({
       deleteSelectedLayers,
       startTextEditing,
       updateTextEditDraft,
+      updateTextEditFramePreview,
       commitTextEdit,
       cancelTextEdit,
     }),
@@ -612,6 +641,7 @@ export function EditorProviders({
       setSelectedLayerIds,
       startTextEditing,
       updateTextEditDraft,
+      updateTextEditFramePreview,
       commitTextEdit,
       cancelTextEdit,
       toggleLayerLock,

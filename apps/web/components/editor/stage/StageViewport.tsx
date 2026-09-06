@@ -40,7 +40,7 @@ export function StageViewport() {
   const [isPanMode, setIsPanMode] = useState(false);
   const textEditFrameRef = useRef<RuntimeFrameV3 | null>(null);
   const textEditOverlayRef = useRef<StageTextEditOverlayHandle | null>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const panGestureRef = useRef<{
     pointerId: number;
     startX: number;
@@ -55,21 +55,27 @@ export function StageViewport() {
   }, []);
 
   useLayoutEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return undefined;
+    const viewport = viewportRef.current;
+    if (!viewport) return undefined;
     const measure = () => {
-      const rect = frame.getBoundingClientRect();
-      const visualScale = Math.max(0.01, stageZoom);
-      const width = rect.width / visualScale / Math.max(1, document.composition.width);
-      const height = rect.height / visualScale / Math.max(1, document.composition.height);
-      const next = Math.min(width, height);
+      // The viewport is allowed to be any shape. The composition surface is
+      // not: it must always be a uniform scale of the authored composition.
+      // Account for the viewport padding and preserve the previous 90%/1080px
+      // width limit while fitting portrait and square compositions as well.
+      const availableWidth = Math.max(1, viewport.clientWidth - 32);
+      const availableHeight = Math.max(1, viewport.clientHeight - 28);
+      const widthLimit = Math.min(availableWidth * 0.9, 1080);
+      const next = Math.min(
+        widthLimit / Math.max(1, document.composition.width),
+        availableHeight / Math.max(1, document.composition.height),
+      );
       if (Number.isFinite(next) && next > 0) setFitScale(next);
     };
     measure();
     const observer = new ResizeObserver(measure);
-    observer.observe(frame);
+    observer.observe(viewport);
     return () => observer.disconnect();
-  }, [document.composition.height, document.composition.width, stageZoom]);
+  }, [document.composition.height, document.composition.width]);
 
   const adjustStageZoom = (deltaPercent: number) => {
     const safeScale = Math.max(0.01, fitScale);
@@ -151,6 +157,7 @@ export function StageViewport() {
     >
       <div
         className={`relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[var(--stage-bg)] px-4 pt-4 pb-3 ${isPanMode ? "cursor-grab [&_[data-testid=stage-transform-overlay]]:!cursor-grab [&_[data-testid=stage-transform-overlay]_*]:!cursor-grab" : ""}`}
+        ref={viewportRef}
         data-pan-mode={isPanMode ? "active" : "inactive"}
         onPointerDownCapture={onPanPointerDown}
         onPointerMoveCapture={onPanPointerMove}
@@ -215,10 +222,10 @@ export function StageViewport() {
           </Button>
         </div>
         <div
-          ref={frameRef}
-          className="relative z-[1] flex max-h-full w-full max-w-[min(90%,1080px)] items-center justify-center overflow-hidden rounded-sm bg-[var(--preview-bg)] shadow-lg"
+          className="relative z-[1] flex flex-none items-center justify-center overflow-hidden rounded-sm bg-[var(--preview-bg)] shadow-lg"
           style={{
-            aspectRatio: `${document.composition.width} / ${document.composition.height}`,
+            width: `${Math.max(1, document.composition.width * fitScale)}px`,
+            height: `${Math.max(1, document.composition.height * fitScale)}px`,
             transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${stageZoom})`,
             transformOrigin: "center center",
             willChange: "transform",

@@ -132,10 +132,12 @@ describe("stage transform math", () => {
     expect(next.rotation).toBeCloseTo(-90, 0);
   });
 
-  it("snaps rotation to 45 degree increments only when enabled", () => {
+  it("snaps rotation to 45 degree increments when enabled", () => {
     const value = { ...base, rotation: 43 };
     expect(applyRotateConstraints(value, { snapAngle: true, snapThreshold: 6 }).values.rotation).toBe(45);
     expect(applyRotateConstraints(value, { snapAngle: false, snapThreshold: 6 }).values.rotation).toBe(43);
+    expect(applyRotateConstraints({ ...base, rotation: 89 }, { snapAngle: true, snapThreshold: 6 }).values.rotation).toBe(90);
+    expect(applyRotateConstraints({ ...base, rotation: -44 }, { snapAngle: true, snapThreshold: 6 }).values.rotation).toBe(-45);
   });
 });
 
