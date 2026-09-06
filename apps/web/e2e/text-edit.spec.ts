@@ -34,6 +34,25 @@ test.describe("Canvas text editing", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("double-click does not add a line before Shift+Enter", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
+    await titleHitbox.click();
+    const selection = page.getByTestId("stage-selection-bounds");
+    const before = await selection.boundingBox();
+    if (!before) throw new Error("selection bounds are not visible");
+
+    await selection.dblclick();
+    const editHitbox = page.getByTestId("stage-text-edit-hitbox");
+    await expect(editHitbox).toBeVisible();
+    await page.waitForTimeout(700);
+    const after = await editHitbox.boundingBox();
+    if (!after) throw new Error("text edit hitbox is not visible");
+    expect(Math.abs(after.height - before.height)).toBeLessThan(3);
+
+    await page.keyboard.press("Escape");
+  });
+
   test("commits one text edit and Escape restores the draft", async ({ page }) => {
     await page.goto("/app/editor/three-kingdoms");
     const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');

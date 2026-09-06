@@ -197,6 +197,7 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
     const caretVisibleRef = useRef(true);
     const caretBlinkTimerRef = useRef<number | null>(null);
     const drawRef = useRef<() => void>(() => undefined);
+    const applyStartPointRef = useRef<() => void>(() => undefined);
     const appliedStartPointRef = useRef<string | null>(null);
     const documentRef = useRef(document);
     documentRef.current = document;
@@ -222,7 +223,7 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
     const editDraftText = session?.draftText ?? null;
 
     useEffect(() => {
-      if (!session || !editLayerId) {
+      if (!session || !editLayerId || !(editDraftText ?? "").includes("\n")) {
         updateTextEditFramePreview(null);
         return undefined;
       }
@@ -259,7 +260,7 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       };
     }, [editDraftText, editFrameWidth, editLayerId, editLineHeight, editMinimumHeight, session, updateTextEditFramePreview]);
 
-    useEffect(() => {
+    const applyStartPoint = useCallback(() => {
       if (!session || !activeLayer || !startPoint) {
         appliedStartPointRef.current = null;
         return;
@@ -268,6 +269,10 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       if (appliedStartPointRef.current === pointKey) return;
       const local = inverseTransformPoint(activeLayer, startPoint);
       const command = textCommandFor(frameRef.current, activeLayer.id);
+      // Do not use frame-width interpolation while the runtime paragraph is
+      // still shaping. That fallback puts a double-click caret at the frame
+      // edge instead of beside the actual glyphs.
+      if (session.draftText.length > 0 && !(command?.glyphs?.length)) return;
       const index = nearestCaretIndex(
         command?.glyphs ?? [],
         local,
@@ -280,6 +285,12 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       appliedStartPointRef.current = pointKey;
       updateTextEditDraft(session.draftText, selection);
     }, [activeLayer, frameRef, session, startPoint, updateTextEditDraft]);
+
+    applyStartPointRef.current = applyStartPoint;
+
+    useEffect(() => {
+      applyStartPoint();
+    }, [applyStartPoint]);
 
     const draw = useCallback(() => {
       const canvas = canvasRef.current;
@@ -432,7 +443,12 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       }, CARET_BLINK_MS);
     }, [stopCaretBlink]);
 
-    useImperativeHandle(ref, () => ({ refresh: draw }), [draw]);
+    useImperativeHandle(ref, () => ({
+      refresh: () => {
+        applyStartPointRef.current();
+        draw();
+      },
+    }), [draw]);
 
     useLayoutEffect(() => {
       const root = rootRef.current;
