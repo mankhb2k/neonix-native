@@ -52,4 +52,3 @@ describe("playhead transform edits", () => {
     ]);
   });
 });
-
