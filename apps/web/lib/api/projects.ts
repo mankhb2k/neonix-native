@@ -30,3 +30,28 @@ export async function saveEditorProject(input: {
   }
   return { ok: true, revisionNo: saved.revisionNo };
 }
+
+export async function attachProjectAsset(input: {
+  projectRef: string;
+  assetId: string;
+}): Promise<void> {
+  const response = await fetch(
+    `/api/projects/${encodeURIComponent(input.projectRef)}/assets`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assetId: input.assetId }),
+    },
+  );
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const body = (await response.json()) as { error?: unknown };
+      if (typeof body.error === "string") message = body.error;
+    } catch {
+      // Keep the HTTP status text when the error response is not JSON.
+    }
+    throw new Error(message || "Unable to attach asset to project");
+  }
+}

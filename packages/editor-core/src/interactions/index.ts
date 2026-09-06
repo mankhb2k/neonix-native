@@ -93,9 +93,15 @@ export {
   applyMoveConstraints,
   applyResizeConstraints,
   applyRotateConstraints,
+  type StageMoveSnap,
   type StageConstraintInput,
   type StageGuide,
 } from "./stage/constraints";
+export {
+  computeSelectionSnap,
+  type StageSnapResult,
+  type StageSnapTarget,
+} from "./stage/snap";
 export { applyMoveDelta, applyResizeDelta, applyRotateDelta } from "./stage/sessions/math";
 export {
   createStageSession,

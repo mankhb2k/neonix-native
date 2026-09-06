@@ -8,6 +8,16 @@ export type VisualRuntimeTextFontResolver = (font: VisualRuntimeTextFontSource) 
 export type VisualRuntimeTextShaperLoader = () => Promise<typeof HarfBuzz>;
 export type PrepareRuntimeTextResultV2 = { project: VisualRuntimeProject; diagnostics: VisualRuntimeDiagnostic[] };
 
+export type TextLayoutMeasurement = {
+  width: number;
+  height: number;
+  lineCount: number;
+  lines: readonly { advance: number; baseline: number }[];
+  ascender: number;
+  descender: number;
+  resolvedFontAssetIds: readonly string[];
+};
+
 type HbFace = InstanceType<typeof HarfBuzz.Face>;
 type HbFont = InstanceType<typeof HarfBuzz.Font>;
 type ResolvedFont = {
@@ -518,6 +528,53 @@ function fontSourcesForText(text: VisualRuntimeText): VisualRuntimeTextFontSourc
   const primary = { assetId: text.fontAssetId, uri: text.fontUri, integrity: text.fontIntegrity };
   const sources = [primary, ...(text.fontFallbacks ?? [])];
   return sources.filter((source, index) => sources.findIndex((candidate) => candidate.assetId === source.assetId) === index);
+}
+
+/** Measure text with the same HarfBuzz shaping path used by Preview. */
+export async function measureVisualRuntimeText(
+  text: VisualRuntimeText,
+  resolveFont: VisualRuntimeTextFontResolver,
+  loadHarfBuzz: VisualRuntimeTextShaperLoader,
+): Promise<TextLayoutMeasurement | null> {
+  const hb = await loadHarfBuzz();
+  const resolvedFonts: ResolvedFont[] = [];
+  for (const source of fontSourcesForText(text)) {
+    const bytes = await resolveFont(source);
+    if (!bytes) continue;
+    const blob = new hb.Blob(bytes);
+    const face = new hb.Face(blob);
+    const font = configureFont(hb, face, text);
+    resolvedFonts.push({
+      source,
+      face,
+      font,
+      fontScale: text.fontSize / face.upem,
+      metrics: font.hExtents(),
+    });
+  }
+  if (!resolvedFonts.length) return null;
+  const layout = layoutText(hb, text, resolvedFonts);
+  const lines = layout.lines.map((line) => ({
+    advance: line.advanceWidth,
+    baseline: line.baselineY,
+  }));
+  const vertical = text.writingMode === "vertical-rl" || text.writingMode === "vertical-lr";
+  const width = vertical
+    ? Math.max(1, text.lineHeight * Math.max(1, lines.length))
+    : Math.max(1, ...lines.map((line) => line.advance));
+  const height = vertical
+    ? Math.max(1, ...lines.map((line) => line.advance))
+    : Math.max(1, text.lineHeight * Math.max(1, lines.length));
+  const primary = resolvedFonts[0]!;
+  return {
+    width,
+    height,
+    lineCount: Math.max(1, lines.length),
+    lines,
+    ascender: primary.metrics.ascender * primary.fontScale,
+    descender: primary.metrics.descender * primary.fontScale,
+    resolvedFontAssetIds: resolvedFonts.map((font) => font.source.assetId),
+  };
 }
 
 export async function prepareVisualRuntimeProjectText(project: VisualRuntimeProject, resolveFont: VisualRuntimeTextFontResolver, loadHarfBuzz: VisualRuntimeTextShaperLoader): Promise<PrepareRuntimeTextResultV2> {

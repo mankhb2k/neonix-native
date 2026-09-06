@@ -89,6 +89,7 @@ describe("Protocol V2 semantic SVG text", () => {
       payload: {
         ...TEXT_LAYER.payload,
         layout: {
+          sizing: "fixed" as const,
           lineHeight: 40,
           contentWidth: 180,
           contentHeight: 60,
@@ -121,6 +122,26 @@ describe("Protocol V2 semantic SVG text", () => {
         },
       };
       expect(V2TextLayerSchema.parse(layer).payload.layout?.textAlign).toBe(textAlign);
+    }
+  });
+
+  it("accepts the three explicit text sizing modes", () => {
+    for (const sizing of ["auto-width-height", "fixed-width-auto-height", "fixed"] as const) {
+      const parsed = V2TextLayerSchema.parse({
+        ...TEXT_LAYER,
+        payload: {
+          ...TEXT_LAYER.payload,
+          layout: {
+            sizing,
+            lineHeight: 40,
+            textAlign: "left" as const,
+            whiteSpace: "normal" as const,
+            wrap: "none" as const,
+            textOverflow: "clip" as const,
+          },
+        },
+      });
+      expect(parsed.payload.layout?.sizing).toBe(sizing);
     }
   });
 

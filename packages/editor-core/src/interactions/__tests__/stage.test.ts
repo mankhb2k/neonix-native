@@ -4,12 +4,14 @@ import {
   applyResizeDelta,
   applyRotateDelta,
   applyMoveConstraints,
+  computeSelectionSnap,
   applyRotateConstraints,
   clientToComposition,
   compositionToClient,
   createStageSession,
   hitTestHandle,
   toStageLayerPatches,
+  type StageTransformValues,
 } from "../index";
 
 describe("stage coordinates", () => {
@@ -32,6 +34,42 @@ describe("stage coordinates", () => {
 
   it("returns null outside content", () => {
     expect(clientToComposition({ x: 0, y: 0 }, metrics)).toBeNull();
+  });
+});
+
+describe("stage selection snapping", () => {
+  it("snaps the selection edge to a target edge and emits a guide", () => {
+    const result = computeSelectionSnap(
+      { x: 100, y: 100, width: 40, height: 30 },
+      [{ id: "target", bounds: { x: 145, y: 300, width: 50, height: 40 } }],
+      6,
+    );
+
+    expect(result.delta.x).toBe(5);
+    expect(result.guides).toEqual([
+      { kind: "vline", x: 145, from: 100, to: 340, targetId: "target" },
+    ]);
+  });
+
+  it("snaps the complete selection to the composition center", () => {
+    const result = computeSelectionSnap(
+      { x: 182, y: 197, width: 40, height: 30 },
+      [{ bounds: { x: 0, y: 0, width: 400, height: 400 } }],
+      6,
+    );
+
+    expect(result.delta).toEqual({ x: -2, y: 3 });
+    expect(result.guides).toHaveLength(2);
+  });
+
+  it("does not snap when every anchor is outside the threshold", () => {
+    const result = computeSelectionSnap(
+      { x: 100, y: 100, width: 40, height: 30 },
+      [{ bounds: { x: 200, y: 200, width: 50, height: 40 } }],
+      5,
+    );
+
+    expect(result).toEqual({ delta: { x: 0, y: 0 }, guides: [] });
   });
 });
 
@@ -129,6 +167,60 @@ describe("transform handles", () => {
 });
 
 describe("createStageSession", () => {
+  it("does not turn a click slop into a drag", () => {
+    const session = createStageSession();
+    const previews: StageTransformValues[] = [];
+    const base = {
+      layerId: "node",
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 20,
+      rotation: 0,
+    };
+    session.beginMove(
+      {
+        interactionId: "click-slop",
+        base,
+        worldBounds: { x: 0, y: 0, width: 40, height: 20 },
+        pointer: { x: 0, y: 0 },
+        screenPointer: { x: 100, y: 100 },
+      },
+      { onPreview: (payload) => previews.push(...payload.patches) },
+    );
+    session.updatePointer({ x: 2, y: 2 }, undefined, { x: 102, y: 102 });
+    expect(previews.at(-1)).toMatchObject({ x: 0, y: 0 });
+    expect(session.commit("pointerup")).toBeNull();
+  });
+
+  it("starts one preview transaction after the screen drag threshold", () => {
+    const session = createStageSession();
+    const previews: StageTransformValues[] = [];
+    const base = {
+      layerId: "node",
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 20,
+      rotation: 0,
+    };
+    session.beginMove(
+      {
+        interactionId: "drag-threshold",
+        base,
+        worldBounds: { x: 0, y: 0, width: 40, height: 20 },
+        pointer: { x: 0, y: 0 },
+        screenPointer: { x: 100, y: 100 },
+      },
+      { onPreview: (payload) => previews.push(...payload.patches) },
+    );
+    session.updatePointer({ x: 4, y: 3 }, undefined, { x: 104, y: 103 });
+    expect(previews.at(-1)).toMatchObject({ x: 4, y: 3 });
+    expect(session.commit("pointerup")?.command).toMatchObject({
+      patch: { transform: { translate: { x: 4, y: 3 } } },
+    });
+  });
+
   it("previews move and commits transform command", () => {
     const session = createStageSession();
     const previews: unknown[] = [];

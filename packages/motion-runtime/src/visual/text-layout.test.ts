@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { VisualRuntimeProject, VisualRuntimeText } from "./types";
-import { prepareVisualRuntimeProjectText } from "./text-layout";
+import { measureVisualRuntimeText, prepareVisualRuntimeProjectText } from "./text-layout";
 
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
@@ -55,6 +55,20 @@ function project(content: VisualRuntimeText): VisualRuntimeProject {
 }
 
 describe("runtime text shaping and materialization", () => {
+  it("exports intrinsic dimensions from the same shaped lines as Preview", async () => {
+    const bytes = await readFile(notoSansPath);
+    const measurement = await measureVisualRuntimeText(
+      textContent({ text: "Hello\nWorld", lineHeight: 40, whiteSpace: "pre-wrap", sizing: "auto-width-height" }),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+
+    expect(measurement?.lineCount).toBe(2);
+    expect(measurement?.height).toBe(80);
+    expect(measurement?.width).toBeGreaterThan(1);
+    expect(measurement?.resolvedFontAssetIds).toEqual(["roboto"]);
+  });
+
   it("keeps GlyphRun separate and selects a grayscale mask for small plain text", async () => {
     const bytes = await readFile(notoSansPath);
     const result = await prepareVisualRuntimeProjectText(

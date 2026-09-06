@@ -74,6 +74,8 @@ export type PaintCommand =
   | {
       op: "setTransform";
       key: string;
+      /** Authoring layer identity used by editor-only preview overrides. */
+      layerId?: string;
       matrix4: number[];
       alpha: number;
       visible: boolean;

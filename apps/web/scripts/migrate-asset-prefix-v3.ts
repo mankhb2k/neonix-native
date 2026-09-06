@@ -1,4 +1,4 @@
-/* eslint-disable no-console, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable no-console */
 
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
@@ -8,8 +8,10 @@ loadEnvConfig(process.cwd(), false);
 
 type AssetRow = {
   id: string;
+  workspace_id: string;
   r2_key: string;
   mime_type: string;
+  kind: string;
   preview_key: string | null;
 };
 
@@ -81,7 +83,7 @@ function legacyPreviewKey(assetId: string): string {
 async function main(): Promise<void> {
   let query = supabase
     .from("assets")
-    .select("id, r2_key, mime_type, preview_key")
+    .select("id, workspace_id, r2_key, mime_type, kind, preview_key")
     .order("created_at", { ascending: true });
   if (onlyId) query = query.eq("id", onlyId);
 
@@ -97,10 +99,14 @@ async function main(): Promise<void> {
   const results: MigrationResult[] = [];
 
   for (const asset of assets) {
-    const targetKey = defaultObjectKey(asset.id, asset.mime_type);
+    if (asset.kind === "font") {
+      results.push({ id: asset.id, source: asset.r2_key, target: asset.r2_key, action: "skipped", reason: "font keys are managed by the font namespace" });
+      continue;
+    }
+    const targetKey = defaultObjectKey(asset.workspace_id, asset.id, asset.mime_type);
     const oldOriginalKey = legacyOriginalKey(asset, targetKey);
     const targetPreviewKey = asset.preview_key
-      ? derivativeObjectKey(asset.id, "poster", "poster.webp")
+      ? derivativeObjectKey(asset.workspace_id, asset.id, "poster", "poster.webp")
       : null;
     const result: MigrationResult = {
       id: asset.id,

@@ -68,18 +68,32 @@ function safeAssetStorageId(assetId: string): string {
   return withoutAlias.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-export function defaultObjectKey(assetId: string, mimeType: string): string {
+function safeWorkspaceStorageId(workspaceId: string): string {
+  return workspaceId.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+export function defaultObjectKey(workspaceId: string, assetId: string, mimeType: string): string {
+  const workspaceStorageId = safeWorkspaceStorageId(workspaceId);
   const storageId = safeAssetStorageId(assetId);
   const extension = extensionForMime(mimeType);
 
   // Every asset owns a namespace, even when it only has one original object.
   // This keeps future thumbnails, waveforms, proxies, and audio derivatives
   // under one predictable prefix.
-  return `${storageId}/origin.${extension}`;
+  return `media/${workspaceStorageId}/${storageId}/origin.${extension}`;
+}
+
+/** User fonts have a dedicated R2 namespace and never share media keys. */
+export function fontObjectKey(workspaceId: string, assetId: string, format: string): string {
+  const safeWorkspaceId = safeWorkspaceStorageId(workspaceId);
+  const safeAssetId = safeAssetStorageId(assetId);
+  const safeFormat = format.replace(/[^a-zA-Z0-9]/g, "");
+  return `font/${safeWorkspaceId}/${safeAssetId}/origin.${safeFormat}`;
 }
 
 /** Stable video derivative keys shared by preview and media workers. */
 export function derivativeObjectKey(
+  workspaceId: string,
   assetId: string,
   kind: "audio" | "video" | "poster",
   fileName: string,
@@ -91,7 +105,7 @@ export function derivativeObjectKey(
       : fileName;
   const safeFileName = defaultFileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `${safeAssetStorageId(assetId)}/${kind === "video" ? safeName : safeFileName}`;
+  return `media/${safeWorkspaceStorageId(workspaceId)}/${safeAssetStorageId(assetId)}/${kind === "video" ? safeName : safeFileName}`;
 }
 
 export class R2StorageProvider {
@@ -110,8 +124,8 @@ export class R2StorageProvider {
     });
   }
 
-  createObjectKey(assetId: string, mimeType: string): string {
-    return defaultObjectKey(assetId, mimeType);
+  createObjectKey(workspaceId: string, assetId: string, mimeType: string): string {
+    return defaultObjectKey(workspaceId, assetId, mimeType);
   }
 
   async copyObject(sourceKey: string, targetKey: string): Promise<void> {

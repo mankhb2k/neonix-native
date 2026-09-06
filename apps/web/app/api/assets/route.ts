@@ -38,6 +38,7 @@ export async function GET() {
     .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, preview_version, source_duration_ms, source_width, source_height, has_audio, preview_error")
     .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
+    .neq("kind", "font")
     .in("status", ["uploading", "ready"])
     .order("created_at", { ascending: false });
 
@@ -120,9 +121,9 @@ export async function POST(request: Request) {
 
   const assetId = randomUUID();
   const provider = getUserAssetsProvider();
-  const storageKey = provider.createObjectKey(assetId, mimeType);
+  const storageKey = provider.createObjectKey(workspaceId, assetId, mimeType);
   const isVideo = mimeType.startsWith("video/");
-  const previewKey = hasPreview || isVideo ? derivativeObjectKey(assetId, "poster", "poster.webp") : null;
+  const previewKey = hasPreview || isVideo ? derivativeObjectKey(workspaceId, assetId, "poster", "poster.webp") : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
   const { supabase, user, workspaceId } = result.context;

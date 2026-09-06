@@ -3,8 +3,13 @@ import type { EditorCommand, EditorDiagnostic } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type EditorHistoryEntry = {
+  id: string;
+  label: string;
+  timestamp: number;
   undo: readonly EditorCommand[];
   redo: readonly EditorCommand[];
+  selectionBefore?: readonly string[];
+  selectionAfter?: readonly string[];
 };
 
 export type EditorPersistenceStatus = "idle" | "saving" | "saved" | "error" | "conflict";

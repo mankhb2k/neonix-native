@@ -50,6 +50,14 @@ function textPayload(text: string) {
   const source = text.normalize("NFC");
   return {
     source: { text: source, language: "vi" },
+    layout: {
+      sizing: "auto-width-height" as const,
+      lineHeight: 86,
+      textAlign: "left" as const,
+      whiteSpace: "normal" as const,
+      wrap: "none" as const,
+      textOverflow: "clip" as const,
+    },
     chunks: [{
       id: "text-chunk",
       sourceRange: { start: 0, end: source.length },

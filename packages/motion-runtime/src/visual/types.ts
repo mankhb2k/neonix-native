@@ -201,6 +201,7 @@ export type GlyphRunGlyph = {
 /** Text stays semantic until the host has resolved the exact font binary. */
 export type VisualRuntimeText = {
   kind: "text";
+  sizing?: "auto-width-height" | "fixed-width-auto-height" | "fixed";
   text: string;
   fontAssetId: string;
   fontUri: string;

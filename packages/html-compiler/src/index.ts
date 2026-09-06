@@ -538,6 +538,13 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const whiteSpace = parseWhiteSpace(style.get("white-space"));
             const wrap = wrapForWhiteSpace(whiteSpace);
             const textOverflow = parseTextOverflow(style.get("text-overflow"));
+            const hasWidth = style.get("width") !== undefined && style.get("width")!.trim().toLowerCase() !== "auto";
+            const hasHeight = style.get("height") !== undefined && style.get("height")!.trim().toLowerCase() !== "auto";
+            const sizing = textOverflow === "ellipsis" || (hasWidth && hasHeight)
+              ? "fixed" as const
+              : hasWidth
+                ? "fixed-width-auto-height" as const
+                : "auto-width-height" as const;
             const textRendering = parseTextRendering(style.get("text-rendering"));
             if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
             if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
@@ -563,7 +570,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               timing: { start: 0, duration },
               payload: {
                 source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
-                layout: { lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
+                layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
                 chunks: [{
                   id: `${groupId}::chunk`,
                   sourceRange: { start: 0, end: text.length },

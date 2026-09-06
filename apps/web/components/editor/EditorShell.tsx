@@ -34,7 +34,7 @@ export function EditorShell({
         className={`${editorGridClass} editor-shell-grid`}
       >
         <EditorHeader />
-        <Sidebar />
+        <Sidebar projectRef={projectRef} />
         <StageViewport />
         <TimelineShell />
         <SchemaInspector />

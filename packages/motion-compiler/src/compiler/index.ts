@@ -1114,11 +1114,23 @@ function compileVisualRuntimeInternal(
       const textLineHeight = layer.payload.layout?.lineHeight ?? fontSize * 1.2;
       const layoutTextAlign = layer.payload.layout?.textAlign;
       const textFontFallbacks = resolvedFontAssets;
+      const direction = layer.payload.source.direction ?? "ltr";
+      // A chunk textAnchor is an SVG-level positioning override. When it is
+      // absent, the authored V2 layout alignment must be lowered to the
+      // runtime alignment so center/right text is positioned inside its frame.
       const textAlign = firstChunk.textAnchor === "middle"
         ? "center" as const
         : firstChunk.textAnchor === "end"
           ? "right" as const
-          : "left" as const;
+          : layoutTextAlign === "center"
+            ? "center" as const
+            : layoutTextAlign === "right"
+              ? "right" as const
+              : layoutTextAlign === "start"
+                ? direction === "rtl" ? "right" as const : "left" as const
+                : layoutTextAlign === "end"
+                  ? direction === "rtl" ? "left" as const : "right" as const
+                  : "left" as const;
       const justify = layoutTextAlign === "justify" ? "line" as const : layoutTextAlign === "justify-all" ? "all" as const : undefined;
       const letterSpacing = firstSpan.letterSpacing === "normal"
         ? 0
@@ -1193,6 +1205,7 @@ function compileVisualRuntimeInternal(
         worldMatrix: context.worldMatrix,
         content: {
           kind: "text" as const,
+          ...(layer.payload.layout?.sizing ? { sizing: layer.payload.layout.sizing } : {}),
           text: sourceText,
           fontAssetId: textFontAsset.id,
           fontUri: textFontAsset.uri,
@@ -1234,7 +1247,7 @@ function compileVisualRuntimeInternal(
           verticalAlign: "top",
           wrap: layer.payload.layout?.wrap ?? "none",
           overflow: layer.clipPath ? "clip" : "visible",
-          direction: layer.payload.source.direction ?? "ltr",
+          direction,
           writingMode: layer.payload.source.writingMode,
           language: layer.payload.source?.language ?? "und",
           fill: paintColor(firstSpan.fill, paintServers, context.currentColor) ?? "#000000",

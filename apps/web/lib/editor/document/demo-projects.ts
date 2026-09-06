@@ -82,12 +82,21 @@ function textPayload(text: string) {
   const source = text.normalize("NFC");
   return {
     source: { text: source, language: "vi" },
+    layout: {
+      sizing: "auto-width-height" as const,
+      lineHeight: 86.4,
+      textAlign: "left" as const,
+      whiteSpace: "normal" as const,
+      wrap: "none" as const,
+      textOverflow: "clip" as const,
+    },
     chunks: [{
       id: "text-chunk",
       sourceRange: { start: 0, end: source.length },
       spans: [{
         id: "text-span",
         sourceRange: { start: 0, end: source.length },
+        resolvedFontAssetIds: ["font-noto-sans-regular"],
         font: { families: ["Noto Sans"], size: 72 },
         fill: "#f7e7bd",
       }],

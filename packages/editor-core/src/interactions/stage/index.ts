@@ -21,10 +21,16 @@ export {
 export {
   type StageGuide,
   type StageConstraintInput,
+  type StageMoveSnap,
   applyMoveConstraints,
   applyResizeConstraints,
   applyRotateConstraints,
 } from "./constraints";
+export {
+  type StageSnapTarget,
+  type StageSnapResult,
+  computeSelectionSnap,
+} from "./snap";
 export {
   applyMoveDelta,
   applyResizeDelta,

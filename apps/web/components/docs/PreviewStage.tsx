@@ -1,12 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { samplePreviewProtocolAtTime } from "@/lib/docs/preview-animation";
 import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 import {
   PreviewResourceRegistry,
   previewResourceKey,
   type PreviewResourceLease,
 } from "@/lib/editor/playback/preview-resource-registry";
+import { applyStagePreviewOverrides } from "@/lib/editor/playback/runtime-preview";
+import {
+  stageInteractionStore,
+  useStagePreviewOverrides,
+  type StagePreviewOverrides,
+} from "@/lib/store/stage-interaction-store";
 import { compileProtocol, compileProtocolAtTime } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
@@ -81,6 +88,84 @@ type StageRenderer = {
   dispose(): void;
 };
 
+/** Compile the current V2 sample while retaining the prepared text layout. */
+function runtimeAtPreviewTime(
+  project: MotionProtocolV2,
+  runtime: RuntimeProjectV3,
+  time: number,
+): RuntimeProjectV3 {
+  const sampledProject = samplePreviewProtocolAtTime(project, time);
+  if (sampledProject === project) return runtime;
+  const sampled = compileProtocol(sampledProject);
+  return {
+    ...sampled,
+    visual: {
+      ...sampled.visual,
+      nodes: sampled.visual.nodes.map((node) => {
+        const preparedNode = runtime.visual.nodes.find((candidate) => candidate.id === node.id);
+        if (node.content.kind !== "text" || preparedNode?.content.kind !== "text") return node;
+        return {
+          ...node,
+          content: {
+            ...node.content,
+            layout: preparedNode.content.layout,
+          },
+        };
+      }),
+    },
+  };
+}
+
+/**
+ * Resource/text preparation inputs, excluding properties that can be changed
+ * by a stage transform. A move must recompile the runtime, but it must not
+ * tear down decoded media or prepared text for the whole composition.
+ */
+function previewPreparationFingerprint(project: MotionProtocolV2 | null): string | null {
+  if (!project) return null;
+  return JSON.stringify({
+    projectId: project.id,
+    composition: project.composition,
+    assets: project.assets ?? [],
+    audio: project.audio,
+    layers: project.layers.map((layer) => {
+      const { transform: _transform, timing: _timing, frame, tracks, ...staticLayer } = layer;
+      const nonGeometryTracks = tracks?.filter(
+        (track) =>
+          !track.path.startsWith("transform.") &&
+          !track.path.startsWith("frame.") &&
+          track.path !== "opacity",
+      );
+      return {
+        ...staticLayer,
+        ...(layer.type === "text" ? { frame } : {}),
+        ...(nonGeometryTracks && nonGeometryTracks.length > 0
+          ? { tracks: nonGeometryTracks }
+          : {}),
+      };
+    }),
+  });
+}
+
+/** Keep prepared glyph/layout data while replacing runtime transforms/tracks. */
+function reusePreparedTextContent(
+  compiled: RuntimeProjectV3,
+  previous: RuntimeProjectV3,
+): RuntimeProjectV3 {
+  const previousById = new Map(previous.visual.nodes.map((node) => [node.id, node]));
+  return {
+    ...compiled,
+    visual: {
+      ...compiled.visual,
+      nodes: compiled.visual.nodes.map((node) => {
+        const previousNode = previousById.get(node.id);
+        if (node.content.kind !== "text" || previousNode?.content.kind !== "text") return node;
+        return { ...node, content: previousNode.content };
+      }),
+    },
+  };
+}
+
 export function PreviewStage({
   project,
   hiddenLayerIds = [],
@@ -104,6 +189,8 @@ export function PreviewStage({
   const rendererRef = useRef<StageRenderer | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const projectRef = useRef<ReturnType<typeof MotionProtocolV2Schema.parse> | null>(null);
+  const sourceProjectRef = useRef<unknown>(project);
+  sourceProjectRef.current = project;
   const assetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
   const skiaTextAssetsRef = useRef<ReadonlyMap<string, PreviewAsset>>(new Map());
   const skiaFontBytesRef = useRef<ReadonlyMap<string, ArrayBuffer>>(new Map());
@@ -113,6 +200,7 @@ export function PreviewStage({
   const resourceRegistry = resourceRegistryRef.current;
   const resourceRegistryDisposeRef = useRef<number | null>(null);
   const runtimeRef = useRef<RuntimeProjectV3 | null>(null);
+  const preparedFingerprintRef = useRef<string | null>(null);
   const preparationDiagnosticsRef = useRef<string[]>([]);
   const onBackendReadyRef = useRef(onBackendReady);
   const onFrameReadyRef = useRef(onFrameReady);
@@ -130,6 +218,9 @@ export function PreviewStage({
   const [canvasReadyToken, setCanvasReadyToken] = useState(0);
   const [resourceReadyToken, setResourceReadyToken] = useState(0);
   const [rendererError, setRendererError] = useState<string | null>(null);
+  const previewOverrides = useStagePreviewOverrides();
+  const previewOverridesRef = useRef<StagePreviewOverrides>(previewOverrides);
+  previewOverridesRef.current = previewOverrides;
   onBackendReadyRef.current = onBackendReady;
   onFrameReadyRef.current = onFrameReady;
   onVideoElementRef.current = onVideoElement;
@@ -158,13 +249,22 @@ export function PreviewStage({
     [renderProject],
   );
   const parsedProject = parsedResult.success ? parsedResult.data : null;
+  const preparationFingerprint = useMemo(
+    () => previewPreparationFingerprint(parsedProject),
+    [parsedProject],
+  );
   // Keep synchronous frame effects from pairing a newly selected project with
   // the previous project's prepared RuntimeProject while resource loading is
   // still in flight.
   if (projectRef.current !== parsedProject) {
     projectRef.current = parsedProject;
-    runtimeRef.current = null;
-    preparationDiagnosticsRef.current = [];
+    // A RuntimeFrame belongs to the previous document. Never let a static
+    // frame override win the first paint after a transform command.
+    frameRef.current = null;
+    if (preparationFingerprint !== preparedFingerprintRef.current) {
+      runtimeRef.current = null;
+      preparationDiagnosticsRef.current = [];
+    }
   }
   const error = parsedResult.success ? rendererError : parsedResult.error.message;
   frameRef.current = frame ?? null;
@@ -193,6 +293,7 @@ export function PreviewStage({
       false,
       preparationDiagnosticsRef.current,
       onFrameReadyRef.current,
+      previewOverridesRef.current,
     );
   }, []);
 
@@ -215,6 +316,7 @@ export function PreviewStage({
       isPlayingRef.current,
       preparationDiagnosticsRef.current,
       onFrameReadyRef.current,
+      previewOverridesRef.current,
     );
     return undefined;
   }, [externalPlayback, frame, isPlaying, time]);
@@ -237,6 +339,8 @@ export function PreviewStage({
       const parsed = projectRef.current;
       if (!renderer || !parsed) return;
       const requestId = ++paintRequestRef.current;
+      const sourceProject = sourceProjectRef.current;
+      const commitPending = stageInteractionStore.isCommitPendingFor(sourceProject) && Boolean(runtimeRef.current);
       paintFrame(
         renderer,
         parsed,
@@ -249,7 +353,9 @@ export function PreviewStage({
         event.playing,
         preparationDiagnosticsRef.current,
         onFrameReadyRef.current,
+        commitPending ? new Map() : previewOverridesRef.current,
       );
+      if (commitPending) stageInteractionStore.acknowledgeCommit(sourceProject);
     });
     playbackFrameSinkReleaseRef.current = release;
     return () => {
@@ -323,40 +429,46 @@ export function PreviewStage({
   // loading may be asynchronous, so the previous frame remains visible until
   // the new frame is ready instead of replacing the canvas with a blank one.
   useEffect(() => {
-    if (!parsedProject) {
+    const resourceProject = projectRef.current;
+    if (!resourceProject) {
       projectRef.current = null;
+      preparedFingerprintRef.current = null;
       return undefined;
     }
 
     const host = hostRef.current;
     const canvas = canvasRef.current;
     if (!host || !canvas) return undefined;
+
     canvas.dataset.previewState = "loading-resources";
-    projectRef.current = parsedProject;
     let cancelled = false;
     const resourceGeneration = ++resourceGenerationRef.current;
     const devicePixelRatio = window.devicePixelRatio || 1;
-    const initialRenderDpr = canvasRenderDpr(host, parsedProject.composition.width, parsedProject.composition.height, devicePixelRatio, effectiveBackend);
+    const initialRenderDpr = canvasRenderDpr(host, resourceProject.composition.width, resourceProject.composition.height, devicePixelRatio, effectiveBackend);
     // Do not let a prepared RuntimeProject from the previous dropdown/project
     // selection paint while the new font resources are being resolved.
     runtimeRef.current = null;
     let rendererCreationStarted = false;
 
     void (async () => {
-      const resources = await loadPreviewResources(parsedProject, resourceRegistry, resourceGeneration);
+      const resources = await loadPreviewResources(resourceProject, resourceRegistry, resourceGeneration);
       if (cancelled || resourceGeneration !== resourceGenerationRef.current) {
         resources.release();
         return;
       }
+      // A geometry edit may have landed while resources were preparing. The
+      // resource lease is still valid, but the compiled runtime must use the
+      // latest canonical project rather than the effect's old closure.
+      const activeProject = projectRef.current ?? resourceProject;
       const previousAssets = assetsRef.current;
       const previousSkiaTextAssets = skiaTextAssetsRef.current;
       const previousSkiaFontBytes = skiaFontBytesRef.current;
       const previousResources = resourcesRef.current;
-      const compiled = compileProtocol(parsedProject);
+      const compiled = compileProtocol(activeProject);
       canvas.dataset.previewState = "compiling";
       const initialFrame = evaluateRuntimeProjectV3(
         compiled,
-        frameIndexAtTime(timeRef.current, parsedProject.composition.fps),
+        frameIndexAtTime(timeRef.current, activeProject.composition.fps),
         { time: timeRef.current },
       );
       await prepareVideoFrames(initialFrame, resources.assets);
@@ -379,7 +491,7 @@ export function PreviewStage({
       const runtime = prepared?.project ?? compiled;
       const preparedFrame = evaluateRuntimeProjectV3(
         runtime,
-        frameIndexAtTime(timeRef.current, parsedProject.composition.fps),
+        frameIndexAtTime(timeRef.current, activeProject.composition.fps),
         { time: timeRef.current },
       );
       const skiaTextAssets = effectiveBackend === "skia"
@@ -412,8 +524,8 @@ export function PreviewStage({
         const nextRenderer = effectiveBackend === "skia"
           ? await createSkiaRenderer({
             canvas,
-            width: parsedProject.composition.width,
-            height: parsedProject.composition.height,
+            width: activeProject.composition.width,
+            height: activeProject.composition.height,
             devicePixelRatio: initialRenderDpr,
             assets: new Map([...resources.assets, ...skiaTextAssets]),
             fonts: resources.fontBytes,
@@ -421,8 +533,8 @@ export function PreviewStage({
           : await createPreviewRenderer({
             canvas,
             backend: effectiveBackend,
-            width: parsedProject.composition.width,
-            height: parsedProject.composition.height,
+            width: activeProject.composition.width,
+            height: activeProject.composition.height,
             devicePixelRatio: initialRenderDpr,
             preserveDrawingBuffer,
             assets: resources.assets,
@@ -488,21 +600,24 @@ export function PreviewStage({
         ...resources.diagnostics,
         ...(prepared?.diagnostics.map((diagnostic) => diagnostic.code) ?? []),
       ];
+      preparedFingerprintRef.current = preparationFingerprint;
       setRendererError(null);
       applyCanvasLayout(
         host,
         canvas,
-        parsedProject.composition.width,
-        parsedProject.composition.height,
+        activeProject.composition.width,
+        activeProject.composition.height,
         devicePixelRatio,
         initialRenderDpr,
       );
       if (!externalPlayback) {
         if (!renderer) return;
         const requestId = ++paintRequestRef.current;
+        const sourceProject = sourceProjectRef.current;
+        const commitPending = stageInteractionStore.isCommitPendingFor(sourceProject);
         void paintFrame(
           renderer,
-          parsedProject,
+          activeProject,
           timeRef.current,
           requestId,
           paintRequestRef,
@@ -512,7 +627,9 @@ export function PreviewStage({
           isPlayingRef.current,
           preparationDiagnosticsRef.current,
           onFrameReadyRef.current,
+          commitPending ? new Map() : previewOverridesRef.current,
         );
+        if (commitPending) stageInteractionStore.acknowledgeCommit(sourceProject);
       }
     })().catch((err: unknown) => {
       if (!cancelled && resourceGeneration === resourceGenerationRef.current) {
@@ -539,7 +656,41 @@ export function PreviewStage({
       for (const dispose of videoRegistrationDisposersRef.current) dispose();
       videoRegistrationDisposersRef.current = [];
     };
-  }, [effectiveBackend, canvasReadyToken, externalPlayback, handleDecodedVideoFrame, parsedProject, preserveDrawingBuffer, resourceRegistry]);
+  }, [effectiveBackend, canvasReadyToken, externalPlayback, handleDecodedVideoFrame, preparationFingerprint, preserveDrawingBuffer, resourceRegistry]);
+
+  // Geometry-only document edits should update the compiled scene and repaint,
+  // but must not restart resource loading or unregister existing media.
+  useEffect(() => {
+    if (
+      !parsedProject ||
+      preparationFingerprint === null ||
+      preparedFingerprintRef.current !== preparationFingerprint ||
+      !rendererRef.current ||
+      !resourcesRef.current ||
+      !runtimeRef.current
+    ) return undefined;
+    const compiled = compileProtocol(parsedProject);
+    runtimeRef.current = reusePreparedTextContent(compiled, runtimeRef.current);
+    const requestId = ++paintRequestRef.current;
+    const sourceProject = sourceProjectRef.current;
+    const commitPending = stageInteractionStore.isCommitPendingFor(sourceProject);
+    void paintFrame(
+      rendererRef.current,
+      parsedProject,
+      timeRef.current,
+      requestId,
+      paintRequestRef,
+      null,
+      runtimeRef.current,
+      assetsRef.current,
+      isPlayingRef.current,
+      preparationDiagnosticsRef.current,
+      onFrameReadyRef.current,
+      commitPending ? new Map() : previewOverridesRef.current,
+    );
+    if (commitPending) stageInteractionStore.acknowledgeCommit(sourceProject);
+    return undefined;
+  }, [parsedProject, preparationFingerprint]);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -581,6 +732,7 @@ export function PreviewStage({
           isPlayingRef.current,
           preparationDiagnosticsRef.current,
           onFrameReadyRef.current,
+          previewOverridesRef.current,
         );
       }
     };
@@ -593,6 +745,28 @@ export function PreviewStage({
       window.removeEventListener("resize", update);
     };
   }, [effectiveBackend, parsedProject]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    const parsed = projectRef.current;
+    if (!renderer || !parsed) return undefined;
+    const requestId = ++paintRequestRef.current;
+    void paintFrame(
+      renderer,
+      parsed,
+      timeRef.current,
+      requestId,
+      paintRequestRef,
+      frameRef.current,
+      runtimeRef.current,
+      assetsRef.current,
+      isPlayingRef.current,
+      preparationDiagnosticsRef.current,
+      onFrameReadyRef.current,
+      previewOverrides,
+    );
+    return undefined;
+  }, [previewOverrides]);
 
   return (
     <div
@@ -916,6 +1090,7 @@ function paintFrame(
   playing: boolean,
   preparationDiagnostics: readonly string[],
   onFrameReady?: (frame: RuntimeFrameV3) => void,
+  previewOverrides: StagePreviewOverrides = new Map(),
 ): void {
   const collectPerformanceMetrics = process.env.NODE_ENV !== "production";
   const paintStartedAt = collectPerformanceMetrics ? performance.now() : 0;
@@ -926,8 +1101,10 @@ function paintFrame(
   // unchanged in the timeline UI.
   const renderTime = previewSampleTimeAtEnd(project, time);
   const frameIndex = frameIndexAtTime(renderTime, project.composition.fps);
+  const projectHasAnimatedLayers = project.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
   const usableFrameOverride =
     frameOverride != null &&
+    !projectHasAnimatedLayers &&
     Math.abs(frameOverride.time - renderTime) < 1e-6 &&
     frameContainsPreparedText(project, frameOverride)
       ? frameOverride
@@ -946,11 +1123,12 @@ function paintFrame(
     (hasAnimatedTracks
       ? evaluateRuntimeProjectV3(compileProtocolAtTime(project, renderTime), frameIndex, evaluationOptions)
       : runtimeOverride
-      ? evaluateRuntimeProjectV3(runtimeOverride, frameIndex, evaluationOptions)
+        ? evaluateRuntimeProjectV3(runtimeAtPreviewTime(project, runtimeOverride, renderTime), frameIndex, evaluationOptions)
       : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, evaluationOptions));
   if (requestId !== requestRef.current) return;
-  renderer.paintFrame(evaluated);
-  if (frameContainsPreparedText(project, evaluated)) onFrameReady?.(evaluated);
+  const painted = applyStagePreviewOverrides(evaluated, previewOverrides);
+  renderer.paintFrame(painted);
+  if (frameContainsPreparedText(project, painted)) onFrameReady?.(painted);
   const rendererCanvas = renderer.canvas;
   if (rendererCanvas instanceof HTMLCanvasElement) {
     const stats = renderer.getStats();
