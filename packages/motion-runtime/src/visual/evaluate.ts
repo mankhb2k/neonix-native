@@ -302,6 +302,7 @@ export function evaluateVisualRuntimeProject(
         commands.push({
           op: "setTransform",
           key,
+          layerId: node.id,
           matrix4: matrix4ToArray(useNonScalingStroke ? identityMatrix4() : node.worldMatrix),
           alpha: blendIsolation ? 1 : node.opacity,
           visible: true,
@@ -359,6 +360,7 @@ export function evaluateVisualRuntimeProject(
     commands.push({
       op: "setTransform",
       key: node.id,
+      layerId: node.id,
       matrix4: matrix4ToArray(node.worldMatrix),
       alpha: blendIsolation ? 1 : node.opacity,
       visible: true,

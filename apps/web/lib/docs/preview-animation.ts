@@ -6,6 +6,22 @@ import type {
 
 type V2Layer = MotionProtocolV2["layers"][number];
 
+/** Sample one layer without requiring a complete project wrapper. */
+export function samplePreviewLayerAtTime(
+  layer: V2Layer,
+  timeSeconds: number,
+): V2Layer {
+  if (!layer.tracks || layer.tracks.length === 0) return layer;
+  const localTimeMs = Math.max(0, timeSeconds * 1000) - layer.timing.start;
+  let sampledLayer: V2Layer = layer;
+  for (const track of layer.tracks) {
+    const sampled = sampleTrack(track, localTimeMs);
+    if (sampled === undefined) continue;
+    sampledLayer = applyTrackValue(sampledLayer, track.path, toPropertyValue(sampled));
+  }
+  return sampledLayer;
+}
+
 /**
  * Samples Protocol V2 visual tracks for the documentation preview.
  *
@@ -18,21 +34,10 @@ export function samplePreviewProtocolAtTime(
   project: MotionProtocolV2,
   timeSeconds: number,
 ): MotionProtocolV2 {
-  const timeMs = Math.max(0, timeSeconds * 1000);
   let changed = false;
   const layers = project.layers.map((layer) => {
-    if (!layer.tracks || layer.tracks.length === 0) return layer;
-    let sampledLayer: V2Layer = layer;
-    const localTimeMs = timeMs - layer.timing.start;
-    for (const track of layer.tracks) {
-      const sampled = sampleTrack(track, localTimeMs);
-      if (sampled === undefined) continue;
-      const nextLayer = applyTrackValue(sampledLayer, track.path, toPropertyValue(sampled));
-      if (nextLayer !== sampledLayer) {
-        sampledLayer = nextLayer;
-        changed = true;
-      }
-    }
+    const sampledLayer = samplePreviewLayerAtTime(layer, timeSeconds);
+    if (sampledLayer !== layer) changed = true;
     return sampledLayer;
   });
   return changed ? { ...project, layers } : project;
@@ -145,6 +150,22 @@ function applyTrackValue(layer: V2Layer, path: string, value: unknown): V2Layer 
       ? assignPath(effect, segments.slice(2), value)
       : effect);
     return { ...layer, effects } as V2Layer;
+  }
+  if (
+    layer.type === "text" &&
+    segments[0] === "payload" &&
+    segments[1] === "chunks" &&
+    segments[2] === "spans" &&
+    segments[3]
+  ) {
+    const spanId = segments[3];
+    const chunks = layer.payload.chunks.map((chunk) => ({
+      ...chunk,
+      spans: chunk.spans.map((span) => span.id === spanId
+        ? assignPath(span, segments.slice(4), value) as typeof span
+        : span),
+    }));
+    return { ...layer, payload: { ...layer.payload, chunks } };
   }
   return assignPath(layer, segments, value) as V2Layer;
 }

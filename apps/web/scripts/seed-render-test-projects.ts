@@ -139,13 +139,22 @@ function text(input: {
     timing: { start: input.start * 1000, duration: input.duration * 1000 },
     payload: {
       source: { text: source, language: "en" },
+      layout: {
+        sizing: "auto-width-height" as const,
+        lineHeight: (input.size ?? 64) * 1.2,
+        textAlign: "left" as const,
+        whiteSpace: "normal" as const,
+        wrap: "none" as const,
+        textOverflow: "clip" as const,
+      },
       chunks: [{
         id: `${input.id}-chunk`,
         sourceRange: { start: 0, end: source.length },
-        spans: [{
-          id: `${input.id}-span`,
-          sourceRange: { start: 0, end: source.length },
-          font: { families: ["Noto Sans"], size: input.size ?? 64 },
+          spans: [{
+            id: `${input.id}-span`,
+            sourceRange: { start: 0, end: source.length },
+            resolvedFontAssetIds: [FONT_ID],
+            font: { families: ["Noto Sans"], size: input.size ?? 64 },
           fill: input.fill ?? "#ffffff",
         }],
       }],
@@ -216,36 +225,40 @@ function addAudio(project: MotionProtocolV2, asset: AssetRef, duration: number, 
 }
 
 function withAssets(project: MotionProtocolV2, assets: AssetRef[]) {
+  const seenAssetIds = new Set(project.assets.map((asset) => asset.id));
+  const nextAssets = assets.flatMap((asset) => {
+    if (seenAssetIds.has(asset.id)) return [];
+    seenAssetIds.add(asset.id);
+    if (asset.kind === "image") return [{
+      id: asset.id,
+      kind: "image" as const,
+      uri: asset.uri,
+      mimeType: asset.mimeType,
+      ...(asset.width != null ? { width: asset.width } : {}),
+      ...(asset.height != null ? { height: asset.height } : {}),
+    }];
+    if (asset.kind === "video") return [{
+      id: asset.id,
+      kind: "video" as const,
+      uri: asset.uri,
+      mimeType: asset.mimeType,
+      ...(asset.width != null ? { width: asset.width } : {}),
+      ...(asset.height != null ? { height: asset.height } : {}),
+      ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
+      ...(asset.fps != null ? { fps: asset.fps } : {}),
+    }];
+    return [{
+      id: asset.id,
+      kind: "audio" as const,
+      uri: asset.uri,
+      mimeType: asset.mimeType,
+      ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
+      ...(asset.sampleRate != null ? { sampleRate: asset.sampleRate } : {}),
+    }];
+  });
   return {
     ...project,
-    assets: [...project.assets, ...assets.map((asset) => {
-      if (asset.kind === "image") return {
-        id: asset.id,
-        kind: "image" as const,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        ...(asset.width != null ? { width: asset.width } : {}),
-        ...(asset.height != null ? { height: asset.height } : {}),
-      };
-      if (asset.kind === "video") return {
-        id: asset.id,
-        kind: "video" as const,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        ...(asset.width != null ? { width: asset.width } : {}),
-        ...(asset.height != null ? { height: asset.height } : {}),
-        ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
-        ...(asset.fps != null ? { fps: asset.fps } : {}),
-      };
-      return {
-        id: asset.id,
-        kind: "audio" as const,
-        uri: asset.uri,
-        mimeType: asset.mimeType,
-        ...(asset.duration != null ? { duration: asset.duration * 1000 } : {}),
-        ...(asset.sampleRate != null ? { sampleRate: asset.sampleRate } : {}),
-      };
-    })],
+    assets: [...project.assets, ...nextAssets],
   };
 }
 
@@ -317,6 +330,11 @@ function hashDocument(document: MotionProtocolV2): string {
 
 async function main() {
   const refresh = process.argv.includes("--refresh");
+  const reset = process.argv.includes("--reset");
+  const applyReset = process.argv.includes("--apply");
+  if (reset && !applyReset) {
+    console.log("--reset is a destructive operation and requires --apply");
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Supabase environment is not configured");
@@ -332,8 +350,24 @@ async function main() {
   const { data: rows, error: assetsError } = await db.from("assets").select("id, original_filename, mime_type, byte_size, status, r2_key, source_duration_ms, source_width, source_height").eq("workspace_id", membership.workspace_id).eq("status", "ready").is("deleted_at", null);
   if (assetsError) throw assetsError;
   const byName = new Map((rows as DbAsset[]).map((asset) => [asset.original_filename?.toLowerCase(), asset]));
-  const required = ["video-1080p.mp4", "Video Project.mp4", "tinh-yeu-mau-nang-128k.mp3", "Music-MBB-Island-Tropical_128k.mp3", "example16-9.jpg", "example1-1.jpg", "beer-can_8798947.png", "cute_7980701.png", "Whatapp-icon.svg"];
-  for (const name of required) if (!byName.has(name.toLowerCase())) throw new Error(`Missing uploaded asset: ${name}`);
+  const fallbackNames: Record<string, string> = {
+    "video-1080p.mp4": "Video Project.mp4",
+    "tinh-yeu-mau-nang-128k.mp3": "Music-MBB-Island-Tropical_128k.mp3",
+    "example16-9.jpg": "example1-1.jpg",
+    "beer-can_8798947.png": "cute_7980701.png",
+    "Whatapp-icon.svg": "image-picture-972-svgrepo-com.svg",
+  };
+  const resolveAsset = (name: string): DbAsset => {
+    const direct = byName.get(name.toLowerCase());
+    if (direct) return direct;
+    const fallbackName = fallbackNames[name];
+    const fallback = fallbackName ? byName.get(fallbackName.toLowerCase()) : undefined;
+    if (fallback) {
+      console.log(`Using ${fallback.original_filename} as demo fallback for missing ${name}`);
+      return fallback;
+    }
+    throw new Error(`Missing uploaded asset: ${name}`);
+  };
 
   const storage = getUserAssetsProvider();
   const objectUrl = async (asset: DbAsset): Promise<string> => {
@@ -342,7 +376,7 @@ async function main() {
       ?? (await storage.presignGet(asset.r2_key, 60 * 60 * 24 * 7)).url;
   };
   const ref = async (name: string, kind: AssetRef["kind"], extra: Partial<AssetRef> = {}): Promise<AssetRef> => {
-    const dbAsset = byName.get(name.toLowerCase())!;
+    const dbAsset = resolveAsset(name);
     return {
       id: `asset-${dbAsset.id}`,
       dbId: dbAsset.id,
@@ -370,6 +404,24 @@ async function main() {
   const { data: existing, error: existingError } = await db.from("projects").select("id,title,current_revision_no").eq("workspace_id", membership.workspace_id).like("title", `${TEST_PREFIX}%`).is("deleted_at", null);
   if (existingError) throw existingError;
   const existingByTitle = new Map((existing ?? []).map((project) => [project.title, project]));
+  const projectsToDelete = reset
+    ? (existing ?? []).map((project) => ({ id: project.id, title: project.title }))
+    : [];
+  if (reset) {
+    console.log(`RESET ${projectsToDelete.length} existing render-test project(s) in workspace ${membership.workspace_id}`);
+    if (!applyReset) return;
+    if (projectsToDelete.length > 0) {
+      const { error: deleteError } = await db
+        .from("projects")
+        .delete()
+        .eq("workspace_id", membership.workspace_id)
+        .in("id", projectsToDelete.map((project) => project.id));
+      if (deleteError) throw deleteError;
+      console.log(`Deleted ${projectsToDelete.length} previous render-test project(s):`);
+      for (const project of projectsToDelete) console.log(`  ${project.title}: ${project.id}`);
+    }
+    existingByTitle.clear();
+  }
   let created = 0;
   let refreshed = 0;
   let skipped = 0;

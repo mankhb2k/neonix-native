@@ -5,9 +5,14 @@
 import type { StageTransformValues } from "./transform-box";
 
 export type StageGuide =
-  | { kind: "vline"; x: number }
-  | { kind: "hline"; y: number }
+  | { kind: "vline"; x: number; from?: number; to?: number; targetId?: string }
+  | { kind: "hline"; y: number; from?: number; to?: number; targetId?: string }
   | { kind: "angle"; degrees: number };
+
+export type StageMoveSnap = (
+  next: StageTransformValues,
+  base: StageTransformValues,
+) => { values: StageTransformValues; guides: StageGuide[] };
 
 export type StageConstraintInput = {
   minSize?: number;
@@ -17,6 +22,8 @@ export type StageConstraintInput = {
   snapEdgesX?: number[];
   snapEdgesY?: number[];
   snapThreshold?: number;
+  disableSnapping?: boolean;
+  snapMove?: StageMoveSnap;
 };
 
 const DEFAULT_MIN = 8;

@@ -4967,6 +4967,14 @@
                       "layout": {
                         "type": "object",
                         "properties": {
+                          "sizing": {
+                            "type": "string",
+                            "enum": [
+                              "auto-width-height",
+                              "fixed-width-auto-height",
+                              "fixed"
+                            ]
+                          },
                           "lineHeight": {
                             "$ref": "#/definitions/MotionProtocolV2/properties/composition/properties/width"
                           },

@@ -7,6 +7,7 @@ import {
   FileAudio,
   FileVideo,
   Folder,
+  FolderOpen,
   Image as ImageIcon,
   Lock,
   Unlock,
@@ -15,7 +16,7 @@ import {
   Type,
   Upload,
 } from "lucide-react";
-import { useMemo, useRef, type ChangeEvent, type SyntheticEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type SyntheticEvent } from "react";
 import { Button, Panel, Tabs } from "@/components/ui";
 import { useEditorActions } from "@/hooks/editor/use-editor-actions";
 import {
@@ -25,7 +26,18 @@ import {
   useEditorVisibility,
 } from "@/hooks/editor/use-editor-store";
 import { useLibraryPointerGesture } from "@/hooks/editor/use-library-pointer-gesture";
+import {
+  completeAssetUpload,
+  createAssetUpload,
+  deleteAsset as deleteWorkspaceAsset,
+  listAssets,
+  uploadAssetBytes,
+  uploadAssetPreview,
+  type Asset as WorkspaceAsset,
+} from "@/lib/api/assets";
+import { attachProjectAsset } from "@/lib/api/projects";
 import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
+import { createBrowserVideoPreview } from "@/lib/media/browser-preview";
 import type {
   MotionProtocolV2,
   V2Asset,
@@ -63,6 +75,42 @@ function AssetIcon({ asset }: { asset: V2Asset }) {
   if (asset.kind === "video") return <FileVideo size={16} strokeWidth={1.7} />;
   if (asset.kind === "image") return <ImageIcon size={16} strokeWidth={1.7} />;
   return <FileIcon size={16} strokeWidth={1.7} />;
+}
+
+function workspaceAssetToProtocolAsset(asset: WorkspaceAsset): V2Asset | null {
+  if (!asset.download_url) return null;
+  const id = `asset-${asset.id}`;
+  const common = {
+    id,
+    uri: asset.download_url,
+    mimeType: asset.mime_type,
+  };
+  if (asset.mime_type.startsWith("image/")) {
+    return {
+      ...common,
+      kind: "image",
+      ...(asset.source_width ? { width: asset.source_width } : {}),
+      ...(asset.source_height ? { height: asset.source_height } : {}),
+    };
+  }
+  if (asset.mime_type.startsWith("video/")) {
+    return {
+      ...common,
+      kind: "video",
+      ...(asset.source_width ? { width: asset.source_width } : {}),
+      ...(asset.source_height ? { height: asset.source_height } : {}),
+      ...(asset.source_duration_ms != null ? { duration: asset.source_duration_ms } : {}),
+    };
+  }
+  if (asset.mime_type.startsWith("audio/")) {
+    return {
+      ...common,
+      kind: "audio",
+      mimeType: asset.mime_type,
+      ...(asset.source_duration_ms != null ? { duration: asset.source_duration_ms } : {}),
+    };
+  }
+  return null;
 }
 
 function LayerIcon({ layer }: { layer: V2Layer }) {
@@ -131,93 +179,19 @@ function AssetItem({ asset }: { asset: V2Asset }) {
   );
 }
 
-function fileToAsset(
-  file: globalThis.File,
-  index: number,
-): Promise<V2Asset | null> {
-  const uri = URL.createObjectURL(file);
-  const base = file.name || `asset-${index}`;
-  if (file.type.startsWith("image/")) {
-    return new Promise((resolve) => {
-      const image = new Image();
-      image.onload = () =>
-        resolve({
-          id: base,
-          kind: "image",
-          uri,
-          mimeType: file.type || "image/*",
-          width: image.naturalWidth || 1,
-          height: image.naturalHeight || 1,
-        });
-      image.onerror = () =>
-        resolve({
-          id: base,
-          kind: "image",
-          uri,
-          mimeType: file.type || "image/*",
-        });
-      image.src = uri;
-    });
-  }
-  if (file.type.startsWith("video/")) {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.onloadedmetadata = () =>
-        resolve({
-          id: base,
-          kind: "video",
-          uri,
-          mimeType: file.type || "video/*",
-          duration: Number.isFinite(video.duration)
-            ? video.duration
-            : undefined,
-          width: video.videoWidth || undefined,
-          height: video.videoHeight || undefined,
-        });
-      video.onerror = () =>
-        resolve({
-          id: base,
-          kind: "video",
-          uri,
-          mimeType: file.type || "video/*",
-        });
-      video.src = uri;
-    });
-  }
-  if (file.type.startsWith("audio/")) {
-    return new Promise((resolve) => {
-      const audio = document.createElement("audio");
-      audio.onloadedmetadata = () =>
-        resolve({
-          id: base,
-          kind: "audio",
-          uri,
-          mimeType: file.type || "audio/*",
-          duration: Number.isFinite(audio.duration)
-            ? audio.duration
-            : undefined,
-        });
-      audio.onerror = () =>
-        resolve({
-          id: base,
-          kind: "audio",
-          uri,
-          mimeType: file.type || "audio/*",
-        });
-      audio.src = uri;
-    });
-  }
-  URL.revokeObjectURL(uri);
-  return Promise.resolve(null);
-}
-
-export function Sidebar() {
+export function Sidebar({ projectRef }: { projectRef?: string }) {
   const { setSelectedLayerIds, applyCommands, toggleLayerVisibility, toggleLayerLock } = useEditorActions();
   const document = useEditorDocument();
   const selectedLayerIds = useEditorSelection();
   const hiddenLayerIds = useEditorVisibility();
   const lockedLayerIds = useEditorLocks();
   const uploadRef = useRef<HTMLInputElement>(null);
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
+  const [workspaceAssets, setWorkspaceAssets] = useState<WorkspaceAsset[]>([]);
+  const [assetPickerLoading, setAssetPickerLoading] = useState(false);
+  const [assetPickerError, setAssetPickerError] = useState<string | null>(null);
+  const [uploadingAssetName, setUploadingAssetName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const displayLayers = useMemo(
     () => buildLayerTree(document.layers),
     [document.layers],
@@ -226,23 +200,120 @@ export function Sidebar() {
   const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.target;
     const files = [...(event.target.files ?? [])];
-    const assets = (await Promise.all(files.map(fileToAsset))).filter(
-      (asset): asset is V2Asset => asset !== null,
-    );
-    const used = new Set(document.assets.map((asset) => asset.id));
-    const unique = assets.map((asset) => {
-      let id = asset.id;
-      let suffix = 2;
-      while (used.has(id)) {
-        id = `${asset.id} (${suffix})`;
-        suffix += 1;
-      }
-      used.add(id);
-      return id === asset.id ? asset : { ...asset, id };
-    });
-    if (unique.length > 0)
-      applyCommands(unique.map((asset) => ({ type: "add-asset", asset })));
     input.value = "";
+    if (files.length === 0) return;
+
+    setUploadError(null);
+    setUploadingAssetName(files[0]?.name ?? null);
+    try {
+      for (const file of files) {
+        setUploadingAssetName(file.name);
+        if (!/^(image|video|audio)\//.test(file.type)) {
+          setUploadError(`Unsupported asset type: ${file.name}`);
+          continue;
+        }
+
+        let session: Awaited<ReturnType<typeof createAssetUpload>> | null = null;
+        let completed = false;
+        try {
+          const browserPreview = file.type.startsWith("video/")
+            ? await createBrowserVideoPreview(file)
+            : null;
+          const preview = browserPreview?.poster
+            ? {
+                size: browserPreview.poster.size,
+                mimeType: "image/webp" as const,
+                width: browserPreview.width ?? 1,
+                height: browserPreview.height ?? 1,
+                ...(browserPreview.durationMs !== null
+                  ? { durationMs: browserPreview.durationMs }
+                  : {}),
+              }
+            : undefined;
+
+          session = await createAssetUpload(file, preview);
+          await uploadAssetBytes(session, file);
+          if (browserPreview?.poster) {
+            await uploadAssetPreview(session, browserPreview.poster);
+          }
+          await completeAssetUpload(session.assetId);
+          completed = true;
+
+          const assets = await listAssets();
+          const uploadedAsset = assets.find((asset) => asset.id === session?.assetId);
+          const protocolAsset = uploadedAsset
+            ? workspaceAssetToProtocolAsset(uploadedAsset)
+            : null;
+          if (!uploadedAsset || !protocolAsset) {
+            throw new Error("Uploaded asset is not available in the workspace");
+          }
+
+          setWorkspaceAssets((current) => [
+            uploadedAsset,
+            ...current.filter((asset) => asset.id !== uploadedAsset.id),
+          ]);
+          if (!document.assets.some((asset) => asset.id === protocolAsset.id)) {
+            const applied = applyCommands([{ type: "add-asset", asset: protocolAsset }]);
+            if (!applied) {
+              throw new Error("The asset could not be imported into the current project");
+            }
+          }
+          if (projectRef) {
+            await attachProjectAsset({ projectRef, assetId: uploadedAsset.id });
+          }
+        } catch (error) {
+          if (session && !completed) {
+            try {
+              await deleteWorkspaceAsset(session.assetId);
+            } catch {
+              // Keep the original upload error visible to the user.
+            }
+          }
+          setUploadError(
+            error instanceof Error ? error.message : `Upload failed: ${file.name}`,
+          );
+        }
+      }
+    } finally {
+      setUploadingAssetName(null);
+    }
+  };
+
+  const onChooseAsset = async () => {
+    setAssetPickerOpen((open) => !open);
+    if (workspaceAssets.length > 0 || assetPickerLoading) return;
+    setAssetPickerLoading(true);
+    setAssetPickerError(null);
+    try {
+      setWorkspaceAssets(await listAssets());
+    } catch (error) {
+      setAssetPickerError(error instanceof Error ? error.message : "Unable to load workspace assets");
+    } finally {
+      setAssetPickerLoading(false);
+    }
+  };
+
+  const onSelectWorkspaceAsset = async (asset: WorkspaceAsset) => {
+    const protocolAsset = workspaceAssetToProtocolAsset(asset);
+    if (!protocolAsset) return;
+    if (!document.assets.some((candidate) => candidate.id === protocolAsset.id)) {
+      const applied = applyCommands([{ type: "add-asset", asset: protocolAsset }]);
+      if (!applied) {
+        setAssetPickerError("The asset could not be imported into the current project");
+        return;
+      }
+    }
+    if (projectRef) {
+      try {
+        await attachProjectAsset({ projectRef, assetId: asset.id });
+      } catch (error) {
+        setAssetPickerError(
+          error instanceof Error ? error.message : "Unable to attach asset to project",
+        );
+        return;
+      }
+    }
+    setAssetPickerOpen(false);
   };
 
   return (
@@ -389,16 +460,77 @@ export function Sidebar() {
                     className="hidden"
                     onChange={onUpload}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mb-3 h-8 w-full cursor-default text-[12px] text-[var(--fg-secondary)]"
-                    onClick={() => uploadRef.current?.click()}
-                    data-testid="asset-upload-button"
-                  >
-                    <Upload size={14} strokeWidth={1.8} /> Upload asset
-                  </Button>
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[12px] text-[var(--fg-secondary)]"
+                      onClick={() => void onChooseAsset()}
+                      disabled={Boolean(uploadingAssetName)}
+                      aria-expanded={assetPickerOpen}
+                      data-testid="asset-choose-button"
+                    >
+                      <FolderOpen size={14} strokeWidth={1.8} /> Choose asset
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[12px] text-[var(--fg-secondary)]"
+                      onClick={() => uploadRef.current?.click()}
+                      disabled={Boolean(uploadingAssetName)}
+                      aria-busy={Boolean(uploadingAssetName)}
+                      data-testid="asset-upload-button"
+                    >
+                      <Upload size={14} strokeWidth={1.8} /> {uploadingAssetName ? "Uploading…" : "Upload"}
+                    </Button>
+                  </div>
+                  {uploadError ? (
+                    <div
+                      className="mb-3 rounded-md border border-red-400/30 bg-red-400/10 px-2.5 py-2 text-[12px] text-red-200"
+                      role="alert"
+                    >
+                      {uploadError}
+                    </div>
+                  ) : null}
+                  {assetPickerOpen ? (
+                    <div className="mb-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-2">
+                      <div className="mb-2 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fg-muted)]">
+                        <span>Workspace assets</span>
+                        {workspaceAssets.length > 0 ? <span>{workspaceAssets.length}</span> : null}
+                      </div>
+                      {assetPickerLoading ? (
+                        <div className="px-1 py-3 text-[12px] text-[var(--fg-muted)]">Loading assets…</div>
+                      ) : assetPickerError ? (
+                        <div className="px-1 py-3 text-[12px] text-red-300">{assetPickerError}</div>
+                      ) : workspaceAssets.length === 0 ? (
+                        <div className="px-1 py-3 text-[12px] text-[var(--fg-muted)]">No workspace assets.</div>
+                      ) : (
+                        <ul className="max-h-48 space-y-1 overflow-auto">
+                          {workspaceAssets.map((asset) => {
+                            const protocolAsset = workspaceAssetToProtocolAsset(asset);
+                            if (!protocolAsset) return null;
+                            const alreadyAdded = document.assets.some((candidate) => candidate.id === protocolAsset.id);
+                            return (
+                              <li key={asset.id}>
+                                <button
+                                  type="button"
+                                  disabled={alreadyAdded}
+                                  onClick={() => void onSelectWorkspaceAsset(asset)}
+                                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12px] text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-default disabled:opacity-45"
+                                >
+                                  <AssetIcon asset={protocolAsset} />
+                                  <span className="min-w-0 flex-1 truncate">{asset.original_filename ?? asset.id}</span>
+                                  {alreadyAdded ? <span className="text-[10px] text-[var(--fg-muted)]">Added</span> : null}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
                   {document.assets.length === 0 ? (
                     <div className="rounded-md border border-dashed border-[var(--border-subtle)] px-3 py-6 text-center text-[12px] text-[var(--fg-muted)]">
                       No assets yet.

@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ asse
       .from("asset_variants")
       .select("r2_key, variant_kind, metadata_json")
       .eq("asset_id", assetId);
-    const canonicalAudioKey = derivativeObjectKey(assetId, "audio", "audio.m4a");
+    const canonicalAudioKey = derivativeObjectKey(workspaceId, assetId, "audio", "audio.m4a");
     const audioVariant = (variants ?? []).find((item: { r2_key?: unknown; variant_kind?: unknown; metadata_json?: unknown }) => {
       if (!(item.variant_kind === "audio" || item.variant_kind === "proxy") || typeof item.r2_key !== "string") return false;
       const metadata = item.metadata_json && typeof item.metadata_json === "object" ? item.metadata_json as Record<string, unknown> : {};
@@ -62,7 +62,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ asse
       // migrated. New derivatives use the canonical flat file name.
       return metadata.kind === "audio" || item.r2_key === canonicalAudioKey || item.r2_key.includes("/audio/");
     });
-    key = typeof audioVariant?.r2_key === "string" ? audioVariant.r2_key : derivativeObjectKey(assetId, "audio", "audio.m4a");
+    key = typeof audioVariant?.r2_key === "string" ? audioVariant.r2_key : derivativeObjectKey(workspaceId, assetId, "audio", "audio.m4a");
   }
 
   const provider = getUserAssetsProvider();

@@ -65,7 +65,7 @@ export {
   normalizeVisualRuntimeProject,
   validateVisualRuntimeProject,
 } from "./visual/validate";
-export { prepareVisualRuntimeProjectText } from "./visual/text-layout";
+export { measureVisualRuntimeText, prepareVisualRuntimeProjectText } from "./visual/text-layout";
 export type {
   VisualRuntimeComposition,
   VisualRuntimeFrame,
@@ -83,6 +83,7 @@ export type {
   VisualRuntimeTextFontResolver,
   VisualRuntimeTextFontSource,
   VisualRuntimeTextShaperLoader,
+  TextLayoutMeasurement,
 } from "./visual/text-layout";
 export { buildRuntimeEffectProgram } from "./visual/effects";
 export {

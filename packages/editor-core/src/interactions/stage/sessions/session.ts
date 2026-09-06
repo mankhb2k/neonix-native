@@ -47,6 +47,8 @@ export type BeginMoveArgs = {
   base: StageTransformValues;
   worldBounds: StageBounds;
   pointer: StagePoint;
+  /** Optional screen-space origin used for the click-vs-drag threshold. */
+  screenPointer?: StagePoint;
   constraints?: StageConstraintInput;
 };
 
@@ -64,6 +66,8 @@ type ActiveSession = {
   constraints: StageConstraintInput;
   guides: StageGuide[];
   callbacks: StageSessionCallbacks;
+  dragStarted: boolean;
+  screenPointerStart: StagePoint | null;
 };
 
 export type StageSession = {
@@ -72,7 +76,11 @@ export type StageSession = {
   beginMove(args: BeginMoveArgs, cb: StageSessionCallbacks): void;
   beginResize(args: BeginResizeArgs, cb: StageSessionCallbacks): void;
   beginRotate(args: BeginRotateArgs, cb: StageSessionCallbacks): void;
-  updatePointer(pointer: StagePoint, modifiers?: Partial<PointerModifiers>): void;
+  updatePointer(
+    pointer: StagePoint,
+    modifiers?: Partial<PointerModifiers>,
+    screenPointer?: StagePoint,
+  ): void;
   cancel(): void;
   commit(reason?: PointerSessionEndReason): StageCommitResult | null;
 };
@@ -123,6 +131,8 @@ export function createStageSession(): StageSession {
         constraints: args.constraints ?? {},
         guides: [],
         callbacks: cb,
+        dragStarted: false,
+        screenPointerStart: args.screenPointer ?? null,
       };
       emitPreview(active);
     },
@@ -138,6 +148,8 @@ export function createStageSession(): StageSession {
         constraints: args.constraints ?? {},
         guides: [],
         callbacks: cb,
+        dragStarted: false,
+        screenPointerStart: args.screenPointer ?? null,
       };
       emitPreview(active);
     },
@@ -153,17 +165,26 @@ export function createStageSession(): StageSession {
         constraints: args.constraints ?? {},
         guides: [],
         callbacks: cb,
+        dragStarted: false,
+        screenPointerStart: args.screenPointer ?? null,
       };
       emitPreview(active);
     },
-    updatePointer(pointer, modifiers) {
+    updatePointer(pointer, modifiers, screenPointer) {
       if (!active) return;
+      if (!active.dragStarted && active.screenPointerStart && screenPointer) {
+        const dx = screenPointer.x - active.screenPointerStart.x;
+        const dy = screenPointer.y - active.screenPointerStart.y;
+        if (Math.hypot(dx, dy) < 3) return;
+      }
+      active.dragStarted = true;
       const lockAspect =
         Boolean(modifiers?.shift) || Boolean(active.constraints.lockAspect);
       const constraints: StageConstraintInput = {
         ...active.constraints,
         lockAspect,
         snapAngle: Boolean(modifiers?.shift) || Boolean(active.constraints.snapAngle),
+        disableSnapping: Boolean(modifiers?.ctrl) || Boolean(modifiers?.meta),
       };
 
       let next: StageTransformValues;
@@ -171,7 +192,11 @@ export function createStageSession(): StageSession {
 
       if (active.mode === "move") {
         next = applyMoveDelta(active.base, active.pointerStart, pointer);
-        const constrained = applyMoveConstraints(next, constraints);
+        const constrained = constraints.disableSnapping
+          ? { values: next, guides: [] }
+          : constraints.snapMove
+            ? constraints.snapMove(next, active.base)
+            : applyMoveConstraints(next, constraints);
         next = constrained.values;
         guides = constrained.guides;
       } else if (active.mode === "resize" && active.handle) {
@@ -216,6 +241,22 @@ export function createStageSession(): StageSession {
         return null;
       }
       const session = active;
+      if (!session.dragStarted && session.screenPointerStart) {
+        clearPreview(session);
+        active = null;
+        return null;
+      }
+      const changed =
+        Math.abs(session.preview.x - session.base.x) > 1e-6 ||
+        Math.abs(session.preview.y - session.base.y) > 1e-6 ||
+        Math.abs(session.preview.width - session.base.width) > 1e-6 ||
+        Math.abs(session.preview.height - session.base.height) > 1e-6 ||
+        Math.abs(session.preview.rotation - session.base.rotation) > 1e-6;
+      if (!changed) {
+        clearPreview(session);
+        active = null;
+        return null;
+      }
       const patches = toStageLayerPatches(session.base, session.preview);
       const command = toStageDocumentCommand(patches);
       const result: StageCommitResult = {

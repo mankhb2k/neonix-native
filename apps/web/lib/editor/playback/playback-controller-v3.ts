@@ -1,7 +1,7 @@
 import { compileProtocol } from "@motionvideo/motion-compiler";
-import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { createAnimationFrameSchedulerV3, createDriftControllerV3, createPlaybackEngine, createWebAudioGraphBackendV3, requestMediaElementPlayV3, type PlaybackEngine, type PlaybackEngineSnapshot } from "@motionvideo/playback-engine";
+import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type PlaybackOperationTokenV3 = { documentGeneration: number; transportGeneration: number; seekRequestId: number; generation: number };
 export type PlaybackFrameEventV3 = PlaybackOperationTokenV3 & { time: number; frame: RuntimeFrameV3; playing: boolean };

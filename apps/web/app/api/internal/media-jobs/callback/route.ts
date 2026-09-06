@@ -72,6 +72,8 @@ export async function POST(request: Request) {
   if (job.asset_id !== payload.assetId || job.source_integrity !== payload.sourceIntegrity) {
     return Response.json({ error: "media_job_identity_mismatch" }, { status: 409 });
   }
+  const workspaceId = typeof job.workspace_id === "string" ? job.workspace_id : "";
+  if (!workspaceId) return Response.json({ error: "media_job_workspace_missing" }, { status: 500 });
 
   const { data: asset, error: assetLookupError } = await supabase
     .from("assets")
@@ -98,7 +100,7 @@ export async function POST(request: Request) {
   for (const derivative of payload.derivatives) {
     if (derivative.kind === "video-proxy") continue;
     const variantKind = derivative.kind;
-    const expectedKey = derivativeObjectKey(payload.assetId, variantKind, variantKind === "poster" ? "poster.webp" : "audio.m4a");
+    const expectedKey = derivativeObjectKey(workspaceId, payload.assetId, variantKind, variantKind === "poster" ? "poster.webp" : "audio.m4a");
     if (derivative.uri !== expectedKey) {
       verificationErrors.push(`${variantKind}: unexpected object key`);
       continue;

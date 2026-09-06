@@ -13,7 +13,15 @@ import {
 
 function entry(id: number, payload = ""): EditorHistoryEntry {
   const command = { id, payload } as unknown as EditorCommand;
-  return { undo: [command], redo: [command] };
+  return {
+    id: `test-${id}`,
+    label: "Test command",
+    timestamp: id,
+    undo: [command],
+    redo: [command],
+    selectionBefore: [],
+    selectionAfter: [],
+  };
 }
 
 describe("history policy", () => {

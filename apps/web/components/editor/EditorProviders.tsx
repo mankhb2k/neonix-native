@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useEffect,
+  useLayoutEffect,
   type ReactNode,
 } from "react";
 import { EditorActionsContext, type EditorActions } from "@/hooks/editor/use-editor-actions";
@@ -77,6 +78,21 @@ function selectionStillExists(
   return document.audio.tracks.some((track) =>
     track.clips.some((clip) => `audio.${clip.id}` === id),
   );
+}
+
+function commandLabel(commands: readonly EditorCommand[]): string {
+  const type = commands[0]?.type;
+  switch (type) {
+    case "patch-layer":
+    case "patch-layers":
+      return "Transform layers";
+    case "add-layer":
+      return "Add layer";
+    case "remove-layer":
+      return "Remove layer";
+    default:
+      return type ? type.replaceAll("-", " ") : "Edit document";
+  }
 }
 
 /** Delete selected layer subtrees in child-first order so group removal is valid. */
@@ -158,8 +174,33 @@ export function EditorProviders({
     "idle" | "saving" | "saved" | "error" | "conflict"
   >("idle");
   const lastPersistedDocumentRef = useRef(JSON.stringify(initialDocument));
+  const saveInFlightRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+  const historySequenceRef = useRef(0);
 
-  useEffect(() => {
+  const createHistoryEntry = useCallback(
+    (
+      undo: readonly EditorCommand[],
+      redo: readonly EditorCommand[],
+      selectionBefore: readonly string[] = [],
+      selectionAfter: readonly string[] = selectionBefore,
+    ): EditorHistoryEntry => ({
+      id: `history-${Date.now()}-${historySequenceRef.current++}`,
+      label: commandLabel(redo),
+      timestamp: Date.now(),
+      undo,
+      redo,
+      selectionBefore,
+      selectionAfter,
+    }),
+    [],
+  );
+
+  // The editor store is the synchronous read model consumed by stage,
+  // inspector and timeline selectors. Keep it in sync before paint; a
+  // passive effect leaves one frame where the stage still sees the previous
+  // document after a command has already been committed.
+  useLayoutEffect(() => {
     editorStore.setState({
       document,
       selectedLayerIds,
@@ -278,6 +319,13 @@ export function EditorProviders({
     if (serialized === lastPersistedDocumentRef.current) return undefined;
 
     const timer = window.setTimeout(() => {
+      // Keep saves single-flight. A second request with the same revision can
+      // race the first one when a user edits again before the network returns.
+      if (saveInFlightRef.current) {
+        saveQueuedRef.current = true;
+        return;
+      }
+      saveInFlightRef.current = true;
       setPersistenceStatus("saving");
       void saveEditorProject({
         projectRef,
@@ -295,7 +343,11 @@ export function EditorProviders({
           lastPersistedDocumentRef.current = serialized;
           setPersistenceStatus("saved");
         })
-        .catch(() => setPersistenceStatus("error"));
+        .catch(() => setPersistenceStatus("error"))
+        .finally(() => {
+          saveInFlightRef.current = false;
+          saveQueuedRef.current = false;
+        });
     }, 700);
 
     return () => window.clearTimeout(timer);
@@ -309,17 +361,26 @@ export function EditorProviders({
       if (!result.ok) return false;
 
       setDocument(result.document);
-      setSelectedLayerIds((previous) =>
-        previous.filter((id) => selectionStillExists(result.document, id)),
+      const nextSelection = selectedLayerIds.filter((id) =>
+        selectionStillExists(result.document, id),
       );
+      setSelectedLayerIds(nextSelection);
       setUndoStack((previous) =>
-        appendUndoEntry(previous, { undo: result.inverse, redo: [...commands] }),
+        appendUndoEntry(
+          previous,
+          createHistoryEntry(
+            result.inverse,
+            [...commands],
+            selectedLayerIds,
+            nextSelection,
+          ),
+        ),
       );
       setRedoStack([]);
       setLastHistoryKey(null);
       return true;
     },
-    [document],
+    [createHistoryEntry, document, selectedLayerIds],
   );
 
   const commitCoalescedCommand = useCallback(
@@ -329,22 +390,28 @@ export function EditorProviders({
       if (!result.ok) return false;
 
       setDocument(result.document);
-      setSelectedLayerIds((previous) =>
-        previous.filter((id) => selectionStillExists(result.document, id)),
+      const nextSelection = selectedLayerIds.filter((id) =>
+        selectionStillExists(result.document, id),
       );
+      setSelectedLayerIds(nextSelection);
       setUndoStack((previous) => {
         return appendOrCoalesceUndoEntry(
           previous,
           historyKey,
           lastHistoryKey,
-          { undo: result.inverse, redo: [command] },
+          createHistoryEntry(
+            result.inverse,
+            [command],
+            selectedLayerIds,
+            nextSelection,
+          ),
         );
       });
       setRedoStack([]);
       setLastHistoryKey(historyKey);
       return true;
     },
-    [document, lastHistoryKey],
+    [createHistoryEntry, document, lastHistoryKey, selectedLayerIds],
   );
 
   const undo = useCallback((): boolean => {
@@ -354,7 +421,7 @@ export function EditorProviders({
     setDiagnostics(result.ok ? [] : result.diagnostics);
     if (!result.ok) return false;
     setDocument(result.document);
-    setSelectedLayerIds((previous) =>
+    setSelectedLayerIds(entry.selectionBefore ? [...entry.selectionBefore] : (previous) =>
       previous.filter((id) => selectionStillExists(result.document, id)),
     );
     setUndoStack((previous) => previous.slice(0, -1));
@@ -370,7 +437,7 @@ export function EditorProviders({
     setDiagnostics(result.ok ? [] : result.diagnostics);
     if (!result.ok) return false;
     setDocument(result.document);
-    setSelectedLayerIds((previous) =>
+    setSelectedLayerIds(entry.selectionAfter ? [...entry.selectionAfter] : (previous) =>
       previous.filter((id) => selectionStillExists(result.document, id)),
     );
     setRedoStack((previous) => previous.slice(0, -1));

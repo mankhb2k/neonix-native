@@ -24,9 +24,11 @@ import {
   type Asset,
   type AssetUsageProject,
 } from "@/lib/api/assets";
+import { createFontUpload, completeFontUpload, deleteFont, listFonts, uploadFontBytes, type FontOption } from "@/lib/api/fonts";
 import { createBrowserVideoPreview } from "@/lib/media/browser-preview";
 
 type ViewMode = "list" | "grid";
+type AssetTab = "assets" | "fonts";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -265,6 +267,8 @@ function DeleteAssetDialog({
 
 export function AssetsWorkspace() {
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [fonts, setFonts] = useState<FontOption[]>([]);
+  const [activeTab, setActiveTab] = useState<AssetTab>("assets");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -276,6 +280,7 @@ export function AssetsWorkspace() {
   const [checkingDeleteAssetId, setCheckingDeleteAssetId] = useState<string | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fontInputRef = useRef<HTMLInputElement>(null);
   const deleteRequestIdRef = useRef(0);
 
   const handleDuration = useCallback((assetId: string, duration: number) => {
@@ -283,7 +288,9 @@ export function AssetsWorkspace() {
   }, []);
 
   const loadAssets = useCallback(async () => {
-    setAssets(await listAssets());
+    const [nextAssets, nextFonts] = await Promise.all([listAssets(), listFonts()]);
+    setAssets(nextAssets);
+    setFonts(nextFonts);
   }, []);
 
   useEffect(() => {
@@ -354,6 +361,22 @@ export function AssetsWorkspace() {
     }
   }
 
+  async function uploadFontFile(file: File) {
+    setError(null);
+    setUploading(file.name);
+    let session: Awaited<ReturnType<typeof createFontUpload>> | null = null;
+    try {
+      session = await createFontUpload(file);
+      await uploadFontBytes(session, file);
+      await completeFontUpload(session.assetId);
+      await loadAssets();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Font upload failed");
+    } finally {
+      setUploading(null);
+    }
+  }
+
   const requestDeleteAsset = useCallback(async (assetId: string) => {
     const asset = assets.find((candidate) => candidate.id === assetId);
     if (!asset) return;
@@ -398,6 +421,10 @@ export function AssetsWorkspace() {
   const visibleAssets = normalizedSearch
     ? assets.filter((asset) => (asset.original_filename ?? asset.id).toLowerCase().includes(normalizedSearch))
     : assets;
+  const customFonts = fonts.filter((font) => font.source === "custom");
+  const visibleFonts = normalizedSearch
+    ? customFonts.filter((font) => `${font.familyName} ${font.subfamilyName} ${font.filename ?? ""}`.toLowerCase().includes(normalizedSearch))
+    : customFonts;
 
   return (
     <div>
@@ -416,28 +443,37 @@ export function AssetsWorkspace() {
             Workspace library
           </p>
           <h1 className="m-0 text-3xl font-semibold tracking-[-0.04em] text-[var(--fg-primary)] sm:text-4xl">
-            Assets
+            {activeTab === "assets" ? "Assets" : "Fonts"}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--fg-muted)]">
-            Upload media to R2 and reuse it across your Neonix projects.
+            {activeTab === "assets" ? "Upload media to R2 and reuse it across your Neonix projects." : "Upload static fonts once and use them across every Neonix project."}
           </p>
         </div>
         <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[var(--hub-accent)] px-4 py-2.5 text-body font-semibold text-[var(--hub-accent-on)] transition hover:bg-[var(--hub-accent-hover)]">
           {uploading ? <LoaderCircle className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
-          {uploading ? "Uploading..." : "Upload asset"}
+          {uploading ? "Uploading..." : activeTab === "assets" ? "Upload asset" : "Upload font"}
           <input
             type="file"
             className="sr-only"
             disabled={Boolean(uploading)}
-            accept="image/*,video/*,audio/*"
+            accept={activeTab === "assets" ? "image/*,video/*,audio/*" : ".ttf,.woff,.woff2,font/ttf,font/woff,font/woff2"}
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (inputRef.current) inputRef.current.value = "";
-              if (file) void uploadFile(file);
+              const inputElement = event.currentTarget;
+              inputElement.value = "";
+              if (file) void (activeTab === "assets" ? uploadFile(file) : uploadFontFile(file));
             }}
-            ref={inputRef}
+            ref={activeTab === "assets" ? inputRef : fontInputRef}
           />
         </label>
+      </div>
+
+      <div className="mt-6 flex gap-1 border-b border-[var(--hub-border)]">
+        {(["assets", "fonts"] as const).map((tab) => (
+          <button key={tab} type="button" onClick={() => { setActiveTab(tab); setSearch(""); }} className={`border-b-2 px-4 py-2 text-sm font-medium ${activeTab === tab ? "border-[var(--hub-accent)] text-[var(--fg-primary)]" : "border-transparent text-[var(--fg-muted)]"}`}>
+            {tab === "assets" ? "Assets" : "Fonts"}
+          </button>
+        ))}
       </div>
 
       <div className="mt-8 flex flex-col gap-3 border-b border-[var(--hub-border)] pb-3 sm:flex-row sm:items-center">
@@ -453,7 +489,7 @@ export function AssetsWorkspace() {
           />
         </label>
         <span className="text-caption text-[var(--fg-muted)]">
-          {visibleAssets.length} {visibleAssets.length === 1 ? "file" : "files"}
+          {activeTab === "assets" ? visibleAssets.length : visibleFonts.length} {activeTab === "assets" ? (visibleAssets.length === 1 ? "file" : "files") : (visibleFonts.length === 1 ? "font" : "fonts")}
         </span>
         <div className="flex items-center gap-1 sm:ml-auto" aria-label="Asset view">
           <button
@@ -487,6 +523,36 @@ export function AssetsWorkspace() {
         <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-5 py-16 text-body text-[var(--fg-muted)]">
           <LoaderCircle className="size-4 animate-spin" /> Loading assets...
         </div>
+      ) : activeTab === "fonts" ? (
+        visibleFonts.length === 0 ? (
+          <div className="mt-6 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-6 py-14 text-center">
+            <span className="flex size-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--hub-accent)]"><UploadCloud className="size-5" /></span>
+            <p className="mt-4 text-body font-semibold text-[var(--fg-primary)]">{normalizedSearch ? "No matching fonts" : "No custom fonts yet"}</p>
+            <p className="mt-1 max-w-sm text-caption text-[var(--fg-muted)]">Upload a static .ttf, .woff, or .woff2 file. Metadata is read automatically.</p>
+          </div>
+        ) : (
+          <div className="mt-6 overflow-hidden rounded-xl border border-[var(--hub-border)] bg-[var(--hub-card-bg)]">
+            <div className="divide-y divide-[var(--hub-divider)]">
+              {visibleFonts.map((font) => (
+                <div key={font.id} className="flex items-center gap-4 px-5 py-4">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--hub-hover)] text-[var(--hub-accent)]">Aa</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body font-medium text-[var(--fg-primary)]">{font.familyName} · {font.subfamilyName}</p>
+                    <p className="mt-1 font-mono text-caption text-[var(--fg-muted)]">{font.source === "custom" ? "Custom" : "System"} · {font.format.toUpperCase()} · {font.weight}</p>
+                  </div>
+                  {font.source === "custom" ? (
+                    <button type="button" className="rounded-md p-2 text-[var(--fg-muted)] hover:bg-red-500/10 hover:text-red-600" aria-label={`Delete ${font.familyName} ${font.subfamilyName}`} onClick={() => {
+                      if (!font.id.startsWith("custom:")) return;
+                      void deleteFont(font.id.slice("custom:".length)).then(() => loadAssets()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Delete failed"));
+                    }}>
+                      <Trash2 className="size-4" />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        )
       ) : visibleAssets.length === 0 ? (
         <div className="mt-6 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--hub-border)] bg-[var(--hub-card-bg)] px-6 py-14 text-center">
           <span className="flex size-11 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--hub-accent)]">

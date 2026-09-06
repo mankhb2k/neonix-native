@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 export type InspectorSelectOption = {
   value: string;
   label: string;
+  group?: string;
 };
 
 export type InspectorSelectProps = {
@@ -119,26 +120,32 @@ export function InspectorSelect({ label, value, options, onChange, className = "
             className="absolute right-0 top-[calc(100%+4px)] z-50 max-h-52 min-w-full overflow-y-auto rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
           >
             {options.map((option, index) => (
-              <button
-                key={option.value}
-                ref={(element) => {
-                  optionRefs.current[index] = element;
-                }}
-                type="button"
-                role="option"
-                aria-selected={option.value === value}
-                tabIndex={-1}
-                className={`flex min-h-7 w-full items-center rounded px-2 text-left text-[12px] ${
-                  index === highlightedIndex
-                    ? "bg-[var(--bg-hover)] text-[var(--fg-primary)]"
-                    : "text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
-                }`}
-                onClick={() => selectOption(option)}
-                onKeyDown={handleOptionKeyDown}
-                onMouseEnter={() => setHighlightedIndex(index)}
-              >
-                <span className="truncate">{option.label}</span>
-              </button>
+              <div key={option.value}>
+                {option.group && (index === 0 || option.group !== options[index - 1]?.group) ? (
+                  <div className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fg-muted)] first:pt-1">
+                    {option.group}
+                  </div>
+                ) : null}
+                <button
+                  ref={(element) => {
+                    optionRefs.current[index] = element;
+                  }}
+                  type="button"
+                  role="option"
+                  aria-selected={option.value === value}
+                  tabIndex={-1}
+                  className={`flex min-h-7 w-full items-center rounded px-2 text-left text-[12px] ${
+                    index === highlightedIndex
+                      ? "bg-[var(--bg-hover)] text-[var(--fg-primary)]"
+                      : "text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+                  }`}
+                  onClick={() => selectOption(option)}
+                  onKeyDown={handleOptionKeyDown}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                >
+                  <span className="truncate">{option.label}</span>
+                </button>
+              </div>
             ))}
           </div>
         ) : null}

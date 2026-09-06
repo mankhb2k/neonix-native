@@ -78,6 +78,8 @@ const V2BaselineShiftSchema = z.union([
 /** Normalized CSS-independent text layout contract for AI, authoring and HTML/CSS lowering. */
 export const V2TextLayoutSchema = z
   .object({
+    /** Whether the text frame is derived from shaping or authored by the user. */
+    sizing: z.enum(["auto-width-height", "fixed-width-auto-height", "fixed"]).optional(),
     /** Resolved line box height in composition units. */
     lineHeight: V2PositiveNumberSchema,
     /** Inline content box width used for wrapping and horizontal alignment. */
