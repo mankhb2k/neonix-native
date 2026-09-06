@@ -1,7 +1,7 @@
 import { fail } from "./errors";
 import { edges, number } from "./values";
-import { parseAspectRatio, parseBorder } from "./paint";
-import { constrainToComposition } from "./layout";
+import { parseAspectRatio, parseBorderEdges } from "./paint";
+import { makeLayoutBox, type LayoutBox } from "./layout-ir";
 import type { Style } from "./model";
 
 export type GeometryEdges = [top: number, right: number, bottom: number, left: number];
@@ -17,9 +17,40 @@ export type ResolvedGeometry = {
   contentWidth: number;
   contentHeight: number;
   padding: GeometryEdges;
+  borderEdges: GeometryEdges;
   borderWidth: number;
   boxSizing: "content-box" | "border-box";
+  /** Canonical P1 layout IR consumed by the lowering phase. */
+  layoutBox: LayoutBox;
 };
+
+/** Reframes a resolved box after a parent layout algorithm assigns its slot. */
+export function resizeResolvedGeometry(geometry: ResolvedGeometry, rect: { x: number; y: number; width: number; height: number }): ResolvedGeometry {
+  const width = Math.max(1, rect.width);
+  const height = Math.max(1, rect.height);
+  const horizontalDecorations = geometry.padding[1] + geometry.padding[3] + geometry.borderEdges[1] + geometry.borderEdges[3];
+  const verticalDecorations = geometry.padding[0] + geometry.padding[2] + geometry.borderEdges[0] + geometry.borderEdges[2];
+  const contentWidth = Math.max(0, width - horizontalDecorations);
+  const contentHeight = Math.max(0, height - verticalDecorations);
+  const reframed = { x: rect.x, y: rect.y, width, height };
+  return {
+    ...geometry,
+    x: rect.x,
+    y: rect.y,
+    normalX: rect.x,
+    normalY: rect.y,
+    width,
+    height,
+    contentWidth,
+    contentHeight,
+    layoutBox: makeLayoutBox(reframed, {
+      x: rect.x + geometry.borderEdges[3] + geometry.padding[3],
+      y: rect.y + geometry.borderEdges[0] + geometry.padding[0],
+      width: contentWidth,
+      height: contentHeight,
+    }),
+  };
+}
 
 type GeometryInput = {
   style: Style;
@@ -54,10 +85,11 @@ function validateSize(value: number, property: string, raw: string | undefined):
 export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport } = input;
   const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
-  const border = parseBorder(style, containingWidth, fontSize, viewport);
-  const borderWidth = border.width ?? 0;
-  const horizontalDecorations = padding[1] + padding[3] + borderWidth * 2;
-  const verticalDecorations = padding[0] + padding[2] + borderWidth * 2;
+  const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
+  const borderEdges: GeometryEdges = [border.top.width, border.right.width, border.bottom.width, border.left.width];
+  const borderWidth = Math.max(...borderEdges);
+  const horizontalDecorations = padding[1] + padding[3] + borderEdges[1] + borderEdges[3];
+  const verticalDecorations = padding[0] + padding[2] + borderEdges[0] + borderEdges[2];
   const boxSizingValue = (style.get("box-sizing") ?? "content-box").trim().toLowerCase();
   if (boxSizingValue !== "content-box" && boxSizingValue !== "border-box") fail("css-box-sizing-invalid", `box-sizing supports content-box or border-box: ${boxSizingValue}`);
   const boxSizing = boxSizingValue as "content-box" | "border-box";
@@ -139,19 +171,26 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   }
   const contentWidth = Math.max(0, borderBoxWidth - horizontalDecorations);
   const contentHeight = Math.max(0, borderBoxHeight - verticalDecorations);
-  const bounded = constrainToComposition(requestedX, requestedY, borderBoxWidth, borderBoxHeight, viewport.width, viewport.height);
-
   return {
-    x: bounded.x,
-    y: bounded.y,
+    // Keep the CSS layout box intact even when it crosses the composition
+    // edge. The renderer's composition surface performs the final clip;
+    // clamping here would change mask/background reference geometry and make
+    // an overflowing element differ from browser CSS.
+    x: requestedX,
+    y: requestedY,
     normalX,
     normalY,
-    width: bounded.width,
-    height: bounded.height,
+    width: borderBoxWidth,
+    height: borderBoxHeight,
     contentWidth,
     contentHeight,
     padding,
+    borderEdges,
     borderWidth,
     boxSizing,
+    layoutBox: makeLayoutBox(
+      { x: requestedX, y: requestedY, width: borderBoxWidth, height: borderBoxHeight },
+      { x: requestedX + borderEdges[3] + padding[3], y: requestedY + borderEdges[0] + padding[0], width: contentWidth, height: contentHeight },
+    ),
   };
 }

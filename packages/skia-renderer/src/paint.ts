@@ -38,6 +38,70 @@ function gradientPositions(gradient: PaintFillGradient): number[] {
   return gradient.stops.map((stop) => clamp01(stop.offset));
 }
 
+type ResolvedGradient = {
+  gradient: PaintFillGradient;
+  tileMode: "pad" | "repeat" | "reflect";
+};
+
+function rgbaHex(r: number, g: number, b: number, a: number): string {
+  const channel = (value: number) => Math.round(clamp01(value) * 255).toString(16).padStart(2, "0");
+  return `#${channel(r)}${channel(g)}${channel(b)}${channel(a)}`;
+}
+
+function sampleGradientStop(stops: PaintFillGradient["stops"], offset: number): PaintFillGradient["stops"][number] {
+  const first = stops[0]!;
+  if (offset <= first.offset) return { ...first, offset };
+  const last = stops.at(-1)!;
+  if (offset >= last.offset) return { ...last, offset };
+  for (let index = 1; index < stops.length; index += 1) {
+    const right = stops[index]!;
+    const left = stops[index - 1]!;
+    if (offset > right.offset) continue;
+    const span = right.offset - left.offset;
+    if (span <= 0) return { ...right, offset };
+    const amount = (offset - left.offset) / span;
+    const leftColor = cssColorToRgba(left.color);
+    const rightColor = cssColorToRgba(right.color);
+    return {
+      offset,
+      color: rgbaHex(
+        leftColor[0] + (rightColor[0] - leftColor[0]) * amount,
+        leftColor[1] + (rightColor[1] - leftColor[1]) * amount,
+        leftColor[2] + (rightColor[2] - leftColor[2]) * amount,
+        leftColor[3] + (rightColor[3] - leftColor[3]) * amount,
+      ),
+      stopOpacity: (left.stopOpacity ?? 1) + ((right.stopOpacity ?? 1) - (left.stopOpacity ?? 1)) * amount,
+    };
+  }
+  return { ...last, offset };
+}
+
+/** Materialize short repeats for CanvasKit builds that clamp shader tiling. */
+function resolveGradient(gradient: PaintFillGradient): ResolvedGradient {
+  if (gradient.spreadMethod !== "repeat" || gradient.stops.length < 2) {
+    return { gradient, tileMode: gradient.spreadMethod ?? "pad" };
+  }
+  const start = gradient.stops[0]!.offset;
+  const period = gradient.stops.at(-1)!.offset - start;
+  if (!Number.isFinite(period) || period <= 0 || period >= 1) {
+    return { gradient, tileMode: "repeat" };
+  }
+  const baseStops = gradient.stops.map((stop) => ({ ...stop, offset: stop.offset - start }));
+  const stops: PaintFillGradient["stops"] = [];
+  const cycles = Math.ceil(1 / period);
+  for (let cycle = 0; cycle <= cycles; cycle += 1) {
+    for (const stop of baseStops) {
+      const offset = cycle * period + stop.offset;
+      if (offset >= -1e-9 && offset <= 1 + 1e-9) stops.push({ ...stop, offset: clamp01(offset) });
+    }
+  }
+  if ((stops.at(-1)?.offset ?? 0) < 1 - 1e-9) {
+    const sampleOffset = ((1 % period) + period) % period;
+    stops.push({ ...sampleGradientStop(baseStops, sampleOffset), offset: 1 });
+  }
+  return { gradient: { ...gradient, spreadMethod: "pad", stops }, tileMode: "pad" };
+}
+
 function gradientScale(gradient: PaintFillGradient, width: number, height: number): [number, number] {
   return gradient.gradientUnits === "objectBoundingBox" ? [width, height] : [1, 1];
 }
@@ -46,6 +110,20 @@ function gradientLocalMatrix(gradient: PaintFillGradient): number[] | undefined 
   const transform = gradient.gradientTransform;
   if (!transform || (transform.a === 1 && transform.b === 0 && transform.c === 0 && transform.d === 1 && transform.e === 0 && transform.f === 0)) return undefined;
   return transformMatrix(transform);
+}
+
+function multiplyMatrix3(a: number[], b: number[]): number[] {
+  return [
+    a[0]! * b[0]! + a[1]! * b[3]! + a[2]! * b[6]!,
+    a[0]! * b[1]! + a[1]! * b[4]! + a[2]! * b[7]!,
+    a[0]! * b[2]! + a[1]! * b[5]! + a[2]! * b[8]!,
+    a[3]! * b[0]! + a[4]! * b[3]! + a[5]! * b[6]!,
+    a[3]! * b[1]! + a[4]! * b[4]! + a[5]! * b[7]!,
+    a[3]! * b[2]! + a[4]! * b[5]! + a[5]! * b[8]!,
+    a[6]! * b[0]! + a[7]! * b[3]! + a[8]! * b[6]!,
+    a[6]! * b[1]! + a[7]! * b[4]! + a[8]! * b[7]!,
+    a[6]! * b[2]! + a[7]! * b[5]! + a[8]! * b[8]!,
+  ];
 }
 
 function conicLocalMatrix(
@@ -106,6 +184,8 @@ function radialGeometry(gradient: PaintFillGradient, width: number, height: numb
   center: Point;
   focus: Point;
   radius: number;
+  radiusX: number;
+  radiusY: number;
   focusRadius: number;
 } {
   const units = gradient.gradientUnits ?? "objectBoundingBox";
@@ -113,12 +193,45 @@ function radialGeometry(gradient: PaintFillGradient, width: number, height: numb
   const scaleY = units === "objectBoundingBox" ? height : 1;
   const center: Point = [(gradient.cx ?? 0.5) * scaleX, (gradient.cy ?? 0.5) * scaleY];
   const focus: Point = [(gradient.fx ?? gradient.cx ?? 0.5) * scaleX, (gradient.fy ?? gradient.cy ?? 0.5) * scaleY];
+  const radius = (gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? Math.min(width, height) : 1);
+  const radiusX = (gradient.radiusX ?? gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? width : 1);
+  const radiusY = (gradient.radiusY ?? gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? height : 1);
   return {
     center,
     focus,
-    radius: (gradient.radius ?? 0.5) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
+    radius,
+    radiusX,
+    radiusY,
     focusRadius: (gradient.fr ?? 0) * (units === "objectBoundingBox" ? Math.min(width, height) : 1),
   };
+}
+
+function radialLocalMatrix(gradient: PaintFillGradient, geometry: ReturnType<typeof radialGeometry>): number[] | undefined {
+  const isEllipse = Math.abs(geometry.radiusX - geometry.radiusY) > 1e-6;
+  const transform = gradientLocalMatrix(gradient);
+  if (!isEllipse) return transform;
+
+  // MakeRadialGradient is circular. Keep its canonical radius and stretch
+  // that circle by the X/Y ratios around the existing gradient center. Using
+  // ratios is important because the shader already owns a physical radius;
+  // an absolute-pixel scale would move the center in shader-local space.
+  const baseRadius = Math.max(Math.abs(geometry.radius), 1e-6);
+  const rx = Math.max(Math.abs(geometry.radiusX), 1e-6) / baseRadius;
+  const ry = Math.max(Math.abs(geometry.radiusY), 1e-6) / baseRadius;
+  const cx = geometry.center[0];
+  const cy = geometry.center[1];
+  const ellipse: Matrix3 = [
+    rx,
+    0,
+    cx - rx * cx,
+    0,
+    ry,
+    cy - ry * cy,
+    0,
+    0,
+    1,
+  ];
+  return transform ? multiplyMatrix3(transform, ellipse) : ellipse;
 }
 
 function makeGradientShader(
@@ -128,15 +241,19 @@ function makeGradientShader(
   height: number,
 ): SkiaShader | null {
   if (gradient.stops.length < 2) return null;
-  const colors = gradientColors(kit, gradient);
-  const positions = gradientPositions(gradient);
-  const mode = tileMode(kit, gradient.spreadMethod);
-  if (gradient.type === "linear-gradient") {
-    const { start, end } = linearPoints(gradient, width, height);
+  const resolved = resolveGradient(gradient);
+  const paintGradient = resolved.gradient;
+  const colors = gradientColors(kit, paintGradient);
+  const positions = gradientPositions(paintGradient);
+  const mode = tileMode(kit, resolved.tileMode);
+  if (paintGradient.type === "linear-gradient") {
+    const { start, end } = linearPoints(paintGradient, width, height);
     return kit.Shader.MakeLinearGradient(start, end, colors, positions, mode);
   }
-  if (gradient.type === "radial-gradient") {
-    const geometry = radialGeometry(gradient, width, height);
+  if (paintGradient.type === "radial-gradient") {
+    const geometry = radialGeometry(paintGradient, width, height);
+    const isEllipse = Math.abs(geometry.radiusX - geometry.radiusY) > 1e-6;
+    const shaderRadius = geometry.radius;
     if (
       kit.Shader.MakeTwoPointConicalGradient &&
       (geometry.focus[0] !== geometry.center[0] || geometry.focus[1] !== geometry.center[1] || geometry.focusRadius !== 0)
@@ -145,21 +262,21 @@ function makeGradientShader(
         geometry.focus,
         geometry.focusRadius,
         geometry.center,
-        geometry.radius,
+        shaderRadius,
         colors,
         positions,
         mode,
-        gradientLocalMatrix(gradient),
+        radialLocalMatrix(paintGradient, geometry),
         0,
       );
     }
-    return kit.Shader.MakeRadialGradient(geometry.center, geometry.radius, colors, positions, mode, gradientLocalMatrix(gradient), 0);
+    return kit.Shader.MakeRadialGradient(geometry.center, shaderRadius, colors, positions, mode, radialLocalMatrix(paintGradient, geometry), 0);
   }
-  const units = gradient.gradientUnits ?? "objectBoundingBox";
+  const units = paintGradient.gradientUnits ?? "objectBoundingBox";
   const scaleX = units === "objectBoundingBox" ? width : 1;
   const scaleY = units === "objectBoundingBox" ? height : 1;
-  const center: Point = [(gradient.cx ?? 0.5) * scaleX, (gradient.cy ?? 0.5) * scaleY];
-  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, conicLocalMatrix(gradient, center), 0, 0, 360);
+  const center: Point = [(paintGradient.cx ?? 0.5) * scaleX, (paintGradient.cy ?? 0.5) * scaleY];
+  return kit.Shader.MakeSweepGradient(center[0], center[1], colors, positions, mode, conicLocalMatrix(paintGradient, center), 0, 0, 360);
 }
 
 /** Creates one backend-neutral paint from Runtime paint semantics. */

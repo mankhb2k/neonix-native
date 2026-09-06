@@ -16,6 +16,7 @@ import {
   compileVisualProject,
   type CompileProtocolOptions,
 } from "./compiler";
+import { sampleMotionProtocolAtTime } from "./animation/sampler";
 
 const RATE = 48000 as const;
 /** Protocol V2 stores all authoring time values in milliseconds. */
@@ -130,12 +131,24 @@ export function compileProtocol(
   return runtime;
 }
 
+/** Compile a deterministic visual snapshot for one timeline position. */
+export function compileProtocolAtTime(
+  input: unknown,
+  timeSeconds: number,
+  options: CompileProtocolV3Options = {},
+): RuntimeProjectV3 {
+  const protocol = parseMotionProtocol(input);
+  return compileProtocol(sampleMotionProtocolAtTime(protocol, timeSeconds), options);
+}
+
 /** Compile one V3 visual frame into the backend-neutral paint contract. */
 export function compileProtocolToPaintCommands(
   input: unknown,
   options: { frame?: number; time?: number } = {},
 ): PaintCommandBuffer {
-  const runtime = compileProtocol(input);
+  const runtime = options.time == null
+    ? compileProtocol(input)
+    : compileProtocolAtTime(input, options.time);
   const frame = options.frame ??
     (options.time == null
       ? 0

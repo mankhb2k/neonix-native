@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { V2FiniteNumberSchema, V2IdSchema, V2MillisecondsSchema } from "./common";
+import {
+  V2FiniteNumberSchema,
+  V2IdSchema,
+  V2MillisecondsSchema,
+  V2NonNegativeNumberSchema,
+  V2PositiveMillisecondsSchema,
+  V2PositiveNumberSchema,
+} from "./common";
 
 /** A finite scalar or fixed-size value that can be sampled over time. */
 const V2Vec2ValueSchema = z
@@ -46,10 +53,38 @@ export const V2AnimatableValueSchema = z.discriminatedUnion("type", [
 
 export type V2AnimatableValue = z.infer<typeof V2AnimatableValueSchema>;
 
+/** Runtime playback policy for a track. Times remain milliseconds to match V2 keyframes. */
+export const V2TrackPlaybackSchema = z
+  .object({
+    durationMs: V2PositiveMillisecondsSchema,
+    delayMs: V2FiniteNumberSchema,
+    iterations: z.union([V2NonNegativeNumberSchema, z.literal("infinite")]),
+    direction: z.enum(["normal", "reverse", "alternate", "alternate-reverse"]),
+    fillMode: z.enum(["none", "forwards", "backwards", "both"]),
+    playState: z.enum(["running", "paused"]),
+  })
+  .strict()
+  .default({
+    durationMs: 1,
+    delayMs: 0,
+    iterations: 1,
+    direction: "normal",
+    fillMode: "none",
+    playState: "running",
+  });
+
+export type V2TrackPlayback = z.infer<typeof V2TrackPlaybackSchema>;
+
 /** Temporal interpolation is attached to the segment leaving a keyframe. */
 export const V2EasingSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("linear") }).strict(),
-  z.object({ type: z.literal("step") }).strict(),
+  z
+    .object({
+      type: z.literal("step"),
+      count: V2PositiveNumberSchema.int().default(1),
+      position: z.enum(["jump-start", "jump-end", "jump-none", "jump-both"]).default("jump-end"),
+    })
+    .strict(),
   z
     .object({
       type: z.literal("cubicBezier"),
@@ -114,6 +149,7 @@ export const V2TrackSchema = z
     path: V2PropertyPathSchema,
     keyframes: z.array(V2KeyframeSchema).min(1),
     interpolation: V2InterpolationSchema.optional(),
+    playback: V2TrackPlaybackSchema.optional(),
   })
   .strict()
   .superRefine((track, ctx) => {

@@ -191,6 +191,126 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.diagnostics[0]?.code).toBe("css-text-overflow-requires-clipping");
   });
 
+  it("lowers outline as paint-only geometry without inflating the layout frame", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="outlined"></div>`,
+      css: `#outlined { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #172554; outline: 12px solid #facc15; outline-offset: 18px; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const group = result.protocol?.layers.find((layer) => layer.id === "outlined");
+    const outlines = result.protocol?.layers.filter((layer) => layer.id.startsWith("outlined::outline")) ?? [];
+    expect(group).toMatchObject({ type: "group", frame: { width: 320, height: 160 } });
+    expect(outlines).toHaveLength(4);
+    expect(outlines.every((layer) => layer.parentLayerId === "outlined" && layer.type === "shape")).toBe(true);
+    expect(outlines[0]).toMatchObject({ frame: { width: 320, height: 160 }, style: { fill: "#facc15" }, payload: { shape: "polygon" } });
+  });
+
+  it("lowers text-shadow and box-shadow into ordered Protocol V2 effects", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="box-shadow"></div><div id="text-shadow">Shadow</div>`,
+      css: `#box-shadow { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #2563eb; box-shadow: 12px 16px 24px #00000099; }
+#text-shadow { position: absolute; left: 240px; top: 420px; width: 600px; height: 120px; color: #ffffff; font-family: Inter; font-size: 64px; font-weight: 700; text-shadow: 4px 6px 8px #38bdf899; }`,
+    }), {
+      fontAssets: [{ id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "box-shadow")).toMatchObject({
+      type: "group",
+      frame: { width: 320, height: 160 },
+      effects: [{ type: "shadow", source: "box", offset: { x: 12, y: 16 }, blur: 24, spread: 0, inset: false, color: "#00000099" }],
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "text-shadow")).toMatchObject({
+      type: "text",
+      effects: [{ type: "shadow", source: "alpha", offset: { x: 4, y: 6 }, blur: 8, spread: 0, inset: false, color: "#38bdf899" }],
+    });
+  });
+
+  it("lowers CSS filter functions as an ordered semantic effect list", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="filtered"></div>`,
+      css: '#filtered { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #38bdf8; filter: brightness(.8) blur(6px) grayscale(.25) opacity(.6) drop-shadow(8px 10px 12px #00000099); }',
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const filtered = result.protocol?.layers.find((layer) => layer.id === "filtered");
+    expect(filtered).toMatchObject({
+      type: "group",
+      effects: [
+        { type: "color-adjust", contrast: 0.8, saturation: 1, hueRotate: 0 },
+        { type: "blur", radius: 6 },
+        { type: "grayscale", amount: 0.25 },
+        { type: "filter-opacity", amount: 0.6 },
+        { type: "shadow", source: "alpha", offset: { x: 8, y: 10 }, blur: 12, spread: 0, inset: false },
+      ],
+    });
+    expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
+  });
+
+  it("lowers CSS blend mode and isolation to compositing state", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="multiply"></div><div id="isolated"><div id="screen-child"></div></div><div id="combined"></div>`,
+      css: `body { margin: 0; background: #172554; }
+#multiply { position: absolute; left: 120px; top: 120px; width: 240px; height: 120px; background: #facc15; mix-blend-mode: multiply; }
+#isolated { position: absolute; left: 420px; top: 120px; width: 300px; height: 160px; isolation: isolate; background: #1e3a8a; }
+#screen-child { position: absolute; left: 60px; top: 40px; width: 180px; height: 80px; background: #38bdf8; mix-blend-mode: screen; }
+#combined { position: absolute; left: 780px; top: 120px; width: 240px; height: 120px; background: #f97316; opacity: .7; mix-blend-mode: screen; filter: grayscale(.4); }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    expect(result.protocol?.layers.find((layer) => layer.id === "multiply")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "multiply" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "isolated")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "normal", isolation: "isolate" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "screen-child")).toMatchObject({
+      type: "group",
+      composite: { blendMode: "screen" },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({
+      type: "group",
+      opacity: 0.7,
+      composite: { blendMode: "screen" },
+      effects: [{ type: "grayscale", amount: 0.4 }],
+    });
+  });
+
+  it("lowers CSS clip-path shapes into geometric V2 clip paths", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="inset"></div><div id="circle"></div><div id="ellipse"></div><div id="triangle"></div><div id="hole"></div><div id="combined"><div id="combined-child"></div></div>`,
+      css: `body { margin: 0; }
+#inset, #circle, #ellipse, #triangle, #hole, #combined { position: absolute; width: 300px; height: 180px; background: #38bdf8; }
+#inset { left: 40px; top: 40px; clip-path: inset(20px 30px round 18px / 10px); }
+#circle { left: 380px; top: 40px; clip-path: circle(65px at 30% 60%); }
+#ellipse { left: 720px; top: 40px; clip-path: ellipse(110px 55px at 65% 35%); }
+#triangle { left: 1060px; top: 40px; clip-path: polygon(10% 90%, 50% 10%, 90% 90%); }
+#hole { left: 1400px; top: 40px; clip-path: path(evenodd, "M 0 0 H 300 V 180 H 0 Z M 80 40 H 220 V 140 H 80 Z"); }
+#combined { left: 40px; top: 300px; overflow: hidden; transform: rotate(4deg); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+#combined-child { position: absolute; left: -40px; top: -20px; width: 380px; height: 220px; background: #f97316; }`,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(MotionProtocolV2Schema.parse(result.protocol)).toEqual(result.protocol);
+    const clipIds = result.protocol?.layers.filter((layer) => layer.clipPath).map((layer) => layer.clipPath);
+    expect(clipIds).toHaveLength(6);
+    expect(result.protocol?.clipPaths).toHaveLength(6);
+    expect(result.protocol?.clipPaths?.some((clip) => clip.children[0]?.type === "path" && clip.children[0].contours[0]?.segments.some((segment) => segment.kind === "arc"))).toBe(true);
+    expect(result.protocol?.clipPaths?.some((clip) => clip.children[0]?.type === "path" && clip.children[0].fillRule === "evenodd")).toBe(true);
+    expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({ clipPath: expect.any(String), transform: { operations: expect.any(Array) } });
+  });
+
+  it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="shadow"></div>`,
+      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 8px 12px 6px #00000099 inset; }`,
+    }));
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("css-box-shadow-spread-inset-unsupported");
+  });
+
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {
     const result = compileHtmlCss(source);
     expect(result.status).toBe("success");
@@ -218,7 +338,7 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="gold-01"></div>`,
       css: `body { margin: 0; background: #081018; }
-#gold-01 { position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; background: #14b8a6; display: grid; }`,
+#gold-01 { position: absolute; left: 0px; top: 0px; width: 960px; height: 540px; background: #14b8a6; display: inline; }`,
     }));
     expect(result.status).toBe("error");
     expect(result.protocol).toBeNull();

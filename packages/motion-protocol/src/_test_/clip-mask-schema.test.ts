@@ -3,6 +3,7 @@ import {
   MotionProtocolV2Schema,
   V2ClipPathSchema,
   V2MaskSchema,
+  V2MaskLayerSchema,
 } from "../index";
 
 const base = {
@@ -59,5 +60,11 @@ describe("Protocol V2 SVG clipPath and mask definitions", () => {
     expect(project.clipPaths?.[0]?.clipPathUnits).toBe("userSpaceOnUse");
     expect(project.masks?.[0]?.maskUnits).toBe("objectBoundingBox");
     expect(project.masks?.[0]?.maskContentUnits).toBe("userSpaceOnUse");
+  });
+
+  it("keeps CSS mask layer order and composite explicit", () => {
+    expect(V2MaskLayerSchema.parse({ maskIds: ["a", "b"], mode: "alpha", composite: "exclude" })).toEqual({
+      maskIds: ["a", "b"], mode: "alpha", composite: "exclude",
+    });
   });
 });

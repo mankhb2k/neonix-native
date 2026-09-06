@@ -11,6 +11,7 @@ import { V2TransformSchema } from "../transform";
 import { V2TrackListSchema } from "../animation";
 import { V2BackfaceVisibilitySchema } from "../render3d";
 import { V2CompositeSchema } from "../blend";
+import { V2MaskLayerListSchema } from "../mask";
 
 // Compatibility exports: blend semantics now live in v2/blend.ts.
 export {
@@ -57,6 +58,8 @@ export const V2LayerBaseSchema = z
     clipPath: V2IdSchema.optional(),
     /** SVG presentation reference resolved against project mask definitions. */
     mask: V2IdSchema.optional(),
+    /** CSS mask-image stack. maskIds within one entry are repeated tiles; composite applies between entries. */
+    maskLayers: V2MaskLayerListSchema.optional(),
     /** SVG filter reference resolved against project filter definitions. */
     filter: V2IdSchema.optional(),
     composite: V2CompositeSchema.optional(),

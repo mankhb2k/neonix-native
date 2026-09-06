@@ -14,7 +14,7 @@ import {
   useStagePreviewOverrides,
   type StagePreviewOverrides,
 } from "@/lib/store/stage-interaction-store";
-import { compileProtocol } from "@motionvideo/motion-compiler";
+import { compileProtocol, compileProtocolAtTime } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
@@ -1117,10 +1117,13 @@ function paintFrame(
     : Number.isFinite(canvasScale) && canvasScale > 0
     ? { time: renderTime, outputScale: canvasScale }
     : { time: renderTime };
+  const hasAnimatedTracks = project.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
   const evaluated =
     usableFrameOverride ??
-    (runtimeOverride
-      ? evaluateRuntimeProjectV3(runtimeAtPreviewTime(project, runtimeOverride, renderTime), frameIndex, evaluationOptions)
+    (hasAnimatedTracks
+      ? evaluateRuntimeProjectV3(compileProtocolAtTime(project, renderTime), frameIndex, evaluationOptions)
+      : runtimeOverride
+        ? evaluateRuntimeProjectV3(runtimeAtPreviewTime(project, runtimeOverride, renderTime), frameIndex, evaluationOptions)
       : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, evaluationOptions));
   if (requestId !== requestRef.current) return;
   const painted = applyStagePreviewOverrides(evaluated, previewOverrides);

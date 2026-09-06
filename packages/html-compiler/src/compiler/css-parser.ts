@@ -1,6 +1,6 @@
 import { fail, CompileError, sourceLocation } from "./errors";
 import { splitTopLevel } from "./utils";
-import { SUPPORTED_PROPERTIES, type Declaration, type Rule } from "./model";
+import { SUPPORTED_PROPERTIES, type Declaration, type KeyframeDefinition, type KeyframeStep, type Rule } from "./model";
 
 export function declarations(body: string, selector: string, sourceText?: string, sourceOffset = 0): Declaration[] {
   const result: Declaration[] = [];
@@ -21,10 +21,20 @@ export function declarations(body: string, selector: string, sourceText?: string
     if (property === "text-align" && !["start", "end", "left", "right", "center", "justify", "match-parent", "justify-all", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-align-unsupported", `Unsupported text-align value: ${normalizedValue}`, location);
     if (property === "direction" && !["ltr", "rtl", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-direction-unsupported", `direction must be ltr or rtl: ${normalizedValue}`, location);
     if (property === "writing-mode" && !["horizontal-tb", "vertical-rl", "vertical-lr", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-writing-mode-unsupported", `Unsupported writing-mode value: ${normalizedValue}`, location);
-    if (property === "display" && !["none", "block", "contents", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-display-unsupported", "Phase 3 supports display:none, block and contents", location);
+    if (property === "display" && !["none", "block", "contents", "flex", "grid", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-display-unsupported", "P1.3 supports display:none, block, contents, flex and grid", location);
+    if (property === "flex-direction" && !["row", "column", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-flex-direction-unsupported", "P1.1 supports flex-direction: row or column", location);
+    if (property === "flex-wrap" && !["nowrap", "wrap", "wrap-reverse", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-flex-wrap-unsupported", "P1.2 supports flex-wrap: nowrap, wrap or wrap-reverse", location);
+    if (property === "justify-content" && !["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-flex-justify-unsupported", `Unsupported justify-content value: ${normalizedValue}`, location);
+    if ((property === "align-items" || property === "align-self") && !["stretch", "flex-start", "flex-end", "center", "baseline", "auto", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-flex-align-unsupported", `Unsupported ${property} value: ${normalizedValue}`, location);
+    if (property === "align-content" && !["stretch", "flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-flex-align-content-unsupported", `Unsupported align-content value: ${normalizedValue}`, location);
+    if (property === "justify-items" && !["stretch", "start", "end", "center", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-grid-item-alignment-unsupported", `Unsupported justify-items value: ${normalizedValue}`, location);
     if (property === "position" && !["static", "relative", "absolute", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-position-invalid", "position must be static, relative or absolute", location);
     if (property === "visibility" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-visibility-invalid", "visibility must be visible or hidden", location);
     if (property === "overflow" && !["visible", "hidden", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-overflow-invalid", "overflow must be visible or hidden", location);
+    if (property.endsWith("border-style") || property === "border-style") {
+      const styles = normalizedValue.toLowerCase().split(/\s+/);
+      if (styles.some((item) => !["solid", "none", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset", "initial", "inherit", "unset"].includes(item))) throw new CompileError("css-border-style-unsupported", `Unsupported border style: ${normalizedValue}`, location);
+    }
     if (property === "text-overflow" && !["clip", "ellipsis", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-overflow-invalid", "text-overflow must be clip or ellipsis", location);
     if (property === "text-rendering" && !["auto", "optimizespeed", "geometricprecision", "initial", "inherit", "unset"].includes(normalizedValue.toLowerCase())) throw new CompileError("css-text-rendering-invalid", "text-rendering must be auto, optimizeSpeed or geometricPrecision", location);
     if (!property.startsWith("--") && !SUPPORTED_PROPERTIES.has(property)) throw new CompileError("css-property-unsupported", `Phase 2 does not support ${property}`, location);
@@ -48,4 +58,50 @@ export function parseRules(css: string): Rule[] {
   }
   if (text.slice(consumed).trim()) fail("css-invalid-rule", "CSS rule is missing a closing brace");
   return rules;
+}
+
+/** Extract @keyframes before the ordinary rule parser sees nested blocks. */
+export function parseAnimationStyles(css: string): { css: string; keyframes: Map<string, KeyframeDefinition> } {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const keyframes = new Map<string, KeyframeDefinition>();
+  const pattern = /@(?:-webkit-)?keyframes\s+([A-Za-z_][\w-]*)\s*\{/gi;
+  let cursor = 0;
+  let output = "";
+  let definitionOrder = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    const start = match.index;
+    const open = text.indexOf("{", start);
+    let depth = 0;
+    let close = -1;
+    for (let index = open; index < text.length; index += 1) {
+      if (text[index] === "{") depth += 1;
+      else if (text[index] === "}") {
+        depth -= 1;
+        if (depth === 0) { close = index; break; }
+      }
+    }
+    if (close < 0) fail("css-keyframes-invalid", `@keyframes ${match[1]} is missing a closing brace`);
+    output += text.slice(cursor, start);
+    const body = text.slice(open + 1, close);
+    const steps: KeyframeStep[] = [];
+    let stepOrder = 0;
+    for (const stepMatch of body.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selectorText = stepMatch[1]!.trim();
+      if (!selectorText) continue;
+      const stepOffset = open + 1 + (stepMatch.index ?? 0);
+      steps.push({
+        selectors: splitTopLevel(selectorText, ","),
+        declarations: declarations(stepMatch[2]!, `@keyframes ${match[1]} ${selectorText}`, text, stepOffset),
+        order: stepOrder++,
+      });
+    }
+    if (steps.length === 0) fail("css-keyframes-empty", `@keyframes ${match[1]} must contain at least one step`);
+    const name = match[1]!;
+    keyframes.set(name, { name, steps, order: definitionOrder++ });
+    cursor = close + 1;
+    pattern.lastIndex = cursor;
+  }
+  output += text.slice(cursor);
+  return { css: output, keyframes };
 }

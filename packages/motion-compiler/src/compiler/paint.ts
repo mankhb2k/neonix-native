@@ -220,12 +220,17 @@ export function canonicalizePaint(
 
   if (paint.type === "linear-gradient") {
     const angle = ((paint.angle ?? 0) * Math.PI) / 180;
+    const halfLength = (Math.abs(Math.cos(angle)) * width + Math.abs(Math.sin(angle)) * height) / 2;
+    const startX = width / 2 - Math.cos(angle) * halfLength;
+    const startY = height / 2 - Math.sin(angle) * halfLength;
+    const endX = width / 2 + Math.cos(angle) * halfLength;
+    const endY = height / 2 + Math.sin(angle) * halfLength;
     return {
       ...paint,
-      x1: localCoordinate(paint.x1, width, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.cos(angle) * 0.5),
-      y1: localCoordinate(paint.y1, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 - Math.sin(angle) * 0.5),
-      x2: localCoordinate(paint.x2, width, gradientUnits, paint.angle === undefined ? 1 : 0.5 + Math.cos(angle) * 0.5),
-      y2: localCoordinate(paint.y2, height, gradientUnits, paint.angle === undefined ? 0 : 0.5 + Math.sin(angle) * 0.5),
+      x1: localCoordinate(paint.x1, width, gradientUnits, paint.angle === undefined ? 0 : gradientUnits === "objectBoundingBox" ? startX / width : startX),
+      y1: localCoordinate(paint.y1, height, gradientUnits, paint.angle === undefined ? 0 : gradientUnits === "objectBoundingBox" ? startY / height : startY),
+      x2: localCoordinate(paint.x2, width, gradientUnits, paint.angle === undefined ? 1 : gradientUnits === "objectBoundingBox" ? endX / width : endX),
+      y2: localCoordinate(paint.y2, height, gradientUnits, paint.angle === undefined ? 0 : gradientUnits === "objectBoundingBox" ? endY / height : endY),
       gradientUnits: "userSpaceOnUse",
       gradientTransform,
       stops,
@@ -234,6 +239,8 @@ export function canonicalizePaint(
 
   if (paint.type === "radial-gradient") {
     const radius = localLength(paint.radius, Math.min(width, height), gradientUnits, 0.5);
+    const radiusX = paint.radiusX === undefined ? radius : localLength(paint.radiusX, width, gradientUnits, 0.5);
+    const radiusY = paint.radiusY === undefined ? radius : localLength(paint.radiusY, height, gradientUnits, 0.5);
     return {
       ...paint,
       cx: localCoordinate(paint.cx, width, gradientUnits, 0.5),
@@ -241,8 +248,8 @@ export function canonicalizePaint(
       fx: localCoordinate(paint.fx ?? paint.cx, width, gradientUnits, 0.5),
       fy: localCoordinate(paint.fy ?? paint.cy, height, gradientUnits, 0.5),
       radius,
-      radiusX: radius,
-      radiusY: radius,
+      radiusX,
+      radiusY,
       fr: localLength(paint.fr, Math.min(width, height), gradientUnits, 0),
       gradientUnits: "userSpaceOnUse",
       gradientTransform,

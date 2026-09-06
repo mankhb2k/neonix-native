@@ -9,7 +9,7 @@ import {
   type MotionProtocolV2,
 } from "@motionvideo/motion-protocol/v2";
 import { computeProjectHash, computeProjectHashShort } from "@motionvideo/export-renderer/contracts";
-import { MotionProtocolV2PatchSchema } from "./patch";
+import { MotionProtocolV2PatchSchema, type MotionProtocolV2Patch } from "./patch";
 
 export const MOTION_MCP_PROTOCOL_VERSION = 2 as const;
 
@@ -27,7 +27,8 @@ export interface MCPBaseResult {
   warnings: string[];
 }
 
-export const MCPCreateProjectInputSchema = z.object({
+export type MCPCreateProjectInput = { id: string; composition: z.infer<typeof V2CompositionSchema>; assets: z.infer<typeof V2AssetListSchema>; layers: Array<z.infer<typeof V2LayerSchema>>; audio: z.infer<typeof V2AudioDomainSchema>; skillId?: string };
+export const MCPCreateProjectInputSchema: z.ZodType<MCPCreateProjectInput, z.ZodTypeDef, unknown> = z.object({
   id: V2IdSchema,
   composition: V2CompositionSchema,
   assets: V2AssetListSchema.default([]),
@@ -35,8 +36,6 @@ export const MCPCreateProjectInputSchema = z.object({
   audio: V2AudioDomainSchema.default({ sampleRate: 48000, tracks: [] }),
   skillId: z.string().optional(),
 }).strict();
-export type MCPCreateProjectInput = z.infer<typeof MCPCreateProjectInputSchema>;
-
 export interface MCPCreateProjectResult extends MCPBaseResult {
   project: MotionProtocolV2;
   skillApplied?: string;
@@ -51,12 +50,11 @@ export interface MCPValidateProjectResult extends MCPBaseResult {
   capabilityCheck: MCPCapabilityCheck;
 }
 
-export const MCPApplyPatchInputSchema = z.object({
+export type MCPApplyPatchInput = { project: MotionProtocolV2; patch: MotionProtocolV2Patch };
+export const MCPApplyPatchInputSchema: z.ZodTypeAny = z.object({
   project: MotionProtocolV2Schema,
   patch: MotionProtocolV2PatchSchema,
 }).strict();
-export type MCPApplyPatchInput = z.infer<typeof MCPApplyPatchInputSchema>;
-
 export interface MCPApplyPatchResult extends MCPBaseResult {
   project: MotionProtocolV2 | null;
   applied: boolean;

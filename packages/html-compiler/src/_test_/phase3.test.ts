@@ -128,8 +128,12 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
       css: `#content-ratio { position: absolute; left: 120px; top: 100px; width: 640px; height: auto; aspect-ratio: 16 / 9; padding: 20px; border: 4px solid #ffffff; box-sizing: content-box; background: #f97316; } #border-ratio { position: absolute; left: 900px; top: 100px; width: 640px; height: auto; aspect-ratio: 16 / 9; padding: 20px; border: 4px solid #ffffff; box-sizing: border-box; background: #a78bfa; }`,
     }));
     expect(result.status).toBe("success");
-    expect(result.protocol?.layers.find((layer) => layer.id === "content-ratio")).toMatchObject({ frame: { width: 688, height: 408 }, style: { strokeWidth: 4 } });
-    expect(result.protocol?.layers.find((layer) => layer.id === "border-ratio")).toMatchObject({ frame: { width: 640, height: 360 }, style: { strokeWidth: 4 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "content-ratio")).toMatchObject({ type: "group", frame: { width: 688, height: 408 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "content-ratio::paint")).toMatchObject({ style: { fill: "#f97316" } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "content-ratio::border")).toMatchObject({ style: { strokeWidth: 4 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "border-ratio")).toMatchObject({ type: "group", frame: { width: 640, height: 360 } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "border-ratio::paint")).toMatchObject({ style: { fill: "#a78bfa" } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "border-ratio::border")).toMatchObject({ style: { strokeWidth: 4 } });
   });
 
   it("fails closed for invalid aspect-ratio and box-sizing values", () => {
@@ -142,14 +146,14 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     expect(invalidBoxSizing.diagnostics[0]?.code).toBe("css-box-sizing-invalid");
   });
 
-  it("bounds full-size geometry to the fixed composition", () => {
+  it("keeps CSS geometry intact and clips only at the fixed composition surface", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="full"></div>`,
       css: `#full { position: absolute; left: 100px; top: 80px; width: 100%; height: 100%; background: #2563eb; }`,
     }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers[0]).toMatchObject({
-      frame: { width: 1820, height: 1000 },
+      frame: { width: 1920, height: 1080 },
       transform: { translate: { x: 100, y: 80 } },
     });
   });

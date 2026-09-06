@@ -86,6 +86,7 @@ export function drawAsset(
   command: Extract<PaintCommand, { op: "drawImage" | "drawVideo" }>,
   asset: SkiaAsset,
   alpha: number,
+  blendMode?: unknown,
 ): boolean {
   // CanvasKit's browser helper is reliable for Image/Canvas/ImageBitmap but
   // older CanvasKit builds can throw while reading an HTMLVideoElement. The
@@ -100,6 +101,7 @@ export function drawAsset(
   if (!image) return false;
   const rects = imageRectForCommand(command, asset);
   const imagePaint = createSkiaPaint(kit, "#ffffff", alpha, kit.PaintStyle.Fill);
+  if (blendMode !== undefined) imagePaint.setBlendMode(blendMode);
   if (rects.clip) {
     canvas.save();
     canvas.clipRect(rects.clip, kit.ClipOp.Intersect, true);

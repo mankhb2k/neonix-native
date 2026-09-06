@@ -61,9 +61,64 @@ lowering and test coverage.
 - Typography MVP: text nodes lower to semantic Protocol V2 text layers with
   `font-family`, `font-size`, `font-weight`, `letter-spacing`, `word-spacing`,
   `white-space`, `text-align`, `direction`, `writing-mode` and solid
-  `text-decoration`. Exact font binaries must be
+  `text-decoration`, deterministic `text-overflow` and capability-gated
+  `text-rendering`. Exact font binaries must be
   supplied through `compileHtmlCss(..., { fontAssets })`; browser/system font
   fallback is never implicit.
+
+### P1.0 layout foundation
+
+The P1.0 layout foundation is implemented as a renderer-independent IR. Current
+P0 geometry is lowered through `LayoutBox` and `LayoutRect`, which keep border
+box, content box and positioned-descendant containing blocks explicit.
+
+### P1.1 single-line Flexbox
+
+P1.1 lowers a deterministic, non-wrapping Flexbox subset. Supported container
+properties are `display:flex`, `flex-direction:row|column`,
+`flex-wrap:nowrap`, `justify-content`, `align-items`, `gap`, `row-gap` and
+`column-gap`. Items support `flex`, `flex-basis`, `flex-grow`, `flex-shrink`,
+`align-self`, `margin` and `order`. The flex shorthand is expanded during
+cascade, free space is distributed on the main axis, and each placement is
+lowered into the child's Protocol V2 `frame` and local `transform`.
+
+Auto margins and `display:contents` inside a flex formatting context remain
+deferred. The five live P1.1 fixtures are split by behavior under
+**HTML compiler / Layout**.
+
+### P1.2 flex wrapping
+
+P1.2 adds `flex-wrap: wrap | wrap-reverse`, deterministic line formation,
+`row-gap`/`column-gap` between lines, and `align-content` with the supported
+space-distribution modes. `align-items` and `align-self` are resolved inside
+each line. The resulting line and item positions are baked into the same V2
+`frame` and local `transform`; no Flexbox property is required by the runtime.
+The three P1.2 fixtures cover line formation, cross-axis distribution and
+`wrap-reverse`. Grid remains the next independent P1 slice.
+
+### P1.3 explicit Grid
+
+P1.3 adds an explicit Grid subset with `display:grid`,
+`grid-template-columns`/`grid-template-rows` using `px`, `%`, `fr`, `auto`
+and simple `repeat()`, plus `grid-column`/`grid-row` line placement and spans.
+`gap`, `row-gap`, `column-gap`, `justify-content`, `align-content`,
+`justify-items`, `align-items` and `place-items` are resolved before lowering
+each item to its final V2 `frame` and local `transform`.
+
+Default children use deterministic row-major placement. Full CSS Grid
+auto-placement, named lines, `minmax()`, implicit track sizing beyond the
+supported auto case and subgrid remain deferred. Four fixtures cover explicit
+columns, explicit line placement, gap/alignment and spans.
+
+### P1.4 layout edge cases
+
+P1.4 applies `order` to both Flex and Grid auto-placement, preserves relative
+offsets after a layout slot is assigned, and clamps flex distribution through
+item `min-*`/`max-*` constraints. Flex and Grid containers now establish the
+containing block for absolute children; their formatting contexts do not
+collapse adjacent margins. `display:contents` children are flattened into
+the parent formatting context while `overflow:hidden` continues to lower to
+the parent's clip path.
 
 ### Stable element identity
 
@@ -133,6 +188,21 @@ parity remains an end-to-end validation gate.
 
 Preview Lab exposes these cases under **HTML compiler / Phase 4**.
 
+## P2.7 geometric clip-path
+
+The HTML compiler lowers `clip-path: inset()`, `circle()`, `ellipse()`
+and `polygon()` into normalized local Protocol V2 path definitions. CSS
+`path()` accepts the same deterministic `M/L/H/V/C/Z` grammar as SVG paths,
+including multiple closed contours with `evenodd` fill semantics. Percentages
+resolve against the selected `border-box`, `padding-box` or `content-box`;
+`inset()` also supports elliptical `round` radii.
+
+The layer keeps a geometric `clipPath` reference instead of becoming an alpha
+mask. When `overflow: hidden` is present, its rectangle is added to the same
+clip scope so the runtime intersects both clips before applying the element's
+transform and composition bounds. The eight P2.7 fixtures are split by shape
+and combination so Browser CSS and Skia can be compared independently.
+
 ## Media lowering
 
 The media slice lowers `<img>` and `<video>` into Protocol V2 media layers and
@@ -187,7 +257,7 @@ perspective parsing remain a later HTML compiler slice.
 
 ## Explicitly deferred
 
-Flex/grid layout, masks, filters, text shaping, advanced transform matrices,
+Flex wrapping, Grid layout, masks, filters, text shaping, advanced transform matrices,
 3D context, animation and transitions are later compiler phases. Unsupported
 properties, selectors, text nodes and invalid values fail closed with a
 diagnostic; they are not silently ignored.
@@ -213,7 +283,8 @@ src/
     ├── paint.ts              # colors, gradients, borders and radius
     ├── path.ts               # SVG path parsing and path paint
     ├── transform.ts          # CSS transform lowering
-    ├── layout.ts             # future layout-only helpers
+    ├── layout.ts             # margin collapse and composition bounds
+    ├── layout-ir.ts          # renderer-independent LayoutBox/containing blocks
     ├── model.ts              # internal compiler model and support tables
     ├── errors.ts             # diagnostics and source locations
     └── utils.ts              # shared parser utilities

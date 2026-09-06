@@ -10,6 +10,7 @@ export {
 } from "./compiler";
 export {
   compileProtocol,
+  compileProtocolAtTime,
   compileProtocolToPaintCommands,
   CompileProtocolToRuntimeV3Error,
   type CompileProtocolV3Options,
@@ -20,3 +21,4 @@ export {
   isCompilerFeatureSupported,
   type CompilerSupportedFeature,
 } from "./compiler/capabilities";
+export { sampleMotionProtocolAtTime } from "./animation/sampler";

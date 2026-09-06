@@ -3,6 +3,7 @@ import type {
   V2AnimatableValue,
   V2Track,
 } from "@motionvideo/motion-protocol/v2";
+import { sampleMotionProtocolAtTime } from "@motionvideo/motion-compiler";
 
 type V2Layer = MotionProtocolV2["layers"][number];
 
@@ -34,13 +35,7 @@ export function samplePreviewProtocolAtTime(
   project: MotionProtocolV2,
   timeSeconds: number,
 ): MotionProtocolV2 {
-  let changed = false;
-  const layers = project.layers.map((layer) => {
-    const sampledLayer = samplePreviewLayerAtTime(layer, timeSeconds);
-    if (sampledLayer !== layer) changed = true;
-    return sampledLayer;
-  });
-  return changed ? { ...project, layers } : project;
+  return sampleMotionProtocolAtTime(project, timeSeconds);
 }
 
 function sampleTrack(track: V2Track, timeMs: number): V2AnimatableValue | undefined {

@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
+import type { V2Easing } from "@motionvideo/motion-protocol/v2";
 import type { RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
 import {
   compileProtocol,
+  compileProtocolAtTime,
   compileProtocolToPaintCommands,
   COMPILER_SUPPORTED_FEATURES,
   isCompilerFeatureSupported,
 } from "./index";
+import { sampleMotionProtocolAtTime } from "./animation/sampler";
 
 describe("canonical compiler V3 projection", () => {
   it("owns the feature support catalog", () => {
@@ -135,6 +138,147 @@ describe("canonical compiler V3 projection", () => {
     const buffer = compileProtocolToPaintCommands(project);
     const path = buffer.commands.find((command) => command.op === "drawPath");
     expect(path).toMatchObject({ vectorEffect: "non-scaling-stroke" });
+  });
+
+  it("samples protocol tracks before visual lowering", () => {
+    const project = filterProject({ id: "animated", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].tracks = [{
+      id: "fade",
+      path: "opacity",
+      keyframes: [
+        { time: 0, value: { type: "number", value: 0 } },
+        { time: 1000, value: { type: "number", value: 1 } },
+      ],
+      playback: { durationMs: 1000, delayMs: 0, iterations: 2, direction: "alternate", fillMode: "both", playState: "running" },
+    }];
+    const runtime = compileProtocolAtTime(project, 0.5);
+    expect(runtime.visual.nodes.find((node) => node.id === "filtered-path")?.opacity).toBeCloseTo(0.5);
+  });
+
+  it("applies delay and fill-mode without changing the underlying layer when inactive", () => {
+    const sampleOpacity = (playback: Record<string, unknown>, time: number) => {
+      const project = filterProject({ id: "animation-state", primitives: [] }) as any;
+      project.filters = [];
+      project.layers[0].filter = undefined;
+      project.layers[0].opacity = 0.4;
+      project.layers[0].tracks = [{
+        id: "state-opacity",
+        path: "opacity",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 0.1 } },
+          { time: 700, value: { type: "number", value: 0.9 } },
+        ],
+        playback,
+      }];
+      return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
+    };
+
+    expect(sampleOpacity({ durationMs: 700, delayMs: 300, iterations: 1, direction: "normal", fillMode: "none", playState: "running" }, 0.2)).toBe(0.4);
+    expect(sampleOpacity({ durationMs: 700, delayMs: 300, iterations: 1, direction: "normal", fillMode: "backwards", playState: "running" }, 0.2)).toBe(0.1);
+    expect(sampleOpacity({ durationMs: 700, delayMs: 300, iterations: 1, direction: "normal", fillMode: "none", playState: "running" }, 1.1)).toBe(0.4);
+    expect(sampleOpacity({ durationMs: 700, delayMs: 300, iterations: 1, direction: "normal", fillMode: "forwards", playState: "running" }, 1.0)).toBeCloseTo(0.9);
+    expect(sampleOpacity({ durationMs: 700, delayMs: 300, iterations: 1, direction: "normal", fillMode: "both", playState: "running" }, 1.1)).toBeCloseTo(0.9);
+    expect(sampleOpacity({ durationMs: 700, delayMs: -350, iterations: 1, direction: "normal", fillMode: "both", playState: "running" }, 0)).toBeCloseTo(0.5);
+    expect(sampleOpacity({ durationMs: 700, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "paused" }, 0.5)).toBeCloseTo(0.6714285714);
+  });
+
+  it("samples direction at iteration boundaries and preserves fractional endpoints", () => {
+    const sampleOpacity = (playback: Record<string, unknown>, time: number) => {
+      const project = filterProject({ id: "iteration-state", primitives: [] }) as any;
+      project.filters = [];
+      project.layers[0].filter = undefined;
+      project.layers[0].tracks = [{
+        id: "iteration-opacity",
+        path: "opacity",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 0 } },
+          { time: 1000, value: { type: "number", value: 1 } },
+        ],
+        playback,
+      }];
+      return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
+    };
+
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2, direction: "normal", fillMode: "both", playState: "running" }, 1.25)).toBeCloseTo(0.25);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2, direction: "reverse", fillMode: "both", playState: "running" }, 0.25)).toBeCloseTo(0.75);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2, direction: "alternate", fillMode: "both", playState: "running" }, 1.25)).toBeCloseTo(0.75);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2, direction: "alternate-reverse", fillMode: "both", playState: "running" }, 1.25)).toBeCloseTo(0.25);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2.5, direction: "normal", fillMode: "forwards", playState: "running" }, 2.5)).toBeCloseTo(0.5);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: 2.5, direction: "alternate", fillMode: "forwards", playState: "running" }, 2.5)).toBeCloseTo(0.5);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: "infinite", direction: "normal", fillMode: "both", playState: "running" }, 2.25)).toBeCloseTo(0.25);
+    expect(sampleOpacity({ durationMs: 1000, delayMs: 0, iterations: "infinite", direction: "normal", fillMode: "both", playState: "running" }, 100.25)).toBeCloseTo(0.25);
+  });
+
+  it("samples frame-size tracks into the Skia-facing visual content", () => {
+    const project = filterProject({ id: "resized", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].tracks = [
+      {
+        id: "resize-width",
+        path: "frame.width",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 240 } },
+          { time: 1000, value: { type: "number", value: 520 } },
+        ],
+        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+      },
+      {
+        id: "resize-height",
+        path: "frame.height",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 120 } },
+          { time: 1000, value: { type: "number", value: 300 } },
+        ],
+        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+      },
+    ];
+    const runtime = compileProtocolAtTime(project, 0.5);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(node?.content).toMatchObject({ width: 380, height: 210 });
+  });
+
+  it("applies jump-start easing at the first animation instant", () => {
+    const project = filterProject({ id: "steps", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].style = { fill: "#2563eb" };
+    project.layers[0].tracks = [{
+      id: "steps-color",
+      path: "style.fill",
+      keyframes: [
+        { time: 0, value: { type: "color", value: [0x25 / 255, 0x63 / 255, 0xeb / 255, 1] }, easing: { type: "step", count: 4, position: "jump-start" } },
+        { time: 1000, value: { type: "color", value: [0xfa / 255, 0xcc / 255, 0x15 / 255, 1] } },
+      ],
+      playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+    }];
+    expect(sampleMotionProtocolAtTime(project, 0).layers[0]?.style?.fill).toBe("#5a7db6");
+  });
+
+  it("samples linear, step and cubic-bezier easing deterministically", () => {
+    const sampleOpacity = (easing: V2Easing, time: number) => {
+      const project = filterProject({ id: "easing", primitives: [] }) as any;
+      project.filters = [];
+      project.layers[0].filter = undefined;
+      project.layers[0].tracks = [{
+        id: "easing-opacity",
+        path: "opacity",
+        keyframes: [
+          { time: 0, value: { type: "number", value: 0 }, easing },
+          { time: 1000, value: { type: "number", value: 1 } },
+        ],
+        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+      }];
+      return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
+    };
+
+    expect(sampleOpacity({ type: "linear" }, 0.5)).toBeCloseTo(0.5);
+    expect(sampleOpacity({ type: "step", count: 4, position: "jump-end" }, 0.3)).toBeCloseTo(0.25);
+    expect(sampleOpacity({ type: "step", count: 4, position: "jump-start" }, 0)).toBeCloseTo(0.25);
+    expect(sampleOpacity({ type: "step", count: 4, position: "jump-start" }, 0.3)).toBeCloseTo(0.5);
+    expect(sampleOpacity({ type: "cubicBezier", x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }, 0.5)).toBeCloseTo(0.8024, 3);
   });
 
   it("resolves SVG paint references and authoring lengths at the compiler boundary", () => {

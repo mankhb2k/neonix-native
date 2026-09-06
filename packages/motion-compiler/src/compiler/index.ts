@@ -31,6 +31,7 @@ import {
   type V2Filter,
   type V2FilterPrimitive,
   type V2Mask,
+  type V2MaskLayer,
   type V2Paint,
   type V2SvgLength,
   type V2SvgDefinitionNode,
@@ -706,12 +707,78 @@ function lowerDefinitionDrawables(
 }
 
 function lowerSemanticMask(
-  layer: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  layer: ProtocolLayer,
   project: MotionProtocolV2,
   context: LayerContext,
   paintServers?: PaintServerLookup,
 ): { clipPath?: NonNullable<VisualRuntimeNode["clipPath"]>; mask?: VisualRuntimeMask; nodes: VisualRuntimeNode[] } {
-  if (layer.clipPath === undefined && layer.mask === undefined) return { nodes: [] };
+  const maskLayers: V2MaskLayer[] = layer.maskLayers
+    ?? (layer.mask !== undefined ? [{ maskIds: [layer.mask], composite: "add" as const }] : []);
+  if (layer.clipPath === undefined && maskLayers.length === 0) return { nodes: [] };
+  const nodes: VisualRuntimeNode[] = [];
+  const compileMaskLayers = (): { mask: VisualRuntimeMask; nodes: VisualRuntimeNode[] } => {
+    const runtimeLayers: NonNullable<VisualRuntimeMask["layers"]> = [];
+    for (const [layerIndex, maskLayer] of maskLayers.entries()) {
+      const sourceIds: string[] = [];
+      if (!isV2AtomCertified(`mask.composite.${maskLayer.composite}`)) throw new Error(`Uncertified Protocol V2 atom: mask.composite.${maskLayer.composite}`);
+      for (const maskId of maskLayer.maskIds) {
+        const definition = project.masks?.find((candidate) => candidate.id === maskId);
+        if (!definition) throw new Error(`Unknown mask reference: ${maskId}`);
+        if (!isV2AtomCertified("mask.definition")) throw new Error("Uncertified Protocol V2 atom: mask.definition");
+        if (definition.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
+          throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
+        }
+        if (definition.image) {
+          if (!isV2AtomCertified("mask.image")) throw new Error("Uncertified Protocol V2 atom: mask.image");
+          const sourceId = `${layer.id}:mask:${maskId}:image`;
+          sourceIds.push(sourceId);
+          nodes.push({
+            id: sourceId,
+            parentId: layer.id,
+            order: -1,
+            timing: context.timing,
+            opacity: 1,
+            blendMode: "normal",
+            visible: context.visible,
+            localMatrix: identityMatrix4(),
+            worldMatrix: context.worldMatrix,
+            content: {
+              kind: "image",
+              assetId: definition.image.assetId,
+              x: definition.image.x,
+              y: definition.image.y,
+              width: definition.image.width,
+              height: definition.image.height,
+              fit: definition.image.fit,
+              ...(definition.image.preserveAspectRatio ? { preserveAspectRatio: definition.image.preserveAspectRatio } : {}),
+            },
+          });
+          continue;
+        }
+        const drawables = lowerDefinitionDrawables(definition.children ?? [], IDENTITY_AFFINE, definition, layer.frame.width, layer.frame.height, paintServers);
+        for (const [drawableIndex, drawable] of drawables.entries()) {
+          const sourceId = `${layer.id}:mask:${maskId}:${drawableIndex}`;
+          sourceIds.push(sourceId);
+          nodes.push(definitionRuntimeNode(layer, context, drawable, sourceId, false));
+        }
+      }
+      if (sourceIds.length === 0) throw new Error(`mask layer ${layerIndex} has no renderable source`);
+      const firstDefinition = project.masks?.find((candidate) => candidate.id === maskLayer.maskIds[0]);
+      const mode = maskLayer.mode === "alpha" || (maskLayer.mode === undefined && firstDefinition?.maskType === "alpha") ? "alpha" as const : "luma" as const;
+      if (mode === "luma" && !isV2AtomCertified("mask.luminance")) throw new Error("Uncertified Protocol V2 atom: mask.luminance");
+      runtimeLayers.push({ mode, sourceIds, composite: maskLayer.composite });
+    }
+    const first = runtimeLayers[0]!;
+    return {
+      mask: {
+        mode: first.mode,
+        sourceId: first.sourceIds[0]!,
+        sourceIds: first.sourceIds,
+        layers: runtimeLayers,
+      },
+      nodes,
+    };
+  };
   if (layer.clipPath !== undefined) {
     if (!isV2AtomCertified("clipPath.definition")) throw new Error("Uncertified Protocol V2 atom: clipPath.definition");
     const definition = project.clipPaths?.find((candidate) => candidate.id === layer.clipPath);
@@ -725,41 +792,19 @@ function lowerSemanticMask(
       : IDENTITY_AFFINE;
     const drawables = lowerDefinitionDrawables(definition.children, objectBoxMatrix, maskDefinition, layer.frame.width, layer.frame.height, paintServers);
     const sourceIds = drawables.map((_, index) => `${layer.id}:clipPath:${definition.id}:${index}`);
-    const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, true));
-    if (!nodes.length) throw new Error(`clipPath ${definition.id} has no renderable geometry`);
+    const clipNodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, true));
+    if (!clipNodes.length) throw new Error(`clipPath ${definition.id} has no renderable geometry`);
     const clipPath = { sourceId: sourceIds[0]!, sourceIds };
-    if (layer.mask === undefined) return { clipPath, nodes };
-    const mask = project.masks?.find((candidate) => candidate.id === layer.mask);
-    if (!mask) throw new Error(`Unknown mask reference: ${layer.mask}`);
-    if (!isV2AtomCertified("mask.definition")) throw new Error("Uncertified Protocol V2 atom: mask.definition");
-    if (mask.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
-      throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
-    }
-    const maskDrawables = lowerDefinitionDrawables(mask.children, IDENTITY_AFFINE, mask, layer.frame.width, layer.frame.height, paintServers);
-    const maskSourceIds = maskDrawables.map((_, index) => `${layer.id}:mask:${mask.id}:${index}`);
-    const maskNodes = maskDrawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, maskSourceIds[index]!, false));
-    if (!maskNodes.length) throw new Error(`mask ${mask.id} has no renderable geometry`);
-    return {
-      clipPath,
-      mask: { mode: mask.maskType === "luminance" ? "luma" : "alpha", sourceId: maskSourceIds[0]!, sourceIds: maskSourceIds },
-      nodes: [...nodes, ...maskNodes],
-    };
+    if (maskLayers.length === 0) return { clipPath, nodes: clipNodes };
+    const loweredMask = compileMaskLayers();
+    return { clipPath, mask: loweredMask.mask, nodes: [...clipNodes, ...loweredMask.nodes] };
   }
-  const definition = project.masks?.find((candidate) => candidate.id === layer.mask);
-  if (!definition) throw new Error(`Unknown mask reference: ${layer.mask}`);
-  if (!isV2AtomCertified("mask.definition")) throw new Error("Uncertified Protocol V2 atom: mask.definition");
-  if (definition.maskUnits === "objectBoundingBox" && !isV2AtomCertified("mask.objectBoundingBox")) {
-    throw new Error("Uncertified Protocol V2 atom: mask.objectBoundingBox");
-  }
-  const drawables = lowerDefinitionDrawables(definition.children, IDENTITY_AFFINE, definition, layer.frame.width, layer.frame.height, paintServers);
-  const sourceIds = drawables.map((_, index) => `${layer.id}:mask:${definition.id}:${index}`);
-  const nodes = drawables.map((drawable, index) => definitionRuntimeNode(layer, context, drawable, sourceIds[index]!, false));
-  if (!nodes.length) throw new Error(`mask ${definition.id} has no renderable geometry`);
-  return { mask: { mode: definition.maskType === "luminance" ? "luma" : "alpha", sourceId: sourceIds[0]!, sourceIds }, nodes };
+  const loweredMask = compileMaskLayers();
+  return { mask: loweredMask.mask, nodes: loweredMask.nodes };
 }
 
 function definitionRuntimeNode(
-  target: Extract<MotionProtocolV2["layers"][number], { type: "group" }>,
+  target: ProtocolLayer,
   context: LayerContext,
   drawable: DefinitionDrawable,
   id: string,
@@ -889,6 +934,12 @@ function compileVisualRuntimeInternal(
     const blendMode = lowerBlendMode(layer);
     const isolation = layer.composite?.isolation;
     const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
+    const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
+    semanticMaskNodes.push(...semanticMask.nodes);
+    const semanticState = {
+      ...(semanticMask.clipPath ? { clipPath: semanticMask.clipPath } : {}),
+      ...(semanticMask.mask ? { mask: semanticMask.mask } : {}),
+    };
     if (layer.type === "group") {
       for (const capability of [
         "group.transform",
@@ -903,10 +954,6 @@ function compileVisualRuntimeInternal(
         }
       }
       if (context.timing.duration <= 0) return null;
-      const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
-      semanticMaskNodes.push(...semanticMask.nodes);
-      const clipPath = semanticMask.clipPath;
-      const mask = semanticMask.mask;
       return {
         id: layer.id,
         parentId: layer.parentLayerId,
@@ -915,9 +962,8 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
-        ...(clipPath ? { clipPath } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
-        ...(mask ? { mask } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -971,6 +1017,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1021,6 +1068,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1150,6 +1198,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1310,6 +1359,7 @@ function compileVisualRuntimeInternal(
         opacity: context.opacity,
         blendMode,
         ...(isolation ? { isolation } : {}),
+        ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
         visible: context.visible,
         localMatrix: context.localMatrix,
@@ -1456,6 +1506,7 @@ function compileVisualRuntimeInternal(
       opacity: context.opacity,
       blendMode,
       ...(isolation ? { isolation } : {}),
+      ...semanticState,
       backfaceVisibility: layer.backfaceVisibility,
       visible: context.visible,
       localMatrix: context.localMatrix,

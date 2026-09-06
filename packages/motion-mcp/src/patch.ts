@@ -8,37 +8,45 @@ import {
 } from "@motionvideo/motion-protocol/v2";
 
 const FiniteNumberSchema = z.number().finite();
-export const V2PatchSetCompositionSchema = z.object({
+type V2PatchSetComposition = { op: "setComposition"; changes: Partial<z.infer<typeof V2CompositionSchema>> };
+type V2PatchAddLayer = { op: "addLayer"; layer: z.infer<typeof V2LayerSchema>; insertAt?: number };
+type V2PatchUpdateLayer = { op: "updateLayer"; layerId: string; layer: z.infer<typeof V2LayerSchema> };
+type V2PatchRemoveLayer = { op: "removeLayer"; layerId: string };
+type V2PatchTrimLayer = { op: "trimLayer"; layerId: string; start?: number; duration?: number };
+type V2PatchSetValue = { op: "setValue"; path: string; value: unknown };
+
+export const V2PatchSetCompositionSchema: z.AnyZodObject = z.object({
   op: z.literal("setComposition"),
   changes: V2CompositionSchema.partial(),
 }).strict();
-export const V2PatchAddLayerSchema = z.object({
+export const V2PatchAddLayerSchema: z.AnyZodObject = z.object({
   op: z.literal("addLayer"),
   layer: V2LayerSchema,
   insertAt: z.number().int().nonnegative().optional(),
 }).strict();
-export const V2PatchUpdateLayerSchema = z.object({
+export const V2PatchUpdateLayerSchema: z.AnyZodObject = z.object({
   op: z.literal("updateLayer"),
   layerId: V2IdSchema,
   layer: V2LayerSchema,
 }).strict();
-export const V2PatchRemoveLayerSchema = z.object({
+export const V2PatchRemoveLayerSchema: z.AnyZodObject = z.object({
   op: z.literal("removeLayer"),
   layerId: V2IdSchema,
 }).strict();
-export const V2PatchTrimLayerSchema = z.object({
+export const V2PatchTrimLayerSchema: z.AnyZodObject = z.object({
   op: z.literal("trimLayer"),
   layerId: V2IdSchema,
   start: FiniteNumberSchema.nonnegative().optional(),
   duration: FiniteNumberSchema.positive().optional(),
 }).strict();
-export const V2PatchSetValueSchema = z.object({
+export const V2PatchSetValueSchema: z.AnyZodObject = z.object({
   op: z.literal("setValue"),
   path: z.string().min(1).max(256),
   value: z.unknown(),
 }).strict();
 
-export const V2PatchOpSchema = z.discriminatedUnion("op", [
+export type V2PatchOp = V2PatchSetComposition | V2PatchAddLayer | V2PatchUpdateLayer | V2PatchRemoveLayer | V2PatchTrimLayer | V2PatchSetValue;
+export const V2PatchOpSchema: z.ZodTypeAny = z.discriminatedUnion("op", [
   V2PatchSetCompositionSchema,
   V2PatchAddLayerSchema,
   V2PatchUpdateLayerSchema,
@@ -46,16 +54,13 @@ export const V2PatchOpSchema = z.discriminatedUnion("op", [
   V2PatchTrimLayerSchema,
   V2PatchSetValueSchema,
 ]);
-export type V2PatchOp = z.infer<typeof V2PatchOpSchema>;
-
-export const MotionProtocolV2PatchSchema = z.object({
+export type MotionProtocolV2Patch = { format: "motion-protocol-patch"; formatVersion: 2; baseRevision: number; operations: V2PatchOp[] };
+export const MotionProtocolV2PatchSchema: z.ZodTypeAny = z.object({
   format: z.literal("motion-protocol-patch"),
   formatVersion: z.literal(2),
   baseRevision: FiniteNumberSchema.int().nonnegative(),
   operations: z.array(V2PatchOpSchema).min(1).max(1000),
 }).strict();
-export type MotionProtocolV2Patch = z.infer<typeof MotionProtocolV2PatchSchema>;
-
 export type V2PatchDiagnostic = { path: string; message: string; severity: "error" | "warning" };
 export type V2PatchResult = { project: MotionProtocolV2 | null; diagnostics: V2PatchDiagnostic[] };
 
