@@ -69,12 +69,18 @@ export function mediaSource(node: Node): string {
   return source!;
 }
 
-export function mediaMimeType(source: string, kind: "image" | "video"): string {
+export function mediaMimeType(source: string, kind: "image" | "video" | "audio"): string {
   const extension = source.split(/[?#]/, 1)[0]!.split(".").at(-1)?.toLowerCase();
   if (kind === "video") {
     if (extension === "webm") return "video/webm";
     if (extension === "mov") return "video/quicktime";
     return "video/mp4";
+  }
+  if (kind === "audio") {
+    if (extension === "wav") return "audio/wav";
+    if (extension === "ogg" || extension === "oga") return "audio/ogg";
+    if (extension === "m4a" || extension === "aac") return "audio/mp4";
+    return "audio/mpeg";
   }
   if (extension === "png") return "image/png";
   if (extension === "webp") return "image/webp";

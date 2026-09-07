@@ -58,7 +58,7 @@ function easing(value: string | undefined): V2Easing {
     if (!Number.isInteger(count) || count <= 0) fail("css-animation-easing-invalid", `steps() requires a positive integer count: ${value}`);
     return { type: "step", count, position: steps[2] === "start" ? "jump-start" : steps[2] === "end" ? "jump-end" : (steps[2] as "jump-start" | "jump-end" | "jump-none" | "jump-both" | undefined) ?? "jump-end" };
   }
-  const bezier = source.match(/^cubic-bezier\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^\)]+)\)$/);
+  const bezier = source.match(/^cubic-bezier\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\)$/);
   if (bezier) {
     const values = bezier.slice(1).map((item) => Number(item.trim()));
     const [x1, y1, x2, y2] = values;

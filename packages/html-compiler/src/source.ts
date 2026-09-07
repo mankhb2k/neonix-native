@@ -37,11 +37,13 @@ export type HtmlCompilerFontAsset = {
 };
 export type HtmlCompilerMediaAsset = {
   uri: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
   width?: number;
   height?: number;
   duration?: number;
   fps?: number;
+  sampleRate?: number;
+  channels?: number;
   mimeType?: string;
 };
 export type HtmlCompilerOptions = {

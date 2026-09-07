@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss } from "..";
-import { calcExpression } from "../compiler/values";
+import { calcExpression } from "../compiler/css/values";
 
 describe("CSS value primitives", () => {
   it("rejects removed viewport, container and responsive properties", () => {

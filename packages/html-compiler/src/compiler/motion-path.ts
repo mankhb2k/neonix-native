@@ -90,7 +90,7 @@ export function parseMotionPath(style: Style, width: number, height: number, fon
   const source = style.get("offset-path")?.trim();
   if (!source || source.toLowerCase() === "none") return undefined;
   const match = source.match(/^path\(\s*(?:"([\s\S]*)"|'([\s\S]*)')\s*\)$/i);
-  if (!match) { fail("css-motion-path-unsupported", `Only offset-path: path(\"...\") is supported: ${source}`); throw new Error("unreachable motion path"); }
+  if (!match) { fail("css-motion-path-unsupported", `Only offset-path: path("...") is supported: ${source}`); throw new Error("unreachable motion path"); }
   const contours = parseSvgPathData(match[1] ?? match[2] ?? "", "offset-path");
   if (contours.length !== 1) fail("css-motion-path-multiple-contours", "offset-path currently requires exactly one path contour");
   const pathLength = motionPathLength(contours);

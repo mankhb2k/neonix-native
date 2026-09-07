@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "../index";
-import { parseAnimationStyles } from "../compiler/css-parser";
+import { parseAnimationStyles } from "../compiler/css/animation";
 
 const html = "<!doctype html><html><body><div id=\"box\"></div></body></html>";
 const composition = { width: 1920 as const, height: 1080 as const, fps: 30 as const, background: "#081018" as const, colorSpace: "srgb" as const };
@@ -59,7 +59,7 @@ describe("CSS animation lowering", () => {
       html: "<div id=\"box\"></div>",
       css: `
         @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
-        #box { position: absolute; width: 80px; height: 40px; background: #22d3ee; offset-path: path(\"M 100 100 L 500 100\"); offset-distance: 0%; offset-rotate: auto 15deg; offset-anchor: 50% 100%; animation-name: travel; animation-duration: 1s; animation-timing-function: linear; animation-fill-mode: both; }
+        #box { position: absolute; width: 80px; height: 40px; background: #22d3ee; offset-path: path("M 100 100 L 500 100"); offset-distance: 0%; offset-rotate: auto 15deg; offset-anchor: 50% 100%; animation-name: travel; animation-duration: 1s; animation-timing-function: linear; animation-fill-mode: both; }
       `,
     }));
     expect(result.status).toBe("success");
