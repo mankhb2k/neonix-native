@@ -49,4 +49,19 @@ describe("HTML/CSS compiler transforms", () => {
       "skewY",
     ]);
   });
+
+  it("lowers CSS matrix() as an ordered affine operation", () => {
+    const layer = compileTransform("matrix(1.2, 0.25, -0.1, 0.8, 24, 16)");
+    expect(layer?.transform.operations).toEqual([
+      { type: "matrix", values: [1.2, 0.25, -0.1, 0.8, 24, 16] },
+    ]);
+  });
+
+  it("lowers CSS matrix3d() to the canonical column-major Matrix4 extension", () => {
+    const values = [1, 0.1, 0, 0, 0.2, 1, 0, 0, 0, 0, 1, -0.001, 40, 20, 80, 1];
+    const layer = compileTransform(`matrix3d(${values.join(", ")})`);
+    expect(layer?.transform.operations).toEqual([
+      { type: "extension", name: "motion.matrix4", value: values },
+    ]);
+  });
 });

@@ -67,4 +67,13 @@ describe("Protocol V2 SVG clipPath and mask definitions", () => {
       maskIds: ["a", "b"], mode: "alpha", composite: "exclude",
     });
   });
+
+  it("keeps image mask coverage multiplier semantic", () => {
+    const mask = V2MaskSchema.parse({
+      id: "image-mask",
+      maskType: "alpha",
+      image: { type: "image", assetId: "asset", x: 0, y: 0, width: 100, height: 100, fit: "fill", opacity: 0.25 },
+    });
+    expect(mask.image?.opacity).toBe(0.25);
+  });
 });

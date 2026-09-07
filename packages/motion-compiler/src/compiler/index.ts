@@ -752,7 +752,7 @@ function lowerSemanticMask(
             parentId: layer.id,
             order: -1,
             timing: context.timing,
-            opacity: 1,
+            opacity: definition.image.opacity ?? 1,
             blendMode: "normal",
             visible: context.visible,
             localMatrix: identityMatrix4(),
@@ -967,13 +967,28 @@ function flattenPathNodeAtBoundary(node: VisualRuntimeNode, placement: FlatBound
   const mesh = contours.length > 0 && node.content.fill !== undefined
     ? tessellateClosedPath(contours, node.content.fillRule)
     : undefined;
+  const fullyClipped = contours.length === 0;
   return {
     ...node,
+    // A near/far clip can remove the complete surface. Keep the node in the
+    // graph for stable ordering, but make it non-paintable so validation does
+    // not see a filled path without geometry.
+    ...(fullyClipped ? { visible: false } : {}),
     worldMatrix: placement.boundaryWorldMatrix,
     content: {
       ...node.content,
       contours,
       ...(mesh ? { mesh } : { mesh: undefined }),
+      ...(fullyClipped
+        ? {
+            fill: undefined,
+            fillPaint: undefined,
+            stroke: undefined,
+            strokePaint: undefined,
+            strokeMesh: undefined,
+            markers: undefined,
+          }
+        : {}),
     },
   };
 }
@@ -1137,6 +1152,7 @@ function compileVisualRuntimeInternal(
       ...(layer.visibility !== undefined ? ["layer.visibility"] : []),
       ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
       ...(layer.filter !== undefined ? ["filter.svg.graph"] : []),
+      ...(layer.backdropEffects !== undefined ? ["effect.backdrop-filter"] : []),
       ...(layer.motion ? ["motion.path", "motion.path.sampling", "motion.path.tangent", "motion.path.rotate", "motion.path.anchor"] : []),
     ]) {
       if (!isV2AtomCertified(capability)) {
@@ -1156,6 +1172,7 @@ function compileVisualRuntimeInternal(
     const blendMode = lowerBlendMode(layer);
     const isolation = layer.composite?.isolation;
     const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
+    const backdropEffects = layer.backdropEffects ? lowerEffects(layer.backdropEffects) : undefined;
     const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
     semanticMaskNodes.push(...semanticMask.nodes);
     const semanticState = {
@@ -1186,6 +1203,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1241,6 +1259,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1292,6 +1311,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1422,6 +1442,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1509,6 +1530,9 @@ function compileVisualRuntimeInternal(
         ...contour,
         ...(layer.payload.pathLength === undefined ? {} : { pathLength: layer.payload.pathLength }),
       }));
+      // Preserve SVG's black default for an omitted fill. An explicit
+      // `fill: none` is retained by the HTML compiler and canonicalizes to a
+      // none paint, so stroke-only closed paths remain transparent inside.
       const authoredFill: ProtocolPaint = layer.style.fill ?? "#000000";
       const fillPaint = runtimePaint(authoredFill, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
       const hasFill = fillPaint?.type !== "none" && hasFillableRegion(contours);
@@ -1583,6 +1607,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1730,6 +1755,7 @@ function compileVisualRuntimeInternal(
       ...(isolation ? { isolation } : {}),
       ...semanticState,
       backfaceVisibility: layer.backfaceVisibility,
+      ...(backdropEffects ? { backdropEffects } : {}),
       visible: context.visible,
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,

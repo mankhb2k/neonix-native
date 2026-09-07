@@ -1,6 +1,6 @@
 import { hasPerspectiveTerms, type PaintCommandBuffer, type PaintCommand } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "../color";
-import type { SkiaCanvas, SkiaCanvasKit, SkiaImage } from "../canvas-kit";
+import type { SkiaCanvas, SkiaCanvasKit, SkiaImage, SkiaImageFilter } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
 import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
@@ -102,6 +102,49 @@ function drawProjectiveSnapshot(
   vertices.delete();
   shader.delete();
   return true;
+}
+
+/**
+ * Project the source into device/screen space first, then run the image
+ * filter on that surface. This is the CSS-facing contract for a filtered
+ * perspective layer: hidden local pixels must not contribute across a
+ * near-plane cut, and blur expansion must be measured in screen pixels.
+ */
+function drawProjectiveSnapshotWithFilter(
+  kit: SkiaCanvasKit,
+  canvas: SkiaCanvas,
+  image: SkiaImage,
+  sourceWidth: number,
+  sourceHeight: number,
+  destination: readonly [number, number, number, number],
+  matrix: readonly number[],
+  context: SkiaProjectionContext,
+  filter: SkiaImageFilter,
+): boolean {
+  const paint = new kit.Paint();
+  paint.setAntiAlias(true);
+  paint.setStyle(kit.PaintStyle.Fill);
+  paint.setAlphaf(1);
+  paint.setBlendMode(kit.BlendMode.SrcOver);
+  if (!paint.setImageFilter) {
+    paint.delete();
+    return false;
+  }
+  paint.setImageFilter(filter);
+  canvas.saveLayer(paint, [0, 0, context.width, context.height]);
+  paint.delete();
+  const drawn = drawProjectiveSnapshot(
+    kit,
+    canvas,
+    image,
+    sourceWidth,
+    sourceHeight,
+    destination,
+    matrix,
+    context,
+  );
+  canvas.restore();
+  return drawn;
 }
 
 function revisionForAsset(asset: SkiaAsset | undefined): string | number | undefined {
@@ -243,7 +286,11 @@ export function replaySkiaCommands(
         ? transformForSkiaCanvas(layerTransform, projectionContext)
         : undefined;
       const effectFilter = effectFilterForCached(command.effectProgram);
-      const projectiveFilter = projectiveFilterTransform && hasPerspectiveTerms(projectiveFilterTransform.matrix4) && effectFilter.filter
+      const backdropEffectFilter = effectFilterForCached(command.backdropEffectProgram);
+       // CSS filter effects on a projective layer are handled by the explicit
+       // screen-space surface path below. Keeping the filter off the parent
+       // saveLayer prevents Skia from filtering an unprojected local frame.
+      const projectiveFilter = projectiveFilterTransform && hasPerspectiveTerms(projectiveFilterTransform.matrix4)
         ? effectFilter.filter
         : undefined;
       const layer: ReplayLayer = {
@@ -260,31 +307,34 @@ export function replaySkiaCommands(
         projectiveFilterTransform,
         projectiveFilter,
         projectiveFilterProgram: projectiveFilter ? command.effectProgram : undefined,
+        backdropFilter: backdropEffectFilter.filter,
+        backdropFilterProgram: backdropEffectFilter.filter ? command.backdropEffectProgram : undefined,
       };
       layers.push(layer);
       if (command.effectProgram && !effectFilter.supported) addDiagnostic(`skia_effect_unsupported:${command.key}`);
+      if (command.backdropEffectProgram && !backdropEffectFilter.supported) addDiagnostic(`skia_backdrop_filter_unsupported:${command.key}`);
       // CSS masks are rendered into a separate coverage surface at endLayer.
       // Keeping this out of saveLayer alpha is important for gradients and
       // for subtract/exclude, which cannot be represented by one scalar.
-      const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter) || (command.blendMode !== undefined && command.blendMode !== "normal");
+      const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter && !projectiveFilter) || Boolean(command.backdropEffectProgram) || (command.blendMode !== undefined && command.blendMode !== "normal");
       if (shouldSaveLayer) {
         const paint = new kit.Paint();
         paint.setAntiAlias(true);
         paint.setStyle(kit.PaintStyle.Fill);
         paint.setAlphaf(Math.max(0, Math.min(1, command.compositeAlpha ?? 1)));
         paint.setBlendMode(blendModeFor(kit, command.blendMode));
-        // A projective layer must filter its local raster before projection;
-        // attaching the filter here would make Skia evaluate dx/dy in device
-        // space and lose the CSS shadow direction near a perspective edge.
-        const layerFilter = projectiveFilter ? null : effectFilter.filter;
+        // Non-projective layers keep the compact saveLayer path. Projective
+        // layers apply their filter after projection in the draw branches.
+        const layerFilter = effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
         // Image filters such as drop-shadow expand beyond the source
         // geometry. Give the offscreen pass the complete composition clip so
         // the filtered output is not cropped to the unfiltered source bounds,
         // especially for projective surfaces near an edge.
-        canvas.saveLayer(paint, [0, 0, frameWidth, frameHeight]);
+        canvas.saveLayer(paint, [0, 0, frameWidth, frameHeight], backdropEffectFilter.filter);
         paint.delete();
         if (!resources && !projectiveFilter) effectFilter.filter?.delete();
+        if (!resources) backdropEffectFilter.filter?.delete();
       } else {
         canvas.save();
       }
@@ -459,34 +509,25 @@ export function replaySkiaCommands(
           localCanvas.clear(kit.TRANSPARENT);
           localCanvas.save();
           localCanvas.concat([1, 0, padding, 0, 1, padding, 0, 0, 1]);
-          const filterPaint = new kit.Paint();
-          filterPaint.setAntiAlias(true);
-          filterPaint.setStyle(kit.PaintStyle.Fill);
-          filterPaint.setAlphaf(1);
-          if (filterPaint.setImageFilter) filterPaint.setImageFilter(projectiveFilterLayer.projectiveFilter);
-          localCanvas.saveLayer(filterPaint, [0, 0, surfaceWidth, surfaceHeight]);
-          filterPaint.delete();
-          const fill = createSkiaPaint(kit, command.fill, commandAlpha, kit.PaintStyle.Fill);
-          localCanvas.drawRect([0, 0, command.width, command.height], fill);
-          fill.delete();
-          localCanvas.restore();
-          localCanvas.restore();
+           const fill = createSkiaPaint(kit, command.fill, commandAlpha, kit.PaintStyle.Fill);
+           localCanvas.drawRect([0, 0, command.width, command.height], fill);
+           fill.delete();
+           localCanvas.restore();
           surface.flush();
           const snapshot = surface.makeImageSnapshot();
           if (snapshot && projectionContext) {
-            canvas.save();
-            projected = drawProjectiveSnapshot(
-              kit,
-              canvas,
-              snapshot,
+             projected = drawProjectiveSnapshotWithFilter(
+               kit,
+               canvas,
+               snapshot,
               surfaceWidth,
               surfaceHeight,
               [-padding, -padding, command.width + padding, command.height + padding],
-              activeTransform.matrix4,
-              projectionContext,
-            );
-            canvas.restore();
-            snapshot.delete();
+               activeTransform.matrix4,
+               projectionContext,
+               projectiveFilterLayer.projectiveFilter,
+             );
+             snapshot.delete();
           }
         }
         if (surface) releaseSurface(surfaceWidth, surfaceHeight, surface);
@@ -510,7 +551,6 @@ export function replaySkiaCommands(
       const activeTransform = pendingTransform;
       const projectiveFilterLayer = layers.at(-1);
       if (activeTransform && projectiveFilterLayer?.projectiveFilter && projectiveFilterLayer.projectiveFilterTransform?.key === activeTransform.key) {
-        addDiagnostic(`skia_projective_effect_local:${command.key}`);
         const commandAlpha = activeTransform.visible && activeTransform.alpha > 0 ? activeTransform.alpha : null;
         pendingTransform = null;
         if (commandAlpha === null) continue;
@@ -524,14 +564,7 @@ export function replaySkiaCommands(
           localCanvas.clear(kit.TRANSPARENT);
           localCanvas.save();
           localCanvas.concat([1, 0, padding, 0, 1, padding, 0, 0, 1]);
-          const filterPaint = new kit.Paint();
-          filterPaint.setAntiAlias(true);
-          filterPaint.setStyle(kit.PaintStyle.Fill);
-          filterPaint.setAlphaf(1);
-          if (filterPaint.setImageFilter) filterPaint.setImageFilter(projectiveFilterLayer.projectiveFilter);
-          localCanvas.saveLayer(filterPaint, [0, 0, surfaceWidth, surfaceHeight]);
-          filterPaint.delete();
-          const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
+           const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
           for (const paintType of paintOrder) {
             if (paintType === "fill") {
               const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
@@ -545,24 +578,22 @@ export function replaySkiaCommands(
               stroke.delete();
             }
           }
-          localCanvas.restore();
-          localCanvas.restore();
+           localCanvas.restore();
           surface.flush();
           const snapshot = surface.makeImageSnapshot();
           if (snapshot && projectionContext) {
-            canvas.save();
-            projected = drawProjectiveSnapshot(
-              kit,
-              canvas,
-              snapshot,
+             projected = drawProjectiveSnapshotWithFilter(
+               kit,
+               canvas,
+               snapshot,
               surfaceWidth,
               surfaceHeight,
               [-padding, -padding, command.width + padding, command.height + padding],
-              activeTransform.matrix4,
-              projectionContext,
-            );
-            canvas.restore();
-            snapshot.delete();
+               activeTransform.matrix4,
+               projectionContext,
+               projectiveFilterLayer.projectiveFilter,
+             );
+             snapshot.delete();
           }
         }
         if (surface) releaseSurface(surfaceWidth, surfaceHeight, surface);
@@ -636,14 +667,7 @@ export function replaySkiaCommands(
           localCanvas.clear(kit.TRANSPARENT);
           localCanvas.save();
           localCanvas.concat([1, 0, padding, 0, 1, padding, 0, 0, 1]);
-          const filterPaint = new kit.Paint();
-          filterPaint.setAntiAlias(true);
-          filterPaint.setStyle(kit.PaintStyle.Fill);
-          filterPaint.setAlphaf(1);
-          if (filterPaint.setImageFilter) filterPaint.setImageFilter(projectiveFilterLayer.projectiveFilter);
-          localCanvas.saveLayer(filterPaint, [0, 0, surfaceWidth, surfaceHeight]);
-          filterPaint.delete();
-          const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
+           const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
           for (const paintType of paintOrder) {
             if (paintType === "fill" && command.fill) {
               const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, contentWidth, contentHeight);
@@ -657,24 +681,22 @@ export function replaySkiaCommands(
               stroke.delete();
             }
           }
-          localCanvas.restore();
-          localCanvas.restore();
+           localCanvas.restore();
           surface.flush();
           const snapshot = surface.makeImageSnapshot();
           if (snapshot && projectionContext) {
-            canvas.save();
-            projected = drawProjectiveSnapshot(
-              kit,
-              canvas,
-              snapshot,
+             projected = drawProjectiveSnapshotWithFilter(
+               kit,
+               canvas,
+               snapshot,
               surfaceWidth,
               surfaceHeight,
               [-padding, -padding, contentWidth + padding, contentHeight + padding],
-              activeTransform.matrix4,
-              projectionContext,
-            );
-            canvas.restore();
-            snapshot.delete();
+               activeTransform.matrix4,
+               projectionContext,
+               projectiveFilterLayer.projectiveFilter,
+             );
+             snapshot.delete();
           }
         }
         path.delete();

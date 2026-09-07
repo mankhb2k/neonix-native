@@ -140,6 +140,39 @@ describe("canonical compiler V3 projection", () => {
     expect(path).toMatchObject({ vectorEffect: "non-scaling-stroke" });
   });
 
+  it("does not synthesize a black fill for a closed stroke-only path", () => {
+    const project = filterProject({ id: "stroke-only", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0] = {
+      ...project.layers[0],
+      filter: undefined,
+      payload: {
+        contours: [{
+          id: "triangle",
+          start: { x: 200, y: 80 },
+          segments: [
+            { kind: "line", to: { x: 480, y: 420 } },
+            { kind: "line", to: { x: 40, y: 420 } },
+            { kind: "line", to: { x: 200, y: 80 } },
+          ],
+          closed: true,
+        }],
+        fillRule: "nonzero",
+      },
+      style: { fill: "none", stroke: "#facc15", strokeWidth: 24, strokeJoin: "miter" },
+    };
+
+    const runtime = compileProtocol(project);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    expect(node?.content).not.toHaveProperty("fill");
+
+    const buffer = compileProtocolToPaintCommands(project);
+    const path = buffer.commands.find((command) => command.op === "drawPath");
+    expect(path).not.toHaveProperty("fill");
+    expect(path).not.toHaveProperty("fillPaint");
+    expect(path).toMatchObject({ stroke: "#facc15", strokeWidth: 24 });
+  });
+
   it("keeps composition perspective and layer z in the canonical Runtime Matrix4", () => {
     const project = filterProject({ id: "perspective-layer", primitives: [] }) as any;
     project.filters = [];

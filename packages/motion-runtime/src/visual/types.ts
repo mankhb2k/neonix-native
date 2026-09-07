@@ -306,6 +306,8 @@ export type VisualRuntimeNode = {
   isolation?: "auto" | "isolate";
   /** Compiler-preserved CSS backface-visibility state. */
   backfaceVisibility?: "visible" | "hidden";
+  /** CSS backdrop-filter effects; these sample the parent backdrop, not this node's source. */
+  backdropEffects?: RuntimeEffect[];
   clipPath?: VisualRuntimeClipPath;
   mask?: VisualRuntimeMask;
   visible: boolean;

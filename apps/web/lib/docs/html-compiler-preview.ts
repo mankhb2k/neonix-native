@@ -12,9 +12,22 @@ export type HtmlCompilerPreviewTopic =
   | "Layout"
   | "Motion & animation";
 
+export type HtmlCompilerPreviewCategory =
+  | "Layout primitives"
+  | "Paint primitives"
+  | "Effect primitives"
+  | "Viewport primitives"
+  | "Container primitives"
+  | "Transform & 3D primitives"
+  | "Typography & media primitives"
+  | "Animation & keyframe primitives"
+  | "Combined pipeline cases";
+
 export type HtmlCompilerPreviewCase = {
   id: string;
   phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
+  /** UI ordering category; legacy phase remains internal for fixture provenance. */
+  category?: HtmlCompilerPreviewCategory;
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -1875,7 +1888,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
     topic: "Layout",
     label: "Layout / column + gap",
     properties: ["flex-direction:column", "gap", "row-gap", "column-gap"],
-    hint: "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside P1.1.",
+    hint: "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside this primitive case.",
     source: createNewHtmlProject({
       html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-column\">\n    <div id=\"column-one\"></div>\n    <div id=\"column-two\"></div>\n    <div id=\"column-three\"></div>\n  </div>\n</body>"),
       css: `body { margin: 0; background: #081018; }
@@ -2254,6 +2267,78 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
   background-position: center, right bottom;
   background-size: cover, 180px 120px;
   background-repeat: no-repeat, no-repeat;
+      }`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.image-function-url",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / image() URL source",
+    properties: ["image()", "url()", "asset layer", "cover"],
+    hint: "The image() URL source remains an image atomic with the same position, sizing and clipping contract as a direct background URL.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-image-function-url\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-image-function-url {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: image(url("/preview/image/photo-landscape.jpg"));
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.image-function-gradient-fallback",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / image() gradient + fallback",
+    properties: ["image()", "gradient", "fallback color", "paint source"],
+    hint: "A gradient image candidate is lowered to a paint shape; the fallback color remains available without introducing a synthetic asset source.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-image-function-gradient\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-image-function-gradient {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-image: image(linear-gradient(135deg, #38bdf8 0%, #a78bfa 52%, #fb7185 100%), #172554);
+  background-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.cross-fade-images",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / cross-fade() image sources",
+    properties: ["cross-fade()", "two URL sources", "opacity weights", "stable order"],
+    hint: "The two cross-fade sources become ordered image atomics with complementary opacity weights, preserving the CSS source order.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-cross-fade\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-cross-fade {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: cross-fade(url("/preview/image/photo-landscape.jpg"), url("/preview/image/photo-portrait.jpg"), 50%);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }`,
     }),
   },
@@ -4213,6 +4298,77 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
 #animated-card { position: absolute; left: 270px; top: 120px; width: 260px; height: 220px; background: #f472b6; animation-name: animated-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }`,
     }),
   },
+  {
+    id: "html-compiler.perspective.atomic-transform-style-flat",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / transform-style flat",
+    properties: ["transform-style: flat", "single 3D child", "solid paint"],
+    hint: "The parent establishes the minimum camera context while flat is tested without filters, masks, blending or animation.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-flat-scene\"><div id=\"atomic-flat-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-flat-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; transform-style: flat; }
+#atomic-flat-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-transform-style-preserve-3d",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / transform-style preserve-3d",
+    properties: ["transform-style: preserve-3d", "single 3D child", "solid paint"],
+    hint: "The same camera and child geometry as the flat fixture isolates the preserve-3d boundary contract.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-preserve-scene\"><div id=\"atomic-preserve-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-preserve-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; transform-style: preserve-3d; }
+#atomic-preserve-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-backface-visible",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / backface visible",
+    properties: ["backface-visibility: visible", "rotateY(180deg)", "solid paint"],
+    hint: "A reversed solid plane remains paintable when backface visibility is explicitly visible.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-backface-visible-scene\"><div id=\"atomic-backface-visible-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-backface-visible-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; }
+#atomic-backface-visible-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: visible; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-backface-hidden",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / backface hidden",
+    properties: ["backface-visibility: hidden", "rotateY(180deg)", "solid paint"],
+    hint: "The same reversed plane becomes non-paintable only because its backface is explicitly hidden.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-backface-hidden-scene\"><div id=\"atomic-backface-hidden-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-backface-hidden-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; }
+#atomic-backface-hidden-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: hidden; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.matrix-functions",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Transform / matrix and matrix3d",
+    properties: ["matrix()", "matrix3d()", "ordered transform atoms", "Matrix4"],
+    hint: "CSS affine and projective matrix functions lower to the existing ordered V2 matrix atoms without a second transform path.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"matrix-scene\"><div id=\"matrix-2d\"></div><div id=\"matrix-3d\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#matrix-scene { position: absolute; left: 320px; top: 180px; width: 1280px; height: 700px; perspective: 720px; transform-style: preserve-3d; }
+#matrix-2d { position: absolute; left: 180px; top: 190px; width: 360px; height: 220px; background: #22d3ee; transform: matrix(1.08, 0.18, -0.12, 0.92, 28, 12); }
+#matrix-3d { position: absolute; left: 720px; top: 180px; width: 360px; height: 220px; background: #f97316; transform: matrix3d(1, 0.12, 0, 0.001, 0.08, 1, 0, 0, 0, 0, 1, -0.0012, 0, 0, 120, 1); }`,
+    }),
+  },
 ];
 
 export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
@@ -4384,7 +4540,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
     properties: ["parallax video", "camera translateZ", "perspective", "slow depth zoom", "circle + triangle + rectangle stroke"],
     hint: "A slow looping camera shot travels through three flat stroke planes. The circle is nearest, the triangle is intermediate, and the rectangle is farthest, so their apparent scale changes at different rates.",
     source: createNewHtmlProject({
-      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"parallax-viewport\"><div id=\"parallax-world\"><div id=\"parallax-rectangle\"></div><div id=\"parallax-triangle\"><svg viewBox=\"0 0 800 560\" width=\"800\" height=\"560\" aria-hidden=\"true\"><path d=\"M 400 12 L 788 548 L 12 548 Z\" fill=\"none\" stroke=\"#facc15\" stroke-width=\"24\" stroke-linejoin=\"miter\"></path></svg></div><div id=\"parallax-circle\"></div></div></div>\n</body>"),
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"parallax-viewport\"><div id=\"parallax-world\"><div id=\"parallax-rectangle\"></div><svg id=\"parallax-triangle\" viewBox=\"0 0 800 560\" width=\"800\" height=\"560\" aria-hidden=\"true\"><path id=\"parallax-triangle-path\" d=\"M 400 12 L 788 548 L 12 548 Z\"></path></svg><div id=\"parallax-circle\"></div></div></div>\n</body>"),
       css: `body { margin: 0; background: #081018; overflow: hidden; }
 #parallax-viewport { position: absolute; left: 260px; top: 150px; width: 1400px; height: 780px; perspective: 680px; perspective-origin: 50% 50%; overflow: hidden; }
 #parallax-world { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; animation-name: parallax-camera; animation-duration: 12000ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }
@@ -4398,8 +4554,8 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
 }
 #parallax-rectangle, #parallax-triangle, #parallax-circle { position: absolute; transform-origin: 50% 50%; }
 #parallax-rectangle { left: 100px; top: 65px; width: 1200px; height: 650px; background: transparent; border: 12px solid #38bdf8; transform: translateZ(-380px); }
-#parallax-triangle { left: 300px; top: 110px; width: 800px; height: 560px; background: transparent; transform: translateZ(-90px); }
-#parallax-triangle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#parallax-triangle { display: block; left: 300px; top: 110px; width: 800px; height: 560px; overflow: visible; transform: translateZ(-90px); }
+#parallax-triangle-path { fill: none; stroke: #facc15; stroke-width: 24px; stroke-linejoin: miter; }
 #parallax-circle { left: 490px; top: 180px; width: 420px; height: 420px; background: transparent; border: 14px solid #fb7185; border-radius: 50%; transform: translateZ(140px); }`,
     }),
   },
@@ -4737,19 +4893,130 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
 #p9-far-card { position: absolute; left: 420px; top: 200px; width: 520px; height: 300px; background: #f97316; filter: blur(18px) drop-shadow(-28px 18px 12px #a855f799); transform: translateZ(-260px) rotateY(34deg); }`),
   perspectiveMaskFilterCase("mask-one-corner-near-plane", "Mask/filter / one-corner near-plane cut", ["mask-image", "one corner", "rotateX + rotateY", "partial source clip"], "Only one corner of the mask source crosses the near plane; remaining coverage is retained without alpha inversion.", `<div id="p9-corner-scene"><div id="p9-corner-card"></div></div>`, `#p9-corner-scene { position: absolute; left: 420px; top: 190px; width: 1080px; height: 660px; perspective: 260px; perspective-origin: 74% 24%; transform-style: preserve-3d; }
 #p9-corner-card { position: absolute; left: 290px; top: 150px; width: 520px; height: 320px; background: #60a5fa; mask-image: linear-gradient(135deg, #00000000 0%, #ffffffff 30%, #ffffffff 100%); mask-mode: alpha; mask-repeat: no-repeat; filter: blur(7px); transform: translateZ(210px) rotateX(25deg) rotateY(-32deg); }`),
+  perspectiveMaskFilterCase("backdrop-filter-blur", "Backdrop / blur over colored layers", ["backdrop-filter", "blur", "backdrop surface", "layer opacity"], "The backdrop is captured before the translucent card is painted; blur affects the colored backdrop only and remains separate from the card's own filter.", `<div id="p9-backdrop-scene"><div id="p9-backdrop-color"></div><div id="p9-backdrop-card"></div></div>`, `#p9-backdrop-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; background: linear-gradient(135deg, #7c3aed 0%, #22d3ee 52%, #f97316 100%); overflow: hidden; }
+#p9-backdrop-color { position: absolute; left: 170px; top: 100px; width: 760px; height: 500px; background: repeating-linear-gradient(45deg, #f43f5e 0%, #f43f5e 12%, #facc15 12%, #facc15 24%); transform: rotate(-8deg); }
+#p9-backdrop-card { position: absolute; left: 300px; top: 180px; width: 600px; height: 300px; background: #ffffff55; border: 4px solid #ffffffaa; backdrop-filter: blur(18px); }`),
+  perspectiveMaskFilterCase("backdrop-filter-order", "Backdrop / ordered blur and contrast", ["backdrop-filter", "blur", "contrast", "ordered effects"], "Backdrop effects retain CSS token order and never become a visible sibling or a source filter on the translucent panel.", `<div id="p9-backdrop-order-scene"><div id="p9-backdrop-order-grid"></div><div id="p9-backdrop-order-card"></div></div>`, `#p9-backdrop-order-scene { position: absolute; left: 320px; top: 170px; width: 1280px; height: 720px; background: linear-gradient(90deg, #172554, #581c87 50%, #164e63); overflow: hidden; }
+#p9-backdrop-order-grid { position: absolute; inset: 80px 140px; background: repeating-linear-gradient(90deg, #22d3ee 0%, #22d3ee 8%, #f43f5e 8%, #f43f5e 16%), repeating-linear-gradient(0deg, transparent 0%, transparent 8%, #facc15 8%, #facc15 16%); transform: rotate(12deg) scale(1.15); }
+#p9-backdrop-order-card { position: absolute; left: 340px; top: 170px; width: 600px; height: 320px; background: #ffffff66; backdrop-filter: blur(10px) contrast(1.25); }`),
 ];
 
-export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
-  const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES]) {
-    const key = `${item.phase}:${item.topic}`;
-    const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
-    group.cases.push(item);
-    groups.set(key, group);
+export const HTML_COMPILER_VIEWPORT_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.viewport.dynamic-units",
+    phase: "P0",
+    category: "Viewport primitives",
+    topic: "Composition & geometry",
+    label: "Viewport / dynamic units",
+    properties: ["dvw", "dvh", "svw", "lvh", "vmin"],
+    hint: "Viewport-relative lengths resolve against the deterministic composition viewport before the layer is lowered.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"viewport-units\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#viewport-units { position: absolute; left: 25dvw; top: 20dvh; width: 50dvw; height: 30dvh; min-width: 20svw; max-height: 40lvh; background: #22d3ee; }`,
+    }),
+  },
+];
+
+export const HTML_COMPILER_CONTAINER_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.container.relative-units",
+    phase: "P0",
+    category: "Container primitives",
+    topic: "Composition & geometry",
+    label: "Container / relative units",
+    properties: ["container-type", "cqw", "cqh", "cqmin", "cqmax"],
+    hint: "Container-relative lengths resolve from the current containing block instead of the global composition viewport.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"container-frame\"><div id=\"container-units\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#container-frame { position: absolute; left: 460px; top: 260px; width: 1000px; height: 560px; container-type: size; background: #172554; }
+#container-units { position: absolute; left: 10cqw; top: 10cqh; width: 60cqw; height: 50cqh; background: #facc15; }`,
+    }),
+  },
+];
+
+const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
+  "Layout primitives",
+  "Paint primitives",
+  "Effect primitives",
+  "Viewport primitives",
+  "Container primitives",
+  "Transform & 3D primitives",
+  "Typography & media primitives",
+  "Animation & keyframe primitives",
+  "Combined pipeline cases",
+];
+
+const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
+  ...HTML_COMPILER_PHASE0_CASES,
+  ...HTML_COMPILER_VIEWPORT_CASES,
+  ...HTML_COMPILER_CONTAINER_CASES,
+  ...HTML_COMPILER_PHASE1_1_CASES,
+  ...HTML_COMPILER_PHASE1_2_CASES,
+  ...HTML_COMPILER_PHASE1_3_CASES,
+  ...HTML_COMPILER_PHASE1_4_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_2_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_3_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_4_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_5_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_6_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_7_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_8_CASES,
+  ...HTML_COMPILER_MOTION_PHASE3_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES,
+];
+
+function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCategory {
+  if (item.category !== undefined) return item.category;
+  if (item.phase === "P0") {
+    if (item.topic === "Paint") return "Paint primitives";
+    if (item.topic === "Transform 2D") return "Transform & 3D primitives";
+    if (item.topic === "Typography" || item.topic === "Media") return "Typography & media primitives";
+    return "Layout primitives";
   }
-  return [...groups.values()];
+  if (item.topic === "Layout") return "Layout primitives";
+  if (["P2.4", "P2.5", "P2.6", "P2.7", "P2.8"].includes(item.phase)) {
+    return item.id.includes("mask-clip-path-isolation") ? "Combined pipeline cases" : "Effect primitives";
+  }
+  if (["P2.0", "P2.1", "P2.2", "P2.3"].includes(item.phase)) {
+    return "Paint primitives";
+  }
+  if (item.phase === "P3" || item.phase === "P7" || item.id.includes("animated-translate-z")) {
+    return "Animation & keyframe primitives";
+  }
+  if (item.phase === "P5" && !item.id.includes("slow-stroke")) {
+    return "Transform & 3D primitives";
+  }
+  return "Combined pipeline cases";
 }
 
-export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & { category: HtmlCompilerPreviewCategory };
+
+function categorizedCase(item: HtmlCompilerPreviewCase): CategorizedHtmlCompilerPreviewCase {
+  return { ...item, category: categoryForCase(item) };
+}
+
+export const HTML_COMPILER_PREVIEW_CASES: CategorizedHtmlCompilerPreviewCase[] = HTML_COMPILER_ALL_CASES.map(categorizedCase);
+
+export function htmlCompilerPreviewGroups(): Array<{ category: HtmlCompilerPreviewCategory; cases: CategorizedHtmlCompilerPreviewCase[] }> {
+  const groups = new Map<HtmlCompilerPreviewCategory, CategorizedHtmlCompilerPreviewCase[]>();
+  for (const item of HTML_COMPILER_PREVIEW_CASES) {
+    const cases = groups.get(item.category) ?? [];
+    cases.push(item);
+    groups.set(item.category, cases);
+  }
+  return HTML_COMPILER_PREVIEW_CATEGORY_ORDER
+    .filter((category) => groups.has(category))
+    .map((category) => ({ category, cases: groups.get(category)! }));
+}
+
+export function htmlCompilerPreviewCaseById(id: string | null | undefined): CategorizedHtmlCompilerPreviewCase {
+  return HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === id) ?? categorizedCase(HTML_COMPILER_PHASE0_CASES[0]);
 }

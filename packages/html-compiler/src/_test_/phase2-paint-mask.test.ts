@@ -33,4 +33,61 @@ describe("HTML/CSS compiler P2.8 CSS masks", () => {
       ],
     });
   });
+
+  it("resolves advanced mask compositing in authored layer order", () => {
+    const protocol = compile("mask-image: linear-gradient(90deg, #fff, #000), radial-gradient(circle, #fff, #000), linear-gradient(#fff, #000); mask-mode: alpha, luminance, alpha; mask-position: left top, center center, right bottom; mask-size: 300px 120px, 200px 100px, 100px 80px; mask-repeat: no-repeat, no-repeat, no-repeat; mask-composite: subtract, exclude;");
+    const layer = protocol.layers.find((candidate) => candidate.id === "masked");
+    expect(layer?.maskLayers).toEqual([
+      { maskIds: ["masked-mask-0"], mode: "alpha", composite: "add" },
+      { maskIds: ["masked-mask-1"], mode: "luminance", composite: "subtract" },
+      { maskIds: ["masked-mask-2"], mode: "alpha", composite: "exclude" },
+    ]);
+    expect(protocol.masks?.map((mask) => mask.image?.x ?? mask.children?.[0]?.x)).toEqual([0, 260, 620]);
+  });
+
+  it("lowers image() and cross-fade() without inventing paint source names", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="images"></div>`,
+      css: `#images { position: absolute; width: 320px; height: 180px; background-image: image(url(/a.png)), cross-fade(25%, url(/a.png), url(/b.png)); background-size: 320px 180px, 320px 180px; background-repeat: no-repeat, no-repeat; }`,
+    }));
+    expect(result.status).toBe("success");
+    const imageLayers = result.protocol?.layers.filter((layer) => layer.type === "image");
+    expect(imageLayers).toHaveLength(3);
+    expect(imageLayers?.map((layer) => layer.opacity)).toEqual([1, 0.75, 0.25]);
+  });
+
+  it("selects a supported image() gradient before a color fallback", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="images"></div>`,
+      css: `#images { position: absolute; width: 320px; height: 180px; background-image: image(unsupported-source, linear-gradient(90deg, #ff0000, #0000ff), #00ff00); background-repeat: no-repeat; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers).toContainEqual(expect.objectContaining({
+      id: "images::background:0",
+      type: "shape",
+      style: { fill: expect.objectContaining({ type: "linear-gradient" }) },
+    }));
+  });
+
+  it("uses image() color fallback when no image source is supported", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="images"></div>`,
+      css: `#images { position: absolute; width: 320px; height: 180px; background-image: image(unsupported-source, rgba(255, 0, 0, 50%)); background-repeat: no-repeat; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers).toContainEqual(expect.objectContaining({
+      id: "images::background:0",
+      type: "shape",
+      style: { fill: "#ff000080" },
+    }));
+  });
+
+  it("accepts the percentage at the end of cross-fade()", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="images"></div>`,
+      css: `#images { position: absolute; width: 320px; height: 180px; background-image: cross-fade(url(/a.png), url(/b.png), 25%); background-size: 320px 180px; background-repeat: no-repeat; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.filter((layer) => layer.type === "image").map((layer) => layer.opacity)).toEqual([0.75, 0.25]);
+  });
 });

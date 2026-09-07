@@ -46,13 +46,17 @@ export type ReplayLayer = {
   noiseEffect?: RuntimeNoiseEffectOp;
   noiseBounds?: DrawBounds;
   /**
-   * CSS spatial filters are evaluated in the element's local surface before
-   * a projective transform. CanvasKit saveLayer would otherwise evaluate the
-   * filter after the transformed geometry has reached device space.
+   * Transform metadata retained for the projective filter surface. The
+   * projective path rasterizes source content, projects it to screen space,
+   * and applies the filter there so near-plane clipping and blur bounds share
+   * one coordinate system.
    */
   projectiveFilterTransform?: Extract<PaintCommand, { op: "setTransform" }>;
   projectiveFilter?: SkiaImageFilter | null;
   projectiveFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
+  /** Filter applied to the backdrop captured by this layer's saveLayer. */
+  backdropFilter?: SkiaImageFilter | null;
+  backdropFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['backdropEffectProgram'];
 };
 
 export type SkiaTypefaceResolver = (fontAssetId: string | undefined) => SkiaTypeface | null;

@@ -221,10 +221,14 @@ Common optional fields:
 | `motion` | Layer-owned CSS motion-path source and resolved offset values |
 | `composite` | SVG/CSS blend and isolation state |
 | `tracks` | Typed local-time property animation |
-| `effects` | Ordered normalized render effects; available on every current layer type |
+| `effects` | Ordered normalized render effects on the layer's own source |
+| `backdropEffects` | Ordered effects sampled from the already-painted backdrop |
 
-`effects` is not part of the shared base object in TypeScript, but every
-current group and drawable layer schema exposes it as an optional field.
+Both effect lists are optional on every current layer type. `effects` transforms
+the layer's own source surface. `backdropEffects` is a separate CSS
+`backdrop-filter` contract: it samples the backdrop inside an isolated
+offscreen boundary before the layer is composited. The two lists must never be
+merged because their input surfaces and compositing scope differ.
 
 ### Transforms
 
@@ -284,6 +288,11 @@ The extension names are `motion.translate3d`, `motion.scale3d`,
 and `motion.matrix4`. `motion.matrix4.value` contains exactly 16 finite
 numbers. The optional `transform.extensions.anchor` is the explicit motion
 pivot for an ordered operation list; it falls back to `transform.anchor`.
+
+CSS `matrix3d()` lowers to the `motion.matrix4` extension. Its sixteen values
+remain in CSS column-major order, preserving the authored homogeneous
+transform instead of flattening it into a 2D approximation. Runtime and
+adapters must not reorder, normalize, or drop its perspective terms.
 
 For additive compatibility, the component fields remain required even when
 `operations[]` is present. Consumers that support `operations[]` must treat it
@@ -741,6 +750,13 @@ represents alpha/drop-shadow semantics and requires `spread: 0` and
 color operations only when that does not change their position relative to a
 spatial operation such as blur or shadow.
 
+`backdropEffects[]` uses the same ordered effect atoms as `effects[]`, but its
+input is the backdrop captured by the layer's offscreen boundary. It is the
+normalized representation of CSS `backdrop-filter`; layer `opacity` is applied
+after the backdrop result is produced. A renderer that cannot create the
+required filter must emit a capability diagnostic rather than silently omit the
+effect.
+
 ## Animation and timing
 
 Each layer has composition-time `timing`:
@@ -848,6 +864,22 @@ Schema validation covers:
 Capability support is decided by the Compiler after Protocol validation. A
 schema-valid value is valid authoring data; it is not by itself a promise that
 every renderer supports every optional SVG or 3D feature.
+
+The HTML/CSS compiler resolves viewport units (`sv*`, `lv*`, `dv*`, logical
+variants) against the fixed composition viewport and resolves container units
+(`cq*`) against the current containing block. Advanced `calc()` functions are
+evaluated before lowering, so Runtime receives finite typed values rather than
+CSS expression strings. `image(url())` and supported `image()` fallbacks are
+lowered to image or paint layers, while `cross-fade()` becomes ordered image
+layers with opacity. `element()` remains an explicit diagnostic until V2 has a
+live element-snapshot source contract. No new protocol field is needed for
+this subset: existing asset, paint, layer opacity, and stable order atomics
+are sufficient.
+
+CSS mask layers remain ordered in `maskLayers[]`. Each entry has its own mode,
+coverage source list, and composite operator (`add`, `subtract`, `intersect`,
+or `exclude`), while image mask sources may carry an explicit coverage
+multiplier.
 
 ```text
 Protocol V2 JSON

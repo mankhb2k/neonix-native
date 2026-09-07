@@ -279,10 +279,10 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
       });
       return id;
     };
-    const maskSourceStyle = (style: Style): Style => new Map([
-      ["background-position", style.get("mask-position") ?? "0% 0%"],
-      ["background-size", style.get("mask-size") ?? "auto"],
-      ["background-repeat", style.get("mask-repeat") ?? "repeat"],
+    const maskSourceStyle = (style: Style, index: number): Style => new Map([
+      ["background-position", maskListValue(style.get("mask-position"), index, "0% 0%")],
+      ["background-size", maskListValue(style.get("mask-size"), index, "auto")],
+      ["background-repeat", maskListValue(style.get("mask-repeat"), index, "repeat")],
     ]);
     const maskListValue = (value: string | undefined, index: number, fallback: string): string => {
       const values = splitTopLevel(value ?? fallback, ",").map((item) => item.trim()).filter(Boolean);
@@ -302,13 +302,13 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
       const images = parseMaskImages(style, currentColor, { width: targetWidth, height: targetHeight });
       if (images.length === 0) return undefined;
       const maskRefs: Array<{ maskIds: string[]; mode: "alpha" | "luminance"; composite: "add" | "subtract" | "intersect" | "exclude" }> = [];
-      const sourceStyle = maskSourceStyle(style);
       images.forEach((image, imageIndex) => {
         const mode = parseMaskMode(style, imageIndex);
         // CSS has one composite operator between each pair of mask layers;
         // a stack of N images therefore consumes N - 1 values. The first
         // layer establishes the initial coverage and does not consume one.
         const composite = imageIndex === 0 ? "add" : parseMaskComposite(style, imageIndex - 1);
+        const sourceStyle = maskSourceStyle(style, imageIndex);
         const position = parseBackgroundPosition(sourceStyle, 0);
         const size = parseBackgroundSize(sourceStyle, 0, targetWidth, targetHeight);
         const repeat = parseBackgroundRepeat(sourceStyle, 0);
@@ -327,11 +327,12 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
         const tileCount = Math.max(1, xEnd - xStart + 1) * Math.max(1, yEnd - yStart + 1);
         if (tileCount > 4096) fail("css-mask-repeat-too-many-tiles", "mask-repeat would generate more than 4096 deterministic tiles");
         const maskIds: string[] = [];
-        if (image.type === "paint") {
-          const children: Array<{ type: "rect"; x: number; y: number; width: number; height: number; fill: Exclude<Paint, string> }> = [];
+        if (image.type === "paint" || image.type === "color") {
+          const children: Array<{ type: "rect"; x: number; y: number; width: number; height: number; fill: Paint; fillOpacity?: number }> = [];
+          const fill = image.type === "paint" ? image.paint : image.color;
           let tileIndex = 0;
           for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
-            if (xRepeats || yRepeats || tileIndex === 0) children.push({ type: "rect", x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fill: image.paint });
+            if (xRepeats || yRepeats || tileIndex === 0) children.push({ type: "rect", x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fill, ...(image.opacity === undefined ? {} : { fillOpacity: image.opacity }) });
             tileIndex += 1;
           }
           const id = `${node.atomicId}-mask-${imageIndex}`;
@@ -342,7 +343,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
           for (let xTile = xStart; xTile <= xEnd; xTile += 1) for (let yTile = yStart; yTile <= yEnd; yTile += 1) {
             if (xRepeats || yRepeats || tileIndex === 0) {
               const id = `${node.atomicId}-mask-${imageIndex}-${tileIndex}`;
-              masks.push({ id, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", maskType: mode, image: { type: "image", assetId: mediaAsset(node, "image", image.uri, `mask-${imageIndex}-${tileIndex}-asset`), x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fit: "fill" } });
+              masks.push({ id, maskUnits: "userSpaceOnUse", maskContentUnits: "userSpaceOnUse", maskType: mode, image: { type: "image", assetId: mediaAsset(node, "image", image.uri, `mask-${imageIndex}-${tileIndex}-asset`), x: startX + (xRepeats ? xTile * drawWidth : 0), y: startY + (yRepeats ? yTile * drawHeight : 0), width: drawWidth, height: drawHeight, fit: "fill", ...(image.opacity === undefined ? {} : { opacity: image.opacity }) } });
               maskIds.push(id);
             }
             tileIndex += 1;
@@ -477,6 +478,8 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const textShadows = parseShadows(style, "text-shadow", containingWidth, font, viewport, currentColor);
          const boxShadows = parseShadows(style, "box-shadow", containingWidth, font, viewport, currentColor);
          const filterEffects = parseFilter(style.get("filter"), containingWidth, font, viewport, currentColor);
+         const backdropFilterEffects = parseFilter(style.get("backdrop-filter"), containingWidth, font, viewport, currentColor);
+         const backdropState = backdropFilterEffects.length ? { backdropEffects: backdropFilterEffects } : {};
          const paintEffects = [...boxShadows, ...filterEffects];
          const textEffects = [...paintEffects, ...textShadows];
          const composite = parseComposite(style);
@@ -547,7 +550,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
              ? { align: "none" as const }
              : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
             const clipPathId = elementClipPath();
-            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
+            layers.push({ id: groupId, type: "image", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", source), x: 0, y: 0, width: w, height: h, fit, preserveAspectRatio: imageAspect, ...(imageRendering ? { imageRendering } : {}) } });
            emitOutline(false);
            return;
          }
@@ -555,7 +558,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const source = mediaSource(node);
             const fit = parseImageFit(style);
              const clipPathId = elementClipPath();
-            layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
+            layers.push({ id: groupId, type: "video", parentLayerId: parentId, order: layers.length, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "video", source), fit } });
             emitOutline(false);
             return;
           }
@@ -598,6 +601,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
               transform: transformFor(localX, localY, true),
               opacity,
               ...state,
+              ...backdropState,
               ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}),
               ...(motion ? { motion } : {}),
               ...compositeState,
@@ -640,22 +644,26 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const fillRuleValue = (style.get("fill-rule") ?? node.attributes.get("fill-rule") ?? "nonzero").toLowerCase();
          if (isPath && !["nonzero", "evenodd"].includes(fillRuleValue)) fail("css-path-fill-rule-invalid", `Unsupported fill-rule: ${fillRuleValue}`);
          if (isPath) {
-           const styleForPath = pathStyle?.fill || pathStyle?.stroke ? pathStyle : { ...(pathStyle ?? {}), fill: "#000000" };
-           if (styleForPath.fill && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
+           const styleForPath = pathStyle?.fill === "none"
+             ? { ...(pathStyle ?? {}), fill: "none" as const }
+             : pathStyle?.fill || pathStyle?.stroke
+               ? pathStyle
+               : { ...(pathStyle ?? {}), fill: "#000000" };
+           if (styleForPath.fill && styleForPath.fill !== "none" && pathContours!.some((contour) => !contour.closed)) fail("svg-path-fill-open", "Filled SVG paths must close every contour with Z");
            const clipPathId = elementClipPath();
-           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
+           layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
           // scope. A border is a separate pass so its centered stroke can be
           // inset without changing the element's sibling order.
           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
            const clipPathId = elementClipPath();
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
+           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || backdropFilterEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
            // Element opacity belongs to the stacking group. Generated paint
            // passes are children of that group and must remain opaque, or a
            // non-default CSS opacity would be multiplied twice by runtime.
            const paintOpacity = needsPaintGroup ? 1 : opacity;
-           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(render3d ? { render3d } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
+           if (needsPaintGroup) layers.push({ id: groupId, type: "group", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(paintEffects.length ? { effects: paintEffects } : {}), ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(render3d ? { render3d } : {}), ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}), timing: { start: 0, duration } });
            const paintLayerBaseOrder = layers.length;
            paints.forEach((fill, index) => {
           const paintId = paints.length === 1 ? (needsPaintGroup ? `${groupId}::paint` : groupId) : `${groupId}::paint:${index}`;
@@ -687,12 +695,12 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                const order = orderBase + (backgroundImages.length - imageIndex) * 10000 + tileIndex;
                const id = `${groupId}::background:${imageIndex}${tileIndex === 0 ? "" : `:${tileIndex}`}`;
                const parentLayerId = groupId;
-               if (image.type === "paint") {
-                 layers.push({ id, type: "shape", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { shape: "rectangle" }, style: { fill: image.paint } });
+               if (image.type === "paint" || image.type === "color") {
+                 layers.push({ id, type: "shape", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity * (image.opacity ?? 1), ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { shape: "rectangle" }, style: { fill: image.type === "paint" ? image.paint : image.color } });
                  return;
                }
                const preserveAspectRatio = fit === "fill" ? { align: "none" as const } : { align, ...(fit === "cover" ? { meetOrSlice: "slice" as const } : fit === "contain" ? { meetOrSlice: "meet" as const } : {}) };
-               layers.push({ id, type: "image", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity, ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", image.uri, `background-${imageIndex}-${tileIndex}-asset`), x: 0, y: 0, width: drawWidth, height: drawHeight, fit, preserveAspectRatio } });
+              layers.push({ id, type: "image", parentLayerId, order, frame: { width: drawWidth, height: drawHeight }, transform: transformFor(drawX, drawY, false), opacity: paintOpacity * (image.opacity ?? 1), ...state, clipPath: clipId, timing: { start: 0, duration }, payload: { assetId: mediaAsset(node, "image", image.uri, `background-${imageIndex}-${tileIndex}-asset`), x: 0, y: 0, width: drawWidth, height: drawHeight, fit, preserveAspectRatio } });
              };
              backgroundImages.forEach((image, imageIndex) => {
                const origin = boxFor(parseBackgroundBox(style, "background-origin", imageIndex));

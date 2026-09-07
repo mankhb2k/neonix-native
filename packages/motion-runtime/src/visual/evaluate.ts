@@ -207,10 +207,6 @@ export function evaluateVisualRuntimeProject(
   }
   const childrenOf = (parentId: string | null) =>
     stableNodeOrder(childrenByParent.get(parentId) ?? []);
-  const subtreeHasEffects = (node: VisualRuntimeNode): boolean => {
-    if (node.content.kind !== "group") return (node.content.effects?.length ?? 0) > 0;
-    return (node.content.effects?.length ?? 0) > 0 || childrenOf(node.id).some(subtreeHasEffects);
-  };
   const subtreeHasActiveDrawable = (node: VisualRuntimeNode): boolean => {
     if (!nodeIsActive(node, time)) return false;
     if (node.content.kind === "group") return childrenOf(node.id).some(subtreeHasActiveDrawable);
@@ -298,18 +294,23 @@ export function evaluateVisualRuntimeProject(
     const effectProgram = content.kind === "text" && !content.layout
       ? undefined
       : buildRuntimeEffectProgram(content.effects);
+    // A semantic clip/mask wrapper owns the backdrop capture. Avoid creating
+    // a nested backdrop layer inside that transparent wrapper.
+    const hasSemanticWrapper = node.clipPath !== undefined || node.mask !== undefined;
+    const backdropEffectProgram = hasSemanticWrapper ? undefined : buildRuntimeEffectProgram(node.backdropEffects);
     const blendMode = node.blendMode ?? "normal";
     const blendIsolation = blendMode !== "normal";
-    if (blendIsolation || effectProgram) {
+    if (blendIsolation || effectProgram || backdropEffectProgram) {
       commands.push({
         op: "beginLayer",
         key: node.id,
         layerId: node.id,
-        isolation: blendIsolation || effectProgram?.requiresOffscreen === true,
-        offscreen: blendIsolation || effectProgram?.requiresOffscreen === true,
+        isolation: blendIsolation || effectProgram?.requiresOffscreen === true || backdropEffectProgram !== undefined,
+        offscreen: blendIsolation || effectProgram?.requiresOffscreen === true || backdropEffectProgram !== undefined,
         ...(blendIsolation ? { compositeAlpha: node.opacity } : {}),
         blendMode,
         ...(effectProgram ? { effectProgram } : {}),
+        ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
       });
     }
     const nonScalingStrokeMesh = content.kind === "path" &&
@@ -410,7 +411,7 @@ export function evaluateVisualRuntimeProject(
           });
         }
       });
-      if (effectProgram || blendIsolation) commands.push({ op: "endLayer", key: node.id });
+      if (effectProgram || backdropEffectProgram || blendIsolation) commands.push({ op: "endLayer", key: node.id });
       return;
     }
     commands.push({
@@ -539,7 +540,7 @@ export function evaluateVisualRuntimeProject(
           : {}),
       });
     }
-    if (effectProgram || blendIsolation) {
+    if (effectProgram || backdropEffectProgram || blendIsolation) {
       commands.push({ op: "endLayer", key: node.id });
     }
   };
@@ -619,7 +620,7 @@ export function evaluateVisualRuntimeProject(
       // groups so image/video/path/shape clips are applied before the content
       // is painted. Previously only group nodes entered this path, which made
       // Protocol V2 image clipPaths silently disappear at runtime.
-      if (node.clipPath !== undefined || node.mask !== undefined) {
+      if (node.clipPath !== undefined || node.mask !== undefined || node.backdropEffects !== undefined) {
         commands.push({
           op: "beginLayer",
           key: node.id,
@@ -629,6 +630,7 @@ export function evaluateVisualRuntimeProject(
           // The drawable below still owns its opacity/blend/effect semantics;
           // this scope exists only to install the semantic clip/mask.
           compositeAlpha: 1,
+          ...(node.backdropEffects ? { backdropEffectProgram: buildRuntimeEffectProgram(node.backdropEffects) } : {}),
           ...(node.clipPath
             ? {
                 clipPath: {
@@ -659,16 +661,15 @@ export function evaluateVisualRuntimeProject(
     }
     if (!subtreeHasActiveDrawable(node)) return;
     const effectProgram = buildRuntimeEffectProgram(node.content.effects);
+    const backdropEffectProgram = buildRuntimeEffectProgram(node.backdropEffects);
     const needsIsolation =
       node.opacity < 1 ||
       node.clipPath !== undefined ||
       node.mask !== undefined ||
       node.isolation === "isolate" ||
       node.blendMode !== undefined && node.blendMode !== "normal" ||
-      effectProgram !== undefined;
-    if (needsIsolation && !effectProgram && childrenOf(node.id).some(subtreeHasEffects)) {
-      throw new Error(`Runtime V2 cannot place effects inside an isolated group yet: ${node.id}`);
-    }
+      effectProgram !== undefined ||
+      backdropEffectProgram !== undefined;
     if (needsIsolation) {
       commands.push({
         op: "beginLayer",
@@ -679,6 +680,7 @@ export function evaluateVisualRuntimeProject(
         compositeAlpha: node.opacity,
         blendMode: node.blendMode,
         ...(effectProgram ? { effectProgram } : {}),
+        ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
         ...(node.clipPath
           ? {
               clipPath: {

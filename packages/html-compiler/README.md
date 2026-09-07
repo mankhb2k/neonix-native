@@ -255,6 +255,22 @@ Unsupported transform functions or malformed arguments fail closed with a
 Protocol `operations[]` list and composed by Motion Runtime; matrix and local
 perspective parsing remain a later HTML compiler slice.
 
+## Image source subset
+
+`background-image` and `mask-image` accept asset URLs and the deterministic
+`image()`/`cross-fade()` subset. `image()` evaluates candidates from left to
+right: the first supported URL or gradient becomes the source, and a supported
+color is used only when no image candidate is available. This keeps fallback
+selection in the compiler without depending on whether an asset can be
+loaded at compile time. `cross-fade()` lowers to two ordered asset layers with
+premultiplied opacity weights; both `cross-fade(25%, url(a), url(b))` and
+`cross-fade(url(a), url(b), 25%)` are normalized to the same result.
+
+Gradient sources lower to paint shapes, while URL sources lower to image
+layers. No synthetic source name is placed in `sourceKey`. `element()` remains
+an explicit diagnostic and is reserved for a later live element-snapshot
+phase.
+
 ## Explicitly deferred
 
 Flex wrapping, Grid layout, masks, filters, text shaping, advanced transform matrices,
@@ -448,6 +464,12 @@ tests are in `src/_test_/phase3.test.ts`. Preview Lab exposes the corresponding
 Phase 3 cases under **HTML compiler / Phase 3**.
 
 ## Visual-only compiler foundation
+
+The intentional CSS exclusions and their rationale are maintained in
+[RULE.md](./RULE.md). In particular, the motion profile does not implement
+`float`, `clear`, `shape-outside`, `shape-margin`, or
+`shape-image-threshold`; these declarations must fail with diagnostics rather
+than being approximated through flex, grid, masks, or absolute positioning.
 
 This compiler is an authoring-to-video boundary, not a browser runtime. It
 accepts static HTML/CSS and produces a resolved scene snapshot; JavaScript,

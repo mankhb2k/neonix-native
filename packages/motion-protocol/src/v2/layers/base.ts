@@ -13,6 +13,7 @@ import { V2BackfaceVisibilitySchema } from "../render3d";
 import { V2CompositeSchema } from "../blend";
 import { V2MaskLayerListSchema } from "../mask";
 import { V2MotionPathSchema } from "../motion-path";
+import { V2EffectListSchema } from "../effects";
 
 // Compatibility exports: blend semantics now live in v2/blend.ts.
 export {
@@ -63,6 +64,8 @@ export const V2LayerBaseSchema = z
     maskLayers: V2MaskLayerListSchema.optional(),
     /** SVG filter reference resolved against project filter definitions. */
     filter: V2IdSchema.optional(),
+    /** CSS backdrop-filter effects applied to the already-painted backdrop. */
+    backdropEffects: V2EffectListSchema.optional(),
     /** CSS offset-* semantics owned by this layer; motion does not affect layout. */
     motion: V2MotionPathSchema.optional(),
     composite: V2CompositeSchema.optional(),

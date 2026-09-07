@@ -15,7 +15,7 @@ const cases = [
   "image-high-distortion",
 ] as const;
 
-test.describe("HTML compiler Phase 8 projective textures", () => {
+test.describe("HTML compiler projective texture cases", () => {
   for (const id of cases) {
     test(`${id} renders an image/video surface through the projective path`, async ({ page }) => {
       await page.goto(`/docs/preview/html-compiler?case=html-compiler.texture.${id}`, { waitUntil: "domcontentloaded" });

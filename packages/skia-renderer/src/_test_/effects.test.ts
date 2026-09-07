@@ -1,9 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { cssBlurRadiusToSkiaSigma } from "../command/effects";
+import type { RuntimeEffectProgram } from "@motionvideo/motion-runtime";
+import { cssBlurRadiusToSkiaSigma, effectFilterFor } from "../command/effects";
+import type { SkiaCanvasKit } from "../canvas-kit";
 
-describe("Skia CSS shadow blur mapping", () => {
-  it("converts CSS blur radius to the equivalent Skia sigma", () => {
-    expect(cssBlurRadiusToSkiaSigma(0)).toBe(0);
-    expect(cssBlurRadiusToSkiaSigma(18)).toBeCloseTo(10.8923, 4);
+describe("Skia CSS effect lowering", () => {
+  it("converts CSS blur radius to the Skia sigma contract", () => {
+    expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(8.5829, 4);
+  });
+
+  it("creates a filter that can be installed in a backdrop saveLayer slot", () => {
+    let receivedSigma = 0;
+    const filter = { delete() {} };
+    const kit = {
+      TileMode: { Decal: 1 },
+      ImageFilter: {
+        MakeBlur(sigmaX: number, sigmaY: number) {
+          receivedSigma = sigmaX;
+          expect(sigmaY).toBe(sigmaX);
+          return filter;
+        },
+      },
+    } as unknown as SkiaCanvasKit;
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [{ id: "backdrop-blur", kind: "blur", input: "source", output: "effect:backdrop-blur", radius: 12 }],
+      output: "effect:backdrop-blur",
+      requiresOffscreen: true,
+    };
+
+    expect(effectFilterFor(kit, program)).toEqual({ filter, supported: true });
+    expect(receivedSigma).toBeCloseTo(cssBlurRadiusToSkiaSigma(12), 8);
   });
 });

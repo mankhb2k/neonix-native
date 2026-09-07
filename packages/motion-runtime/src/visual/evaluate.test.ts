@@ -177,6 +177,42 @@ describe("Runtime V2 border fragment batching", () => {
     });
   });
 
+  it("emits backdrop-filter as a separate backdrop effect program", () => {
+    const base = pathNode("backdrop-filter", 1, "#38bdf8", 0);
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([groupNode, {
+        ...base,
+        backdropEffects: [{ id: "backdrop-blur", type: "blur", radius: 12 }],
+      }]),
+      0,
+    );
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "backdrop-filter")).toMatchObject({
+      isolation: true,
+      offscreen: true,
+      backdropEffectProgram: { ops: [{ kind: "blur", input: "source" }] },
+    });
+  });
+
+  it("allows a backdrop child inside a clipped parent boundary", () => {
+    const child = {
+      ...pathNode("nested-backdrop", 1, "#38bdf8", 0),
+      backdropEffects: [{ id: "nested-blur", type: "blur" as const, radius: 8 }],
+    };
+    const frame = evaluateVisualRuntimeProject(
+      projectWith([{ ...groupNode, clipPath: { sourceId: "parent-clip" } }, child]),
+      0,
+    );
+    expect(frame.diagnostics).toEqual([]);
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "border-group")).toMatchObject({
+      isolation: true,
+      offscreen: true,
+      clipPath: { sourceKey: "parent-clip" },
+    });
+    expect(frame.commands.find((command) => command.op === "beginLayer" && command.key === "nested-backdrop")).toMatchObject({
+      backdropEffectProgram: { ops: [{ kind: "blur", input: "source" }] },
+    });
+  });
+
   it("keeps an isolated group boundary around a child blend layer", () => {
     const child = pathNode("isolated-child", 1, "#38bdf8", 0);
     const frame = evaluateVisualRuntimeProject(

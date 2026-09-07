@@ -25,6 +25,8 @@ export type PaintLayerScope = {
   offscreen: boolean;
   blendMode?: PaintBlendMode;
   effectProgram?: RuntimeEffectProgram;
+  /** CSS backdrop-filter program; it samples the parent backdrop before content. */
+  backdropEffectProgram?: RuntimeEffectProgram;
   clipPath?: {
     sourceKey: string;
     sourceKeys?: string[];

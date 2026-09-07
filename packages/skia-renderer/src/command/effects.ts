@@ -215,7 +215,8 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     for (const op of ops) {
       let next: SkiaImageFilter | null;
       if (op.kind === "blur") {
-        next = kit.ImageFilter.MakeBlur(op.radius, op.radius, kit.TileMode.Decal, filter);
+        const sigma = cssBlurRadiusToSkiaSigma(op.radius);
+        next = kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, filter);
       } else if (kit.ColorFilter?.MakeMatrix && kit.ImageFilter.MakeColorFilter) {
         const matrix = op.kind === "color-adjust" ? colorAdjustMatrix(op) : op.kind === "color-matrix" ? op.matrix : alphaMatrix(op);
         const colorFilter = kit.ColorFilter.MakeMatrix(matrix);

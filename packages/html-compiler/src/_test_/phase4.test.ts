@@ -75,4 +75,14 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
     expect(result.status).toBe("success");
     expect(result.protocol?.layers.some((layer) => layer.id.startsWith("paint:fill:") && layer.type === "shape")).toBe(true);
   });
+
+  it("preserves explicit SVG path fill none separately from the black default", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<svg><path id="stroke-only" d="M 0 0 L 100 0 L 50 80 Z"></path><path id="default-fill" d="M 0 0 L 100 0 L 50 80 Z"></path></svg>`,
+      css: `svg { width: 120px; height: 100px; } #stroke-only { fill: none; stroke: #facc15; stroke-width: 8px; } #default-fill { transform: translateX(0px); }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "stroke-only")).toMatchObject({ style: { fill: "none", stroke: "#facc15" } });
+    expect(result.protocol?.layers.find((layer) => layer.id === "default-fill")).toMatchObject({ style: { fill: "#000000" } });
+  });
 });

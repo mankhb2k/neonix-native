@@ -13,7 +13,7 @@ const cases: Array<{ id: string; distances: string[]; painted?: boolean }> = [
   { id: "nested-clip-path", distances: ['"distance": 860', '"distance": 360'] },
 ] as const;
 
-test.describe("HTML compiler Phase 6 nested perspective", () => {
+test.describe("HTML compiler nested perspective cases", () => {
   for (const fixture of cases) {
     test(`${fixture.id} keeps nested perspective contexts through Skia`, async ({ page }) => {
       await page.goto(`/docs/preview/html-compiler?case=html-compiler.perspective.${fixture.id}`, { waitUntil: "domcontentloaded" });

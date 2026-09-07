@@ -51,13 +51,13 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(compilerFixtures).toHaveLength(0);
   });
 
-  it("keeps the HTML compiler sidebar backed by real P0 fixtures", () => {
+  it("keeps the HTML compiler sidebar backed by the primitive fixture catalog", () => {
     expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(41);
     expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PHASE1_2_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PHASE1_3_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PHASE1_4_CASES).toHaveLength(5);
-    expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(4);
+    expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(7);
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
@@ -67,9 +67,22 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PAINT_PHASE2_7_CASES).toHaveLength(8);
     expect(HTML_COMPILER_PAINT_PHASE2_8_CASES).toHaveLength(5);
     expect(HTML_COMPILER_MOTION_PHASE3_CASES).toHaveLength(43);
-    expect(HTML_COMPILER_PERSPECTIVE_PHASE5_CASES).toHaveLength(8);
-    expect(HTML_COMPILER_PERSPECTIVE_PHASE6_CASES).toHaveLength(10);
+    expect(HTML_COMPILER_PERSPECTIVE_PHASE5_CASES).toHaveLength(13);
+    expect(HTML_COMPILER_PERSPECTIVE_PHASE6_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE7_CASES).toHaveLength(12);
+    const groups = htmlCompilerPreviewGroups();
+    expect(groups.map((group) => group.category)).toEqual([
+      "Layout primitives",
+      "Paint primitives",
+      "Effect primitives",
+      "Viewport primitives",
+      "Container primitives",
+      "Transform & 3D primitives",
+      "Typography & media primitives",
+      "Animation & keyframe primitives",
+      "Combined pipeline cases",
+    ]);
+    expect(groups.every((group) => group.cases.every((fixture) => fixture.category === group.category))).toBe(true);
     for (const fixture of HTML_COMPILER_PAINT_PHASE2_1_CASES) {
       const compiled = compileHtmlCss(fixture.source);
       expect(compiled.status, fixture.id).toBe("success");
@@ -261,32 +274,16 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("direction: rtl");
     expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("writing-mode: vertical-rl");
     expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("text-decoration: underline");
-    expect(htmlCompilerPreviewGroups().map((group) => group.topic)).toEqual([
-      "New project",
-      "Composition & geometry",
-      "HTML tags",
-      "Cascade & values",
-      "Transform 2D",
-      "Paint",
-      "Media",
-      "Typography",
-      "Layout",
-      "Layout",
-      "Layout",
-      "Layout",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Paint",
-      "Motion & animation",
-      "Motion & animation",
-      "Motion & animation",
-      "Motion & animation",
+    expect(htmlCompilerPreviewGroups().map((group) => group.category)).toEqual([
+      "Layout primitives",
+      "Paint primitives",
+      "Effect primitives",
+      "Viewport primitives",
+      "Container primitives",
+      "Transform & 3D primitives",
+      "Typography & media primitives",
+      "Animation & keyframe primitives",
+      "Combined pipeline cases",
     ]);
     expect(htmlCompilerPreviewGroups().every((group) => group.cases.length > 0)).toBe(true);
 
