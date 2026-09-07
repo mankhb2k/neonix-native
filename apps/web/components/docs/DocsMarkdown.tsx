@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 const MARKDOWN_COMPONENTS: Components = {
   h1: ({ node: _node, children, ...props }) => (
     <h1
-      className="mb-4 scroll-mt-20 border-b border-[var(--border-subtle)] pb-[0.3em] text-[2rem] font-semibold leading-[1.25]"
+      className="mb-8 scroll-mt-24 text-[clamp(2.5rem,5vw,4rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--fg-primary)]"
       {...props}
     >
       {children}
@@ -13,7 +13,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   h2: ({ node: _node, children, ...props }) => (
     <h2
-      className="mt-6 mb-4 scroll-mt-20 border-b border-[var(--border-subtle)] pb-[0.3em] text-[1.5rem] font-semibold leading-[1.25]"
+      className="mt-14 mb-5 scroll-mt-24 border-t border-[var(--border-subtle)] pt-5 text-[1.55rem] font-semibold leading-[1.15] tracking-[-0.03em] text-[var(--fg-primary)] first:mt-0"
       {...props}
     >
       {children}
@@ -21,7 +21,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   h3: ({ node: _node, children, ...props }) => (
     <h3
-      className="mt-5 mb-3 scroll-mt-20 text-[1.25rem] font-semibold leading-[1.25]"
+      className="mt-9 mb-3 scroll-mt-24 text-[1.1rem] font-semibold leading-[1.25] tracking-[-0.015em] text-[var(--fg-primary)]"
       {...props}
     >
       {children}
@@ -33,7 +33,7 @@ const MARKDOWN_COMPONENTS: Components = {
     </h4>
   ),
   p: ({ node: _node, children, ...props }) => (
-    <p className="mb-4" {...props}>
+    <p className="mb-5 leading-7 text-[var(--fg-secondary)]" {...props}>
       {children}
     </p>
   ),
@@ -62,7 +62,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   blockquote: ({ node: _node, children, ...props }) => (
     <blockquote
-      className="mb-4 border-l-4 border-[var(--border-strong)] bg-[color-mix(in_srgb,var(--bg-surface)_80%,transparent)] px-4 py-2 text-[var(--fg-secondary)] [&_p]:my-1"
+      className="mb-5 rounded-r-xl border-l-2 border-[#0d9488] bg-[#eefaf7] px-5 py-3 text-[var(--fg-secondary)] [&_p]:my-1"
       {...props}
     >
       {children}
@@ -70,20 +70,20 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   hr: ({ node: _node, ...props }) => (
     <hr
-      className="my-6 h-[0.15em] border-0 bg-[var(--border-subtle)]"
+      className="my-10 h-px border-0 bg-[var(--border-subtle)]"
       {...props}
     />
   ),
   table: ({ node: _node, children, ...props }) => (
     <div className="mb-4 w-full overflow-x-auto">
-      <table className="min-w-full border-collapse text-sm" {...props}>
+      <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-xl text-sm" {...props}>
         {children}
       </table>
     </div>
   ),
   th: ({ node: _node, children, ...props }) => (
     <th
-      className="border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-[0.4rem] text-left align-top font-semibold"
+      className="border-b border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 text-left align-top font-semibold text-[var(--fg-primary)] first:border-l"
       {...props}
     >
       {children}
@@ -91,7 +91,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   td: ({ node: _node, children, ...props }) => (
     <td
-      className="border border-[var(--border-subtle)] px-3 py-[0.4rem] text-left align-top"
+      className="border-b border-r border-[var(--border-subtle)] px-4 py-3 text-left align-top text-[var(--fg-secondary)] first:border-l"
       {...props}
     >
       {children}
@@ -107,7 +107,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   pre: ({ node: _node, children, ...props }) => (
     <pre
-      className="mb-4 overflow-x-auto rounded-lg bg-[var(--code-block-bg)] p-4 text-[13px] leading-[1.55] text-[var(--code-block-fg)] [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[inherit]"
+      className="mb-6 overflow-x-auto rounded-2xl border border-[#1f2937] bg-[var(--code-block-bg)] p-5 text-[13px] leading-[1.7] text-[var(--code-block-fg)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[inherit]"
       {...props}
     >
       {children}
@@ -120,7 +120,7 @@ const MARKDOWN_COMPONENTS: Components = {
 
 export function DocsMarkdown({ markdown }: { markdown: string }) {
   return (
-    <article className="mx-auto max-w-[52rem] pb-20 text-base leading-[1.6] text-[var(--fg-primary)]">
+    <article className="mx-auto max-w-[56rem] pb-20 text-base leading-[1.7] text-[var(--fg-primary)]">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSlug]}

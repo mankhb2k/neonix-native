@@ -145,28 +145,29 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* App scrollbars — compact charcoal treatment used throughout the editor/docs UI. */
-html {
-  scrollbar-color: rgba(31, 41, 55, 0.62) transparent;
+/* Keep the document scrollbar on the browser default. Docs owns a smaller
+   scrollbar on its independently scrolling navigation rail below. */
+.docs-sidebar-scroll {
   scrollbar-width: thin;
+  scrollbar-color: rgba(31, 41, 55, 0.56) transparent;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.docs-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-::-webkit-scrollbar-track {
+.docs-sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(31, 41, 55, 0.62);
+.docs-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(31, 41, 55, 0.56);
   border-radius: 999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(17, 24, 39, 0.82);
+.docs-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 24, 39, 0.76);
 }
 
 [data-surface="editor"] aside.editor-panel,

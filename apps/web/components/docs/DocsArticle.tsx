@@ -1,7 +1,7 @@
 import { DocsOnThisPage } from "@/components/docs/DocsOnThisPage";
 import type { ReactNode } from "react";
 
-const contentGridClass = "grid min-w-0 grid-cols-1 xl:grid-cols-[1fr_auto_1fr]";
+const contentGridClass = "grid min-w-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_15rem]";
 
 export function DocsArticle({
   toc,
@@ -19,8 +19,7 @@ export function DocsArticle({
 
   return (
     <div className={contentGridClass}>
-      <div className="hidden xl:block" />
-      <main className="w-full min-w-0 max-w-[68rem] px-5 py-10 md:px-8 xl:w-[68rem]">
+      <main className="w-full min-w-0 max-w-[60rem] justify-self-center px-5 py-10 md:px-8 xl:px-12 xl:py-12">
         {children}
       </main>
       {hasRail ? (
