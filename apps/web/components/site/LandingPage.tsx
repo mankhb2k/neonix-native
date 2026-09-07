@@ -11,7 +11,24 @@ import {
   Sparkles,
   Workflow as WorkflowIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  NEONIX_DEMO_CSS,
+  NEONIX_DEMO_HTML,
+  NEONIX_DEMO_JSON,
+} from "./neonix-demo-fixture";
+import { NeonixMotionPreview } from "./NeonixMotionPreview";
+
+const LANDING_TYPOGRAPHY = {
+  eyebrow: "text-xs",
+  heading: "text-4xl sm:text-6xl",
+  lead: "text-lg",
+  cardTitle: "text-xl",
+  body: "text-base",
+  codeMeta: "text-xs",
+  code: "text-sm",
+} as const;
 
 function Reveal({
   children,
@@ -66,7 +83,7 @@ function Section({
   return (
     <section
       id={id}
-      className={`mx-auto w-full max-w-6xl px-6 py-20 sm:py-28 ${className}`}
+      className={`mx-auto w-full max-w-[1200px] px-6 py-20 sm:py-28 ${className}`}
     >
       {children}
     </section>
@@ -75,7 +92,9 @@ function Section({
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-text)]">
+    <p
+      className={`${LANDING_TYPOGRAPHY.eyebrow} font-mono font-semibold uppercase tracking-[0.18em] text-[var(--accent-text)]`}
+    >
       {children}
     </p>
   );
@@ -83,7 +102,9 @@ function Eyebrow({ children }: { children: ReactNode }) {
 
 function Heading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.025em] text-[var(--fg-primary)] sm:text-5xl">
+    <h2
+      className={`mt-3 max-w-3xl font-semibold leading-tight tracking-[-0.025em] text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.heading}`}
+    >
       {children}
     </h2>
   );
@@ -101,7 +122,7 @@ function Button({
   return (
     <a
       href={href}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold no-underline transition ${secondary ? "border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--fg-primary)] hover:border-[var(--accent)]" : "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-sm hover:bg-[var(--accent-hover)]"}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border px-4 text-base font-semibold no-underline transition ${secondary ? "border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--fg-primary)] hover:border-[var(--accent)]" : "border-transparent bg-[var(--accent)] text-[var(--accent-on)] shadow-sm hover:bg-[var(--accent-hover)]"}`}
     >
       {children}
     </a>
@@ -111,12 +132,12 @@ function Button({
 function CompilerShowcase() {
   const [tab, setTab] = useState<"html" | "css" | "json">("html");
   const code = {
-    html: `<main class="hero-card">\n  <span>NEONIX</span>\n  <h1>Make it move.</h1>\n</main>`,
-    css: `.hero-card {\n  width: 720px;\n  padding: 64px;\n  border-radius: 28px;\n  background: linear-gradient(135deg, #0f766e, #2563eb);\n  color: white;\n}`,
-    json: `{\n  "composition": "hero-card",\n  "layers": [\n    { "id": "title", "type": "text", "text": "Make it move." },\n    { "id": "pulse", "type": "shape", "animation": "pulse" }\n  ]\n}`,
+    html: NEONIX_DEMO_HTML,
+    css: NEONIX_DEMO_CSS,
+    json: NEONIX_DEMO_JSON,
   } as const;
   return (
-    <div className="mx-auto mt-12 grid max-w-5xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--bg-site)] text-left shadow-[0_24px_70px_rgba(16,24,40,0.12)]">
+    <div className="mx-auto mt-16 grid h-[620px] min-h-0 max-w-[1200px] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-site)] text-left shadow-[0_28px_80px_rgba(16,24,40,0.14)]">
       <div className="flex min-h-11 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-site)] px-4">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[#F97066]" />
@@ -130,8 +151,8 @@ function CompilerShowcase() {
           ● ready
         </span>
       </div>
-      <div className="grid min-h-[400px] items-stretch gap-0 bg-[var(--bg-site)] lg:grid-cols-[1.35fr_0.65fr]">
-        <div className="flex min-w-0 flex-col overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--bg-site)] lg:order-1">
+      <div className="grid min-h-0 h-full items-stretch gap-0 bg-[var(--bg-site)] lg:grid-cols-[1.35fr_0.65fr]">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--bg-site)] lg:order-1">
           <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-3 py-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--accent-text)]">
               Source
@@ -149,31 +170,12 @@ function CompilerShowcase() {
               ))}
             </div>
           </div>
-          <pre className="m-0 min-h-0 flex-1 overflow-auto p-6 font-mono text-xs leading-6 text-[var(--fg-secondary)] sm:p-10">
+          <pre className="m-0 min-h-0 flex-1 overflow-x-auto overflow-y-auto whitespace-pre p-6 font-mono text-xs leading-6 text-[var(--fg-secondary)] sm:p-10">
             {code[tab]}
           </pre>
         </div>
-        <div className="flex h-full items-center justify-center bg-[var(--bg-site)] p-6 sm:p-10 lg:order-2">
-          <div
-            className="relative h-auto aspect-[9/16] w-[180px] shrink-0 overflow-hidden rounded-[20px] border-[6px] border-[#1D2939] bg-[#101828] shadow-[0_20px_35px_rgba(16,24,40,0.22)] sm:w-[210px]"
-            style={{ aspectRatio: "9 / 16" }}
-          >
-            <div className="absolute inset-0 bg-[linear-gradient(145deg,#101828_0%,#263B4B_52%,#7F3D36_100%)]" />
-            <div className="absolute inset-x-4 top-8 h-24 rounded-full border border-[#98F5E8]/50 shadow-[0_0_30px_rgba(152,245,232,0.32)]" />
-            <div className="absolute inset-x-5 top-14 h-12 rounded-full border-2 border-[#FBBF24] opacity-80" />
-            <div className="absolute inset-x-5 bottom-9">
-              <span className="font-mono text-[8px] tracking-[0.18em] text-[#B8FFF5]">
-                NEONIX / 001
-              </span>
-              <strong className="mt-2 block text-xl font-semibold leading-none text-white">
-                Make it
-                <br />
-                move.
-              </strong>
-              <span className="mt-3 block h-1 w-10 rounded-full bg-[#FBBF24]" />
-            </div>
-            <span className="absolute right-3 top-3 h-1.5 w-1.5 rounded-full bg-[#F97066] shadow-[0_0_10px_#F97066]" />
-          </div>
+        <div className="flex min-h-0 h-full items-center justify-center overflow-hidden bg-[var(--bg-site)] p-4 sm:p-6 lg:order-2">
+          <NeonixMotionPreview />
         </div>
       </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--border-subtle)] px-4 py-3 font-mono text-[10px] text-[var(--fg-muted)]">
@@ -212,18 +214,24 @@ const CAPABILITIES = [
 
 function McpConnection() {
   const providers = [
-    ["C", "Claude", "bg-[#F4C2A1] text-[#5B2C1D]"],
-    ["G", "ChatGPT", "bg-[#D9F99D] text-[#365314]"],
-    ["O", "OpenClaw", "bg-[#BFDBFE] text-[#1E3A8A]"],
-    ["G", "Grok", "bg-[#E9D5FF] text-[#581C87]"],
+    ["/logo/claude-logo.svg", "Claude"],
+    ["/logo/openai-logo.svg", "ChatGPT"],
+    ["/logo/openclaw-logo.svg", "OpenClaw"],
+    ["/logo/grok-logo.svg", "Grok"],
   ] as const;
 
   return (
-    <div className="mx-auto mt-10 max-w-5xl">
+    <div className="mx-auto mt-12 max-w-[1200px]">
       <div className="flex flex-col items-center">
-        <div className="flex h-[58px] items-center gap-3 rounded-xl border border-[var(--fg-primary)] bg-[var(--fg-primary)] px-6 text-base font-semibold text-white shadow-sm">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/15 text-sm">
-            N
+        <div className="flex h-[58px] items-center gap-3 rounded-xl border border-[var(--fg-primary)] bg-[var(--fg-primary)] px-6 text-lg font-semibold text-white shadow-sm">
+          <span className="grid h-[34px] w-[34px] place-items-center rounded-lg bg-white/15 p-1.5">
+            <Image
+              src="/logo/neonix-logo.svg"
+              alt=""
+              width={20}
+              height={20}
+              className="h-5 w-5 object-contain"
+            />
           </span>
           Neonix
         </div>
@@ -231,7 +239,7 @@ function McpConnection() {
           className="h-10 border-l border-[var(--border-strong)]"
           aria-hidden
         />
-        <div className="flex h-[58px] items-center gap-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-6 text-base font-semibold text-[var(--accent-text)]">
+        <div className="flex h-[58px] items-center gap-3 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-6 text-lg font-semibold text-[var(--accent-text)]">
           <Network className="h-5 w-5" /> MCP
         </div>
         <span
@@ -243,16 +251,20 @@ function McpConnection() {
             className="absolute left-1/2 top-0 hidden h-px w-3/4 -translate-x-1/2 bg-[var(--border-strong)] sm:block"
             aria-hidden
           />
-          {providers.map(([mark, name, markClass]) => (
+          {providers.map(([logoSrc, name]) => (
             <div
               key={name}
               className="relative flex justify-center pt-7 before:absolute before:left-1/2 before:top-0 before:h-7 before:border-l before:border-[var(--border-strong)]"
             >
-              <div className="flex h-[58px] w-full items-center justify-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-site)] px-3 text-sm font-semibold text-[var(--fg-primary)] shadow-[0_8px_20px_rgba(16,24,40,0.05)]">
-                <span
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sm ${markClass}`}
-                >
-                  {mark}
+              <div className="flex h-[58px] w-full items-center justify-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-site)] px-3 text-base font-semibold text-[var(--fg-primary)] shadow-[0_8px_20px_rgba(16,24,40,0.05)]">
+                <span className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-lg bg-[var(--bg-hover)] p-1.5">
+                  <Image
+                    src={logoSrc}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                  />
                 </span>
                 <span>{name}</span>
               </div>
@@ -271,8 +283,8 @@ function McpConnection() {
 function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-site)]">
-      <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-28 text-center sm:pb-32 sm:pt-36">
-        <div className="mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-[1200px] px-6 pb-20 pt-28 text-center sm:pb-32 sm:pt-36">
+        <div className="mx-auto max-w-5xl">
           <Eyebrow>HTML/CSS compiler for motion</Eyebrow>
           <h1 className="mx-auto mt-5 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-[var(--fg-primary)] sm:text-7xl lg:text-[5.5rem]">
             The motion layer
@@ -323,7 +335,7 @@ function Workflow() {
       <Reveal>
         <Eyebrow>The agent-ready motion stack</Eyebrow>
         <Heading>From agent prompt to editable motion.</Heading>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--fg-secondary)]">
+        <p className={`mt-5 max-w-2xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
           Neonix gives AI agents a direct path from intent to motion graphics: a
           project people can inspect, refine and ship instead of a flattened
           render.
@@ -333,13 +345,13 @@ function Workflow() {
         {steps.map(([number, title, description], index) => (
           <Reveal key={title} delay={index * 70}>
             <div className="h-full bg-[var(--bg-elevated)] p-6">
-              <span className="font-mono text-xs text-[var(--accent-text)]">
+              <span className="font-mono text-sm text-[var(--accent-text)]">
                 {number}
               </span>
-              <h3 className="mt-8 text-lg font-semibold text-[var(--fg-primary)]">
+              <h3 className={`mt-8 font-semibold text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.cardTitle}`}>
                 {title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">
+              <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
                 {description}
               </p>
             </div>
@@ -356,7 +368,7 @@ function Capabilities() {
       <Reveal>
         <Eyebrow>Made for web-native creators</Eyebrow>
         <Heading>The web is already your design system.</Heading>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--fg-secondary)]">
+        <p className={`mt-5 max-w-2xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
           Use the primitives your team already knows. Neonix gives them motion
           meaning without forcing a new authoring language.
         </p>
@@ -369,10 +381,10 @@ function Capabilities() {
                 className="h-5 w-5 text-[var(--accent)]"
                 strokeWidth={1.7}
               />
-              <h3 className="mt-5 text-lg font-semibold text-[var(--fg-primary)]">
+              <h3 className={`mt-5 font-semibold text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.cardTitle}`}>
                 {title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">
+              <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
                 {description}
               </p>
             </article>
@@ -390,12 +402,12 @@ function StructuredMotion() {
         <Reveal>
           <Eyebrow>The output</Eyebrow>
           <Heading>Video data you can actually work with.</Heading>
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--fg-secondary)]">
+          <p className={`mt-5 max-w-lg leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
             Neonix turns HTML/CSS into semantic, atomic JSON: named layers,
             properties and relationships that can be edited by a person, an
             agent or a template system.
           </p>
-          <div className="mt-7 space-y-3 text-sm text-[var(--fg-secondary)]">
+          <div className={`mt-7 space-y-3 text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.body}`}>
             {[
               "Named elements instead of flattened frames",
               "Properties you can target independently",
@@ -410,10 +422,10 @@ function StructuredMotion() {
         </Reveal>
         <Reveal delay={100}>
           <div className="overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[#15212A] p-5 shadow-[0_20px_45px_rgba(16,24,40,0.16)]">
-            <div className="mb-4 flex items-center gap-2 font-mono text-[10px] text-[#9FE7E0]">
+            <div className={`mb-4 flex items-center gap-2 font-mono text-[#9FE7E0] ${LANDING_TYPOGRAPHY.codeMeta}`}>
               <Braces className="h-3.5 w-3.5" /> normalized-motion.json
             </div>
-            <pre className="m-0 overflow-auto font-mono text-xs leading-7 text-[#D9E7EE]">
+            <pre className={`m-0 overflow-auto font-mono leading-7 text-[#D9E7EE] ${LANDING_TYPOGRAPHY.code}`}>
               {
                 '{\n  "composition": "hero-card",\n  "layers": [\n    { "id": "title", "type": "text", "text": "Make it move." },\n    { "id": "pulse", "type": "shape", "animation": "pulse" }\n  ]\n}'
               }
@@ -431,7 +443,7 @@ function AgentWorkflow() {
       <Reveal>
         <Eyebrow>Built for agent workflows</Eyebrow>
         <Heading>Less plumbing. More motion.</Heading>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--fg-secondary)]">
+        <p className={`mt-5 max-w-2xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
           Connect your agent to a Neonix workspace, let it create or update the
           project, then take over in the editor whenever you want precision.
         </p>
@@ -440,10 +452,10 @@ function AgentWorkflow() {
         <Reveal>
           <article className="h-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-6">
             <Network className="h-5 w-5 text-[var(--accent)]" />
-            <h3 className="mt-5 font-semibold text-[var(--fg-primary)]">
+            <h3 className={`mt-5 font-semibold text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.cardTitle}`}>
               MCP in one click
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">
+            <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
               Connect Claude, ChatGPT, OpenClaw or Grok directly to a Neonix
               workspace without a local render setup.
             </p>
@@ -452,10 +464,10 @@ function AgentWorkflow() {
         <Reveal delay={70}>
           <article className="h-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-6">
             <Sparkles className="h-5 w-5 text-[var(--accent)]" />
-            <h3 className="mt-5 font-semibold text-[var(--fg-primary)]">
+            <h3 className={`mt-5 font-semibold text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.cardTitle}`}>
               Create, update, refine
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">
+            <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
               Agents can create a project and update specific layers instead of
               replacing the whole render.
             </p>
@@ -464,10 +476,10 @@ function AgentWorkflow() {
         <Reveal delay={140}>
           <article className="h-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-6">
             <ScanSearch className="h-5 w-5 text-[var(--accent)]" />
-            <h3 className="mt-5 font-semibold text-[var(--fg-primary)]">
+            <h3 className={`mt-5 font-semibold text-[var(--fg-primary)] ${LANDING_TYPOGRAPHY.cardTitle}`}>
               Hand off to humans
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">
+            <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
               Open the same project in the editor, make precise changes and
               export when it is ready.
             </p>
@@ -491,7 +503,7 @@ function Comparison() {
       <Reveal>
         <Eyebrow>Choose the right layer</Eyebrow>
         <Heading>Neonix and Remotion solve different problems.</Heading>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--fg-secondary)]">
+        <p className={`mt-5 max-w-2xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
           Remotion is a powerful code-first framework for rendering video with
           React. Neonix is an agent-first motion workspace for turning web
           primitives into editable projects.
@@ -499,7 +511,7 @@ function Comparison() {
       </Reveal>
       <Reveal delay={90}>
         <div className="mt-10 overflow-x-auto rounded-xl border border-[var(--border-strong)]">
-          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+          <table className={`w-full min-w-[680px] border-collapse text-left ${LANDING_TYPOGRAPHY.body}`}>
             <thead className="bg-[var(--bg-elevated)] text-[var(--fg-primary)]">
               <tr>
                 <th className="w-1/4 border-b border-[var(--border-subtle)] px-5 py-4 font-medium text-[var(--fg-muted)]">
@@ -543,7 +555,7 @@ function FinalCta() {
         <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em] text-[var(--fg-primary)] sm:text-6xl">
           Turn your next idea into editable video.
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--fg-secondary)]">
+        <p className={`mx-auto mt-5 max-w-xl leading-relaxed text-[var(--fg-secondary)] ${LANDING_TYPOGRAPHY.lead}`}>
           Connect Neonix through MCP and move from familiar web source to a
           motion project you can preview, edit and export.
         </p>

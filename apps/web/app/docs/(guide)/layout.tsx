@@ -1,17 +1,16 @@
 import { DocsSidebar } from "@/components/docs/DocsSidebar";
-import { SITE_DOCS_SHELL_X } from "@/lib/site-shell";
 import type { ReactNode } from "react";
 
 const gridClass =
-  "mx-auto grid w-full grid-cols-1 md:grid-cols-[20rem_minmax(0,1fr)]";
+  "mx-auto grid w-full max-w-[1440px] grid-cols-1 md:grid-cols-[20rem_minmax(0,1fr)]";
 const mobileNavClass =
-  "border-b border-[var(--border-subtle,#e4e4e7)] px-4 py-3 md:hidden";
+  "border-b border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-surface)] px-4 py-3 md:hidden";
 const desktopNavClass =
-  "sticky top-16 hidden h-[calc(100vh-4rem)] w-80 self-start overflow-y-auto px-6 py-8 md:block";
+  "docs-sidebar-scroll sticky top-16 hidden h-[calc(100vh-4rem)] self-start overflow-y-auto border-r border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--bg-surface)_55%,transparent)] px-5 py-8 md:block xl:px-6";
 
 export default function DocsGuideLayout({ children }: { children: ReactNode }) {
   return (
-    <div className={SITE_DOCS_SHELL_X}>
+    <div className="border-b border-[var(--border-subtle)] px-4 md:px-6 xl:px-8">
       <div className={gridClass}>
         <aside className={mobileNavClass}>
           <details>

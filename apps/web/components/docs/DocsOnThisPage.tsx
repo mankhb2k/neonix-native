@@ -2,7 +2,7 @@ import { DocsPreview } from "@/components/docs/DocsPreview";
 import { DocsToc } from "@/components/docs/DocsToc";
 
 const asideClass =
-  "sticky top-14 hidden max-h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-8 xl:block xl:justify-self-start";
+  "sticky top-16 hidden max-h-[calc(100vh-4rem)] overflow-y-auto border-l border-[var(--border-subtle)] px-5 py-10 xl:block xl:justify-self-start";
 
 export function DocsOnThisPage({
   items,

@@ -35,11 +35,12 @@ import { buildIntrinsicTextFrameUpdate } from "@/lib/editor/text/sizing";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
 import { StepperInput } from "./StepperInput";
-import type {
-  AudioClipPatch,
-  AudioTrackDocumentPatch,
-  LayerPatch,
-  EditorCommand,
+import {
+  applyTextDraftToLayer,
+  type AudioClipPatch,
+  type AudioTrackDocumentPatch,
+  type LayerPatch,
+  type EditorCommand,
 } from "@motionvideo/editor-core";
 import type {
   V2AnimatableValue,
@@ -56,6 +57,7 @@ const inputClass =
   "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-site)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
 
 const DEFAULT_AUDIO_FADE = { duration: 0, curve: "linear" as const };
+const SHOW_ANIMATION_INSPECTOR = false;
 
 const TEXT_SIZING_OPTIONS = [
   { value: "auto-width-height", label: "Auto width / height" },
@@ -1072,7 +1074,13 @@ export function SchemaInspector() {
   );
   const patchTextSource = (patch: Partial<V2TextSource>) => {
     if (!selectedText) return;
-    patchLayer({ payload: { source: { ...selectedText.payload.source, ...patch } } });
+    const nextSource = { ...selectedText.payload.source, ...patch };
+    if (patch.text !== undefined) {
+      const draftLayer = applyTextDraftToLayer(selectedText, nextSource.text);
+      patchLayer({ payload: draftLayer.payload });
+      return;
+    }
+    patchLayer({ payload: { source: nextSource } });
   };
   const defaultTextLayout: V2TextLayout = {
     sizing: "auto-width-height",
@@ -1527,7 +1535,7 @@ export function SchemaInspector() {
                 <div className="h-full w-full overflow-auto p-3">{properties}</div>
               ),
             },
-            {
+            ...(SHOW_ANIMATION_INSPECTOR ? [{
               id: "animation",
               label: "Animation",
               content: (
@@ -1535,7 +1543,7 @@ export function SchemaInspector() {
                   <AnimationInspector selected={selected} />
                 </div>
               ),
-            },
+            }] : []),
           ]}
         />
       </Panel>

@@ -1,6 +1,7 @@
 import GithubSlugger from "github-slugger";
 import { createElement } from "react";
 import { DocsMarkdown } from "@/components/docs/DocsMarkdown";
+import { DocsOverview } from "@/components/docs/DocsOverview";
 import type { ReactNode } from "react";
 
 export type DocsPageView = {
@@ -118,30 +119,17 @@ ${FENCE}
 
 An authoring surface may be expressive. The atomic result must be explicit enough that two runtimes can evaluate the same frame without guessing.
 
-## Static example policy
+## MCP authoring
 
-JSON blocks in this guide teach structure. They are not validated or rendered by the web documentation page.`,
-  },
-  ai: {
-    title: "Claude and MCP guidance",
-    markdown: String.raw`# Claude and MCP guidance
+MCP is an authoring transport, not a second protocol. An agent should express intent first, then create or update explicit Protocol V2 fields.
 
-## Express intent, then lower it
+- Ask for missing composition dimensions, timing, asset references and font information.
+- Use ${BT}anchor${BT} for a pivot, ${BT}translate.z${BT} for world position and ${BT}order${BT} for paint order.
+- Keep fill opacity, stroke opacity and effect order independent.
+- Do not invent renderer, shader, texture, buffer or preview-state fields.
+- Keep patterns, presets, templates and components labeled as intent until a lowering rule exists.
 
-Claude should describe the user's goal in high-level terms first. A compiler or approved lowering step turns that intent into Atomic Protocol V2.
-
-## Current MCP authoring rules
-
-- Prefer explicit V2 fields over guessed shortcuts.
-- Ask for missing composition dimensions, timing, asset references, and text font information.
-- Use ${BT}anchor${BT} for a pivot and ${BT}translate.z${BT} for world position.
-- Use ${BT}zIndex${BT} for paint order and do not treat it as world distance.
-- Keep fill opacity and stroke opacity independent.
-- Keep effect order explicit.
-- Do not invent renderer, shader, texture, or buffer fields.
-- Keep future high-level features labeled as intent until they have lowering rules.
-
-## A good patch shape
+For a targeted edit, send a small patch instead of replacing the whole document:
 
 ${FENCE}json
 {
@@ -154,11 +142,9 @@ ${FENCE}json
 }
 ${FENCE}
 
-The example is a teaching block. The editor or MCP contract decides how a patch is validated and applied.
+## Static example policy
 
-## Planned vocabulary
-
-Patterns, presets, templates, and components may be useful high-level concepts. They are not current atoms. Do not emit them inside an atomic layer payload until Compiler A has an approved lowering rule.`,
+JSON blocks in this guide teach structure. They are not validated or rendered by the web documentation page.`,
   },
   atoms: {
     title: "Atomic Protocol V2",
@@ -436,6 +422,142 @@ Runtime chooses the source frame from the evaluated composition time. The docume
 
 The asset reference is stable. File URLs, decoding, and caching are delivery concerns.`,
   },
+  "atoms/assets": {
+    title: "Assets",
+    markdown: String.raw`# Assets
+
+## Portable references
+
+Assets are metadata and stable references. Protocol V2 never stores decoded pixels, video elements, PCM buffers, font objects, GPU handles, or runtime caches in authoring JSON.
+
+${FENCE}json
+{
+  "assets": [
+    {
+      "kind": "image",
+      "id": "logo",
+      "uri": "/assets/logo.png",
+      "mimeType": "image/png",
+      "width": 640,
+      "height": 360,
+      "integrity": "sha256-..."
+    },
+    {
+      "kind": "font",
+      "id": "inter-regular",
+      "uri": "/fonts/Inter-Regular.woff2",
+      "weight": 400,
+      "integrity": "sha256-..."
+    }
+  ]
+}
+${FENCE}
+
+## Four asset kinds
+
+| Kind | Responsibility |
+| --- | --- |
+| image | URI and optional intrinsic dimensions |
+| video | source metadata, duration, fps and optional audio derivative |
+| audio | URI, MIME type, duration, sample rate and channels |
+| font | URI, CSS weight and integrity |
+
+## Identity boundary
+
+Layers point to assets by id. Loading, decoding, caching and delivery happen after validation in the compiler or runtime.
+`,
+  },
+  "atoms/layers": {
+    title: "Layers and hierarchy",
+    markdown: String.raw`# Layers and hierarchy
+
+## A flat array, a tree in meaning
+
+The layers array is flat so it is easy to patch, diff and stream. Parent-child relationships are expressed with parentLayerId. Only a group may be a parent, layer ids are globally unique, and higher sibling order paints later.
+
+${FENCE}json
+{
+  "layers": [
+    {
+      "id": "hero-group",
+      "parentLayerId": null,
+      "order": 0,
+      "type": "group",
+      "frame": { "width": 1080, "height": 1920 },
+      "transform": { "...": " },
+      "timing": { "start": 0, "duration": 4000 },
+      "payload": { "children": ["title", "badge"] }
+    },
+    {
+      "id": "title",
+      "parentLayerId": "hero-group",
+      "order": 1,
+      "type": "text",
+      "frame": { "width": 720, "height": 120 },
+      "timing": { "start": 0, "duration": 2400 }
+    }
+  ]
+}
+${FENCE}
+
+## Shared layer contract
+
+Every layer carries id, parentLayerId, order, frame, transform, timing, type and a type-specific payload. Optional fields such as opacity, visibility, clipPath, mask, filter, motion, composite, tracks and effects remain explicit rather than hidden in renderer state.
+
+## Certified layer types
+
+| Type | Meaning |
+| --- | --- |
+| group | hierarchy, inherited state and optional local 3D context |
+| shape | rectangle, circle, ellipse, line, polyline or polygon |
+| path | explicit contours and segments |
+| text | source, chunks, spans, font and layout semantics |
+| image | asset viewport and preserveAspectRatio |
+| video | asset range, fit policy and embedded audio controls |
+`,
+  },
+  "atoms/paint": {
+    title: "Paint and SVG definitions",
+    markdown: String.raw`# Paint and SVG definitions
+
+## Paint is semantic data
+
+V2 keeps fill, stroke, opacity, paint order and markers separate. A paint value may be a color, none, currentColor, context-fill, context-stroke or a structured paint object.
+
+${FENCE}json
+{
+  "style": {
+    "fill": { "type": "reference", "id": "brand-gradient" },
+    "fillOpacity": 1,
+    "stroke": "#FFFFFF",
+    "strokeWidth": 3,
+    "paintOrder": ["fill", "stroke", "markers"]
+  },
+  "paintServers": [
+    {
+      "id": "brand-gradient",
+      "paint": {
+        "type": "linear-gradient",
+        "angle": 90,
+        "stops": [
+          { "offset": 0, "color": "#3AEDAE" },
+          { "offset": 1, "color": "#2563EB", "stopOpacity": 0.8 }
+        ]
+      }
+    }
+  ]
+}
+${FENCE}
+
+## Gradients, patterns and references
+
+Linear, radial and conic gradients preserve SVG coordinates, units, spread method, transforms and stops. Patterns preserve their content nodes and viewBox. Named paint servers live at the root and are referenced by id. Unknown ids and reference cycles are rejected.
+
+## Stroke and markers
+
+Stroke width, opacity, cap, join, miter limit, dash and vectorEffect map directly to SVG semantics. Marker start, mid and end point to root marker definitions.
+`,
+  },
   "atoms/group": {
     title: "Group",
     markdown: String.raw`# Group
@@ -496,6 +618,187 @@ Fill opacity and stroke opacity belong to their paint sources. Layer/composite o
 
 The figures in the web guide are explanatory pictures. They do not execute an offscreen pass or initialize a graphics API.`,
   },
+  animation: {
+    title: "Animation and timing",
+    markdown: String.raw`# Animation and timing
+
+## Two clocks
+
+Each layer has a composition-time window. Tracks evaluate inside that layer&apos;s local time, so a layer can enter the composition at 1200 ms while its animation still starts at local time 0.
+
+${FENCE}json
+{
+  "timing": { "start": 1200, "duration": 2400 },
+  "tracks": [
+    {
+      "id": "move-x",
+      "path": "transform.translate.x",
+      "keyframes": [
+        { "time": 0, "value": { "type": "number", "value": -120 } },
+        {
+          "time": 600,
+          "value": { "type": "number", "value": 0 },
+          "easing": {
+            "type": "cubicBezier",
+            "x1": 0.22,
+            "y1": 1,
+            "x2": 0.36,
+            "y2": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+${FENCE}
+
+## Typed keyframes
+
+Tracks target a dot-separated property path such as transform.translate.x, opacity, style.fill or motion.offsetDistance. Values are explicitly typed as number, vec2, vec3, vec4, color, boolean, string or enum.
+
+Keyframe times are strictly increasing and cannot exceed the layer duration. Vector sizes are fixed and the schema checks that the value kind matches the target property.
+
+## Easing
+
+V2 supports linear, step, cubicBezier and spring easing. interpolation may be linear or discrete. Easing changes how a value is sampled; it does not create an implicit property or a hidden runtime animation.
+
+## Deterministic playback
+
+Preview and export evaluate the same track at the same composition time. No browser CSS animation state is part of the protocol contract.
+`,
+  },
+  "animation/motion-paths": {
+    title: "Motion paths",
+    markdown: String.raw`# Motion paths
+
+## A layer-owned path
+
+Motion paths are part of the layer model. The path is not a visible paint and does not create a second layout pass.
+
+${FENCE}json
+{
+  "motion": {
+    "offsetPath": {
+      "type": "path",
+      "coordinateSpace": "parent-local",
+      "referenceBox": "border-box",
+      "contours": [
+        {
+          "id": "orbit",
+          "start": { "x": 100, "y": 100 },
+          "segments": [
+            { "kind": "cubic", "control1": { "x": 180, "y": 0 }, "control2": { "x": 420, "y": 0 }, "to": { "x": 500, "y": 100 } }
+          ],
+          "closed": false
+        }
+      ]
+    },
+    "offsetDistance": 0,
+    "offsetRotate": { "mode": "auto", "angle": 0 },
+    "offsetAnchor": { "x": 40, "y": 40 }
+  },
+  "tracks": [
+    {
+      "id": "path-progress",
+      "path": "motion.offsetDistance",
+      "keyframes": [
+        { "time": 0, "value": { "type": "number", "value": 0 } },
+        { "time": 1400, "value": { "type": "number", "value": 1 } }
+      ]
+    }
+  ]
+}
+${FENCE}
+
+## Lowering rules
+
+The HTML/CSS compiler resolves path(), CSS lengths and percentages, then stores offsetDistance as a normalized ratio from 0 to 1. Runtime samples the path and tangent before composing translation, rotation, anchor and authored transforms.
+
+Only supported deterministic path grammar is accepted. Empty paths, zero-length paths, non-finite values and unsupported grammar produce diagnostics.
+`,
+  },
+  audio: {
+    title: "Audio",
+    markdown: String.raw`# Audio
+
+## A parallel timeline
+
+Audio is a required root domain next to visual layers. A silent project still declares a sample rate and an empty track list.
+
+${FENCE}json
+{
+  "audio": {
+    "sampleRate": 48000,
+    "tracks": [
+      {
+        "id": "music",
+        "gainDb": -3,
+        "pan": 0,
+        "muted": false,
+        "clips": [
+          {
+            "id": "music-clip",
+            "assetId": "audio-001",
+            "timing": { "start": 0, "duration": 30000 },
+            "trim": { "start": 0, "duration": 30000 },
+            "playbackRate": 1,
+            "enabled": true,
+            "fadeIn": { "duration": 250, "curve": "linear" },
+            "fadeOut": { "duration": 500, "curve": "equal-power" }
+          }
+        ]
+      }
+    ]
+  }
+}
+${FENCE}
+
+## Time and mix rules
+
+Clip timing is composition time; trim is source time. Playback rate is positive, pan is normalized to -1..1, and fade durations cannot exceed clip duration. An enabled false clip stays on the timeline while silencing its input.
+
+## Video audio
+
+Embedded video audio stays on video.payload.audio so its visual trim and original audio identity move together. The compiler lowers the audio part to independent runtime audio data.
+`,
+  },
+  compiler: {
+    title: "Compiler pipeline",
+    markdown: String.raw`# Compiler pipeline
+
+## Lower once, present many ways
+
+Protocol V2 owns authoring meaning. The compiler resolves that meaning into Runtime V3 without replacing the authoring contract.
+
+${FENCE}text
+HTML / CSS / agent intent
+          |
+          v
+Protocol V2 JSON
+          |
+          v
+motion-compiler
+          |
+          v
+RuntimeProjectV3 / RuntimeFrameV3
+          |
+          +--> browser SVG
+          +--> Skia preview
+          +--> export renderer
+${FENCE}
+
+## What the compiler resolves
+
+CSS cascade, percentages, font fallback, text shaping, media metadata, motion paths, effect programs, transforms and paint references are resolved after protocol validation.
+
+## What it does not do
+
+The protocol does not expose runtime IR, Matrix4 buffers, decoded media, GPU resources, preview state or export commands. Those are implementation concerns of the compiler and adapters.
+
+## One meaning, multiple adapters
+
+For one document and one time value, preview and export must receive the same evaluated runtime values. Backend-specific differences are presentation details, not new protocol semantics.`,
+  },
   rendering: {
     title: "Runtime, preview, and export",
     markdown: String.raw`# Runtime, preview, and export
@@ -527,6 +830,49 @@ same protocol meaning
 ${FENCE}
 
 Backend differences are implementation details, not new protocol semantics.`,
+  },
+  validation: {
+    title: "Validation and schema",
+    markdown: String.raw`# Validation and schema
+
+## Validate at the boundary
+
+The canonical contract is the Zod schema in packages/motion-protocol/src/v2. The generated JSON Schema is packages/motion-protocol/schema/v2.json. Strict object boundaries reject unknown properties.
+
+${FENCE}ts
+import {
+  MotionProtocolV2Schema,
+  parseMotionProtocol,
+  serializeMotionProtocol,
+} from "@motionvideo/motion-protocol";
+
+const project = MotionProtocolV2Schema.parse(input);
+const parsed = parseMotionProtocol(input);
+const json = serializeMotionProtocol(parsed);
+${FENCE}
+
+## What is checked
+
+- exact format and formatVersion;
+- finite numbers, units, colors and enum values;
+- unique asset, layer, definition, track and clip ids;
+- valid group parents, no cycles and unique sibling order;
+- valid image, video and audio asset references;
+- valid paint-server, marker, clipPath, mask and filter references;
+- animatable track paths, typed values and keyframe bounds;
+- video trim, source duration and audio fade bounds.
+
+## Valid does not mean supported everywhere
+
+A schema-valid value is valid authoring data. Compiler capability decides whether an optional SVG or 3D feature has a lowering path for a specific adapter.
+
+## Checks
+
+${FENCE}bash
+pnpm --filter @motionvideo/motion-protocol typecheck
+pnpm --filter @motionvideo/motion-protocol test
+pnpm --filter @motionvideo/motion-protocol check:schema
+${FENCE}`,
   },
   examples: {
     title: "Static examples",
@@ -575,6 +921,65 @@ This is high-level intent, not an atomic layer. It becomes publishable only afte
 
 Static figures may show the expected visual idea. They must not claim to be a pixel comparison with the real preview or export output.`,
   },
+  "examples/project": {
+    title: "Complete project",
+    markdown: String.raw`# Complete project
+
+## A small animated composition
+
+This teaching project shows the root, one shape layer and a typed animation track.
+
+${FENCE}json
+{
+  "format": "motion-protocol",
+  "formatVersion": 2,
+  "id": "neon-card",
+  "composition": {
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "background": "#07111F",
+    "colorSpace": "srgb",
+    "view": {
+      "projection": { "kind": "orthographic", "zoom": 1, "near": 0.1, "far": 1000 },
+      "transform": {
+        "translate": { "x": 0, "y": 0, "z": 0 },
+        "rotate": { "x": 0, "y": 0, "z": 0 }
+      }
+    }
+  },
+  "assets": [],
+  "layers": [
+    {
+      "id": "card",
+      "parentLayerId": null,
+      "order": 0,
+      "frame": { "width": 640, "height": 360 },
+      "timing": { "start": 0, "duration": 4000 },
+      "type": "shape",
+      "payload": { "shape": "rectangle", "cornerRadius": 28 },
+      "style": { "fill": "#14B8A6" },
+      "tracks": [
+        {
+          "id": "card-in",
+          "path": "opacity",
+          "keyframes": [
+            { "time": 0, "value": { "type": "number", "value": 0 } },
+            { "time": 800, "value": { "type": "number", "value": 1 } }
+          ]
+        }
+      ]
+    }
+  ],
+  "audio": { "sampleRate": 48000, "tracks": [] }
+}
+${FENCE}
+
+## Add motion
+
+Attach tracks to the layer when the property is atomic and animatable. Keep the layer timing window separate from keyframe times.
+`,
+  },
 };
 
 function tocFromMarkdown(markdown: string): Array<{ id: string; title: string }> {
@@ -593,7 +998,7 @@ export function getV2DocsPage(slug: string): DocsPageView | null {
   return withOnThisPage({
     title: page.title,
     toc: tocFromMarkdown(page.markdown),
-    body: createElement(DocsMarkdown, { markdown: page.markdown }),
+    body: slug === "" ? createElement(DocsOverview) : createElement(DocsMarkdown, { markdown: page.markdown }),
   });
 }
 
@@ -614,7 +1019,12 @@ export type DocsEntry = {
 };
 
 export type DocsNavItem = { href: string; label: string };
-export type DocsNavGroup = { id: string; label: string; items: DocsNavItem[] };
+export type DocsNavGroup = {
+  id: string;
+  label: string;
+  description?: string;
+  items: DocsNavItem[];
+};
 
 const published = (
   slug: string,
@@ -634,9 +1044,10 @@ const hidden = (slug: string, label: string, surface: DocsSurface): DocsEntry =>
 export const DOCS_ENTRIES: DocsEntry[] = [
   published("", "Overview", "start", "authoring"),
   published("authoring", "Authoring model", "start", "authoring"),
-  published("ai", "Claude and MCP guidance", "start", "authoring"),
   published("atoms", "Atomic Protocol V2", "protocol", "protocol"),
   published("atoms/composition", "Composition and view", "protocol", "protocol"),
+  published("atoms/assets", "Assets", "protocol", "protocol"),
+  published("atoms/layers", "Layers and hierarchy", "protocol", "protocol"),
   published("atoms/transform", "Transform and Matrix4", "protocol", "protocol"),
   published("atoms/shape", "Shape", "protocol", "protocol"),
   published("atoms/path", "Path", "protocol", "protocol"),
@@ -644,9 +1055,16 @@ export const DOCS_ENTRIES: DocsEntry[] = [
   published("atoms/image", "Image", "protocol", "protocol"),
   published("atoms/video", "Video", "protocol", "protocol"),
   published("atoms/group", "Group", "protocol", "protocol"),
-  published("atoms/effects", "Effects, masks, and composite", "protocol", "protocol"),
+  published("atoms/paint", "Paint and SVG definitions", "visual", "protocol"),
+  published("atoms/effects", "Masks, filters, and effects", "visual", "protocol"),
+  published("animation", "Animation and timing", "animation", "protocol"),
+  published("animation/motion-paths", "Motion paths", "animation", "protocol"),
+  published("audio", "Audio", "animation", "protocol"),
+  published("compiler", "Compiler pipeline", "runtime", "runtime"),
   published("rendering", "Runtime, preview, and export", "runtime", "runtime"),
+  published("validation", "Validation and schema", "runtime", "protocol"),
   published("examples", "Static examples", "examples", "authoring"),
+  published("examples/project", "Complete project", "examples", "authoring"),
   hidden("components", "Components", "high-level"),
   hidden("components/props", "Component props", "high-level"),
   hidden("components/variants", "Component variants", "high-level"),
@@ -655,10 +1073,12 @@ export const DOCS_ENTRIES: DocsEntry[] = [
 ];
 
 export const DOCS_NAV: DocsNavGroup[] = [
-  { id: "start", label: "Start here", items: [] },
-  { id: "protocol", label: "Atomic Protocol V2", items: [] },
-  { id: "runtime", label: "Rendering model", items: [] },
-  { id: "examples", label: "Examples", items: [] },
+  { id: "start", label: "Start here", description: "Understand the model", items: [] },
+  { id: "protocol", label: "Atomic Protocol V2", description: "The JSON contract", items: [] },
+  { id: "animation", label: "Animation system", description: "Time, tracks and paths", items: [] },
+  { id: "visual", label: "Visual semantics", description: "Paint, masks and effects", items: [] },
+  { id: "runtime", label: "Compiler & runtime", description: "Validate, lower and render", items: [] },
+  { id: "examples", label: "Examples", description: "Put the pieces together", items: [] },
 ].map((group) => ({
   ...group,
   items: DOCS_ENTRIES
