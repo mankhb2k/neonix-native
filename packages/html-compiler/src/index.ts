@@ -45,6 +45,7 @@ import { parseLineHeight, parseTextAlign, parseTextDecoration, parseTextDirectio
 import { splitTopLevel } from "./compiler/utils";
 import { animationTimelineDuration, lowerAnimationTracks } from "./compiler/animation";
 import { motionPathLength, parseMotionPath } from "./compiler/motion-path";
+import { parseAnchorNames, resolveAnchorStyle } from "./compiler/anchor";
 import type { Node, Style } from "./compiler/model";
 
 function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
@@ -262,7 +263,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     if (body && !styles.has(body)) styles.set(body, computed(body, rules, new Map())); const duration = Math.max(baseDuration, ...[...styles.values()].map(animationTimelineDuration)); const bodyStyle = body ? styles.get(body)! : new Map<string, string>(); const backgroundColor = parseColor(composition.background, "composition background");
     type ContainingBlock = LayoutRect;
     type FlowState = { flowY: number; previousBottomMargin: number; hasFlowChild: boolean };
-    const layers: MotionProtocolV2["layers"] = []; const assets: NonNullable<MotionProtocolV2["assets"]> = []; const clipPaths: NonNullable<MotionProtocolV2["clipPaths"]> = []; const masks: NonNullable<MotionProtocolV2["masks"]> = []; const origins = new Map<Node, { x: number; y: number }>(); const flowOrigins = new Map<Node, { x: number; y: number }>(); const sizes = new Map<Node, { width: number; height: number }>(); const layoutBoxes = new Map<Node, ReturnType<typeof resolveGeometry>["layoutBox"]>(); const layoutOverrides = new Map<Node, { x: number; y: number; width: number; height: number }>();
+    const layers: MotionProtocolV2["layers"] = []; const assets: NonNullable<MotionProtocolV2["assets"]> = []; const clipPaths: NonNullable<MotionProtocolV2["clipPaths"]> = []; const masks: NonNullable<MotionProtocolV2["masks"]> = []; const origins = new Map<Node, { x: number; y: number }>(); const flowOrigins = new Map<Node, { x: number; y: number }>(); const sizes = new Map<Node, { width: number; height: number }>(); const layoutBoxes = new Map<Node, ReturnType<typeof resolveGeometry>["layoutBox"]>(); const layoutOverrides = new Map<Node, { x: number; y: number; width: number; height: number }>(); const anchorBoxes = new Map<string, LayoutRect>();
     const addAssets = (items: readonly NonNullable<MotionProtocolV2["assets"]>[number][]) => { for (const asset of items) if (!assets.some((candidate) => candidate.id === asset.id)) assets.push(asset); };
     const mediaAsset = (node: Node, kind: "image" | "video", uri: string, suffix = "asset") => {
       const id = `${node.atomicId}-${suffix}`;
@@ -386,9 +387,13 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
       }
     };
     function layout(node: Node, parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock): void {
-      const style = styles.get(node) ?? computed(node, rules, parentStyle); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport }); const geometry = layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
+      const authoredStyle = styles.get(node) ?? computed(node, rules, parentStyle); const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport }); const geometry = layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
       layoutBoxes.set(node, layoutBox); origins.set(node, { x: layoutBox.x, y: layoutBox.y }); sizes.set(node, { width: layoutBox.width, height: layoutBox.height });
       flowOrigins.set(node, { x: normalX, y: normalY });
+      for (const name of parseAnchorNames(style)) {
+        if (anchorBoxes.has(name)) fail("css-anchor-name-duplicate", `anchor-name is already registered in this composition: ${name}`);
+        anchorBoxes.set(name, layoutBox);
+      }
       if (style.get("display") === "none") return;
       if (style.get("display") === "contents") { node.children.forEach((child) => layout(child, parent, parentX, parentY, containingWidth, containingHeight, parentStyle, positionedBlock)); return; }
       if (node.tag !== "body" && style.get("display") !== "none" && w > 0 && h > 0) {

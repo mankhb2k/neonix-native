@@ -271,6 +271,20 @@ layers. No synthetic source name is placed in `sourceKey`. `element()` remains
 an explicit diagnostic and is reserved for a later live element-snapshot
 phase.
 
+## CSS Anchor Positioning subset
+
+The compiler supports static `anchor-name`, `position-anchor`, `anchor()` and
+`anchor-size()` for absolutely positioned layers. Anchor edges and dimensions
+are resolved against the containing block before Protocol V2 lowering, so the
+relationship does not become a new V2 field and Runtime/Skia receive ordinary
+resolved `frame` geometry. Supported edge forms are `top`, `right`, `bottom`,
+`left` and `center`; `anchor-size()` supports `width`/`inline` and
+`height`/`block`. Standalone px fallbacks are accepted as the second argument.
+
+This phase intentionally does not add `position-area`, `position-try`, or a
+runtime anchor relationship. Animation of a referenced anchor is deferred
+until the compiler can resolve the complete timeline into V2 frame tracks.
+
 ## Explicitly deferred
 
 Flex wrapping, Grid layout, masks, filters, text shaping, advanced transform matrices,

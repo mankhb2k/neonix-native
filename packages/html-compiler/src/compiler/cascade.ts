@@ -50,6 +50,8 @@ INITIAL_VALUES["mask-size"] = "auto";
 INITIAL_VALUES["mask-repeat"] = "repeat";
 INITIAL_VALUES["mask-mode"] = "alpha";
 INITIAL_VALUES["mask-composite"] = "add";
+INITIAL_VALUES["anchor-name"] = "none";
+INITIAL_VALUES["position-anchor"] = "none";
 for (const side of ["top", "right", "bottom", "left"]) {
   INITIAL_VALUES[`border-${side}-style`] = "none";
   INITIAL_VALUES[`border-${side}-width`] = "0px";

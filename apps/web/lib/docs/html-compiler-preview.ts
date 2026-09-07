@@ -4936,6 +4936,24 @@ export const HTML_COMPILER_CONTAINER_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.anchor-positioning",
+    phase: "P0",
+    category: "Layout primitives",
+    topic: "Layout",
+    label: "Layout / CSS anchor positioning",
+    properties: ["anchor-name", "position-anchor", "anchor()", "anchor-size()"],
+    hint: "The label is positioned from the subject's right edge and inherits its width through compiler-side anchor resolution.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"anchor-subject\"></div>\n  <div id=\"anchor-label\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#anchor-subject { position: absolute; left: 520px; top: 380px; width: 360px; height: 180px; background: #38bdf8; anchor-name: --subject; }
+#anchor-label { position: absolute; position-anchor: --subject; left: anchor(--subject right); top: anchor(--subject top); width: anchor-size(--subject width); height: 72px; margin-left: 28px; background: #fb7185; }`,
+    }),
+  },
+];
+
 const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
   "Layout primitives",
   "Paint primitives",
@@ -4952,6 +4970,7 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE0_CASES,
   ...HTML_COMPILER_VIEWPORT_CASES,
   ...HTML_COMPILER_CONTAINER_CASES,
+  ...HTML_COMPILER_ANCHOR_CASES,
   ...HTML_COMPILER_PHASE1_1_CASES,
   ...HTML_COMPILER_PHASE1_2_CASES,
   ...HTML_COMPILER_PHASE1_3_CASES,
