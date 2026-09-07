@@ -1001,7 +1001,7 @@ export function StageTransformOverlay({
                 data-handle={handle}
                 style={{
                   ...handleStyle(handle),
-                  pointerEvents: selectedLayers.length === 1 ? "auto" : "none",
+                  pointerEvents: textEditSession || selectedLayers.length !== 1 ? "none" : "auto",
                 }}
                 onPointerDown={(event) => onResizePointerDown(event, handle)}
               />
@@ -1012,7 +1012,10 @@ export function StageTransformOverlay({
               key={`rotate-${corner}`}
               aria-label={`Rotate ${corner}`}
               data-rotate-handle={corner}
-              style={rotationZoneStyle(corner)}
+              style={{
+                ...rotationZoneStyle(corner),
+                pointerEvents: textEditSession ? "none" : "auto",
+              }}
               onPointerDown={(event) => onRotatePointerDown(event, corner)}
             />
           ))}

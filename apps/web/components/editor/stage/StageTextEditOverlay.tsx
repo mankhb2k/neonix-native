@@ -135,6 +135,9 @@ function nearestCaretIndex(
   fallbackWidth = 1,
 ): number {
   if (glyphs.length === 0) {
+    if (point.x >= fallbackWidth - Math.max(8, fallbackWidth * 0.05)) {
+      return textLength;
+    }
     return Math.max(0, Math.min(
       textLength,
       Math.round((point.x / Math.max(1, fallbackWidth)) * textLength),
@@ -148,13 +151,43 @@ function nearestCaretIndex(
     Math.abs(point.y - (left.y + left.height / 2)) -
     Math.abs(point.y - (right.y + right.height / 2)),
   )[0]!;
+  const lineCenter = line.y + line.height / 2;
+  const lineTolerance = Math.max(4, line.height * 0.5);
   const lineGlyphs = glyphs
-    .filter((glyph) => Math.abs(glyph.y - line.y) <= Math.max(2, line.height * 0.35))
+    .filter((glyph) => Math.abs(glyph.y + glyph.height / 2 - lineCenter) <= lineTolerance)
     .sort((left, right) => left.x - right.x);
-  for (const glyph of lineGlyphs) {
-    if (point.x < glyph.x + glyph.width / 2) return glyph.cluster;
+  const lastGlyph = lineGlyphs.at(-1);
+  const hasLaterVisualLine = glyphs.some(
+    (glyph) => !lineGlyphs.includes(glyph) && glyph.y + glyph.height / 2 > lineCenter,
+  );
+  if (
+    !hasLaterVisualLine &&
+    point.x >= fallbackWidth - Math.max(8, fallbackWidth * 0.05)
+  ) return textLength;
+  for (const [index, glyph] of lineGlyphs.entries()) {
+    // Hit-test against the painted outline. The logical advance can include
+    // side bearings that are not visible on the canvas, which makes a click
+    // on the right half of the final glyph resolve to the previous caret.
+    if (point.x < glyph.x + glyph.width / 2) {
+      // The final glyph's right-side hit area should include the small gap
+      // between its visible midpoint and the frame edge. This is especially
+      // important for a scaled stage where a few screen pixels represent a
+      // sizeable local-space interval.
+      if (
+        index === lineGlyphs.length - 1 &&
+        !hasLaterVisualLine &&
+        point.x >= glyph.x + glyph.width * 0.2
+      ) return textLength;
+      return glyph.cluster;
+    }
   }
-  return lineGlyphs.at(-1)?.clusterEnd ?? 0;
+  if (!lastGlyph) return 0;
+
+  // Spaces and some fallback/color glyphs do not produce a painted glyph.
+  // When the click is on the last visual line, the remaining logical caret
+  // positions are still part of the text, so the right side of the text box
+  // must be able to resolve to textLength (not the previous visible cluster).
+  return hasLaterVisualLine ? lastGlyph.clusterEnd : textLength;
 }
 
 function wordSelection(text: string, index: number): { start: number; end: number } {
@@ -212,7 +245,6 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
 
     const editLayerId = activeLayer?.id ?? null;
     const editFrameWidth = session?.before.frame.width ?? 0;
-    const editMinimumHeight = session?.before.frame.height ?? 0;
     const editLineHeight = activeLayer
       ? Math.max(
           1,
@@ -220,34 +252,53 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
             ?? Number(activeLayer.payload.chunks[0]?.spans[0]?.font.size ?? 64) * 1.2,
         )
       : 0;
+    const editWrapMode = activeLayer?.payload.layout?.wrap ?? "none";
     const editDraftText = session?.draftText ?? null;
+    const editBeforeLineCount = session
+      ? Math.max(1, session.before.text.split("\n").length)
+      : 0;
+    const editDraftLineCount = editDraftText == null
+      ? 0
+      : Math.max(1, editDraftText.split("\n").length);
+    const hasNewLineSinceEditStart = editDraftLineCount > editBeforeLineCount;
 
     useEffect(() => {
-      if (!session || !editLayerId || !(editDraftText ?? "").includes("\n")) {
+      if (!session || !editLayerId || !hasNewLineSinceEditStart) {
         updateTextEditFramePreview(null);
         return undefined;
       }
 
       const layerId = editLayerId;
       const width = Math.max(1, editFrameWidth);
-      const minimumHeight = Math.max(1, editMinimumHeight);
       const lineHeight = Math.max(1, editLineHeight);
-      const lineCount = Math.max(1, (editDraftText ?? "").split("\n").length);
+      const lineCount = Math.max(1, editDraftLineCount);
+      const wrapsText = editWrapMode !== "none";
       let cancelled = false;
 
       // Give the user an immediate downward-growing frame, then replace the
       // estimate with the exact CanvasKit/HarfBuzz measurement below.
       updateTextEditFramePreview({
         layerId,
-        height: Math.max(minimumHeight, lineHeight * lineCount),
+        height: Math.max(1, lineHeight * lineCount),
       });
 
-      void measureEditorTextLayer(documentRef.current, layerId, { width })
+      void measureEditorTextLayer(documentRef.current, layerId, {
+        width,
+        text: editDraftText ?? "",
+      })
         .then((measurement) => {
           if (cancelled) return;
+          // For no-wrap text, an explicit newline is the source of truth.
+          // The measurement helper uses a fixed-width word-wrap fallback and
+          // can otherwise report extra visual lines that do not exist in the
+          // authored text box.
+          const measuredLineCount = measurement?.lineCount ?? lineCount;
+          const resolvedLineCount = wrapsText
+            ? Math.max(lineCount, measuredLineCount)
+            : lineCount;
           updateTextEditFramePreview({
             layerId,
-            height: Math.max(minimumHeight, measurement?.height ?? lineHeight * lineCount),
+            height: Math.max(1, lineHeight * resolvedLineCount),
           });
         })
         .catch(() => {
@@ -258,7 +309,7 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
       return () => {
         cancelled = true;
       };
-    }, [editDraftText, editFrameWidth, editLayerId, editLineHeight, editMinimumHeight, session, updateTextEditFramePreview]);
+    }, [editDraftLineCount, editFrameWidth, editLayerId, editLineHeight, editDraftText, editWrapMode, hasNewLineSinceEditStart, session, updateTextEditFramePreview]);
 
     const applyStartPoint = useCallback(() => {
       if (!session || !activeLayer || !startPoint) {
@@ -360,10 +411,23 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
         root.dataset.caretVisible = String(caretVisibleRef.current);
         if (!caretVisibleRef.current) return;
         const caretIndex = selection.end;
+        const normalizedDraftText = session.draftText.normalize("NFC");
+        if (!command || command.text !== normalizedDraftText) {
+          // The draft state updates before PreviewStage finishes shaping the
+          // matching runtime frame. Never place the caret from stale glyphs:
+          // the old frame would make the first character after a line break
+          // briefly jump back to the end of the previous line.
+          root.dataset.caretVisible = "false";
+          return;
+        }
         const nextGlyph = glyphs.find((glyph) => glyph.cluster >= caretIndex);
         const previousGlyph = [...glyphs].reverse().find((glyph) => glyph.clusterEnd <= caretIndex);
-        const glyph = nextGlyph ?? previousGlyph;
-        if (!glyph) {
+        const trailingNewlines = caretIndex === session.draftText.length
+          ? session.draftText.slice(0, caretIndex).match(/\n+$/u)?.[0].length ?? 0
+          : 0;
+        const caretOnEmptyLine = trailingNewlines > 0;
+        const glyph = caretOnEmptyLine ? previousGlyph : nextGlyph ?? previousGlyph;
+        if (!glyph && !caretOnEmptyLine) {
           // OpenPencil waits for the shaped paragraph before drawing its
           // caret. A frame-ratio fallback is wrong for centered/wrapped text
           // because the frame is not the text advance width.
@@ -372,20 +436,41 @@ export const StageTextEditOverlay = forwardRef<StageTextEditOverlayHandle, Props
             return;
           }
         }
-        const caretX = glyph
-          ? nextGlyph
-            ? glyph.advanceStart ?? glyph.x
-            : glyph.advanceStart !== undefined && glyph.advanceX !== undefined
-              ? glyph.advanceStart + glyph.advanceX
-              : glyph.x + glyph.width
-          : 0;
         const fixedCaretHeight = Math.max(
           1,
           command?.lineHeight ?? command?.fontSize ?? glyph?.height ?? activeLayer.frame.height,
         );
-        const caretCenterY = glyph
-          ? glyph.y + glyph.height / 2
-          : activeLayer.frame.height / 2;
+        const previousLineGlyphs = previousGlyph
+          ? glyphs.filter((candidate) =>
+              Math.abs(
+                candidate.y + candidate.height / 2 -
+                (previousGlyph.y + previousGlyph.height / 2),
+              ) <= Math.max(4, previousGlyph.height * 0.5),
+            )
+          : [];
+        const firstGlyphOnPreviousLine = previousLineGlyphs
+          .sort((left, right) => left.x - right.x)[0];
+        const emptyLineStartX = command?.align === "center"
+          ? activeLayer.frame.width / 2
+          : command?.align === "right"
+            ? activeLayer.frame.width
+            : firstGlyphOnPreviousLine?.advanceStart ?? 0;
+        const caretX = caretOnEmptyLine
+          ? emptyLineStartX
+          : glyph
+            ? nextGlyph
+              ? glyph.advanceStart ?? glyph.x
+              : glyph.advanceStart !== undefined && glyph.advanceX !== undefined
+                ? glyph.advanceStart + glyph.advanceX
+                : glyph.x + glyph.width
+            : 0;
+        const caretCenterY = caretOnEmptyLine
+          ? previousGlyph
+            ? previousGlyph.y + previousGlyph.height / 2 + fixedCaretHeight * trailingNewlines
+            : fixedCaretHeight / 2
+          : glyph
+            ? glyph.y + glyph.height / 2
+            : activeLayer.frame.height / 2;
         const caretTopY = caretCenterY - fixedCaretHeight / 2;
         const top = transformPoint(activeLayer, {
           x: caretX,

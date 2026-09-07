@@ -35,11 +35,12 @@ import { buildIntrinsicTextFrameUpdate } from "@/lib/editor/text/sizing";
 import { EffectsInspector } from "./EffectsInspector";
 import { InspectorSelect } from "./InspectorSelect";
 import { StepperInput } from "./StepperInput";
-import type {
-  AudioClipPatch,
-  AudioTrackDocumentPatch,
-  LayerPatch,
-  EditorCommand,
+import {
+  applyTextDraftToLayer,
+  type AudioClipPatch,
+  type AudioTrackDocumentPatch,
+  type LayerPatch,
+  type EditorCommand,
 } from "@motionvideo/editor-core";
 import type {
   V2AnimatableValue,
@@ -1072,7 +1073,13 @@ export function SchemaInspector() {
   );
   const patchTextSource = (patch: Partial<V2TextSource>) => {
     if (!selectedText) return;
-    patchLayer({ payload: { source: { ...selectedText.payload.source, ...patch } } });
+    const nextSource = { ...selectedText.payload.source, ...patch };
+    if (patch.text !== undefined) {
+      const draftLayer = applyTextDraftToLayer(selectedText, nextSource.text);
+      patchLayer({ payload: draftLayer.payload });
+      return;
+    }
+    patchLayer({ payload: { source: nextSource } });
   };
   const defaultTextLayout: V2TextLayout = {
     sizing: "auto-width-height",

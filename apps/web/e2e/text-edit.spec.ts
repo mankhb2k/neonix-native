@@ -39,12 +39,12 @@ test.describe("Canvas text editing", () => {
     const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
     await titleHitbox.click();
     const selection = page.getByTestId("stage-selection-bounds");
-    const before = await selection.boundingBox();
-    if (!before) throw new Error("selection bounds are not visible");
 
     await selection.dblclick();
     const editHitbox = page.getByTestId("stage-text-edit-hitbox");
     await expect(editHitbox).toBeVisible();
+    const before = await editHitbox.boundingBox();
+    if (!before) throw new Error("text edit hitbox is not visible");
     await page.waitForTimeout(700);
     const after = await editHitbox.boundingBox();
     if (!after) throw new Error("text edit hitbox is not visible");
@@ -93,10 +93,37 @@ test.describe("Canvas text editing", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("places the caret at the end when clicking the right side of the text box", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    const titleHitbox = page.locator('[data-layer-hit="chapter-1-title"]');
+    await expect(titleHitbox).toBeVisible();
+    await titleHitbox.click();
+    await expect(page.getByTestId("stage-selection-bounds")).toBeVisible();
+    const selection = page.getByTestId("stage-selection-bounds");
+    const textField = page.getByRole("textbox", { name: "Text", exact: true });
+    await expect(textField).toBeVisible();
+    const original = await textField.inputValue();
+
+    await selection.dblclick();
+    const hitbox = page.getByTestId("stage-text-edit-hitbox");
+    await expect(hitbox).toBeVisible();
+    await page.waitForTimeout(700);
+    const box = await hitbox.boundingBox();
+    if (!box) throw new Error("text edit hitbox is not visible");
+    // The stage is CSS-scaled, so use viewport coordinates instead of
+    // locator position (which is relative to the unscaled layout box).
+    await page.mouse.click(box.x + box.width - 4, box.y + box.height / 2);
+    await page.keyboard.type("!");
+
+    await expect(textField).toHaveValue(`${original}!`);
+    await page.keyboard.press("Escape");
+  });
+
   test("Shift+Enter inserts a line break and grows the frame downward", async ({ page }) => {
     await page.goto("/app/editor/three-kingdoms");
     await page.locator('[data-layer-hit="chapter-1-title"]').click();
     await page.getByTestId("stage-selection-bounds").dblclick();
+    await expect(page.getByTestId("stage-text-edit-input")).toBeFocused();
 
     const hitbox = page.getByTestId("stage-text-edit-hitbox");
     const textField = page.getByRole("textbox", { name: "Text", exact: true });
@@ -121,5 +148,35 @@ test.describe("Canvas text editing", () => {
     ).toBeCloseTo(before?.y ?? 0, 0);
 
     await page.keyboard.press("Escape");
+  });
+
+  test("deleting a multiline draft keeps text ranges valid", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    await page.locator('[data-layer-hit="chapter-1-title"]').click();
+    await page.getByTestId("stage-selection-bounds").dblclick();
+
+    const textField = page.getByRole("textbox", { name: "Text", exact: true });
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type("First line");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("Second line");
+    await page.keyboard.press("Control+A");
+    await page.keyboard.press("Backspace");
+    await expect(textField).toHaveValue("");
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("inspector-properties").getByRole("alert")).toHaveCount(0);
+  });
+
+  test("deleting text from the inspector keeps text ranges valid", async ({ page }) => {
+    await page.goto("/app/editor/three-kingdoms");
+    await page.locator('[data-layer-hit="chapter-1-title"]').click();
+
+    const textField = page.getByRole("textbox", { name: "Text", exact: true });
+    await textField.fill("");
+    await page.getByRole("button", { name: "Layout", exact: true }).last().click();
+
+    await expect(page.getByTestId("inspector-properties").getByRole("alert")).toHaveCount(0);
+    await expect(textField).toHaveValue("");
   });
 });
