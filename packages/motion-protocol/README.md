@@ -127,7 +127,7 @@ Minimal valid project:
   enforced by the schema.
 - Colors are `#RRGGBB` or `#RRGGBBAA` strings.
 - SVG lengths are either a bare number or `{ "value": number, "unit": ... }`.
-  Units are `number`, `px`, `pt`, `pc`, `mm`, `cm`, `in`, `em`, `ex`, and
+  Units are `number`, `px`, `pt`, `pc`, `mm`, `cm`, `in`, `em`, and
   `percent`.
 - All composition, layer, video, and audio timing values are milliseconds.
   `fps` and `sampleRate` are rates per second.
@@ -865,10 +865,11 @@ Capability support is decided by the Compiler after Protocol validation. A
 schema-valid value is valid authoring data; it is not by itself a promise that
 every renderer supports every optional SVG or 3D feature.
 
-The HTML/CSS compiler resolves viewport units (`sv*`, `lv*`, `dv*`, logical
-variants) against the fixed composition viewport and resolves container units
-(`cq*`) against the current containing block. Advanced `calc()` functions are
-evaluated before lowering, so Runtime receives finite typed values rather than
+The HTML/CSS compiler resolves only the fixed-composition viewport units
+`vw`, `vh`, `vmin`, and `vmax`. Dynamic/small/large viewport units, logical
+viewport variants, and container-relative units (`cq*`) are outside the motion
+profile and must fail with a compiler diagnostic. Advanced `calc()` functions
+are evaluated before lowering, so Runtime receives finite typed values rather than
 CSS expression strings. `image(url())` and supported `image()` fallbacks are
 lowered to image or paint layers, while `cross-fade()` becomes ordered image
 layers with opacity. `element()` remains an explicit diagnostic until V2 has a

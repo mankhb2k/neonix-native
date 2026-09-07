@@ -84,9 +84,8 @@ function validateSize(value: number, property: string, raw: string | undefined):
 
 export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport } = input;
-  const valueViewport = { ...viewport, containerWidth: containingWidth, containerHeight: containingHeight };
-  const padding = edges(style, "padding", containingWidth, fontSize, 16, valueViewport);
-  const border = parseBorderEdges(style, containingWidth, fontSize, valueViewport);
+  const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
+  const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
   const borderEdges: GeometryEdges = [border.top.width, border.right.width, border.bottom.width, border.left.width];
   const borderWidth = Math.max(...borderEdges);
   const horizontalDecorations = padding[1] + padding[3] + borderEdges[1] + borderEdges[3];
@@ -95,17 +94,17 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   if (boxSizingValue !== "content-box" && boxSizingValue !== "border-box") fail("css-box-sizing-invalid", `box-sizing supports content-box or border-box: ${boxSizingValue}`);
   const boxSizing = boxSizingValue as "content-box" | "border-box";
 
-  const margin = edges(style, "margin", containingWidth, fontSize, 16, valueViewport);
+  const margin = edges(style, "margin", containingWidth, fontSize, 16, viewport);
   const position = (style.get("position") ?? "static").toLowerCase();
-  const left = number(style, "left", containingWidth, fontSize, 16, valueViewport);
-  const right = number(style, "right", containingWidth, fontSize, 16, valueViewport);
-  const top = number(style, "top", containingHeight, fontSize, 16, valueViewport);
-  const bottom = number(style, "bottom", containingHeight, fontSize, 16, valueViewport);
+  const left = number(style, "left", containingWidth, fontSize, 16, viewport);
+  const right = number(style, "right", containingWidth, fontSize, 16, viewport);
+  const top = number(style, "top", containingHeight, fontSize, 16, viewport);
+  const bottom = number(style, "bottom", containingHeight, fontSize, 16, viewport);
   const normalX = parentX + margin[3];
   const normalY = parentY + margin[0];
 
-  const declaredWidth = number(style, "width", containingWidth, fontSize, 16, valueViewport);
-  const declaredHeight = number(style, "height", containingHeight, fontSize, 16, valueViewport);
+  const declaredWidth = number(style, "width", containingWidth, fontSize, 16, viewport);
+  const declaredHeight = number(style, "height", containingHeight, fontSize, 16, viewport);
   const widthAuto = !Number.isFinite(declaredWidth);
   const heightAuto = !Number.isFinite(declaredHeight);
   const absoluteWidthFromInsets = position === "absolute" && Number.isFinite(left) && Number.isFinite(right);
@@ -138,10 +137,10 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
     else if (widthAuto && heightAuto) sizingHeight = sizingWidth / ratio;
   }
 
-  const minWidth = constraintValue(style, "min-width", containingWidth, fontSize, valueViewport, 0);
-  const maxWidth = constraintValue(style, "max-width", containingWidth, fontSize, valueViewport, Number.POSITIVE_INFINITY);
-  const minHeight = constraintValue(style, "min-height", containingHeight, fontSize, valueViewport, 0);
-  const maxHeight = constraintValue(style, "max-height", containingHeight, fontSize, valueViewport, Number.POSITIVE_INFINITY);
+  const minWidth = constraintValue(style, "min-width", containingWidth, fontSize, viewport, 0);
+  const maxWidth = constraintValue(style, "max-width", containingWidth, fontSize, viewport, Number.POSITIVE_INFINITY);
+  const minHeight = constraintValue(style, "min-height", containingHeight, fontSize, viewport, 0);
+  const maxHeight = constraintValue(style, "max-height", containingHeight, fontSize, viewport, Number.POSITIVE_INFINITY);
   sizingWidth = clampSize(validateSize(sizingWidth, "width", style.get("width")), minWidth, maxWidth);
   sizingHeight = clampSize(validateSize(sizingHeight, "height", style.get("height")), minHeight, maxHeight);
 

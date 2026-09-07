@@ -9,16 +9,6 @@ export function isPaintToken(value: string): boolean {
 export type CssViewport = {
   width: number;
   height: number;
-  /** The dynamic viewport fallback is the fixed composition viewport. */
-  smallWidth?: number;
-  smallHeight?: number;
-  largeWidth?: number;
-  largeHeight?: number;
-  dynamicWidth?: number;
-  dynamicHeight?: number;
-  /** Current containing block used by container query length units. */
-  containerWidth?: number;
-  containerHeight?: number;
 };
 
 export type Num = { value: number; unit: "px" | "%" | "number" | "angle" };
@@ -149,7 +139,7 @@ export function calcExpression(expression: string, property: string, relative: n
       if (name === "max") return values.reduce((a, b) => a.value >= b.value ? a : b);
       return { ...values[1]!, value: Math.min(Math.max(values[1]!.value, values[0]!.value), values[2]!.value) };
     }
-    const match = text.slice(cursor).match(/^(\d*\.?\d+)(px|%|em|rem|vw|vh|svw|svh|lvw|lvh|dvw|dvh|vi|vb|svi|svb|lvi|lvb|dvi|dvb|vmin|vmax|cqw|cqh|cqi|cqb|cqmin|cqmax|deg|rad|grad|turn)?/i);
+    const match = text.slice(cursor).match(/^(\d*\.?\d+)(px|%|em|rem|vw|vh|vmin|vmax|deg|rad|grad|turn)?/i);
     if (!match) failValue("has an invalid numeric value");
     const parsed = match as RegExpMatchArray;
     cursor += parsed[0]!.length; const number = Number(parsed[1]!); const unit = (parsed[2] ?? "number").toLowerCase();
@@ -157,32 +147,10 @@ export function calcExpression(expression: string, property: string, relative: n
     if (unit === "%") return { value: number / 100 * relative, unit: "px" };
     if (unit === "em") return { value: number * fontSize, unit: "px" };
     if (unit === "rem") return { value: number * rootFontSize, unit: "px" };
-    if (unit === "vw" || unit === "svw" || unit === "lvw" || unit === "dvw") {
-      const width = unit === "svw" ? viewport.smallWidth ?? viewport.width : unit === "lvw" ? viewport.largeWidth ?? viewport.width : unit === "dvw" ? viewport.dynamicWidth ?? viewport.width : viewport.width;
-      return { value: number / 100 * width, unit: "px" };
-    }
-    if (unit === "vh" || unit === "svh" || unit === "lvh" || unit === "dvh") {
-      const height = unit === "svh" ? viewport.smallHeight ?? viewport.height : unit === "lvh" ? viewport.largeHeight ?? viewport.height : unit === "dvh" ? viewport.dynamicHeight ?? viewport.height : viewport.height;
-      return { value: number / 100 * height, unit: "px" };
-    }
-    if (["vi", "svi", "lvi", "dvi"].includes(unit)) {
-      const width = unit === "svi" ? viewport.smallWidth ?? viewport.width : unit === "lvi" ? viewport.largeWidth ?? viewport.width : unit === "dvi" ? viewport.dynamicWidth ?? viewport.width : viewport.width;
-      return { value: number / 100 * width, unit: "px" };
-    }
-    if (["vb", "svb", "lvb", "dvb"].includes(unit)) {
-      const height = unit === "svb" ? viewport.smallHeight ?? viewport.height : unit === "lvb" ? viewport.largeHeight ?? viewport.height : unit === "dvb" ? viewport.dynamicHeight ?? viewport.height : viewport.height;
-      return { value: number / 100 * height, unit: "px" };
-    }
+    if (unit === "vw") return { value: number / 100 * viewport.width, unit: "px" };
+    if (unit === "vh") return { value: number / 100 * viewport.height, unit: "px" };
     if (unit === "vmin" || unit === "vmax") {
       const size = unit === "vmin" ? Math.min(viewport.width, viewport.height) : Math.max(viewport.width, viewport.height);
-      return { value: number / 100 * size, unit: "px" };
-    }
-    if (["cqw", "cqi"].includes(unit)) return { value: number / 100 * (viewport.containerWidth ?? relative), unit: "px" };
-    if (["cqh", "cqb"].includes(unit)) return { value: number / 100 * (viewport.containerHeight ?? relative), unit: "px" };
-    if (unit === "cqmin" || unit === "cqmax") {
-      const containerWidth = viewport.containerWidth ?? relative;
-      const containerHeight = viewport.containerHeight ?? relative;
-      const size = unit === "cqmin" ? Math.min(containerWidth, containerHeight) : Math.max(containerWidth, containerHeight);
       return { value: number / 100 * size, unit: "px" };
     }
     if (unit === "deg" || unit === "rad" || unit === "grad" || unit === "turn") {

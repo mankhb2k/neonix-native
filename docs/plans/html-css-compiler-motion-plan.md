@@ -242,12 +242,8 @@ CSS animation nên compile thành V2 `tracks` với keyframe time milliseconds, 
 - advanced mask compositing;
 - `shape-outside`, `shape-margin`, `shape-image-threshold`;
 - `image()`/`cross-fade()`/`element()`;
-- container-relative units;
-- dynamic viewport units;
 - trig functions và power/rounding functions nâng cao;
 - anchor positioning;
-- scroll-driven timelines;
-- container queries và responsive media queries động.
 
 Các tính năng P2 cần một policy rõ ràng về viewport, asset, browser capability và export fallback trước khi đưa vào contract.
 
@@ -274,8 +270,16 @@ Các thuộc tính sau có thể bị parser nhận diện để báo diagnostic
 - `overscroll-behavior`;
 - scrollbar styling;
 - `scrollbar-gutter`;
-- `position: sticky` nếu không có scroll timeline;
-- scroll-driven state không được bake thành keyframe.
+- `position: sticky`;
+- scroll-driven timelines và scroll-driven animation state.
+
+### Responsive query and viewport syntax
+
+- `container-type`, `container-name`, `@container`;
+- dynamic responsive `@media` variants;
+- `cqw`, `cqh`, `cqi`, `cqb`, `cqmin`, `cqmax`;
+- `dvw`, `dvh`, `sv*`, `lv*` and logical viewport variants;
+- `position-area` and `position-try`.
 
 ### In ấn và document flow không phục vụ composition
 
@@ -310,8 +314,6 @@ Các thuộc tính sau có thể bị parser nhận diện để báo diagnostic
 ### Xử lý sau
 
 - `ex`, `ch`, `cap`, `ic` sau khi font metrics ổn định;
-- `dvw`, `dvh`, `svw`, `svh`, `lvw`, `lvh` sau khi có viewport policy;
-- container units sau khi compile container layout;
 - `fr` chỉ trong grid compiler;
 - resolution units chỉ dành cho image/render quality policy, không phải geometry;
 - `Q` và các đơn vị hiếm không cần trong motion compiler.

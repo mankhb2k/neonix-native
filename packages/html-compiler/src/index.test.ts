@@ -248,6 +248,17 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
   });
 
+  it("accepts CSS unitless zero lengths in filter drop-shadow", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="zero-shadow"></div>`,
+      css: '#zero-shadow { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #a78bfa; filter: drop-shadow(0 0 0 #38bdf899); }',
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "zero-shadow")).toMatchObject({
+      effects: [{ type: "shadow", source: "alpha", offset: { x: 0, y: 0 }, blur: 0 }],
+    });
+  });
+
   it("lowers CSS blend mode and isolation to compositing state", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="multiply"></div><div id="isolated"><div id="screen-child"></div></div><div id="combined"></div>`,

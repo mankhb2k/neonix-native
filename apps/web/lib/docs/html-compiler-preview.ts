@@ -16,18 +16,22 @@ export type HtmlCompilerPreviewCategory =
   | "Layout primitives"
   | "Paint primitives"
   | "Effect primitives"
-  | "Viewport primitives"
-  | "Container primitives"
   | "Transform & 3D primitives"
   | "Typography & media primitives"
   | "Animation & keyframe primitives"
   | "Combined pipeline cases";
+
+export type HtmlCompilerPreviewClassification = "primitive" | "combined";
 
 export type HtmlCompilerPreviewCase = {
   id: string;
   phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
   /** UI ordering category; legacy phase remains internal for fixture provenance. */
   category?: HtmlCompilerPreviewCategory;
+  /** Distinguishes an atomic primitive fixture from a cross-stage pipeline fixture. */
+  classification?: HtmlCompilerPreviewClassification;
+  /** Short title shown beside the fixture title in the preview UI. */
+  classificationLabel?: string;
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -2854,6 +2858,81 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
   font-size: 92px;
   font-weight: 700;
   text-shadow: 18px 20px 18px #38bdf899;
+      }`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-alpha",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow alpha silhouette",
+    properties: ["text-shadow", "alpha source", "zero blur"],
+    hint: "A zero-blur text shadow isolates the glyph alpha silhouette and tint from the blur kernel.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-alpha\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-alpha {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 0 0 0 #38bdf899;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-blur",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow blur",
+    properties: ["text-shadow", "alpha source", "blur only"],
+    hint: "A centered text shadow isolates the CSS blur radius-to-sigma conversion.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-blur\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-blur {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 0 0 18px #38bdf899;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-offset",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow offset",
+    properties: ["text-shadow", "alpha source", "offset only"],
+    hint: "A zero-blur offset shadow isolates translation and compositing from the blur kernel.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-offset\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-offset {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 18px 20px 0 #38bdf899;
 }`,
     }),
   },
@@ -3035,6 +3114,75 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
   border-radius: 56px;
   background: #a78bfa;
   filter: drop-shadow(24px 22px 18px #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-alpha",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow alpha silhouette",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "zero blur"],
+    hint: "A zero-blur drop shadow still follows the rounded alpha silhouette and keeps the filter separate from layer opacity.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-alpha\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-alpha {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(0 0 0 #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-blur",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow blur",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "blur"],
+    hint: "The blur-only drop shadow uses the element alpha silhouette rather than the rectangular box geometry.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-blur\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-blur {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(0 0 18px #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-offset",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow offset",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "offset"],
+    hint: "The offset-only drop shadow makes the alpha-source translation observable without changing the blur radius.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-offset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-offset {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(24px 22px 0 #38bdf899);
 }`,
     }),
   },
@@ -4857,6 +5005,8 @@ const perspectiveMaskFilterCase = (
   phase: "P9",
   topic: "Motion & animation",
   label,
+  classification: "combined",
+  classificationLabel: "Combined pipeline",
   properties,
   hint,
   source: createNewHtmlProject({
@@ -4901,41 +5051,6 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
 #p9-backdrop-order-card { position: absolute; left: 340px; top: 170px; width: 600px; height: 320px; background: #ffffff66; backdrop-filter: blur(10px) contrast(1.25); }`),
 ];
 
-export const HTML_COMPILER_VIEWPORT_CASES: HtmlCompilerPreviewCase[] = [
-  {
-    id: "html-compiler.viewport.dynamic-units",
-    phase: "P0",
-    category: "Viewport primitives",
-    topic: "Composition & geometry",
-    label: "Viewport / dynamic units",
-    properties: ["dvw", "dvh", "svw", "lvh", "vmin"],
-    hint: "Viewport-relative lengths resolve against the deterministic composition viewport before the layer is lowered.",
-    source: createNewHtmlProject({
-      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"viewport-units\"></div>\n</body>"),
-      css: `body { margin: 0; background: #081018; }
-#viewport-units { position: absolute; left: 25dvw; top: 20dvh; width: 50dvw; height: 30dvh; min-width: 20svw; max-height: 40lvh; background: #22d3ee; }`,
-    }),
-  },
-];
-
-export const HTML_COMPILER_CONTAINER_CASES: HtmlCompilerPreviewCase[] = [
-  {
-    id: "html-compiler.container.relative-units",
-    phase: "P0",
-    category: "Container primitives",
-    topic: "Composition & geometry",
-    label: "Container / relative units",
-    properties: ["container-type", "cqw", "cqh", "cqmin", "cqmax"],
-    hint: "Container-relative lengths resolve from the current containing block instead of the global composition viewport.",
-    source: createNewHtmlProject({
-      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"container-frame\"><div id=\"container-units\"></div></div>\n</body>"),
-      css: `body { margin: 0; background: #081018; }
-#container-frame { position: absolute; left: 460px; top: 260px; width: 1000px; height: 560px; container-type: size; background: #172554; }
-#container-units { position: absolute; left: 10cqw; top: 10cqh; width: 60cqw; height: 50cqh; background: #facc15; }`,
-    }),
-  },
-];
-
 export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
   {
     id: "html-compiler.layout.anchor-positioning",
@@ -4958,8 +5073,6 @@ const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
   "Layout primitives",
   "Paint primitives",
   "Effect primitives",
-  "Viewport primitives",
-  "Container primitives",
   "Transform & 3D primitives",
   "Typography & media primitives",
   "Animation & keyframe primitives",
@@ -4968,8 +5081,6 @@ const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
 
 const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE0_CASES,
-  ...HTML_COMPILER_VIEWPORT_CASES,
-  ...HTML_COMPILER_CONTAINER_CASES,
   ...HTML_COMPILER_ANCHOR_CASES,
   ...HTML_COMPILER_PHASE1_1_CASES,
   ...HTML_COMPILER_PHASE1_2_CASES,
@@ -4994,6 +5105,7 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
 
 function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCategory {
   if (item.category !== undefined) return item.category;
+  if (item.classification === "combined") return "Combined pipeline cases";
   if (item.phase === "P0") {
     if (item.topic === "Paint") return "Paint primitives";
     if (item.topic === "Transform 2D") return "Transform & 3D primitives";
@@ -5019,7 +5131,14 @@ function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCate
 type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & { category: HtmlCompilerPreviewCategory };
 
 function categorizedCase(item: HtmlCompilerPreviewCase): CategorizedHtmlCompilerPreviewCase {
-  return { ...item, category: categoryForCase(item) };
+  const category = categoryForCase(item);
+  const classification = item.classification ?? (category === "Combined pipeline cases" ? "combined" : "primitive");
+  return {
+    ...item,
+    category,
+    classification,
+    classificationLabel: item.classificationLabel ?? (classification === "combined" ? "Combined pipeline" : "Primitive"),
+  };
 }
 
 export const HTML_COMPILER_PREVIEW_CASES: CategorizedHtmlCompilerPreviewCase[] = HTML_COMPILER_ALL_CASES.map(categorizedCase);

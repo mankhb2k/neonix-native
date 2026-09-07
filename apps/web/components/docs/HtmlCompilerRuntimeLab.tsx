@@ -146,7 +146,7 @@ export function HtmlCompilerRuntimeLab() {
           {groups.map((group) => (
             <section key={group.category} aria-label={group.category}>
               <div className="mb-1 flex items-center gap-2 px-1">
-                <p className="text-[10px] font-semibold tracking-[.12em] text-slate-500 uppercase">
+                <p className="text-[10px] font-semibold tracking-[.12em] text-slate-300 uppercase">
                   {group.category}
                 </p>
               </div>

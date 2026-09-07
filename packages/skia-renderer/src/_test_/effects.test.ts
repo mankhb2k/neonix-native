@@ -5,7 +5,8 @@ import type { SkiaCanvasKit } from "../canvas-kit";
 
 describe("Skia CSS effect lowering", () => {
   it("converts CSS blur radius to the Skia sigma contract", () => {
-    expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(8.5829, 4);
+    expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(8.5829, 6);
+    expect(cssBlurRadiusToSkiaSigma(0)).toBeCloseTo(0.5, 6);
   });
 
   it("creates a filter that can be installed in a backdrop saveLayer slot", () => {

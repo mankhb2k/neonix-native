@@ -12,7 +12,6 @@ import { blendModeFor, configureStroke } from "./paint";
 import type { ReplayLayer, SkiaReplayResources, SkiaReplayStats, SkiaTypefaceResolver } from "./types";
 
 function beginTransformedCommand(
-  kit: SkiaCanvasKit,
   canvas: SkiaCanvas,
   transform: Extract<PaintCommand, { op: "setTransform" }> | null,
   applyMatrix = true,
@@ -537,7 +536,7 @@ export function replaySkiaCommands(
         }
         addDiagnostic(`skia_projective_effect_fallback:${command.key}`);
       }
-      const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
+      const commandAlpha = beginTransformedCommand(canvas, pendingTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       const paint = createSkiaPaint(kit, command.fill, commandAlpha, kit.PaintStyle.Fill);
@@ -604,7 +603,7 @@ export function replaySkiaCommands(
         addDiagnostic(`skia_projective_effect_fallback:${command.key}`);
       }
       const projective = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4);
-      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform);
+      const commandAlpha = beginTransformedCommand(canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       const projectedShape = projective
@@ -707,7 +706,7 @@ export function replaySkiaCommands(
         }
         addDiagnostic(`skia_projective_effect_fallback:${command.key}`);
       }
-      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform);
+      const commandAlpha = beginTransformedCommand(canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       const path = kit.Path.MakeFromSVGString(pathSvg(command));
@@ -763,7 +762,7 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "drawText") {
-      const commandAlpha = beginTransformedCommand(kit, canvas, pendingTransform);
+      const commandAlpha = beginTransformedCommand(canvas, pendingTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       let drawn = 0;
@@ -802,7 +801,7 @@ export function replaySkiaCommands(
       const projective = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4)
         ? { matrix: activeTransform.matrix4, context: projectionContext }
         : undefined;
-      const commandAlpha = beginTransformedCommand(kit, canvas, activeTransform, !projective);
+      const commandAlpha = beginTransformedCommand(canvas, activeTransform, !projective);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       if (command.op === "drawVideo" && command.mediaVisible === false) {

@@ -71,6 +71,15 @@ The following are not part of the V2 motion paint contract:
 - CSS Houdini/custom paint worklets;
 - browser UI, safe-area behavior and platform-specific form controls;
 - native scrolling chrome and scrollbar painting;
+- scroll-driven timelines and scroll-driven animation state;
+- `@media`/`@container` responsive query state;
+- container queries and dynamic responsive media-query state;
+- dynamic, small and large viewport units (`dvw`, `dvh`, `sv*`, `lv*`);
+- container-relative units (`cq*`);
+- logical viewport units (`vi`, `vb`, `svi`, `svb`, `lvi`, `lvb`, `dvi`, `dvb`);
+- `transition`-based state interpolation;
+- browser optimization hints such as `will-change`, `content-visibility`,
+  runtime `contain`, and `contain-intrinsic-size`;
 - print-only color management and pagination behavior.
 
 ## 2. Explicitly unsupported until a V2 contract exists
@@ -84,6 +93,9 @@ defined:
   selection policy;
 - arbitrary CSS custom functions and Houdini values;
 - browser-dependent `env()` values;
+- `ex`, `ch`, `cap`, and `ic` units until deterministic font metrics exist;
+- `Q` and other rare authoring units without a motion use case;
+- `position-area` and `position-try` anchor fallback algorithms;
 - layout-dependent intrinsic media sizing when the asset metadata is missing.
 
 Until the contract is added, the compiler must emit a feature-specific
@@ -95,8 +107,6 @@ The following remain valid roadmap items and must not be added to this
 exclusion list merely because they are incomplete:
 
 - `anchor()` and `anchor-size()` positioning;
-- container queries and responsive media-query variants;
-- scroll-driven timelines;
 - projective transforms, masks, filters and 3D surfaces;
 - `image()` and URL-based `cross-fade()` within their documented asset subset.
 

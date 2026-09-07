@@ -8,7 +8,7 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -62,8 +62,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_2_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PAINT_PHASE2_3_CASES).toHaveLength(3);
-    expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(3);
-    expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(11);
+    expect(HTML_COMPILER_PAINT_PHASE2_4_CASES).toHaveLength(6);
+    expect(HTML_COMPILER_PAINT_PHASE2_5_CASES).toHaveLength(14);
     expect(HTML_COMPILER_PAINT_PHASE2_6_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PAINT_PHASE2_7_CASES).toHaveLength(8);
     expect(HTML_COMPILER_PAINT_PHASE2_8_CASES).toHaveLength(5);
@@ -71,13 +71,12 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PERSPECTIVE_PHASE5_CASES).toHaveLength(13);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE6_CASES).toHaveLength(11);
     expect(HTML_COMPILER_PERSPECTIVE_PHASE7_CASES).toHaveLength(12);
+    expect(HTML_COMPILER_PERSPECTIVE_PHASE9_CASES.every((fixture) => fixture.classification === "combined")).toBe(true);
     const groups = htmlCompilerPreviewGroups();
     expect(groups.map((group) => group.category)).toEqual([
       "Layout primitives",
       "Paint primitives",
       "Effect primitives",
-      "Viewport primitives",
-      "Container primitives",
       "Transform & 3D primitives",
       "Typography & media primitives",
       "Animation & keyframe primitives",
@@ -279,8 +278,6 @@ describe("Protocol V2 preview lab fixtures", () => {
       "Layout primitives",
       "Paint primitives",
       "Effect primitives",
-      "Viewport primitives",
-      "Container primitives",
       "Transform & 3D primitives",
       "Typography & media primitives",
       "Animation & keyframe primitives",
