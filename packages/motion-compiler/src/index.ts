@@ -21,4 +21,7 @@ export {
   isCompilerFeatureSupported,
   type CompilerSupportedFeature,
 } from "./compiler/capabilities";
-export { sampleMotionProtocolAtTime } from "./animation/sampler";
+export {
+  sampleMotionLayerAtTime,
+  sampleMotionProtocolAtTime,
+} from "./animation/sampler";

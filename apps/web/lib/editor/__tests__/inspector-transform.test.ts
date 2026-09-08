@@ -3,7 +3,7 @@ import {
   buildAlignmentPatches,
   compensateAnchor,
   getLayerBounds,
-} from "@/lib/editor/inspector/transform";
+} from "@motionvideo/editor-core/interactions/stage";
 
 const baseTransform = {
   translate: { x: 100, y: 80, z: 12 },

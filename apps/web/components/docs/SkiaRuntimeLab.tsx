@@ -2,12 +2,12 @@
 
 import { Pause, Play } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PreviewStage } from "@/components/preview/PreviewStage";
 import { samplePreviewProtocolAtTime } from "@/lib/docs/preview-animation";
 import { SKIA_ANIMATION_CASES, SKIA_CLIP_CASES, SKIA_COMPOSITING_CASES, SKIA_EFFECT_CASES, SKIA_GRADIENT_CASES, SKIA_IMAGE_CASES, SKIA_MASK_CASES, SKIA_PREVIEW_CASES, SKIA_PROJECTIVE_CASES, SKIA_TEXT_CASES, SKIA_TRANSFORM_CASES, SKIA_VIDEO_CASES } from "@/lib/docs/skia-preview-fixtures";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import { evaluateRuntimeProjectV3, frameIndexAtTime, hasPerspectiveTerms } from "@motionvideo/motion-runtime";
 import { projectiveMeshScreenSvg, projectiveShapeScreenSvg } from "@motionvideo/skia-renderer";
-import { PreviewStage } from "./PreviewStage";
 import type { PaintCommand, PaintFill, PaintFillGradient, RuntimeFrameV3 } from "@motionvideo/motion-runtime";
 
 const CASES = [...SKIA_ANIMATION_CASES, ...SKIA_PREVIEW_CASES, ...SKIA_TRANSFORM_CASES, ...SKIA_PROJECTIVE_CASES, ...SKIA_GRADIENT_CASES, ...SKIA_IMAGE_CASES, ...SKIA_VIDEO_CASES, ...SKIA_TEXT_CASES, ...SKIA_COMPOSITING_CASES, ...SKIA_CLIP_CASES, ...SKIA_MASK_CASES, ...SKIA_EFFECT_CASES];

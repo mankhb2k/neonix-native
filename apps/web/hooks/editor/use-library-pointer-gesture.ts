@@ -10,7 +10,6 @@ import { useEditorActions } from "@/hooks/editor/use-editor-actions";
 import { useEditorDocument } from "@/hooks/editor/use-editor-store";
 import { useTransportStore } from "@/hooks/editor/use-transport-store";
 import { autoScrollElementNearEdge } from "@/lib/editor/interaction-host/timeline-dom";
-import { commandsForLibraryPayload } from "@/lib/editor/library/commands";
 import {
   attachLibraryDragWindowListeners,
   beginLibraryPress,
@@ -26,7 +25,7 @@ import {
   isOverTimelineDropZone,
   resolveLibraryDropPlacement,
 } from "@/lib/editor/library/timeline-library-drop";
-import type { LibraryPayload } from "@/lib/editor/library/library-payload";
+import { commandsForLibraryPayload, type LibraryPayload } from "@motionvideo/editor-core";
 import type { PlacementTarget } from "@motionvideo/editor-core/timeline";
 
 /**

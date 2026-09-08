@@ -11,6 +11,7 @@ type AudioState = "uninitialized" | "unknown" | "loading" | "ready" | "stalled" 
 export type TransportUIState = {
   currentTime: number;
   playing: boolean;
+  ended: boolean;
   duration: number;
   generation: number;
   audioState: AudioState;
@@ -20,7 +21,7 @@ export type TransportUIState = {
 };
 
 export type TransportStoreApi = StoreApi<TransportUIState> & {
-  publishTransport: (input: { time: number; playing: boolean; generation: number; duration?: number }) => boolean;
+  publishTransport: (input: { time: number; playing: boolean; ended?: boolean; generation: number; duration?: number }) => boolean;
 };
 
 export const DEFAULT_TRANSPORT_PUBLICATION_HZ = 20;
@@ -31,6 +32,7 @@ export function createTransportStore(
   const store = createStore<TransportUIState>(() => ({
     currentTime: 0,
     playing: false,
+    ended: false,
     duration: 0,
     generation: 0,
     audioState: "uninitialized",
@@ -44,11 +46,12 @@ export function createTransportStore(
   store.publishTransport = (input) => {
     const previous = store.getState();
     const duration = input.duration ?? previous.duration;
+    const ended = input.ended ?? previous.ended;
     const now = performance.now();
-    const transition = previous.playing !== input.playing || previous.generation !== input.generation || previous.duration !== duration;
+    const transition = previous.playing !== input.playing || previous.ended !== ended || previous.generation !== input.generation || previous.duration !== duration;
     if (!transition && input.playing && now - lastPublishedAt < intervalMs) return false;
     lastPublishedAt = now;
-    store.setState({ currentTime: input.time, playing: input.playing, generation: input.generation, duration, activeVisualMediaIds: [], activeAudioInputIds: [], performance: previous.performance });
+    store.setState({ currentTime: input.time, playing: input.playing, ended, generation: input.generation, duration, activeVisualMediaIds: [], activeAudioInputIds: [], performance: previous.performance });
     return true;
   };
 

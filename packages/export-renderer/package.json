@@ -14,7 +14,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint src -c ../../eslint.package.mjs --max-warnings 0",
+    "lint": "eslint src test -c ../../eslint.package.mjs --max-warnings 0",
     "start": "tsx src/api/server.ts",
     "render:smoke": "tsx src/cli.ts"
   },

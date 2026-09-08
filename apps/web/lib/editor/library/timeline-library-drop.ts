@@ -19,7 +19,7 @@ import {
   type TimelineDropTarget,
   type TimelineLane,
 } from "@motionvideo/editor-core/timeline";
-import type { LibraryPayload } from "./library-payload";
+import type { LibraryPayload } from "@motionvideo/editor-core";
 
 export type LaneHitLayout = {
   topPadding: number;

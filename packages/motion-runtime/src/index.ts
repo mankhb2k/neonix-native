@@ -52,6 +52,7 @@ export * from "./paint/replay-2d";
 export * from "./project/types";
 export * from "./project/visual";
 export * from "./project/resolve";
+export * from "./project/duration";
 export * from "./project/validate";
 export * from "./project/identity";
 export * from "./audio/offline-audio";

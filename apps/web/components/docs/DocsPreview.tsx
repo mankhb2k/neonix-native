@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PreviewStage } from "@/components/docs/PreviewStage";
+import { PreviewStage } from "@/components/preview/PreviewStage";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 const hostCanvasClass =

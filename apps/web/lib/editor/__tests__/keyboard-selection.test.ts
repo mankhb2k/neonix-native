@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { updateKeyboardSelection } from "@/lib/editor/selection/keyboard-selection";
+import { updateKeyboardSelection } from "@motionvideo/editor-core";
 
 describe("keyboard selection", () => {
   const order = ["layer-0", "layer-1", "layer-2", "layer-3", "layer-4"];

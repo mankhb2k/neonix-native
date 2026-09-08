@@ -1,16 +1,16 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { EditorCommand, EditorDiagnostic, TextEditSession } from "@motionvideo/editor-core";
+import type { EditorDiagnostic as EditorCoreDiagnostic, EditorHistoryEntry, TextEditSession } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
-export type EditorHistoryEntry = {
-  id: string;
-  label: string;
-  timestamp: number;
-  undo: readonly EditorCommand[];
-  redo: readonly EditorCommand[];
-  selectionBefore?: readonly string[];
-  selectionAfter?: readonly string[];
-};
+/** Core command diagnostics plus host-owned compiler/runtime diagnostics. */
+export type EditorHostDiagnostic =
+  | EditorCoreDiagnostic
+  | {
+      severity: "error" | "warning";
+      code: "compile_invalid";
+      message: string;
+      path?: readonly (string | number)[];
+    };
 
 export type EditorPersistenceStatus = "idle" | "saving" | "saved" | "error" | "conflict";
 
@@ -27,7 +27,7 @@ export type EditorStoreState = {
   lockedLayerIds: readonly string[];
   undoStack: readonly EditorHistoryEntry[];
   redoStack: readonly EditorHistoryEntry[];
-  diagnostics: readonly EditorDiagnostic[];
+  diagnostics: readonly EditorHostDiagnostic[];
   persistenceStatus: EditorPersistenceStatus;
   textEditSession: TextEditSession | null;
   textEditStartPoint: TextEditStartPoint | null;

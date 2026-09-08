@@ -114,7 +114,27 @@ export function timelineEditToDocumentCommand(
   document: MotionProtocolV2,
   projection: Projection,
   command: TimelineEdit,
+  options: { lockedLayerIds?: readonly string[] } = {},
 ): EditorCommand | null {
+  const affectedClipIds =
+    command.type === "move-clip" || command.type === "clip/trim"
+      ? [command.clipId]
+      : command.type === "move-clips"
+        ? command.clipIds
+        : command.type === "reorder-lane"
+          ? projection.clips
+              .filter((clip) => clip.laneId === command.laneId)
+              .map((clip) => clip.id)
+          : [];
+  const affectsLockedLayer = projection.clips
+    .filter((clip) => affectedClipIds.includes(clip.id))
+    .some(
+      (clip) =>
+        clip.kind === "scene" &&
+        options.lockedLayerIds?.includes(clip.sceneId),
+    );
+  if (affectsLockedLayer) return null;
+
   if (command.type === "move-clip") {
     const clip = clipById(projection, command.clipId);
     if (!clip) return null;

@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { PreviewStage } from "@/components/docs/PreviewStage";
+import { PreviewStage } from "@/components/preview/PreviewStage";
 import {
   HTML_COMPILER_PHASE0_CASES,
   HTML_COMPILER_PHASE1_1_CASES,

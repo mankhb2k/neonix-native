@@ -1,4 +1,5 @@
 import { COMPOSITION_SAMPLE_RATE_V3 } from "../audio/audio-mixing";
+import { deriveRuntimeProjectDurationUs } from "./duration";
 import type {
   RuntimeAudioClipV3,
   RuntimeMediaAssetV3,
@@ -24,6 +25,13 @@ export function validateRuntimeProjectV3(runtime: RuntimeProjectV3): RuntimeVali
   if (runtime.format !== "motion-runtime") error("FORMAT", "format must be motion-runtime");
   if (runtime.runtimeVersion !== 3) error("VERSION", "runtimeVersion must be 3");
   if (!runtime.projectId) error("PROJECT_ID", "projectId is required");
+  if (!nonNegativeFinite(runtime.durationUs)) {
+    error("INVALID_DURATION", "durationUs must be finite and non-negative", "durationUs");
+  }
+  const derivedDurationUs = deriveRuntimeProjectDurationUs(runtime);
+  if (runtime.durationUs + 1 < derivedDurationUs) {
+    error("DURATION_UNDERRUN", "durationUs must cover every visual, video, and audio timeline", "durationUs");
+  }
   if (runtime.audioTimeline.sampleRate !== COMPOSITION_SAMPLE_RATE_V3) {
     error("SAMPLE_RATE", `audio sampleRate must be ${COMPOSITION_SAMPLE_RATE_V3}`);
   }
@@ -91,6 +99,9 @@ export function validateRuntimeVisualProjectV3(runtime: RuntimeProjectV3): Runti
   const error: DiagnosticSink = (code, message, path) => {
     diagnostics.push({ severity: "error", code, message, ...(path ? { path } : {}) });
   };
+  if (!nonNegativeFinite(runtime.durationUs)) {
+    error("INVALID_DURATION", "durationUs must be finite and non-negative", "durationUs");
+  }
   validateVisual(runtime, error);
   return { ok: diagnostics.length === 0, diagnostics };
 }

@@ -6,6 +6,7 @@ const project: RuntimeProjectV3 = {
   format: "motion-runtime",
   runtimeVersion: 3,
   projectId: "resolve-v3-test",
+  durationUs: 2_000_000,
   visual: {
     composition: { width: 1, height: 1, fps: 30, graphId: "resolve-v3-test" },
     view: { worldToClipMatrix: new Float64Array(16) },

@@ -52,7 +52,7 @@ export type RuntimeAudioMixInputV3 = { trackId: string; clipId: string; source: 
 export type RuntimeAudioMixPlanV3 = { sampleRate: 48000; startSample: number; endSample: number; inputs: RuntimeAudioMixInputV3[] };
 export type VideoRenderPlanV3 = { timelineTimeUs: number; framePolicy: RuntimeVideoFramePolicyV3; instances: Array<{ instanceId: string; nodeId: string; source: RuntimeMediaSourceRefV3; mediaTimeUs: number; framePolicy: RuntimeVideoFramePolicyV3 }> };
 export type RuntimeDiagnosticV3 = { severity: "error" | "warning"; code: string; message: string; path?: string };
-export type RuntimeProjectV3 = { format: "motion-runtime"; runtimeVersion: 3; projectId: string; visual: RuntimeVisualProjectV3; mediaCatalog: RuntimeMediaCatalogV3; videoTimeline: RuntimeVideoTimelinePlanV3; audioTimeline: RuntimeAudioTimelinePlanV3; diagnostics?: RuntimeDiagnosticV3[] };
+export type RuntimeProjectV3 = { format: "motion-runtime"; runtimeVersion: 3; projectId: string; durationUs: number; visual: RuntimeVisualProjectV3; mediaCatalog: RuntimeMediaCatalogV3; videoTimeline: RuntimeVideoTimelinePlanV3; audioTimeline: RuntimeAudioTimelinePlanV3; diagnostics?: RuntimeDiagnosticV3[] };
 export type RuntimeValidationV3 = { ok: boolean; diagnostics: RuntimeDiagnosticV3[] };
 /** A bounded composition-sample request. `sampleRate` belongs to the runtime timeline. */
 export type AudioSampleRangeV3 = { startSample: number; frameCount: number };

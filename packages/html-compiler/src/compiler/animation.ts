@@ -169,7 +169,7 @@ function perspectiveOrigin(value: string, options: LowerAnimationOptions): { typ
   return { type: "vec2", value: [x, y] };
 }
 
-function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, playback: NonNullable<V2Track["playback"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
+function buildTrack(property: string, definition: KeyframeDefinition, durationMs: number, animation: NonNullable<V2Track["animation"]>, base: unknown, options: LowerAnimationOptions, defaultTiming: string): V2Track[] {
   const entries = definition.steps.flatMap((step) => step.selectors.map((selector) => ({
     at: offset(selector),
     // Declarations in one keyframe block still follow the normal CSS cascade:
@@ -212,7 +212,7 @@ function buildTrack(property: string, definition: KeyframeDefinition, durationMs
     });
     if (keyframes[0]!.time > 0) keyframes.unshift({ time: 0, value: baseFor(path, base, options) as typeof keyframes[number]["value"], easing: { type: "linear" } });
     if (keyframes.at(-1)!.time < durationMs) keyframes.push({ time: durationMs, value: keyframes.at(-1)!.value, easing: { type: "linear" } });
-    return { id: `animation:${definition.name}:${path}`, path, keyframes, playback } as V2Track;
+    return { id: `animation:${definition.name}:${path}`, path, keyframes, animation } as V2Track;
   });
 }
 
@@ -265,7 +265,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
     if (durationMs <= 0) return;
     const iterationToken = iterations[index % iterations.length] ?? iterations[0]!;
     const iterationValue = iterationToken === "infinite" ? "infinite" as const : Math.max(0, number(iterationToken, 1));
-    const playback = { durationMs, delayMs: timeMs(delays[index % delays.length] ?? delays[0]!, true), iterations: iterationValue, direction: (directions[index % directions.length] ?? directions[0]!) as NonNullable<V2Track["playback"]>["direction"], fillMode: (fills[index % fills.length] ?? fills[0]!) as NonNullable<V2Track["playback"]>["fillMode"], playState: (states[index % states.length] ?? states[0]!) as NonNullable<V2Track["playback"]>["playState"] };
+    const animation = { durationMs, delayMs: timeMs(delays[index % delays.length] ?? delays[0]!, true), iterations: iterationValue, direction: (directions[index % directions.length] ?? directions[0]!) as NonNullable<V2Track["animation"]>["direction"], fillMode: (fills[index % fills.length] ?? fills[0]!) as NonNullable<V2Track["animation"]>["fillMode"], playState: (states[index % states.length] ?? states[0]!) as NonNullable<V2Track["animation"]>["playState"] };
     const easingValue = timings[index % timings.length] ?? timings[0]!;
     const supported: string[] = ["opacity", "transform", "background-color", "border-color", "border-width", "width", "height", "perspective", "perspective-origin"];
     const offsetPathValue = style.get("offset-path");
@@ -311,7 +311,7 @@ export function lowerAnimationTracks(style: Style, keyframes: Map<string, Keyfra
             : property === "perspective-origin"
               ? perspectiveOrigin(String(base), options).value
           : base;
-      const tracks = buildTrack(property, definition, durationMs, playback, baseValue, options, easingValue);
+      const tracks = buildTrack(property, definition, durationMs, animation, baseValue, options, easingValue);
       for (const track of tracks) (track.path.startsWith("transform.") || track.path.startsWith("motion.") || track.path.startsWith("render3d.") || track.path === "opacity" || track.path.startsWith("frame.") ? group : paint).push(track);
     }
   });

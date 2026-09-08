@@ -3,7 +3,7 @@
  * State machine: idle → pressed → dragging → committed|cancelled (via idle).
  */
 
-import type { LibraryPayload } from "./library-payload";
+import type { LibraryPayload } from "@motionvideo/editor-core";
 
 export type LibraryDragPhase =
   | "idle"

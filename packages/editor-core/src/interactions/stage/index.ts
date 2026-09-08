@@ -52,3 +52,51 @@ export {
   toStageLayerPatches,
   toStageDocumentCommand,
 } from "./commit";
+export {
+  type StageLayerBounds,
+  isV2VisualLayer,
+  isV2LayerActiveAtTime,
+  getV2LayerWorldQuad,
+  isPointInsideV2Layer,
+  getV2LayerBounds,
+  getV2LayerSelectionBox,
+  getSelectionBounds,
+  buildV2MovePatches,
+  buildV2ResizePatch,
+  buildV2RotatePatch,
+} from "./v2-transform";
+export {
+  KEYFRAME_TIME_TOLERANCE_MS,
+  type PlayheadTransformEdit,
+  type PlayheadTransformOptions,
+  layerLocalTimeAtPlayhead,
+  isLayerKeyframedAtTime,
+  buildPlayheadTransformPatch,
+  buildPlayheadTransformPatches,
+  buildPlayheadPropertyPatch,
+  toggleNumericKeyframePatch,
+  type PlayheadPropertyPath,
+} from "./keyframes";
+export {
+  buildStageTransformCommand,
+  type StageTransformCommandInput,
+} from "./command";
+export {
+  buildIntrinsicTextFrameUpdate,
+  buildWrappedTextResizeUpdate,
+  buildTextScaleResizeUpdate,
+  buildStageTextResizeCommand,
+  type StageTextFrameUpdate,
+  type StageTextLayoutMeasurement,
+  type WrappedTextResizeOptions,
+  type TextScaleResizeOptions,
+} from "./text-resize";
+export {
+  type AnchorPoint,
+  type TranslatePoint,
+  type LayerBounds,
+  type AlignmentPatch,
+  getLayerBounds,
+  buildAlignmentPatches,
+  compensateAnchor,
+} from "./alignment";

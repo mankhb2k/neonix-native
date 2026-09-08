@@ -12,7 +12,8 @@ const protocolMillisecondsToSeconds = (value: number): number => value / 1000;
 export type LayerTimelineProjection = {
   lanes: TimelineLane[];
   clips: TimelineClip[];
-  duration: number;
+  /** Authored clip extent for timeline layout; playback owns transport duration. */
+  contentEnd: number;
 };
 
 export type TimelineAssetPreview = {
@@ -169,12 +170,12 @@ export function projectLayersToTimeline(
   );
 
   const clips = [...visualClips, ...audioClips];
-  const duration = clips.reduce(
+  const contentEnd = clips.reduce(
     (end, clip) => Math.max(end, clip.startTime + clip.duration),
     0,
   );
 
-  return { lanes: [...visualLanes, ...audioLanes], clips, duration };
+  return { lanes: [...visualLanes, ...audioLanes], clips, contentEnd };
 }
 
 export { MAIN_LANE_ID };

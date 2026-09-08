@@ -250,6 +250,7 @@ RuntimeProjectV3
 ├── format: "motion-runtime"
 ├── runtimeVersion: 3
 ├── projectId
+├── durationUs
 ├── visual
 ├── mediaCatalog
 ├── videoTimeline

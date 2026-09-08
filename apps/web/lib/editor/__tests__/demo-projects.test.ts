@@ -37,6 +37,6 @@ describe("Three Kingdoms Protocol V2 editor fixture", () => {
         .slice(0, mainIndex)
         .every((lane) => lane.kind === "visual" && lane.order > 0),
     ).toBe(true);
-    expect(projection.duration).toBe(60);
+    expect(projection.contentEnd).toBe(60);
   });
 });

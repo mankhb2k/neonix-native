@@ -3,7 +3,7 @@ import { MotionProtocolV2Schema, type MotionProtocolV2 } from "./v2";
 type JsonRecord = Record<string, unknown>;
 
 export type ProtocolMigrationDiagnostic = {
-  code: "legacy_video_muted" | "removed_loop" | "clamped_video_duration";
+  code: "legacy_video_muted" | "removed_loop" | "clamped_video_duration" | "renamed_track_playback";
   severity: "warning";
   path: readonly (string | number)[];
   message: string;
@@ -20,8 +20,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * One-way migration for persisted V2 documents written before embedded video
- * audio was explicit or before loop was retired. The returned input is safe to
- * pass to the strict V2 schema; the original value is never mutated.
+ * audio was explicit, before loop was retired, or while track animation
+ * policies were named `playback`. The returned input is safe to pass to the
+ * strict V2 schema; the original value is never mutated.
  */
 export function migrateMotionProtocolV2(input: unknown): MotionProtocolV2Migration {
   if (!isRecord(input)) {
@@ -37,8 +38,33 @@ export function migrateMotionProtocolV2(input: unknown): MotionProtocolV2Migrati
       }
     }
   }
-  const layers = Array.isArray(input.layers)
+  const layersWithAnimation = Array.isArray(input.layers)
     ? input.layers.map((layer, layerIndex) => {
+        if (!isRecord(layer) || !Array.isArray(layer.tracks)) return layer;
+        let changed = false;
+        const tracks = layer.tracks.map((track, trackIndex) => {
+          if (!isRecord(track) || !Object.prototype.hasOwnProperty.call(track, "playback")) return track;
+          changed = true;
+          const migratedTrack = { ...track };
+          if (!Object.prototype.hasOwnProperty.call(track, "animation")) {
+            migratedTrack.animation = track.playback;
+          }
+          delete migratedTrack.playback;
+          diagnostics.push({
+            code: "renamed_track_playback",
+            severity: "warning",
+            path: ["layers", layerIndex, "tracks", trackIndex, "playback"],
+            message: Object.prototype.hasOwnProperty.call(track, "animation")
+              ? "Dropped legacy track.playback because track.animation is canonical."
+              : "Renamed legacy track.playback to track.animation; save the project to persist the new shape.",
+          });
+          return migratedTrack;
+        });
+        return changed ? { ...layer, tracks } : layer;
+      })
+    : input.layers;
+  const layers = Array.isArray(layersWithAnimation)
+    ? layersWithAnimation.map((layer, layerIndex) => {
         if (!isRecord(layer) || layer.type !== "video" || !isRecord(layer.payload)) return layer;
 
         let payload = layer.payload;

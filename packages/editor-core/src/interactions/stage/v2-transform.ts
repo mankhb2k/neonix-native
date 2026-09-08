@@ -1,0 +1,195 @@
+import type { LayerPatch } from "../../document/commands";
+import type { V2Layer } from "@motionvideo/motion-protocol/v2";
+import type { StagePoint } from "./coordinates";
+
+export type StageLayerBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  transformOriginX?: number;
+  transformOriginY?: number;
+};
+
+const VISUAL_LAYER_TYPES = new Set<V2Layer["type"]>([
+  "shape",
+  "text",
+  "image",
+  "video",
+  "path",
+]);
+
+export function isV2VisualLayer(layer: V2Layer): boolean {
+  return VISUAL_LAYER_TYPES.has(layer.type);
+}
+
+export function isV2LayerActiveAtTime(layer: V2Layer, time: number): boolean {
+  const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  const protocolTime = safeTime * 1000;
+  const start = layer.timing.start;
+  const end = start + layer.timing.duration;
+  return protocolTime >= start && protocolTime <= end;
+}
+
+/** Resolve the layer quad using the Protocol V2 local transform order. */
+export function getV2LayerWorldQuad(layer: V2Layer): StagePoint[] {
+  const { width, height } = layer.frame;
+  const transform = layer.transform;
+  const radians = (transform.rotate.z * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const skewX = Math.tan((transform.skew.x * Math.PI) / 180);
+  const skewY = Math.tan((transform.skew.y * Math.PI) / 180);
+  const corners = [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
+  ];
+
+  return corners.map((corner) => {
+    const localX = corner.x - transform.anchor.x;
+    const localY = corner.y - transform.anchor.y;
+    const skewedX = localX + skewX * localY;
+    const skewedY = skewY * localX + localY;
+    const scaledX = skewedX * transform.scale.x;
+    const scaledY = skewedY * transform.scale.y;
+    return {
+      x: transform.translate.x + transform.anchor.x + scaledX * cos - scaledY * sin,
+      y: transform.translate.y + transform.anchor.y + scaledX * sin + scaledY * cos,
+    };
+  });
+}
+
+export function isPointInsideV2Layer(layer: V2Layer, point: StagePoint): boolean {
+  const polygon = getV2LayerWorldQuad(layer);
+  let inside = false;
+  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+    const current = polygon[index]!;
+    const prior = polygon[previous]!;
+    const crosses =
+      (current.y > point.y) !== (prior.y > point.y) &&
+      point.x <
+        ((prior.x - current.x) * (point.y - current.y)) /
+          (prior.y - current.y || Number.EPSILON) +
+          current.x;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+export function getV2LayerBounds(layer: V2Layer): StageLayerBounds {
+  const points = getV2LayerWorldQuad(layer);
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const right = Math.max(...xs);
+  const bottom = Math.max(...ys);
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+    rotation: layer.transform.rotate.z,
+  };
+}
+
+export function getV2LayerSelectionBox(layer: V2Layer): StageLayerBounds {
+  const { frame, transform } = layer;
+  const scaleX = Math.abs(transform.scale.x);
+  const scaleY = Math.abs(transform.scale.y);
+  const skewX = Math.tan((transform.skew.x * Math.PI) / 180);
+  const skewY = Math.tan((transform.skew.y * Math.PI) / 180);
+  const localX = -transform.anchor.x;
+  const localY = -transform.anchor.y;
+  const skewedX = localX + skewX * localY;
+  const skewedY = skewY * localX + localY;
+  const topLeft = {
+    x: transform.translate.x + transform.anchor.x + skewedX * transform.scale.x,
+    y: transform.translate.y + transform.anchor.y + skewedY * transform.scale.y,
+  };
+  return {
+    x: topLeft.x,
+    y: topLeft.y,
+    width: Math.max(0, frame.width * scaleX),
+    height: Math.max(0, frame.height * scaleY),
+    rotation: transform.rotate.z,
+    transformOriginX: transform.anchor.x * scaleX,
+    transformOriginY: transform.anchor.y * scaleY,
+  };
+}
+
+export function getSelectionBounds(bounds: readonly StageLayerBounds[]): StageLayerBounds | null {
+  if (bounds.length === 0) return null;
+  const left = Math.min(...bounds.map((bound) => bound.x));
+  const top = Math.min(...bounds.map((bound) => bound.y));
+  const right = Math.max(...bounds.map((bound) => bound.x + bound.width));
+  const bottom = Math.max(...bounds.map((bound) => bound.y + bound.height));
+  return {
+    x: left,
+    y: top,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+    rotation: bounds.length === 1 ? bounds[0]!.rotation : 0,
+  };
+}
+
+export function buildV2MovePatches(
+  layers: readonly V2Layer[],
+  delta: StagePoint,
+): Record<string, LayerPatch> {
+  return Object.fromEntries(
+    layers.map((layer) => [layer.id, {
+      transform: {
+        translate: {
+          x: layer.transform.translate.x + delta.x,
+          y: layer.transform.translate.y + delta.y,
+        },
+      },
+    }]),
+  );
+}
+
+export function buildV2ResizePatch(next: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): LayerPatch {
+  const finiteOr = (value: number, fallback: number) => Number.isFinite(value) ? value : fallback;
+  return {
+    frame: {
+      width: Math.max(0.001, finiteOr(next.width, 0.001)),
+      height: Math.max(0.001, finiteOr(next.height, 0.001)),
+    },
+    transform: {
+      translate: {
+        x: finiteOr(next.x, 0),
+        y: finiteOr(next.y, 0),
+      },
+    },
+  };
+}
+
+export function buildV2RotatePatch(input: {
+  rotation: number;
+  translate?: { x: number; y: number };
+}): LayerPatch {
+  const patch: LayerPatch = {
+    transform: {
+      rotate: { z: Number.isFinite(input.rotation) ? input.rotation : 0 },
+    },
+  };
+  if (input.translate) {
+    patch.transform = {
+      ...patch.transform,
+      translate: {
+        x: Number.isFinite(input.translate.x) ? input.translate.x : 0,
+        y: Number.isFinite(input.translate.y) ? input.translate.y : 0,
+      },
+    };
+  }
+  return patch;
+}

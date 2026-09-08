@@ -104,6 +104,9 @@ export function TransportBar({
         <span
           className="block w-[11ch] shrink-0 text-left font-mono text-[12px] leading-none tabular-nums tracking-tight text-[var(--fg-secondary)]"
           style={{ fontFamily: "var(--font-mono)" }}
+          data-testid="timeline-duration"
+          data-duration-source="playback"
+          data-duration-seconds={duration}
         >
           {formatTimecode(duration, fps)}
         </span>

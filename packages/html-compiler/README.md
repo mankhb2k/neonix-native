@@ -346,7 +346,7 @@ protocol file. The `blue-rectangle` example is the Phase 0 starter case and
 uses the standard HTML document shell, a stable `id`, and the fixed
 1920x1080 composition manifest.
 
-Tests live under `src/_test_` and cover cascade/inheritance, nested groups,
+Tests live under `test/` and cover cascade/inheritance, nested groups,
 variables/fallbacks, units, `calc()`, SVG/path contours and fail-closed diagnostics. The original
 Gold 01 rectangle test remains as the Phase 1 compatibility gate.
 
@@ -443,8 +443,8 @@ a group boundary when hierarchy must be preserved. Every successful output is
 validated with `MotionProtocolV2Schema`; unsupported syntax fails closed with a
 diagnostic instead of being silently dropped. Protocol timing is milliseconds.
 
-Normalization tests are in `src/_test_/normalization.test.ts`; Phase 3A layout
-tests are in `src/_test_/phase3.test.ts`. Preview Lab exposes the corresponding
+Normalization tests are in `test/normalization.test.ts`; Phase 3A layout
+tests are in `test/phase3.test.ts`. Preview Lab exposes the corresponding
 Phase 3 cases under **HTML compiler / Phase 3**.
 
 ## Visual-only compiler foundation

@@ -1,4 +1,3 @@
-import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
@@ -84,8 +83,7 @@ export type EditorDiagnostic = {
   code:
     | "document_invalid"
     | "command_invalid"
-    | "layer_not_found"
-    | "compile_invalid";
+    | "layer_not_found";
   message: string;
   path?: readonly (string | number)[];
 };
@@ -176,7 +174,9 @@ function reject(
 
 /**
  * Apply one V2 document command atomically. The source document is never
- * mutated; invalid schema/compiler output is rejected before it reaches UI.
+ * mutated; invalid Protocol V2 documents are rejected before they reach UI.
+ * Runtime compilation is a host concern and must happen after the document
+ * command has committed.
  */
 export function applyEditorCommand(
   input: MotionProtocolV2,
@@ -195,18 +195,6 @@ export function applyEditorCommand(
     const parsedNext = MotionProtocolV2Schema.safeParse(next);
     if (!parsedNext.success) {
       return reject(original, diagnosticsFromSchema(parsedNext.error));
-    }
-
-    try {
-      compileProtocol(parsedNext.data);
-    } catch (error) {
-      return reject(original, [
-        {
-          severity: "error",
-          code: "compile_invalid",
-          message: error instanceof Error ? error.message : String(error),
-        },
-      ]);
     }
 
     return { ok: true, document: parsedNext.data, inverse, diagnostics: [] };

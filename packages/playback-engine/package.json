@@ -9,7 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint src -c ../../eslint.package.mjs --max-warnings 0",
+    "lint": "eslint src test -c ../../eslint.package.mjs --max-warnings 0",
     "certify": "node scripts/certify-architecture.mjs"
   },
   "dependencies": {

@@ -60,6 +60,11 @@ export {
   timelineEditToDocumentCommand,
   timelineLanesForDocument,
 } from "./commands/to-document-command";
+export {
+  timelineActionToDocumentCommand,
+  type TimelineAction,
+  type TimelineActionOptions,
+} from "./commands/timeline-actions";
 export type { TimelineViewportMetrics } from "../interactions/timeline/coordinates";
 export * from "../interactions/timeline/seek";
 export * from "../interactions/timeline/auto-scroll";

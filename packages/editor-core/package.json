@@ -9,16 +9,17 @@
     ".": "./src/index.ts",
     "./timeline": "./src/timeline/index.ts",
     "./interactions/stage": "./src/interactions/stage/index.ts",
-    "./text": "./src/text/index.ts"
+    "./text": "./src/text/index.ts",
+    "./history": "./src/history/index.ts",
+    "./library": "./src/library/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "eslint src test --max-warnings 0"
   },
   "dependencies": {
-    "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-protocol": "workspace:*"
   },
   "devDependencies": {

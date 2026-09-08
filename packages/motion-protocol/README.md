@@ -345,7 +345,7 @@ Motion-path animation uses ordinary layer tracks:
         { "time": 0, "value": { "type": "number", "value": 0 } },
         { "time": 1400, "value": { "type": "number", "value": 1 } }
       ],
-      "playback": {
+      "animation": {
         "durationMs": 1400,
         "delayMs": 0,
         "iterations": 1,

@@ -3,24 +3,12 @@
 import { useSyncExternalStore } from "react";
 import type { StageGuide } from "@motionvideo/editor-core/interactions/stage";
 
-export type StagePreviewOverride = {
-  /** Composition-space translation applied after the evaluated layer matrix. */
-  translateDelta: { x: number; y: number };
-  /** Optional transient scale multiplier used by auto-sized text resize. */
-  scaleMultiplier?: { x: number; y: number };
-  /** Composition-space origin for the transient scale. */
-  scaleOrigin?: { x: number; y: number };
-};
-
-export type StagePreviewOverrides = ReadonlyMap<string, StagePreviewOverride>;
-
 export type StagePreviewCommitState = {
   pending: boolean;
   sourceProject: unknown;
   sequence: number;
 };
 
-const EMPTY_PREVIEW: StagePreviewOverrides = new Map();
 const EMPTY_GUIDES: readonly StageGuide[] = [];
 const EMPTY_COMMIT: StagePreviewCommitState = {
   pending: false,
@@ -29,15 +17,12 @@ const EMPTY_COMMIT: StagePreviewCommitState = {
 };
 
 class StageInteractionStore {
-  private snapshot: StagePreviewOverrides = EMPTY_PREVIEW;
   private guideSnapshot: readonly StageGuide[] = EMPTY_GUIDES;
-  private pending: StagePreviewOverrides | null = null;
   private pendingGuides: readonly StageGuide[] | null = null;
   private frame: number | null = null;
   private listeners = new Set<() => void>();
   private commitSnapshot: StagePreviewCommitState = EMPTY_COMMIT;
 
-  getSnapshot = (): StagePreviewOverrides => this.snapshot;
   getGuides = (): readonly StageGuide[] => this.guideSnapshot;
   getCommitSnapshot = (): StagePreviewCommitState => this.commitSnapshot;
 
@@ -46,14 +31,13 @@ class StageInteractionStore {
     return () => this.listeners.delete(listener);
   };
 
-  setPreview(next: StagePreviewOverrides, guides: readonly StageGuide[] = EMPTY_GUIDES): void {
-    this.pending = next;
+  /** Publish DOM-only guides; authoritative frame state remains in playback. */
+  setGuides(guides: readonly StageGuide[] = EMPTY_GUIDES): void {
     this.pendingGuides = guides;
     this.schedulePublish();
   }
 
   clear(): void {
-    this.pending = EMPTY_PREVIEW;
     this.pendingGuides = EMPTY_GUIDES;
     if (this.frame !== null && typeof window !== "undefined") {
       window.cancelAnimationFrame(this.frame);
@@ -110,32 +94,20 @@ class StageInteractionStore {
   }
 
   private publish(): void {
-    if (this.pending === null && this.pendingGuides === null) return;
-    const next = this.pending ?? this.snapshot;
+    if (this.pendingGuides === null) return;
     const nextGuides = this.pendingGuides ?? this.guideSnapshot;
-    if (next === this.snapshot && nextGuides === this.guideSnapshot) {
-      this.pending = null;
+    if (nextGuides === this.guideSnapshot) {
       this.pendingGuides = null;
       for (const listener of this.listeners) listener();
       return;
     }
-    this.snapshot = next;
     this.guideSnapshot = nextGuides;
-    this.pending = null;
     this.pendingGuides = null;
     for (const listener of this.listeners) listener();
   }
 }
 
 export const stageInteractionStore = new StageInteractionStore();
-
-export function useStagePreviewOverrides(): StagePreviewOverrides {
-  return useSyncExternalStore(
-    stageInteractionStore.subscribe,
-    stageInteractionStore.getSnapshot,
-    stageInteractionStore.getSnapshot,
-  );
-}
 
 export function useStageSnapGuides(): readonly StageGuide[] {
   return useSyncExternalStore(
