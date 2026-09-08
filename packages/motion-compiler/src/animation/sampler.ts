@@ -19,30 +19,36 @@ export function sampleMotionProtocolAtTime(
   const timeMs = Math.max(0, timeSeconds * 1000);
   let changed = false;
   const layers = project.layers.map((layer) => {
-    if (!layer.tracks?.length) return layer;
-    let sampledLayer: V2Layer = layer;
-    const localTimeMs = timeMs - layer.timing.start;
-    for (const track of layer.tracks) {
-      const sampled = sampleTrack(track, localTimeMs);
-      if (sampled === undefined) continue;
-      const nextLayer = applyTrackValue(sampledLayer, track.path, toPropertyValue(sampled));
-      if (nextLayer !== sampledLayer) {
-        sampledLayer = nextLayer;
-        changed = true;
-      }
-    }
+    const sampledLayer = sampleMotionLayerAtTime(layer, timeSeconds);
+    if (sampledLayer !== layer) changed = true;
     return sampledLayer;
   });
   return changed ? { ...project, layers } : project;
 }
 
+/** Sample one Protocol V2 layer using the canonical runtime animation policy. */
+export function sampleMotionLayerAtTime(
+  layer: V2Layer,
+  timeSeconds: number,
+): V2Layer {
+  if (!layer.tracks?.length) return layer;
+  let sampledLayer: V2Layer = layer;
+  const localTimeMs = Math.max(0, timeSeconds * 1000) - layer.timing.start;
+  for (const track of layer.tracks) {
+    const sampled = sampleTrack(track, localTimeMs);
+    if (sampled === undefined) continue;
+    sampledLayer = applyTrackValue(sampledLayer, track.path, toPropertyValue(sampled));
+  }
+  return sampledLayer;
+}
+
 function sampleTrack(track: V2Track, timeMs: number): V2AnimatableValue | undefined {
   const first = track.keyframes[0];
   if (!first) return undefined;
-  const playback = track.playback;
-  const durationMs = playback?.durationMs ?? Math.max(first.time, track.keyframes.at(-1)?.time ?? 1);
-  const delayMs = playback?.delayMs ?? 0;
-  const fillMode = playback?.fillMode ?? "both";
+  const animation = track.animation;
+  const durationMs = animation?.durationMs ?? Math.max(first.time, track.keyframes.at(-1)?.time ?? 1);
+  const delayMs = animation?.delayMs ?? 0;
+  const fillMode = animation?.fillMode ?? "both";
   const activeMs = timeMs - delayMs;
 
   if (activeMs < 0) return fillMode === "backwards" || fillMode === "both" ? first.value : undefined;
@@ -51,7 +57,7 @@ function sampleTrack(track: V2Track, timeMs: number): V2AnimatableValue | undefi
   // the same timeline for Browser CSS and runtime output. A paused transport
   // simply does not advance `timeSeconds`; it must not freeze seeking at t=0.
 
-  const iterations = playback?.iterations ?? 1;
+  const iterations = animation?.iterations ?? 1;
   const finiteIterations = typeof iterations === "number";
   const activeDuration = finiteIterations ? durationMs * iterations : Number.POSITIVE_INFINITY;
   if (activeMs >= activeDuration) {
@@ -61,7 +67,7 @@ function sampleTrack(track: V2Track, timeMs: number): V2AnimatableValue | undefi
   const iteration = durationMs > 0 ? Math.floor(activeMs / durationMs) : 0;
   const remainder = durationMs > 0 ? activeMs - iteration * durationMs : durationMs;
   const progress = durationMs > 0 ? Math.max(0, Math.min(1, remainder / durationMs)) : 1;
-  const direction = playback?.direction ?? "normal";
+  const direction = animation?.direction ?? "normal";
   const reverse = direction === "reverse"
     || (direction === "alternate" && iteration % 2 === 1)
     || (direction === "alternate-reverse" && iteration % 2 === 0);
@@ -77,7 +83,7 @@ function directedValue(track: V2Track, durationMs: number, iterations: number | 
   // active-duration boundary, `2.5` must sample progress `.5`, not jump to
   // the final keyframe as a full second iteration would.
   const endpointProgress = fractional > 0 ? fractional : 1;
-  const direction = track.playback?.direction ?? "normal";
+  const direction = track.animation?.direction ?? "normal";
   const reverse = direction === "reverse"
     || (direction === "alternate" && lastIteration % 2 === 1)
     || (direction === "alternate-reverse" && lastIteration % 2 === 0);

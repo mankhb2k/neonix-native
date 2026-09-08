@@ -3,11 +3,12 @@
 The web editor has one document model: `MotionProtocolV2` from
 `@motionvideo/motion-protocol/v2`.
 
-All document mutations go through `EditorCommand` and
-`applyEditorCommand` from `@motionvideo/editor-core/document/commands`. The React session
-state (selection, locks, playhead, and undo/redo) is owned by
-`components/editor/EditorProviders`; this library must not add a second
-document store.
+All document mutations go through `EditorCommand`, `applyEditorCommand` or
+`applyEditorCommands` from `@motionvideo/editor-core`. The React session
+state (selection, locks, playhead, and stack storage) is owned by
+`components/editor/EditorProviders`; command transactions, inverse commands,
+and history policy are owned by `@motionvideo/editor-core`. This library must
+not add a second document store or history policy.
 
 ## Boundaries
 
@@ -15,12 +16,17 @@ document store.
 - `document/project-repository.ts` is the server-only Supabase boundary for
   project list/load/autosave; the browser never talks to Supabase tables
   directly for editor source revisions.
-- `library/`, `inspector/`, and `stage/` contain pure V2 domain operations.
-- `timeline/` owns the one conversion boundary from timeline interaction
-  commands to V2 commands. Timeline UI remains in `components/editor`.
-- `selection/` and `interaction-host/` contain browser-neutral interaction
-  helpers used by the V2 shell.
-- `stage/` may expose only production V2 stage calculations.
+- `library/` contains browser/resource adapters; pure placement and interaction
+  policies belong to `@motionvideo/editor-core`.
+- `inspector/` contains UI-specific measurement and binding; alignment, anchor,
+  transform and keyframe policies belong to `@motionvideo/editor-core`.
+- Stage geometry, hit-testing and keyframe patch construction belong to
+  `@motionvideo/editor-core/interactions/stage`; `StageRenderer` only paints
+  authoritative playback frames.
+- `timeline/` and `interaction-host/` are DOM hosts for the browser-neutral
+  policies in `@motionvideo/editor-core`.
+- `selection/` contains only UI subscription glue; keyboard selection policy is
+  owned by `@motionvideo/editor-core`.
 
 Do not add imports from `lib/v2-editor`, the V1 Zustand store, or the
 unversioned V1 motion-project model. If a V2 feature needs a compatibility

@@ -9,7 +9,7 @@ export default defineConfig({
       "lib/docs/preview-lab.test.ts",
       "lib/docs/docs-v2.test.ts",
       "lib/editor/__tests__/*.test.ts",
-      "lib/editor/playback/*.test.ts",
+      "lib/editor/playback/_tests/*.test.ts",
       "lib/editor/state/*.test.ts",
       "lib/media/*.test.ts",
     ],

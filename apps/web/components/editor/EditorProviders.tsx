@@ -28,113 +28,31 @@ import {
 } from "@/lib/editor/playback/transport-store";
 import {
   createEditorStore,
-  type EditorHistoryEntry,
+  type EditorHostDiagnostic,
   type EditorStoreApi,
   type TextEditStartPoint,
 } from "@/lib/editor/state/editor-store";
 import {
+  applyTextDraftToLayer,
+  applyEditorCommands,
   appendOrCoalesceUndoEntry,
   appendRedoEntry,
   appendUndoEntry,
-} from "@/lib/editor/state/history-policy";
-import {
-  applyEditorCommand,
-  applyTextDraftToLayer,
   createTextEditSession,
+  createEditorHistoryEntry,
+  resolveEditorIntent,
+  selectionStillExists,
   textEditChanged,
   updateTextEditDraft as updateTextEditSession,
   type EditorCommand,
-  type EditorDiagnostic,
+  type EditorHistoryEntry,
   type TextEditSession,
   type TextSelection,
 } from "@motionvideo/editor-core";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
 export type { PlaybackDiagnostic } from "@/hooks/editor/use-playback-controller";
-
-type CommandExecution =
-  | {
-      ok: true;
-      document: MotionProtocolV2;
-      inverse: readonly EditorCommand[];
-    }
-  | { ok: false; diagnostics: readonly EditorDiagnostic[] };
-
-/** Run a set atomically from the UI point of view; no partial document commit. */
-function executeCommands(
-  document: MotionProtocolV2,
-  commands: readonly EditorCommand[],
-): CommandExecution {
-  let next = document;
-  const inverse: EditorCommand[] = [];
-  for (const command of commands) {
-    const result = applyEditorCommand(next, command);
-    if (!result.ok) return { ok: false, diagnostics: result.diagnostics };
-    next = result.document;
-    // Inverses run in the reverse order of the original transaction.
-    inverse.unshift(result.inverse);
-  }
-  return { ok: true, document: next, inverse };
-}
-
-function selectionStillExists(
-  document: MotionProtocolV2,
-  id: string,
-): boolean {
-  if (document.layers.some((layer) => layer.id === id)) return true;
-  return document.audio.tracks.some((track) =>
-    track.clips.some((clip) => `audio.${clip.id}` === id),
-  );
-}
-
-function commandLabel(commands: readonly EditorCommand[]): string {
-  const type = commands[0]?.type;
-  switch (type) {
-    case "patch-layer":
-    case "patch-layers":
-      return "Transform layers";
-    case "add-layer":
-      return "Add layer";
-    case "remove-layer":
-      return "Remove layer";
-    default:
-      return type ? type.replaceAll("-", " ") : "Edit document";
-  }
-}
-
-/** Delete selected layer subtrees in child-first order so group removal is valid. */
-function removeCommandsForSelection(
-  document: MotionProtocolV2,
-  selectedIds: readonly string[],
-): EditorCommand[] {
-  const selected = new Set(
-    selectedIds.filter((id) => document.layers.some((layer) => layer.id === id)),
-  );
-  if (selected.size === 0) return [];
-
-  const byParent = new Map<string | null, string[]>();
-  for (const layer of document.layers) {
-    const children = byParent.get(layer.parentLayerId) ?? [];
-    children.push(layer.id);
-    byParent.set(layer.parentLayerId, children);
-  }
-  const roots = [...selected].filter((id) => {
-    let parentId = document.layers.find((layer) => layer.id === id)?.parentLayerId;
-    while (parentId != null) {
-      if (selected.has(parentId)) return false;
-      parentId = document.layers.find((layer) => layer.id === parentId)?.parentLayerId;
-    }
-    return true;
-  });
-  const orderedIds: string[] = [];
-  const visit = (id: string) => {
-    for (const childId of byParent.get(id) ?? []) visit(childId);
-    orderedIds.push(id);
-  };
-  for (const id of roots) visit(id);
-
-  return orderedIds.map((layerId) => ({ type: "remove-layer", layerId }));
-}
 
 /** Session state for the existing editor chrome; document ownership is V2 only. */
 export function EditorProviders({
@@ -156,6 +74,7 @@ export function EditorProviders({
   if (!editorStoreRef.current) editorStoreRef.current = createEditorStore(initialDocument);
   const editorStore = editorStoreRef.current;
   const playbackControllerRef = useRef<PlaybackControllerV3 | null>(null);
+  const [playbackRuntimeProject, setPlaybackRuntimeProject] = useState<RuntimeProjectV3 | null>(null);
   // Child effects can register video elements before the provider's passive
   // effect creates the controller. Keep those registrations until then.
   const playbackVideosRef = useRef(new Map<string, {
@@ -177,7 +96,7 @@ export function EditorProviders({
   const hiddenLayerIdsRef = useRef<readonly string[]>(hiddenLayerIds);
   hiddenLayerIdsRef.current = hiddenLayerIds;
   const [lockedLayerIds, setLockedLayerIds] = useState<string[]>([]);
-  const [diagnostics, setDiagnostics] = useState<readonly EditorDiagnostic[]>(
+  const [diagnostics, setDiagnostics] = useState<readonly EditorHostDiagnostic[]>(
     [],
   );
   const [undoStack, setUndoStack] = useState<readonly EditorHistoryEntry[]>([]);
@@ -190,7 +109,6 @@ export function EditorProviders({
   const lastPersistedDocumentRef = useRef(JSON.stringify(initialDocument));
   const saveInFlightRef = useRef(false);
   const saveQueuedRef = useRef(false);
-  const historySequenceRef = useRef(0);
 
   const renderDocument = useMemo(() => {
     if (!textEditSession) return document;
@@ -213,24 +131,6 @@ export function EditorProviders({
       ),
     };
   }, [document, textEditFramePreview, textEditSession]);
-
-  const createHistoryEntry = useCallback(
-    (
-      undo: readonly EditorCommand[],
-      redo: readonly EditorCommand[],
-      selectionBefore: readonly string[] = [],
-      selectionAfter: readonly string[] = selectionBefore,
-    ): EditorHistoryEntry => ({
-      id: `history-${Date.now()}-${historySequenceRef.current++}`,
-      label: commandLabel(redo),
-      timestamp: Date.now(),
-      undo,
-      redo,
-      selectionBefore,
-      selectionAfter,
-    }),
-    [],
-  );
 
   // The editor store is the synchronous read model consumed by stage,
   // inspector and timeline selectors. Keep it in sync before paint; a
@@ -273,11 +173,12 @@ export function EditorProviders({
     controller.setHiddenLayerIds(hiddenLayerIdsRef.current);
     const releaseTime = controller.registerTimeSink((event) => {
       currentTimeRef.current = event.time;
-      transportStore.publishTransport({ time: event.time, playing: event.playing, generation: event.generation, duration: controller.duration });
+      transportStore.publishTransport({ time: event.time, playing: event.playing, ended: event.ended, generation: event.generation, duration: event.duration });
     });
     for (const [assetId, registration] of pendingVideos) controller.registerVideo(assetId, registration.element, registration.onFrameReady);
     return () => {
       controller.dispose();
+      setPlaybackRuntimeProject(null);
       releaseTime();
       pendingVideos.clear();
       if (playbackControllerRef.current === controller) playbackControllerRef.current = null;
@@ -323,8 +224,10 @@ export function EditorProviders({
     const controller = playbackControllerRef.current;
     if (!controller) return;
     try {
-      controller.loadDocument(document, currentTimeRef.current);
+      const runtimeProject = controller.loadDocument(document, currentTimeRef.current);
+      setPlaybackRuntimeProject(runtimeProject);
     } catch (error) {
+      setPlaybackRuntimeProject(null);
       setDiagnostics([
         {
           severity: "error",
@@ -334,6 +237,11 @@ export function EditorProviders({
       ]);
     }
   }, [document]);
+
+  const setPlaybackPreparedRuntimeProject = useCallback((project: RuntimeProjectV3) => {
+    playbackControllerRef.current?.setPreparedRuntimeProject(project);
+    setPlaybackRuntimeProject(project);
+  }, []);
 
   const playbackPlay = useCallback(() => {
     playbackControllerRef.current?.play();
@@ -349,6 +257,10 @@ export function EditorProviders({
 
   const playbackPreviewSeek = useCallback((time: number) => {
     playbackControllerRef.current?.previewAt(time);
+  }, []);
+
+  const setPlaybackPreviewDocument = useCallback((previewDocument: MotionProtocolV2 | null) => {
+    playbackControllerRef.current?.setPreviewDocument(previewDocument);
   }, []);
 
   const playbackToggle = useCallback(() => {
@@ -399,7 +311,7 @@ export function EditorProviders({
   const commitCommands = useCallback(
     (commands: readonly EditorCommand[]): boolean => {
       if (commands.length === 0) return false;
-      const result = executeCommands(document, commands);
+      const result = applyEditorCommands(document, commands);
       setDiagnostics(result.ok ? [] : result.diagnostics);
       if (!result.ok) return false;
 
@@ -411,24 +323,24 @@ export function EditorProviders({
       setUndoStack((previous) =>
         appendUndoEntry(
           previous,
-          createHistoryEntry(
-            result.inverse,
-            [...commands],
-            selectedLayerIds,
-            nextSelection,
-          ),
+          createEditorHistoryEntry({
+            undo: result.inverse,
+            redo: [...commands],
+            selectionBefore: selectedLayerIds,
+            selectionAfter: nextSelection,
+          }),
         ),
       );
       setRedoStack([]);
       setLastHistoryKey(null);
       return true;
     },
-    [createHistoryEntry, document, selectedLayerIds],
+    [document, selectedLayerIds],
   );
 
   const commitCoalescedCommand = useCallback(
     (historyKey: string, command: EditorCommand): boolean => {
-      const result = executeCommands(document, [command]);
+      const result = applyEditorCommands(document, [command]);
       setDiagnostics(result.ok ? [] : result.diagnostics);
       if (!result.ok) return false;
 
@@ -442,25 +354,25 @@ export function EditorProviders({
           previous,
           historyKey,
           lastHistoryKey,
-          createHistoryEntry(
-            result.inverse,
-            [command],
-            selectedLayerIds,
-            nextSelection,
-          ),
+          createEditorHistoryEntry({
+            undo: result.inverse,
+            redo: [command],
+            selectionBefore: selectedLayerIds,
+            selectionAfter: nextSelection,
+          }),
         );
       });
       setRedoStack([]);
       setLastHistoryKey(historyKey);
       return true;
     },
-    [createHistoryEntry, document, lastHistoryKey, selectedLayerIds],
+    [document, lastHistoryKey, selectedLayerIds],
   );
 
   const undo = useCallback((): boolean => {
     const entry = undoStack.at(-1);
     if (!entry) return false;
-    const result = executeCommands(document, entry.undo);
+    const result = applyEditorCommands(document, entry.undo);
     setDiagnostics(result.ok ? [] : result.diagnostics);
     if (!result.ok) return false;
     setDocument(result.document);
@@ -476,7 +388,7 @@ export function EditorProviders({
   const redo = useCallback((): boolean => {
     const entry = redoStack.at(-1);
     if (!entry) return false;
-    const result = executeCommands(document, entry.redo);
+    const result = applyEditorCommands(document, entry.redo);
     setDiagnostics(result.ok ? [] : result.diagnostics);
     if (!result.ok) return false;
     setDocument(result.document);
@@ -490,13 +402,15 @@ export function EditorProviders({
   }, [document, redoStack]);
 
   const deleteSelectedLayers = useCallback(
-    () =>
-      commitCommands(
-        removeCommandsForSelection(
-          document,
-          selectedLayerIds.filter((id) => !lockedLayerIds.includes(id)),
-        ),
-      ),
+    () => {
+      const resolution = resolveEditorIntent(
+        { type: "delete-selection" },
+        { document, selectedLayerIds, lockedLayerIds },
+      );
+      return resolution?.kind === "commands"
+        ? commitCommands(resolution.commands)
+        : false;
+    },
     [commitCommands, document, lockedLayerIds, selectedLayerIds],
   );
 
@@ -536,6 +450,16 @@ export function EditorProviders({
     (command: EditorCommand) => commitCommands([command]),
     [commitCommands],
   );
+  const previewCommand = useCallback((command: EditorCommand | null) => {
+    const controller = playbackControllerRef.current;
+    if (!controller) return;
+    if (command === null) {
+      controller.setPreviewDocument(null);
+      return;
+    }
+    const result = applyEditorCommands(document, [command]);
+    if (result.ok) controller.setPreviewDocument(result.document);
+  }, [document]);
   const startTextEditing = useCallback((layerId: string, startPoint?: TextEditStartPoint): boolean => {
     const layer = document.layers.find((candidate) => candidate.id === layerId);
     if (!layer || layer.type !== "text") return false;
@@ -621,6 +545,7 @@ export function EditorProviders({
       toggleLayerVisibility,
       toggleLayerLock,
       applyCommand,
+      previewCommand,
       applyCommands: commitCommands,
       applyCoalescedCommand: commitCoalescedCommand,
       undo,
@@ -637,6 +562,7 @@ export function EditorProviders({
       commitCommands,
       commitCoalescedCommand,
       deleteSelectedLayers,
+      previewCommand,
       redo,
       setSelectedLayerIds,
       startTextEditing,
@@ -656,10 +582,13 @@ export function EditorProviders({
       playbackPause,
       playbackSeek,
       playbackPreviewSeek,
+      setPlaybackPreviewDocument,
       playbackToggle,
       registerPlaybackVideo,
       registerPlaybackFrameSink,
       registerPlaybackTimeSink,
+      playbackRuntimeProject,
+      setPlaybackPreparedRuntimeProject,
       getPlaybackResourceStats,
       getPlaybackDiagnostics,
     }),
@@ -669,11 +598,14 @@ export function EditorProviders({
       playbackPause,
       playbackPlay,
       playbackPreviewSeek,
+      setPlaybackPreviewDocument,
       playbackSeek,
       playbackToggle,
       registerPlaybackFrameSink,
       registerPlaybackTimeSink,
       registerPlaybackVideo,
+      playbackRuntimeProject,
+      setPlaybackPreparedRuntimeProject,
     ],
   );
 

@@ -5,6 +5,7 @@ export function createNativeExportSmokeProject(): RuntimeProjectV3 {
     format: "motion-runtime",
     runtimeVersion: 3,
     projectId: "native-export-smoke",
+    durationUs: 1_000_000,
     visual: {
       composition: { width: 1920, height: 1080, fps: 30, duration: 1, background: "#101827", graphId: "native-export-smoke" },
       view: { worldToClipMatrix: identityMatrix4() },

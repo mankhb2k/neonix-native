@@ -12,17 +12,38 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
   const resources = createResourceDisposalGuard();
   const readiness = createReadinessCoordinator("unknown");
   let project: Parameters<PlaybackEngine["load"]>[0] | undefined;
+  let durationUs = 0;
   let state: PlaybackEngineState = "idle";
   let error: string | undefined;
   let scheduled: number | undefined;
   const listeners = new Set<(snapshot: PlaybackEngineSnapshot) => void>();
   const metrics = { ticks: 0, publishedVideoPlans: 0, publishedAudioPlans: 0, staleOperations: 0, seeks: 0, underruns: 0 };
   const notify = (): void => {
-    const snapshot: PlaybackEngineSnapshot = { state, timeUs: clock.nowUs(), generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } };
+    const snapshot: PlaybackEngineSnapshot = { state, timeUs: Math.min(clock.nowUs(), durationUs), durationUs, generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } };
     for (const listener of listeners) listener(snapshot);
   };
   const token = (kind: PlaybackOperationTokenV3["kind"]) => operations.begin(kind);
   const schedule = () => { if (scheduler && scheduled === undefined && state === "playing") scheduled = scheduler.request(() => { scheduled = undefined; tick(); }); };
+  const finalRenderTimeUs = (): number => {
+    if (!project || project.durationUs <= 0) return 0;
+    return Math.max(0, project.durationUs - Math.ceil(1_000_000 / project.visual.composition.fps));
+  };
+  const finishAtEnd = (current: PlaybackOperationTokenV3): void => {
+    if (!project) return;
+    clock.pause(project.durationUs);
+    publishAt(finalRenderTimeUs(), current);
+    if (state === "error") return;
+    try {
+      options.videoSink?.pause?.(current);
+      options.audioSink?.pause?.(current);
+      state = transitionPlaybackStateV3(state, "ended");
+      if (scheduler && scheduled !== undefined) scheduler.cancel(scheduled);
+      scheduled = undefined;
+      notify();
+    } catch (reason) {
+      fail(reason);
+    }
+  };
   const fail = (reason: unknown): void => {
     error = reason instanceof Error ? reason.message : String(reason);
     readiness.set("failed");
@@ -53,6 +74,10 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
     metrics.ticks += 1;
     const current = token("tick");
     const timeUs = clock.nowUs();
+    if (timeUs >= project.durationUs) {
+      finishAtEnd(current);
+      return;
+    }
     publishAt(timeUs, current);
     notify();
     if (state === "playing") schedule();
@@ -66,6 +91,7 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
       readiness.set("loading");
       error = undefined;
       project = nextProject;
+      durationUs = Number.isFinite(nextProject.durationUs) && nextProject.durationUs >= 0 ? nextProject.durationUs : 0;
       clock.pause();
       clock.seek(0);
       const validation = validateRuntimeProjectV3(nextProject);
@@ -102,12 +128,23 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
       // A document patch changes plans, never transport. In particular, a
       // mute edit must not pause the composition clock or invalidate play.
       project = nextProject;
+      durationUs = Number.isFinite(nextProject.durationUs) && nextProject.durationUs >= 0 ? nextProject.durationUs : 0;
       error = undefined;
-      publishAt(clock.nowUs(), token("tick"));
+      const current = token("tick");
+      if (clock.nowUs() >= durationUs && state === "playing") {
+        finishAtEnd(current);
+        return;
+      }
+      if (clock.nowUs() > durationUs) clock.seek(durationUs);
+      publishAt(clock.nowUs(), current);
       notify();
     },
     play() {
       const current = token("play");
+      if (state === "ended") {
+        clock.seek(0);
+        state = "paused";
+      }
       if (!readiness.canPlay() || (state !== "ready" && state !== "paused")) return current;
       try {
         state = "preparing";
@@ -155,7 +192,8 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
       const wasPlaying = state === "playing";
       state = transitionPlaybackStateV3(state, "seek");
       notify();
-      clock.seek(Math.max(0, timeUs));
+      const requestedTimeUs = Number.isFinite(timeUs) ? timeUs : 0;
+      clock.seek(Math.min(durationUs, Math.max(0, requestedTimeUs)));
       try {
         options.videoSink?.flush?.(seekToken);
         options.audioSink?.flush?.(seekToken);
@@ -179,7 +217,7 @@ export function createPlaybackEngine(options: PlaybackEngineOptions = {}): Playb
       return current;
     },
     tick,
-    snapshot(): PlaybackEngineSnapshot { return { state, timeUs: clock.nowUs(), generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } }; },
+    snapshot(): PlaybackEngineSnapshot { return { state, timeUs: Math.min(clock.nowUs(), durationUs), durationUs, generation: operations.generation(), ...(project ? { projectId: project.projectId } : {}), readiness: readiness.status(), ...(error ? { error } : {}), metrics: { ...metrics } }; },
     subscribe(listener) { listeners.add(listener); listener(engine.snapshot()); return () => listeners.delete(listener); },
     isCurrent: (candidate) => operations.current(candidate),
     complete(candidate, completion) { if (!operations.current(candidate)) { metrics.staleOperations += 1; return undefined; } return completion(); },

@@ -6,6 +6,7 @@ export type PlaybackTransitionEventV3 =
   | "play"
   | "pause"
   | "seek"
+  | "ended"
   | "error"
   | "dispose";
 
@@ -21,6 +22,7 @@ export function transitionPlaybackStateV3(
   if (event === "ready") return "ready";
   if (event === "play" && (state === "ready" || state === "paused" || state === "preparing" || state === "buffering")) return "playing";
   if (event === "pause" && (state === "playing" || state === "preparing" || state === "buffering" || state === "seeking")) return "paused";
+  if (event === "ended" && (state === "playing" || state === "preparing" || state === "buffering" || state === "seeking")) return "ended";
   if (event === "seek" && state !== "idle") return "seeking";
   return state;
 }

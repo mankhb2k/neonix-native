@@ -1,13 +1,14 @@
-import { compileProtocol } from "@motionvideo/motion-compiler";
-import { evaluateRuntimeProjectV3, frameIndexAtTime, type RuntimeFrameV3, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
+import { createEditorRuntimeSession } from "@motionvideo/editor-runtime";
 import { createAnimationFrameSchedulerV3, createDriftControllerV3, createPlaybackEngine, createWebAudioGraphBackendV3, requestMediaElementPlayV3, type PlaybackEngine, type PlaybackEngineSnapshot } from "@motionvideo/playback-engine";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
+import type { RuntimeFrameV3, RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
 export type PlaybackOperationTokenV3 = { documentGeneration: number; transportGeneration: number; seekRequestId: number; generation: number };
 export type PlaybackFrameEventV3 = PlaybackOperationTokenV3 & { time: number; frame: RuntimeFrameV3; playing: boolean };
-export type PlaybackTimeEventV3 = PlaybackOperationTokenV3 & { time: number; playing: boolean };
+export type PlaybackTimeEventV3 = PlaybackOperationTokenV3 & { time: number; playing: boolean; duration: number; ended: boolean };
 export type PlaybackControllerV3 = {
-  loadDocument(document: MotionProtocolV2, currentTime: number): void;
+  loadDocument(document: MotionProtocolV2, currentTime: number): RuntimeProjectV3;
+  setPreviewDocument(document: MotionProtocolV2 | null): void;
   play(): void;
   pause(): void;
   toggle(): void;
@@ -16,6 +17,9 @@ export type PlaybackControllerV3 = {
   registerFrameSink(sink: (event: PlaybackFrameEventV3) => void): () => void;
   registerTimeSink(sink: (event: PlaybackTimeEventV3) => void): () => void;
   setHiddenLayerIds(layerIds: readonly string[]): void;
+  setPreparedRuntimeProject(project: RuntimeProjectV3): void;
+  runtimeProject(): RuntimeProjectV3 | undefined;
+  runtimeGeneration(): number;
   registerVideo(assetId: string, element: HTMLVideoElement, onFrameReady?: () => void): () => void;
   readonly playing: boolean;
   readonly duration: number;
@@ -29,25 +33,30 @@ function mediaIdAliases(id: string): readonly string[] {
 
 /** Editor transport uses the canonical compiler/runtime; rendering remains a Stage concern. */
 export function createPlaybackControllerV3(): PlaybackControllerV3 {
-  let runtime: RuntimeProjectV3 | undefined;
+  const runtimeSession = createEditorRuntimeSession();
   let disposed = false;
   let documentGeneration = 0;
   let seekRequestId = 0;
-  let duration = 0;
   let lastFrame: RuntimeFrameV3 | undefined;
+  let previewRuntime: RuntimeProjectV3 | undefined;
   const videos = new Map<string, HTMLVideoElement>();
   const driftController = createDriftControllerV3();
   const frames = new Set<(event: PlaybackFrameEventV3) => void>();
   const times = new Set<(event: PlaybackTimeEventV3) => void>();
   const scheduler = createAnimationFrameSchedulerV3(window);
   const emit = (time: number, playing: boolean): void => {
-    if (!runtime) return;
+    if (!runtimeSession.current()) return;
     const snapshot = engine.snapshot();
     const token = { documentGeneration, transportGeneration: snapshot.generation, seekRequestId, generation: snapshot.generation };
-    const frame = evaluateRuntimeProjectV3(runtime, frameIndexAtTime(time, runtime.visual.composition.fps), { time });
+    const duration = snapshot.durationUs / 1_000_000;
+    // The engine publishes the last renderable plan before entering `ended`.
+    // Reuse that frame instead of reconstructing an end time in the web layer.
+    const frameTime = snapshot.state === "ended" ? lastFrame?.time ?? time : time;
+    const frame = runtimeSession.evaluate(frameTime, previewRuntime ?? runtimeSession.current());
+    if (!frame) return;
     lastFrame = frame;
-    for (const sink of frames) sink({ ...token, time, playing, frame });
-    for (const sink of times) sink({ ...token, time, playing });
+    for (const sink of frames) sink({ ...token, time: frameTime, playing, frame });
+    for (const sink of times) sink({ ...token, time, playing, duration, ended: snapshot.state === "ended" });
   };
   const engine: PlaybackEngine = createPlaybackEngine({
     scheduler,
@@ -80,9 +89,9 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
       dispose() { for (const element of videos.values()) element.pause(); videos.clear(); },
     },
     audioSink: createWebAudioGraphBackendV3({
-      resolveSource(source) { return runtime?.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)) ?? false; },
+      resolveSource(source) { return runtimeSession.current()?.mediaCatalog.assets.some((asset) => asset.mediaId === source.mediaId && asset.audio?.some((stream) => stream.streamId === source.streamId)) ?? false; },
       createElement(_clipId, source) {
-        const stream = runtime?.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
+        const stream = runtimeSession.current()?.mediaCatalog.assets.find((asset) => asset.mediaId === source.mediaId)?.audio?.find((candidate) => candidate.streamId === source.streamId);
         // Set CORS mode before assigning src or MediaElementAudioSourceNode
         // will be forced into opaque/silent mode by the browser.
         const element = new Audio();
@@ -97,32 +106,32 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
   // Backend confirmations can change effective transport state without a
   // user command or RAF tick; forward engine snapshots to UI sinks.
   const unsubscribeEngine = engine.subscribe((snapshot) => {
-    if (!runtime) return;
+    if (!runtimeSession.current()) return;
     emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
   });
-  const safeTime = (time: number): number => Math.max(0, Math.min(duration, Number.isFinite(time) ? time : 0));
   return {
     loadDocument(document, currentTime) {
-      if (disposed) return;
-      const compiled = compileProtocol(document);
-      const wasLoaded = runtime !== undefined;
-      const priorTimeUs = engine.snapshot().timeUs;
-      runtime = compiled;
+      if (disposed) throw new Error("Playback controller is disposed");
+      const wasLoaded = runtimeSession.current() !== undefined;
+      const compiled = runtimeSession.update(document);
+      previewRuntime = undefined;
       documentGeneration += 1;
-      duration = Math.max(0, compiled.visual.composition.duration ?? 0, ...compiled.visual.nodes.map((node) => node.timing.start + node.timing.duration), ...compiled.audioTimeline.tracks.flatMap((track) => track.clips.map((clip) => (clip.timelineStartSample + clip.timelineDurationSamples) / compiled.audioTimeline.sampleRate)));
       if (!wasLoaded) {
         seekRequestId += 1;
         engine.load(compiled);
-        engine.seek(safeTime(currentTime) * 1_000_000);
-        return;
+        engine.seek(currentTime * 1_000_000);
+        return compiled;
       }
       // Document changes (including enabled=false) only replace runtime plans.
       // The PlaybackEngine remains the sole owner of time and play/pause.
       engine.updateProject(compiled);
-      if (priorTimeUs > duration * 1_000_000) {
-        seekRequestId += 1;
-        engine.seek(duration * 1_000_000);
-      }
+      return compiled;
+    },
+    setPreviewDocument(document) {
+      if (disposed) return;
+      previewRuntime = document ? runtimeSession.preview(document) : undefined;
+      const snapshot = engine.snapshot();
+      emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
     },
     play() {
       if (disposed) return;
@@ -142,11 +151,18 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
       const snapshot = engine.snapshot();
       emit(snapshot.timeUs / 1_000_000, snapshot.state === "playing");
     },
-    seek(time) { if (!disposed) { seekRequestId += 1; engine.seek(safeTime(time) * 1_000_000); } },
-    previewAt(time) { if (!disposed) { seekRequestId += 1; engine.seek(safeTime(time) * 1_000_000); } },
+    seek(time) { if (!disposed) { seekRequestId += 1; engine.seek(time * 1_000_000); } },
+    previewAt(time) { if (!disposed) { seekRequestId += 1; engine.seek(time * 1_000_000); } },
     registerFrameSink(sink) { frames.add(sink); if (lastFrame) { const snapshot = engine.snapshot(); sink({ documentGeneration, transportGeneration: snapshot.generation, seekRequestId, generation: snapshot.generation, time: lastFrame.time, playing: snapshot.state === "playing", frame: lastFrame }); } return () => frames.delete(sink); },
-    registerTimeSink(sink) { times.add(sink); const snapshot = engine.snapshot(); sink({ documentGeneration, transportGeneration: snapshot.generation, seekRequestId, generation: snapshot.generation, time: snapshot.timeUs / 1_000_000, playing: snapshot.state === "playing" }); return () => times.delete(sink); },
+    registerTimeSink(sink) { times.add(sink); const snapshot = engine.snapshot(); sink({ documentGeneration, transportGeneration: snapshot.generation, seekRequestId, generation: snapshot.generation, time: snapshot.timeUs / 1_000_000, playing: snapshot.state === "playing", duration: snapshot.durationUs / 1_000_000, ended: snapshot.state === "ended" }); return () => times.delete(sink); },
     setHiddenLayerIds() { /* visibility is applied by Stage from editor-session state. */ },
+    setPreparedRuntimeProject(project) {
+      if (disposed || !runtimeSession.current()) return;
+      runtimeSession.replaceRuntime(project);
+      engine.updateProject(project);
+    },
+    runtimeProject: () => runtimeSession.current(),
+    runtimeGeneration: () => runtimeSession.generation(),
     registerVideo(assetId, element, onFrameReady) {
       for (const id of mediaIdAliases(assetId)) videos.set(id, element);
       const callback = () => onFrameReady?.();
@@ -154,7 +170,7 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
       // Resource preparation is asynchronous. The Stage can register its
       // element after the controller's initial seek has already published;
       // replay the current plan so the first mount does not require F5.
-      if (runtime) engine.seek(engine.snapshot().timeUs);
+      if (runtimeSession.current()) engine.seek(engine.snapshot().timeUs);
       return () => {
         for (const id of mediaIdAliases(assetId)) {
           if (videos.get(id) === element) videos.delete(id);
@@ -164,8 +180,8 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
       };
     },
     get playing() { return engine.snapshot().state === "playing"; },
-    get duration() { return duration; },
+    get duration() { return engine.snapshot().durationUs / 1_000_000; },
     snapshot: () => engine.snapshot(),
-    dispose() { if (disposed) return; disposed = true; unsubscribeEngine(); engine.dispose(); frames.clear(); times.clear(); runtime = undefined; },
+    dispose() { if (disposed) return; disposed = true; previewRuntime = undefined; unsubscribeEngine(); engine.dispose(); frames.clear(); times.clear(); runtimeSession.dispose(); },
   };
 }

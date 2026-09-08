@@ -61,12 +61,12 @@ một project được rút gọn thành:
                     │                     │
                     ▼                     ▼
              ┌──────────────┐        Native
-             │    PREVIEW   │        Renderer
+             │     SKIA     │        Renderer
              │   Renderer   │           │
              └──────┬───────┘           ▼
                     │                 FFmpeg
-                 WebGPU/                │
-                 WebGL2                 ▼
+               CanvasKit/              │
+                  Skia                 ▼
                     │                  MP4
                     └──────────┬────────┘
                                ▼
@@ -122,7 +122,7 @@ RuntimeProjectV3
   ├── PaintCommandBuffer
   └── AudioMixPlanV3
   │
-  ├── Preview Renderer + Audio Backend
+  ├── Skia Renderer + Audio Backend
   └── Export Renderer + FFmpeg
 ```
 
@@ -159,7 +159,27 @@ Chi tiết về probe, derivative và media worker nằm trong
 [`export-renderer README`](packages/export-renderer/README.md). Chi tiết về
 audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/README.md).
 
-## Năm tầng cốt lõi
+## Các tầng cốt lõi
+
+## Phân loại packages
+
+| Package | Phân loại | Trách nhiệm chính | Không sở hữu |
+| --- | --- | --- | --- |
+| `@motionvideo/motion-protocol` | Contract | Schema, migration và canonical Protocol V2 | Runtime timing, rendering, transport |
+| `@motionvideo/editor-core` | Authoring domain | Document commands, inverse commands, selection, timeline projection/geometry và pure interactions | Compile/evaluate runtime, playhead clock, DOM, React, persistence |
+| `@motionvideo/html-compiler` | Input compiler | HTML/CSS subset → Protocol V2 | Runtime model và rendering |
+| `@motionvideo/asset-registry` | Asset contract | Font/SVG safety, asset identity và manifest/storage boundary | GPU textures, decoded media, Protocol semantics |
+| `@motionvideo/audio-analysis` | Offline media analysis | PCM decode, waveform/beat/energy/section analysis và clip mapping | Realtime audio clock, playback mixing |
+| `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts và Protocol V2 project operations | UI state, transport, renderer state |
+| `@motionvideo/motion-compiler` | Semantic compiler | Protocol V2 → RuntimeProjectV3, capability checks và lowering | UI, clock, media device, pixels |
+| `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
+| `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
+| `@motionvideo/playback-engine` | Realtime transport | Clock, play/pause/seek/rate, readiness, scheduling và backend plan delivery | Document editing, timeline UI, pixels |
+| `@motionvideo/skia-renderer` | Preview/render backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas | Protocol parsing, compiler, timeline, playback clock |
+| `@motionvideo/export-renderer` | Offline renderer | Runtime frame/audio → native output và FFmpeg MP4 | Authoring semantics, Playback |
+| `@motionvideo/preview-renderer` | Legacy backend | WebGPU/WebGL2 implementation cũ, không còn là preview path canonical | New Editor preview và `/docs/preview/skia` |
+| `apps/web` | Host/adapters | React, DOM, Canvas, stores, persistence, resource lifecycle và API bridge | Reimplementing command, compile/evaluate, duration, transport, renderer semantics |
+| `apps/web` `/docs/preview/skia` | Deterministic debug host | Gọi trực tiếp Compiler → Runtime → Skia với frame/time cố định | Realtime transport/playhead |
 
 ### 1. Author
 
@@ -383,19 +403,20 @@ Chi tiết trách nhiệm, boundary và output contract được mô tả trong
 ### 5. Playback & Render
 
 Playback và Render là các lớp tiêu thụ output của Runtime. Chúng không tạo
-semantics mới cho project; chúng điều phối thời gian, vẽ frame hoặc đóng frame
-và audio thành media cuối cùng.
+semantics mới cho project; Playback điều phối realtime còn Renderer biến output
+của Runtime thành pixels hoặc media cuối cùng.
 
 Playback chỉ tồn tại trong Editor để phục vụ thao tác realtime của người dùng.
-`docs/preview` và Export Renderer không đi qua Playback; chúng gọi Runtime với
+`/docs/preview/skia` và Export Renderer không đi qua Playback; chúng gọi Runtime với
 `frame/time` xác định để kiểm chứng hoặc render deterministically.
 
 #### 5.1 Playback
 
 ##### Vai trò
 
-Playback điều phối việc phát lại project trong Editor và kết nối clock của
-người dùng với Runtime.
+Playback điều phối việc phát lại project trong Editor. Web playback adapter
+đọc snapshot/clock từ Playback, yêu cầu Runtime đánh giá và chuyển kết quả cho
+Skia Renderer.
 
 ##### Luồng dữ liệu
 
@@ -415,15 +436,15 @@ USER / EDITOR CONTROLS
 │  Buffer / resource load │
 └────────────┬────────────┘
              │
-             ├── evaluate(frame/time)
+             ├── current frame/time
              ▼
-      RuntimeProjectV3
+      Web Playback Adapter
              │
-             ├── PaintCommandBuffer
-             │         ▼
-             │   Preview Renderer
-             │         ▼
-             │      Canvas
+             ├── evaluate(frame/time) → PaintCommandBuffer
+             │                              ▼
+             │                       Skia Renderer
+             │                              ▼
+             │                           Canvas
              │
              └── AudioMixPlanV3
                        ▼
@@ -439,9 +460,11 @@ USER / EDITOR CONTROLS
 2. Duy trì playback clock realtime và tiến playhead theo tốc độ phát.
 3. Quản lý vị trí playhead theo cả composition seconds và frame number.
 4. Xử lý play, pause, stop, seek, loop, in/out range và playback speed.
-5. Chuyển đổi clock thành `frame/time` hợp lệ trước mỗi lần yêu cầu Runtime.
-6. Yêu cầu Runtime đánh giá `RuntimeProjectV3` tại frame/time hiện tại.
-7. Chuyển `PaintCommandBuffer` tới Preview Renderer để vẽ lên Canvas.
+5. Chuẩn hóa current time thành `frame/time` contract cho web adapter.
+6. Phát snapshot và frame/time cho web adapter; adapter mới yêu cầu Runtime đánh
+   giá `RuntimeProjectV3`.
+7. Cung cấp frame/time và Runtime output cho Web Playback Adapter; Skia Renderer
+   chịu trách nhiệm replay `PaintCommandBuffer` lên Canvas.
 8. Chuyển `AudioMixPlanV3` tới Audio Playback Backend để phát qua Speakers.
 9. Điều phối tải, seek, readiness, buffering và cache các media resource cần
    cho realtime playback.
@@ -450,21 +473,23 @@ USER / EDITOR CONTROLS
 
 ##### Điểm bàn giao
 
-Playback bàn giao `PaintCommandBuffer` cho Preview Renderer và
-`AudioMixPlanV3` cho Audio Playback Backend.
+Playback bàn giao transport snapshot, frame/time và các plan cần realtime cho
+web adapter; Skia Renderer nhận `PaintCommandBuffer`, còn Audio Backend nhận
+`AudioMixPlanV3`.
 
 Playback chỉ quản lý transport và realtime delivery. Timeline semantics,
 layer timing, video trim, audio gain/fade/pan và media-time mapping vẫn thuộc
 Protocol, Compiler và Runtime tương ứng.
 
-Playback không phải là một bước trong visual test của `docs/preview` và không
+Playback không phải là một bước trong visual test của `/docs/preview/skia` và không
 được cung cấp frame hoặc audio cho Export Renderer.
 
-#### 5.2 Preview Renderer
+#### 5.2 Skia Preview Renderer
 
 ##### Vai trò
 
-Preview Renderer vẽ realtime trạng thái do Runtime trả về trong Editor.
+Skia Renderer vẽ trạng thái do Runtime trả về trong Editor và trong debug
+preview với CanvasKit/Skia.
 
 ##### Luồng dữ liệu
 
@@ -477,44 +502,41 @@ PaintCommandBuffer
         │
         ▼
 ┌─────────────────────────┐
-│    PREVIEW RENDERER     │
+│     SKIA RENDERER       │
 │                         │
-│  Chọn backend            │
-│  Quản lý canvas/context  │
-│  Quản lý GPU resources   │
+│  Khởi tạo CanvasKit      │
+│  Quản lý Skia surface    │
+│  Quản lý Canvas/context  │
 │  Replay paint commands   │
 │  Render media            │
 │  Resize / device scale   │
 │  Diagnostic / lifecycle  │
 └────────────┬────────────┘
              │
-             ├── WebGPU API → GPU → Canvas
-             └── WebGL2 API → GPU → Canvas
+             └── CanvasKit/Skia → Canvas
 ```
 
 ##### Trách nhiệm
 
 1. Nhận `PaintCommandBuffer` từ Runtime.
-2. Chọn WebGPU hoặc WebGL2 theo khả năng của browser.
-3. Tạo và quản lý canvas, context, buffers, textures, surfaces và GPU
+2. Khởi tạo CanvasKit/Skia và quản lý canvas, surface, textures cùng renderer
    resources.
-4. Replay command theo đúng thứ tự layer, transform, opacity và compositing.
-5. Upload và vẽ image, video frame, path, text hoặc shape.
-6. Quản lý resize, pixel ratio, canvas lifecycle và resource disposal.
-7. Trả diagnostic khi backend hoặc capability chưa được hỗ trợ.
-8. Vẽ kết quả thật lên Canvas để Editor hoặc `docs/preview` quan sát, chụp ảnh
+3. Replay command theo đúng thứ tự layer, transform, opacity và compositing.
+4. Upload và vẽ image, video frame, path, text hoặc shape.
+5. Quản lý resize, pixel ratio, canvas lifecycle và resource disposal.
+6. Trả diagnostic khi capability chưa được hỗ trợ.
+7. Vẽ kết quả thật lên Canvas để Editor hoặc `/docs/preview/skia` quan sát, chụp ảnh
    và so sánh parity.
 
-Preview Renderer không tự đánh giá timeline, không compile Protocol và không
-tạo semantics thay Runtime. WebGPU và WebGL2 chỉ là hai backend thực thi cùng
-một `PaintCommandBuffer`.
+Skia Renderer không tự đánh giá timeline, không compile Protocol và không tạo
+semantics thay Runtime. CanvasKit/Skia chỉ thực thi `PaintCommandBuffer`.
 
 ##### Điểm bàn giao
 
-Preview Renderer bàn giao hình ảnh realtime cho User trong Editor.
+Skia Renderer bàn giao hình ảnh cho User trong Editor hoặc debug preview.
 
-Chi tiết về backend WebGPU/WebGL2, GPU resources và lifecycle được mô tả trong
-[`preview-renderer README`](packages/preview-renderer/README.md).
+Chi tiết về CanvasKit/Skia resources và lifecycle được mô tả trong
+[`skia-renderer README`](packages/skia-renderer/README.md).
 
 #### 5.3 Export Renderer
 
@@ -619,7 +641,7 @@ trong [`export-renderer README`](packages/export-renderer/README.md).
 8. Unsupported capability phải fail closed và trả diagnostic rõ ràng.
 9. Tối ưu chỉ được thêm sau khi có test chứng minh output vẫn đúng hình ảnh.
 10. Playback chỉ phục vụ Editor và không phải là nguồn frame/audio cho export.
-11. `docs/preview` phải kiểm tra trực tiếp Runtime và Preview Renderer bằng
+11. `/docs/preview/skia` phải kiểm tra trực tiếp Runtime và Skia Renderer bằng
     frame/time xác định, không phụ thuộc clock realtime của Playback.
 
 ## Luồng dữ liệu chuẩn
@@ -635,25 +657,26 @@ Compiler
       ↓
 RuntimeProjectV3
       └── Runtime evaluator
-            ├── Editor Playback → Preview Renderer → WebGPU/WebGL2 → user preview
-            ├── docs/preview → Preview Renderer → visual test output
-            └── Export Renderer → Native frames + audio mix → FFmpeg → MP4 → user download
+            ├── Editor Playback → Web Adapter → Runtime → Skia Renderer → user preview
+            ├── /docs/preview/skia → Runtime → Skia Renderer → visual test output
+            └── Export Renderer → Skia/native frames + audio mix → FFmpeg → MP4 → user download
 ```
 
 ## Ranh giới trách nhiệm
 
 | Thành phần              | Trách nhiệm chính                             |
 | ----------------------- | --------------------------------------------- |
-| Editor / MCP / AI Agent | Tạo và sửa authoring intent                   |
-| MotionProtocolV2        | Project JSON contract                         |
-| Compiler                | Hạ V2 thành RuntimeProjectV3                  |
-| Motion Runtime          | Evaluate frame/time và tạo visual/audio plans |
-| Playback                | Điều phối clock, controls và phát lại          |
-| Preview Renderer        | Render realtime trong browser                 |
-| Export Renderer         | Render offline native trên VPS                |
-| FFmpeg                  | Encode frame/audio thành MP4                  |
-| Web API                 | Auth, ownership, job state, artifact metadata |
-| Web App storage         | Điều phối R2, upload, signed URL và metadata |
+| Motion Protocol         | Canonical Protocol V2 contract                |
+| Editor Core             | Authoring commands, timeline và interactions  |
+| HTML Compiler           | HTML/CSS subset → Protocol V2                |
+| Motion Compiler         | Protocol V2 → RuntimeProjectV3               |
+| Motion Runtime          | Duration, evaluate frame/time và plans        |
+| Playback Engine         | Realtime clock, transport và delivery        |
+| Skia Renderer           | Replay PaintCommandBuffer lên CanvasKit/Skia |
+| Export Renderer         | Offline render, audio mix và export job      |
+| Legacy Preview Renderer | WebGPU/WebGL2 path cũ, không canonical       |
+| Web App                 | UI, adapters, stores và orchestration        |
+| Web API / Storage       | Auth, ownership, R2 và artifact metadata     |
 | Media Ingest Worker     | Probe media và tạo audio derivative           |
 
 ## Tiêu chuẩn quyết định
@@ -664,7 +687,7 @@ Khi thêm một capability mới, kiểm tra theo thứ tự:
 Protocol
   → Compiler
   → Runtime evaluator
-  → Preview
+  → Skia Preview
   → Native export
   → parity test
 ```
@@ -678,5 +701,5 @@ không được âm thầm tạo một video sai semantics.
 - Protocol trả lời: **ý định đó được biểu diễn thành project canonical nào?**
 - Compiler trả lời: **project này có thể chạy như thế nào?**
 - Runtime trả lời: **ở frame/time này, project đang ở trạng thái nào?**
-- Renderer trả lời: **dùng công nghệ nào để vẽ trạng thái đó?**
+- Skia Renderer trả lời: **replay `PaintCommandBuffer` lên CanvasKit/Skia như thế nào?**
 - FFmpeg trả lời: **đóng các frame/audio thành MP4 như thế nào?**

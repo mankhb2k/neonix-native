@@ -260,6 +260,7 @@ export {
 } from "./transform";
 export {
   V2AnimatableValueSchema,
+  V2AnimationPlaybackSchema,
   V2TrackPlaybackSchema,
   V2EasingSchema,
   V2InterpolationSchema,
@@ -268,6 +269,7 @@ export {
   V2TrackSchema,
   V2TrackListSchema,
   type V2AnimatableValue,
+  type V2AnimationPlayback,
   type V2TrackPlayback,
   type V2Easing,
   type V2Interpolation,

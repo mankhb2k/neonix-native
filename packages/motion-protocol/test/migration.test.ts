@@ -93,4 +93,31 @@ describe("Protocol V2 legacy migration", () => {
     expect(legacyWithLoop.layers[0]?.payload).toHaveProperty("loop", true);
     expect(legacyWithLoop.audio.tracks[0]?.clips[0]).toHaveProperty("loop", true);
   });
+
+  it("renames legacy track playback metadata to animation", () => {
+    const legacyWithTrackPlayback = structuredClone(legacy) as any;
+    legacyWithTrackPlayback.layers[0].tracks = [{
+      id: "opacity-track",
+      path: "opacity",
+      keyframes: [
+        { time: 0, value: { type: "number", value: 0 } },
+        { time: 1000, value: { type: "number", value: 1 } },
+      ],
+      playback: {
+        durationMs: 1000,
+        delayMs: 0,
+        iterations: 1,
+        direction: "normal",
+        fillMode: "both",
+        playState: "running",
+      },
+    }];
+
+    const result = parseMotionProtocolV2WithMigration(legacyWithTrackPlayback);
+    const track = result.project.layers[0]?.tracks?.[0];
+    expect(track?.animation).toMatchObject({ durationMs: 1000, fillMode: "both" });
+    expect(track).not.toHaveProperty("playback");
+    expect(result.diagnostics.some((item) => item.code === "renamed_track_playback")).toBe(true);
+    expect(legacyWithTrackPlayback.layers[0].tracks[0]).toHaveProperty("playback");
+  });
 });

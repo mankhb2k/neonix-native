@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { PreviewStage } from "@/components/docs/PreviewStage";
+import { PreviewStage } from "@/components/preview/PreviewStage";
 import { PATH_RENDERING_FIXTURES, pathRenderingFixtureById, type PathRenderingFixture } from "@/lib/docs/path-rendering-fixtures";
 
 type Measurement = { backend: string; nativeWidth: number; nativeHeight: number; cssWidth: number; cssHeight: number; bounds: string; paintedPixels: number; backgroundHoles: number; probes: Array<{ name: string; actual: string; expected: string }> };

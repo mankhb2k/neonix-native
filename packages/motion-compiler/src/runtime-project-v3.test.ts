@@ -28,6 +28,7 @@ describe("canonical compiler V3 projection", () => {
       format: "motion-runtime",
       runtimeVersion: 3,
       projectId: fixture.project.id,
+      durationUs: 10_000_000,
       visual: {
         composition: expect.any(Object),
         view: expect.any(Object),
@@ -260,13 +261,13 @@ describe("canonical compiler V3 projection", () => {
           id: "camera-distance",
           path: "render3d.perspective.distance",
           keyframes: [{ time: 0, value: { type: "number", value: 400 } }, { time: 1000, value: { type: "number", value: 900 } }],
-          playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+          animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
         },
         {
           id: "camera-origin",
           path: "render3d.perspective.origin",
           keyframes: [{ time: 0, value: { type: "vec2", value: [80, 100] } }, { time: 1000, value: { type: "vec2", value: [800, 500] } }],
-          playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+          animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
         },
       ],
     };
@@ -394,7 +395,7 @@ describe("canonical compiler V3 projection", () => {
         { time: 0, value: { type: "number", value: 0 } },
         { time: 1000, value: { type: "number", value: 1 } },
       ],
-      playback: { durationMs: 1000, delayMs: 0, iterations: 2, direction: "alternate", fillMode: "both", playState: "running" },
+      animation: { durationMs: 1000, delayMs: 0, iterations: 2, direction: "alternate", fillMode: "both", playState: "running" },
     }];
     const runtime = compileProtocolAtTime(project, 0.5);
     expect(runtime.visual.nodes.find((node) => node.id === "filtered-path")?.opacity).toBeCloseTo(0.5);
@@ -433,7 +434,7 @@ describe("canonical compiler V3 projection", () => {
         { time: 0, value: { type: "number", value: 0 } },
         { time: 1000, value: { type: "number", value: 1 } },
       ],
-      playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+      animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
     }];
     const runtime = compileProtocolAtTime(project, 0.5);
     const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
@@ -442,7 +443,7 @@ describe("canonical compiler V3 projection", () => {
   });
 
   it("applies delay and fill-mode without changing the underlying layer when inactive", () => {
-    const sampleOpacity = (playback: Record<string, unknown>, time: number) => {
+    const sampleOpacity = (animation: Record<string, unknown>, time: number) => {
       const project = filterProject({ id: "animation-state", primitives: [] }) as any;
       project.filters = [];
       project.layers[0].filter = undefined;
@@ -454,7 +455,7 @@ describe("canonical compiler V3 projection", () => {
           { time: 0, value: { type: "number", value: 0.1 } },
           { time: 700, value: { type: "number", value: 0.9 } },
         ],
-        playback,
+        animation,
       }];
       return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
     };
@@ -469,7 +470,7 @@ describe("canonical compiler V3 projection", () => {
   });
 
   it("samples direction at iteration boundaries and preserves fractional endpoints", () => {
-    const sampleOpacity = (playback: Record<string, unknown>, time: number) => {
+    const sampleOpacity = (animation: Record<string, unknown>, time: number) => {
       const project = filterProject({ id: "iteration-state", primitives: [] }) as any;
       project.filters = [];
       project.layers[0].filter = undefined;
@@ -480,7 +481,7 @@ describe("canonical compiler V3 projection", () => {
           { time: 0, value: { type: "number", value: 0 } },
           { time: 1000, value: { type: "number", value: 1 } },
         ],
-        playback,
+        animation,
       }];
       return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
     };
@@ -507,7 +508,7 @@ describe("canonical compiler V3 projection", () => {
           { time: 0, value: { type: "number", value: 240 } },
           { time: 1000, value: { type: "number", value: 520 } },
         ],
-        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
       },
       {
         id: "resize-height",
@@ -516,7 +517,7 @@ describe("canonical compiler V3 projection", () => {
           { time: 0, value: { type: "number", value: 120 } },
           { time: 1000, value: { type: "number", value: 300 } },
         ],
-        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
       },
     ];
     const runtime = compileProtocolAtTime(project, 0.5);
@@ -536,7 +537,7 @@ describe("canonical compiler V3 projection", () => {
         { time: 0, value: { type: "color", value: [0x25 / 255, 0x63 / 255, 0xeb / 255, 1] }, easing: { type: "step", count: 4, position: "jump-start" } },
         { time: 1000, value: { type: "color", value: [0xfa / 255, 0xcc / 255, 0x15 / 255, 1] } },
       ],
-      playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+      animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
     }];
     expect(sampleMotionProtocolAtTime(project, 0).layers[0]?.style?.fill).toBe("#5a7db6");
   });
@@ -553,7 +554,7 @@ describe("canonical compiler V3 projection", () => {
           { time: 0, value: { type: "number", value: 0 }, easing },
           { time: 1000, value: { type: "number", value: 1 } },
         ],
-        playback: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
       }];
       return sampleMotionProtocolAtTime(project, time).layers[0]?.opacity;
     };

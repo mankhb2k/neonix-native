@@ -5,7 +5,7 @@
     "app/app/**/*.ts",
     "app/app/**/*.tsx",
     "components/AppLink.tsx",
-    "components/docs/PreviewStage.tsx",
+    "components/preview/PreviewStage.tsx",
     "components/hub/WorkspaceHome.tsx",
     "components/editor/**/*.ts",
     "components/editor/**/*.tsx",
@@ -13,9 +13,7 @@
     "hooks/editor/**/*.tsx",
     "lib/hosts.ts",
     "lib/editor/document/**/*.ts",
-    "lib/editor/inspector/transform.ts",
-    "lib/editor/library/commands.ts",
-    "lib/editor/stage/transform.ts"
+    "lib/editor/library/commands.ts"
   ],
   "exclude": [
     "node_modules",

@@ -8,7 +8,7 @@ import {
   type LibraryDragSessionState,
 } from "@/lib/editor/library/library-drag-session";
 import { isOverTimelineDropZone } from "@/lib/editor/library/timeline-library-drop";
-import type { LibraryPayload } from "@/lib/editor/library/library-payload";
+import type { LibraryPayload } from "@motionvideo/editor-core";
 
 const CARD_ANCHOR_X = 34;
 const CARD_ANCHOR_Y = 34;

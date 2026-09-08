@@ -12,6 +12,7 @@ import type { LaneRow } from "../lanes/timeline-lane-rows";
 import type { BeginGesture } from "@/hooks/editor/pointer/use-pointer-session-host";
 import type { ClipMovePreview ,
   EditorSelection,
+  TimelineAction,
   TimelineClip,
   TimelineEdit,
   TimelineLane,
@@ -38,14 +39,11 @@ type Props = {
   bottomPadding: number;
   selectedClipIds?: ReadonlySet<string>;
   previewSelectedIds?: ReadonlySet<string> | null;
-  muteWindow?: { start: number; end: number } | null;
-  duration: number;
   selection: EditorSelection;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineEdit, label: string) => void;
-  onToggleAudioTrackMuted?: (trackId: string) => void;
-  onToggleVideoMuted?: (layerId: string) => void;
+  onAction?: (action: TimelineAction) => void;
   scrollRef: RefObject<HTMLElement | null>;
   onMarqueePointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onClipSelectPointerDown?: (
@@ -225,14 +223,11 @@ export function TimelineTrackCanvas({
   bottomPadding,
   selectedClipIds,
   previewSelectedIds,
-  muteWindow,
-  duration,
   selection,
   beginGesture,
   onSelect,
   onExecute,
-  onToggleAudioTrackMuted,
-  onToggleVideoMuted,
+  onAction,
   scrollRef,
   onMarqueePointerDown,
   onClipSelectPointerDown,
@@ -283,17 +278,17 @@ export function TimelineTrackCanvas({
               const audioTrackId = row.kind === "audio"
                 ? row.id.replace(/^lane\.audio\./, "")
                 : null;
-              const audioToggle = row.kind === "audio" && audioTrackId && onToggleAudioTrackMuted
+              const audioToggle = row.kind === "audio" && audioTrackId && onAction
                 ? {
                     muted: row.muted ?? false,
                     label: `${row.name} audio`,
-                    onClick: () => onToggleAudioTrackMuted(audioTrackId),
+                    onClick: () => onAction({ type: "toggle-audio", targetId: audioTrackId }),
                   }
-                : videoLayerId && onToggleVideoMuted
+                : videoLayerId && onAction
                   ? {
                       muted: videoMuted,
                       label: `${videoClip?.name ?? "Video"} audio`,
-                      onClick: () => onToggleVideoMuted(videoLayerId),
+                      onClick: () => onAction({ type: "toggle-video-audio", targetId: videoLayerId }),
                     }
                   : null;
               return (
@@ -339,25 +334,6 @@ export function TimelineTrackCanvas({
         {topPadding > 0 ? (
           <div style={{ height: topPadding }} aria-hidden />
         ) : null}
-
-      {muteWindow ? (
-        <>
-          <div
-            className="pointer-events-none absolute top-0 bottom-0 z-[1] bg-[var(--fg-primary)]/6"
-            style={{
-              left: 0,
-              width: Math.max(0, muteWindow.start) * pixelsPerSecond,
-            }}
-          />
-          <div
-            className="pointer-events-none absolute top-0 bottom-0 z-[1] bg-[var(--fg-primary)]/6"
-            style={{
-              left: muteWindow.end * pixelsPerSecond,
-              width: Math.max(0, duration - muteWindow.end) * pixelsPerSecond,
-            }}
-          />
-        </>
-      ) : null}
 
       {timelineEmpty ? (
         <EmptyTimelineDash

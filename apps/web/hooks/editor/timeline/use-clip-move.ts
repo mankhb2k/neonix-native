@@ -188,12 +188,6 @@ export function useClipMove({
       const originContentX = host.pointerContentXAtPoint(originX) ?? 0;
       const grabOffsetSec = originContentX / pps - originStart;
       const catalog = allClips ?? clips;
-      const catalogById = new Map(catalog.map((c) => [c.id, c]));
-      const minStartInGroup = Math.min(
-        ...groupIds.map(
-          (id) => catalogById.get(id)?.startTime ?? originStart,
-        ),
-      );
       const groupPlan = isGroup
         ? createClipGroupMovePlan({ clips: catalog, lanes }, groupIds)
         : null;
@@ -317,9 +311,17 @@ export function useClipMove({
               exclusiveRows: host.exclusiveRows,
             });
             const rawDelta = resolved.commit.startTime - originStart;
-            const groupDelta = Math.max(rawDelta, -minStartInGroup);
-            const primaryStart = originStart + groupDelta;
-            let groupValid = resolved.commit.valid;
+            // Group bounds and occupancy are resolved once by editor-core.
+            // The web hook only consumes the resolved delta for its ghost and
+            // emits that same delta on commit.
+            const groupResolution = groupPlan?.resolve(rawDelta) ?? null;
+            const groupDelta = groupResolution?.groupDelta ?? rawDelta;
+            const primaryStart =
+              groupResolution?.placements.find(
+                (placement) => placement.clipId === clip.id,
+              )?.startTime ?? originStart + groupDelta;
+            const groupValid =
+              resolved.commit.valid && (groupResolution?.valid ?? true);
             const primaryLaneIndex = hostLanes.findIndex(
               (l) => l.id === originLaneId,
             );
@@ -329,12 +331,12 @@ export function useClipMove({
               : 0;
 
             const members = isGroup
-              ? groupIds
-                  .filter((id) => id !== clip.id)
-                  .map((id) => {
-                    const c = catalogById.get(id);
-                    if (!c || !c.laneId) return null;
-                    const lIdx = hostLanes.findIndex((l) => l.id === c.laneId);
+              ? (groupResolution?.placements ?? [])
+                  .filter((placement) => placement.clipId !== clip.id)
+                  .map((placement) => {
+                    const lIdx = hostLanes.findIndex(
+                      (l) => l.id === placement.laneId,
+                    );
                     const lTop =
                       dropCtx?.laneHitLayout && lIdx >= 0
                         ? dropCtx.laneHitLayout.topPadding +
@@ -342,10 +344,10 @@ export function useClipMove({
                         : 0;
                     const mLane = hostLanes[lIdx];
                     return {
-                      clipId: id,
-                      laneId: c.laneId,
-                      startTime: c.startTime + groupDelta,
-                      duration: c.duration,
+                      clipId: placement.clipId,
+                      laneId: placement.laneId,
+                      startTime: placement.startTime,
+                      duration: placement.duration,
                       trackKind: mLane
                         ? host.trackForLane(mLane)
                         : ("overlay" as const),
@@ -357,10 +359,6 @@ export function useClipMove({
                   })
                   .filter((m): m is NonNullable<typeof m> => m != null)
               : undefined;
-            if (isGroup && groupValid && groupPlan) {
-              const core = groupPlan.resolve(groupDelta);
-              groupValid = core.valid && resolved.commit.valid;
-            }
             const snapGuideTime =
               primaryStart === resolved.commit.startTime
                 ? (resolved.preview.snapGuideTime ?? null)

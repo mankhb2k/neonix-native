@@ -173,8 +173,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES.filter((item) => item.id.includes("delay") || item.id.includes("fill-") || item.id.includes("play-state"))) {
       const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
       expect(compiled.status, fixture.id).toBe("success");
-      const playback = compiled.protocol?.layers.flatMap((layer) => layer.tracks ?? []).map((track) => track.playback).find(Boolean);
-      expect(playback, fixture.id).toMatchObject({ durationMs: expect.any(Number), fillMode: expect.any(String), playState: expect.any(String) });
+      const animation = compiled.protocol?.layers.flatMap((layer) => layer.tracks ?? []).map((track) => track.animation).find(Boolean);
+      expect(animation, fixture.id).toMatchObject({ durationMs: expect.any(Number), fillMode: expect.any(String), playState: expect.any(String) });
     }
     for (const fixture of HTML_COMPILER_MOTION_PHASE3_CASES.filter((item) => item.id.includes("combo-"))) {
       const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });

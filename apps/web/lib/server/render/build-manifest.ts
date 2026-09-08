@@ -24,6 +24,7 @@ export function buildStubRuntimeProjectV3(input: {
     format: "motion-runtime",
     runtimeVersion: 3,
     projectId: input.projectId,
+    durationUs: 0,
     visual: {
       composition: {
       width: spec.width,

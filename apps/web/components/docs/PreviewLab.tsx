@@ -4,7 +4,7 @@ import { Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PreviewStage } from "@/components/docs/PreviewStage";
+import { PreviewStage } from "@/components/preview/PreviewStage";
 import {
   type PreviewLabCase,
   previewLabCaseById,

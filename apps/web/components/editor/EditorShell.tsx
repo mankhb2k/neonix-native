@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Poin
 import { PlaybackDebugPanel } from "@/components/editor/debug/PlaybackDebugPanel";
 import { EditorProviders } from "@/components/editor/EditorProviders";
 import { EditorHeader } from "@/components/editor/header/EditorHeader";
-import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
+import { InspectorShell } from "@/components/editor/inspector/InspectorShell";
 import { Sidebar } from "@/components/editor/sidebar/Sidebar";
 import { StageViewport } from "@/components/editor/stage/StageViewport";
 import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
+import { EditorKeyboardBridge } from "@/hooks/editor/use-editor-keyboard-bridge";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 const editorGridClass =
@@ -197,6 +198,7 @@ export function EditorShell({
       projectRef={projectRef}
       initialRevisionNo={initialRevisionNo}
     >
+      <EditorKeyboardBridge />
       <div
         data-surface="editor"
         data-testid="editor-shell"
@@ -207,7 +209,7 @@ export function EditorShell({
         <Sidebar projectRef={projectRef} />
         <StageViewport />
         <TimelineShell />
-        <SchemaInspector />
+        <InspectorShell />
         <PlaybackDebugPanel />
         <EditorLayoutResizers
           layout={layout}

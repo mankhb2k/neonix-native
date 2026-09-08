@@ -68,6 +68,31 @@ export function replaceTextAtSelection(
   return updateTextEditDraft(session, draftText, { start: caret, end: caret });
 }
 
+/**
+ * Delete the current selection or the character next to the caret.
+ * Keeping this policy in core makes browser keyboard adapters stateless.
+ */
+export function deleteTextAtCaret(
+  session: TextEditSession,
+  direction: "backward" | "forward",
+): TextEditSession {
+  const selection = clampTextSelection(session.selection, session.draftText.length);
+  if (selection.start !== selection.end) {
+    return replaceTextAtSelection(session, "");
+  }
+  const start = direction === "backward"
+    ? Math.max(0, selection.start - 1)
+    : selection.start;
+  const end = direction === "forward"
+    ? Math.min(session.draftText.length, selection.end + 1)
+    : selection.end;
+  return updateTextEditDraft(
+    session,
+    session.draftText.slice(0, start) + session.draftText.slice(end),
+    { start, end: start },
+  );
+}
+
 export function moveTextCaret(
   session: TextEditSession,
   direction: "left" | "right" | "home" | "end",

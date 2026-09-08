@@ -1,6 +1,7 @@
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 import {
   evaluateRuntimeProjectV3,
+  deriveRuntimeProjectDurationUs,
   frameIndexAtTime,
   secondsToSamples,
   type PaintCommandBuffer,
@@ -114,12 +115,14 @@ export function compileProtocol(
     format: "motion-runtime",
     runtimeVersion: 3,
     projectId: protocol.id,
+    durationUs: 0,
     visual: visualProject,
     mediaCatalog,
     videoTimeline,
     audioTimeline,
     diagnostics: [],
   };
+  runtime.durationUs = deriveRuntimeProjectDurationUs(runtime);
   const validation = validateRuntimeProjectV3(runtime);
   if (!validation.ok) {
     throw new CompileProtocolToRuntimeV3Error(

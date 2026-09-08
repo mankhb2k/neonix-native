@@ -1,14 +1,16 @@
 "use client";
 
 import { createContext, useContext, type Dispatch, type SetStateAction } from "react";
-import type { EditorCommand, TextSelection } from "@motionvideo/editor-core";
 import type { TextEditStartPoint } from "@/lib/editor/state/editor-store";
+import type { EditorCommand, TextSelection } from "@motionvideo/editor-core";
 
 export type EditorActions = {
   setSelectedLayerIds: Dispatch<SetStateAction<string[]>>;
   toggleLayerVisibility: (layerId: string) => void;
   toggleLayerLock: (layerId: string) => void;
   applyCommand: (command: EditorCommand) => boolean;
+  /** Sends a transient command to the runtime preview without changing history/document state. */
+  previewCommand: (command: EditorCommand | null) => void;
   applyCommands: (commands: readonly EditorCommand[]) => boolean;
   applyCoalescedCommand: (historyKey: string, command: EditorCommand) => boolean;
   undo: () => boolean;

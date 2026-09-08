@@ -53,8 +53,8 @@ export const V2AnimatableValueSchema = z.discriminatedUnion("type", [
 
 export type V2AnimatableValue = z.infer<typeof V2AnimatableValueSchema>;
 
-/** Runtime playback policy for a track. Times remain milliseconds to match V2 keyframes. */
-export const V2TrackPlaybackSchema = z
+/** Runtime animation policy for a track. Times remain milliseconds to match V2 keyframes. */
+export const V2AnimationPlaybackSchema = z
   .object({
     durationMs: V2PositiveMillisecondsSchema,
     delayMs: V2FiniteNumberSchema,
@@ -73,7 +73,12 @@ export const V2TrackPlaybackSchema = z
     playState: "running",
   });
 
-export type V2TrackPlayback = z.infer<typeof V2TrackPlaybackSchema>;
+export type V2AnimationPlayback = z.infer<typeof V2AnimationPlaybackSchema>;
+
+/** @deprecated Use V2AnimationPlaybackSchema. */
+export const V2TrackPlaybackSchema = V2AnimationPlaybackSchema;
+/** @deprecated Use V2AnimationPlayback. */
+export type V2TrackPlayback = V2AnimationPlayback;
 
 /** Temporal interpolation is attached to the segment leaving a keyframe. */
 export const V2EasingSchema = z.discriminatedUnion("type", [
@@ -149,7 +154,7 @@ export const V2TrackSchema = z
     path: V2PropertyPathSchema,
     keyframes: z.array(V2KeyframeSchema).min(1),
     interpolation: V2InterpolationSchema.optional(),
-    playback: V2TrackPlaybackSchema.optional(),
+    animation: V2AnimationPlaybackSchema.optional(),
   })
   .strict()
   .superRefine((track, ctx) => {
