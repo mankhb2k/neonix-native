@@ -725,27 +725,49 @@ Animation time requires `ms` or `s`. Keyframe selectors must be `from`, `to` or 
 
 ## Unsupported CSS values
 
-Any value, function, unit, keyword combination or numeric result outside this contract must fail compilation. The compiler must use the most specific diagnostic available, for example:
+Any value, function, unit, keyword combination or numeric result outside this contract must fail compilation. The compiler must use the most specific diagnostic available.
+
+The following audit is based on the current implementation and tests in `packages/html-compiler`. A diagnostic existing in source is not, by itself, proof that the public contract is complete: a contract is considered verified only when the lowering/rejection path and a focused test are both present.
+
+### Definition of support
+
+Một CSS property/value chỉ được gọi là `supported` khi có đủ đường đi sau:
 
 ```text
-css-value-invalid
-css-color-unsupported
-css-display-unsupported
-css-white-space-unsupported
-css-text-align-unsupported
-css-writing-mode-unsupported
-css-border-style-unsupported
-css-transform-function-unsupported
-css-transform-value-invalid
-css-filter-unsupported
-css-clip-path-unsupported
-css-object-fit-invalid
-css-object-position-unsupported
-css-animation-easing-invalid
-css-motion-path-unsupported
+CSS parser
+  -> layout/paint/motion lowering
+  -> Protocol V2 hợp lệ
+  -> downstream compiler/runtime có thể tiêu thụ
+  -> test hoặc fixture xác nhận
 ```
 
-When a new value/function is added, update this section, the corresponding parser/lowering code and a positive plus negative fixture test.
+Các quy tắc bắt buộc:
+
+- Chỉ parser nhận diện hoặc allowlist một property không có nghĩa là được hỗ trợ.
+- Có diagnostic reject nhưng không có lowering tương ứng thì mặc định là `unsupported`.
+- Có lowering tạo ra Protocol V2 nhưng runtime/Skia chưa render được thì chỉ là `compiler-supported`, chưa phải app-supported.
+- Không có test/fixture thì implementation chưa được xem là public contract ổn định.
+- Không được silently drop declaration hoặc fallback về browser behavior ngoài Protocol V2.
+
+| Diagnostic | Current implementation | Test evidence | Contract status |
+| --- | --- | --- | --- |
+| `css-value-invalid` | `compiler/values.ts` rejects invalid numeric/unit/calc values | `src/_test_/values-advanced.test.ts` exercises invalid values, but accepts either `css-property-unsupported` or `css-value-invalid`; positive calc tests exist | Implementation verified; exact diagnostic not yet verified |
+| `css-color-unsupported` | `compiler/paint.ts` rejects unsupported color syntax | `src/_test_/normalization.test.ts` + paint fixtures | Verified |
+| `css-display-unsupported` | `compiler/css-parser.ts` validates the display allowlist | `src/index.test.ts` negative case + `src/_test_/phase3.test.ts` positive cases | Verified |
+| `css-white-space-unsupported` | `compiler/css-parser.ts` validates the white-space allowlist | `src/index.test.ts` and preview fixtures cover accepted values; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-text-align-unsupported` | `compiler/css-parser.ts` validates the text-align allowlist | `src/index.test.ts` and preview fixtures cover accepted values; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-writing-mode-unsupported` | `compiler/css-parser.ts` validates the writing-mode allowlist | `src/index.test.ts` and preview fixtures cover accepted values; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-border-style-unsupported` | `compiler/css-parser.ts` and `compiler/paint.ts` validate border styles | `src/_test_/phase2-paint-border.test.ts` covers accepted styles; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-transform-function-unsupported` | `compiler/transform.ts` rejects unknown transform functions | `src/_test_/transform.test.ts` covers supported functions; no focused unknown-function test | Lowering verified; rejection diagnostic not yet verified |
+| `css-transform-value-invalid` | `compiler/transform.ts` rejects non-finite scale values | No focused negative test; supported transform tests exist | Implementation-only; not a verified public contract |
+| `css-filter-unsupported` | `compiler/filter.ts` rejects unknown filter functions | `src/index.test.ts` and preview fixtures cover supported filters; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-clip-path-unsupported` | `compiler/clip.ts` rejects unknown clip-path functions | `src/index.test.ts` and preview fixtures cover supported shapes; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-object-fit-invalid` | `compiler/media.ts` validates object-fit values | `src/_test_/media.test.ts` and preview fixtures cover accepted values; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-object-position-unsupported` | `compiler/media.ts` validates supported keyword/percentage pairs | `src/_test_/media.test.ts` and preview fixtures cover accepted values; no focused negative diagnostic test | Lowering verified; rejection diagnostic not yet verified |
+| `css-animation-easing-invalid` | `compiler/animation.ts` validates steps/cubic-bezier/easing names | `src/_test_/animation.test.ts` + preview negative fixture | Verified |
+| `css-motion-path-unsupported` | `compiler/motion-path.ts` accepts only `none` or one quoted `path(...)` | `src/_test_/animation.test.ts` + preview fixtures cover valid paths; no focused unsupported-syntax test | Lowering verified; rejection diagnostic not yet verified |
+
+Therefore, the rows marked “implementation-only” or “rejection diagnostic not yet verified” must not be presented as fully certified support. They are current compiler behavior, but require a focused negative fixture before becoming a stable RULE contract. When a new value/function is added, update the implementation, this table, and both positive and negative tests.
 
 ## Không hỗ trợ trong video/design-motion runtime
 
