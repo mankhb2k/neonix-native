@@ -202,6 +202,27 @@ export function validatePaintCommandBuffer(
             });
           }
         }
+        if (cmd.backdropEffectProgram) {
+          const effectValidation = validateRuntimeEffectProgram(cmd.backdropEffectProgram);
+          if (!effectValidation.ok) {
+            for (const issue of effectValidation.diagnostics) {
+              issues.push({
+                severity: "error",
+                code: `invalid_backdrop_effect_program_${issue.code}`,
+                message: issue.message,
+                key: cmd.key,
+              });
+            }
+          }
+          if (!cmd.offscreen) {
+            issues.push({
+              severity: "error",
+              code: "backdrop_effect_program_offscreen_mismatch",
+              message: `Layer "${cmd.key}" must use an offscreen target for backdropEffectProgram`,
+              key: cmd.key,
+            });
+          }
+        }
         break;
       }
       case "endLayer": {

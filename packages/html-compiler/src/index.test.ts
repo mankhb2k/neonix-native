@@ -82,6 +82,30 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.assets?.map((asset) => asset.id)).toEqual(["inter-bold", "noto-emoji"]);
   });
 
+  it("preserves nested inline font semantics as Protocol text spans", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<p id="mixed">Prefix <strong>bold</strong> <em>italic</em></p>`,
+      css: `body { margin: 0; } #mixed { position: absolute; left: 100px; top: 100px; width: 900px; height: 80px; color: #ffffff; font-family: Inter; font-size: 48px; line-height: 60px; }`,
+    }), {
+      fontAssets: [
+        { id: "inter-regular", kind: "font", uri: "/fonts/inter.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { id: "inter-bold", kind: "font", uri: "/fonts/inter-bold.ttf", mimeType: "font/ttf", family: "Inter", weight: 700, style: "normal", integrity: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { id: "inter-italic", kind: "font", uri: "/fonts/inter-italic.ttf", mimeType: "font/ttf", family: "Inter", weight: 400, style: "italic", integrity: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+      ],
+    });
+    expect(result.status).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "mixed");
+    expect(layer?.type).toBe("text");
+    if (layer?.type !== "text") return;
+    expect(layer.payload.source.text).toBe("Prefix bold italic");
+    expect(layer.payload.chunks[0]?.spans).toMatchObject([
+      { sourceRange: { start: 0, end: 7 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["inter-regular"] },
+      { sourceRange: { start: 7, end: 11 }, font: { weight: 700, style: "normal" }, resolvedFontAssetIds: ["inter-bold"] },
+      { sourceRange: { start: 11, end: 12 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["inter-regular"] },
+      { sourceRange: { start: 12, end: 18 }, font: { weight: 400, style: "italic" }, resolvedFontAssetIds: ["inter-italic"] },
+    ]);
+  });
+
   it("lowers all authored CSS text-align values into Protocol V2 JSON", () => {
     const alignments = [
       ["start", "start"],
@@ -246,6 +270,17 @@ describe("HTML compiler Phase 1 vertical slice", () => {
       ],
     });
     expect((filtered?.effects?.[0] as { brightness?: number } | undefined)?.brightness).toBeCloseTo(-0.1, 10);
+  });
+
+  it("accepts CSS unitless zero lengths in filter drop-shadow", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="zero-shadow"></div>`,
+      css: '#zero-shadow { position: absolute; left: 240px; top: 180px; width: 320px; height: 160px; background: #a78bfa; filter: drop-shadow(0 0 0 #38bdf899); }',
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "zero-shadow")).toMatchObject({
+      effects: [{ type: "shadow", source: "alpha", offset: { x: 0, y: 0 }, blur: 0 }],
+    });
   });
 
   it("lowers CSS blend mode and isolation to compositing state", () => {

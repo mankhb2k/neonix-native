@@ -203,7 +203,7 @@ function parsePolygon(body: string, box: ClipReferenceBox, id: string): HtmlClip
   return { type: "path", contours: [{ id, start: points[0]!, segments: points.slice(1).map((to) => ({ kind: "line" as const, to })), closed: true }], fillRule };
 }
 
-function parsePath(body: string, id: string): HtmlClipPathNode {
+function parsePath(body: string, _id: string): HtmlClipPathNode {
   let fillRule: "nonzero" | "evenodd" = "nonzero";
   const fillRulePrefix = body.match(/^(nonzero|evenodd)\s*,\s*/i);
   if (fillRulePrefix) fillRule = fillRulePrefix[1]!.toLowerCase() as "nonzero" | "evenodd";

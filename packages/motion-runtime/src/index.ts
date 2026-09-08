@@ -77,6 +77,7 @@ export type {
   VisualRuntimeTextLayout,
   GlyphRun,
   GlyphRunGlyph,
+  VisualRuntimeTextSpan,
   VisualRuntimeText,
   VisualRuntimeView,
 } from "./visual/types";

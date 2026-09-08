@@ -90,7 +90,10 @@ function parsePaintOrder(value: string | undefined): Array<"fill" | "stroke" | "
 
 export function parsePathStyle(node: Node, style: Style, currentColor = "#000000"): { fill?: string; fillOpacity?: number; stroke?: string; strokeWidth?: number; strokeOpacity?: number; strokeJoin?: "miter" | "bevel" | "round"; strokeCap?: "butt" | "square" | "round"; strokeDash?: { array: number[]; offset?: number }; paintOrder?: Array<"fill" | "stroke" | "markers"> } {
   const fillValue = style.get("fill") ?? node.attributes.get("fill"); const strokeValue = style.get("stroke") ?? node.attributes.get("stroke");
-  const fill = fillValue === undefined || fillValue.toLowerCase() === "none" ? undefined : parseColor(fillValue, "fill", currentColor);
+  // Keep an authored `fill: none` distinguishable from an omitted fill. SVG
+  // defaults an omitted path fill to black, while an explicit none must stay
+  // a paint absence all the way through Protocol V2 and Runtime V2.
+  const fill = fillValue === undefined ? undefined : fillValue.toLowerCase() === "none" ? "none" : parseColor(fillValue, "fill", currentColor);
   const stroke = strokeValue === undefined || strokeValue.toLowerCase() === "none" ? undefined : parseColor(strokeValue, "stroke", currentColor);
   const fillOpacity = parsePathNumber(style.get("fill-opacity") ?? node.attributes.get("fill-opacity"), "fill-opacity");
   const strokeWidth = parsePathNumber(style.get("stroke-width") ?? node.attributes.get("stroke-width"), "stroke-width", true);

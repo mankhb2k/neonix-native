@@ -33,6 +33,8 @@ export const V2MaskImageSourceSchema = z
     y: V2FiniteNumberSchema,
     width: V2FiniteNumberSchema,
     height: V2FiniteNumberSchema,
+    /** Coverage multiplier used by image()/cross-fade() mask sources. */
+    opacity: V2FiniteNumberSchema.min(0).max(1).optional(),
     fit: z.enum(["contain", "cover", "fill", "none"]).default("fill"),
     preserveAspectRatio: V2MaskImagePreserveAspectRatioSchema.optional(),
   })

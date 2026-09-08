@@ -22,7 +22,6 @@ export const V2SvgLengthUnitSchema = z.enum([
   "cm",
   "in",
   "em",
-  "ex",
   "percent",
 ]);
 export const V2SvgLengthSchema = z.union([

@@ -25,6 +25,11 @@ test.describe("HTML compiler Phase 5 perspective", () => {
       const protocol = page.locator("pre").last();
       await expect(protocol).toContainText(fixture.json);
       await expect(protocol).toContainText(fixture.extra);
+      if (fixture.id === "parallax-three-depths") {
+        await expect(protocol).toContainText("parallax-triangle-path");
+        await expect(protocol).toContainText('"stroke": "#facc15"');
+        await expect(protocol).toContainText('"strokeWidth": 24');
+      }
 
       const paintedCount = () => canvas.evaluate((element: HTMLCanvasElement) => {
         const context = element.getContext("2d");

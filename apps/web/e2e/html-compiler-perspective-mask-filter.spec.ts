@@ -15,7 +15,7 @@ const cases = [
   "mask-one-corner-near-plane",
 ] as const;
 
-test.describe("HTML compiler Phase 9 projective mask/filter", () => {
+test.describe("HTML compiler projective mask/filter cases", () => {
   for (const id of cases) {
     test(`${id} preserves the mask/filter projective pipeline`, async ({ page }) => {
       await page.goto(`/docs/preview/html-compiler?case=html-compiler.perspective.${id}`, { waitUntil: "domcontentloaded" });
@@ -29,6 +29,29 @@ test.describe("HTML compiler Phase 9 projective mask/filter", () => {
       await expect.poll(async () => Number(await canvas.getAttribute("data-draw-calls"))).toBeGreaterThan(0);
     });
   }
+
+  test("blur preserves the projective near-plane edge halo", async ({ page }) => {
+    await page.goto("/docs/preview/html-compiler?case=html-compiler.perspective.filter-blur-near-plane", { waitUntil: "domcontentloaded" });
+    const canvas = page.getByTestId("html-compiler-runtime-canvas");
+    await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
+    const intermediateSamples = await canvas.evaluate(async (element) => {
+      const source = new Image();
+      source.src = (element as HTMLCanvasElement).toDataURL();
+      await source.decode();
+      const sample = document.createElement("canvas");
+      sample.width = source.width;
+      sample.height = source.height;
+      const context = sample.getContext("2d", { willReadFrequently: true })!;
+      context.drawImage(source, 0, 0);
+      let count = 0;
+      for (let x = 1290; x <= 1360; x += 1) {
+        const [r, g, b] = context.getImageData(x, 400, 1, 1).data;
+        if (r > 10 && r < 50 && g > 24 && g < 205 && b > 24 && b < 150) count += 1;
+      }
+      return count;
+    });
+    expect(intermediateSamples).toBeGreaterThanOrEqual(4);
+  });
 
   test("captures representative near-plane mask/filter parity", async ({ page }) => {
     await page.goto("/docs/preview/html-compiler?case=html-compiler.perspective.mask-alpha-near-plane", { waitUntil: "domcontentloaded" });

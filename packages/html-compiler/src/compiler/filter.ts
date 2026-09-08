@@ -49,7 +49,10 @@ function numberValue(value: string, property: string, viewport: { width: number;
 
 function lengthValue(value: string, property: string, viewport: { width: number; height: number }, fontSize: number, relative: number): number {
   const resolved = calcExpression(value, property, relative, fontSize, 16, viewport);
-  if (!Number.isFinite(resolved.value) || resolved.unit !== "px") fail("css-filter-length-invalid", `${property} must resolve to a finite length: ${value}`);
+  // CSS accepts unitless zero anywhere a <length> is expected. Keeping this
+  // normalization here is important for drop-shadow(0 0 0 ...), where the
+  // zero-blur probe intentionally exercises the alpha silhouette path.
+  if (!Number.isFinite(resolved.value) || (resolved.unit !== "px" && !(resolved.value === 0 && resolved.unit === "number"))) fail("css-filter-length-invalid", `${property} must resolve to a finite length: ${value}`);
   return resolved.value;
 }
 

@@ -13,25 +13,7 @@ import {
 } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import {
-  HTML_COMPILER_PHASE0_CASES,
-  HTML_COMPILER_PHASE1_1_CASES,
-  HTML_COMPILER_PHASE1_2_CASES,
-  HTML_COMPILER_PHASE1_3_CASES,
-  HTML_COMPILER_PHASE1_4_CASES,
-  HTML_COMPILER_PAINT_PHASE2_0_CASES,
-  HTML_COMPILER_PAINT_PHASE2_1_CASES,
-  HTML_COMPILER_PAINT_PHASE2_2_CASES,
-  HTML_COMPILER_PAINT_PHASE2_3_CASES,
-  HTML_COMPILER_PAINT_PHASE2_4_CASES,
-  HTML_COMPILER_PAINT_PHASE2_5_CASES,
-  HTML_COMPILER_PAINT_PHASE2_6_CASES,
-  HTML_COMPILER_PAINT_PHASE2_7_CASES,
-  HTML_COMPILER_PAINT_PHASE2_8_CASES,
-  HTML_COMPILER_MOTION_PHASE3_CASES,
-  HTML_COMPILER_PERSPECTIVE_PHASE5_CASES,
-  HTML_COMPILER_PERSPECTIVE_PHASE6_CASES,
-  HTML_COMPILER_PERSPECTIVE_PHASE7_CASES,
-  HTML_COMPILER_PERSPECTIVE_PHASE8_CASES,
+  HTML_COMPILER_PREVIEW_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
   HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
   htmlCompilerPreviewCaseById,
@@ -64,8 +46,12 @@ export function HtmlCompilerRuntimeLab() {
   );
   const syncBrowserPlayback = useCallback((time: number, playing: boolean) => {
     const document = browserIframeRef.current?.contentDocument;
-    if (!document) return;
-    document.documentElement.dataset.neonixPlayback = playing ? "running" : "paused";
+    const root = document?.documentElement;
+    // During a srcDoc replacement contentDocument can exist for one render
+    // before the parser has installed <html>. Playback sync must be harmless
+    // in that window; the iframe onLoad callback will run it again.
+    if (!root) return;
+    root.dataset.neonixPlayback = playing ? "running" : "paused";
     for (const animation of document.getAnimations()) {
       if (playing) animation.play();
       else animation.pause();
@@ -147,8 +133,8 @@ export function HtmlCompilerRuntimeLab() {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium">HTML compiler</h2>
             <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">
-              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PAINT_PHASE2_8_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length + HTML_COMPILER_MOTION_PHASE3_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE5_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE6_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE7_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE8_CASES.length}{" "}
-              {HTML_COMPILER_PHASE0_CASES.length + HTML_COMPILER_PAINT_PHASE2_0_CASES.length + HTML_COMPILER_PAINT_PHASE2_1_CASES.length + HTML_COMPILER_PAINT_PHASE2_2_CASES.length + HTML_COMPILER_PAINT_PHASE2_3_CASES.length + HTML_COMPILER_PAINT_PHASE2_4_CASES.length + HTML_COMPILER_PAINT_PHASE2_5_CASES.length + HTML_COMPILER_PAINT_PHASE2_6_CASES.length + HTML_COMPILER_PAINT_PHASE2_7_CASES.length + HTML_COMPILER_PAINT_PHASE2_8_CASES.length + HTML_COMPILER_PHASE1_1_CASES.length + HTML_COMPILER_PHASE1_2_CASES.length + HTML_COMPILER_PHASE1_3_CASES.length + HTML_COMPILER_PHASE1_4_CASES.length + HTML_COMPILER_MOTION_PHASE3_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE5_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE6_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE7_CASES.length + HTML_COMPILER_PERSPECTIVE_PHASE8_CASES.length === 1 ? "case" : "cases"}
+              {HTML_COMPILER_PREVIEW_CASES.length}{" "}
+              {HTML_COMPILER_PREVIEW_CASES.length === 1 ? "case" : "cases"}
             </span>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
@@ -158,13 +144,10 @@ export function HtmlCompilerRuntimeLab() {
 
         <nav className="space-y-4 p-3" aria-label="HTML compiler fixtures">
           {groups.map((group) => (
-            <section key={`${group.phase}-${group.topic}`} aria-label={`${group.phase} ${group.topic}`}>
+            <section key={group.category} aria-label={group.category}>
               <div className="mb-1 flex items-center gap-2 px-1">
-                <span className="font-mono text-[10px] text-cyan-300/80">
-                  {group.phase}
-                </span>
-                <p className="text-[10px] font-semibold tracking-[.12em] text-slate-500 uppercase">
-                  {group.topic}
+                <p className="text-[10px] font-semibold tracking-[.12em] text-slate-300 uppercase">
+                  {group.category}
                 </p>
               </div>
               <ul className="space-y-1">
@@ -202,7 +185,7 @@ export function HtmlCompilerRuntimeLab() {
             <span>Preview / HTML compiler</span>
             <span className="text-slate-600">/</span>
             <span>
-              {selected.phase} · {selected.topic}
+              {selected.category} · {selected.topic}
             </span>
           </div>
           <h1 className="mt-2 text-2xl font-semibold">{selected.label}</h1>

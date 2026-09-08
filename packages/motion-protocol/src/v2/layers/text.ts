@@ -89,6 +89,8 @@ export const V2TextLayoutSchema = z
     /** Content-box origin inside the layer border box. */
     contentOffsetX: V2NonNegativeNumberSchema.optional(),
     contentOffsetY: V2NonNegativeNumberSchema.optional(),
+    /** UTF-16 offsets at which authored hard line breaks begin. */
+    hardBreaks: z.array(V2NonNegativeNumberSchema.int()).min(1).optional(),
     textAlign: z.enum(["left", "right", "center", "start", "end", "justify", "match-parent", "justify-all"]),
     whiteSpace: z.enum(["normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces"]),
     /** Normalized line breaking policy after white-space resolution. */
@@ -226,6 +228,17 @@ export const V2TextLayerSchema = V2LayerBaseSchema.extend({
     .strict()
     .superRefine((payload, ctx) => {
       const sourceLength = payload.source.text.length;
+      const hardBreaks = payload.layout?.hardBreaks ?? [];
+      let previousHardBreak = -1;
+      for (const [index, offset] of hardBreaks.entries()) {
+        if (offset >= sourceLength) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text hard break offset must point inside source text", path: ["layout", "hardBreaks", index] });
+        }
+        if (offset <= previousHardBreak) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Text hard break offsets must be strictly increasing", path: ["layout", "hardBreaks", index] });
+        }
+        previousHardBreak = offset;
+      }
       const chunkIds = new Set<string>();
       const spanIds = new Set<string>();
       for (const [index, chunk] of payload.chunks.entries()) {

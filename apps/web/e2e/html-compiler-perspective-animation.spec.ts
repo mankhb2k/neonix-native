@@ -15,7 +15,7 @@ const cases = [
   ["animation-sibling-tracks", "origin"],
 ] as const;
 
-test.describe("HTML compiler Phase 7 perspective animation", () => {
+test.describe("HTML compiler perspective animation cases", () => {
   for (const [id, animatedProperty] of cases) {
     test(`${id} lowers and samples the camera track`, async ({ page }) => {
       await page.goto(`/docs/preview/html-compiler?case=html-compiler.perspective.${id}`, { waitUntil: "domcontentloaded" });

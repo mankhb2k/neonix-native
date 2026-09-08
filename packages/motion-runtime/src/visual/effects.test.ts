@@ -45,4 +45,17 @@ describe("runtime shadow effects", () => {
     expect(program?.ops.find((op) => op.kind === "alpha-mask")).toMatchObject({ input: "effect:blur" });
     expect(program?.ops.at(-1)).toMatchObject({ kind: "composite", source: "effect:blur", output: "effect:drop-shadow" });
   });
+
+  it("builds backdrop filters as an independent ordered program", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "blur", type: "blur", radius: 12 },
+      { id: "opacity", type: "filter-opacity", amount: 0.5 },
+    ]);
+    expect(program).toMatchObject({
+      input: "source",
+      output: "effect:opacity",
+      requiresOffscreen: true,
+    });
+    expect(program?.ops.map((op) => op.input)).toEqual(["source", "effect:blur"]);
+  });
 });

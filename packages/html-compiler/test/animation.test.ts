@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "../src/index";
-import { parseAnimationStyles } from "../src/compiler/css-parser";
+import { parseAnimationStyles } from "../src/compiler/css/animation";
 
 const html = "<!doctype html><html><body><div id=\"box\"></div></body></html>";
 const composition = { width: 1920 as const, height: 1080 as const, fps: 30 as const, background: "#081018" as const, colorSpace: "srgb" as const };

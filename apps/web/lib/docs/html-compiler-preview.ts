@@ -1,4 +1,6 @@
 import { createHtmlCssSource, createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT, type HtmlCompilerFontAsset, type HtmlCompilerMediaAsset, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { HTML_COMPILER_TAG_LOWERING_CASES } from "./html-compiler-tag-lowering-fixtures";
+import { HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES } from "./html-compiler-text-compiler-layout-fixtures";
 
 export type HtmlCompilerPreviewTopic =
   | "New project"
@@ -12,9 +14,28 @@ export type HtmlCompilerPreviewTopic =
   | "Layout"
   | "Motion & animation";
 
+export type HtmlCompilerPreviewCategory =
+  | "HTML tag lowering"
+  | "Text compiler & layout"
+  | "Layout primitives"
+  | "Paint primitives"
+  | "Effect primitives"
+  | "Transform & 3D primitives"
+  | "Typography & media primitives"
+  | "Animation & keyframe primitives"
+  | "Combined pipeline cases";
+
+export type HtmlCompilerPreviewClassification = "primitive" | "combined";
+
 export type HtmlCompilerPreviewCase = {
   id: string;
   phase: "P0" | "P1.1" | "P1.2" | "P1.3" | "P1.4" | "P2.0" | "P2.1" | "P2.2" | "P2.3" | "P2.4" | "P2.5" | "P2.6" | "P2.7" | "P2.8" | "P3" | "P5" | "P6" | "P7" | "P8" | "P9";
+  /** UI ordering category; legacy phase remains internal for fixture provenance. */
+  category?: HtmlCompilerPreviewCategory;
+  /** Distinguishes an atomic primitive fixture from a cross-stage pipeline fixture. */
+  classification?: HtmlCompilerPreviewClassification;
+  /** Short title shown beside the fixture title in the preview UI. */
+  classificationLabel?: string;
   topic: HtmlCompilerPreviewTopic;
   label: string;
   properties: string[];
@@ -1875,7 +1896,7 @@ export const HTML_COMPILER_PHASE1_1_CASES: HtmlCompilerPreviewCase[] = [
     topic: "Layout",
     label: "Layout / column + gap",
     properties: ["flex-direction:column", "gap", "row-gap", "column-gap"],
-    hint: "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside P1.1.",
+    hint: "A column uses the main-axis gap between fixed-size items; wrapping is intentionally outside this primitive case.",
     source: createNewHtmlProject({
       html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"flex-column\">\n    <div id=\"column-one\"></div>\n    <div id=\"column-two\"></div>\n    <div id=\"column-three\"></div>\n  </div>\n</body>"),
       css: `body { margin: 0; background: #081018; }
@@ -2151,6 +2172,110 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+/** Text frames use border-box layout geometry and content-box text metrics. */
+const textLayoutCase = (
+  id: string,
+  label: string,
+  properties: string[],
+  hint: string,
+  text: string,
+  css: string,
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.layout.${id}`,
+  phase: "P1.4",
+  topic: "Layout",
+  label,
+  properties,
+  hint,
+  source: createNewHtmlProject({
+    html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", `<body>\n  <div id="${id}">${text}</div>\n</body>`),
+    css: `body { margin: 0; background: #081018; }\n\n${css}`,
+  }),
+});
+
+export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
+  textLayoutCase(
+    "text-frame-baseline",
+    "Layout / text frame baseline",
+    ["div text", "line box", "content box", "baseline"],
+    "The element frame remains layout geometry while glyphs are painted from the content line box and baseline.",
+    "Hello",
+    `#text-frame-baseline { position: absolute; left: 520px; top: 360px; width: 880px; padding: 24px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }`,
+  ),
+  textLayoutCase(
+    "text-border-uniform",
+    "Layout / text + uniform border",
+    ["div text", "border", "border-box frame", "content origin"],
+    "A uniform border paints around the resolved border-box frame and is not added a second time by the runtime.",
+    "Hello",
+    `#text-border-uniform { position: absolute; left: 520px; top: 340px; width: 760px; padding: 28px; border: 12px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }`,
+  ),
+  textLayoutCase(
+    "text-border-asymmetric",
+    "Layout / text + asymmetric border",
+    ["border-top/right/bottom/left", "different widths", "content origin"],
+    "Different border widths move the content origin by each corresponding edge while the final frame remains one border box.",
+    "Hello",
+    `#text-border-asymmetric { position: absolute; left: 500px; top: 320px; width: 800px; padding: 24px 36px; border-top: 8px solid #22d3ee; border-right: 24px solid #a78bfa; border-bottom: 18px solid #facc15; border-left: 14px solid #fb7185; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-border-padding",
+    "Layout / text + padding + border",
+    ["padding", "border", "content box", "baseline offset"],
+    "Padding separates the glyph line box from the border, and both contribute to the border-box frame without changing glyph metrics.",
+    "Padding frame",
+    `#text-border-padding { position: absolute; left: 420px; top: 320px; width: 1080px; padding: 44px 56px; border: 10px solid #4ade80; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }`,
+  ),
+  textLayoutCase(
+    "text-content-box",
+    "Layout / text content-box sizing",
+    ["box-sizing:content-box", "width", "padding", "border expansion"],
+    "With content-box sizing, authored width excludes padding and border; the emitted frame expands to the complete border box.",
+    "Content box",
+    `#text-content-box { box-sizing: content-box; position: absolute; left: 520px; top: 360px; width: 720px; padding: 32px; border: 16px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-border-box",
+    "Layout / text border-box sizing",
+    ["box-sizing:border-box", "width", "padding", "border inclusion"],
+    "With border-box sizing, authored width is the final border-box width; padding and border reduce the available content width.",
+    "Border box",
+    `#text-border-box { box-sizing: border-box; position: absolute; left: 520px; top: 360px; width: 720px; padding: 32px; border: 16px solid #a78bfa; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-line-height-normal",
+    "Layout / text normal line-height",
+    ["line-height:normal", "font metrics", "line box", "border"],
+    "Normal line-height resolves from selected font metrics and remains distinct from the visible glyph bounds.",
+    "Normal line box",
+    `#text-line-height-normal { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 24px; border: 8px solid #f97316; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }`,
+  ),
+  textLayoutCase(
+    "text-line-height-fixed",
+    "Layout / text fixed line-height",
+    ["line-height:88px", "line box", "baseline", "border"],
+    "A fixed line-height changes the line box and baseline placement while glyph bounds remain independent paint geometry.",
+    "Fixed line box",
+    `#text-line-height-fixed { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 24px; border: 8px solid #facc15; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }`,
+  ),
+  textLayoutCase(
+    "text-wrapping-border",
+    "Layout / wrapped text inside border",
+    ["width", "white-space:normal", "line wrapping", "border-box"],
+    "Wrapping happens inside the content box; the border stays outside the line boxes and the final frame includes every wrapped line.",
+    "A wrapped text block keeps its line boxes inside the padded content box while the border stays part of the outer frame.",
+    `#text-wrapping-border { position: absolute; left: 420px; top: 260px; width: 1080px; padding: 36px 48px; border: 12px solid #22d3ee; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 56px; font-weight: 700; line-height: 76px; white-space: normal; }`,
+  ),
+  textLayoutCase(
+    "text-border-radius",
+    "Layout / text + rounded border",
+    ["border-radius", "border", "content box", "rounded border-box"],
+    "The rounded border follows the same border-box frame as text layout; radius changes paint contours, not frame dimensions.",
+    "Rounded text frame",
+    `#text-border-radius { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 32px 48px; border: 12px solid #fb7185; border-radius: 48px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }`,
+  ),
+];
+
 export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
   {
     id: "html-compiler.paint.background-image-position-size",
@@ -2254,6 +2379,78 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
   background-position: center, right bottom;
   background-size: cover, 180px 120px;
   background-repeat: no-repeat, no-repeat;
+      }`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.image-function-url",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / image() URL source",
+    properties: ["image()", "url()", "asset layer", "cover"],
+    hint: "The image() URL source remains an image atomic with the same position, sizing and clipping contract as a direct background URL.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-image-function-url\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-image-function-url {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: image(url("/preview/image/photo-landscape.jpg"));
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.image-function-gradient-fallback",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / image() gradient + fallback",
+    properties: ["image()", "gradient", "fallback color", "paint source"],
+    hint: "A gradient image candidate is lowered to a paint shape; the fallback color remains available without introducing a synthetic asset source.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-image-function-gradient\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-image-function-gradient {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-image: image(linear-gradient(135deg, #38bdf8 0%, #a78bfa 52%, #fb7185 100%), #172554);
+  background-repeat: no-repeat;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.cross-fade-images",
+    phase: "P2.0",
+    topic: "Paint",
+    label: "Paint / cross-fade() image sources",
+    properties: ["cross-fade()", "two URL sources", "opacity weights", "stable order"],
+    hint: "The two cross-fade sources become ordered image atomics with complementary opacity weights, preserving the CSS source order.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"paint-cross-fade\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#paint-cross-fade {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: cross-fade(url("/preview/image/photo-landscape.jpg"), url("/preview/image/photo-portrait.jpg"), 50%);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }`,
     }),
   },
@@ -2769,6 +2966,81 @@ export const HTML_COMPILER_PAINT_PHASE2_4_CASES: HtmlCompilerPreviewCase[] = [
   font-size: 92px;
   font-weight: 700;
   text-shadow: 18px 20px 18px #38bdf899;
+      }`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-alpha",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow alpha silhouette",
+    properties: ["text-shadow", "alpha source", "zero blur"],
+    hint: "A zero-blur text shadow isolates the glyph alpha silhouette and tint from the blur kernel.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-alpha\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-alpha {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 0 0 0 #38bdf899;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-blur",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow blur",
+    properties: ["text-shadow", "alpha source", "blur only"],
+    hint: "A centered text shadow isolates the CSS blur radius-to-sigma conversion.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-blur\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-blur {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 0 0 18px #38bdf899;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.text-shadow-offset",
+    phase: "P2.4",
+    topic: "Paint",
+    label: "Paint / text shadow offset",
+    properties: ["text-shadow", "alpha source", "offset only"],
+    hint: "A zero-blur offset shadow isolates translation and compositing from the blur kernel.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"text-shadow-offset\">Neonix shadow</div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#text-shadow-offset {
+  position: absolute;
+  left: 520px;
+  top: 380px;
+  width: 900px;
+  height: 180px;
+  color: #f8fafc;
+  font-family: Inter;
+  font-size: 92px;
+  font-weight: 700;
+  text-shadow: 18px 20px 0 #38bdf899;
 }`,
     }),
   },
@@ -2950,6 +3222,75 @@ export const HTML_COMPILER_PAINT_PHASE2_5_CASES: HtmlCompilerPreviewCase[] = [
   border-radius: 56px;
   background: #a78bfa;
   filter: drop-shadow(24px 22px 18px #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-alpha",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow alpha silhouette",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "zero blur"],
+    hint: "A zero-blur drop shadow still follows the rounded alpha silhouette and keeps the filter separate from layer opacity.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-alpha\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-alpha {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(0 0 0 #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-blur",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow blur",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "blur"],
+    hint: "The blur-only drop shadow uses the element alpha silhouette rather than the rectangular box geometry.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-blur\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-blur {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(0 0 18px #38bdf899);
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.paint.filter-drop-shadow-offset",
+    phase: "P2.5",
+    topic: "Paint",
+    label: "Paint / filter drop shadow offset",
+    properties: ["filter", "drop-shadow()", "alpha silhouette", "offset"],
+    hint: "The offset-only drop shadow makes the alpha-source translation observable without changing the blur radius.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"filter-drop-shadow-offset\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+
+#filter-drop-shadow-offset {
+  position: absolute;
+  left: 660px;
+  top: 360px;
+  width: 600px;
+  height: 300px;
+  border-radius: 56px;
+  background: #a78bfa;
+  filter: drop-shadow(24px 22px 0 #38bdf899);
 }`,
     }),
   },
@@ -4213,10 +4554,82 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
 #animated-card { position: absolute; left: 270px; top: 120px; width: 260px; height: 220px; background: #f472b6; animation-name: animated-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }`,
     }),
   },
+  {
+    id: "html-compiler.perspective.atomic-transform-style-flat",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / transform-style flat",
+    properties: ["transform-style: flat", "single 3D child", "solid paint"],
+    hint: "The parent establishes the minimum camera context while flat is tested without filters, masks, blending or animation.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-flat-scene\"><div id=\"atomic-flat-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-flat-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; transform-style: flat; }
+#atomic-flat-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-transform-style-preserve-3d",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / transform-style preserve-3d",
+    properties: ["transform-style: preserve-3d", "single 3D child", "solid paint"],
+    hint: "The same camera and child geometry as the flat fixture isolates the preserve-3d boundary contract.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-preserve-scene\"><div id=\"atomic-preserve-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-preserve-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; transform-style: preserve-3d; }
+#atomic-preserve-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #38bdf8; transform: translateZ(140px) rotateY(-24deg); }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-backface-visible",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / backface visible",
+    properties: ["backface-visibility: visible", "rotateY(180deg)", "solid paint"],
+    hint: "A reversed solid plane remains paintable when backface visibility is explicitly visible.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-backface-visible-scene\"><div id=\"atomic-backface-visible-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-backface-visible-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; }
+#atomic-backface-visible-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: visible; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.atomic-backface-hidden",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Perspective atomic / backface hidden",
+    properties: ["backface-visibility: hidden", "rotateY(180deg)", "solid paint"],
+    hint: "The same reversed plane becomes non-paintable only because its backface is explicitly hidden.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"atomic-backface-hidden-scene\"><div id=\"atomic-backface-hidden-card\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#atomic-backface-hidden-scene { position: absolute; left: 520px; top: 220px; width: 880px; height: 560px; perspective: 760px; }
+#atomic-backface-hidden-card { position: absolute; left: 250px; top: 150px; width: 380px; height: 240px; background: #f97316; transform: rotateY(180deg) translateZ(80px); backface-visibility: hidden; }`,
+    }),
+  },
+  {
+    id: "html-compiler.perspective.matrix-functions",
+    phase: "P5",
+    topic: "Motion & animation",
+    label: "Transform / matrix and matrix3d",
+    properties: ["matrix()", "matrix3d()", "ordered transform atoms", "Matrix4"],
+    hint: "CSS affine and projective matrix functions lower to the existing ordered V2 matrix atoms without a second transform path.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"matrix-scene\"><div id=\"matrix-2d\"></div><div id=\"matrix-3d\"></div></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#matrix-scene { position: absolute; left: 320px; top: 180px; width: 1280px; height: 700px; perspective: 720px; transform-style: preserve-3d; }
+#matrix-2d { position: absolute; left: 180px; top: 190px; width: 360px; height: 220px; background: #22d3ee; transform: matrix(1.08, 0.18, -0.12, 0.92, 28, 12); }
+#matrix-3d { position: absolute; left: 720px; top: 180px; width: 360px; height: 220px; background: #f97316; transform: matrix3d(1, 0.12, 0, 0.001, 0.08, 1, 0, 0, 0, 0, 1, -0.0012, 0, 0, 120, 1); }`,
+    }),
+  },
 ];
 
 export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
   { kind: "video", uri: "/preview/video/demo-video.mp4", mimeType: "video/mp4", width: 1920, height: 1080, duration: 60500, fps: 30 },
+  { kind: "audio", uri: "/preview/audio/bed.mp3", mimeType: "audio/mpeg", duration: 12000, sampleRate: 48000, channels: 2 },
 ];
 
 export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
@@ -4384,7 +4797,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
     properties: ["parallax video", "camera translateZ", "perspective", "slow depth zoom", "circle + triangle + rectangle stroke"],
     hint: "A slow looping camera shot travels through three flat stroke planes. The circle is nearest, the triangle is intermediate, and the rectangle is farthest, so their apparent scale changes at different rates.",
     source: createNewHtmlProject({
-      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"parallax-viewport\"><div id=\"parallax-world\"><div id=\"parallax-rectangle\"></div><div id=\"parallax-triangle\"><svg viewBox=\"0 0 800 560\" width=\"800\" height=\"560\" aria-hidden=\"true\"><path d=\"M 400 12 L 788 548 L 12 548 Z\" fill=\"none\" stroke=\"#facc15\" stroke-width=\"24\" stroke-linejoin=\"miter\"></path></svg></div><div id=\"parallax-circle\"></div></div></div>\n</body>"),
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"parallax-viewport\"><div id=\"parallax-world\"><div id=\"parallax-rectangle\"></div><svg id=\"parallax-triangle\" viewBox=\"0 0 800 560\" width=\"800\" height=\"560\" aria-hidden=\"true\"><path id=\"parallax-triangle-path\" d=\"M 400 12 L 788 548 L 12 548 Z\"></path></svg><div id=\"parallax-circle\"></div></div></div>\n</body>"),
       css: `body { margin: 0; background: #081018; overflow: hidden; }
 #parallax-viewport { position: absolute; left: 260px; top: 150px; width: 1400px; height: 780px; perspective: 680px; perspective-origin: 50% 50%; overflow: hidden; }
 #parallax-world { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; animation-name: parallax-camera; animation-duration: 12000ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }
@@ -4398,8 +4811,8 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] =
 }
 #parallax-rectangle, #parallax-triangle, #parallax-circle { position: absolute; transform-origin: 50% 50%; }
 #parallax-rectangle { left: 100px; top: 65px; width: 1200px; height: 650px; background: transparent; border: 12px solid #38bdf8; transform: translateZ(-380px); }
-#parallax-triangle { left: 300px; top: 110px; width: 800px; height: 560px; background: transparent; transform: translateZ(-90px); }
-#parallax-triangle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#parallax-triangle { display: block; left: 300px; top: 110px; width: 800px; height: 560px; overflow: visible; transform: translateZ(-90px); }
+#parallax-triangle-path { fill: none; stroke: #facc15; stroke-width: 24px; stroke-linejoin: miter; }
 #parallax-circle { left: 490px; top: 180px; width: 420px; height: 420px; background: transparent; border: 14px solid #fb7185; border-radius: 50%; transform: translateZ(140px); }`,
     }),
   },
@@ -4701,6 +5114,8 @@ const perspectiveMaskFilterCase = (
   phase: "P9",
   topic: "Motion & animation",
   label,
+  classification: "combined",
+  classificationLabel: "Combined pipeline",
   properties,
   hint,
   source: createNewHtmlProject({
@@ -4737,19 +5152,123 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE9_CASES: HtmlCompilerPreviewCase[] =
 #p9-far-card { position: absolute; left: 420px; top: 200px; width: 520px; height: 300px; background: #f97316; filter: blur(18px) drop-shadow(-28px 18px 12px #a855f799); transform: translateZ(-260px) rotateY(34deg); }`),
   perspectiveMaskFilterCase("mask-one-corner-near-plane", "Mask/filter / one-corner near-plane cut", ["mask-image", "one corner", "rotateX + rotateY", "partial source clip"], "Only one corner of the mask source crosses the near plane; remaining coverage is retained without alpha inversion.", `<div id="p9-corner-scene"><div id="p9-corner-card"></div></div>`, `#p9-corner-scene { position: absolute; left: 420px; top: 190px; width: 1080px; height: 660px; perspective: 260px; perspective-origin: 74% 24%; transform-style: preserve-3d; }
 #p9-corner-card { position: absolute; left: 290px; top: 150px; width: 520px; height: 320px; background: #60a5fa; mask-image: linear-gradient(135deg, #00000000 0%, #ffffffff 30%, #ffffffff 100%); mask-mode: alpha; mask-repeat: no-repeat; filter: blur(7px); transform: translateZ(210px) rotateX(25deg) rotateY(-32deg); }`),
+  perspectiveMaskFilterCase("backdrop-filter-blur", "Backdrop / blur over colored layers", ["backdrop-filter", "blur", "backdrop surface", "layer opacity"], "The backdrop is captured before the translucent card is painted; blur affects the colored backdrop only and remains separate from the card's own filter.", `<div id="p9-backdrop-scene"><div id="p9-backdrop-color"></div><div id="p9-backdrop-card"></div></div>`, `#p9-backdrop-scene { position: absolute; left: 360px; top: 180px; width: 1200px; height: 700px; background: linear-gradient(135deg, #7c3aed 0%, #22d3ee 52%, #f97316 100%); overflow: hidden; }
+#p9-backdrop-color { position: absolute; left: 170px; top: 100px; width: 760px; height: 500px; background: repeating-linear-gradient(45deg, #f43f5e 0%, #f43f5e 12%, #facc15 12%, #facc15 24%); transform: rotate(-8deg); }
+#p9-backdrop-card { position: absolute; left: 300px; top: 180px; width: 600px; height: 300px; background: #ffffff55; border: 4px solid #ffffffaa; backdrop-filter: blur(18px); }`),
+  perspectiveMaskFilterCase("backdrop-filter-order", "Backdrop / ordered blur and contrast", ["backdrop-filter", "blur", "contrast", "ordered effects"], "Backdrop effects retain CSS token order and never become a visible sibling or a source filter on the translucent panel.", `<div id="p9-backdrop-order-scene"><div id="p9-backdrop-order-grid"></div><div id="p9-backdrop-order-card"></div></div>`, `#p9-backdrop-order-scene { position: absolute; left: 320px; top: 170px; width: 1280px; height: 720px; background: linear-gradient(90deg, #172554, #581c87 50%, #164e63); overflow: hidden; }
+#p9-backdrop-order-grid { position: absolute; inset: 80px 140px; background: repeating-linear-gradient(90deg, #22d3ee 0%, #22d3ee 8%, #f43f5e 8%, #f43f5e 16%), repeating-linear-gradient(0deg, transparent 0%, transparent 8%, #facc15 8%, #facc15 16%); transform: rotate(12deg) scale(1.15); }
+#p9-backdrop-order-card { position: absolute; left: 340px; top: 170px; width: 600px; height: 320px; background: #ffffff66; backdrop-filter: blur(10px) contrast(1.25); }`),
 ];
 
-export function htmlCompilerPreviewGroups(): Array<{ phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }> {
-  const groups = new Map<string, { phase: HtmlCompilerPreviewCase["phase"]; topic: HtmlCompilerPreviewTopic; cases: HtmlCompilerPreviewCase[] }>();
-  for (const item of [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES]) {
-    const key = `${item.phase}:${item.topic}`;
-    const group = groups.get(key) ?? { phase: item.phase, topic: item.topic, cases: [] };
-    group.cases.push(item);
-    groups.set(key, group);
+export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.layout.anchor-positioning",
+    phase: "P0",
+    category: "Layout primitives",
+    topic: "Layout",
+    label: "Layout / CSS anchor positioning",
+    properties: ["anchor-name", "position-anchor", "anchor()", "anchor-size()"],
+    hint: "The label is positioned from the subject's right edge and inherits its width through compiler-side anchor resolution.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", "<body>\n  <div id=\"anchor-subject\"></div>\n  <div id=\"anchor-label\"></div>\n</body>"),
+      css: `body { margin: 0; background: #081018; }
+#anchor-subject { position: absolute; left: 520px; top: 380px; width: 360px; height: 180px; background: #38bdf8; anchor-name: --subject; }
+#anchor-label { position: absolute; position-anchor: --subject; left: anchor(--subject right); top: anchor(--subject top); width: anchor-size(--subject width); height: 72px; margin-left: 28px; background: #fb7185; }`,
+    }),
+  },
+];
+
+const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
+  "HTML tag lowering",
+  "Text compiler & layout",
+  "Layout primitives",
+  "Paint primitives",
+  "Effect primitives",
+  "Transform & 3D primitives",
+  "Typography & media primitives",
+  "Animation & keyframe primitives",
+  "Combined pipeline cases",
+];
+
+const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
+  ...HTML_COMPILER_PHASE0_CASES,
+  ...HTML_COMPILER_TAG_LOWERING_CASES,
+  ...HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
+  ...HTML_COMPILER_ANCHOR_CASES,
+  ...HTML_COMPILER_PHASE1_1_CASES,
+  ...HTML_COMPILER_PHASE1_2_CASES,
+  ...HTML_COMPILER_PHASE1_3_CASES,
+  ...HTML_COMPILER_PHASE1_4_CASES,
+  ...HTML_COMPILER_LAYOUT_TEXT_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_2_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_3_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_4_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_5_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_6_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_7_CASES,
+  ...HTML_COMPILER_PAINT_PHASE2_8_CASES,
+  ...HTML_COMPILER_MOTION_PHASE3_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES,
+  ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES,
+];
+
+function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCategory {
+  if (item.category !== undefined) return item.category;
+  if (item.classification === "combined") return "Combined pipeline cases";
+  if (item.phase === "P0") {
+    if (item.topic === "Paint") return "Paint primitives";
+    if (item.topic === "Transform 2D") return "Transform & 3D primitives";
+    if (item.topic === "Typography" || item.topic === "Media") return "Typography & media primitives";
+    return "Layout primitives";
   }
-  return [...groups.values()];
+  if (item.topic === "Layout") return "Layout primitives";
+  if (["P2.4", "P2.5", "P2.6", "P2.7", "P2.8"].includes(item.phase)) {
+    return item.id.includes("mask-clip-path-isolation") ? "Combined pipeline cases" : "Effect primitives";
+  }
+  if (["P2.0", "P2.1", "P2.2", "P2.3"].includes(item.phase)) {
+    return "Paint primitives";
+  }
+  if (item.phase === "P3" || item.phase === "P7" || item.id.includes("animated-translate-z")) {
+    return "Animation & keyframe primitives";
+  }
+  if (item.phase === "P5" && !item.id.includes("slow-stroke")) {
+    return "Transform & 3D primitives";
+  }
+  return "Combined pipeline cases";
 }
 
-export function htmlCompilerPreviewCaseById(id: string | null | undefined): HtmlCompilerPreviewCase {
-  return [...HTML_COMPILER_PHASE0_CASES, ...HTML_COMPILER_PHASE1_1_CASES, ...HTML_COMPILER_PHASE1_2_CASES, ...HTML_COMPILER_PHASE1_3_CASES, ...HTML_COMPILER_PHASE1_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_0_CASES, ...HTML_COMPILER_PAINT_PHASE2_1_CASES, ...HTML_COMPILER_PAINT_PHASE2_2_CASES, ...HTML_COMPILER_PAINT_PHASE2_3_CASES, ...HTML_COMPILER_PAINT_PHASE2_4_CASES, ...HTML_COMPILER_PAINT_PHASE2_5_CASES, ...HTML_COMPILER_PAINT_PHASE2_6_CASES, ...HTML_COMPILER_PAINT_PHASE2_7_CASES, ...HTML_COMPILER_PAINT_PHASE2_8_CASES, ...HTML_COMPILER_MOTION_PHASE3_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES, ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES].find((item) => item.id === id) ?? HTML_COMPILER_PHASE0_CASES[0];
+type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & { category: HtmlCompilerPreviewCategory };
+
+function categorizedCase(item: HtmlCompilerPreviewCase): CategorizedHtmlCompilerPreviewCase {
+  const category = categoryForCase(item);
+  const classification = item.classification ?? (category === "Combined pipeline cases" ? "combined" : "primitive");
+  return {
+    ...item,
+    category,
+    classification,
+    classificationLabel: item.classificationLabel ?? (classification === "combined" ? "Combined pipeline" : "Primitive"),
+  };
+}
+
+export const HTML_COMPILER_PREVIEW_CASES: CategorizedHtmlCompilerPreviewCase[] = HTML_COMPILER_ALL_CASES.map(categorizedCase);
+
+export function htmlCompilerPreviewGroups(): Array<{ category: HtmlCompilerPreviewCategory; cases: CategorizedHtmlCompilerPreviewCase[] }> {
+  const groups = new Map<HtmlCompilerPreviewCategory, CategorizedHtmlCompilerPreviewCase[]>();
+  for (const item of HTML_COMPILER_PREVIEW_CASES) {
+    const cases = groups.get(item.category) ?? [];
+    cases.push(item);
+    groups.set(item.category, cases);
+  }
+  return HTML_COMPILER_PREVIEW_CATEGORY_ORDER
+    .filter((category) => groups.has(category))
+    .map((category) => ({ category, cases: groups.get(category)! }));
+}
+
+export function htmlCompilerPreviewCaseById(id: string | null | undefined): CategorizedHtmlCompilerPreviewCase {
+  return HTML_COMPILER_PREVIEW_CASES.find((item) => item.id === id) ?? categorizedCase(HTML_COMPILER_PHASE0_CASES[0]);
 }

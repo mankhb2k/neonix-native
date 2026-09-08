@@ -752,7 +752,7 @@ function lowerSemanticMask(
             parentId: layer.id,
             order: -1,
             timing: context.timing,
-            opacity: 1,
+            opacity: definition.image.opacity ?? 1,
             blendMode: "normal",
             visible: context.visible,
             localMatrix: identityMatrix4(),
@@ -967,13 +967,28 @@ function flattenPathNodeAtBoundary(node: VisualRuntimeNode, placement: FlatBound
   const mesh = contours.length > 0 && node.content.fill !== undefined
     ? tessellateClosedPath(contours, node.content.fillRule)
     : undefined;
+  const fullyClipped = contours.length === 0;
   return {
     ...node,
+    // A near/far clip can remove the complete surface. Keep the node in the
+    // graph for stable ordering, but make it non-paintable so validation does
+    // not see a filled path without geometry.
+    ...(fullyClipped ? { visible: false } : {}),
     worldMatrix: placement.boundaryWorldMatrix,
     content: {
       ...node.content,
       contours,
       ...(mesh ? { mesh } : { mesh: undefined }),
+      ...(fullyClipped
+        ? {
+            fill: undefined,
+            fillPaint: undefined,
+            stroke: undefined,
+            strokePaint: undefined,
+            strokeMesh: undefined,
+            markers: undefined,
+          }
+        : {}),
     },
   };
 }
@@ -1137,6 +1152,7 @@ function compileVisualRuntimeInternal(
       ...(layer.visibility !== undefined ? ["layer.visibility"] : []),
       ...(layer.backfaceVisibility !== undefined ? ["layer.backfaceVisibility"] : []),
       ...(layer.filter !== undefined ? ["filter.svg.graph"] : []),
+      ...(layer.backdropEffects !== undefined ? ["effect.backdrop-filter"] : []),
       ...(layer.motion ? ["motion.path", "motion.path.sampling", "motion.path.tangent", "motion.path.rotate", "motion.path.anchor"] : []),
     ]) {
       if (!isV2AtomCertified(capability)) {
@@ -1156,6 +1172,7 @@ function compileVisualRuntimeInternal(
     const blendMode = lowerBlendMode(layer);
     const isolation = layer.composite?.isolation;
     const groupEffects = layer.type === "group" ? lowerLayerEffects(layer, project) : undefined;
+    const backdropEffects = layer.backdropEffects ? lowerEffects(layer.backdropEffects) : undefined;
     const semanticMask = lowerSemanticMask(layer, project, context, paintServers);
     semanticMaskNodes.push(...semanticMask.nodes);
     const semanticState = {
@@ -1186,6 +1203,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1241,6 +1259,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1292,6 +1311,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1325,7 +1345,20 @@ function compileVisualRuntimeInternal(
       const firstSpan = firstChunk.spans[0]!;
       const sourceText = layer.payload.source.text;
       const fontSize = resolveSvgLength(firstSpan.font.size, layer.frame.width, 16) ?? 16;
-      const resolvedFontAssetIds = firstSpan.resolvedFontAssetIds ?? [];
+      const runtimeSpanStyles = layer.payload.chunks.flatMap((chunk) => chunk.spans.map((span) => ({
+        start: span.sourceRange.start,
+        end: span.sourceRange.end,
+        fontAssetIds: span.resolvedFontAssetIds ?? firstSpan.resolvedFontAssetIds ?? [],
+        fontSize: resolveSvgLength(span.font.size, layer.frame.width, fontSize) ?? fontSize,
+        ...(span.font.weight === undefined ? {} : { fontWeight: span.font.weight }),
+        ...(span.font.style === undefined ? {} : { fontStyle: span.font.style }),
+        ...(span.font.stretch === undefined ? {} : { fontStretch: span.font.stretch }),
+        ...(span.font.variations ? { variations: { ...span.font.variations } } : {}),
+        ...(span.letterSpacing === undefined || span.letterSpacing === "normal" ? {} : { letterSpacing: resolveSvgLength(span.letterSpacing, layer.frame.width, fontSize) ?? 0 }),
+        ...(span.wordSpacing === undefined || span.wordSpacing === "normal" ? {} : { wordSpacing: resolveSvgLength(span.wordSpacing, layer.frame.width, fontSize) ?? 0 }),
+        ...(paintColor(span.fill, paintServers, context.currentColor) ? { fill: paintColor(span.fill, paintServers, context.currentColor) } : {}),
+      })));
+      const resolvedFontAssetIds = [...new Set(runtimeSpanStyles.flatMap((span) => span.fontAssetIds))];
       const resolvedFontAssets = resolvedFontAssetIds
         .map((assetId) => project.assets?.find((candidate) => candidate.id === assetId))
         .filter((candidate): candidate is Extract<NonNullable<typeof project.assets>[number], { kind: "font" }> => candidate?.kind === "font");
@@ -1422,6 +1455,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1444,6 +1478,7 @@ function compileVisualRuntimeInternal(
           letterSpacing,
           ...(justify ? { justify } : {}),
           whiteSpace: layer.payload.layout?.whiteSpace ?? "normal",
+          ...(layer.payload.layout?.hardBreaks?.length ? { hardBreaks: [...layer.payload.layout.hardBreaks] } : {}),
           ...(layer.payload.source.textRendering ? { textRendering: layer.payload.source.textRendering } : {}),
           ...(layer.payload.layout?.textOverflow ? { textOverflow: layer.payload.layout.textOverflow } : {}),
           ...(layer.payload.layout?.maxLines === undefined ? {} : { maxLines: layer.payload.layout.maxLines }),
@@ -1477,6 +1512,9 @@ function compileVisualRuntimeInternal(
             const fill = paintColor(span.fill, paintServers, context.currentColor);
             return fill ? [{ start: span.sourceRange.start, end: span.sourceRange.end, fill }] : [];
           })),
+          ...(runtimeSpanStyles.length > 1 || runtimeSpanStyles.some((span) => span.fontWeight !== undefined || span.fontStyle !== undefined || span.fontSize !== fontSize)
+            ? { spanStyles: runtimeSpanStyles }
+            : {}),
           width: layer.frame.width,
           height: layer.frame.height,
           ...(layer.payload.layout?.contentWidth === undefined ? {} : { contentWidth: layer.payload.layout.contentWidth }),
@@ -1509,6 +1547,9 @@ function compileVisualRuntimeInternal(
         ...contour,
         ...(layer.payload.pathLength === undefined ? {} : { pathLength: layer.payload.pathLength }),
       }));
+      // Preserve SVG's black default for an omitted fill. An explicit
+      // `fill: none` is retained by the HTML compiler and canonicalizes to a
+      // none paint, so stroke-only closed paths remain transparent inside.
       const authoredFill: ProtocolPaint = layer.style.fill ?? "#000000";
       const fillPaint = runtimePaint(authoredFill, layer.frame.width, layer.frame.height, paintServers, context.currentColor);
       const hasFill = fillPaint?.type !== "none" && hasFillableRegion(contours);
@@ -1583,6 +1624,7 @@ function compileVisualRuntimeInternal(
         ...(isolation ? { isolation } : {}),
         ...semanticState,
         backfaceVisibility: layer.backfaceVisibility,
+        ...(backdropEffects ? { backdropEffects } : {}),
         visible: context.visible,
         localMatrix: context.localMatrix,
         worldMatrix: context.worldMatrix,
@@ -1730,6 +1772,7 @@ function compileVisualRuntimeInternal(
       ...(isolation ? { isolation } : {}),
       ...semanticState,
       backfaceVisibility: layer.backfaceVisibility,
+      ...(backdropEffects ? { backdropEffects } : {}),
       visible: context.visible,
       localMatrix: context.localMatrix,
       worldMatrix: context.worldMatrix,

@@ -7,6 +7,9 @@ import { measureVisualRuntimeText, prepareVisualRuntimeProjectText } from "./tex
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 const repoRoot = path.resolve(process.cwd(), "../..");
 const notoSansPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans/NotoSans-Regular.ttf");
+const interRegularPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Regular.ttf");
+const interBoldPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Bold.ttf");
+const interItalicPath = path.join(repoRoot, "apps/web/public/preview/font/Inter/Inter_18pt-Italic.ttf");
 const notoArabicPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Sans_Arabic/NotoSansArabic-Regular.ttf");
 const notoEmojiPath = path.join(repoRoot, "apps/web/public/preview/font/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf");
 
@@ -179,6 +182,21 @@ describe("runtime text shaping and materialization", () => {
     expect(content.layout?.lines[0]?.advanceWidth).toBeLessThan(150);
   });
 
+  it("preserves authored hard breaks under normal whitespace", async () => {
+    const bytes = await readFile(notoSansPath);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({ text: "Hello\nWorld", whiteSpace: "normal", hardBreaks: [5], wrap: "none" })),
+      async () => bytes,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(content.layout?.lines).toHaveLength(2);
+    expect(content.layout?.lines[1]!.baselineY - content.layout?.lines[0]!.baselineY).toBe(38);
+    expect(content.layout?.glyphs.map((glyph) => glyph.cluster)).toContain(6);
+  });
+
   it("preserves newlines and repeated spaces for pre-wrap", async () => {
     const bytes = await readFile(notoSansPath);
     const result = await prepareVisualRuntimeProjectText(
@@ -227,6 +245,36 @@ describe("runtime text shaping and materialization", () => {
     expect(["color-bitmap", "color-layers", "color-paint", "color-svg"]).toContain(emojiGlyph?.renderMode);
     expect(emojiGlyph?.colorGlyph).toBeDefined();
     if (emojiGlyph?.colorGlyph?.kind === "paint-graph") expect(emojiGlyph.colorGlyphFallback?.mimeType).toBe("image/svg+xml");
+  });
+
+  it("shapes mixed Protocol inline spans with their own font assets and sizes", async () => {
+    const [regular, bold, italic] = await Promise.all([readFile(interRegularPath), readFile(interBoldPath), readFile(interItalicPath)]);
+    const result = await prepareVisualRuntimeProjectText(
+      project(textContent({
+        text: "Prefix bold italic",
+        fontAssetId: "inter-regular",
+        fontUri: "/preview/font/Inter/Inter_18pt-Regular.ttf",
+        fontIntegrity: "sha256:inter-regular",
+        fontFallbacks: [
+          { assetId: "inter-bold", uri: "/preview/font/Inter/Inter_18pt-Bold.ttf", integrity: "sha256:inter-bold" },
+          { assetId: "inter-italic", uri: "/preview/font/Inter/Inter_18pt-Italic.ttf", integrity: "sha256:inter-italic" },
+        ],
+        spanStyles: [
+          { start: 0, end: 7, fontAssetIds: ["inter-regular"], fontSize: 32, fontWeight: 400, fontStyle: "normal" },
+          { start: 7, end: 11, fontAssetIds: ["inter-bold"], fontSize: 40, fontWeight: 700, fontStyle: "normal" },
+          { start: 12, end: 18, fontAssetIds: ["inter-italic"], fontSize: 32, fontWeight: 400, fontStyle: "italic" },
+        ],
+      })),
+      async (font) => font.assetId === "inter-bold" ? bold : font.assetId === "inter-italic" ? italic : regular,
+      async () => import("harfbuzzjs"),
+    );
+    const content = result.project.nodes[0]!.content;
+    expect(content.kind).toBe("text");
+    if (content.kind !== "text") return;
+    expect(new Set(content.layout?.runs.map((run) => run.fontAssetId))).toEqual(new Set(["inter-regular", "inter-bold", "inter-italic"]));
+    const boldGlyph = content.layout?.glyphs.find((glyph) => glyph.cluster >= 7 && glyph.cluster < 11);
+    expect(boldGlyph?.fontAssetId).toBe("inter-bold");
+    expect(boldGlyph?.fontSize).toBe(40);
   });
 
   it("shapes an Arabic RTL run before a renderer receives its glyphs", async () => {

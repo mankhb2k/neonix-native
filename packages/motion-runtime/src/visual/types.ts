@@ -199,10 +199,26 @@ export type GlyphRunGlyph = {
   advanceY: number;
   fontAssetId: string;
   fontIntegrity: string;
+  fontSize: number;
   /** Position within the line before textLength/textPath post-layout. */
   advanceStart: number;
   rotation?: number;
   scaleX?: number;
+};
+
+/** Inline style runs lowered from Protocol V2 text spans. */
+export type VisualRuntimeTextSpan = {
+  start: number;
+  end: number;
+  fontAssetIds: string[];
+  fontSize: number;
+  fontWeight?: number;
+  fontStyle?: "normal" | "italic" | "oblique";
+  fontStretch?: "ultra-condensed" | "extra-condensed" | "condensed" | "semi-condensed" | "normal" | "semi-expanded" | "expanded" | "extra-expanded" | "ultra-expanded";
+  variations?: Record<string, number>;
+  letterSpacing?: number;
+  wordSpacing?: number;
+  fill?: string;
 };
 
 /** Text stays semantic until the host has resolved the exact font binary. */
@@ -230,6 +246,8 @@ export type VisualRuntimeText = {
   align: "left" | "center" | "right";
   justify?: "line" | "all";
   whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line" | "break-spaces";
+  /** UTF-16 offsets at which authored hard line breaks begin. */
+  hardBreaks?: number[];
   verticalAlign: "top" | "middle" | "bottom";
   wrap: "none" | "word" | "character";
   overflow: "visible" | "clip";
@@ -240,6 +258,8 @@ export type VisualRuntimeText = {
   language: string;
   fill: string;
   spanFills?: Array<{ start: number; end: number; fill: string }>;
+  /** Full inline font runs. `spanFills` remains for paint-only consumers. */
+  spanStyles?: VisualRuntimeTextSpan[];
   wordSpacing?: number;
   textLength?: number;
   lengthAdjust?: "spacing" | "spacingAndGlyphs";
@@ -306,6 +326,8 @@ export type VisualRuntimeNode = {
   isolation?: "auto" | "isolate";
   /** Compiler-preserved CSS backface-visibility state. */
   backfaceVisibility?: "visible" | "hidden";
+  /** CSS backdrop-filter effects; these sample the parent backdrop, not this node's source. */
+  backdropEffects?: RuntimeEffect[];
   clipPath?: VisualRuntimeClipPath;
   mask?: VisualRuntimeMask;
   visible: boolean;

@@ -23,7 +23,6 @@ export function resolveSvgLength(value: V2SvgLength | undefined, reference: numb
     case "cm": return value.value * 96 / 2.54;
     case "in": return value.value * 96;
     case "em": return value.value * fontSize;
-    case "ex": return value.value * fontSize / 2;
   }
 }
 

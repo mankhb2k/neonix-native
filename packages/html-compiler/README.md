@@ -142,11 +142,14 @@ CSS first and then classifies the visual role:
 | Transparent wrapper without a boundary | wrapper may be omitted |
 
 The tag name supplies the allowlist and default HTML structure; CSS paint,
-layout and compositing determine the lowering. Interactive/native tags such as
-`button`, `input`, `form`, `canvas`, `iframe`, `audio` and `script` are outside
-Phase 2 and return `html-tag-unsupported` rather than becoming a placeholder
-rectangle. Text remains a dedicated later phase; media and SVG path lowering
-are supported below.
+layout and compositing determine the lowering. The supported vocabulary is
+video-oriented: document shell (`html/head/meta/body`), layer containers
+(`div/section/article/figure/figcaption`), text (`h1`-`h6`, `p`, `span`,
+`strong`, `b`, `em`, `i`, `small`, `br`, `blockquote`, `pre`, `code`), media
+(`img`, `video`, `audio`) and common SVG primitives. Interactive/native tags
+such as `button`, `input`, `form`, `canvas`, `iframe` and `script` remain
+unsupported and return `html-tag-unsupported` rather than becoming a
+placeholder rectangle.
 
 The complete lowering matrix is:
 
@@ -159,8 +162,10 @@ The complete lowering matrix is:
 | Text content | `TextLayout` / `GlyphRun` | Supported (typography MVP) |
 | `img` | `image` | Supported (media phase) |
 | `video` | `video` | Supported (media phase) |
+| `audio` | root `audio.tracks[].clips[]` | Supported (audio phase) |
 | SVG `<svg>/<g>` | `group` | Supported |
 | SVG `<path>` | `path` | Supported (`M/L/H/V/C/Z`) |
+| SVG `<rect>/<circle>/<ellipse>/<line>/<polyline>/<polygon>` | `path` | Supported (primitive lowering) |
 
 Every emitted number is resolved for the fixed composition viewport (1920x1080
 by default). Protocol timing is milliseconds. Selectors, CSS variables, unit
@@ -206,7 +211,9 @@ and combination so Browser CSS and Skia can be compared independently.
 ## Media lowering
 
 The media slice lowers `<img>` and `<video>` into Protocol V2 media layers and
-registers each source in the project asset manifest. The supported image
+registers each source in the project asset manifest. `<audio>` is lowered to
+an explicit root audio track and clip; its duration should be supplied through
+`options.mediaAssets` when it is known. The supported image
 properties are `object-fit: contain | cover | fill | none`, the MVP keyword
 and edge forms of `object-position`, and renderer-safe `image-rendering`
 values (`auto`, `smooth`, `high-quality`, `crisp-edges` and `pixelated`).
@@ -225,9 +232,11 @@ The four media fixtures are exposed under **HTML compiler / Media**:
 
 ## SVG/path lowering
 
-`svg`, `g` and `path` are visual-only tags. An SVG container with children emits
-a `group`; each `<path>` emits one Protocol `path` layer with its source `id`
-or structural identity. The compiler accepts SVG `M`, `L`, `H`, `V`, `C` and
+`svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline` and
+`polygon` are visual-only tags. An SVG container with children emits a `group`;
+each path or primitive emits one Protocol `path` layer with its source `id` or
+structural identity. Primitives are converted into the canonical SVG path
+grammar before lowering. The compiler accepts SVG `M`, `L`, `H`, `V`, `C` and
 `Z` commands, including relative forms and multiple contours. Unsupported
 commands fail closed with `svg-path-command-unsupported`.
 
@@ -255,6 +264,36 @@ Unsupported transform functions or malformed arguments fail closed with a
 Protocol `operations[]` list and composed by Motion Runtime; matrix and local
 perspective parsing remain a later HTML compiler slice.
 
+## Image source subset
+
+`background-image` and `mask-image` accept asset URLs and the deterministic
+`image()`/`cross-fade()` subset. `image()` evaluates candidates from left to
+right: the first supported URL or gradient becomes the source, and a supported
+color is used only when no image candidate is available. This keeps fallback
+selection in the compiler without depending on whether an asset can be
+loaded at compile time. `cross-fade()` lowers to two ordered asset layers with
+premultiplied opacity weights; both `cross-fade(25%, url(a), url(b))` and
+`cross-fade(url(a), url(b), 25%)` are normalized to the same result.
+
+Gradient sources lower to paint shapes, while URL sources lower to image
+layers. No synthetic source name is placed in `sourceKey`. `element()` remains
+an explicit diagnostic and is reserved for a later live element-snapshot
+phase.
+
+## CSS Anchor Positioning subset
+
+The compiler supports static `anchor-name`, `position-anchor`, `anchor()` and
+`anchor-size()` for absolutely positioned layers. Anchor edges and dimensions
+are resolved against the containing block before Protocol V2 lowering, so the
+relationship does not become a new V2 field and Runtime/Skia receive ordinary
+resolved `frame` geometry. Supported edge forms are `top`, `right`, `bottom`,
+`left` and `center`; `anchor-size()` supports `width`/`inline` and
+`height`/`block`. Standalone px fallbacks are accepted as the second argument.
+
+This phase intentionally does not add `position-area`, `position-try`, or a
+runtime anchor relationship. Animation of a referenced anchor is deferred
+until the compiler can resolve the complete timeline into V2 frame tracks.
+
 ## Explicitly deferred
 
 Flex wrapping, Grid layout, masks, filters, text shaping, advanced transform matrices,
@@ -266,20 +305,31 @@ diagnostic; they are not silently ignored.
 
 ### Package structure
 
-The public entrypoint in `src/index.ts` only coordinates the compiler pipeline
-and re-exports the stable source API. Implementation responsibilities live
-under `src/compiler/`:
+The public entrypoint in `src/index.ts` is a thin facade for the stable source
+API and compile function. Phase 1 moved the HTML source boundary into
+`src/compiler/html/`; Phase 2 added `src/compiler/css/` as the canonical CSS
+import surface; Phase 3 centralized compile and layout state in
+`src/compiler/compile-context.ts`; and Phase 7 moved orchestration to
+`src/compiler/pipeline/compile.ts`.
 
 ```text
 src/
 ├── source.ts                 # NeonixHtmlSourceV1 and new-project factory
 ├── index.ts                  # public API and compile orchestration
 └── compiler/
-    ├── html.ts               # HTML shell, identity and manifest parsing
-    ├── css-parser.ts         # CSS rules and declarations
-    ├── cascade.ts            # selectors, specificity and inheritance
-    ├── cascade-values.ts     # shorthand/longhand expansion
-    ├── values.ts             # var(), calc(), min(), max(), clamp() and units
+    ├── html/                 # parser, manifest, tags and DOM model
+    ├── css/                  # canonical CSS parser/cascade/value APIs
+    ├── compile-context.ts    # shared registries and layout state
+    ├── lowering/             # asset registry, dispatch and semantic helpers
+    ├── layout/               # renderer-independent flow/layout boundary
+    ├── pipeline/             # compile orchestration and pipeline tests
+    ├── html.ts               # compatibility facade for HTML imports
+    ├── css-parser.ts         # legacy CSS implementation (backing facade)
+    ├── cascade.ts            # legacy CSS implementation (backing facade)
+    ├── cascade-values.ts     # legacy CSS implementation (backing facade)
+    ├── values.ts             # legacy CSS implementation (backing facade)
+    ├── typography.ts         # legacy CSS implementation (backing facade)
+    ├── animation.ts          # legacy CSS implementation (backing facade)
     ├── paint.ts              # colors, gradients, borders and radius
     ├── path.ts               # SVG path parsing and path paint
     ├── transform.ts          # CSS transform lowering
@@ -290,9 +340,15 @@ src/
     └── utils.ts              # shared parser utilities
 ```
 
-New compiler features should be added to the narrowest module that owns their
-semantic responsibility; `index.ts` should only connect those modules to the
-Protocol V2 lowering step.
+New HTML features should be added under `compiler/html/` and new CSS features
+under `compiler/css/`. The flat CSS files remain the backing implementation
+during this compatibility-first migration; new imports should use `compiler/css/`.
+Phase 4 owns asset registration, Phase 5 owns lowering classification and
+semantic helpers, and Phase 6 owns block-flow traversal plus layout state
+recording. The large Protocol-emitting branches in `index.ts` remain wired
+through these boundaries while `pipeline/compile.ts` owns the orchestration.
+Domain tests now live beside the HTML, CSS, lowering, layout and pipeline
+modules; integration and compatibility fixtures remain under `src/_test_/`.
 
 ```ts
 const source = createNewHtmlProject();
@@ -448,6 +504,12 @@ tests are in `test/phase3.test.ts`. Preview Lab exposes the corresponding
 Phase 3 cases under **HTML compiler / Phase 3**.
 
 ## Visual-only compiler foundation
+
+The intentional CSS exclusions and their rationale are maintained in
+[RULE.md](./RULE.md). In particular, the motion profile does not implement
+`float`, `clear`, `shape-outside`, `shape-margin`, or
+`shape-image-threshold`; these declarations must fail with diagnostics rather
+than being approximated through flex, grid, masks, or absolute positioning.
 
 This compiler is an authoring-to-video boundary, not a browser runtime. It
 accepts static HTML/CSS and produces a resolved scene snapshot; JavaScript,

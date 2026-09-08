@@ -1,7 +1,7 @@
 import { fail } from "./errors";
 import { calcExpression } from "./values";
 import { splitTopLevel } from "./utils";
-import { parsePaintLayers, type Paint } from "./paint";
+import { parseColor, parsePaintLayers, type Paint } from "./paint";
 import type { Style } from "./model";
 
 export type BackgroundPosition = { x: 0 | 0.5 | 1; y: 0 | 0.5 | 1 };
@@ -14,8 +14,70 @@ export type BackgroundRepeat = "repeat" | "repeat-x" | "repeat-y" | "no-repeat";
 export type BackgroundBox = "border-box" | "padding-box" | "content-box";
 
 export type BackgroundImage =
-  | { type: "asset"; uri: string }
-  | { type: "paint"; paint: Exclude<Paint, string> };
+  | { type: "asset"; uri: string; opacity?: number }
+  | { type: "paint"; paint: Exclude<Paint, string>; opacity?: number }
+  | { type: "color"; color: string; opacity?: number };
+
+function parseUrlSource(value: string, property: string): BackgroundImage | undefined {
+  const url = value.match(/^url\(\s*(?:(['"])(.*?)\1|([^)]*))\s*\)$/i);
+  if (!url) return undefined;
+  const uri = (url[2] ?? url[3] ?? "").trim();
+  if (!uri) fail(`css-${property}-invalid`, `${property} url() must contain an asset URI`);
+  return { type: "asset", uri };
+}
+
+function isImageFallbackColor(value: string): boolean {
+  return /^(?:transparent|currentcolor|#[0-9a-f]{3,8}|rgba\()/i.test(value.trim());
+}
+
+/**
+ * Parse one image() candidate. Unsupported candidates are skipped so a later
+ * gradient or color fallback can be selected deterministically. The first
+ * supported image candidate wins; a color is only used if no image source is
+ * supported. This mirrors the useful CSS image() fallback contract without
+ * making asset availability a compile-time concern.
+ */
+function parseImageCandidate(
+  value: string,
+  property: string,
+  currentColor: string,
+  box: { width: number; height: number },
+): BackgroundImage | undefined {
+  const source = value.trim();
+  const url = parseUrlSource(source, property);
+  if (url) return url;
+  if (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(source)) {
+    const paints = parsePaintLayers(source, property, currentColor, box);
+    if (paints.length !== 1 || typeof paints[0] === "string") fail(`css-${property}-invalid`, `Invalid gradient ${property}: ${source}`);
+    return { type: "paint", paint: paints[0] as Exclude<Paint, string> };
+  }
+  if (isImageFallbackColor(source)) return { type: "color", color: parseColor(source, property, currentColor) };
+  if (/^element\(/i.test(source)) fail(`css-${property}-element-unsupported`, `${property} element() needs a live element snapshot source and is reserved for a later phase`);
+  return undefined;
+}
+
+function parseImageFunction(
+  body: string,
+  property: string,
+  currentColor: string,
+  box: { width: number; height: number },
+  original: string,
+): BackgroundImage {
+  const candidates = splitTopLevel(body, ",").map((candidate) => parseImageCandidate(candidate, property, currentColor, box)).filter((candidate): candidate is BackgroundImage => candidate !== undefined);
+  const image = candidates.find((candidate) => candidate.type !== "color");
+  if (image) return image;
+  const fallback = candidates.find((candidate) => candidate.type === "color");
+  if (fallback) return fallback;
+  return fail(`css-${property}-unsupported`, `${property} image() has no supported URL, gradient, or color fallback: ${original}`);
+}
+
+function parseCrossFadeSource(value: string, property: string, currentColor: string, box: { width: number; height: number }): string {
+  const imageFunction = value.match(/^image\(\s*(.*)\s*\)$/i);
+  const source = imageFunction ? parseImageFunction(imageFunction[1]!, property, currentColor, box, value) : parseUrlSource(value.trim(), property);
+  if (!source) return fail(`css-${property}-unsupported`, `${property} cross-fade() currently requires URL image sources: ${value}`);
+  if (source.type !== "asset") return fail(`css-${property}-unsupported`, `${property} cross-fade() currently requires URL image sources: ${value}`);
+  return source.uri;
+}
 
 function listItem(value: string | undefined, index: number, fallback: string): string {
   const values = splitTopLevel(value ?? fallback, ",").map((item) => item.trim()).filter(Boolean);
@@ -63,21 +125,43 @@ function parsePaintImages(
 ): BackgroundImage[] {
   const raw = style.get(property);
   if (raw === undefined || raw.trim().toLowerCase() === "none") return [];
-  return splitTopLevel(raw, ",").map((layer) => {
+  return splitTopLevel(raw, ",").flatMap((layer): BackgroundImage | BackgroundImage[] | null => {
     const value = layer.trim();
     if (value.toLowerCase() === "none") return null;
-    const url = value.match(/^url\(\s*(?:(["'])(.*?)\1|([^)]*))\s*\)$/i);
+    const imageFunction = value.match(/^image\(\s*(.*)\s*\)$/i);
+    if (imageFunction) {
+      return [parseImageFunction(imageFunction[1]!, property, currentColor, box, value)];
+    }
+    const crossFade = value.match(/^cross-fade\(\s*(.*)\s*\)$/i);
+    if (crossFade) {
+      const parts = splitTopLevel(crossFade[1]!, ",").map((part) => part.trim()).filter(Boolean);
+      let progress = 0.5;
+      const percentageIndexes = parts.reduce<number[]>((indexes, part, index) => {
+        if (/^(?:\d*\.)?\d+%$/.test(part)) indexes.push(index);
+        return indexes;
+      }, []);
+      if (percentageIndexes.length > 1) fail(`css-${property}-invalid`, `${property} cross-fade() accepts at most one percentage`);
+      if (percentageIndexes.length === 1) progress = Math.max(0, Math.min(1, Number(parts.splice(percentageIndexes[0]!, 1)[0]!.slice(0, -1)) / 100));
+      if (parts.length !== 2) fail(`css-${property}-invalid`, `${property} cross-fade() requires two image sources`);
+      const from = parseCrossFadeSource(parts[0]!, property, currentColor, box);
+      const to = parseCrossFadeSource(parts[1]!, property, currentColor, box);
+      return [
+        { type: "asset" as const, uri: from, opacity: 1 - progress },
+        { type: "asset" as const, uri: to, opacity: progress },
+      ];
+    }
+    if (/^element\(/i.test(value)) fail(`css-${property}-element-unsupported`, `${property} element() needs a live element snapshot source and is not representable by the current V2 asset contract`);
+    const url = parseUrlSource(value, property);
     if (url) {
-      const uri = (url[2] ?? url[3] ?? "").trim();
-      if (!uri) fail(`css-${property}-invalid`, `${property} url() must contain an asset URI`);
-      return { type: "asset" as const, uri };
+      return [url];
     }
     if (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(value)) {
       const paints = parsePaintLayers(value, property, currentColor, box);
       if (paints.length !== 1 || typeof paints[0] === "string") fail(`css-${property}-invalid`, `Invalid gradient ${property}: ${value}`);
-      return { type: "paint" as const, paint: paints[0] as Exclude<Paint, string> };
+      return [{ type: "paint" as const, paint: paints[0] as Exclude<Paint, string> }];
     }
     fail(`css-${property}-unsupported`, `${property} supports url() and gradients: ${value}`);
+    return null;
   }).filter((layer): layer is BackgroundImage => layer !== null);
 }
 

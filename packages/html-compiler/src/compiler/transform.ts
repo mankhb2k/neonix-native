@@ -78,6 +78,12 @@ export function parseTransform(style: Style, width: number, height: number, font
       if (args.length !== 1) fail("css-transform-arguments-invalid", `${name} expects one angle`); const angle = transformAngle(args[0]!, name); const x = name === "rotatex" ? angle : 0; const y = name === "rotatey" ? angle : 0; const z = name === "rotatex" || name === "rotatey" ? 0 : angle; result.rotate.x += x; result.rotate.y += y; result.rotate.z += z; result.operations!.push(name === "rotate" ? { type: "rotate", angle } : { type: "extension", name: name === "rotatex" ? "motion.rotateX" : name === "rotatey" ? "motion.rotateY" : "motion.rotateZ", value: angle });
     } else if (["skew", "skewx", "skewy"].includes(name)) {
       if (args.length < 1 || args.length > 2) fail("css-transform-arguments-invalid", `${name} expects one or two angles`); const x = name === "skewy" ? 0 : transformAngle(args[0]!, name); const y = name === "skewy" ? transformAngle(args[0]!, name) : name === "skewx" ? 0 : args[1] === undefined ? 0 : transformAngle(args[1]!, name); result.skew.x += x; result.skew.y += y; if (x !== 0) result.operations!.push({ type: "skewX", angle: x }); if (y !== 0) result.operations!.push({ type: "skewY", angle: y });
+    } else if (name === "matrix") {
+      if (args.length !== 6 || args.some((value) => !Number.isFinite(Number(value)))) fail("css-transform-arguments-invalid", "matrix() expects six finite numbers");
+      result.operations!.push({ type: "matrix", values: args.map(Number) as [number, number, number, number, number, number] });
+    } else if (name === "matrix3d") {
+      if (args.length !== 16 || args.some((value) => !Number.isFinite(Number(value)))) fail("css-transform-arguments-invalid", "matrix3d() expects sixteen finite numbers");
+      result.operations!.push({ type: "extension", name: "motion.matrix4", value: args.map(Number) as [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number] });
     } else fail("css-transform-function-unsupported", `Unsupported transform function: ${name}`);
   }
   if (value.slice(cursor).trim()) fail("css-transform-invalid", `Unsupported transform syntax near ${value.slice(cursor)}`);

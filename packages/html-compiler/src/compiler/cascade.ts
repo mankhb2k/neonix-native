@@ -2,6 +2,22 @@ import { fail } from "./errors";
 import { expandShorthand } from "./cascade-values";
 import { CLASS_TOKEN, INHERITED_PROPERTIES, type Node, type Rule, type Style } from "./model";
 
+const TAG_DEFAULT_STYLES: Record<string, Record<string, string>> = {
+  h1: { "font-size": "2em", "font-weight": "700" },
+  h2: { "font-size": "1.5em", "font-weight": "700" },
+  h3: { "font-size": "1.17em", "font-weight": "700" },
+  h4: { "font-size": "1em", "font-weight": "700" },
+  h5: { "font-size": "0.83em", "font-weight": "700" },
+  h6: { "font-size": "0.67em", "font-weight": "700" },
+  strong: { "font-weight": "700" },
+  b: { "font-weight": "700" },
+  em: { "font-style": "italic" },
+  i: { "font-style": "italic" },
+  small: { "font-size": "0.833333em" },
+  pre: { "white-space": "pre", "font-family": "monospace" },
+  code: { "font-family": "monospace" },
+};
+
 export function specificity(selector: string): [number, number, number] {
   const id = (selector.match(/#[\w-]+/g) ?? []).length;
   const cls = (selector.match(/\.[\w-]+/g) ?? []).length;
@@ -50,6 +66,8 @@ INITIAL_VALUES["mask-size"] = "auto";
 INITIAL_VALUES["mask-repeat"] = "repeat";
 INITIAL_VALUES["mask-mode"] = "alpha";
 INITIAL_VALUES["mask-composite"] = "add";
+INITIAL_VALUES["anchor-name"] = "none";
+INITIAL_VALUES["position-anchor"] = "none";
 for (const side of ["top", "right", "bottom", "left"]) {
   INITIAL_VALUES[`border-${side}-style`] = "none";
   INITIAL_VALUES[`border-${side}-width`] = "0px";
@@ -86,6 +104,7 @@ export function computed(node: Node, rules: Rule[], parent: Style): Style {
   for (const [property, value] of node.style) consider(property, value, [1, 1000, 0, 0, Number.MAX_SAFE_INTEGER, 0]);
   const style = new Map<string, string>();
   for (const [property, value] of parent) if (INHERITED_PROPERTIES.has(property) || property.startsWith("--")) style.set(property, value);
+  for (const [property, value] of Object.entries(TAG_DEFAULT_STYLES[node.tag] ?? {})) style.set(property, resolveCascadeValue(property, value, parent));
   for (const [property, item] of candidates) style.set(property, resolveCascadeValue(property, item.value, parent));
   return style;
 }

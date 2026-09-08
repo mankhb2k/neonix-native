@@ -1,0 +1,1 @@
+export { svgPrimitivePath } from "../svg";
