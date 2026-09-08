@@ -5340,6 +5340,14 @@
                           "contentOffsetY": {
                             "$ref": "#/definitions/MotionProtocolV2/properties/assets/items/anyOf/1/properties/duration"
                           },
+                          "hardBreaks": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "minItems": 1
+                          },
                           "textAlign": {
                             "type": "string",
                             "enum": [

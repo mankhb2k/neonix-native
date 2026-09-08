@@ -1,4 +1,6 @@
 import { createHtmlCssSource, createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT, type HtmlCompilerFontAsset, type HtmlCompilerMediaAsset, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { HTML_COMPILER_TAG_LOWERING_CASES } from "./html-compiler-tag-lowering-fixtures";
+import { HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES } from "./html-compiler-text-compiler-layout-fixtures";
 
 export type HtmlCompilerPreviewTopic =
   | "New project"
@@ -13,6 +15,8 @@ export type HtmlCompilerPreviewTopic =
   | "Motion & animation";
 
 export type HtmlCompilerPreviewCategory =
+  | "HTML tag lowering"
+  | "Text compiler & layout"
   | "Layout primitives"
   | "Paint primitives"
   | "Effect primitives"
@@ -2166,6 +2170,110 @@ export const HTML_COMPILER_PHASE1_4_CASES: HtmlCompilerPreviewCase[] = [
 #edge-clip-wide { flex-shrink: 0; width: 1000px; height: 120px; background: #38bdf8; }`,
     }),
   },
+];
+
+/** Text frames use border-box layout geometry and content-box text metrics. */
+const textLayoutCase = (
+  id: string,
+  label: string,
+  properties: string[],
+  hint: string,
+  text: string,
+  css: string,
+): HtmlCompilerPreviewCase => ({
+  id: `html-compiler.layout.${id}`,
+  phase: "P1.4",
+  topic: "Layout",
+  label,
+  properties,
+  hint,
+  source: createNewHtmlProject({
+    html: DEFAULT_NEONIX_HTML_DOCUMENT.replace("<body>\n</body>", `<body>\n  <div id="${id}">${text}</div>\n</body>`),
+    css: `body { margin: 0; background: #081018; }\n\n${css}`,
+  }),
+});
+
+export const HTML_COMPILER_LAYOUT_TEXT_CASES: HtmlCompilerPreviewCase[] = [
+  textLayoutCase(
+    "text-frame-baseline",
+    "Layout / text frame baseline",
+    ["div text", "line box", "content box", "baseline"],
+    "The element frame remains layout geometry while glyphs are painted from the content line box and baseline.",
+    "Hello",
+    `#text-frame-baseline { position: absolute; left: 520px; top: 360px; width: 880px; padding: 24px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }`,
+  ),
+  textLayoutCase(
+    "text-border-uniform",
+    "Layout / text + uniform border",
+    ["div text", "border", "border-box frame", "content origin"],
+    "A uniform border paints around the resolved border-box frame and is not added a second time by the runtime.",
+    "Hello",
+    `#text-border-uniform { position: absolute; left: 520px; top: 340px; width: 760px; padding: 28px; border: 12px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }`,
+  ),
+  textLayoutCase(
+    "text-border-asymmetric",
+    "Layout / text + asymmetric border",
+    ["border-top/right/bottom/left", "different widths", "content origin"],
+    "Different border widths move the content origin by each corresponding edge while the final frame remains one border box.",
+    "Hello",
+    `#text-border-asymmetric { position: absolute; left: 500px; top: 320px; width: 800px; padding: 24px 36px; border-top: 8px solid #22d3ee; border-right: 24px solid #a78bfa; border-bottom: 18px solid #facc15; border-left: 14px solid #fb7185; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-border-padding",
+    "Layout / text + padding + border",
+    ["padding", "border", "content box", "baseline offset"],
+    "Padding separates the glyph line box from the border, and both contribute to the border-box frame without changing glyph metrics.",
+    "Padding frame",
+    `#text-border-padding { position: absolute; left: 420px; top: 320px; width: 1080px; padding: 44px 56px; border: 10px solid #4ade80; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }`,
+  ),
+  textLayoutCase(
+    "text-content-box",
+    "Layout / text content-box sizing",
+    ["box-sizing:content-box", "width", "padding", "border expansion"],
+    "With content-box sizing, authored width excludes padding and border; the emitted frame expands to the complete border box.",
+    "Content box",
+    `#text-content-box { box-sizing: content-box; position: absolute; left: 520px; top: 360px; width: 720px; padding: 32px; border: 16px solid #38bdf8; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-border-box",
+    "Layout / text border-box sizing",
+    ["box-sizing:border-box", "width", "padding", "border inclusion"],
+    "With border-box sizing, authored width is the final border-box width; padding and border reduce the available content width.",
+    "Border box",
+    `#text-border-box { box-sizing: border-box; position: absolute; left: 520px; top: 360px; width: 720px; padding: 32px; border: 16px solid #a78bfa; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 84px; }`,
+  ),
+  textLayoutCase(
+    "text-line-height-normal",
+    "Layout / text normal line-height",
+    ["line-height:normal", "font metrics", "line box", "border"],
+    "Normal line-height resolves from selected font metrics and remains distinct from the visible glyph bounds.",
+    "Normal line box",
+    `#text-line-height-normal { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 24px; border: 8px solid #f97316; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: normal; }`,
+  ),
+  textLayoutCase(
+    "text-line-height-fixed",
+    "Layout / text fixed line-height",
+    ["line-height:88px", "line box", "baseline", "border"],
+    "A fixed line-height changes the line box and baseline placement while glyph bounds remain independent paint geometry.",
+    "Fixed line box",
+    `#text-line-height-fixed { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 24px; border: 8px solid #facc15; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 72px; font-weight: 700; line-height: 88px; }`,
+  ),
+  textLayoutCase(
+    "text-wrapping-border",
+    "Layout / wrapped text inside border",
+    ["width", "white-space:normal", "line wrapping", "border-box"],
+    "Wrapping happens inside the content box; the border stays outside the line boxes and the final frame includes every wrapped line.",
+    "A wrapped text block keeps its line boxes inside the padded content box while the border stays part of the outer frame.",
+    `#text-wrapping-border { position: absolute; left: 420px; top: 260px; width: 1080px; padding: 36px 48px; border: 12px solid #22d3ee; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 56px; font-weight: 700; line-height: 76px; white-space: normal; }`,
+  ),
+  textLayoutCase(
+    "text-border-radius",
+    "Layout / text + rounded border",
+    ["border-radius", "border", "content box", "rounded border-box"],
+    "The rounded border follows the same border-box frame as text layout; radius changes paint contours, not frame dimensions.",
+    "Rounded text frame",
+    `#text-border-radius { position: absolute; left: 420px; top: 340px; width: 1080px; padding: 32px 48px; border: 12px solid #fb7185; border-radius: 48px; color: #f8fafc; background: #172554; font-family: Inter, sans-serif; font-size: 64px; font-weight: 700; line-height: 80px; }`,
+  ),
 ];
 
 export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
@@ -4521,6 +4629,7 @@ export const HTML_COMPILER_PERSPECTIVE_PHASE5_CASES: HtmlCompilerPreviewCase[] =
 
 export const HTML_COMPILER_PREVIEW_MEDIA_ASSETS: HtmlCompilerMediaAsset[] = [
   { kind: "video", uri: "/preview/video/demo-video.mp4", mimeType: "video/mp4", width: 1920, height: 1080, duration: 60500, fps: 30 },
+  { kind: "audio", uri: "/preview/audio/bed.mp3", mimeType: "audio/mpeg", duration: 12000, sampleRate: 48000, channels: 2 },
 ];
 
 export const HTML_COMPILER_PERSPECTIVE_PHASE6_CASES: HtmlCompilerPreviewCase[] = [
@@ -5070,6 +5179,8 @@ export const HTML_COMPILER_ANCHOR_CASES: HtmlCompilerPreviewCase[] = [
 ];
 
 const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
+  "HTML tag lowering",
+  "Text compiler & layout",
   "Layout primitives",
   "Paint primitives",
   "Effect primitives",
@@ -5081,11 +5192,14 @@ const HTML_COMPILER_PREVIEW_CATEGORY_ORDER: HtmlCompilerPreviewCategory[] = [
 
 const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE0_CASES,
+  ...HTML_COMPILER_TAG_LOWERING_CASES,
+  ...HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES,
   ...HTML_COMPILER_ANCHOR_CASES,
   ...HTML_COMPILER_PHASE1_1_CASES,
   ...HTML_COMPILER_PHASE1_2_CASES,
   ...HTML_COMPILER_PHASE1_3_CASES,
   ...HTML_COMPILER_PHASE1_4_CASES,
+  ...HTML_COMPILER_LAYOUT_TEXT_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_2_CASES,

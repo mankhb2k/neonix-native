@@ -513,6 +513,7 @@ Text source is NFC-normalized and ranges use UTF-16 offsets:
     },
     "layout": {
       "lineHeight": 48,
+      "hardBreaks": [5],
       "textAlign": "center",
       "whiteSpace": "nowrap",
       "wrap": "none",
@@ -548,7 +549,9 @@ The source supports `language`, `direction`, `writingMode`, `whiteSpace`, and
 `textRendering`. The optional normalized `layout` contract supports resolved
 `lineHeight`, `contentWidth`, `contentHeight`, `contentOffsetX`,
 `contentOffsetY`, `textAlign`, CSS `whiteSpace`, deterministic `wrap`, and
-`textOverflow`. `contentWidth` is the inline content-box width used for
+`textOverflow`. `hardBreaks` is an optional ordered list of UTF-16 offsets
+where authored hard line breaks begin; it preserves HTML `<br>` semantics even
+when CSS `white-space` is `normal`. `contentWidth` is the inline content-box width used for
 wrapping and alignment; the offsets locate that box inside the layer frame.
 Text spans carry `letterSpacing` and `wordSpacing` as semantic lengths or
 `"normal"`; runtime resolves them before line alignment and justification.

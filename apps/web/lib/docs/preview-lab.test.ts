@@ -8,7 +8,9 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_LAYOUT_TEXT_CASES, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_TAG_LOWERING_CASES } from "./html-compiler-tag-lowering-fixtures";
+import { HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES } from "./html-compiler-text-compiler-layout-fixtures";
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -53,10 +55,12 @@ describe("Protocol V2 preview lab fixtures", () => {
 
   it("keeps the HTML compiler sidebar backed by the primitive fixture catalog", () => {
     expect(HTML_COMPILER_PHASE0_CASES).toHaveLength(41);
+    expect(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES).toHaveLength(6);
     expect(HTML_COMPILER_PHASE1_1_CASES).toHaveLength(5);
     expect(HTML_COMPILER_PHASE1_2_CASES).toHaveLength(3);
     expect(HTML_COMPILER_PHASE1_3_CASES).toHaveLength(4);
     expect(HTML_COMPILER_PHASE1_4_CASES).toHaveLength(5);
+    expect(HTML_COMPILER_LAYOUT_TEXT_CASES).toHaveLength(10);
     expect(HTML_COMPILER_ANCHOR_CASES).toHaveLength(1);
     expect(HTML_COMPILER_PAINT_PHASE2_0_CASES).toHaveLength(7);
     expect(HTML_COMPILER_PAINT_PHASE2_1_CASES).toHaveLength(4);
@@ -74,6 +78,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(HTML_COMPILER_PERSPECTIVE_PHASE9_CASES.every((fixture) => fixture.classification === "combined")).toBe(true);
     const groups = htmlCompilerPreviewGroups();
     expect(groups.map((group) => group.category)).toEqual([
+      "HTML tag lowering",
+      "Text compiler & layout",
       "Layout primitives",
       "Paint primitives",
       "Effect primitives",
@@ -91,6 +97,11 @@ describe("Protocol V2 preview lab fixtures", () => {
         return typeof fill === "object" && fill !== null && "spreadMethod" in fill && fill.spreadMethod === "repeat";
       });
       expect(hasRepeatingPaint, fixture.id).toBe(true);
+    }
+    for (const fixture of HTML_COMPILER_LAYOUT_TEXT_CASES) {
+      const compiled = compileHtmlCss(fixture.source, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS });
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.some((layer) => layer.type === "text" && layer.frame.width > 0 && layer.frame.height > 0), fixture.id).toBe(true);
     }
     for (const fixture of HTML_COMPILER_PAINT_PHASE2_2_CASES) {
       const compiled = compileHtmlCss(fixture.source);
@@ -275,6 +286,8 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("writing-mode: vertical-rl");
     expect(htmlCompilerPreviewCaseById("html-compiler.typography.direction-writing-decoration").source.css).toContain("text-decoration: underline");
     expect(htmlCompilerPreviewGroups().map((group) => group.category)).toEqual([
+      "HTML tag lowering",
+      "Text compiler & layout",
       "Layout primitives",
       "Paint primitives",
       "Effect primitives",
@@ -655,6 +668,126 @@ describe("Protocol V2 preview lab fixtures", () => {
     expect(groups.length).toBeGreaterThan(0);
     expect(groups.every((group) => group.cases.length > 0)).toBe(true);
     expect(groups.every((group) => !group.label.toLowerCase().includes("task"))).toBe(true);
+  });
+
+  it("compiles every tag-lowering fixture with the expected Protocol role", () => {
+    expect(HTML_COMPILER_TAG_LOWERING_CASES).toHaveLength(8);
+    const compile = (id: string) => compileHtmlCss(
+      HTML_COMPILER_TAG_LOWERING_CASES.find((item) => item.id === id)!.source,
+      { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS, mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS },
+    );
+
+    const containers = compile("html-compiler.tags.document-shell-container");
+    expect(containers.status).toBe("success");
+    expect(containers.protocol?.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "scene", type: "group" }),
+      expect.objectContaining({ id: "card", type: "group" }),
+      expect.objectContaining({ id: "fill", type: "shape" }),
+    ]));
+
+    const text = compile("html-compiler.tags.text-lowering");
+    expect(text.status).toBe("success");
+    expect(text.protocol?.layers.filter((layer) => layer.type === "text").map((layer) => layer.id)).toEqual(["title", "caption"]);
+
+    const media = compile("html-compiler.tags.media-lowering");
+    expect(media.status).toBe("success");
+    expect(media.protocol?.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "poster", type: "image" }),
+      expect.objectContaining({ id: "clip", type: "video" }),
+    ]));
+
+    const audio = compile("html-compiler.tags.audio-lowering");
+    expect(audio.status).toBe("success");
+    expect(audio.protocol?.layers.some((layer) => layer.id === "music")).toBe(false);
+    expect(audio.protocol?.audio.tracks).toEqual(expect.arrayContaining([expect.objectContaining({ id: "music" })]));
+
+    const svg = compile("html-compiler.tags.svg-lowering");
+    expect(svg.status).toBe("success");
+    const svgPaths = svg.protocol?.layers.filter((layer) => layer.type === "path") ?? [];
+    expect(svgPaths.map((layer) => layer.id)).toEqual(["panel", "dot", "rule", "arrow"]);
+    expect(svgPaths.every((layer) => layer.transform.translate.x === 0 && layer.transform.translate.y === 0)).toBe(true);
+
+    for (const fixture of HTML_COMPILER_TAG_LOWERING_CASES.slice(5)) {
+      const compiled = compile(fixture.id);
+      expect(compiled.status, fixture.id).toBe("success");
+      expect(compiled.protocol?.layers.length, fixture.id).toBeGreaterThan(0);
+    }
+    const textMatrix = compile("html-compiler.tags.text-tag-matrix");
+    expect(textMatrix.protocol?.layers.filter((layer) => layer.type === "text").map((layer) => layer.id)).toEqual([
+      "h2", "h3", "h4", "h5", "h6", "span", "bold", "emphasis", "italic", "small", "quote", "pre", "code",
+    ]);
+    const svgMatrix = compile("html-compiler.tags.svg-primitive-matrix");
+    expect(svgMatrix.protocol?.layers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "nested-group", type: "group" }),
+      expect.objectContaining({ id: "path", type: "path" }),
+      expect.objectContaining({ id: "ellipse", type: "path" }),
+      expect.objectContaining({ id: "polyline", type: "path" }),
+    ]));
+  });
+
+  it("keeps text compiler and layout contracts independently observable", () => {
+    const compile = (id: string) => compileHtmlCss(
+      HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES.find((item) => item.id === id)!.source,
+      { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS },
+    );
+
+    const hardBreak = compile("html-compiler.text.compiler.br-hard-break");
+    expect(hardBreak.status).toBe("success");
+    expect(hardBreak.protocol?.layers.find((layer) => layer.id === "hard-break")).toMatchObject({
+      type: "text",
+      frame: { width: 900, height: 180 },
+      payload: {
+        source: { text: "Video title\nline two" },
+        layout: { whiteSpace: "normal", wrap: "word", lineHeight: 86.4, hardBreaks: [11] },
+      },
+    });
+
+    const nested = compile("html-compiler.text.compiler.nested-inline-content");
+    expect(nested.protocol?.layers.find((layer) => layer.id === "nested-inline")).toMatchObject({
+      type: "text",
+      payload: {
+        source: { text: "Prefix bold italic" },
+        chunks: [{ spans: [
+          { sourceRange: { start: 0, end: 7 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-regular"] },
+          { sourceRange: { start: 7, end: 11 }, font: { weight: 700, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-bold"] },
+          { sourceRange: { start: 11, end: 12 }, font: { weight: 400, style: "normal" }, resolvedFontAssetIds: ["preview-font-inter-regular"] },
+          { sourceRange: { start: 12, end: 18 }, font: { weight: 400, style: "italic" }, resolvedFontAssetIds: ["preview-font-inter-italic"] },
+        ] }],
+      },
+    });
+
+    const whitespace = compile("html-compiler.text.compiler.whitespace-contract");
+    expect(whitespace.protocol?.layers.find((layer) => layer.id === "normal-space")).toMatchObject({
+      type: "text",
+      payload: { source: { text: "A   B\nC" }, layout: { whiteSpace: "normal", wrap: "word" } },
+    });
+    expect(whitespace.protocol?.layers.find((layer) => layer.id === "pre-space")).toMatchObject({
+      type: "text",
+      payload: { source: { text: "A   B\nC" }, layout: { whiteSpace: "pre", wrap: "none" } },
+    });
+
+    const fixedLines = compile("html-compiler.text.layout.fixed-line-height");
+    expect(fixedLines.protocol?.layers.find((layer) => layer.id === "fixed-lines")).toMatchObject({
+      type: "text",
+      frame: { width: 1000, height: 300 },
+      payload: { source: { text: "Line one\nLine two\nLine three" }, layout: { lineHeight: 72 } },
+    });
+
+    const wrapped = compile("html-compiler.text.layout.wrap-width");
+    expect(wrapped.protocol?.layers.find((layer) => layer.id === "wrap-width")).toMatchObject({
+      type: "text",
+      frame: { width: 520, height: 300 },
+      payload: { layout: { sizing: "fixed", contentWidth: 520, wrap: "word" } },
+    });
+
+    const autoHeight = compile("html-compiler.text.layout.auto-height");
+    const autoHeightLayer = autoHeight.protocol?.layers.find((layer) => layer.id === "auto-height");
+    expect(autoHeightLayer).toMatchObject({
+      type: "text",
+      frame: { width: 520 },
+      payload: { layout: { sizing: "fixed-width-auto-height", contentWidth: 520, wrap: "word" } },
+    });
+    expect(autoHeightLayer?.frame.height ?? 0).toBeGreaterThan(60);
   });
 
   it("keeps local preview assets under the preview public root", () => {

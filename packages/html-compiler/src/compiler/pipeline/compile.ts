@@ -29,7 +29,7 @@ import { splitTopLevel } from "../utils";
 import { animationTimelineDuration, lowerAnimationTracks } from "../css/animation";
 import { motionPathLength, parseMotionPath } from "../motion-path";
 import { parseAnchorNames, resolveAnchorStyle } from "../anchor";
-import { classifyNode, collectTextContent, isTextContainer, isSvgNode } from "../lowering/dispatcher";
+import { classifyNode, collectTextContentWithBreaks, collectTextContentWithStyles, isTextFlowNode, isSvgNode, normalizeTextContent, normalizeTextContentWithStyles } from "../lowering/dispatcher";
 import type { Node, Style } from "../model";
 import { svgPrimitivePath } from "../lowering/svg";
 import { createCompileContext } from "../compile-context";
@@ -42,6 +42,29 @@ function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCom
 }
 
 type HtmlPathContour = Extract<MotionProtocolV2["layers"][number], { type: "path" }>["payload"]["contours"][number];
+
+type HtmlTextLayer = Extract<MotionProtocolV2["layers"][number], { type: "text" }>;
+
+function estimateTextIntrinsicHeight(text: string, style: Style, fontSize: number, containingWidth: number, viewport: { width: number; height: number }): number {
+  const lineHeight = parseLineHeight(style, fontSize, viewport);
+  const whiteSpace = parseWhiteSpace(style.get("white-space"));
+  const explicitLines = text.split(/\r?\n/);
+  if (whiteSpace === "nowrap" || whiteSpace === "pre") return Math.max(1, explicitLines.length) * lineHeight;
+
+  const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
+  const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
+  const horizontalDecorations = padding[1] + padding[3] + border.right.width + border.left.width;
+  const boxSizing = (style.get("box-sizing") ?? "content-box").trim().toLowerCase();
+  const declaredWidth = number(style, "width", containingWidth, fontSize, 16, viewport);
+  const contentWidth = Number.isFinite(declaredWidth)
+    ? Math.max(1, boxSizing === "border-box" ? declaredWidth - horizontalDecorations : declaredWidth)
+    : Math.max(1, containingWidth - horizontalDecorations);
+  const averageGlyphWidth = Math.max(1, fontSize * 0.55);
+  const charactersPerLine = Math.max(1, Math.floor(contentWidth / averageGlyphWidth));
+  const normalizedLines = text.replace(/[ \t]+/g, " ").split(/\r?\n/);
+  const lineCount = normalizedLines.reduce((count, line) => count + Math.max(1, Math.ceil(line.length / charactersPerLine)), 0);
+  return Math.max(1, lineCount) * lineHeight;
+}
 
 type BorderDashRun = { offset: number; length: number };
 
@@ -348,8 +371,29 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
       flowOrigin: (node) => flowOrigins.get(node),
       size: (node) => sizes.get(node),
     });
+    const svgLayout = (children: Node[], parent: Node, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock): void => {
+      for (const child of children) {
+        const childStyle = styles.get(child) ?? parentStyle;
+        if (childStyle.get("display") === "contents") {
+          svgLayout(child.children, parent, parentX, parentY, containingWidth, containingHeight, childStyle, positionedBlock);
+          continue;
+        }
+        const childPosition = childStyle.get("position") ?? "static";
+        if (childPosition === "absolute") {
+          layout(child, parent, positionedBlock.x, positionedBlock.y, positionedBlock.width, positionedBlock.height, parentStyle, positionedBlock);
+        } else {
+          // SVG child geometry is expressed in the parent's user coordinate
+          // space. Do not apply HTML block-flow stacking between primitives.
+          layout(child, parent, parentX, parentY, containingWidth, containingHeight, parentStyle, positionedBlock);
+        }
+      }
+    };
     function layout(node: Node, parent: Node | null, parentX: number, parentY: number, containingWidth: number, containingHeight: number, parentStyle: Style, positionedBlock: ContainingBlock): void {
-      const authoredStyle = styles.get(node) ?? computed(node, rules, parentStyle); const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
+      // Inline text descendants are already collected by their nearest text
+      // layer. They must not become independent layers or resolve their own
+      // default font/geometry.
+      if (parent !== null && isTextFlowNode(parent) && isTextFlowNode(node)) return;
+      const authoredStyle = styles.get(node) ?? computed(node, rules, parentStyle); const style = resolveAnchorStyle(authoredStyle, positionedBlock, anchorBoxes); const parentFont = number(parentStyle, "font-size", containingWidth, 16, 16, viewport) || 16; const font = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont; const nodeTextContent = isTextFlowNode(node) ? normalizeTextContent(collectTextContentWithBreaks(node), true) : { text: node.text.normalize("NFC").trim(), hardBreaks: [] }; const geometryText = nodeTextContent.text; const intrinsicContentHeight = geometryText && node.tag !== "body" && (!Number.isFinite(number(style, "height", containingHeight, font, 16, viewport)) || style.get("height")?.trim().toLowerCase() === "auto") ? estimateTextIntrinsicHeight(geometryText, style, font, containingWidth, viewport) : undefined; const baseGeometry = resolveGeometry({ style, parentX, parentY, containingWidth, containingHeight, fontSize: font, viewport, ...(intrinsicContentHeight === undefined ? {} : { intrinsicContentHeight }) }); const geometry = layoutEngine.state.layoutOverrides.has(node) ? resizeResolvedGeometry(baseGeometry, layoutEngine.state.layoutOverrides.get(node)!) : baseGeometry; const layoutBox = assertLayoutBox(geometry.layoutBox); const { x, y, width: w, height: h } = layoutBox; const { normalX, normalY } = geometry;
       const loweringKind = classifyNode(node);
       layoutEngine.record(node, layoutBox, normalX, normalY);
       for (const name of parseAnchorNames(style)) {
@@ -447,7 +491,6 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
          const backdropFilterEffects = parseFilter(style.get("backdrop-filter"), containingWidth, font, viewport, currentColor);
          const backdropState = backdropFilterEffects.length ? { backdropEffects: backdropFilterEffects } : {};
          const paintEffects = [...boxShadows, ...filterEffects];
-         const textEffects = [...paintEffects, ...textShadows];
          const composite = parseComposite(style);
          const compositeState = composite ? { composite } : {};
          const compositeNeedsGroup = composite !== undefined;
@@ -551,8 +594,13 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             });
             return;
           }
-          const rawText = (isTextContainer(node) ? collectTextContent(node) : node.text).normalize("NFC");
-          const text = hasChildren ? rawText.trim() : rawText;
+          const rawNodeText = node.text.normalize("NFC");
+          const collectedText = isTextFlowNode(node)
+            ? normalizeTextContentWithStyles(collectTextContentWithStyles(node, styles), hasChildren)
+            : { text: hasChildren ? rawNodeText.trim() : rawNodeText, hardBreaks: [], styleRuns: [{ start: 0, end: hasChildren ? rawNodeText.trim().length : rawNodeText.length, style }] };
+          const { text, hardBreaks, styleRuns } = collectedText;
+          let textPayload: HtmlTextLayer["payload"] | undefined;
+          let textClipId: string | undefined;
           if (text) {
             const font = resolveFontAssets(style, options.fontAssets ?? []);
             assetRegistry.registerFonts(font.assets);
@@ -561,7 +609,6 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const renderTextAlign = textAlign === "match-parent" ? parseTextAlign(parentStyle.get("text-align")) : textAlign;
             const direction = parseTextDirection(style.get("direction"));
             const writingMode = parseWritingMode(style.get("writing-mode"));
-            const textDecoration = parseTextDecoration(style.get("text-decoration"), textColor, containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
             const whiteSpace = parseWhiteSpace(style.get("white-space"));
             const wrap = wrapForWhiteSpace(whiteSpace);
             const textOverflow = parseTextOverflow(style.get("text-overflow"));
@@ -575,51 +622,41 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
             const textRendering = parseTextRendering(style.get("text-rendering"));
             if (textOverflow === "ellipsis" && style.get("overflow") !== "hidden") fail("css-text-overflow-requires-clipping", "text-overflow: ellipsis requires overflow: hidden");
             if (textOverflow === "ellipsis" && (whiteSpace !== "nowrap" || writingMode !== "horizontal-tb")) fail("css-text-overflow-ellipsis-unsupported", "text-overflow: ellipsis requires white-space: nowrap and horizontal-tb writing-mode");
-            const textClipId = style.get("overflow") === "hidden"
+            textClipId = style.get("overflow") === "hidden"
               ? registerClipPath([{ type: "rect", x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight }], "html-text-clip")
               : elementClipPath();
-            const letterSpacing = parseTextSpacing(style.get("letter-spacing"), "letter-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
-            const wordSpacing = parseTextSpacing(style.get("word-spacing"), "word-spacing", containingWidth, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport);
-            layers.push({
-              id: groupId,
-              type: "text",
-              parentLayerId: parent?.tag === "body" ? null : (parent?.atomicId ?? null),
-              order: layerOrder,
-              frame: { width: w, height: h },
-              transform: transformFor(localX, localY, true),
-              opacity,
-              ...state,
-              ...backdropState,
-              ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}),
-              ...(motion ? { motion } : {}),
-              ...compositeState,
-              ...(textEffects.length ? { effects: textEffects } : {}),
-              ...(textClipId ? { clipPath: textClipId } : {}),
-              ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}),
-              ...(animationTracks.group.length ? { tracks: animationTracks.group } : {}),
-              timing: { start: 0, duration },
-              payload: {
-                source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
-                layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
-                chunks: [{
-                  id: `${groupId}::chunk`,
-                  sourceRange: { start: 0, end: text.length },
-                  textAnchor: textAnchorForTextAlign(renderTextAlign, direction),
-                    spans: [{
-                    id: `${groupId}::span`,
-                    sourceRange: { start: 0, end: text.length },
-                    resolvedFontAssetIds: font.assets.map((asset) => asset.id),
-                    font: { families: font.families, size: number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, weight: font.weight, style: font.style, stretch: font.stretch },
-                    letterSpacing,
-                    wordSpacing,
-                    ...(textDecoration ? { textDecoration } : {}),
-                    fill: textColor,
-                  }],
-                }],
-              },
+            const baseFontSize = number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont;
+            const effectiveStyleRuns = styleRuns.length ? styleRuns : [{ start: 0, end: text.length, style }];
+            const spans = effectiveStyleRuns.map((run, runIndex) => {
+              const runStyle = run.style;
+              const runFontSize = number(runStyle, "font-size", containingWidth, baseFontSize, 16, viewport) || baseFontSize;
+              const runFont = resolveFontAssets(runStyle, options.fontAssets ?? []);
+              assetRegistry.registerFonts(runFont.assets);
+              const runColor = parseColor(runStyle.get("color") ?? textColor, "color");
+              const runDecoration = parseTextDecoration(runStyle.get("text-decoration"), runColor, containingWidth, runFontSize, viewport);
+              const runLetterSpacing = parseTextSpacing(runStyle.get("letter-spacing"), "letter-spacing", containingWidth, runFontSize, viewport);
+              const runWordSpacing = parseTextSpacing(runStyle.get("word-spacing"), "word-spacing", containingWidth, runFontSize, viewport);
+              return {
+                id: `${groupId}::span-${runIndex}`,
+                sourceRange: { start: run.start, end: run.end },
+                resolvedFontAssetIds: runFont.assets.map((asset) => asset.id),
+                font: { families: runFont.families, size: runFontSize, weight: runFont.weight, style: runFont.style, stretch: runFont.stretch },
+                letterSpacing: runLetterSpacing,
+                wordSpacing: runWordSpacing,
+                ...(runDecoration ? { textDecoration: runDecoration } : {}),
+                fill: runColor,
+              };
             });
-            emitOutline(false);
-            return;
+            textPayload = {
+              source: { text, language: node.attributes.get("lang") ?? "und", direction, writingMode, whiteSpace: "default", textRendering },
+              layout: { sizing, lineHeight: parseLineHeight(style, number(style, "font-size", containingWidth, parentFont, 16, viewport) || parentFont, viewport), contentWidth: geometry.contentWidth, contentHeight: geometry.contentHeight, contentOffsetX: geometry.borderEdges[3] + geometry.padding[3], contentOffsetY: geometry.borderEdges[0] + geometry.padding[0], textAlign, whiteSpace, wrap, textOverflow, ...(hardBreaks.length ? { hardBreaks } : {}), ...(textOverflow === "ellipsis" ? { maxLines: 1 } : {}) },
+              chunks: [{
+                id: `${groupId}::chunk`,
+                sourceRange: { start: 0, end: text.length },
+                textAnchor: textAnchorForTextAlign(renderTextAlign, direction),
+                spans,
+              }],
+            };
           }
           const backgroundShorthand = style.get("background")?.trim(); const backgroundValue = backgroundShorthand && (/^\w+-gradient\(/i.test(backgroundShorthand) || backgroundShorthand.includes(",")) ? backgroundShorthand : style.get("background-color") ?? backgroundShorthand; const paints = backgroundValue === undefined ? (hasChildren && ["svg", "g"].includes(node.tag) ? [] : ["#00000000" as Paint]) : parsePaintLayers(backgroundValue, "background", style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h }); const border = parseBorderEdges(style, containingWidth, font, viewport);
           const backgroundImages = parseBackgroundImages(style, style.get("color") ?? parentStyle.get("color") ?? "#000000", { width: w, height: h });
@@ -643,11 +680,17 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
            layers.push({ id: groupId, type: "path", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...backdropState, ...(backfaceVisibility !== "visible" ? { backfaceVisibility } : {}), ...(motion ? { motion } : {}), ...compositeState, ...(clipPathId ? { clipPath: clipPathId } : {}), ...(maskLayerRefs ? { maskLayers: maskLayerRefs } : {}), ...(paintEffects.length ? { effects: paintEffects } : {}), ...(animationTracks.group.length || animationTracks.paint.length ? { tracks: [...animationTracks.group, ...animationTracks.paint] } : {}), timing: { start: 0, duration }, payload: { contours: pathContours!, fillRule: fillRuleValue as "nonzero" | "evenodd" }, style: styleForPath });
         } else {
           // Keep all generated paint passes inside the element's stacking
-          // scope. A border is a separate pass so its centered stroke can be
-          // inset without changing the element's sibling order.
-          const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
+           // scope. A border is a separate pass so its centered stroke can be
+           // inset without changing the element's sibling order.
+           const hasBorder = Object.values(border).some((side) => side.width > 0 && side.style !== "none");
+           const textGroupRequired = textPayload !== undefined && (backgroundValue !== undefined || backgroundImages.length > 0 || hasBorder || hasOutline);
            const clipPathId = elementClipPath();
-           const needsPaintGroup = hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || backdropFilterEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
+           if (textPayload !== undefined && !textGroupRequired && !maskLayerRefs && !paintEffects.length && !backdropFilterEffects.length && !compositeNeedsGroup && clipPathId === undefined && motion === undefined && !animationTracks.group.length && !animationTracks.paint.length && render3d === undefined && backfaceVisibility === "visible") {
+             layers.push({ id: groupId, type: "text", parentLayerId: parentId, order: layerOrder, frame: { width: w, height: h }, transform: transformFor(localX, localY, true), opacity, ...state, ...(textShadows.length ? { effects: textShadows } : {}), ...(textClipId ? { clipPath: textClipId } : {}), timing: { start: 0, duration }, payload: textPayload });
+             emitOutline(false);
+             return;
+           }
+           const needsPaintGroup = textGroupRequired || hasChildren || backgroundImages.length > 0 || maskLayerRefs !== undefined || hasBorder || hasOutline || paintEffects.length > 0 || backdropFilterEffects.length > 0 || compositeNeedsGroup || clipPathId !== undefined || motion !== undefined || animationTracks.group.length > 0 || animationTracks.paint.length > 0 || render3d !== undefined || backfaceVisibility !== "visible";
            // Element opacity belongs to the stacking group. Generated paint
            // passes are children of that group and must remain opaque, or a
            // non-default CSS opacity would be multiplied twice by runtime.
@@ -941,9 +984,30 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                (["top", "right", "bottom", "left"] as const).forEach((side, index) => emitBorderSide(side, index));
               }
             }
-            // Outline is a paint-only pass. Emit it after descendants so it
-            // remains on top of the element's content without affecting
-            // layout geometry.
+             if (textPayload !== undefined) {
+               // Text decorations belong to the element's stacking group, but
+               // glyph effects must remain on the text surface. Keeping this
+               // as a child preserves CSS paint order without applying the
+               // element transform, opacity or filter twice.
+               layers.push({
+                 id: `${groupId}::text`,
+                 type: "text",
+                 parentLayerId: groupId,
+                 order: Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) + 1500000 : layers.length + 1500000,
+                 frame: { width: w, height: h },
+                 transform: transformFor(0, 0, false),
+                 opacity: 1,
+                 ...state,
+                 ...(textShadows.length ? { effects: textShadows } : {}),
+                 ...(textClipId ? { clipPath: textClipId } : {}),
+                 ...(animationTracks.paint.length ? { tracks: animationTracks.paint } : {}),
+                 timing: { start: 0, duration },
+                 payload: textPayload,
+               });
+             }
+             // Outline is a paint-only pass. Emit it after descendants so it
+             // remains on top of the element's content without affecting
+             // layout geometry.
             emitOutline(true);
           }
        }
@@ -1003,6 +1067,8 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
           const childStyle = styles.get(child) ?? style;
           if ((childStyle.get("position") ?? "static") === "absolute") layout(child, node, childContainingBlock.x, childContainingBlock.y, childContainingBlock.width, childContainingBlock.height, style, childContainingBlock);
         }
+      } else if (node.tag === "svg" || node.tag === "g") {
+        svgLayout(node.children, node, childX, childY, Math.max(1, geometry.contentWidth), Math.max(1, geometry.contentHeight), style, childContainingBlock);
       } else {
         flowLayout(node.children, node, childX, childY, Math.max(1, geometry.contentWidth), Math.max(1, geometry.contentHeight), style, childContainingBlock, { flowY: childY, previousBottomMargin: 0, hasFlowChild: false });
       }
@@ -1015,4 +1081,3 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     return { status: "success", source, protocol, diagnostics: [] };
   } catch (error) { const diagnostic = error instanceof CompileError ? { severity: "error" as const, code: error.code, message: error.message, ...(error.source ? { source: error.source } : {}) } : { severity: "error" as const, code: "html-compiler-internal", message: error instanceof Error ? error.message : String(error) }; return { status: "error", source, protocol: null, diagnostics: [diagnostic] }; }
 }
-

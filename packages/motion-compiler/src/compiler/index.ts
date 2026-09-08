@@ -1345,7 +1345,20 @@ function compileVisualRuntimeInternal(
       const firstSpan = firstChunk.spans[0]!;
       const sourceText = layer.payload.source.text;
       const fontSize = resolveSvgLength(firstSpan.font.size, layer.frame.width, 16) ?? 16;
-      const resolvedFontAssetIds = firstSpan.resolvedFontAssetIds ?? [];
+      const runtimeSpanStyles = layer.payload.chunks.flatMap((chunk) => chunk.spans.map((span) => ({
+        start: span.sourceRange.start,
+        end: span.sourceRange.end,
+        fontAssetIds: span.resolvedFontAssetIds ?? firstSpan.resolvedFontAssetIds ?? [],
+        fontSize: resolveSvgLength(span.font.size, layer.frame.width, fontSize) ?? fontSize,
+        ...(span.font.weight === undefined ? {} : { fontWeight: span.font.weight }),
+        ...(span.font.style === undefined ? {} : { fontStyle: span.font.style }),
+        ...(span.font.stretch === undefined ? {} : { fontStretch: span.font.stretch }),
+        ...(span.font.variations ? { variations: { ...span.font.variations } } : {}),
+        ...(span.letterSpacing === undefined || span.letterSpacing === "normal" ? {} : { letterSpacing: resolveSvgLength(span.letterSpacing, layer.frame.width, fontSize) ?? 0 }),
+        ...(span.wordSpacing === undefined || span.wordSpacing === "normal" ? {} : { wordSpacing: resolveSvgLength(span.wordSpacing, layer.frame.width, fontSize) ?? 0 }),
+        ...(paintColor(span.fill, paintServers, context.currentColor) ? { fill: paintColor(span.fill, paintServers, context.currentColor) } : {}),
+      })));
+      const resolvedFontAssetIds = [...new Set(runtimeSpanStyles.flatMap((span) => span.fontAssetIds))];
       const resolvedFontAssets = resolvedFontAssetIds
         .map((assetId) => project.assets?.find((candidate) => candidate.id === assetId))
         .filter((candidate): candidate is Extract<NonNullable<typeof project.assets>[number], { kind: "font" }> => candidate?.kind === "font");
@@ -1465,6 +1478,7 @@ function compileVisualRuntimeInternal(
           letterSpacing,
           ...(justify ? { justify } : {}),
           whiteSpace: layer.payload.layout?.whiteSpace ?? "normal",
+          ...(layer.payload.layout?.hardBreaks?.length ? { hardBreaks: [...layer.payload.layout.hardBreaks] } : {}),
           ...(layer.payload.source.textRendering ? { textRendering: layer.payload.source.textRendering } : {}),
           ...(layer.payload.layout?.textOverflow ? { textOverflow: layer.payload.layout.textOverflow } : {}),
           ...(layer.payload.layout?.maxLines === undefined ? {} : { maxLines: layer.payload.layout.maxLines }),
@@ -1498,6 +1512,9 @@ function compileVisualRuntimeInternal(
             const fill = paintColor(span.fill, paintServers, context.currentColor);
             return fill ? [{ start: span.sourceRange.start, end: span.sourceRange.end, fill }] : [];
           })),
+          ...(runtimeSpanStyles.length > 1 || runtimeSpanStyles.some((span) => span.fontWeight !== undefined || span.fontStyle !== undefined || span.fontSize !== fontSize)
+            ? { spanStyles: runtimeSpanStyles }
+            : {}),
           width: layer.frame.width,
           height: layer.frame.height,
           ...(layer.payload.layout?.contentWidth === undefined ? {} : { contentWidth: layer.payload.layout.contentWidth }),

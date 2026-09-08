@@ -60,6 +60,8 @@ type GeometryInput = {
   containingHeight: number;
   fontSize: number;
   viewport: CssViewport;
+  /** Intrinsic content height supplied by the text/layout measurer for auto-sized boxes. */
+  intrinsicContentHeight?: number;
 };
 
 function constraintValue(style: Style, property: string, relative: number, fontSize: number, viewport: CssViewport, fallback: number): number {
@@ -83,7 +85,7 @@ function validateSize(value: number, property: string, raw: string | undefined):
 }
 
 export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
-  const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport } = input;
+  const { style, parentX, parentY, containingWidth, containingHeight, fontSize, viewport, intrinsicContentHeight } = input;
   const padding = edges(style, "padding", containingWidth, fontSize, 16, viewport);
   const border = parseBorderEdges(style, containingWidth, fontSize, viewport);
   const borderEdges: GeometryEdges = [border.top.width, border.right.width, border.bottom.width, border.left.width];
@@ -126,8 +128,13 @@ export function resolveGeometry(input: GeometryInput): ResolvedGeometry {
   let sizingWidth = widthAuto
     ? boxSizing === "border-box" ? availableBorderWidth : availableContentWidth
     : validateSize(declaredWidth, "width", style.get("width"));
+  const intrinsicHeight = Number.isFinite(intrinsicContentHeight) && (intrinsicContentHeight ?? 0) > 0
+    ? Math.max(0, intrinsicContentHeight as number)
+    : undefined;
   let sizingHeight = heightAuto
-    ? boxSizing === "border-box" ? availableBorderHeight : availableContentHeight
+    ? intrinsicHeight !== undefined
+      ? boxSizing === "border-box" ? intrinsicHeight + verticalDecorations : intrinsicHeight
+      : boxSizing === "border-box" ? availableBorderHeight : availableContentHeight
     : validateSize(declaredHeight, "height", style.get("height"));
 
   const ratio = parseAspectRatio(style.get("aspect-ratio"));

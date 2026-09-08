@@ -105,6 +105,43 @@ describe("Protocol V2 semantic SVG text", () => {
     expect(V2TextLayerSchema.parse(layer)).toEqual(layer);
   });
 
+  it("accepts ordered UTF-16 hard break offsets", () => {
+    const layer = {
+      ...TEXT_LAYER,
+      payload: {
+        ...TEXT_LAYER.payload,
+        source: { text: "Video title\nline two", language: "en" },
+        layout: {
+          lineHeight: 40,
+          textAlign: "left" as const,
+          whiteSpace: "normal" as const,
+          wrap: "word" as const,
+          textOverflow: "clip" as const,
+          hardBreaks: [11],
+        },
+      },
+    };
+    expect(V2TextLayerSchema.parse(layer).payload.layout?.hardBreaks).toEqual([11]);
+  });
+
+  it("rejects unsorted or out-of-range hard break offsets", () => {
+    const layout = {
+      lineHeight: 40,
+      textAlign: "left" as const,
+      whiteSpace: "normal" as const,
+      wrap: "word" as const,
+      textOverflow: "clip" as const,
+    };
+    expect(() => V2TextLayerSchema.parse({
+      ...TEXT_LAYER,
+      payload: { ...TEXT_LAYER.payload, source: { text: "A\nB" }, layout: { ...layout, hardBreaks: [2, 1] } },
+    })).toThrow(/strictly increasing/);
+    expect(() => V2TextLayerSchema.parse({
+      ...TEXT_LAYER,
+      payload: { ...TEXT_LAYER.payload, source: { text: "A\nB" }, layout: { ...layout, hardBreaks: [3] } },
+    })).toThrow(/point inside source text/);
+  });
+
   it("accepts every Protocol V2 textAlign value", () => {
     const values = ["start", "end", "left", "right", "center", "justify", "match-parent", "justify-all"] as const;
     for (const textAlign of values) {

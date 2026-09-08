@@ -72,4 +72,24 @@ describe("HTML composition tag vocabulary", () => {
       clips: [{ assetId: "music-asset", timing: { start: 0, duration: 4500 }, trim: { start: 0, end: 4500 } }],
     }]);
   });
+
+  it("preserves hard breaks in generic text-flow containers", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<body><div id="copy">One<br>Two</div></body>`,
+      css: `#copy { position: absolute; left: 100px; top: 100px; width: 600px; height: 160px; color: #ffffff; font-family: TestSans; font-size: 48px; }`,
+    }), {
+      fontAssets: [
+        { id: "sans-regular", kind: "font", uri: "/fonts/sans-regular.ttf", mimeType: "font/ttf", family: "TestSans", weight: 400, style: "normal", integrity: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      ],
+    });
+
+    expect(result.status).toBe("success");
+    const text = result.protocol?.layers.find((layer) => layer.type === "text");
+    expect(text).toMatchObject({
+      payload: {
+        source: { text: "One\nTwo" },
+        layout: { hardBreaks: [3] },
+      },
+    });
+  });
 });

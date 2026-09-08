@@ -1,7 +1,7 @@
 import { isTextNode } from "./text";
 import type { Node } from "../model";
 
-export { collectTextContent, isTextContainer, isTextNode } from "./text";
+export { collectTextContent, collectTextContentWithBreaks, collectTextContentWithStyles, isTextContainer, isTextFlowNode, isTextNode, normalizeTextContent, normalizeTextContentWithStyles } from "./text";
 
 export type LoweringKind = "audio" | "image" | "video" | "text" | "svg" | "container";
 

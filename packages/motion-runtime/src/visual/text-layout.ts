@@ -1,7 +1,7 @@
 import type * as HarfBuzz from "harfbuzzjs";
 import type { PaintTextDecoration, PaintTextGlyph } from "../paint/paint-types";
 import { flattenPathContourAny, glyphPathToMesh, glyphPathToStrokeMesh, measureContour, sampleContourAtDistance, transformPathMesh } from "../geometry/path";
-import type { GlyphRun, GlyphRunGlyph, VisualRuntimeDiagnostic, VisualRuntimeProject, VisualRuntimeTextLayout, VisualRuntimeText } from "./types";
+import type { GlyphRun, GlyphRunGlyph, VisualRuntimeDiagnostic, VisualRuntimeProject, VisualRuntimeTextLayout, VisualRuntimeText, VisualRuntimeTextSpan } from "./types";
 
 export type VisualRuntimeTextFontSource = { assetId: string; uri: string; integrity: string };
 export type VisualRuntimeTextFontResolver = (font: VisualRuntimeTextFontSource) => Promise<ArrayBuffer | Uint8Array | null>;
@@ -26,6 +26,7 @@ type ResolvedFont = {
   font: HbFont;
   fontScale: number;
   metrics: ReturnType<HbFont["hExtents"]>;
+  fontSize: number;
 };
 type UnmaterializedTextLayout = Omit<VisualRuntimeTextLayout, "glyphs"> & { runs: GlyphRun[] };
 type LineGlyph = { glyph: GlyphRunGlyph; font: ResolvedFont; advanceStart: number };
@@ -34,9 +35,9 @@ function variationKey(text: VisualRuntimeText): string {
   return Object.entries(text.variations ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([tag, value]) => `${tag}=${value}`).join(",");
 }
 
-function configureFont(hb: typeof HarfBuzz, face: HbFace, text: VisualRuntimeText): HbFont {
+function configureFont(hb: typeof HarfBuzz, face: HbFace, text: VisualRuntimeText, span?: VisualRuntimeTextSpan): HbFont {
   const font = new hb.Font(face);
-  const variations = Object.entries(text.variations ?? {}).map(([tag, value]) => new hb.Variation(tag, value));
+  const variations = Object.entries(span?.variations ?? text.variations ?? {}).map(([tag, value]) => new hb.Variation(tag, value));
   if (variations.length) font.setVariations(variations);
   return font;
 }
@@ -99,47 +100,116 @@ type SourceLine = { text: string; start: number; isLastInParagraph: boolean };
 
 type RuntimeWhiteSpace = NonNullable<VisualRuntimeText["whiteSpace"]>;
 
-function normalizeWhiteSpace(value: string, mode: RuntimeWhiteSpace): string {
+const HARD_BREAK_SENTINEL = "\uE000";
+
+function normalizeWhiteSpace(value: string, mode: RuntimeWhiteSpace, hardBreaks: readonly number[] = []): string {
   const canonical = value.replace(/\r\n?/g, "\n");
-  if (mode === "pre" || mode === "pre-wrap" || mode === "break-spaces") return canonical;
-  if (mode === "pre-line") return canonical.replace(/[ \t\f]+/g, " ").replace(/ *\n */g, "\n").replace(/^ +| +$/gm, "");
-  return canonical.replace(/[ \t\n\f]+/g, " ").trim();
+  if (hardBreaks.length === 0) {
+    if (mode === "pre" || mode === "pre-wrap" || mode === "break-spaces") return canonical;
+    if (mode === "pre-line") return canonical.replace(/[ \t\f]+/g, " ").replace(/ *\n */g, "\n").replace(/^ +| +$/gm, "");
+    return canonical.replace(/[ \t\n\f]+/g, " ").trim();
+  }
+  const breaks = new Set(hardBreaks);
+  let protectedText = "";
+  for (let index = 0; index < canonical.length; index += 1) {
+    if (breaks.has(index)) {
+      protectedText += HARD_BREAK_SENTINEL;
+      if (canonical[index] === "\n") continue;
+    }
+    protectedText += canonical[index];
+  }
+  if (breaks.has(canonical.length)) protectedText += HARD_BREAK_SENTINEL;
+  const normalized = mode === "pre" || mode === "pre-wrap" || mode === "break-spaces"
+    ? protectedText
+    : mode === "pre-line"
+      ? protectedText.replace(/[ \t\f]+/g, " ").replace(/ *\n */g, "\n").replace(/^ +| +$/gm, "")
+      : protectedText.replace(/[ \t\n\f]+/g, " ").trim();
+  return normalized.replaceAll(HARD_BREAK_SENTINEL, "\n");
 }
 
-function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], value: string): number {
-  let advance = 0;
-  for (const runRange of fontRuns(fonts, value)) {
-    const resolved = fonts[runRange.fontIndex]!;
-    const buffer = new hb.Buffer();
-    buffer.addText(value.slice(runRange.start, runRange.end));
-    buffer.setLanguage(text.language);
-    buffer.setDirection(text.direction === "rtl" ? 5 : 4);
-    buffer.guessSegmentProperties();
-    hb.shape(resolved.font, buffer);
-    const positions = buffer.getGlyphPositions();
-    advance += positions.reduce((total, position) => total + position.xAdvance * resolved.fontScale, 0);
+type TextStyleSlice = { start: number; end: number; span?: VisualRuntimeTextSpan };
+
+function styleSlices(text: VisualRuntimeText, value: string, sourceOffset: number): TextStyleSlice[] {
+  const spans = text.spanStyles ?? [];
+  if (!spans.length) return [{ start: 0, end: value.length }];
+  const sourceEnd = sourceOffset + value.length;
+  const slices: TextStyleSlice[] = [];
+  let cursor = 0;
+  for (const span of spans) {
+    const start = Math.max(sourceOffset, span.start);
+    const end = Math.min(sourceEnd, span.end);
+    if (end <= start) continue;
+    const localStart = start - sourceOffset;
+    const localEnd = end - sourceOffset;
+    if (localStart > cursor) slices.push({ start: cursor, end: localStart });
+    slices.push({ start: localStart, end: localEnd, span });
+    cursor = localEnd;
   }
-  const clusters = segmentClusters(value);
-  advance += Math.max(0, clusters.length - 1) * text.letterSpacing;
-  advance += clusters.filter((cluster) => /\s/.test(cluster.text)).length * (text.wordSpacing ?? 0);
+  if (cursor < value.length) slices.push({ start: cursor, end: value.length });
+  return slices.length ? slices : [{ start: 0, end: value.length }];
+}
+
+function fontCandidates(fonts: ResolvedFont[], span?: VisualRuntimeTextSpan): ResolvedFont[] {
+  if (!span?.fontAssetIds?.length) return fonts;
+  const allowed = new Set(span.fontAssetIds);
+  const selected = fonts.filter((font) => allowed.has(font.source.assetId));
+  return selected.length ? selected : fonts;
+}
+
+function styledFonts(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], span: VisualRuntimeTextSpan | undefined, cache: Map<string, ResolvedFont[]>): ResolvedFont[] {
+  if (!span) return fonts;
+  const key = `${span.fontAssetIds.join(",")}|${span.fontSize}|${span.fontWeight ?? ""}|${span.fontStyle ?? ""}|${span.fontStretch ?? ""}|${JSON.stringify(span.variations ?? {})}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const result = fontCandidates(fonts, span).map((base) => {
+    const font = configureFont(hb, base.face, text, span);
+    return { ...base, font, fontScale: span.fontSize / base.face.upem, metrics: font.hExtents(), fontSize: span.fontSize };
+  });
+  cache.set(key, result);
+  return result;
+}
+
+function measureSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], value: string, sourceOffset = 0): number {
+  let advance = 0;
+  const styleCache = new Map<string, ResolvedFont[]>();
+  for (const slice of styleSlices(text, value, sourceOffset)) {
+    const sliceText = value.slice(slice.start, slice.end);
+    const sliceFonts = styledFonts(hb, text, fonts, slice.span, styleCache);
+    for (const runRange of fontRuns(sliceFonts, sliceText)) {
+      const resolved = sliceFonts[runRange.fontIndex]!;
+      const buffer = new hb.Buffer();
+      buffer.addText(sliceText.slice(runRange.start, runRange.end));
+      buffer.setLanguage(text.language);
+      buffer.setDirection(text.direction === "rtl" ? 5 : 4);
+      buffer.guessSegmentProperties();
+      hb.shape(resolved.font, buffer);
+      const positions = buffer.getGlyphPositions();
+      advance += positions.reduce((total, position) => total + position.xAdvance * resolved.fontScale, 0);
+    }
+    const clusters = segmentClusters(sliceText);
+    const letterSpacing = slice.span?.letterSpacing ?? text.letterSpacing;
+    const wordSpacing = slice.span?.wordSpacing ?? text.wordSpacing ?? 0;
+    advance += Math.max(0, clusters.length - 1) * letterSpacing;
+    advance += clusters.filter((cluster) => /\s/.test(cluster.text)).length * wordSpacing;
+  }
   return advance;
 }
 
 function ellipsizeSourceLine(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[], line: SourceLine, contentWidth: number): SourceLine {
   const ellipsis = "…";
-  if (measureSourceLine(hb, text, fonts, line.text) <= contentWidth) return line;
-  if (measureSourceLine(hb, text, fonts, ellipsis) > contentWidth) return { ...line, text: "" };
+  if (measureSourceLine(hb, text, fonts, line.text, line.start) <= contentWidth) return line;
+  if (measureSourceLine(hb, text, fonts, ellipsis, line.start) > contentWidth) return { ...line, text: "" };
   let prefix = "";
   for (const cluster of segmentClusters(line.text)) {
     const candidate = `${prefix}${cluster.text}${ellipsis}`;
-    if (measureSourceLine(hb, text, fonts, candidate) > contentWidth) break;
+    if (measureSourceLine(hb, text, fonts, candidate, line.start) > contentWidth) break;
     prefix += cluster.text;
   }
   return { ...line, text: `${prefix}${ellipsis}` };
 }
 
 function sourceLinesForText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: ResolvedFont[]): SourceLine[] {
-  const sourceText = normalizeWhiteSpace(text.text, text.whiteSpace ?? "normal");
+  const sourceText = normalizeWhiteSpace(text.text, text.whiteSpace ?? "normal", text.hardBreaks);
   const explicitLines: SourceLine[] = [];
   let start = 0;
   while (start <= sourceText.length) {
@@ -293,6 +363,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
   const runs: GlyphRun[] = [];
   const vertical = text.writingMode === "vertical-rl" || text.writingMode === "vertical-lr";
   const textPath = text.textPath?.contours[0] ? measureContour(flattenPathContourAny(text.textPath.contours[0])) : null;
+  const styleCache = new Map<string, ResolvedFont[]>();
 
   for (const [lineIndex, sourceLine] of sourceLines.entries()) {
     const sourceOffset = sourceLine.start;
@@ -300,9 +371,16 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
     const lineGlyphs: LineGlyph[] = [];
     let penX = 0;
     let penY = 0;
-    for (const [runIndex, runRange] of fontRuns(fonts, lineText).entries()) {
-      const resolved = fonts[runRange.fontIndex]!;
-      const runText = lineText.slice(runRange.start, runRange.end);
+    let runIndex = 0;
+    for (const slice of styleSlices(text, lineText, sourceOffset)) {
+      const sliceText = lineText.slice(slice.start, slice.end);
+      const sliceFonts = styledFonts(hb, text, fonts, slice.span, styleCache);
+      const letterSpacing = slice.span?.letterSpacing ?? text.letterSpacing;
+      const wordSpacing = slice.span?.wordSpacing ?? text.wordSpacing ?? 0;
+      for (const runRange of fontRuns(sliceFonts, sliceText)) {
+      const resolved = sliceFonts[runRange.fontIndex]!;
+      const runStart = slice.start + runRange.start;
+      const runText = sliceText.slice(runRange.start, runRange.end);
       const buffer = new hb.Buffer();
       buffer.addText(runText);
       buffer.setLanguage(text.language);
@@ -317,7 +395,7 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         id: `text-line-${lineIndex}-run-${runIndex}`,
         fontAssetId: resolved.source.assetId,
         fontIntegrity: resolved.source.integrity,
-        fontSize: text.fontSize,
+        fontSize: resolved.fontSize,
         direction: vertical ? "ttb" : text.direction,
         language: text.language,
         glyphs: [],
@@ -326,12 +404,12 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
         const info = infos[index]!;
         const position = positions[index]!;
         const extents = resolved.font.glyphExtents(info.codepoint);
-        const sourceCharacter = runRange.start + info.cluster;
+        const sourceCharacter = runStart + info.cluster;
         if (extents && extents.width !== 0 && extents.height !== 0) {
           const cluster = sourceOffset + sourceCharacter;
-          const clusterEnd = sourceOffset + runRange.start + (clusterEnds.get(info.cluster) ?? runText.length);
+          const clusterEnd = sourceOffset + runStart + (clusterEnds.get(info.cluster) ?? runText.length);
           const glyphX = vertical
-            ? (text.writingMode === "vertical-rl" ? text.width - text.fontSize : 0) + (text.dx?.[sourceCharacter] ?? 0) + (position.xOffset + extents.xBearing) * resolved.fontScale
+            ? (text.writingMode === "vertical-rl" ? text.width - resolved.fontSize : 0) + (text.dx?.[sourceCharacter] ?? 0) + (position.xOffset + extents.xBearing) * resolved.fontScale
             : penX + (text.dx?.[sourceCharacter] ?? 0) + (position.xOffset + extents.xBearing) * resolved.fontScale;
           const glyphY = vertical
             ? penY + (text.dy?.[sourceCharacter] ?? 0) - (position.yOffset + extents.yBearing) * resolved.fontScale
@@ -350,19 +428,22 @@ function layoutText(hb: typeof HarfBuzz, text: VisualRuntimeText, fonts: Resolve
             advanceY: position.yAdvance * resolved.fontScale,
             fontAssetId: resolved.source.assetId,
             fontIntegrity: resolved.source.integrity,
+            fontSize: resolved.fontSize,
             advanceStart: vertical ? penY : penX,
           };
           glyphRun.glyphs.push(glyph);
           lineGlyphs.push({ glyph, font: resolved, advanceStart: glyph.advanceStart });
         }
-        if (vertical) penY += Math.abs(position.yAdvance * resolved.fontScale) || Math.abs(position.xAdvance * resolved.fontScale) || text.fontSize;
+        if (vertical) penY += Math.abs(position.yAdvance * resolved.fontScale) || Math.abs(position.xAdvance * resolved.fontScale) || resolved.fontSize;
         else {
           penX += position.xAdvance * resolved.fontScale;
-          if (index < infos.length - 1) penX += text.letterSpacing;
-          if (/\s/.test(lineText[Math.max(0, Math.min(lineText.length - 1, sourceCharacter))] ?? "")) penX += text.wordSpacing ?? 0;
+          if (index < infos.length - 1) penX += letterSpacing;
+          if (/\s/.test(lineText[Math.max(0, Math.min(lineText.length - 1, sourceCharacter))] ?? "")) penX += wordSpacing;
         }
       }
       if (glyphRun.glyphs.length) runs.push(glyphRun);
+      runIndex += 1;
+      }
     }
     const naturalAdvance = vertical ? penY : penX;
     const gapCount = !vertical ? justificationGaps(lineText) : 0;
@@ -460,7 +541,8 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
     for (const glyph of run.glyphs) {
       const path = resolved.font.glyphToPath(glyph.glyphId);
       const fill = fills.find((span) => glyph.cluster < span.end && glyph.clusterEnd > span.start)?.fill;
-      const outline = { x: glyph.xBearing, y: glyph.yBearing, width: glyph.width / resolved.fontScale, height: -glyph.height / resolved.fontScale };
+      const glyphScale = glyph.fontSize / resolved.face.upem;
+      const outline = { x: glyph.xBearing, y: glyph.yBearing, width: glyph.width / glyphScale, height: -glyph.height / glyphScale };
       const renderMode = useMask ? "grayscale-mask" as const : "vector" as const;
       const paintGlyph: PaintTextGlyph = {
         glyphId: glyph.glyphId, cluster: glyph.cluster, clusterEnd: glyph.clusterEnd, ...(fill ? { fill } : {}),
@@ -468,19 +550,19 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
         advanceStart: glyph.advanceStart,
         advanceX: glyph.advanceX,
         advanceY: glyph.advanceY,
-        path, pathScale: resolved.fontScale, outline,
+        path, pathScale: glyphScale, outline,
         fontAssetId: glyph.fontAssetId, fontIntegrity: glyph.fontIntegrity, renderMode,
-        fontSize: text.fontSize,
+        fontSize: glyph.fontSize,
         ...(variation ? { variationKey: variation } : {}), ...(glyph.rotation ? { rotation: glyph.rotation } : {}), ...(glyph.scaleX ? { scaleX: glyph.scaleX } : {}),
       };
       if (renderMode === "vector") {
-        paintGlyph.mesh = glyphPathToMesh(path, resolved.fontScale, outline, glyph.x, glyph.y) ?? undefined;
+        paintGlyph.mesh = glyphPathToMesh(path, glyphScale, outline, glyph.x, glyph.y) ?? undefined;
         if (paintGlyph.mesh && glyph.scaleX && glyph.scaleX !== 1) {
           paintGlyph.mesh = transformPathMesh(paintGlyph.mesh, { scaleX: glyph.scaleX, originX: glyph.x, originY: glyph.y });
         }
         if (text.stroke && text.strokeWidth) {
           paintGlyph.stroke = text.stroke; paintGlyph.strokePaint = text.strokePaint; paintGlyph.strokeWidth = text.strokeWidth; paintGlyph.strokeOpacity = text.strokeOpacity;
-          paintGlyph.strokeMesh = glyphPathToStrokeMesh(path, resolved.fontScale, outline, glyph.x, glyph.y, text.strokeWidth) ?? undefined;
+          paintGlyph.strokeMesh = glyphPathToStrokeMesh(path, glyphScale, outline, glyph.x, glyph.y, text.strokeWidth) ?? undefined;
           if (paintGlyph.strokeMesh && glyph.scaleX && glyph.scaleX !== 1) {
             paintGlyph.strokeMesh = transformPathMesh(paintGlyph.strokeMesh, { scaleX: glyph.scaleX, originX: glyph.x, originY: glyph.y });
           }
@@ -513,11 +595,11 @@ function materializeGlyphRuns(text: VisualRuntimeText, fonts: ResolvedFont[], la
             const layerPath = resolved.font.glyphToPath(layer.glyph);
             if (!extents || !layerPath) return [];
             const layerOutline = { x: extents.xBearing, y: extents.yBearing, width: extents.width, height: extents.height };
-            const layerX = glyph.x + (glyph.xBearing - extents.xBearing) * resolved.fontScale;
-            const layerY = glyph.y + (glyph.yBearing - extents.yBearing) * resolved.fontScale;
-            let mesh = glyphPathToMesh(layerPath, resolved.fontScale, layerOutline, layerX, layerY) ?? undefined;
+            const layerX = glyph.x + (glyph.xBearing - extents.xBearing) * glyphScale;
+            const layerY = glyph.y + (glyph.yBearing - extents.yBearing) * glyphScale;
+            let mesh = glyphPathToMesh(layerPath, glyphScale, layerOutline, layerX, layerY) ?? undefined;
             if (mesh && glyph.rotation) mesh = transformPathMesh(mesh, { rotation: glyph.rotation, originX: glyph.x, originY: glyph.y });
-            return [{ fill: layer.colorIndex === undefined ? (fill ?? "#000000ff") : colorToHex(palette[layer.colorIndex] ?? { red: 0, green: 0, blue: 0, alpha: 255 }), path: layerPath, pathScale: resolved.fontScale, outline: { x: layerOutline.x, y: layerOutline.y }, x: layerX, y: layerY, mesh }];
+            return [{ fill: layer.colorIndex === undefined ? (fill ?? "#000000ff") : colorToHex(palette[layer.colorIndex] ?? { red: 0, green: 0, blue: 0, alpha: 255 }), path: layerPath, pathScale: glyphScale, outline: { x: layerOutline.x, y: layerOutline.y }, x: layerX, y: layerY, mesh }];
           }) };
         }
       }
@@ -561,6 +643,7 @@ export async function measureVisualRuntimeText(
       font,
       fontScale: text.fontSize / face.upem,
       metrics: font.hExtents(),
+      fontSize: text.fontSize,
     });
   }
   if (!resolvedFonts.length) return null;
@@ -607,7 +690,7 @@ export async function prepareVisualRuntimeProjectText(project: VisualRuntimeProj
         const blob = new hb.Blob(bytes);
         const face = new hb.Face(blob);
         const font = configureFont(hb, face, node.content);
-        resolvedFonts.push({ source, face, font, fontScale: node.content.fontSize / face.upem, metrics: font.hExtents() });
+        resolvedFonts.push({ source, face, font, fontScale: node.content.fontSize / face.upem, metrics: font.hExtents(), fontSize: node.content.fontSize });
       }
       if (!resolvedFonts.length) { diagnostics.push({ severity: "error", code: "runtime_v2_font_unavailable", message: `No font asset is available for text layer ${node.id}`, nodeId: node.id }); return node; }
       const layout = layoutText(hb, node.content, resolvedFonts);
