@@ -81,6 +81,5 @@ test.describe("HTML compiler perspective animation cases", () => {
     await expect.poll(signature).not.toBe(first);
     const actualTime = Number(await slider.inputValue());
     await expect(page.getByTestId("html-compiler-browser-preview-time")).toHaveAttribute("data-time", actualTime.toFixed(6));
-    await page.screenshot({ path: "test-results-motion-path/phase7-perspective-animation-mid.png", fullPage: true });
   });
 });

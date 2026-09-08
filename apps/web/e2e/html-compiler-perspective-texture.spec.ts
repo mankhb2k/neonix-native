@@ -50,7 +50,6 @@ test.describe("HTML compiler projective texture cases", () => {
     const actualTime = Number(await slider.inputValue());
     await expect(page.getByTestId("html-compiler-skia-preview-time")).toHaveAttribute("data-time", actualTime.toFixed(6));
     await expect(page.getByTestId("html-compiler-browser-preview-time")).toHaveAttribute("data-time", actualTime.toFixed(6));
-    await page.screenshot({ path: "test-results-motion-path/phase8-projective-texture-mid.png", fullPage: true });
   });
 
   test("keeps the near-plane texture visible up to the composition edge", async ({ page }) => {
@@ -58,6 +57,5 @@ test.describe("HTML compiler projective texture cases", () => {
     const canvas = page.getByTestId("html-compiler-runtime-canvas");
     await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
     await expect.poll(async () => Number(await canvas.getAttribute("data-skia-texture-uploads"))).toBeGreaterThan(0);
-    await page.screenshot({ path: "test-results-motion-path/phase8-near-plane-fixed.png", fullPage: true });
   });
 });

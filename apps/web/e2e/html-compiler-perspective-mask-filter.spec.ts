@@ -57,7 +57,6 @@ test.describe("HTML compiler projective mask/filter cases", () => {
     await page.goto("/docs/preview/html-compiler?case=html-compiler.perspective.mask-alpha-near-plane", { waitUntil: "domcontentloaded" });
     const canvas = page.getByTestId("html-compiler-runtime-canvas");
     await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
-    await page.screenshot({ path: "test-results-motion-path/phase9-mask-alpha-near-plane.png", fullPage: true });
   });
 
   test("isolated projective mask/filter keeps the projected group and child blend", async ({ page }) => {
@@ -74,7 +73,6 @@ test.describe("HTML compiler projective mask/filter cases", () => {
       }
       return painted;
     })).toBeGreaterThan(10_000);
-    await page.screenshot({ path: "playwright-p9-isolated-fix/isolated-mask-filter-projective.png", fullPage: true });
   });
 
   test("captures drop-shadow after blur for pixel inspection", async ({ page }) => {
@@ -103,6 +101,5 @@ test.describe("HTML compiler projective mask/filter cases", () => {
       return { diagnostics: element.getAttribute("data-diagnostics"), drawCalls: element.getAttribute("data-draw-calls"), nonBackground, blueish, blueishBounds };
     });
     expect(metrics.blueish).toBeGreaterThan(0);
-    await page.screenshot({ path: "playwright-p9-drop-shadow/drop-shadow-after-blur.png", fullPage: true });
   });
 });

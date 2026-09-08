@@ -30,7 +30,7 @@ test.describe("Skia Phase 10 hardening", () => {
 
   test("keeps projective texture geometry cacheable across repeated frame paints", async ({ page }) => {
     const canvas = await ready(page, "image.preserve-aspect-ratio.meet");
-    const first = await canvas.screenshot({ path: "test-results-motion-path/phase10-skia-golden.png" });
+    const first = await canvas.screenshot();
     const second = await canvas.screenshot();
     expect(Buffer.compare(first, second)).toBe(0);
     expect(Number(await canvas.getAttribute("data-skia-offscreen-surface-reuses"))).toBeGreaterThanOrEqual(0);
