@@ -9,6 +9,7 @@ import {
   type PreviewResourceLease,
 } from "@/lib/editor/playback/preview-resource-registry";
 import { stageInteractionStore } from "@/lib/store/stage-interaction-store";
+import { systemAssetFallbackId, systemAssetFallbackUrl } from "@/lib/media/system-asset-fallback";
 import { compileProtocol, compileProtocolAtTime } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
@@ -829,30 +830,19 @@ async function loadPreviewResources(
       }
       if (asset.kind === "video") {
         const lease = await registry.acquire(key, async () => {
-          const video = document.createElement("video");
-          video.crossOrigin = "anonymous";
-          video.preload = "auto";
-          video.playsInline = true;
-          video.src = asset.uri;
-          video.load();
-          await waitForVideoReady(video);
-          const width = asset.width ?? video.videoWidth;
-          const height = asset.height ?? video.videoHeight;
-          if (!width || !height) throw new Error(`Video asset ${asset.id} has no dimensions`);
-          await seekVideo(video, 0);
-          // Some browsers expose HAVE_CURRENT_DATA before the first decoded
-          // frame is available to WebGPU's copyExternalImageToTexture. Prime
-          // one frame while muted so the initial paused preview is not black.
-          await primeVideoFrame(video);
-          return {
-            source: video,
-            width,
-            height,
-            kind: "video" as const,
-            frameVersion: 0,
-            resourceGeneration,
-            contentRevision: 1,
-          } satisfies PreviewAsset;
+          try {
+            return await loadPreviewVideoAsset(asset, asset.uri, resourceGeneration);
+          } catch (error) {
+            const fallbackId = systemAssetFallbackId("video", asset.mimeType);
+            diagnostics.push("preview_asset_fallback", `preview_asset_fallback_reason:video:${fallbackId}`);
+            const fallback = systemAssetFallbackUrl("video", asset.mimeType);
+            try {
+              return await loadPreviewVideoAsset(asset, fallback, resourceGeneration);
+            } catch (fallbackError) {
+              diagnostics.splice(-2, 2);
+              throw new Error(`Unable to load video asset ${asset.id}; fallback ${fallbackId} failed: ${String(fallbackError ?? error)}`);
+            }
+          }
         }, disposePreviewAsset);
       leases.push(lease);
       loaded.set(asset.id, lease.value);
@@ -861,28 +851,19 @@ async function loadPreviewResources(
       continue;
       }
       const lease = await registry.acquire(key, async () => {
-        const image = new Image();
-        image.crossOrigin = "anonymous";
-        image.src = asset.uri;
-        await image.decode();
-        const width = asset.width ?? image.naturalWidth;
-        const height = asset.height ?? image.naturalHeight;
-        const raster = document.createElement("canvas");
-        raster.width = width;
-        raster.height = height;
-        const context = raster.getContext("2d");
-        if (!context) throw new Error(`Unable to rasterize image asset ${asset.id}`);
-        context.drawImage(image, 0, 0, width, height);
-        const pixels = new Uint8Array(context.getImageData(0, 0, width, height).data);
-        return {
-          source: raster,
-          width,
-          height,
-          kind: "image" as const,
-          pixels,
-          resourceGeneration,
-          contentRevision: 1,
-        } satisfies PreviewAsset;
+        try {
+          return await loadPreviewImageAsset(asset, asset.uri, resourceGeneration);
+        } catch (error) {
+          const fallbackId = systemAssetFallbackId("image", asset.mimeType);
+          diagnostics.push("preview_asset_fallback", `preview_asset_fallback_reason:image:${fallbackId}`);
+          const fallback = systemAssetFallbackUrl("image", asset.mimeType);
+          try {
+            return await loadPreviewImageAsset(asset, fallback, resourceGeneration);
+          } catch (fallbackError) {
+            diagnostics.splice(-2, 2);
+            throw new Error(`Unable to load image asset ${asset.id}; fallback ${fallbackId} failed: ${String(fallbackError ?? error)}`);
+          }
+        }
       });
       leases.push(lease);
       loaded.set(asset.id, lease.value);
@@ -956,6 +937,85 @@ async function loadSkiaTextAssets(frame: RuntimeFrameV3): Promise<Map<string, Pr
   }
   await Promise.all(jobs);
   return decoded;
+}
+
+async function loadPreviewImageAsset(
+  asset: Extract<MotionProtocolV2["assets"][number], { kind: "image" }>,
+  uri: string,
+  resourceGeneration: number,
+): Promise<PreviewAsset> {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.src = uri;
+  await image.decode();
+  const width = asset.width ?? image.naturalWidth;
+  const height = asset.height ?? image.naturalHeight;
+  if (!width || !height) throw new Error(`Image asset ${asset.id} has no dimensions`);
+  const raster = document.createElement("canvas");
+  raster.width = width;
+  raster.height = height;
+  const context = raster.getContext("2d");
+  if (!context) throw new Error(`Unable to rasterize image asset ${asset.id}`);
+  context.drawImage(image, 0, 0, width, height);
+  const pixels = new Uint8Array(context.getImageData(0, 0, width, height).data);
+  return {
+    source: raster,
+    width,
+    height,
+    kind: "image" as const,
+    pixels,
+    resourceGeneration,
+    contentRevision: 1,
+  } satisfies PreviewAsset;
+}
+
+async function loadPreviewVideoAsset(
+  asset: Extract<MotionProtocolV2["assets"][number], { kind: "video" }>,
+  uri: string,
+  resourceGeneration: number,
+): Promise<PreviewAsset> {
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.preload = "auto";
+  video.playsInline = true;
+  video.src = uri;
+  video.load();
+  await waitForVideoReady(video);
+  const width = asset.width ?? video.videoWidth;
+  const height = asset.height ?? video.videoHeight;
+  if (!width || !height) throw new Error(`Video asset ${asset.id} has no dimensions`);
+  await seekVideo(video, 0);
+  // Some browsers expose HAVE_CURRENT_DATA before the first decoded frame is
+  // available to CanvasKit. Prime one frame while muted for paused preview.
+  await primeVideoFrame(video);
+  assertVideoFrameReadable(video, width, height, asset.id);
+  return {
+    source: video,
+    width,
+    height,
+    kind: "video" as const,
+    frameVersion: 0,
+    resourceGeneration,
+    contentRevision: 1,
+  } satisfies PreviewAsset;
+}
+
+function assertVideoFrameReadable(
+  video: HTMLVideoElement,
+  width: number,
+  height: number,
+  assetId: string,
+): void {
+  const probe = document.createElement("canvas");
+  probe.width = Math.max(1, Math.round(width));
+  probe.height = Math.max(1, Math.round(height));
+  const context = probe.getContext("2d");
+  if (!context) throw new Error(`Unable to create video probe for ${assetId}`);
+  context.drawImage(video, 0, 0, probe.width, probe.height);
+  // This read is intentional: it detects a decoded but CORS-tainted frame
+  // before the source reaches CanvasKit, where the failure is harder to map
+  // back to the asset URI and fallback policy.
+  context.getImageData(0, 0, 1, 1);
 }
 
 /**
