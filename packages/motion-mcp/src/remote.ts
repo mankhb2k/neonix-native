@@ -44,6 +44,16 @@ export type RemoteMcpProjectApi = {
   }) => Promise<unknown>;
   listHtmlRevisions: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   getHtmlRevision: (input: { projectId?: string; publicRef?: string; revisionNo: number }) => Promise<unknown>;
+  listAssets: (input: { workspaceId?: string; projectId?: string; publicRef?: string }) => Promise<unknown>;
+  requestAssetUpload: (input: { workspaceId?: string; filename: string; mimeType: string; byteSize: number }) => Promise<unknown>;
+  completeAssetUpload: (input: { assetId: string }) => Promise<unknown>;
+  importAsset: (input: { workspaceId?: string; sourceUrl: string; filename?: string }) => Promise<unknown>;
+  attachAssetToProject: (input: { projectId?: string; publicRef?: string; assetId: string }) => Promise<unknown>;
+  deleteAsset: (input: { workspaceId?: string; assetId: string; replaceReferences?: boolean }) => Promise<unknown>;
+  createExport: (input: { projectId?: string; publicRef?: string; protocolRevisionNo?: number; preset?: string; idempotencyKey?: string }) => Promise<unknown>;
+  getExport: (input: { jobId: string }) => Promise<unknown>;
+  getExportDownloadUrl: (input: { jobId: string }) => Promise<unknown>;
+  cancelExport: (input: { jobId: string }) => Promise<unknown>;
   openEditor: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   documentApi?: {
     getCapabilities: () => Promise<unknown>;
@@ -199,6 +209,121 @@ export function createRemoteMcpServer(options: {
       annotations: { readOnlyHint: true },
     },
     (input) => safely(() => api.getHtmlRevision({ projectId: input.project_id, publicRef: input.public_ref, revisionNo: input.revision_no })),
+  );
+
+  server.registerTool(
+    "list_assets",
+    {
+      title: "List assets",
+      description: "List ready or uploading media assets in a workspace or attached to a project.",
+      inputSchema: { workspace_id: uuid.optional(), ...projectLocator },
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.listAssets({ workspaceId: input.workspace_id, projectId: input.project_id, publicRef: input.public_ref })),
+  );
+
+  server.registerTool(
+    "request_asset_upload",
+    {
+      title: "Request asset upload",
+      description: "Create an asset record and return a short-lived R2 presigned PUT URL. The file is not attached to a project until attach_asset_to_project.",
+      inputSchema: {
+        workspace_id: uuid.optional(),
+        filename: z.string().trim().min(1).max(200),
+        mime_type: z.string().trim().min(1).max(120),
+        byte_size: z.number().int().positive(),
+      },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.requestAssetUpload({ workspaceId: input.workspace_id, filename: input.filename, mimeType: input.mime_type, byteSize: input.byte_size })),
+  );
+
+  server.registerTool(
+    "complete_asset_upload",
+    {
+      title: "Complete asset upload",
+      description: "Verify the uploaded R2 object size and MIME type, then mark the asset ready.",
+      inputSchema: { asset_id: uuid },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.completeAssetUpload({ assetId: input.asset_id })),
+  );
+
+  server.registerTool(
+    "import_asset",
+    {
+      title: "Import asset",
+      description: "Download an image, video or audio file from a public URL after SSRF, MIME and size checks, then store it in the user's R2 bucket.",
+      inputSchema: { workspace_id: uuid.optional(), source_url: z.string().url(), filename: z.string().trim().max(200).optional() },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.importAsset({ workspaceId: input.workspace_id, sourceUrl: input.source_url, filename: input.filename })),
+  );
+
+  server.registerTool(
+    "attach_asset_to_project",
+    {
+      title: "Attach asset to project",
+      description: "Attach a ready workspace asset to an existing project so its asset reference can be used by Protocol V2 or HTML authoring.",
+      inputSchema: { ...projectLocator, asset_id: uuid },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.attachAssetToProject({ projectId: input.project_id, publicRef: input.public_ref, assetId: input.asset_id })),
+  );
+
+  server.registerTool(
+    "delete_asset",
+    {
+      title: "Delete asset",
+      description: "Delete a workspace asset and its R2 objects. Assets referenced by projects require replace_references=true and follow the existing system fallback policy.",
+      inputSchema: { workspace_id: uuid.optional(), asset_id: uuid, replace_references: z.boolean().optional() },
+      annotations: { destructiveHint: true },
+    },
+    (input) => safely(() => api.deleteAsset({ workspaceId: input.workspace_id, assetId: input.asset_id, replaceReferences: input.replace_references })),
+  );
+
+  server.registerTool(
+    "create_export",
+    {
+      title: "Create export",
+      description: "Render a saved Protocol V2 project revision. The server reads the revision from the database; arbitrary unsaved JSON cannot be exported.",
+      inputSchema: { ...projectLocator, protocol_revision_no: z.number().int().min(1).optional(), preset: z.string().optional(), idempotency_key: z.string().trim().min(1).max(200).optional() },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.createExport({ projectId: input.project_id, publicRef: input.public_ref, protocolRevisionNo: input.protocol_revision_no, preset: input.preset, idempotencyKey: input.idempotency_key })),
+  );
+
+  server.registerTool(
+    "get_export",
+    {
+      title: "Get export",
+      description: "Read the status of an export created by the authenticated user.",
+      inputSchema: { job_id: z.string().min(1) },
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.getExport({ jobId: input.job_id })),
+  );
+
+  server.registerTool(
+    "get_export_download_url",
+    {
+      title: "Get export download URL",
+      description: "Return a short-lived signed download URL when the export is complete.",
+      inputSchema: { job_id: z.string().min(1) },
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.getExportDownloadUrl({ jobId: input.job_id })),
+  );
+
+  server.registerTool(
+    "cancel_export",
+    {
+      title: "Cancel export",
+      description: "Cancel a queued or rendering export owned by the authenticated user.",
+      inputSchema: { job_id: z.string().min(1) },
+      annotations: { destructiveHint: true },
+    },
+    (input) => safely(() => api.cancelExport({ jobId: input.job_id })),
   );
 
   server.registerTool(

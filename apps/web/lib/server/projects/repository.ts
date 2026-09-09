@@ -211,6 +211,31 @@ async function requireProject(
   return { project, role };
 }
 
+/**
+ * Shared authorization boundary for services that operate on project-owned
+ * resources such as assets and exports. Keep the database row private while
+ * exposing only the fields those services need.
+ */
+export async function getProjectAccess(
+  client: ProjectClient,
+  actor: ProjectActor,
+  input: ProjectReference,
+  requireEditor = false,
+) {
+  const { project, role } = await requireProject(client, actor, input, requireEditor);
+  return {
+    project: {
+      id: project.id,
+      publicRef: project.public_ref,
+      workspaceId: project.workspace_id,
+      title: project.title,
+      currentRevisionNo: project.current_revision_no,
+      sourceFormat: project.source_format,
+    },
+    role,
+  };
+}
+
 async function latestProtocolRevision(client: ProjectClient, projectId: string): Promise<ProtocolRevisionRow | null> {
   const result = await client
     .from("project_revisions")

@@ -21,6 +21,20 @@ import {
   getProjectHtmlRevision,
   applyProjectJsonPatch,
 } from "./projects";
+import {
+  attachAssetToProject,
+  completeAssetUpload,
+  deleteAsset,
+  importAsset,
+  listAssets,
+  requestAssetUpload,
+} from "./assets";
+import {
+  cancelExport,
+  createExport,
+  getExport,
+  getExportDownloadUrl,
+} from "./exports";
 import type { McpPrincipal } from "./auth";
 
 /**
@@ -83,6 +97,16 @@ export function createMcpServer(principal: McpPrincipal) {
       updateProjectHtml: (input) => updateProjectHtmlSource(principal, input),
       listHtmlRevisions: (input) => listProjectHtmlRevisions(principal, input),
       getHtmlRevision: (input) => getProjectHtmlRevision(principal, input),
+      listAssets: (input) => listAssets(principal, input),
+      requestAssetUpload: (input) => requestAssetUpload(principal, input),
+      completeAssetUpload: (input) => completeAssetUpload(principal, input),
+      importAsset: (input) => importAsset(principal, input),
+      attachAssetToProject: (input) => attachAssetToProject(principal, input),
+      deleteAsset: (input) => deleteAsset(principal, input),
+      createExport: (input) => createExport(principal, input),
+      getExport: (input) => getExport(principal, input),
+      getExportDownloadUrl: (input) => getExportDownloadUrl(principal, input),
+      cancelExport: (input) => cancelExport(principal, input),
     },
   });
 }

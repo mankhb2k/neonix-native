@@ -10,7 +10,7 @@ export function getProtectedResourceMetadata(request: Request) {
     resource: config.resource,
     authorization_servers: [config.issuer],
     bearer_methods_supported: ["header"],
-    scopes_supported: ["openid", "email", "profile"],
+    scopes_supported: ["openid", "email", "profile", "offline_access"],
     resource_documentation: "https://neonix.video/docs",
   };
 }

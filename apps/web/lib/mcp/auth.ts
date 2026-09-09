@@ -55,8 +55,15 @@ export async function authenticateMcpRequest(
     });
 
     const userId = getStringClaim(payload, "sub");
-    const clientId = getStringClaim(payload, "client_id");
-    if (!userId || !clientId) {
+    // Supabase OAuth access tokens may expose the OAuth client as `azp`, while
+    // some providers use `client_id`. The verified JWT subject is the actual
+    // authorization boundary, so do not reject a valid user token only
+    // because the optional client claim uses another standard name.
+    const clientId =
+      getStringClaim(payload, "client_id") ??
+      getStringClaim(payload, "azp") ??
+      "oauth-client";
+    if (!userId) {
       return { ok: false, reason: "unauthorized", config };
     }
 

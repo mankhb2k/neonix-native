@@ -620,3 +620,27 @@ create_project(JSON)
 Mọi thay đổi đều có user/workspace authorization, optimistic concurrency,
 revision history, audit event và không phá vỡ nguyên tắc Protocol V2 JSON là
 source of truth cho runtime.
+
+## Implementation status - 2026-09-09
+
+- Phase 0: implemented; contract and tool naming are locked. Broader schema
+  coverage remains part of hosted certification.
+- Phase 1: implemented; shared repository accepts an authenticated Supabase
+  client and actor, and HTML commits use the transaction RPC.
+- Phase 2: implemented; hosted HTML capability, validation, compilation and
+  revision read tools are registered.
+- Phase 3: implemented; `update_project_html` creates linked HTML and Protocol
+  V2 revisions with optimistic concurrency.
+- Phase 4: implemented; JSON inspection and patch escape hatch are registered,
+  with `html_sync_status: "stale"` after a direct JSON patch.
+- Phase 5: implemented; hosted asset list, presigned upload, completion, URL
+  import, project attachment and deletion tools are registered.
+- Phase 6: implemented; hosted export reads a stored Protocol V2 revision,
+  persists the worker artifact to the private exports bucket, mirrors the job
+  in `render_jobs`, and exposes a signed download URL.
+- Phase 7: partially implemented; package/web typechecks and MCP unit tests
+  pass. Full hosted OAuth, RLS, R2 and worker E2E certification remains a
+  deployment test step.
+
+The anonymous playground, draft persistence and JSON-to-HTML reverse compiler
+remain out of scope.

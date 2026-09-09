@@ -36,10 +36,11 @@ export default async function OAuthConsentPage({
 
   return (
     <main style={{ maxWidth: 560, margin: "5rem auto", padding: "0 1.5rem" }}>
-      <h1>Allow Claude to connect to Neonix?</h1>
+      <h1>Allow {details.client.name} to connect to Neonix?</h1>
       <p>
-        Claude will act on your behalf in your current Neonix workspace. You
-        can revoke access at any time from your account settings.
+        This application will act on your behalf in your current Neonix
+        workspace. You can revoke access at any time from your account
+        settings.
       </p>
       <p>
         Requesting application: <strong>{details.client.name}</strong>

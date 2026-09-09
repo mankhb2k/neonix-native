@@ -77,7 +77,7 @@ function rethrowRepositoryError(error: unknown): never {
   throw error;
 }
 
-function getClient(principal: McpPrincipal): SupabaseClient {
+export function getMcpSupabaseClient(principal: McpPrincipal): SupabaseClient {
   const env = getSupabaseEnv();
   if (!env) throw new McpProjectError("Supabase is not configured", "MISCONFIGURED");
 
@@ -86,6 +86,8 @@ function getClient(principal: McpPrincipal): SupabaseClient {
     global: { headers: { Authorization: `Bearer ${principal.token}` } },
   });
 }
+
+export const getClient = getMcpSupabaseClient;
 
 function throwSupabaseError(error: { message?: string } | null, fallback: string): never {
   if (error) console.error("[mcp] database operation failed", error.message);
@@ -162,6 +164,14 @@ async function resolveWorkspace(
   if (error) throwSupabaseError(error, "Unable to read workspace");
 
   return { id: workspace.id, name: workspace.name, role };
+}
+
+export async function resolveMcpWorkspace(
+  principal: McpPrincipal,
+  workspaceId?: string,
+  requireEditor = false,
+) {
+  return resolveWorkspace(getClient(principal), principal, workspaceId, requireEditor);
 }
 
 async function audit(

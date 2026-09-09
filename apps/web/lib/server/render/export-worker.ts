@@ -4,6 +4,7 @@ import "server-only";
 
 import { buildExportCanaryRecord } from "@/lib/server/render/export-canary";
 import { buildRenderOutputKey, getRenderJob, updateRenderJob, type PersistentRenderJob } from "@/lib/server/render/job-store";
+import { getUserExportsProvider } from "@/lib/server/r2";
 import { PAINT_COMMAND_VERSION, type RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { COMPILER_SUPPORTED_FEATURES_VERSION } from "@motionvideo/motion-compiler";
 
@@ -24,6 +25,19 @@ function workerBaseUrl(): string {
   const value = process.env.EXPORT_RENDERER_URL?.trim().replace(/\/$/, "");
   if (!value) throw new Error("EXPORT_RENDERER_URL is not configured");
   return value;
+}
+
+async function persistWorkerArtifact(outputUrl: string, outputKey: string): Promise<void> {
+  const response = await fetch(outputUrl, {
+    signal: AbortSignal.timeout(10 * 60_000),
+  });
+  if (!response.ok) throw new Error(`worker artifact download failed with HTTP ${response.status}`);
+  const body = Buffer.from(await response.arrayBuffer());
+  await getUserExportsProvider().putObject({
+    key: outputKey,
+    body,
+    contentType: "video/mp4",
+  });
 }
 
 export async function startRenderOnWorker(input: {
@@ -65,11 +79,18 @@ export async function startRenderOnWorker(input: {
   }
 
   const outputUrl = new URL(payload.downloadUrl, baseUrl).toString();
+  try {
+    await persistWorkerArtifact(outputUrl, outputKey);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    await updateRenderJob(input.job.jobId, { status: "failed", stage: "artifact-persist", error: `artifact_persist_failed: ${detail}` });
+    throw error;
+  }
   await updateRenderJob(input.job.jobId, {
     status: "done",
     progress: 1,
     stage: "done",
-    artifactPath: outputUrl,
+    artifactPath: `r2://${outputKey}`,
     metrics: {
       framesRendered: payload.stats.frames,
       outputSizeInBytes: payload.stats.outputBytes,
