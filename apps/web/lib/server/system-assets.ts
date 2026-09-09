@@ -1,4 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  SYSTEM_ASSET_FALLBACK_IDS,
+  systemAssetFallbackId,
+} from "@/lib/media/system-asset-fallback";
+
+export { SYSTEM_ASSET_FALLBACK_IDS } from "@/lib/media/system-asset-fallback";
 
 export type SystemAssetKind = "image" | "video" | "audio";
 export type SystemAssetVariantKind = "origin" | "poster" | "audio" | "waveform" | "thumbnail";
@@ -19,10 +25,10 @@ export type SystemAssetRow = {
 };
 
 export const SYSTEM_ASSET_IDS = {
-  imagePlaceholder: "system:image-placeholder",
-  svgPlaceholder: "system:svg-placeholder",
-  videoPlaceholder: "system:video-placeholder",
-  audioSilence: "system:audio-silence",
+  imagePlaceholder: SYSTEM_ASSET_FALLBACK_IDS.image,
+  svgPlaceholder: SYSTEM_ASSET_FALLBACK_IDS.svg,
+  videoPlaceholder: SYSTEM_ASSET_FALLBACK_IDS.video,
+  audioSilence: SYSTEM_ASSET_FALLBACK_IDS.audio,
 } as const;
 
 export function systemAssetUrl(id: string, variant?: SystemAssetVariantKind): string {
@@ -31,12 +37,8 @@ export function systemAssetUrl(id: string, variant?: SystemAssetVariantKind): st
 }
 
 export function fallbackSystemAssetId(kind: string, mimeType: string): string | null {
-  if (kind === "video") return SYSTEM_ASSET_IDS.videoPlaceholder;
-  if (kind === "audio") return SYSTEM_ASSET_IDS.audioSilence;
-  if (kind === "image") {
-    return mimeType === "image/svg+xml"
-      ? SYSTEM_ASSET_IDS.svgPlaceholder
-      : SYSTEM_ASSET_IDS.imagePlaceholder;
+  if (kind === "image" || kind === "video" || kind === "audio") {
+    return systemAssetFallbackId(kind, mimeType);
   }
   return null;
 }
