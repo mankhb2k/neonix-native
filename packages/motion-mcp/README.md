@@ -61,3 +61,19 @@ const server = createRemoteMcpServer({ api: projectApi });
 
 The HTTP transport and JWT validation belong in the host application; this
 package owns the MCP tool contracts and registration.
+
+## Tool annotations
+
+Every registered tool publishes explicit MCP annotations for
+`readOnlyHint`, `openWorldHint`, `destructiveHint`, and `idempotentHint`.
+These hints are shared by ChatGPT, Claude, Cursor, and other MCP clients:
+
+- read-only tools use `readOnlyHint: true`;
+- project, revision, asset-upload, and export creation tools are additive;
+- deletion and cancellation tools use `destructiveHint: true`;
+- `import_asset` uses `openWorldHint: true` because it fetches a user-supplied URL;
+- all other tools operate inside Neonix and use `openWorldHint: false`.
+
+The OpenAI submission manifest may repeat the first three fields and add
+review justifications, but those justifications are not part of the runtime
+MCP protocol.

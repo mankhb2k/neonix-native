@@ -1,5 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import {
+  ADDITIVE_TOOL_ANNOTATIONS,
+  DESTRUCTIVE_TOOL_ANNOTATIONS,
+  EXTERNAL_IMPORT_TOOL_ANNOTATIONS,
+  READ_ONLY_TOOL_ANNOTATIONS,
+} from "./annotations";
 
 /** The identity is validated by the hosting application's OAuth adapter. */
 export type RemoteMcpPrincipal = {
@@ -117,7 +123,7 @@ export function createRemoteMcpServer(options: {
       title: "List workspaces",
       description: "List workspaces the authenticated user can access. Use the id when creating or listing projects.",
       inputSchema: {},
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     () => safely(() => api.listWorkspaces()),
   );
@@ -128,7 +134,7 @@ export function createRemoteMcpServer(options: {
       title: "Get project JSON",
       description: "Read the canonical Protocol V2 JSON revision. This is read-only and never converts JSON back to HTML.",
       inputSchema: projectLocator,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getProjectJson({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -143,7 +149,7 @@ export function createRemoteMcpServer(options: {
         expected_protocol_revision_no: z.number().int().min(1),
         patch: z.record(z.string(), z.unknown()),
       },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.applyJsonPatch({
       projectId: input.project_id,
@@ -159,7 +165,7 @@ export function createRemoteMcpServer(options: {
       title: "Get project HTML",
       description: "Read the latest HTML authoring source attached to an existing project.",
       inputSchema: projectLocator,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getProjectHtml({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -175,7 +181,7 @@ export function createRemoteMcpServer(options: {
         expected_html_revision_no: z.number().int().min(0).optional(),
         expected_protocol_revision_no: z.number().int().min(0).optional(),
       },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.updateProjectHtml({
       projectId: input.project_id,
@@ -192,7 +198,7 @@ export function createRemoteMcpServer(options: {
       title: "List HTML revisions",
       description: "List HTML authoring revisions attached to a project.",
       inputSchema: projectLocator,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.listHtmlRevisions({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -206,7 +212,7 @@ export function createRemoteMcpServer(options: {
         ...projectLocator,
         revision_no: z.number().int().min(1),
       },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getHtmlRevision({ projectId: input.project_id, publicRef: input.public_ref, revisionNo: input.revision_no })),
   );
@@ -217,7 +223,7 @@ export function createRemoteMcpServer(options: {
       title: "List assets",
       description: "List ready or uploading media assets in a workspace or attached to a project.",
       inputSchema: { workspace_id: uuid.optional(), ...projectLocator },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.listAssets({ workspaceId: input.workspace_id, projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -233,7 +239,7 @@ export function createRemoteMcpServer(options: {
         mime_type: z.string().trim().min(1).max(120),
         byte_size: z.number().int().positive(),
       },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.requestAssetUpload({ workspaceId: input.workspace_id, filename: input.filename, mimeType: input.mime_type, byteSize: input.byte_size })),
   );
@@ -244,7 +250,7 @@ export function createRemoteMcpServer(options: {
       title: "Complete asset upload",
       description: "Verify the uploaded R2 object size and MIME type, then mark the asset ready.",
       inputSchema: { asset_id: uuid },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.completeAssetUpload({ assetId: input.asset_id })),
   );
@@ -255,7 +261,7 @@ export function createRemoteMcpServer(options: {
       title: "Import asset",
       description: "Download an image, video or audio file from a public URL after SSRF, MIME and size checks, then store it in the user's R2 bucket.",
       inputSchema: { workspace_id: uuid.optional(), source_url: z.string().url(), filename: z.string().trim().max(200).optional() },
-      annotations: { destructiveHint: false },
+      annotations: EXTERNAL_IMPORT_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.importAsset({ workspaceId: input.workspace_id, sourceUrl: input.source_url, filename: input.filename })),
   );
@@ -266,7 +272,7 @@ export function createRemoteMcpServer(options: {
       title: "Attach asset to project",
       description: "Attach a ready workspace asset to an existing project so its asset reference can be used by Protocol V2 or HTML authoring.",
       inputSchema: { ...projectLocator, asset_id: uuid },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.attachAssetToProject({ projectId: input.project_id, publicRef: input.public_ref, assetId: input.asset_id })),
   );
@@ -277,7 +283,7 @@ export function createRemoteMcpServer(options: {
       title: "Delete asset",
       description: "Delete a workspace asset and its R2 objects. Assets referenced by projects require replace_references=true and follow the existing system fallback policy.",
       inputSchema: { workspace_id: uuid.optional(), asset_id: uuid, replace_references: z.boolean().optional() },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.deleteAsset({ workspaceId: input.workspace_id, assetId: input.asset_id, replaceReferences: input.replace_references })),
   );
@@ -288,7 +294,7 @@ export function createRemoteMcpServer(options: {
       title: "Create export",
       description: "Render a saved Protocol V2 project revision. The server reads the revision from the database; arbitrary unsaved JSON cannot be exported.",
       inputSchema: { ...projectLocator, protocol_revision_no: z.number().int().min(1).optional(), preset: z.string().optional(), idempotency_key: z.string().trim().min(1).max(200).optional() },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.createExport({ projectId: input.project_id, publicRef: input.public_ref, protocolRevisionNo: input.protocol_revision_no, preset: input.preset, idempotencyKey: input.idempotency_key })),
   );
@@ -299,7 +305,7 @@ export function createRemoteMcpServer(options: {
       title: "Get export",
       description: "Read the status of an export created by the authenticated user.",
       inputSchema: { job_id: z.string().min(1) },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getExport({ jobId: input.job_id })),
   );
@@ -310,7 +316,7 @@ export function createRemoteMcpServer(options: {
       title: "Get export download URL",
       description: "Return a short-lived signed download URL when the export is complete.",
       inputSchema: { job_id: z.string().min(1) },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getExportDownloadUrl({ jobId: input.job_id })),
   );
@@ -321,7 +327,7 @@ export function createRemoteMcpServer(options: {
       title: "Cancel export",
       description: "Cancel a queued or rendering export owned by the authenticated user.",
       inputSchema: { job_id: z.string().min(1) },
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.cancelExport({ jobId: input.job_id })),
   );
@@ -336,7 +342,7 @@ export function createRemoteMcpServer(options: {
         title: z.string().trim().min(1).max(200).optional(),
         document: documentSchema.optional().describe("Initial editor document as a JSON object."),
       },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) =>
       safely(() =>
@@ -357,7 +363,7 @@ export function createRemoteMcpServer(options: {
         workspace_id: uuid.optional(),
         limit: z.number().int().min(1).max(50).default(20),
       },
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.listProjects({ workspaceId: input.workspace_id, limit: input.limit })),
   );
@@ -368,7 +374,7 @@ export function createRemoteMcpServer(options: {
       title: "Get project",
       description: "Read a project and its latest editor document revision. Provide project_id or public_ref.",
       inputSchema: projectLocator,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.getProject({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -384,7 +390,7 @@ export function createRemoteMcpServer(options: {
         document: documentSchema.optional().describe("Replacement editor document as a JSON object."),
         expected_revision_no: z.number().int().min(0).optional(),
       },
-      annotations: { destructiveHint: false },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
     },
     (input) =>
       safely(() =>
@@ -404,7 +410,7 @@ export function createRemoteMcpServer(options: {
       title: "Delete project",
       description: "Request deletion of a project. The project enters the configured retention window.",
       inputSchema: projectLocator,
-      annotations: { destructiveHint: true },
+      annotations: DESTRUCTIVE_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.deleteProject({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -415,7 +421,7 @@ export function createRemoteMcpServer(options: {
       title: "Open Neonix editor",
       description: "Return the authenticated user's Neonix editor URL for a project. Provide project_id or public_ref and show the URL to the user.",
       inputSchema: projectLocator,
-      annotations: { readOnlyHint: true },
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
     },
     (input) => safely(() => api.openEditor({ projectId: input.project_id, publicRef: input.public_ref })),
   );
@@ -427,7 +433,7 @@ export function createRemoteMcpServer(options: {
         title: "Get capabilities",
         description: "Return supported HTML tags, CSS properties, document metadata and Protocol version.",
         inputSchema: {},
-        annotations: { readOnlyHint: true },
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
       },
       () => safely(() => api.documentApi!.getCapabilities()),
     );
@@ -438,7 +444,7 @@ export function createRemoteMcpServer(options: {
         title: "Validate HTML",
         description: "Validate a complete neonix-document HTML file and return composition and diagnostics.",
         inputSchema: { html: z.string().min(1) },
-        annotations: { readOnlyHint: true },
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
       },
       (input) => safely(() => api.documentApi!.validateDocument({ html: input.html })),
     );
@@ -449,7 +455,7 @@ export function createRemoteMcpServer(options: {
         title: "Compile HTML",
         description: "Compile a complete neonix-document HTML file into Protocol V2 JSON.",
         inputSchema: { html: z.string().min(1) },
-        annotations: { readOnlyHint: true },
+        annotations: READ_ONLY_TOOL_ANNOTATIONS,
       },
       (input) => safely(() => api.documentApi!.compileDocument({ html: input.html })),
     );

@@ -63,6 +63,32 @@ describe("hosted remote MCP contract", () => {
       "compile_html",
     ]));
 
+    for (const tool of response.tools) {
+      expect(tool.annotations).toEqual(expect.objectContaining({
+        readOnlyHint: expect.any(Boolean),
+        openWorldHint: expect.any(Boolean),
+        destructiveHint: expect.any(Boolean),
+      }));
+    }
+
+    expect(response.tools.find((tool) => tool.name === "import_asset")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      openWorldHint: true,
+      destructiveHint: false,
+    });
+
+    expect(response.tools.find((tool) => tool.name === "delete_project")?.annotations).toMatchObject({
+      readOnlyHint: false,
+      openWorldHint: false,
+      destructiveHint: true,
+    });
+
+    expect(response.tools.find((tool) => tool.name === "get_project")?.annotations).toMatchObject({
+      readOnlyHint: true,
+      openWorldHint: false,
+      destructiveHint: false,
+    });
+
     await client.close();
     await server.close();
   });

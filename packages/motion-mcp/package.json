@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
-    "./remote": "./src/remote.ts"
+    "./remote": "./src/remote.ts",
+    "./annotations": "./src/annotations.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
