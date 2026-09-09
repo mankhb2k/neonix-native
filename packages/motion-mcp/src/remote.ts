@@ -26,6 +26,24 @@ export type RemoteMcpProjectApi = {
     document?: Record<string, unknown>;
     expectedRevisionNo?: number;
   }) => Promise<unknown>;
+  deleteProject: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  getProjectJson: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  applyJsonPatch: (input: {
+    projectId?: string;
+    publicRef?: string;
+    expectedProtocolRevisionNo: number;
+    patch: Record<string, unknown>;
+  }) => Promise<unknown>;
+  getProjectHtml: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  updateProjectHtml: (input: {
+    projectId?: string;
+    publicRef?: string;
+    html: string;
+    expectedHtmlRevisionNo?: number;
+    expectedProtocolRevisionNo?: number;
+  }) => Promise<unknown>;
+  listHtmlRevisions: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  getHtmlRevision: (input: { projectId?: string; publicRef?: string; revisionNo: number }) => Promise<unknown>;
   openEditor: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   documentApi?: {
     getCapabilities: () => Promise<unknown>;
@@ -72,7 +90,7 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: "0.1.0" },
     {
       instructions:
-        "Neonix compiles one self-contained neonix-document HTML file into Protocol V2 and renders motion-video projects. Validate or compile the HTML document before saving or rendering it. Legacy editor project tools may remain available for Protocol V2 documents.",
+        "Create projects with Protocol V2 JSON. For authoring, read the attached HTML with get_project_html, edit that HTML, validate_html, then save it with update_project_html. The save creates a linked Protocol V2 revision. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
     },
   );
 
@@ -92,6 +110,95 @@ export function createRemoteMcpServer(options: {
       annotations: { readOnlyHint: true },
     },
     () => safely(() => api.listWorkspaces()),
+  );
+
+  server.registerTool(
+    "get_project_json",
+    {
+      title: "Get project JSON",
+      description: "Read the canonical Protocol V2 JSON revision. This is read-only and never converts JSON back to HTML.",
+      inputSchema: projectLocator,
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.getProjectJson({ projectId: input.project_id, publicRef: input.public_ref })),
+  );
+
+  server.registerTool(
+    "apply_json_patch",
+    {
+      title: "Apply JSON patch",
+      description: "Apply a small validated Protocol V2 patch when the requested change cannot be expressed in HTML. This creates a JSON revision and may make the HTML source stale.",
+      inputSchema: {
+        ...projectLocator,
+        expected_protocol_revision_no: z.number().int().min(1),
+        patch: z.record(z.string(), z.unknown()),
+      },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.applyJsonPatch({
+      projectId: input.project_id,
+      publicRef: input.public_ref,
+      expectedProtocolRevisionNo: input.expected_protocol_revision_no,
+      patch: input.patch,
+    })),
+  );
+
+  server.registerTool(
+    "get_project_html",
+    {
+      title: "Get project HTML",
+      description: "Read the latest HTML authoring source attached to an existing project.",
+      inputSchema: projectLocator,
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.getProjectHtml({ projectId: input.project_id, publicRef: input.public_ref })),
+  );
+
+  server.registerTool(
+    "update_project_html",
+    {
+      title: "Update project HTML",
+      description: "Compile and save HTML on an existing project. A successful call creates both a new HTML revision and a linked Protocol V2 JSON revision.",
+      inputSchema: {
+        ...projectLocator,
+        html: z.string().min(1),
+        expected_html_revision_no: z.number().int().min(0).optional(),
+        expected_protocol_revision_no: z.number().int().min(0).optional(),
+      },
+      annotations: { destructiveHint: false },
+    },
+    (input) => safely(() => api.updateProjectHtml({
+      projectId: input.project_id,
+      publicRef: input.public_ref,
+      html: input.html,
+      expectedHtmlRevisionNo: input.expected_html_revision_no,
+      expectedProtocolRevisionNo: input.expected_protocol_revision_no,
+    })),
+  );
+
+  server.registerTool(
+    "list_html_revisions",
+    {
+      title: "List HTML revisions",
+      description: "List HTML authoring revisions attached to a project.",
+      inputSchema: projectLocator,
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.listHtmlRevisions({ projectId: input.project_id, publicRef: input.public_ref })),
+  );
+
+  server.registerTool(
+    "get_html_revision",
+    {
+      title: "Get HTML revision",
+      description: "Read a specific HTML authoring revision and its linked Protocol V2 revision id.",
+      inputSchema: {
+        ...projectLocator,
+        revision_no: z.number().int().min(1),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    (input) => safely(() => api.getHtmlRevision({ projectId: input.project_id, publicRef: input.public_ref, revisionNo: input.revision_no })),
   );
 
   server.registerTool(
@@ -167,6 +274,17 @@ export function createRemoteMcpServer(options: {
   );
 
   server.registerTool(
+    "delete_project",
+    {
+      title: "Delete project",
+      description: "Request deletion of a project. The project enters the configured retention window.",
+      inputSchema: projectLocator,
+      annotations: { destructiveHint: true },
+    },
+    (input) => safely(() => api.deleteProject({ projectId: input.project_id, publicRef: input.public_ref })),
+  );
+
+  server.registerTool(
     "open_editor",
     {
       title: "Open Neonix editor",
@@ -179,9 +297,9 @@ export function createRemoteMcpServer(options: {
 
   if (api.documentApi) {
     server.registerTool(
-      "neonix_get_capabilities",
+      "get_capabilities",
       {
-        title: "Get Neonix capabilities",
+        title: "Get capabilities",
         description: "Return supported HTML tags, CSS properties, document metadata and Protocol version.",
         inputSchema: {},
         annotations: { readOnlyHint: true },
@@ -190,9 +308,9 @@ export function createRemoteMcpServer(options: {
     );
 
     server.registerTool(
-      "neonix_validate_document",
+      "validate_html",
       {
-        title: "Validate Neonix HTML",
+        title: "Validate HTML",
         description: "Validate a complete neonix-document HTML file and return composition and diagnostics.",
         inputSchema: { html: z.string().min(1) },
         annotations: { readOnlyHint: true },
@@ -201,9 +319,9 @@ export function createRemoteMcpServer(options: {
     );
 
     server.registerTool(
-      "neonix_compile_document",
+      "compile_html",
       {
-        title: "Compile Neonix HTML",
+        title: "Compile HTML",
         description: "Compile a complete neonix-document HTML file into Protocol V2 JSON.",
         inputSchema: { html: z.string().min(1) },
         annotations: { readOnlyHint: true },

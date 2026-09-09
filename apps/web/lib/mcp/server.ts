@@ -7,12 +7,19 @@ import {
   type RemoteMcpPrincipal,
 } from "@motionvideo/motion-mcp/remote";
 import {
-  createProject,
-  getProject,
   listProjects,
   listWorkspaces,
   openEditor,
-  updateProject,
+  createProtocolProject,
+  getProtocolProject,
+  getProtocolProjectJson,
+  updateProtocolProject,
+  deleteProtocolProject,
+  getProjectHtmlSource,
+  updateProjectHtmlSource,
+  listProjectHtmlRevisions,
+  getProjectHtmlRevision,
+  applyProjectJsonPatch,
 } from "./projects";
 import type { McpPrincipal } from "./auth";
 
@@ -27,10 +34,11 @@ export function createMcpServer(principal: McpPrincipal) {
     principal: remotePrincipal,
     api: {
       listWorkspaces: () => listWorkspaces(principal),
-      createProject: (input) => createProject(principal, input),
+      createProject: (input) => createProtocolProject(principal, input),
       listProjects: (input) => listProjects(principal, input),
-      getProject: (input) => getProject(principal, input),
-      updateProject: (input) => updateProject(principal, input),
+      getProject: (input) => getProtocolProject(principal, input),
+      updateProject: (input) => updateProtocolProject(principal, input),
+      deleteProject: (input) => deleteProtocolProject(principal, input),
       openEditor: (input) => openEditor(principal, input),
       documentApi: {
         getCapabilities: () => Promise.resolve({
@@ -69,6 +77,12 @@ export function createMcpServer(principal: McpPrincipal) {
           });
         },
       },
+      getProjectJson: (input) => getProtocolProjectJson(principal, input),
+      applyJsonPatch: (input) => applyProjectJsonPatch(principal, input),
+      getProjectHtml: (input) => getProjectHtmlSource(principal, input),
+      updateProjectHtml: (input) => updateProjectHtmlSource(principal, input),
+      listHtmlRevisions: (input) => listProjectHtmlRevisions(principal, input),
+      getHtmlRevision: (input) => getProjectHtmlRevision(principal, input),
     },
   });
 }

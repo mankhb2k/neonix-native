@@ -1,5 +1,12 @@
 import { jsonApi, jsonApiError } from "@/lib/server/api/v1";
-import { getHtmlRevision, HtmlProjectError } from "@/lib/server/html-project-repository";
+import {
+  getHtmlRevision,
+  ProjectRepositoryError,
+} from "@/lib/server/projects/repository";
+import {
+  authenticatedProjectContext,
+  projectErrorStatus,
+} from "@/lib/server/projects/web-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,12 +20,10 @@ export async function GET(request: Request, context: Context) {
     return jsonApiError(request, 400, "INVALID_INPUT", "revisionNo must be a positive integer");
   }
   try {
-    return jsonApi(request, await getHtmlRevision(projectId, revisionNo));
+    const { client, actor } = await authenticatedProjectContext();
+    return jsonApi(request, await getHtmlRevision(client, actor, { projectId, revisionNo }));
   } catch (error) {
-    if (error instanceof HtmlProjectError) {
-      const status = error.code === "UNAUTHENTICATED" ? 401 : error.code === "NOT_FOUND" ? 404 : 500;
-      return jsonApiError(request, status, error.code, error.message);
-    }
+    if (error instanceof ProjectRepositoryError) return jsonApiError(request, projectErrorStatus(error.code), error.code, error.message, error.details);
     return jsonApiError(request, 500, "REVISION_READ_FAILED", "Unable to read revision");
   }
 }

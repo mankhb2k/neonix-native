@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "swagger-ui-react/swagger-ui.css";
 
 :root {
   /* Warm neutral surfaces — readable by default, with teal brand accents */

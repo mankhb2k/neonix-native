@@ -73,6 +73,41 @@ một project được rút gọn thành:
                               USER
 ```
 
+## HTML authoring boundary (one-way)
+
+HTML/CSS is an optional high-level authoring format for AI agents, MCP and
+developers. It is not a second canonical project format.
+
+```text
+HTML document
+    |
+    v
+@motionvideo/html-compiler
+    |
+    v
+MotionProtocolV2 JSON  <-- canonical source of truth
+    |
+    v
+motion-compiler
+    |
+    v
+RuntimeProjectV3 -> preview / export
+```
+
+The direction is strictly one-way:
+
+- HTML compiler lowers HTML/CSS into a validated Protocol V2 JSON document.
+- Protocol V2 JSON is the only source of truth for persistence, preview,
+  rendering and export.
+- Runtime and renderers never read or compile HTML.
+- Neonix does not provide a Protocol V2 JSON -> HTML reverse compiler.
+- An HTML authoring revision is optional provenance linked to its canonical
+  JSON revision; it must never replace or override that JSON revision.
+
+For persistence, `project_revisions.document_json` is canonical. HTML source
+is stored only as an authoring source and links to the JSON revision through
+`project_html_revisions.protocol_revision_id`.
+
 ## Luồng Media Ingest và Audio
 
 Media Ingest là luồng chuẩn bị asset nằm trước authoring và chạy xuyên qua

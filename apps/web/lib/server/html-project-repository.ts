@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { compileDocument, type HtmlCompilerDiagnostic, type HtmlCompilerResult } from "@motionvideo/html-compiler";
+import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 type JsonObject = Record<string, unknown>;
 
@@ -20,6 +21,7 @@ type ProjectRow = {
 type HtmlRevisionRow = {
   id: string;
   revision_no: number;
+  protocol_revision_id: string | null;
   document_html: string;
   content_hash: string;
   document_schema_version: number;
@@ -125,6 +127,7 @@ function projectResponse(project: ProjectRow, revision: HtmlRevisionRow | null) 
       ? {
           id: revision.id,
           revisionNo: revision.revision_no,
+          protocolRevisionId: revision.protocol_revision_id,
           contentHash: revision.content_hash,
           composition: revision.composition_json,
           diagnostics: revision.diagnostics_json,
@@ -158,7 +161,7 @@ async function latestRevision(
 ): Promise<HtmlRevisionRow | null> {
   const result = await client
     .from("project_html_revisions")
-    .select("id, revision_no, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
+    .select("id, revision_no, protocol_revision_id, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
     .eq("project_id", projectId)
     .order("revision_no", { ascending: false })
     .limit(1)
@@ -180,11 +183,30 @@ async function saveRevision(
   }
   const revisionNo = project.current_revision_no + 1;
   const composition: JsonObject = result.source.composition;
+  const documentJson = result.protocol as unknown as JsonObject;
+  const canonical = await client
+    .from("project_revisions")
+    .insert({
+      project_id: project.id,
+      revision_no: revisionNo,
+      document_json: documentJson,
+      content_hash: hashHtml(JSON.stringify(documentJson)),
+      source_schema_version: result.protocol.formatVersion,
+      reason: "import",
+      byte_size: byteSize(JSON.stringify(documentJson)),
+      created_by: userId,
+    })
+    .select("id, revision_no")
+    .single();
+  if (canonical.error || !canonical.data) {
+    throw new HtmlProjectError("Unable to create canonical Protocol V2 revision", "DATABASE_ERROR");
+  }
   const inserted = await client
     .from("project_html_revisions")
     .insert({
       project_id: project.id,
       revision_no: revisionNo,
+      protocol_revision_id: canonical.data.id,
       document_html: html,
       content_hash: hashHtml(html),
       document_schema_version: 2,
@@ -193,7 +215,7 @@ async function saveRevision(
       byte_size: byteSize(html),
       created_by: userId,
     })
-    .select("id, revision_no, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
+    .select("id, revision_no, protocol_revision_id, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
     .single();
   if (inserted.error || !inserted.data) {
     throw new HtmlProjectError("Unable to create HTML revision", "DATABASE_ERROR");
@@ -203,7 +225,7 @@ async function saveRevision(
     .update({ current_revision_no: revisionNo, source_format: "html", last_activity_at: new Date().toISOString() })
     .eq("id", project.id);
   if (updated.error) throw new HtmlProjectError("Unable to activate HTML revision", "DATABASE_ERROR");
-  return { result, revision: inserted.data, reason };
+  return { result, revision: inserted.data, protocolRevision: canonical.data, reason };
 }
 
 export async function createHtmlProject(input: { title: string; html: string }) {
@@ -284,6 +306,16 @@ export async function saveHtmlProject(input: { projectRef: string; html: string;
   return { project: projectResponse({ ...project, current_revision_no: project.current_revision_no + 1, source_format: "html" }, saved.revision) };
 }
 
+export async function deleteHtmlProject(projectRef: string) {
+  const { client } = await authenticatedClient();
+  const project = await findProject(client, projectRef);
+  const { error } = await client.rpc("request_project_deletion", {
+    requested_project_id: project.id,
+  });
+  if (error) throw new HtmlProjectError("Unable to delete project", "DATABASE_ERROR");
+  return { projectId: project.id, deleted: true };
+}
+
 export function compileHtmlDocument(html: string) {
   return compileHtml(html);
 }
@@ -293,7 +325,7 @@ export async function listHtmlRevisions(projectRef: string) {
   const project = await findProject(client, projectRef);
   const result = await client
     .from("project_html_revisions")
-    .select("id, revision_no, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
+    .select("id, revision_no, protocol_revision_id, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
     .eq("project_id", project.id)
     .order("revision_no", { ascending: false });
   if (result.error) throw new HtmlProjectError("Unable to list HTML revisions", "DATABASE_ERROR");
@@ -305,11 +337,33 @@ export async function getHtmlRevision(projectRef: string, revisionNo: number) {
   const project = await findProject(client, projectRef);
   const result = await client
     .from("project_html_revisions")
-    .select("id, revision_no, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
+    .select("id, revision_no, protocol_revision_id, document_html, content_hash, document_schema_version, composition_json, diagnostics_json, byte_size, created_at")
     .eq("project_id", project.id)
     .eq("revision_no", revisionNo)
     .maybeSingle();
   if (result.error) throw new HtmlProjectError("Unable to read HTML revision", "DATABASE_ERROR");
   if (!result.data) throw new HtmlProjectError("HTML revision not found", "NOT_FOUND");
   return { projectId: project.id, revision: result.data };
+}
+
+export async function getProtocolRevision(projectRef: string, revisionNo: number) {
+  const { client } = await authenticatedClient();
+  const project = await findProject(client, projectRef);
+  const result = await client
+    .from("project_revisions")
+    .select("id, revision_no, document_json, content_hash, source_schema_version, reason, byte_size, created_at")
+    .eq("project_id", project.id)
+    .eq("revision_no", revisionNo)
+    .maybeSingle();
+  if (result.error) throw new HtmlProjectError("Unable to read Protocol V2 revision", "DATABASE_ERROR");
+  if (!result.data) throw new HtmlProjectError("Protocol V2 revision not found", "NOT_FOUND");
+  const parsed = MotionProtocolV2Schema.safeParse(result.data.document_json);
+  if (!parsed.success) throw new HtmlProjectError("Protocol V2 revision is invalid", "INVALID_DOCUMENT");
+  return {
+    projectId: project.id,
+    revision: {
+      ...result.data,
+      document: parsed.data,
+    },
+  };
 }

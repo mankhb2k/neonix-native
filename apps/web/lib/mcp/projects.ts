@@ -6,6 +6,19 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { parseMotionProtocol } from "@motionvideo/motion-protocol";
 import type { McpPrincipal } from "./auth";
+import {
+  applyJsonPatch as applySharedJsonPatch,
+  createProject as createSharedProject,
+  deleteProject as deleteSharedProject,
+  getProject as getSharedProject,
+  getProjectHtml as getSharedProjectHtml,
+  getProjectJson as getSharedProjectJson,
+  listHtmlRevisions as listSharedHtmlRevisions,
+  getHtmlRevision as getSharedHtmlRevision,
+  updateProject as updateSharedProject,
+  updateProjectHtml as updateSharedProjectHtml,
+  type ProjectRepositoryError,
+} from "@/lib/server/projects/repository";
 
 type JsonObject = Record<string, unknown>;
 type WorkspaceRole = "owner" | "editor" | "viewer";
@@ -54,6 +67,14 @@ export class McpProjectError extends Error {
     super(message);
     this.name = "McpProjectError";
   }
+}
+
+function rethrowRepositoryError(error: unknown): never {
+  if (error && typeof error === "object" && "code" in error && "message" in error) {
+    const repositoryError = error as ProjectRepositoryError;
+    throw new McpProjectError(String(repositoryError.message), String(repositoryError.code));
+  }
+  throw error;
 }
 
 function getClient(principal: McpPrincipal): SupabaseClient {
@@ -183,6 +204,142 @@ function parseProjectDocument(document: JsonObject): JsonObject {
       "document must be a valid Motion Protocol V2 document",
       "INVALID_INPUT",
     );
+  }
+}
+
+function repositoryActor(principal: McpPrincipal) {
+  return { userId: principal.userId, clientId: principal.clientId };
+}
+
+export async function createProtocolProject(
+  principal: McpPrincipal,
+  input: { workspaceId?: string; title?: string; document?: JsonObject },
+) {
+  if (!input.document) throw new McpProjectError("document is required and must be a valid Motion Protocol V2 document", "INVALID_INPUT");
+  try {
+    return await createSharedProject(getClient(principal), repositoryActor(principal), {
+      workspaceId: input.workspaceId,
+      title: input.title,
+      document: input.document,
+    });
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function getProtocolProject(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  try {
+    return await getSharedProject(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function getProtocolProjectJson(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  try {
+    return await getSharedProjectJson(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function updateProtocolProject(
+  principal: McpPrincipal,
+  input: {
+    projectId?: string;
+    publicRef?: string;
+    title?: string;
+    document?: JsonObject;
+    expectedRevisionNo?: number;
+  },
+) {
+  try {
+    return await updateSharedProject(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function deleteProtocolProject(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  try {
+    return await deleteSharedProject(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function getProjectHtmlSource(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  try {
+    return await getSharedProjectHtml(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function updateProjectHtmlSource(
+  principal: McpPrincipal,
+  input: {
+    projectId?: string;
+    publicRef?: string;
+    html: string;
+    expectedHtmlRevisionNo?: number;
+    expectedProtocolRevisionNo?: number;
+  },
+) {
+  try {
+    return await updateSharedProjectHtml(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function listProjectHtmlRevisions(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  try {
+    return await listSharedHtmlRevisions(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function getProjectHtmlRevision(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string; revisionNo: number },
+) {
+  try {
+    return await getSharedHtmlRevision(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
+}
+
+export async function applyProjectJsonPatch(
+  principal: McpPrincipal,
+  input: {
+    projectId?: string;
+    publicRef?: string;
+    patch: Record<string, unknown>;
+    expectedProtocolRevisionNo: number;
+  },
+) {
+  try {
+    return await applySharedJsonPatch(getClient(principal), repositoryActor(principal), input);
+  } catch (error) {
+    return rethrowRepositoryError(error);
   }
 }
 
