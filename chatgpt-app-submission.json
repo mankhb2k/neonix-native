@@ -1,0 +1,202 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "Neonix",
+    "subtitle": "HTML and CSS to motion video",
+    "description": "Neonix turns HTML and CSS into structured motion-video projects. Create a composition, edit its HTML with an AI assistant, validate supported tags and styles, compile the result into Neonix Protocol V2, manage media assets, review revisions, apply precise JSON adjustments, and export saved compositions as video.",
+    "category": "DESIGN"
+  },
+  "tools": {
+    "list_workspaces": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only reads the authenticated user's accessible workspaces.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "create_project": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Creates a project and an initial Protocol V2 revision at the user's request.",
+        "open_world_justification": "Operates only inside the authenticated user's Neonix workspace.",
+        "destructive_justification": "It creates new user-owned data and does not delete or overwrite an existing project."
+      }
+    },
+    "list_projects": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only reads projects the authenticated user can access.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "get_project": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only reads one project and its latest document revision.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "get_project_html": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the HTML authoring source linked to a project.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "update_project_html": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Compiles and saves HTML only after the user requests a project edit.",
+        "open_world_justification": "Operates only on the authenticated user's selected Neonix project.",
+        "destructive_justification": "Appends a revision with optimistic concurrency checks instead of silently deleting history."
+      }
+    },
+    "validate_html": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Validates supplied HTML and returns diagnostics without saving it.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "compile_html": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Compiles supplied HTML to Protocol V2 in memory without saving it.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "get_project_json": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the canonical Protocol V2 JSON revision for a project.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "apply_json_patch": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Applies only a user-requested, validated Protocol V2 patch.",
+        "open_world_justification": "Operates only on the authenticated user's selected Neonix project.",
+        "destructive_justification": "Creates a new JSON revision with an expected revision check; prior revisions remain available."
+      }
+    },
+    "import_asset": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": true, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Imports a user-requested asset from a supplied public URL.",
+        "open_world_justification": "The tool contacts the user-supplied URL after server-side SSRF, MIME, and size checks.",
+        "destructive_justification": "Creates a new user-owned asset and does not delete existing data."
+      }
+    },
+    "create_export": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Starts a render only for a saved Protocol V2 project revision requested by the user.",
+        "open_world_justification": "Uses Neonix rendering infrastructure and does not access arbitrary external systems.",
+        "destructive_justification": "Creates an export job and does not alter or delete the source project."
+      }
+    },
+    "get_export_download_url": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads export status and returns a short-lived URL for an export owned by the user.",
+        "open_world_justification": "Does not access external systems beyond Neonix storage for the user's export.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Create a project and inspect its generated editor document.",
+      "user_prompt": "Create a Neonix project called Product launch and show me the project reference.",
+      "tools_triggered": "create_project, get_project",
+      "expected_output": "A project is created and its project reference is returned."
+    },
+    {
+      "description": "Author a project through HTML and validate before saving.",
+      "user_prompt": "Validate this neonix-document HTML and tell me whether it is supported.",
+      "tools_triggered": "validate_html",
+      "expected_output": "Validation status, composition, and diagnostics are returned without saving."
+    },
+    {
+      "description": "Compile supported HTML into Protocol V2 JSON.",
+      "user_prompt": "Compile this HTML document into Neonix Protocol V2 JSON.",
+      "tools_triggered": "compile_html",
+      "expected_output": "Protocol V2 JSON and compiler diagnostics are returned."
+    },
+    {
+      "description": "Read HTML, make a requested authoring edit, and save a linked revision.",
+      "user_prompt": "Update the title in my project HTML and save a new revision.",
+      "tools_triggered": "get_project_html, update_project_html",
+      "expected_output": "A new HTML revision and linked Protocol V2 revision are returned."
+    },
+    {
+      "description": "Read the canonical JSON source of truth for a project.",
+      "user_prompt": "Show me the current Protocol V2 JSON for this project.",
+      "tools_triggered": "get_project_json",
+      "expected_output": "The current canonical Protocol V2 JSON revision is returned."
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Refuse to compile unsupported or invalid HTML without hiding diagnostics.",
+      "user_prompt": "Compile this HTML even though it has unsupported tags and invalid CSS.",
+      "tools_triggered": "validate_html, compile_html",
+      "expected_output": "Return diagnostics and do not save an invalid project revision."
+    },
+    {
+      "description": "Do not apply a JSON patch without the required project revision guard.",
+      "user_prompt": "Patch the project JSON without checking the current revision.",
+      "tools_triggered": "apply_json_patch",
+      "expected_output": "Ask for or require the expected Protocol V2 revision number."
+    },
+    {
+      "description": "Do not import an unsafe or inaccessible external asset URL.",
+      "user_prompt": "Import an asset from a private network URL.",
+      "tools_triggered": "import_asset",
+      "expected_output": "Reject the URL and explain that server-side safety checks failed."
+    }
+  ],
+  "name": "Neonix",
+  "description": "Neonix turns HTML and CSS into structured motion-video projects. Create a composition, edit its HTML with an AI assistant, validate supported tags and styles, compile the result into Neonix Protocol V2, manage media assets, review revisions, apply precise JSON adjustments, and export saved compositions as video.",
+  "website_url": "https://www.neonix.video/",
+  "mcp_server_url": "https://www.neonix.video/api/mcp",
+  "documentation_url": "https://www.neonix.video/docs",
+  "support_url": "https://www.neonix.video/support",
+  "privacy_policy_url": "https://www.neonix.video/privacy",
+  "terms_of_service_url": "https://www.neonix.video/terms",
+  "authentication": {
+    "type": "oauth2",
+    "authorization_server": "https://wroefbhcrrqvrdcbkhib.supabase.co/auth/v1",
+    "scopes": [
+      "openid",
+      "email",
+      "profile",
+      "offline_access"
+    ]
+  },
+  "capabilities": [
+    "html_css_authoring",
+    "html_to_protocol_v2_compilation",
+    "project_revisions",
+    "media_asset_management",
+    "protocol_v2_json_patch",
+    "video_export"
+  ],
+  "categories": [
+    "design",
+    "video",
+    "developer_tools"
+  ],
+  "audience": "Developers, designers, and AI agents creating motion-video compositions with HTML and CSS.",
+  "data_handling": "Neonix stores authenticated project data, HTML authoring revisions, Protocol V2 JSON revisions, media assets, and export jobs needed to provide the requested project and rendering workflows.",
+  "notes": "Submission draft for the hosted Neonix MCP server. Validate this file against the current submission requirements before uploading it."
+}
