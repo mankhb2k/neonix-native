@@ -1,4 +1,5 @@
 import { createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT } from "@motionvideo/html-compiler";
+import { finalizeHtmlCompilerPreviewCases } from "./html-compiler-document";
 import type { HtmlCompilerPreviewCase } from "./html-compiler-preview";
 
 const sourceWithBody = (body: string, css: string): HtmlCompilerPreviewCase["source"] => createNewHtmlProject({
@@ -165,3 +166,5 @@ export const HTML_COMPILER_TAG_LOWERING_CASES: HtmlCompilerPreviewCase[] = [
 #polyline { fill: none; stroke: #38bdf8; stroke-width: 10px; }`),
   },
 ];
+
+finalizeHtmlCompilerPreviewCases(HTML_COMPILER_TAG_LOWERING_CASES);

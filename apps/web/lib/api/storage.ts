@@ -6,7 +6,7 @@ export type StorageUsage = {
 
 export async function getStorageUsage(): Promise<StorageUsage | null> {
   try {
-    const response = await fetch("/api/account/storage", {
+    const response = await fetch("/api/v1/account/storage", {
       cache: "no-store",
     });
     if (!response.ok) return null;

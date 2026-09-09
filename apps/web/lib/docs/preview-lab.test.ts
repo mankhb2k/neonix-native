@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileProtocolToPaintCommands } from "@motionvideo/motion-compiler";
-import { compileHtmlCss } from "@motionvideo/html-compiler";
+import { compileDocument, type HtmlCompilerOptions, type HtmlCssSource } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 import {
   PREVIEW_LAB_CASES,
@@ -8,9 +8,15 @@ import {
   previewLabCaseById,
   previewLabGroups,
 } from "./preview-lab";
-import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_LAYOUT_TEXT_CASES, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
+import { HTML_COMPILER_ANCHOR_CASES, HTML_COMPILER_DEFAULT_CASE_ID, HTML_COMPILER_LAYOUT_TEXT_CASES, HTML_COMPILER_MOTION_PHASE3_CASES, HTML_COMPILER_PAINT_PHASE2_0_CASES, HTML_COMPILER_PAINT_PHASE2_1_CASES, HTML_COMPILER_PAINT_PHASE2_2_CASES, HTML_COMPILER_PAINT_PHASE2_3_CASES, HTML_COMPILER_PAINT_PHASE2_4_CASES, HTML_COMPILER_PAINT_PHASE2_5_CASES, HTML_COMPILER_PAINT_PHASE2_6_CASES, HTML_COMPILER_PAINT_PHASE2_7_CASES, HTML_COMPILER_PAINT_PHASE2_8_CASES, HTML_COMPILER_PHASE0_CASES, HTML_COMPILER_PHASE1_1_CASES, HTML_COMPILER_PHASE1_2_CASES, HTML_COMPILER_PHASE1_3_CASES, HTML_COMPILER_PHASE1_4_CASES, HTML_COMPILER_PERSPECTIVE_PHASE5_CASES, HTML_COMPILER_PERSPECTIVE_PHASE6_CASES, HTML_COMPILER_PERSPECTIVE_PHASE7_CASES, HTML_COMPILER_PERSPECTIVE_PHASE9_CASES, HTML_COMPILER_PREVIEW_CASES, HTML_COMPILER_PREVIEW_FONT_ASSETS, HTML_COMPILER_PREVIEW_MEDIA_ASSETS, htmlCompilerPreviewCaseById, htmlCompilerPreviewGroups } from "./html-compiler-preview";
 import { HTML_COMPILER_TAG_LOWERING_CASES } from "./html-compiler-tag-lowering-fixtures";
 import { HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES } from "./html-compiler-text-compiler-layout-fixtures";
+import { htmlCompilerDocumentFromSource } from "./html-compiler-document";
+
+// Keep the legacy test call shape while making every HTML compiler fixture
+// exercise the canonical single-document compiler path.
+const compileHtmlCss = (source: HtmlCssSource, options: HtmlCompilerOptions = {}) =>
+  compileDocument({ html: htmlCompilerDocumentFromSource(source) }, options);
 
 describe("Protocol V2 preview lab fixtures", () => {
   it("exposes a unique current fixture set with a valid default", () => {
@@ -661,6 +667,15 @@ describe("Protocol V2 preview lab fixtures", () => {
       expect.objectContaining({ id: "padding-three", frame: { width: 304, height: 148 } }),
       expect.objectContaining({ id: "padding-longhands", frame: { width: 316, height: 156 } }),
     ]));
+  });
+
+  it("publishes every HTML compiler fixture as a final single-file document", () => {
+    expect(HTML_COMPILER_PREVIEW_CASES.length).toBeGreaterThan(0);
+    for (const fixture of HTML_COMPILER_PREVIEW_CASES) {
+      expect(fixture.html, fixture.id).toMatch(/<meta[^>]+name=["']neonix-document["']/i);
+      expect(fixture.html, fixture.id).toContain('"schemaVersion":2');
+      expect(fixture.html, fixture.id).toMatch(/<style\b/i);
+    }
   });
 
   it("organizes current fixtures by render concept", () => {

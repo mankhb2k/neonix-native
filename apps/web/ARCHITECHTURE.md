@@ -104,14 +104,14 @@ asset catalog; bytes luôn nằm trong R2, không nằm trong Supabase.
 ```text
 Browser
   │
-  ├─ POST /api/assets
+  ├─ POST /api/v1/assets
   │    └─ Web tạo asset + upload session, preview_key = {assetId}/poster.webp
   │
   ├─ PUT origin.mp4 → R2/{assetId}/origin.mp4
   │
   ├─ PUT poster.webp → R2/{assetId}/poster.webp (browser-generated)
   │
-  └─ POST /api/assets/upload/complete
+  └─ POST /api/v1/assets/upload/complete
        │
        ├─ Web verify size, MIME và source integrity
        ├─ tạo media_jobs với status = queued
@@ -203,7 +203,7 @@ system:audio-silence           -> placeholder/silence.m4a
 ```
 
 Project chỉ lưu system asset ID ổn định. Khi load project, Web resolve ID thành
-URL same-origin `/api/system-assets/:id`; bucket vẫn private.
+URL same-origin `/api/v1/system-assets/:id`; bucket vẫn private.
 
 Khi user xóa asset, Web kiểm tra `project_assets` trước và hiển thị các project
 đang sử dụng. Nếu user xác nhận, RPC `delete_asset_with_system_fallback` chạy

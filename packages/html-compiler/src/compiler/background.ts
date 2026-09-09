@@ -187,18 +187,18 @@ export function parseBackgroundPosition(style: Style, index: number): Background
   return fail("css-background-position-unsupported", `background-position supports keyword or 0%, 50%, 100% pairs: ${raw}`);
 }
 
-function sizeLength(value: string, property: string, relative: number): number {
-  const resolved = calcExpression(value, property, relative, 16, 16, { width: 1920, height: 1080 }).value;
+function sizeLength(value: string, property: string, relative: number, viewport: { width: number; height: number }): number {
+  const resolved = calcExpression(value, property, relative, 16, 16, viewport).value;
   if (!Number.isFinite(resolved) || resolved < 0) fail("css-background-size-invalid", `${property} must resolve to a non-negative length: ${value}`);
   return resolved;
 }
 
-export function parseBackgroundSize(style: Style, index: number, relativeWidth: number, relativeHeight: number): BackgroundSize {
+export function parseBackgroundSize(style: Style, index: number, relativeWidth: number, relativeHeight: number, viewport = { width: 1920, height: 1080 }): BackgroundSize {
   const raw = listItem(style.get("background-size"), index, "auto").toLowerCase();
   if (raw === "auto") return { type: "auto" };
   if (raw === "cover" || raw === "contain") return { type: raw };
   const values = raw.split(/\s+/).filter(Boolean);
-  if (values.length === 2 && values.every((value) => value !== "auto")) return { type: "length", width: sizeLength(values[0]!, "background-size", relativeWidth), height: sizeLength(values[1]!, "background-size", relativeHeight) };
+  if (values.length === 2 && values.every((value) => value !== "auto")) return { type: "length", width: sizeLength(values[0]!, "background-size", relativeWidth, viewport), height: sizeLength(values[1]!, "background-size", relativeHeight, viewport) };
   return fail("css-background-size-unsupported", `background-size supports auto, cover, contain or two explicit lengths: ${raw}`);
 }
 

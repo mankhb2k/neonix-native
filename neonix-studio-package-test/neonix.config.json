@@ -1,0 +1,11 @@
+{
+  "kind": "neonix-html-project",
+  "schemaVersion": 1,
+  "composition": {
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "background": "#081018",
+    "colorSpace": "srgb"
+  }
+}

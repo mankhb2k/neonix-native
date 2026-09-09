@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import {
-  compileHtmlCss,
-  type NeonixHtmlSourceV1,
+  compileProject as compileProjectSource,
+  type HtmlCssProject,
+  type NeonixHtmlProjectConfig,
 } from "../index";
 import { createHtmlProjectTemplate, type HtmlProjectExample } from "./templates";
 
-const SOURCE_FILE = "neonix-source.json";
+const HTML_FILE = join("src", "scene.html");
+const CSS_FILE = join("src", "scene.css");
+const CONFIG_FILE = "neonix.config.json";
 const PROTOCOL_FILE = "protocol-v2.json";
 
 type CliResult = { exitCode: number };
@@ -49,33 +52,46 @@ async function createProject(args: readonly string[]): Promise<CliResult> {
   }
 
   const targetDirectory = resolve(targetArgument);
-  const sourcePath = join(targetDirectory, SOURCE_FILE);
+  const htmlPath = join(targetDirectory, HTML_FILE);
+  const cssPath = join(targetDirectory, CSS_FILE);
+  const configPath = join(targetDirectory, CONFIG_FILE);
   const protocolPath = join(targetDirectory, PROTOCOL_FILE);
-  const source = createHtmlProjectTemplate(exampleArgument);
-  const result = compileHtmlCss(source);
+  const project = createHtmlProjectTemplate(exampleArgument);
+  const result = compileProjectSource(project);
   if (result.status === "error" || result.protocol === null) {
     throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
   }
 
-  await mkdir(targetDirectory, { recursive: true });
-  await writeNewFile(sourcePath, `${JSON.stringify(source, null, 2)}\n`);
+  await mkdir(join(targetDirectory, "src"), { recursive: true });
+  await writeNewFile(htmlPath, `${project.html.trimEnd()}\n`);
+  await writeNewFile(cssPath, `${project.css}`);
+  await writeNewFile(configPath, `${JSON.stringify(project.config, null, 2)}\n`);
   await writeNewFile(protocolPath, `${JSON.stringify(result.protocol, null, 2)}\n`);
 
   console.log(`Created ${displayPath(targetDirectory)}`);
-  console.log(`  ${SOURCE_FILE} (${exampleArgument})`);
+  console.log(`  ${HTML_FILE}`);
+  console.log(`  ${CSS_FILE}`);
+  console.log(`  ${CONFIG_FILE}`);
   console.log(`  ${PROTOCOL_FILE}`);
   return { exitCode: 0 };
 }
 
 async function compileProject(args: readonly string[]): Promise<CliResult> {
-  const sourceArgument = args.find((arg) => !arg.startsWith("--"));
-  if (!sourceArgument) throw new Error("compile requires a project directory or source file");
+  const projectArgument = args.find((arg) => !arg.startsWith("--"));
+  if (!projectArgument) throw new Error("compile requires a project directory");
 
-  const sourcePath = resolve(sourceArgument.endsWith(".json") ? sourceArgument : join(sourceArgument, SOURCE_FILE));
   const outputArgument = optionValue(args, "out");
-  const outputPath = resolve(outputArgument ?? join(dirname(sourcePath), PROTOCOL_FILE));
-  const source = parseSource(await readFile(sourcePath, "utf8"));
-  const result = compileHtmlCss(source);
+  const projectDirectory = resolve(projectArgument);
+  const htmlPath = join(projectDirectory, HTML_FILE);
+  const cssPath = join(projectDirectory, CSS_FILE);
+  const configPath = join(projectDirectory, CONFIG_FILE);
+  const outputPath = resolve(outputArgument ?? join(projectDirectory, PROTOCOL_FILE));
+  const project: HtmlCssProject = {
+    html: await readFile(htmlPath, "utf8"),
+    css: await readFile(cssPath, "utf8"),
+    config: parseProjectConfig(await readFile(configPath, "utf8")),
+  };
+  const result = compileProjectSource(project);
 
   if (result.status === "error" || result.protocol === null) {
     const diagnostics = result.diagnostics.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`).join("\n");
@@ -83,23 +99,34 @@ async function compileProject(args: readonly string[]): Promise<CliResult> {
   }
 
   await writeFile(outputPath, `${JSON.stringify(result.protocol, null, 2)}\n`, "utf8");
-  console.log(`Compiled ${displayPath(sourcePath)} -> ${displayPath(outputPath)}`);
+  console.log(`Compiled ${displayPath(projectDirectory)} -> ${displayPath(outputPath)}`);
   return { exitCode: 0 };
 }
 
-function parseSource(value: string): NeonixHtmlSourceV1 {
+function parseProjectConfig(value: string): NeonixHtmlProjectConfig {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value);
   } catch {
-    throw new Error("source file is not valid JSON");
+    throw new Error(`${CONFIG_FILE} is not valid JSON`);
   }
 
-  if (!isRecord(parsed) || parsed.kind !== "neonix-html-source" || parsed.sourceSchemaVersion !== 1 || typeof parsed.html !== "string" || typeof parsed.css !== "string" || !isRecord(parsed.composition)) {
-    throw new Error(`source file must be a NeonixHtmlSourceV1 document`);
+  const composition = isRecord(parsed) && isRecord(parsed.composition) ? parsed.composition : undefined;
+  if (
+    !isRecord(parsed) ||
+    parsed.kind !== "neonix-html-project" ||
+    parsed.schemaVersion !== 1 ||
+    !composition ||
+    !Number.isInteger(composition.width) ||
+    !Number.isInteger(composition.height) ||
+    typeof composition.fps !== "number" ||
+    typeof composition.background !== "string" ||
+    composition.colorSpace !== "srgb"
+  ) {
+    throw new Error(`${CONFIG_FILE} must be a NeonixHtmlProjectConfig document`);
   }
 
-  return parsed as unknown as NeonixHtmlSourceV1;
+  return parsed as unknown as NeonixHtmlProjectConfig;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -141,7 +168,7 @@ function displayPath(path: string): string {
 function printHelp(): void {
   console.log(`Usage:
   pnpm run cli -- new <directory> [--example blank|blue-rectangle]
-  pnpm run cli -- compile <directory|neonix-source.json> [--out protocol-v2.json]
+  pnpm run cli -- compile <directory> [--out protocol-v2.json]
 
 Examples:
   pnpm run cli -- new ./fixtures/new-project

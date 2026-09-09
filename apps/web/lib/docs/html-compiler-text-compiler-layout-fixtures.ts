@@ -1,4 +1,5 @@
 import { createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT } from "@motionvideo/html-compiler";
+import { finalizeHtmlCompilerPreviewCases } from "./html-compiler-document";
 import type { HtmlCompilerPreviewCase } from "./html-compiler-preview";
 
 const sourceWithBody = (body: string, css: string): HtmlCompilerPreviewCase["source"] => createNewHtmlProject({
@@ -78,3 +79,5 @@ C</pre>`, `#normal-space, #pre-space { margin: 0; position: absolute; left: 180p
     source: sourceWithBody(`  <div id="auto-height">Intrinsic height follows the number of wrapped lines in this deterministic video text block.</div>`, `#auto-height { margin: 0; position: absolute; left: 260px; top: 180px; width: 520px; height: auto; color: #f8fafc; font-family: Inter; font-size: 44px; line-height: 60px; white-space: normal; }`),
   },
 ];
+
+finalizeHtmlCompilerPreviewCases(HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES);

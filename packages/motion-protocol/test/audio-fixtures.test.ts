@@ -14,7 +14,7 @@ describe("Protocol V2 audio fixture catalog", () => {
     for (const fixture of V2_AUDIO_FIXTURES.filter((item) => item.id !== "audio.video-source")) {
       expect(fixture.project.layers).toEqual([]);
       expect(fixture.project.audio.sampleRate).toBe(48000);
-      expect(fixture.project.assets.some((asset) => asset.kind === "audio" && asset.uri === "/api/docs/audio" && asset.mimeType === "audio/mpeg")).toBe(true);
+      expect(fixture.project.assets.some((asset) => asset.kind === "audio" && asset.uri === "/api/v1/docs/audio" && asset.mimeType === "audio/mpeg")).toBe(true);
     }
   });
 

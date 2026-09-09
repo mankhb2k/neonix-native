@@ -27,6 +27,11 @@ export type RemoteMcpProjectApi = {
     expectedRevisionNo?: number;
   }) => Promise<unknown>;
   openEditor: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  documentApi?: {
+    getCapabilities: () => Promise<unknown>;
+    validateDocument: (input: { html: string }) => Promise<unknown>;
+    compileDocument: (input: { html: string }) => Promise<unknown>;
+  };
 };
 
 type ToolResult = {
@@ -67,7 +72,7 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: "0.1.0" },
     {
       instructions:
-        "Neonix lets you create and edit motion-video projects. Create a project, update its document revisions, then call open_editor to give the user a link to continue in Neonix.",
+        "Neonix compiles one self-contained neonix-document HTML file into Protocol V2 and renders motion-video projects. Validate or compile the HTML document before saving or rendering it. Legacy editor project tools may remain available for Protocol V2 documents.",
     },
   );
 
@@ -171,6 +176,41 @@ export function createRemoteMcpServer(options: {
     },
     (input) => safely(() => api.openEditor({ projectId: input.project_id, publicRef: input.public_ref })),
   );
+
+  if (api.documentApi) {
+    server.registerTool(
+      "neonix_get_capabilities",
+      {
+        title: "Get Neonix capabilities",
+        description: "Return supported HTML tags, CSS properties, document metadata and Protocol version.",
+        inputSchema: {},
+        annotations: { readOnlyHint: true },
+      },
+      () => safely(() => api.documentApi!.getCapabilities()),
+    );
+
+    server.registerTool(
+      "neonix_validate_document",
+      {
+        title: "Validate Neonix HTML",
+        description: "Validate a complete neonix-document HTML file and return composition and diagnostics.",
+        inputSchema: { html: z.string().min(1) },
+        annotations: { readOnlyHint: true },
+      },
+      (input) => safely(() => api.documentApi!.validateDocument({ html: input.html })),
+    );
+
+    server.registerTool(
+      "neonix_compile_document",
+      {
+        title: "Compile Neonix HTML",
+        description: "Compile a complete neonix-document HTML file into Protocol V2 JSON.",
+        inputSchema: { html: z.string().min(1) },
+        annotations: { readOnlyHint: true },
+      },
+      (input) => safely(() => api.documentApi!.compileDocument({ html: input.html })),
+    );
+  }
 
   return server;
 }

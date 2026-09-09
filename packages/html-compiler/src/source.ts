@@ -1,11 +1,25 @@
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 
 export type HtmlCssComposition = Readonly<{
-  width: 1920;
-  height: 1080;
-  fps: 30;
-  background: "#081018";
+  width: number;
+  height: number;
+  fps: number;
+  background: string;
   colorSpace: "srgb";
+}>;
+
+/** Canonical project configuration loaded from neonix.config.json. */
+export type NeonixHtmlProjectConfig = Readonly<{
+  kind: "neonix-html-project";
+  schemaVersion: 1;
+  composition: HtmlCssComposition;
+}>;
+
+/** Canonical compiler input. HTML and CSS stay as authored source files. */
+export type HtmlCssProject = Readonly<{
+  html: string;
+  css: string;
+  config: NeonixHtmlProjectConfig;
 }>;
 
 export type NeonixHtmlSourceV1 = {
@@ -17,6 +31,20 @@ export type NeonixHtmlSourceV1 = {
 };
 
 export type HtmlCssSource = NeonixHtmlSourceV1;
+
+/** Metadata embedded in the single-file HTML document contract. */
+export type NeonixHtmlDocumentV2 = Readonly<{
+  kind: "neonix-html-document";
+  schemaVersion: 2;
+  composition: HtmlCssComposition;
+}>;
+
+/** Canonical AI/MCP compiler input: one self-contained HTML document. */
+export type HtmlDocumentInput = Readonly<{
+  html: string;
+  fontAssets?: readonly HtmlCompilerFontAsset[];
+  mediaAssets?: readonly HtmlCompilerMediaAsset[];
+}>;
 export type HtmlCompilerSourceLocation = { kind: "html" | "css"; offset: number; line: number; column: number };
 export type HtmlCompilerDiagnostic = { severity: "info" | "warning" | "error"; code: string; message: string; source?: HtmlCompilerSourceLocation; selector?: string; property?: string; elementId?: string };
 /**
@@ -63,23 +91,28 @@ export const DEFAULT_HTML_CSS_COMPOSITION: HtmlCssComposition = Object.freeze({
   colorSpace: "srgb",
 });
 
-const DEFAULT_NEONIX_HTML_MANIFEST = JSON.stringify({
-  kind: "neonix-html-source",
-  sourceSchemaVersion: 1,
-  composition: DEFAULT_HTML_CSS_COMPOSITION,
-}, null, 2);
-
 export const DEFAULT_NEONIX_HTML_DOCUMENT = `<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <script id="neonix-manifest" type="application/json">
-${DEFAULT_NEONIX_HTML_MANIFEST}
-  </script>
 </head>
 <body>
 </body>
 </html>`;
+
+export const DEFAULT_NEONIX_HTML_PROJECT_CONFIG: NeonixHtmlProjectConfig = Object.freeze({
+  kind: "neonix-html-project",
+  schemaVersion: 1,
+  composition: DEFAULT_HTML_CSS_COMPOSITION,
+});
+
+export function createHtmlCssProject(input: Partial<HtmlCssProject> = {}): HtmlCssProject {
+  return {
+    html: input.html ?? DEFAULT_NEONIX_HTML_DOCUMENT,
+    css: input.css ?? "",
+    config: input.config ?? DEFAULT_NEONIX_HTML_PROJECT_CONFIG,
+  };
+}
 
 export function createNewHtmlProject(input: Partial<Pick<NeonixHtmlSourceV1, "html" | "css">> = {}): NeonixHtmlSourceV1 {
   return {

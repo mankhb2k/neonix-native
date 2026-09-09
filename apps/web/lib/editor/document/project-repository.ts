@@ -263,7 +263,7 @@ async function hydratePrivateAssetUrls(
   // required and signed URLs never enter the authoring document.
   const urls = new Map<string, string>();
   for (const asset of data) {
-    if (asset.r2_key) urls.set(asset.id, `/api/assets/${encodeURIComponent(asset.id)}/media`);
+    if (asset.r2_key) urls.set(asset.id, `/api/v1/assets/${encodeURIComponent(asset.id)}/media`);
   }
   for (const asset of systemOrigins.values()) urls.set(asset.id, systemAssetUrl(asset.id));
 
@@ -314,7 +314,7 @@ async function hydratePrivateAssetUrls(
       const audio = asset.kind === "video" && (existingAudio || audioVariant)
         ? {
             ...(existingAudio ?? {}),
-            uri: `/api/assets/${encodeURIComponent(dbId)}/media?variant=audio`,
+            uri: `/api/v1/assets/${encodeURIComponent(dbId)}/media?variant=audio`,
             ...(audioVariant?.mimeType ? { mimeType: audioVariant.mimeType } : {}),
             ...(typeof audioVariant?.metadata.duration === "number" ? { duration: audioVariant.metadata.duration } : {}),
             ...(typeof audioVariant?.metadata.sampleRate === "number" ? { sampleRate: audioVariant.metadata.sampleRate } : {}),

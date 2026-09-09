@@ -14,6 +14,35 @@ HTML + CSS
   -> Motion Protocol V2 JSON
 ```
 
+## Canonical AI/MCP input: one HTML document
+
+For AI agents, MCP tools and preview fixtures, the canonical input is one
+self-contained HTML string. The filename is free-form; the compiler identifies
+it by the required metadata tag, not by the filename:
+
+```html
+<meta
+  name="neonix-document"
+  content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'
+>
+<style data-neonix-bundle>
+  #scene { position: absolute; inset: 120px; background: #2563eb; }
+</style>
+```
+
+Compile it with:
+
+```ts
+const result = compileDocument({ html });
+```
+
+`compileDocument` validates the V2 metadata, collects every inline CSS
+`<style>` resource in document order, removes those resources from the visual
+DOM, and lowers the resulting HTML/CSS into Protocol V2. Remote stylesheets,
+inline `style="..."` attributes and HTML tags outside the allowlist remain
+diagnostics. `compileProject({ html, css, config })` and `compileHtmlCss(...)`
+remain compatibility APIs for the deferred developer build workflow.
+
 ## Supported in Phase 0.1 — cascade and value normalization
 
 The first P0 slice is backed by the live fixture at
@@ -63,7 +92,7 @@ lowering and test coverage.
   `white-space`, `text-align`, `direction`, `writing-mode` and solid
   `text-decoration`, deterministic `text-overflow` and capability-gated
   `text-rendering`. Exact font binaries must be
-  supplied through `compileHtmlCss(..., { fontAssets })`; browser/system font
+  supplied through `compileProject(..., { fontAssets })`; browser/system font
   fallback is never implicit.
 
 ### P1.0 layout foundation
@@ -167,8 +196,8 @@ The complete lowering matrix is:
 | SVG `<path>` | `path` | Supported (`M/L/H/V/C/Z`) |
 | SVG `<rect>/<circle>/<ellipse>/<line>/<polyline>/<polygon>` | `path` | Supported (primitive lowering) |
 
-Every emitted number is resolved for the fixed composition viewport (1920x1080
-by default). Protocol timing is milliseconds. Selectors, CSS variables, unit
+Every emitted number is resolved for the configured composition viewport (the
+starter default is 1920x1080). Protocol timing is milliseconds. Selectors, CSS variables, unit
 strings and CSS syntax never appear in the output JSON.
 
 ## Phase 4 paint and border
@@ -351,35 +380,34 @@ Domain tests now live beside the HTML, CSS, lowering, layout and pipeline
 modules; integration and compatibility fixtures remain under `src/_test_/`.
 
 ```ts
-const source = createNewHtmlProject();
-const sourceWithStyles = { ...source, css };
-const result = compileHtmlCss(sourceWithStyles);
+const project = {
+  html: readFile("src/scene.html"),
+  css: readFile("src/scene.css"),
+  config: readJson("neonix.config.json"),
+};
+const result = compileProject(project);
 
 // result.status === "success" -> result.protocol is schema-validated V2 JSON
 // result.status === "error"   -> result.diagnostics explains the source error
 ```
 
-`createNewHtmlProject` is the new-project factory. It creates the complete
-multiline `DOCTYPE/html/head/body` document, including the
-`script#neonix-manifest` composition block, and the `NeonixHtmlSourceV1`
-envelope. The compiler validates the embedded manifest before producing
-Protocol V2. Every source starts with the
-fixed composition envelope `{ width: 1920, height: 1080, fps: 30,
-background: "#081018", colorSpace: "srgb" }`. The browser reference and
-compiler must consume this same envelope; they do not independently choose a
-viewport or scale. The output is validated by `MotionProtocolV2Schema` before it is returned. The
+`compileProject({ html, css, config })` is the canonical API. `neonix.config.json`
+is the single source of truth for the composition; HTML must not contain an
+embedded manifest. `createHtmlCssProject` creates a starter project with the
+same three-part contract. The browser reference and compiler consume this
+same logical viewport; they do not independently choose a viewport or scale.
+The output is validated by `MotionProtocolV2Schema` before it is returned. The
 motion compiler then owns Protocol V2 -> RuntimeProjectV3 lowering; this package
 does not perform runtime fallback or browser rendering.
 
 ### Composition bounds
 
-The fixed composition is also the compiler's hard axis-aligned layout boundary.
-After resolving percentages, viewport units, `calc()`, `min()`, `max()` and
-`clamp()`, a node's layout rectangle is constrained to `0..1920` and
-`0..1080` before it is lowered to a Protocol V2 layer. For example,
-`left: 100px; width: 100%` produces a visible width of `1820px`, not a
-`1920px` layer extending past the right edge. The browser reference uses the
-same fixed logical viewport and `overflow: hidden` at the composition root.
+The configured composition is also the compiler's hard axis-aligned layout
+boundary. After resolving percentages, viewport units, `calc()`, `min()`,
+`max()` and `clamp()`, a node's layout rectangle is constrained to the
+configured width and height before it is lowered to a Protocol V2 layer.
+The browser reference uses the same logical viewport and `overflow: hidden` at
+the composition root.
 
 This boundary applies to the resolved layout rectangle. Transforms, strokes,
 shadows and future visual effects require their own clip semantics before they
@@ -388,8 +416,8 @@ can be guaranteed to remain pixel-perfectly inside the composition.
 ## CLI
 
 The package includes a small project CLI for creating repeatable HTML compiler
-cases. It writes the canonical `neonix-source.json` and the compiler output
-`protocol-v2.json` into the target directory:
+cases. It writes `src/scene.html`, `src/scene.css`, `neonix.config.json` and
+the compiler output `protocol-v2.json` into the target directory:
 
 ```bash
 pnpm --filter @motionvideo/html-compiler cli new ./fixtures/new-project
@@ -397,10 +425,9 @@ pnpm --filter @motionvideo/html-compiler cli new ./fixtures/p0/blue-rectangle --
 pnpm --filter @motionvideo/html-compiler cli compile ./fixtures/p0/blue-rectangle
 ```
 
-`new` is non-destructive: it refuses to overwrite an existing source or
-protocol file. The `blue-rectangle` example is the Phase 0 starter case and
-uses the standard HTML document shell, a stable `id`, and the fixed
-1920x1080 composition manifest.
+`new` is non-destructive: it refuses to overwrite an existing project file.
+The `blue-rectangle` example is the Phase 0 starter case and uses the standard
+HTML document shell, a stable `id`, and the composition config file.
 
 Tests live under `test/` and cover cascade/inheritance, nested groups,
 variables/fallbacks, units, `calc()`, SVG/path contours and fail-closed diagnostics. The original
@@ -464,9 +491,10 @@ unit strings: percentages use the containing block, `em` uses the node's
 computed font size, `rem` uses the 16px root default, and viewport units use the
 composition viewport.
 
-The source composition is fixed at `1920 x 1080`, `fps = 30`, background
-`#081018` and `srgb`. Compiler timing still defaults to `durationMs = 1000`
-until duration becomes part of the project timeline contract.
+The source composition is read from `neonix.config.json`; the starter default is
+`1920 x 1080`, `fps = 30`, background `#081018` and `srgb`. Compiler timing
+still defaults to `durationMs = 1000` until duration becomes part of the
+project timeline contract.
 
 `content-box` adds padding and border to the frame; `border-box` treats
 width/height as the border box. A numeric `aspect-ratio` resolves an `auto`

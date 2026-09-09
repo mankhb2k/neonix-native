@@ -5,7 +5,7 @@ describe("resolveLocalPreviewAssetPath", () => {
   it("maps preview URLs and the docs audio endpoint to public assets", () => {
     expect(resolveLocalPreviewAssetPath("/preview/image/photo-landscape.jpg", "D:/repo/apps/web/public"))
       .toBe("D:\\repo\\apps\\web\\public\\preview\\image\\photo-landscape.jpg");
-    expect(resolveLocalPreviewAssetPath("/api/docs/audio", "D:/repo/apps/web/public"))
+    expect(resolveLocalPreviewAssetPath("/api/v1/docs/audio", "D:/repo/apps/web/public"))
       .toBe("D:\\repo\\apps\\web\\public\\preview\\audio\\Music-MBB-Island-Tropical_128k.mp3");
   });
 

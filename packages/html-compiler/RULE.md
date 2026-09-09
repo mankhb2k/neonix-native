@@ -1,5 +1,19 @@
 # HTML Compiler Rules
 
+## Canonical single-file document
+
+AI, MCP and Preview Lab integrations must pass one HTML string to
+`compileDocument({ html })`. The filename is not part of the contract. The
+document must contain exactly one `meta[name="neonix-document"]` whose JSON
+`content` has `kind: "neonix-html-document"`, `schemaVersion: 2`, and the
+composition fields `width`, `height`, `fps`, `background`, and `colorSpace:
+"srgb"`.
+
+CSS must be inside one or more inline `<style>` resources. The compiler joins
+them in document order before parsing visual HTML. External stylesheets and
+inline `style="..."` attributes are not part of this contract. The supported
+`<title>` tag is document metadata only and never becomes a visual layer.
+
 ## Supported HTML vocabulary
 
 `html-compiler` chỉ hỗ trợ các tag nằm trong allowlist dưới đây. Đây là danh sách chính thức dành cho authoring HTML tạo video.
@@ -20,8 +34,13 @@ Các tag cấu trúc document được hỗ trợ:
 html
 head
 meta
+title
+style
 body
 ```
+
+`style` is a document resource consumed only by `compileDocument`; it is
+collected and removed before visual DOM lowering. It is not a visual layer.
 
 ## 2. Container tags
 

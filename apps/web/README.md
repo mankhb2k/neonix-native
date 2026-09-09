@@ -16,7 +16,7 @@ Supabase project revision
   -> EditorProviders
   -> V2 commands + timeline adapter
   -> PreviewStage + timeline projection
-  -> PATCH /api/projects/[projectId]
+  -> PATCH /api/v1/editor/projects/[projectId]
 ```
 
 `EditorProviders` composes selector-based document/transport stores with narrow

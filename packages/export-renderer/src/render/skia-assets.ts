@@ -53,7 +53,7 @@ export function resolveLocalPreviewAssetPath(uri: string, assetRoot: string): st
     throw new ExportRendererError(`Invalid media URI '${uri}'.`, "ASSET_NOT_FOUND", { uri });
   }
 
-  const relativePath = pathname === "/api/docs/audio"
+  const relativePath = pathname === "/api/v1/docs/audio"
     ? "preview/audio/Music-MBB-Island-Tropical_128k.mp3"
     : pathname.replace(/^\/+/, "");
   const candidate = resolve(assetRoot, relativePath);

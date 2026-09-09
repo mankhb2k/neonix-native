@@ -6,7 +6,7 @@
  * decided by CSS and the visual role of the node.
  */
 export const HTML_TAG_PROFILE = {
-  document: ["html", "head", "meta", "body"],
+  document: ["html", "head", "meta", "title", "style", "body"],
   containers: ["div", "main", "section", "article", "header", "footer", "nav", "aside", "figure", "figcaption"],
   text: ["h1", "h2", "h3", "h4", "h5", "h6", "span", "p", "strong", "b", "em", "i", "small", "br", "blockquote", "pre", "code"],
   media: ["img", "video", "audio"],

@@ -38,7 +38,7 @@ export default defineConfig({
         timeout: 180_000,
         env: {
           ...process.env,
-          // Keep smoke export test fast — real jobs are covered by /api/export/jobs.
+          // Keep smoke export test fast — real jobs are covered by /api/v1/renders.
           NEXT_PUBLIC_EXPORT_MOCK: "1",
         },
       },

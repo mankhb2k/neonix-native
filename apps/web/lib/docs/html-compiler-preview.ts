@@ -1,4 +1,5 @@
 import { createHtmlCssSource, createNewHtmlProject, DEFAULT_NEONIX_HTML_DOCUMENT, type HtmlCompilerFontAsset, type HtmlCompilerMediaAsset, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { finalizeHtmlCompilerPreviewCases } from "./html-compiler-document";
 import { HTML_COMPILER_TAG_LOWERING_CASES } from "./html-compiler-tag-lowering-fixtures";
 import { HTML_COMPILER_TEXT_COMPILER_LAYOUT_CASES } from "./html-compiler-text-compiler-layout-fixtures";
 
@@ -41,6 +42,8 @@ export type HtmlCompilerPreviewCase = {
   properties: string[];
   hint: string;
   source: HtmlCssSource;
+  /** Canonical single-file document consumed by compileDocument and the iframe. */
+  html?: string;
 };
 
 export const HTML_COMPILER_PREVIEW_FONT_ASSETS: HtmlCompilerFontAsset[] = [
@@ -5216,6 +5219,11 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PERSPECTIVE_PHASE8_CASES,
   ...HTML_COMPILER_PERSPECTIVE_PHASE9_CASES,
 ];
+
+// All phase arrays keep their legacy source fields for inspection, but every
+// object is finalized in place so the public fixture contract also exposes
+// one self-contained HTML document for compileDocument and the iframe.
+finalizeHtmlCompilerPreviewCases(HTML_COMPILER_ALL_CASES);
 
 function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCategory {
   if (item.category !== undefined) return item.category;

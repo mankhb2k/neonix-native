@@ -9,6 +9,7 @@ export type ClipReferenceBox = {
   y: number;
   width: number;
   height: number;
+  viewport?: { width: number; height: number };
 };
 
 export type ClipReferenceBoxes = {
@@ -19,8 +20,8 @@ export type ClipReferenceBoxes = {
 
 export type HtmlClipPathNode = Extract<V2SvgDefinitionNode, { type: "path" }>;
 
-function finiteLength(value: string, property: string, relative: number, nonNegative = false): number {
-  const resolved = calcExpression(value, property, relative, 16, 16, { width: 1920, height: 1080 }).value;
+function finiteLength(value: string, property: string, relative: number, nonNegative = false, viewport = { width: 1920, height: 1080 }): number {
+  const resolved = calcExpression(value, property, relative, 16, 16, viewport).value;
   if (!Number.isFinite(resolved) || (nonNegative && resolved < 0)) {
     fail("css-clip-path-value-invalid", `${property} must resolve to ${nonNegative ? "a non-negative " : "a finite "}length: ${value}`);
   }
@@ -114,8 +115,8 @@ function parsePosition(value: string | undefined, box: ClipReferenceBox): { x: n
   if (values.length < 1 || values.length > 2) fail("css-clip-path-position-invalid", `Invalid clip-path position: ${value}`);
   const xValue = values[0]!;
   const yValue = values[1] ?? "50%";
-  const x = xValue.toLowerCase() === "left" ? 0 : xValue.toLowerCase() === "center" ? box.width / 2 : xValue.toLowerCase() === "right" ? box.width : finiteLength(xValue, "clip-path position-x", box.width);
-  const y = yValue.toLowerCase() === "top" ? 0 : yValue.toLowerCase() === "center" ? box.height / 2 : yValue.toLowerCase() === "bottom" ? box.height : finiteLength(yValue, "clip-path position-y", box.height);
+  const x = xValue.toLowerCase() === "left" ? 0 : xValue.toLowerCase() === "center" ? box.width / 2 : xValue.toLowerCase() === "right" ? box.width : finiteLength(xValue, "clip-path position-x", box.width, false, box.viewport);
+  const y = yValue.toLowerCase() === "top" ? 0 : yValue.toLowerCase() === "center" ? box.height / 2 : yValue.toLowerCase() === "bottom" ? box.height : finiteLength(yValue, "clip-path position-y", box.height, false, box.viewport);
   return { x: box.x + x, y: box.y + y };
 }
 
@@ -125,7 +126,7 @@ function radialRadius(value: string | undefined, box: ClipReferenceBox, center: 
   const keyword = value.toLowerCase();
   if (keyword === "closest-side") return Math.min(...distances);
   if (keyword === "farthest-side") return Math.max(...distances);
-  return finiteLength(value, `clip-path ${axis}-radius`, axis === "x" ? box.width : box.height, true);
+  return finiteLength(value, `clip-path ${axis}-radius`, axis === "x" ? box.width : box.height, true, box.viewport);
 }
 
 function cornerRadius(value: string, center: { x: number; y: number }, box: ClipReferenceBox, farthest: boolean): number {
@@ -141,15 +142,15 @@ function cornerRadius(value: string, center: { x: number; y: number }, box: Clip
 function parseInset(body: string, box: ClipReferenceBox, id: string): HtmlClipPathNode {
   const [insetValue, roundValue] = splitTopLevelKeyword(body, "round");
   const insets = quad(insetValue, "clip-path inset()");
-  const top = finiteLength(insets[0]!, "clip-path inset-top", box.height);
-  const right = finiteLength(insets[1]!, "clip-path inset-right", box.width);
-  const bottom = finiteLength(insets[2]!, "clip-path inset-bottom", box.height);
-  const left = finiteLength(insets[3]!, "clip-path inset-left", box.width);
+  const top = finiteLength(insets[0]!, "clip-path inset-top", box.height, false, box.viewport);
+  const right = finiteLength(insets[1]!, "clip-path inset-right", box.width, false, box.viewport);
+  const bottom = finiteLength(insets[2]!, "clip-path inset-bottom", box.height, false, box.viewport);
+  const left = finiteLength(insets[3]!, "clip-path inset-left", box.width, false, box.viewport);
   const target = { x: box.x + left, y: box.y + top, width: Math.max(0, box.width - left - right), height: Math.max(0, box.height - top - bottom) };
   if (!roundValue) return rectangleContour(target, id);
   const [horizontalValue, verticalValue] = splitTopLevel(roundValue, "/");
-  const horizontal = quad(horizontalValue!, "clip-path inset() round").map((value) => finiteLength(value, "clip-path radius-x", box.width, true)) as [number, number, number, number];
-  const vertical = quad(verticalValue ?? horizontalValue!, "clip-path inset() round").map((value) => finiteLength(value, "clip-path radius-y", box.height, true)) as [number, number, number, number];
+  const horizontal = quad(horizontalValue!, "clip-path inset() round").map((value) => finiteLength(value, "clip-path radius-x", box.width, true, box.viewport)) as [number, number, number, number];
+  const vertical = quad(verticalValue ?? horizontalValue!, "clip-path inset() round").map((value) => finiteLength(value, "clip-path radius-y", box.height, true, box.viewport)) as [number, number, number, number];
   return roundedRectangleContour(target, scaleRadii(target, horizontal, vertical), id);
 }
 
@@ -198,7 +199,7 @@ function parsePolygon(body: string, box: ClipReferenceBox, id: string): HtmlClip
   const points = parts.map((part) => {
     const values = splitTopLevel(part, " ");
     if (values.length !== 2) fail("css-clip-path-polygon-invalid", `Each polygon point requires x and y: ${part}`);
-    return { x: finiteLength(values[0]!, "clip-path polygon-x", box.width) + box.x, y: finiteLength(values[1]!, "clip-path polygon-y", box.height) + box.y };
+    return { x: finiteLength(values[0]!, "clip-path polygon-x", box.width, false, box.viewport) + box.x, y: finiteLength(values[1]!, "clip-path polygon-y", box.height, false, box.viewport) + box.y };
   });
   return { type: "path", contours: [{ id, start: points[0]!, segments: points.slice(1).map((to) => ({ kind: "line" as const, to })), closed: true }], fillRule };
 }

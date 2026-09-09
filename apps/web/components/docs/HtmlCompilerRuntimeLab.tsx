@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
+import { htmlCompilerPreviewHtml } from "@/lib/docs/html-compiler-document";
 import {
   HTML_COMPILER_PREVIEW_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
@@ -19,7 +20,7 @@ import {
   htmlCompilerPreviewCaseById,
   htmlCompilerPreviewGroups,
 } from "@/lib/docs/html-compiler-preview";
-import { compileHtmlCss, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { compileDocument, type HtmlCssSource } from "@motionvideo/html-compiler";
 
 export function HtmlCompilerRuntimeLab() {
   const router = useRouter();
@@ -31,18 +32,19 @@ export function HtmlCompilerRuntimeLab() {
   const [isPlaying, setIsPlaying] = useState(false);
   const animationFrameRef = useRef<number | null>(null);
   const selected = htmlCompilerPreviewCaseById(searchParams.get("case"));
+  const selectedHtml = useMemo(() => htmlCompilerPreviewHtml(selected), [selected]);
   const groups = useMemo(() => htmlCompilerPreviewGroups(), []);
   const compilation = useMemo(
     () =>
-      compileHtmlCss(selected.source, {
+      compileDocument({ html: selectedHtml }, {
         fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS,
         mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
       }),
-    [selected.source],
+    [selectedHtml],
   );
   const sourceDocument = useMemo(
-    () => htmlCssSrcDoc(selected.source, HTML_COMPILER_PREVIEW_FONT_ASSETS),
-    [selected.source],
+    () => htmlDocumentSrcDoc(selectedHtml, selected.source, HTML_COMPILER_PREVIEW_FONT_ASSETS),
+    [selected.source, selectedHtml],
   );
   const syncBrowserPlayback = useCallback((time: number, playing: boolean) => {
     const document = browserIframeRef.current?.contentDocument;
@@ -293,7 +295,7 @@ export function HtmlCompilerRuntimeLab() {
         </div>
 
         <section className="mt-5 grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
-          <SourceCanvas source={selected.source} />
+          <SourceCanvas source={selected.source} html={selectedHtml} />
           <SourcePanel
             title="Normalized Protocol V2"
             value={JSON.stringify(
@@ -402,7 +404,7 @@ function SourcePanel({ title, value }: { title: string; value: string }) {
 
 type SourceCanvasTab = "composition" | "html" | "css";
 
-function SourceCanvas({ source }: { source: HtmlCssSource }) {
+function SourceCanvas({ source, html }: { source: HtmlCssSource; html: string }) {
   const [tab, setTab] = useState<SourceCanvasTab>("html");
   const tabs: Array<{ id: SourceCanvasTab; label: string; value: string }> = [
     {
@@ -410,8 +412,7 @@ function SourceCanvas({ source }: { source: HtmlCssSource }) {
       label: "Composition",
       value: JSON.stringify(source.composition, null, 2),
     },
-    { id: "html", label: "HTML", value: source.html },
-    { id: "css", label: "CSS", value: source.css },
+    { id: "html", label: "HTML document", value: html },
   ];
   const active = tabs.find((item) => item.id === tab) ?? tabs[0];
 
@@ -483,12 +484,15 @@ function DiagnosticStage({
   );
 }
 
-function htmlCssSrcDoc(
+function htmlDocumentSrcDoc(
+  documentHtml: string,
   source: HtmlCssSource,
   fontAssets: typeof HTML_COMPILER_PREVIEW_FONT_ASSETS,
 ): string {
-  const css = source.css.replace(/<\/style/gi, "<\\/style");
-  const html = source.html.replace(/<\/style/gi, "<\\/style");
+  // `documentHtml` is already a complete HTML document. Do not escape its
+  // closing style tags: doing so makes the browser treat the rest of the
+  // document as CSS and leaves the reference iframe blank.
+  const html = documentHtml;
   const { width, height, background } = source.composition;
   const cssFamilies = source.css.toLocaleLowerCase();
   const fontFaces = fontAssets
@@ -498,7 +502,7 @@ function htmlCssSrcDoc(
         `@font-face { font-family: "${asset.family}"; src: url("${asset.uri}") format("truetype"); font-style: ${asset.style}; font-stretch: ${asset.stretch ?? "normal"}; font-weight: ${asset.weight}; }`,
     )
     .join("\n");
-  const injectedStyles = `<meta charset="utf-8"><style>${fontFaces}\n${css}</style><style>html, body { width: ${width}px; height: ${height}px; margin: 0; overflow: hidden; background: ${background}; } html:not([data-neonix-playback="running"]) * { animation-play-state: paused !important; }</style>`;
+  const injectedStyles = `<meta charset="utf-8"><style>${fontFaces}</style><style>html, body { width: ${width}px; height: ${height}px; margin: 0; overflow: hidden; background: ${background}; } html:not([data-neonix-playback="running"]) * { animation-play-state: paused !important; }</style>`;
   if (/<html(?:\s|>)/i.test(html))
     return html.replace(/<head([^>]*)>/i, `<head$1>${injectedStyles}`);
   return `<!DOCTYPE html><html><head>${injectedStyles}</head><body>${html}</body></html>`;

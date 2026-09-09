@@ -1,5 +1,5 @@
 /**
- * Request MP4 export via the native VPS worker BFF (POST /api/renders).
+ * Request MP4 export via the native VPS worker BFF (POST /api/v1/renders).
  */
 
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
@@ -11,7 +11,7 @@ export type ExportError = {
 export async function exportMotionProject(
   project: MotionProtocolV2,
 ): Promise<{ jobId: string }> {
-  const res = await fetch("/api/renders", {
+  const res = await fetch("/api/v1/renders", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

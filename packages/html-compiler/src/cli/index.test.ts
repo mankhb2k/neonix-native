@@ -10,16 +10,19 @@ describe("html compiler CLI", () => {
     const projectDirectory = join(directory, "blue-rectangle");
 
     expect((await runCli(["new", projectDirectory, "--example", "blue-rectangle"])).exitCode).toBe(0);
+    expect((await runCli(["compile", projectDirectory])).exitCode).toBe(0);
 
-    const source = JSON.parse(await readFile(join(projectDirectory, "neonix-source.json"), "utf8")) as Record<string, unknown>;
+    const html = await readFile(join(projectDirectory, "src", "scene.html"), "utf8");
+    const css = await readFile(join(projectDirectory, "src", "scene.css"), "utf8");
+    const config = JSON.parse(await readFile(join(projectDirectory, "neonix.config.json"), "utf8")) as Record<string, unknown>;
     const protocol = JSON.parse(await readFile(join(projectDirectory, "protocol-v2.json"), "utf8")) as { composition: Record<string, unknown>; layers: Array<Record<string, unknown>> };
-    expect(source).toMatchObject({
-      kind: "neonix-html-source",
-      sourceSchemaVersion: 1,
+    expect(config).toMatchObject({
+      kind: "neonix-html-project",
+      schemaVersion: 1,
       composition: { width: 1920, height: 1080, fps: 30, background: "#081018", colorSpace: "srgb" },
     });
-    expect(source.html).toContain('<div id="blue-rectangle"></div>');
-    expect(source.css).toContain("#2563eb");
+    expect(html).toContain('<div id="blue-rectangle"></div>');
+    expect(css).toContain("#2563eb");
     expect(protocol.composition).toMatchObject({ width: 1920, height: 1080, fps: 30 });
     expect(protocol.layers[0]).toMatchObject({ id: "blue-rectangle", type: "shape", style: { fill: "#2563eb" } });
   });
@@ -30,4 +33,3 @@ describe("html compiler CLI", () => {
     expect((await runCli(["new", directory])).exitCode).toBe(1);
   });
 });
-

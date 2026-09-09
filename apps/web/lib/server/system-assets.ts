@@ -27,7 +27,7 @@ export const SYSTEM_ASSET_IDS = {
 
 export function systemAssetUrl(id: string, variant?: SystemAssetVariantKind): string {
   const query = variant && variant !== "origin" ? `?variant=${encodeURIComponent(variant)}` : "";
-  return `/api/system-assets/${encodeURIComponent(id)}${query}`;
+  return `/api/v1/system-assets/${encodeURIComponent(id)}${query}`;
 }
 
 export function fallbackSystemAssetId(kind: string, mimeType: string): string | null {

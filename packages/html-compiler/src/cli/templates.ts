@@ -1,7 +1,7 @@
 import {
   DEFAULT_NEONIX_HTML_DOCUMENT,
-  createNewHtmlProject,
-  type NeonixHtmlSourceV1,
+  createHtmlCssProject,
+  type HtmlCssProject,
 } from "../index";
 
 export type HtmlProjectExample = "blank" | "blue-rectangle";
@@ -27,12 +27,12 @@ const BLUE_RECTANGLE_CSS = `body {
   background: #2563eb;
 }`;
 
-export function createHtmlProjectTemplate(example: HtmlProjectExample = "blank"): NeonixHtmlSourceV1 {
+export function createHtmlProjectTemplate(example: HtmlProjectExample = "blank"): HtmlCssProject {
   switch (example) {
     case "blank":
-      return createNewHtmlProject();
+      return createHtmlCssProject();
     case "blue-rectangle":
-      return createNewHtmlProject({ html: BLUE_RECTANGLE_HTML, css: BLUE_RECTANGLE_CSS });
+      return createHtmlCssProject({ html: BLUE_RECTANGLE_HTML, css: BLUE_RECTANGLE_CSS });
     default:
       return assertNever(example);
   }
@@ -41,4 +41,3 @@ export function createHtmlProjectTemplate(example: HtmlProjectExample = "blank")
 function assertNever(value: never): never {
   throw new Error(`Unknown HTML project example: ${String(value)}`);
 }
-

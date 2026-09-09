@@ -36,6 +36,21 @@ async function readTextLayer(page: Page, id: string): Promise<TextLayer> {
   return layer!;
 }
 
+async function assertFinalDocument(page: Page): Promise<void> {
+  const html = await page.getByTestId("html-compiler-source-canvas").locator("pre").textContent();
+  expect(html?.match(/<meta[^>]+name=["']neonix-document["']/gi)).toHaveLength(1);
+  expect(html).toContain('"schemaVersion":2');
+  expect(html).toMatch(/<style\b/i);
+}
+
+async function assertBrowserPreview(page: Page): Promise<void> {
+  const iframe = page.locator('iframe[title^="Native browser HTML CSS reference"]');
+  await expect.poll(async () => iframe.evaluate((node) => {
+    const document = (node as HTMLIFrameElement).contentDocument;
+    return Boolean(document?.body?.innerHTML.trim());
+  })).toBe(true);
+}
+
 test.describe("HTML compiler text compiler/layout fixtures", () => {
   for (const id of cases) {
     test(id, async ({ page }) => {
@@ -43,6 +58,8 @@ test.describe("HTML compiler text compiler/layout fixtures", () => {
       const canvas = page.getByTestId("html-compiler-runtime-canvas");
       await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
       await expect(canvas).not.toHaveAttribute("data-diagnostics", /unsupported|fallback/);
+      await assertFinalDocument(page);
+      await assertBrowserPreview(page);
     });
   }
 

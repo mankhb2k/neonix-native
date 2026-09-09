@@ -1,9 +1,12 @@
 import { MotionProtocolV2Schema, type MotionProtocolV2, type V2SvgDefinitionNode } from "@motionvideo/motion-protocol/v2";
 import {
   DEFAULT_HTML_CSS_COMPOSITION,
+  type HtmlCssProject,
   type HtmlCompilerOptions,
   type HtmlCompilerResult,
+  type NeonixHtmlProjectConfig,
   type HtmlCssSource,
+  type HtmlDocumentInput,
 } from "../../source";
 import { CompileError, fail } from "../errors";
 import { neonixManifest, withoutNeonixManifest } from "../html/manifest";
@@ -34,6 +37,7 @@ import type { Node, Style } from "../model";
 import { svgPrimitivePath } from "../lowering/svg";
 import { createCompileContext } from "../compile-context";
 import { createAssetRegistry } from "../lowering/assets";
+import { parseNeonixDocument, isCompileError } from "../document";
 
 function textAnchorForTextAlign(value: HtmlCompilerTextAlign, direction: HtmlCompilerTextDirection): "start" | "middle" | "end" {
   if (value === "center") return "middle";
@@ -258,12 +262,72 @@ function roundedRectFillPieces(width: number, height: number, radius: Exclude<Co
   ];
 }
 
-export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
+/**
+ * Compile the canonical file-oriented project contract. The caller owns file
+ * I/O; this API deliberately receives the already loaded HTML, CSS and config.
+ */
+export function compileProject(project: HtmlCssProject, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
+  const source = {
+    kind: "neonix-html-source" as const,
+    sourceSchemaVersion: 1 as const,
+    composition: project.config.composition,
+    html: project.html,
+    css: project.css,
+  };
+  return compileSource(source, options, project.config);
+}
+
+/**
+ * Compile the canonical single-file HTML document contract. The document
+ * carries composition metadata in meta[name="neonix-document"] and CSS in
+ * one or more inline style resources.
+ */
+export function compileDocument(document: HtmlDocumentInput, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
+  const fallbackSource: HtmlCssSource = {
+    kind: "neonix-html-source",
+    sourceSchemaVersion: 1,
+    composition: { ...DEFAULT_HTML_CSS_COMPOSITION },
+    html: document.html,
+    css: "",
+  };
   try {
-    // The source envelope is the canonical composition contract. Keep the
-    // legacy options as an escape hatch for duration/id, but never let them
-    // make the browser and compiler disagree about the render viewport.
-    const embeddedComposition = neonixManifest(source.html); const composition = { ...DEFAULT_HTML_CSS_COMPOSITION, ...(options.composition ?? {}), ...source.composition, ...(embeddedComposition ?? {}) }; if (composition.width !== 1920 || composition.height !== 1080 || composition.fps !== 30 || composition.background !== "#081018" || composition.colorSpace !== "srgb") fail("html-composition-invalid", "HTML/CSS sources must use the fixed 1920x1080 @ 30 composition with #081018 srgb"); const width = composition.width; const height = composition.height; const fps = composition.fps; const baseDuration = options.composition?.durationMs ?? 1000; const root = parseHtml(withoutNeonixManifest(source.html)); const parsedStylesheet = parseAnimationStyles(source.css); const rules = parseRules(parsedStylesheet.css); const keyframes = parsedStylesheet.keyframes; const viewport = { width, height }; const findNode = (node: Node, tag: string): Node | undefined => node.tag === tag ? node : node.children.map((child) => findNode(child, tag)).find(Boolean); const body = findNode(root, "body"); const rootVars = new Map<string, string>(); for (const rule of rules) if (rule.selectors.some((selector) => selector.trim() === ":root")) for (const declaration of rule.declarations) if (declaration.property.startsWith("--")) rootVars.set(declaration.property, declaration.value);
+    const parsed = parseNeonixDocument(document);
+    const documentOptions: HtmlCompilerOptions = {
+      ...options,
+      ...(document.fontAssets === undefined ? {} : { fontAssets: document.fontAssets }),
+      ...(document.mediaAssets === undefined ? {} : { mediaAssets: document.mediaAssets }),
+    };
+    return compileSource({
+      kind: "neonix-html-source",
+      sourceSchemaVersion: 1,
+      composition: parsed.composition,
+      html: parsed.html,
+      css: parsed.css,
+    }, documentOptions);
+  } catch (error) {
+    const diagnostic = isCompileError(error)
+      ? { severity: "error" as const, code: error.code, message: error.message, ...(error.source ? { source: error.source } : {}) }
+      : { severity: "error" as const, code: "html-compiler-internal", message: error instanceof Error ? error.message : String(error) };
+    return { status: "error", source: fallbackSource, protocol: null, diagnostics: [diagnostic] };
+  }
+}
+
+/** @deprecated Use compileProject({ html, css, config }) for new projects. */
+export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
+  return compileSource(source, options);
+}
+
+function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {}, projectConfig?: NeonixHtmlProjectConfig): HtmlCompilerResult {
+  try {
+    if (projectConfig && (projectConfig.kind !== "neonix-html-project" || projectConfig.schemaVersion !== 1)) {
+      fail("html-config-invalid", "neonix.config.json must be a Neonix HTML project config");
+    }
+    const composition = validateComposition(source.composition ?? DEFAULT_HTML_CSS_COMPOSITION);
+    const embeddedComposition = neonixManifest(source.html);
+    if (embeddedComposition && !sameComposition(composition, embeddedComposition)) {
+      fail("html-composition-mismatch", "Embedded neonix-manifest composition must match neonix.config.json");
+    }
+    const width = composition.width; const height = composition.height; const fps = composition.fps; const baseDuration = options.composition?.durationMs ?? 1000; const root = parseHtml(withoutNeonixManifest(source.html)); const parsedStylesheet = parseAnimationStyles(source.css); const rules = parseRules(parsedStylesheet.css); const keyframes = parsedStylesheet.keyframes; const viewport = { width, height }; const findNode = (node: Node, tag: string): Node | undefined => node.tag === tag ? node : node.children.map((child) => findNode(child, tag)).find(Boolean); const body = findNode(root, "body"); const rootVars = new Map<string, string>(); for (const rule of rules) if (rule.selectors.some((selector) => selector.trim() === ":root")) for (const declaration of rule.declarations) if (declaration.property.startsWith("--")) rootVars.set(declaration.property, declaration.value);
     const allNodes: Node[] = []; const visit = (node: Node) => { allNodes.push(node); node.children.forEach(visit); }; root.children.forEach(visit); const styles = new Map<Node, Style>();
     const walkStyles = (node: Node, parent: Style) => { const style = computed(node, rules, parent); const scopedVars = new Map<string, string>(); for (const [property, value] of style) if (property.startsWith("--")) scopedVars.set(property, value); for (const [property, value] of [...style]) { const resolved = resolveVar(value, scopedVars, new Set()); style.set(property, resolved); if (property.startsWith("--")) scopedVars.set(property, resolved); } const currentColor = style.get("color") ?? parent.get("color") ?? "#000000"; for (const [property, value] of style) { if (property === "background" || property === "background-color") parsePaintLayers(value, property, currentColor); else if (property === "mask-image") parseMaskImages(style, currentColor, { width, height }); else if (property === "color" || property === "border-color" || property === "fill" || property === "stroke") { if (!(property === "fill" || property === "stroke") || value.toLowerCase() !== "none") parseColor(value, property, currentColor); } } styles.set(node, style); node.children.forEach((child) => walkStyles(child, style)); }; if (body) walkStyles(body, rootVars); else root.children.forEach((child) => walkStyles(child, rootVars));
     if (body && !styles.has(body)) styles.set(body, computed(body, rules, new Map())); const duration = Math.max(baseDuration, ...[...styles.values()].map(animationTimelineDuration)); const bodyStyle = body ? styles.get(body)! : new Map<string, string>(); const backgroundColor = parseColor(composition.background, "composition background");
@@ -305,7 +369,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
         const composite = imageIndex === 0 ? "add" : parseMaskComposite(style, imageIndex - 1);
         const sourceStyle = maskSourceStyle(style, imageIndex);
         const position = parseBackgroundPosition(sourceStyle, 0);
-        const size = parseBackgroundSize(sourceStyle, 0, targetWidth, targetHeight);
+        const size = parseBackgroundSize(sourceStyle, 0, targetWidth, targetHeight, viewport);
         const repeat = parseBackgroundRepeat(sourceStyle, 0);
         const origin = { x: 0, y: 0, width: targetWidth, height: targetHeight };
         const drawWidth = size.type === "length" ? Math.max(1, size.width) : origin.width;
@@ -406,9 +470,9 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
         const parentId = parent?.tag === "body" ? null : (parent?.atomicId ?? null); const groupId = node.atomicId; const hasChildren = node.children.length > 0; const localX = parent?.children.length ? x - (origins.get(parent)?.x ?? parentX) : x; const localY = parent?.children.length ? y - (origins.get(parent)?.y ?? parentY) : y;
         const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {};
         const clipBoxes: ClipReferenceBoxes = {
-          borderBox: { x: 0, y: 0, width: w, height: h },
-          paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]) },
-          contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight },
+          borderBox: { x: 0, y: 0, width: w, height: h, viewport },
+          paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]), viewport },
+          contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight, viewport },
         };
         const clipShape = parseClipPath(style.get("clip-path"), clipBoxes);
         const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [{ type: "rect", x: 0, y: 0, width: w, height: h }] : [];
@@ -738,7 +802,7 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
                const origin = boxFor(parseBackgroundBox(style, "background-origin", imageIndex));
                const clipBox = boxFor(parseBackgroundBox(style, "background-clip", imageIndex));
                const position = parseBackgroundPosition(style, imageIndex);
-               const size = parseBackgroundSize(style, imageIndex, origin.width, origin.height);
+               const size = parseBackgroundSize(style, imageIndex, origin.width, origin.height, viewport);
                const repeat = parseBackgroundRepeat(style, imageIndex);
                if (repeat !== "no-repeat" && size.type !== "length") fail("css-background-repeat-needs-size", "Repeating a background image requires an explicit two-dimensional background-size in the deterministic compiler");
                if (size.type === "length") {
@@ -1080,4 +1144,37 @@ export function compileHtmlCss(source: HtmlCssSource, options: HtmlCompilerOptio
     const protocol = MotionProtocolV2Schema.parse({ format: "motion-protocol", formatVersion: 2, id: options.composition?.id ?? "gold-01-rectangle-solid-v1", composition: { width, height, fps, background: backgroundColor, colorSpace: composition.colorSpace, view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } }, assets, layers, ...(clipPaths.length ? { clipPaths } : {}), ...(masks.length ? { masks } : {}), audio: { sampleRate: 48000, tracks: audioTracks } });
     return { status: "success", source, protocol, diagnostics: [] };
   } catch (error) { const diagnostic = error instanceof CompileError ? { severity: "error" as const, code: error.code, message: error.message, ...(error.source ? { source: error.source } : {}) } : { severity: "error" as const, code: "html-compiler-internal", message: error instanceof Error ? error.message : String(error) }; return { status: "error", source, protocol: null, diagnostics: [diagnostic] }; }
+}
+
+function validateComposition(value: unknown): HtmlCssSource["composition"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    fail("html-composition-invalid", "Composition must be an object");
+  }
+  const composition = value as Record<string, unknown>;
+  if (!Number.isInteger(composition.width) || Number(composition.width) <= 0) {
+    fail("html-composition-invalid", "Composition width must be a positive integer");
+  }
+  if (!Number.isInteger(composition.height) || Number(composition.height) <= 0) {
+    fail("html-composition-invalid", "Composition height must be a positive integer");
+  }
+  if (typeof composition.fps !== "number" || !Number.isFinite(composition.fps) || composition.fps <= 0) {
+    fail("html-composition-invalid", "Composition fps must be a positive number");
+  }
+  if (typeof composition.background !== "string" || !composition.background.trim()) {
+    fail("html-composition-invalid", "Composition background must be a non-empty color");
+  }
+  if (composition.colorSpace !== "srgb") {
+    fail("html-composition-invalid", "Only srgb color space is currently supported");
+  }
+  return {
+    width: Number(composition.width),
+    height: Number(composition.height),
+    fps: Number(composition.fps),
+    background: String(composition.background),
+    colorSpace: "srgb",
+  };
+}
+
+function sameComposition(left: HtmlCssSource["composition"], right: HtmlCssSource["composition"]): boolean {
+  return left.width === right.width && left.height === right.height && left.fps === right.fps && left.background === right.background && left.colorSpace === right.colorSpace;
 }

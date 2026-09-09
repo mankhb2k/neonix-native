@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'
+    />
+
+    <!--
+      This is the compiler-facing document artifact.
+      All authoring CSS has already been bundled into this style block.
+      Composition metadata is carried by the Neonix document meta tag.
+    -->
+    <style data-neonix-bundle>
+      html,
+      body {
+        width: 1080px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #081018;
+      }
+
+      .scene {
+        position: relative;
+        width: 1080px;
+        height: 1080px;
+        overflow: hidden;
+        background: #081018;
+      }
+
+      #blue-rectangle {
+        position: absolute;
+        left: 120px;
+        top: 340px;
+        width: 420px;
+        height: 210px;
+        border-radius: 24px;
+        background: #2563eb;
+      }
+
+      #green-circle {
+        position: absolute;
+        left: 650px;
+        top: 350px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: #22c55e;
+      }
+
+      #orange-triangle {
+        position: absolute;
+        left: 850px;
+        top: 400px;
+        width: 180px;
+        height: 150px;
+        clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+        background: #f97316;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="scene" id="scene">
+      <div id="blue-rectangle"></div>
+      <div id="green-circle"></div>
+      <div id="orange-triangle"></div>
+    </main>
+  </body>
+</html>

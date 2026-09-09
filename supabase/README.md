@@ -90,7 +90,7 @@ explicit subset or alias; the default resolver can combine workspace fonts
 with the system catalog.
 
 The V2 editor reads and autosaves through the server-only project repository:
-`GET/PATCH /api/projects/:projectId`. The repository validates every document
+`GET/PATCH /api/v1/editor/projects/:projectId`. The repository validates every document
 with `MotionProtocolV2Schema`, writes immutable `project_revisions`, and uses
 the expected revision number to reject concurrent writes with HTTP 409.
 

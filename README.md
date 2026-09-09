@@ -24,7 +24,7 @@ Supabase Auth + Postgres (RLS-protected project revisions)
 Neonix dashboard (neonix.video/dashboard)
   │ MotionProtocolV2 → compile → RuntimeFrameV2
   ├── Native browser preview (WebGPU, WebGL2 fallback)
-  └── Export jobs (/api/renders → Remotion/Lambda when configured)
+  └── Export jobs (/api/v1/renders → Remotion/Lambda when configured)
 ```
 
 Claude never receives a service-role key and does not call an AI provider from
@@ -96,8 +96,9 @@ The detailed protocol and renderer contract is documented in
 
 - `/api/auth/callback` — Supabase cookie/PKCE callback.
 - `/api/mcp` — authenticated Streamable HTTP MCP endpoint.
-- `/api/projects/[projectId]` — project read/update BFF with revision checks.
-- `/api/renders` and `/api/renders/[id]` — render-job creation/status.
+- `/api/v1/editor/projects/[projectId]` — Protocol V2 editor read/update BFF with revision checks.
+- `/api/v1/projects/[projectId]` — HTML document project resource.
+- `/api/v1/renders` and `/api/v1/renders/[id]` — render-job creation/status.
 - `/api/oauth/decision` and `/oauth/consent` — MCP OAuth consent surface.
 
 The canonical web editor adapter is [`apps/web/lib/editor`](apps/web/lib/editor).

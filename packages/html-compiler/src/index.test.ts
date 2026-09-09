@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
-import { compileHtmlCss, createHtmlCssSource, createNewHtmlProject, DEFAULT_HTML_CSS_COMPOSITION, DEFAULT_NEONIX_HTML_DOCUMENT } from "./index";
+import { compileDocument, compileHtmlCss, compileProject, createHtmlCssProject, createHtmlCssSource, createNewHtmlProject, DEFAULT_HTML_CSS_COMPOSITION, DEFAULT_NEONIX_HTML_DOCUMENT } from "./index";
 
 const source = createHtmlCssSource({
   html: `<div id="gold-01"></div>`,
@@ -18,11 +18,11 @@ describe("HTML compiler Phase 1 vertical slice", () => {
       html: DEFAULT_NEONIX_HTML_DOCUMENT,
       css: "",
     });
-    expect(DEFAULT_NEONIX_HTML_DOCUMENT).toContain('id="neonix-manifest"');
+    expect(DEFAULT_NEONIX_HTML_DOCUMENT).not.toContain("neonix-manifest");
   });
 
-  it("reads the composition manifest from the standard HTML document", () => {
-    const result = compileHtmlCss(createNewHtmlProject());
+  it("compiles the canonical project contract without an embedded manifest", () => {
+    const result = compileProject(createHtmlCssProject());
     expect(result.status).toBe("success");
     expect(result.protocol?.composition).toMatchObject({
       width: 1920,
@@ -80,6 +80,65 @@ describe("HTML compiler Phase 1 vertical slice", () => {
       payload: { source: { text: "Hello 🚀" }, chunks: [{ spans: [{ font: { families: ["Inter", "Noto Color Emoji"], size: 64, weight: 700 } }] }] },
     });
     expect(result.protocol?.assets?.map((asset) => asset.id)).toEqual(["inter-bold", "noto-emoji"]);
+  });
+
+  it("compiles a self-contained neonix-document with embedded CSS resources", () => {
+    const result = compileDocument({
+      html: `<!doctype html>
+<html>
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1920,"fps":24,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      body { margin: 0; }
+      #scene { position: absolute; left: 10vw; top: 10vh; width: 50vw; height: 20vh; background: #14b8a6; }
+    </style>
+    <style>
+      #scene { opacity: 0.75; }
+    </style>
+  </head>
+  <body><div id="scene"></div></body>
+</html>`,
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.source.css).toContain("opacity: 0.75");
+    expect(result.protocol?.composition).toMatchObject({ width: 1080, height: 1920, fps: 24 });
+    expect(result.protocol?.layers[0]).toMatchObject({ id: "scene", style: { fill: "#14b8a6" }, opacity: 0.75 });
+  });
+
+  it("rejects a document without the exact V2 metadata contract", () => {
+    const result = compileDocument({ html: "<html><head></head><body></body></html>" });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("html-document-metadata-missing");
+  });
+
+  it("reports duplicate metadata instead of choosing one document envelope", () => {
+    const meta = `<meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>`;
+    const result = compileDocument({ html: `<html><head>${meta}${meta}</head><body></body></html>` });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("html-document-metadata-duplicate");
+  });
+
+  it("rejects non-CSS inline style resources", () => {
+    const result = compileDocument({
+      html: `<html><head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'><style type="text/less">#scene {}</style></head><body><div id="scene"></div></body></html>`,
+    });
+    expect(result.status).toBe("error");
+    expect(result.diagnostics[0]?.code).toBe("html-document-style-unsupported");
+  });
+
+  it("takes the viewport from neonix.config.json for portrait and square projects", () => {
+    const result = compileProject({
+      html: `<div id="shape"></div>`,
+      css: `#shape { position: absolute; left: 10vw; top: 10vh; width: 50vw; height: 20vh; background: #14b8a6; }`,
+      config: {
+        kind: "neonix-html-project",
+        schemaVersion: 1,
+        composition: { width: 1080, height: 1920, fps: 24, background: "#081018", colorSpace: "srgb" },
+      },
+    });
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    expect(result.protocol?.composition).toMatchObject({ width: 1080, height: 1920, fps: 24 });
+    expect(result.protocol?.layers[0]).toMatchObject({ frame: { width: 540, height: 384 }, transform: { translate: { x: 108, y: 192 } } });
   });
 
   it("preserves nested inline font semantics as Protocol text spans", () => {

@@ -11,7 +11,7 @@ export async function saveEditorProject(input: {
   expectedRevisionNo: number;
 }): Promise<SaveEditorProjectResult> {
   const response = await fetch(
-    `/api/projects/${encodeURIComponent(input.projectRef)}`,
+    `/api/v1/editor/projects/${encodeURIComponent(input.projectRef)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +36,7 @@ export async function attachProjectAsset(input: {
   assetId: string;
 }): Promise<void> {
   const response = await fetch(
-    `/api/projects/${encodeURIComponent(input.projectRef)}/assets`,
+    `/api/v1/projects/${encodeURIComponent(input.projectRef)}/assets`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

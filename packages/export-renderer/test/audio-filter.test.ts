@@ -13,7 +13,7 @@ const project = {
       mediaId: "music",
       audio: [{
         streamId: "music:audio",
-        resource: { resourceId: "music:audio:original", role: "original", uri: "/api/docs/audio" },
+        resource: { resourceId: "music:audio:original", role: "original", uri: "/api/v1/docs/audio" },
         durationSamples: 480_000,
         sampleRate: 48_000,
         channels: 2,

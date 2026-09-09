@@ -1,4 +1,32 @@
-# HTML compiler tag-lowering fixtures
+# HTML compiler final-document fixtures
+
+Every fixture is exposed as one final HTML document. The document filename is
+not significant; `compileDocument({ html })` requires exactly one
+`meta[name="neonix-document"]` with `schemaVersion: 2` and reads CSS from inline
+`<style>` resources. The same HTML is used for the browser reference and for
+Protocol V2 compilation, so a fixture cannot accidentally test a different CSS
+source in each preview.
+
+The canonical shape is:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      /* fixture CSS */
+    </style>
+  </head>
+  <body><!-- visual HTML --></body>
+</html>
+```
+
+The fixture registry keeps the legacy `source` field only as a temporary test
+inspection aid; its `html` field is the contract consumed by the preview and
+the compiler.
+
+## HTML compiler tag-lowering fixtures
 
 The live fixtures are registered in
 `apps/web/lib/docs/html-compiler-tag-lowering-fixtures.ts` and rendered at

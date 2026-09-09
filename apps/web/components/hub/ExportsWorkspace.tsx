@@ -18,7 +18,7 @@ export function ExportsWorkspace() {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const response = await globalThis.fetch("/api/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
+      const response = await globalThis.fetch("/api/v1/renders", { headers: { "x-user-id": "web-editor" }, cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json() as { jobs?: ExportJob[] };
       if (active) setJobs(data.jobs ?? []);

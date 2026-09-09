@@ -225,7 +225,7 @@ export function createThreeKingdomsHistoryProject(): MotionProtocolV2 {
       {
         id: "three-kingdoms-score",
         kind: "audio",
-        uri: "/api/docs/audio",
+        uri: "/api/v1/docs/audio",
         mimeType: "audio/mpeg",
         duration: 60,
         sampleRate: 48000,
