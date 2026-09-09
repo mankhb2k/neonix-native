@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "neonix-mcp": {
+      "type": "http",
+      "url": "https://www.neonix.video/api/mcp"
+    }
+  }
+}

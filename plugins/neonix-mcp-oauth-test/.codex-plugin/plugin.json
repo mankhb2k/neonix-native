@@ -1,0 +1,23 @@
+{
+  "name": "neonix-mcp-oauth-test",
+  "version": "0.1.0",
+  "description": "Test the Neonix remote MCP OAuth discovery and authenticated tool flow.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Neonix MCP OAuth Test",
+    "shortDescription": "Test Neonix MCP OAuth locally.",
+    "longDescription": "Connects Codex to the local Neonix Streamable HTTP MCP endpoint and provides a preflight checklist for OAuth metadata, login, token verification, and a read-only authenticated tool call.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Run the Neonix MCP OAuth preflight.",
+      "Check Neonix MCP OAuth discovery and login.",
+      "Call list_workspaces after MCP authentication."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

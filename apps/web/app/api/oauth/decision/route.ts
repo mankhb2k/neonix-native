@@ -27,5 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.redirect(result.data.redirect_url);
+  // This route is reached by a form POST. A 303 makes the OAuth client follow
+  // the callback URL with GET instead of replaying the POST to ChatGPT.
+  return NextResponse.redirect(result.data.redirect_url, 303);
 }
