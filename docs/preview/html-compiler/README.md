@@ -67,3 +67,30 @@ fixtures are registered in
 
 The E2E contract is in
 `apps/web/e2e/html-compiler-text-compiler-layout.spec.ts`.
+
+## Ten-second motion export samples
+
+The `export-samples/` directory contains three canonical, single-file HTML
+documents used to exercise the complete authoring path:
+
+| File | Theme | Motion focus |
+| --- | --- | --- |
+| `marketing-launch.html` | Marketing launch | staged title/card entrance and a repeating campaign orb |
+| `product-story.html` | Product story | staged narrative reveal and an accent line |
+| `creative-brand.html` | Creative / motion brand | kinetic typography, geometric shapes, motion path, depth cards, and logo convergence |
+
+Each document declares a 1920×1080, 30 fps composition. The export harness
+overrides the compiler timeline to exactly 10 seconds, writes the compiled
+Protocol V2 JSON, prepares text with the same HarfBuzz path used by runtime,
+and encodes an MP4 through Skia WASM:
+
+```bash
+pnpm --dir apps/web export:html-motion-samples
+```
+
+For a fast smoke run, set `HTML_MOTION_FRAME_COUNT=1`; omit it for the full
+300-frame export. Outputs are written to `tmp/html-motion-exports/` and are
+ignored as generated artifacts. The matching Playwright contract is
+`apps/web/e2e/html-motion-export-samples.spec.ts`; it checks the browser at the
+same 1920×1080 viewport and captures frame checkpoints at 0, 5, and 9.999
+seconds.

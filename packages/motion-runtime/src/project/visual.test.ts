@@ -33,5 +33,40 @@ describe("RuntimeProjectV3 visual boundary", () => {
     expect(frame.commands.at(0)).toMatchObject({ projection: { worldToClipMatrix: expect.arrayContaining([1, 1, 1, 1]) } });
   });
 
+  it("overlays compiler-baked visual frame deltas after JSON transport", () => {
+    const node = {
+      id: "card",
+      parentId: null,
+      order: 0,
+      timing: { start: 0, duration: 1 },
+      opacity: 1,
+      visible: true,
+      localMatrix: identityMatrix4(),
+      worldMatrix: identityMatrix4(),
+      content: { kind: "shape" as const, shape: "rectangle" as const, width: 20, height: 20, fill: "#ffffff" },
+    };
+    const moved = {
+      ...node,
+      opacity: 0.25,
+      localMatrix: new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 40, 0, 0, 1]),
+      worldMatrix: new Float64Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 40, 0, 0, 1]),
+    };
+    const animated: RuntimeProjectV3 = {
+      ...project,
+      durationUs: 1_000_000,
+      visual: {
+        ...project.visual,
+        composition: { ...project.visual.composition, fps: 2, duration: 1 },
+        nodes: [node],
+      },
+      visualTimeline: { frames: [{ nodes: [] }, { nodes: [moved] }] },
+    };
+    const transported = JSON.parse(JSON.stringify(animated)) as RuntimeProjectV3;
+    const first = evaluateRuntimeProjectV3(transported, 0);
+    const second = evaluateRuntimeProjectV3(transported, 1);
+    expect(first.commands.find((command) => command.op === "setTransform")).toMatchObject({ alpha: 1 });
+    expect(second.commands.find((command) => command.op === "setTransform")).toMatchObject({ alpha: 0.25, matrix4: expect.arrayContaining([40]) });
+  });
+
 });
 

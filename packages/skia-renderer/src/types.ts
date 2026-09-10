@@ -32,6 +32,8 @@ export type SkiaDiagnostic = {
 
 export type SkiaRenderStats = {
   readonly backend: "skia";
+  /** The active presentation path for the last painted frame. */
+  readonly presentationMode: "direct" | "readback";
   readonly drawCalls: number;
   readonly skippedCommands: number;
   /** Glyphs replayed with CanvasKit Font.drawGlyphs from Runtime glyph IDs. */
@@ -72,6 +74,12 @@ export type SkiaRendererOptions = {
   fonts?: ReadonlyMap<string, SkiaFontAsset>;
   /** Optional injected CanvasKit instance for Node/offline export. */
   canvasKit?: import("./canvas-kit").SkiaCanvasKit;
+  /**
+   * Present directly into the supplied browser canvas when CanvasKit exposes a
+   * canvas-bound surface. Disabled by default so Node/export callers retain
+   * the deterministic readback path.
+   */
+  directPresentation?: boolean;
   /** Receives a physical RGBA readback before browser canvas presentation. */
   onReadback?: (pixels: Uint8Array, width: number, height: number) => void;
   onDiagnostic?: (diagnostic: SkiaDiagnostic) => void;

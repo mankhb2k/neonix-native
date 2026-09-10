@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { V2_AUDIO_FIXTURES } from "@motionvideo/motion-protocol";
 import type { V2Easing } from "@motionvideo/motion-protocol/v2";
-import type { RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
+import { evaluateRuntimeProjectV3, type RuntimeMediaCatalogV3 } from "@motionvideo/motion-runtime";
 import {
   compileProtocol,
   compileProtocolAtTime,
@@ -399,6 +399,50 @@ describe("canonical compiler V3 projection", () => {
     }];
     const runtime = compileProtocolAtTime(project, 0.5);
     expect(runtime.visual.nodes.find((node) => node.id === "filtered-path")?.opacity).toBeCloseTo(0.5);
+
+    const animatedRuntime = compileProtocol(project);
+    expect(animatedRuntime.visualTimeline?.frames).toHaveLength(90);
+    const middleDelta = animatedRuntime.visualTimeline?.frames[15]?.nodes.find((node) => node.id === "filtered-path");
+    expect(middleDelta).toMatchObject({ id: "filtered-path", opacity: 0.5 });
+    expect(middleDelta).not.toHaveProperty("content");
+    const firstFrame = evaluateRuntimeProjectV3(animatedRuntime, 3);
+    const middleFrame = evaluateRuntimeProjectV3(animatedRuntime, 15);
+    const firstTransform = firstFrame.commands.find((command) => command.op === "setTransform");
+    const middleTransform = middleFrame.commands.find((command) => command.op === "setTransform");
+    expect(firstTransform).toMatchObject({ op: "setTransform", alpha: 0.1 });
+    expect(middleTransform).toMatchObject({ op: "setTransform", alpha: 0.5 });
+  });
+
+  it("replaces base transform operations while a component transform track is active", () => {
+    const project = filterProject({ id: "animated-transform-replacement", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].transform = {
+      ...project.layers[0].transform,
+      rotate: { x: 0, y: 0, z: 45 },
+      operations: [{ type: "rotate", angle: 45 }],
+    };
+    project.layers[0].tracks = [{
+      id: "replace-static-rotation",
+      path: "transform.rotate.z",
+      keyframes: [
+        { time: 0, value: { type: "number", value: 0 } },
+        { time: 1000, value: { type: "number", value: 0 } },
+      ],
+      animation: { durationMs: 1000, delayMs: 300, iterations: 1, direction: "normal", fillMode: "none", playState: "running" },
+    }];
+
+    const before = sampleMotionProtocolAtTime(project, 0.2).layers[0];
+    const active = sampleMotionProtocolAtTime(project, 0.5).layers[0];
+    expect(before?.transform.operations).toEqual([{ type: "rotate", angle: 45 }]);
+    expect(active?.transform.operations).toBeUndefined();
+    expect(active?.transform.rotate.z).toBe(0);
+
+    const beforeNode = compileProtocolAtTime(project, 0.2).visual.nodes.find((node) => node.id === "filtered-path");
+    const activeNode = compileProtocolAtTime(project, 0.5).visual.nodes.find((node) => node.id === "filtered-path");
+    expect(Math.abs(beforeNode?.localMatrix[1] ?? 0)).toBeGreaterThan(0.5);
+    expect(activeNode?.localMatrix[1]).toBeCloseTo(0, 8);
+    expect(activeNode?.localMatrix[4]).toBeCloseTo(0, 8);
   });
 
   it("culls a reversed layer when backface-visibility is hidden", () => {
@@ -440,6 +484,31 @@ describe("canonical compiler V3 projection", () => {
     const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
     expect(node?.worldMatrix[12]).toBeCloseTo(300);
     expect(node?.worldMatrix[13]).toBeCloseTo(100);
+  });
+
+  it("adds static layout placement to CSS motion path coordinates", () => {
+    const project = filterProject({ id: "motion-path-offset-position", primitives: [] }) as any;
+    project.filters = [];
+    project.layers[0].filter = undefined;
+    project.layers[0].transform.translate = { x: 355, y: 744, z: 0 };
+    project.layers[0].motion = {
+      offsetPath: {
+        type: "path",
+        contours: [{ id: "motion", start: { x: 0, y: 0 }, segments: [{ kind: "line", to: { x: 300, y: 0 } }], closed: false }],
+        coordinateSpace: "parent-local",
+        referenceBox: "border-box",
+      },
+      offsetDistance: 0,
+      offsetRotate: { mode: "fixed", angle: 0 },
+      offsetAnchor: { x: 9, y: 9 },
+    };
+
+    const runtime = compileProtocolAtTime(project, 0);
+    const node = runtime.visual.nodes.find((candidate) => candidate.id === "filtered-path");
+    // The path point is the anchor position. With a 9x9 center anchor, the
+    // layer's local top-left is therefore path point minus (9, 9).
+    expect(node?.worldMatrix[12]).toBeCloseTo(346);
+    expect(node?.worldMatrix[13]).toBeCloseTo(735);
   });
 
   it("applies delay and fill-mode without changing the underlying layer when inactive", () => {

@@ -1,0 +1,68 @@
+{
+  "format": "motion-runtime",
+  "runtimeVersion": 3,
+  "projectId": "runtime-v3-animation-proof",
+  "durationUs": 1000000,
+  "visual": {
+    "composition": {
+      "width": 160,
+      "height": 90,
+      "fps": 2,
+      "duration": 1,
+      "background": "#081018",
+      "graphId": "runtime-v3-animation-proof"
+    },
+    "view": {
+      "worldToClipMatrix": [0.0125, 0, 0, 0, 0, -0.022222222222222223, 0, 0, 0, 0, -0.00024993751562109475, 0, -1, 1, 0.00024993751562109475, 1]
+    },
+    "nodes": [
+      {
+        "id": "animated-card",
+        "parentId": null,
+        "order": 0,
+        "timing": { "start": 0, "duration": 1 },
+        "opacity": 1,
+        "visible": true,
+        "localMatrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 25, 0, 1],
+        "worldMatrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 25, 0, 1],
+        "content": {
+          "kind": "shape",
+          "shape": "rectangle",
+          "width": 40,
+          "height": 40,
+          "fill": "#2f6df6"
+        }
+      }
+    ]
+  },
+  "visualTimeline": {
+    "frames": [
+      { "nodes": [] },
+      {
+        "nodes": [
+          {
+            "id": "animated-card",
+            "parentId": null,
+            "order": 0,
+            "timing": { "start": 0, "duration": 1 },
+            "opacity": 0.5,
+            "visible": true,
+            "localMatrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 90, 25, 0, 1],
+            "worldMatrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 90, 25, 0, 1],
+            "content": {
+              "kind": "shape",
+              "shape": "rectangle",
+              "width": 40,
+              "height": 40,
+              "fill": "#2f6df6"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "mediaCatalog": { "assets": [] },
+  "videoTimeline": { "instances": [] },
+  "audioTimeline": { "sampleRate": 48000, "tracks": [] },
+  "diagnostics": []
+}

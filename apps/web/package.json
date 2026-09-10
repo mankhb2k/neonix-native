@@ -17,6 +17,7 @@
     "migrate:projects-v2": "tsx scripts/migrate-project-revisions-v2.ts",
     "export:emoji-samples": "tsx scripts/export-emoji-samples.ts",
     "export:skia-preview": "tsx scripts/export-skia-preview.ts",
+    "export:html-motion-samples": "tsx scripts/export-html-motion-samples.ts",
     "migrate:asset-prefix": "tsx scripts/migrate-asset-prefix-v3.ts",
     "sync:system-fonts": "tsx scripts/sync-system-fonts.ts",
     "test:editor:watch": "vitest --config vitest.editor.config.ts",

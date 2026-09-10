@@ -2,6 +2,7 @@ import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
 import { loadCanvasKit, type SkiaSurface, type SkiaTypeface } from "./canvas-kit";
 import { replaySkiaCommands, type SkiaReplayResources } from "./command";
 import type { SkiaDiagnostic, SkiaRenderer, SkiaRendererOptions, SkiaRenderStats, SkiaAsset, SkiaFontAsset } from "./types";
+import { createSkiaSurface } from "./surface";
 
 function fract(value: number): number {
   return value - Math.floor(value);
@@ -58,7 +59,13 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
   let backingHeight = Math.max(1, Math.round(height * dpr));
   options.canvas.width = backingWidth;
   options.canvas.height = backingHeight;
-  let surface: SkiaSurface | null = kit.MakeSurface(backingWidth, backingHeight);
+  let usingDirectPresentation = false;
+  const makeSurface = (): SkiaSurface | null => {
+    const selected = createSkiaSurface(kit, options.canvas, backingWidth, backingHeight, options.directPresentation === true);
+    usingDirectPresentation = selected.directPresentation;
+    return selected.surface;
+  };
+  let surface: SkiaSurface | null = makeSurface();
   if (!surface) throw new Error("skia-renderer: CanvasKit surface unavailable");
   const diagnostics: SkiaDiagnostic[] = [];
   const maxDiagnostics = Math.max(1, options.maxDiagnostics ?? 100);
@@ -69,6 +76,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
   };
   let stats: SkiaRenderStats = {
     backend: "skia",
+    presentationMode: usingDirectPresentation ? "direct" : "readback",
     drawCalls: 0,
     skippedCommands: 0,
     nativeTextGlyphs: 0,
@@ -173,7 +181,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     backingHeight = Math.max(1, Math.round(height * dpr));
     options.canvas.width = backingWidth;
     options.canvas.height = backingHeight;
-    surface = kit.MakeSurface(backingWidth, backingHeight);
+    surface = makeSurface();
     if (!surface) throw new Error("skia-renderer: CanvasKit surface unavailable after resize");
   };
   const paint = (buffer: PaintCommandBuffer): SkiaRenderStats => {
@@ -214,6 +222,32 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       add({ severity: "warning", code, message: replayDiagnostic, key: "skia" });
     }
     activeSurface.flush();
+    // A live browser preview should stay on the GPU presentation path. The
+    // readback bridge is intentionally retained for export, pixel tests and
+    // CPU post-processing callers that explicitly need RGBA bytes.
+    if (usingDirectPresentation) {
+      stats = {
+        ...stats,
+        presentationMode: "direct",
+        drawCalls: replay.drawCalls,
+        skippedCommands: replay.skippedCommands,
+        textureUploads: replay.textureUploads,
+        videoTextureUploads: replay.videoTextureUploads,
+        nativeTextGlyphs: replay.nativeTextGlyphs,
+        nativeColorTextGlyphs: replay.nativeColorTextGlyphs,
+        outlineTextGlyphs: replay.outlineTextGlyphs,
+        colorTextGlyphs: replay.colorTextGlyphs,
+        imageCacheHits: replay.imageCacheHits,
+        filterCacheHits: replay.filterCacheHits,
+        maskCacheHits: replay.maskCacheHits,
+        projectiveMeshCacheHits: replay.projectiveMeshCacheHits,
+        offscreenSurfaceCreates: replay.offscreenSurfaceCreates,
+        offscreenSurfaceReuses: replay.offscreenSurfaceReuses,
+        ...cacheMetrics(),
+        frameTimeMs: performance.now() - started,
+      };
+      return stats;
+    }
     const pixels = canvas.readPixels(0, 0, {
       width: backingWidth,
       height: backingHeight,
@@ -233,6 +267,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     }
     stats = {
       ...stats,
+      presentationMode: "readback",
       drawCalls: replay.drawCalls,
       skippedCommands: replay.skippedCommands,
       textureUploads: replay.textureUploads,

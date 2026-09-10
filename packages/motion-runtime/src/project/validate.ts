@@ -38,6 +38,30 @@ export function validateRuntimeProjectV3(runtime: RuntimeProjectV3): RuntimeVali
 
   validateVisual(runtime, error);
 
+  if (runtime.visualTimeline) {
+    const expectedFrames = Math.max(1, Math.ceil((runtime.visual.composition.duration ?? 1) * runtime.visual.composition.fps));
+    if (runtime.visualTimeline.frames.length !== expectedFrames) {
+      error(
+        "INVALID_VISUAL_TIMELINE_LENGTH",
+        `visualTimeline must contain ${expectedFrames} frame entries`,
+        "visualTimeline.frames",
+      );
+    }
+    const baseIds = new Set(runtime.visual.nodes.map((node) => node.id));
+    for (const [frameIndex, frame] of runtime.visualTimeline.frames.entries()) {
+      const frameIds = new Set<string>();
+      for (const [nodeIndex, node] of frame.nodes.entries()) {
+        const path = `visualTimeline.frames[${frameIndex}].nodes[${nodeIndex}]`;
+        if (!baseIds.has(node.id)) error("UNKNOWN_TIMELINE_NODE", node.id, path);
+        if (frameIds.has(node.id)) error("DUPLICATE_TIMELINE_NODE", node.id, path);
+        frameIds.add(node.id);
+        if (node.timing && (!nonNegativeFinite(node.timing.start) || !nonNegativeFinite(node.timing.duration))) {
+          error("INVALID_NODE_TIMING", "node timing must be finite and non-negative", path);
+        }
+      }
+    }
+  }
+
   const assets = new Map<string, RuntimeMediaAssetV3>();
   const streams = new Set<string>();
   for (const [index, asset] of runtime.mediaCatalog.assets.entries()) {

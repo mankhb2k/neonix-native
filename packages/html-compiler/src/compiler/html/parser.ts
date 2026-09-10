@@ -2,6 +2,53 @@ import { CompileError, fail, sourceLocation } from "../errors";
 import { CLASS_TOKEN, EXPLICIT_ID, type Node } from "./dom-model";
 import { SUPPORTED_TAGS } from "./tags";
 
+const HTML_TEXT_ENTITIES: Record<string, string> = {
+  amp: "&",
+  apos: "'",
+  copy: "©",
+  deg: "°",
+  divide: "÷",
+  euro: "€",
+  hellip: "…",
+  laquo: "«",
+  ldquo: "“",
+  lsaquo: "‹",
+  lsquo: "‘",
+  mdash: "—",
+  middot: "·",
+  nbsp: "\u00a0",
+  ndash: "–",
+  not: "¬",
+  plusmn: "±",
+  pound: "£",
+  raquo: "»",
+  rdquo: "”",
+  rsaquo: "›",
+  rsquo: "’",
+  times: "×",
+  trade: "™",
+  yen: "¥",
+};
+
+/** Decode the character references that the browser resolves in text nodes. */
+function decodeHtmlText(value: string): string {
+  return value.replace(/&(#x[\da-f]+|#\d+|[a-z][a-z\d]+);/gi, (match, token: string) => {
+    if (token.toLowerCase().startsWith("#x")) {
+      const codePoint = Number.parseInt(token.slice(2), 16);
+      return Number.isFinite(codePoint) && codePoint > 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : match;
+    }
+    if (token.startsWith("#")) {
+      const codePoint = Number.parseInt(token.slice(1), 10);
+      return Number.isFinite(codePoint) && codePoint > 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : match;
+    }
+    return HTML_TEXT_ENTITIES[token.toLowerCase()] ?? match;
+  });
+}
+
 export function parseHtml(html: string): Node {
   const root: Node = { tag: "root", atomicId: "dom", structuralPath: "dom", classes: [], attributes: new Map(), children: [], content: [], parent: null, order: 0, style: new Map(), text: "" };
   const stack: Node[] = [root];
@@ -11,8 +58,9 @@ export function parseHtml(html: string): Node {
   for (const match of html.matchAll(token)) {
     if (match[1] !== undefined) {
       const parent = stack[stack.length - 1]!;
-      parent.text += match[1];
-      parent.content.push(match[1]);
+      const text = decodeHtmlText(match[1]);
+      parent.text += text;
+      parent.content.push(text);
       continue;
     }
     const raw = match[0]!;

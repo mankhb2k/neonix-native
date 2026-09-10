@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { samplePreviewProtocolAtTime } from "@/lib/docs/preview-animation";
 import { createCanvasKitTextAtlasRasterizer } from "@/lib/editor/playback/canvaskit-text-rasterizer";
 import {
   PreviewResourceRegistry,
@@ -10,7 +9,7 @@ import {
 } from "@/lib/editor/playback/preview-resource-registry";
 import { stageInteractionStore } from "@/lib/store/stage-interaction-store";
 import { systemAssetFallbackId, systemAssetFallbackUrl } from "@/lib/media/system-asset-fallback";
-import { compileProtocol, compileProtocolAtTime } from "@motionvideo/motion-compiler";
+import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
   type MotionProtocolV2,
@@ -74,6 +73,7 @@ type StageRenderer = {
   setFont?(fontAssetId: string, font: ArrayBuffer | Uint8Array): void;
   removeFont?(fontAssetId: string): void;
   getStats(): {
+    presentationMode?: "direct" | "readback";
     drawCalls: number;
     skippedCommands?: number;
     frameTimeMs: number;
@@ -99,34 +99,6 @@ type StageRenderer = {
   };
   dispose(): void;
 };
-
-/** Compile the current V2 sample while retaining the prepared text layout. */
-function runtimeAtPreviewTime(
-  project: MotionProtocolV2,
-  runtime: RuntimeProjectV3,
-  time: number,
-): RuntimeProjectV3 {
-  const sampledProject = samplePreviewProtocolAtTime(project, time);
-  if (sampledProject === project) return runtime;
-  const sampled = compileProtocol(sampledProject);
-  return {
-    ...sampled,
-    visual: {
-      ...sampled.visual,
-      nodes: sampled.visual.nodes.map((node) => {
-        const preparedNode = runtime.visual.nodes.find((candidate) => candidate.id === node.id);
-        if (node.content.kind !== "text" || preparedNode?.content.kind !== "text") return node;
-        return {
-          ...node,
-          content: {
-            ...node.content,
-            layout: preparedNode.content.layout,
-          },
-        };
-      }),
-    },
-  };
-}
 
 /**
  * Resource/text preparation inputs, excluding properties that can be changed
@@ -554,6 +526,10 @@ export function PreviewStage({
             devicePixelRatio: initialRenderDpr,
             assets: new Map([...resources.assets, ...skiaTextAssets]),
             fonts: resources.fontBytes,
+            // Keep live Skia preview on CanvasKit's GPU presentation surface.
+            // Export and pixel-test callers do not set this flag and retain
+            // the explicit RGBA readback contract.
+            directPresentation: true,
           })
           : await createPreviewRenderer({
             canvas,
@@ -1221,15 +1197,10 @@ function paintFrame(
     : Number.isFinite(canvasScale) && canvasScale > 0
     ? { time: renderTime, outputScale: canvasScale }
     : { time: renderTime };
-  const hasAnimatedTracks = project.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
   const evaluated = authoritativeFrame && frameOverride
     ? filterRuntimeFrameToVisibleLayers(frameOverride, project)
     : usableFrameOverride ??
-      (hasAnimatedTracks
-        ? evaluateRuntimeProjectV3(compileProtocolAtTime(project, renderTime), frameIndex, evaluationOptions)
-        : runtimeOverride
-          ? evaluateRuntimeProjectV3(runtimeAtPreviewTime(project, runtimeOverride, renderTime), frameIndex, evaluationOptions)
-          : evaluateRuntimeProjectV3(compileProtocol(project), frameIndex, evaluationOptions));
+      evaluateRuntimeProjectV3(runtimeOverride ?? compileProtocol(project), frameIndex, evaluationOptions);
   if (requestId !== requestRef.current) return;
   const painted = evaluated;
   renderer.paintFrame(painted);
@@ -1255,6 +1226,7 @@ function paintFrame(
     rendererCanvas.dataset.skiaOutlineTextGlyphs = String(stats.outlineTextGlyphs ?? 0);
     rendererCanvas.dataset.skiaColorTextGlyphs = String(stats.colorTextGlyphs ?? 0);
     rendererCanvas.dataset.skiaTextureUploads = String(stats.textureUploads ?? 0);
+    rendererCanvas.dataset.skiaPresentationMode = stats.presentationMode ?? "unknown";
     rendererCanvas.dataset.skiaVideoTextureUploads = String(stats.videoTextureUploads ?? 0);
     rendererCanvas.dataset.skiaImageCacheHits = String(stats.imageCacheHits ?? 0);
     rendererCanvas.dataset.skiaFilterCacheHits = String(stats.filterCacheHits ?? 0);

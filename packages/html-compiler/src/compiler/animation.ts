@@ -229,9 +229,14 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V
   if (path === "style.stroke") return color(typeof base === "string" ? base : options.currentColor, options.currentColor);
   if (path === "style.strokeWidth") return { type: "number", value: typeof base === "number" ? base : borderSize(String(base ?? "0px"), options) };
   if (path === "opacity") return { type: "number", value: typeof base === "number" ? base : number(String(base ?? "1"), 1) };
-  if (path === "transform.translate.x") return { type: "number", value: options.layoutTranslate.x };
-  if (path === "transform.translate.y") return { type: "number", value: options.layoutTranslate.y };
-  if (path === "transform.translate.z" || path === "transform.rotate.x" || path === "transform.rotate.y") return { type: "number", value: 0 };
+  if (path.startsWith("transform.")) {
+    // When @keyframes omit 0%, CSS synthesizes it from the underlying
+    // transform declaration. Preserve every base component (including rotate,
+    // scale and skew), while explicit keyframes continue to resolve omitted
+    // transform functions to identity through transformValues().
+    return transformValues(typeof base === "string" ? base : "none", options).get(path)
+      ?? { type: "number", value: 0 };
+  }
   if (path === "frame.width") return { type: "number", value: options.baseFrame.width };
   if (path === "frame.height") return { type: "number", value: options.baseFrame.height };
   if (path === "motion.offsetDistance") return { type: "number", value: typeof base === "number" ? base : motionDistance(String(base ?? "0%"), options) };
@@ -241,8 +246,6 @@ function baseFor(path: string, base: unknown, options: LowerAnimationOptions): V
     if (Array.isArray(base) && base.length === 2 && base.every((value) => typeof value === "number")) return { type: "vec2", value: [base[0]!, base[1]!] };
     return { type: "vec2", value: [options.perspective?.origin.x ?? options.width / 2, options.perspective?.origin.y ?? options.height / 2] };
   }
-  if (path === "transform.scale.x" || path === "transform.scale.y") return { type: "number", value: 1 };
-  if (path === "transform.scale.z") return { type: "number", value: 1 };
   return { type: "number", value: 0 };
 }
 

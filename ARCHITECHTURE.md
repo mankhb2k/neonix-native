@@ -207,7 +207,7 @@ audio contract nằm trong [`motion-protocol README`](packages/motion-protocol/R
 | `@motionvideo/audio-analysis` | Offline media analysis | PCM decode, waveform/beat/energy/section analysis và clip mapping | Realtime audio clock, playback mixing |
 | `@motionvideo/motion-mcp` | Authoring adapter | MCP tool contracts và Protocol V2 project operations | UI state, transport, renderer state |
 | `@motionvideo/motion-compiler` | Semantic compiler | Protocol V2 → RuntimeProjectV3, capability checks và lowering | UI, clock, media device, pixels |
-| `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
+| `@motionvideo/motion-runtime` | Runtime semantics | Duration, timing, hierarchy, compiler-baked visual frame deltas, frame evaluation, paint/audio/video plans | Authoring mutation, clock, canvas, audio device |
 | `@motionvideo/editor-runtime` | Editor runtime session | Cache compile theo document generation, canonical layer sampling và frame evaluation cho editor | React, DOM, transport clock, renderer |
 | `@motionvideo/playback-engine` | Realtime transport | Clock, play/pause/seek/rate, readiness, scheduling và backend plan delivery | Document editing, timeline UI, pixels |
 | `@motionvideo/skia-renderer` | Preview/render backend | Replay PaintCommandBuffer bằng CanvasKit/Skia lên Canvas | Protocol parsing, compiler, timeline, playback clock |
@@ -668,6 +668,9 @@ trong [`export-renderer README`](packages/export-renderer/README.md).
 2. Một compiler là nguồn chuyển đổi duy nhất từ V2 sang V3.
 3. Một RuntimeProjectV3 là nguồn semantics duy nhất cho preview và export.
 4. Preview và export chỉ khác backend render, không khác logic timeline.
+   Animation từ Protocol V2 được Compiler bake thành `visualTimeline` theo FPS;
+   Runtime áp delta của frame trước khi tạo PaintCommandBuffer. Export worker
+   không nhận Protocol V2 và không compile lại authoring document theo frame.
 5. Native VPS export là đường export chính; không có adapter bên thứ ba trong
    đường chính.
 6. FFmpeg chỉ encode media; không được trở thành nơi chứa semantics của Neonix.

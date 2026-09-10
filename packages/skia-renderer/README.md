@@ -35,6 +35,11 @@ prepared `RuntimeFrameV3` whose glyph IDs and positions were resolved by
 Runtime. Outline replay remains the deterministic fallback for variation fonts,
 per-glyph rotation/scaling, unavailable font bytes, and color glyphs.
 
-All colors are submitted as sRGB and the browser surface is presented from an
-unpremultiplied RGBA readback. CanvasKit WASM remains an application-owned
+For live browser preview, pass `directPresentation: true` when CanvasKit's
+canvas-bound surface is available. This submits flushed Skia commands directly
+to the HTML/Offscreen canvas and avoids a full-frame `readPixels` →
+`putImageData` copy on every frame. If the browser cannot create that surface,
+the renderer automatically falls back to the deterministic unpremultiplied
+RGBA readback path. Export and pixel-test callers keep the readback path by
+leaving the option disabled. CanvasKit WASM remains an application-owned
 runtime dependency; the renderer package only consumes its small host adapter.

@@ -16,7 +16,6 @@ export function sampleMotionProtocolAtTime(
   project: MotionProtocolV2,
   timeSeconds: number,
 ): MotionProtocolV2 {
-  const timeMs = Math.max(0, timeSeconds * 1000);
   let changed = false;
   const layers = project.layers.map((layer) => {
     const sampledLayer = sampleMotionLayerAtTime(layer, timeSeconds);
@@ -37,6 +36,19 @@ export function sampleMotionLayerAtTime(
   for (const track of layer.tracks) {
     const sampled = sampleTrack(track, localTimeMs);
     if (sampled === undefined) continue;
+    // Ordered transform operations represent the authored/base CSS transform.
+    // Once a component transform track is active, its sampled values represent
+    // the complete CSS `transform` property for that instant. Keeping the base
+    // operation list would compose the old transform on top of the animation
+    // (for example, a static rotate(45deg) would survive a keyframe that only
+    // contains translateY(0)), which does not match browser replacement
+    // semantics.
+    if (track.path.startsWith("transform.") && sampledLayer.transform.operations?.length) {
+      sampledLayer = {
+        ...sampledLayer,
+        transform: { ...sampledLayer.transform, operations: undefined },
+      } as V2Layer;
+    }
     sampledLayer = applyTrackValue(sampledLayer, track.path, toPropertyValue(sampled));
   }
   return sampledLayer;

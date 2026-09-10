@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; }
+    body { background: #081018; color: #f8fafc; }
+    .title { position: absolute; left: 160px; top: 420px; margin: 0; color: #22d3ee; font-family: Inter, sans-serif; font-size: 110px; font-weight: 700; line-height: 1; animation: enter 1000ms both; }
+    .dot { position: absolute; left: 1450px; top: 400px; width: 180px; height: 180px; border-radius: 100%; background: #4ade80; animation: drift 1600ms linear infinite alternate; }
+    @keyframes enter { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
+    @keyframes drift { from { transform: translateY(40px); } to { transform: translateY(-40px); } }
+  </style>
+</head>
+<body>
+  <h1 class="title">Motion starts here.</h1>
+  <div class="dot"></div>
+</body>
+</html>

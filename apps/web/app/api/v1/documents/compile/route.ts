@@ -10,9 +10,13 @@ export async function POST(request: Request) {
   if (typeof html !== "string" || html.trim().length === 0) {
     return jsonApiError(request, 400, "INVALID_INPUT", "html is required");
   }
+  const durationMs = body?.durationMs === undefined ? 1_000 : Number(body.durationMs);
+  if (!Number.isFinite(durationMs) || durationMs <= 0 || durationMs > 86_400_000) {
+    return jsonApiError(request, 400, "INVALID_INPUT", "durationMs must be a positive value up to 86400000");
+  }
 
   try {
-    const result = compileHtmlDocument(html);
+    const result = compileHtmlDocument(html, { composition: { durationMs } });
     const errors = result.diagnostics.filter((item) => item.severity === "error");
     if (result.status !== "success" || !result.protocol || errors.length > 0) {
       return jsonApiError(request, 422, "COMPILATION_FAILED", "HTML document could not be compiled", result.diagnostics);

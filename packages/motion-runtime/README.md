@@ -9,6 +9,12 @@ expressed in milliseconds; the compiler converts it once before creating the
 runtime project. Video and audio plans then use their native microsecond and
 sample domains respectively.
 
+Animated visual state is carried by the optional `visualTimeline` frame-delta
+table. The compiler bakes this table at the composition FPS, and the runtime
+overlays the selected frame's nodes before producing paint commands. This
+keeps browser/Protocol authoring semantics out of render workers while making
+Preview and Native Export evaluate the same Runtime V3 data.
+
 `RuntimeProjectV3.durationUs` is the canonical end of the complete runtime
 timeline. It covers the last visual node, video instance, and audio clip. The
 playback engine reads this value; it must not reconstruct duration from the

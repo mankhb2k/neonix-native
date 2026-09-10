@@ -415,6 +415,9 @@ animation-timing-function
 ```
 
 `@keyframes` được hỗ trợ cho các property mà compiler có thể lower thành Protocol V2 tracks. Animation không tạo ra một CSS runtime ngoài compiler contract.
+`animation` shorthand được chuẩn hóa thành tám longhand ở trên trước khi lowering;
+thứ tự token chuẩn CSS cho name, duration, delay, easing, iteration, direction,
+fill mode và play state được hỗ trợ.
 
 ### Effects, compositing, clipping, masking and motion path
 

@@ -9,8 +9,11 @@ import {
   type RuntimeAudioTrackPlanV3,
   type RuntimeMediaCatalogV3,
   type RuntimeMediaResourceV3,
+  type RuntimeNodeV3,
   type RuntimeProjectV3,
   type RuntimeVisualProjectV3,
+  type RuntimeVisualNodeDeltaV3,
+  type RuntimeVisualTimelineV3,
   validateRuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import {
@@ -67,7 +70,19 @@ export function compileProtocol(
   options: CompileProtocolV3Options = {},
 ): RuntimeProjectV3 {
   const protocol = parseMotionProtocol(input);
-  const visual = compileVisualProject(protocol, options);
+  return compileParsedProtocol(protocol, options, true);
+}
+
+function compileParsedProtocol(
+  protocol: MotionProtocolV2,
+  options: CompileProtocolV3Options,
+  bakeVisualTimeline: boolean,
+): RuntimeProjectV3 {
+  const hasVisualAnimation = protocol.layers.some((layer) => (layer.tracks?.length ?? 0) > 0);
+  const visualSource = bakeVisualTimeline && hasVisualAnimation
+    ? sampleMotionProtocolAtTime(protocol, 0)
+    : protocol;
+  const visual = compileVisualProject(visualSource, options);
   const mediaCatalog = options.mediaCatalog ?? buildMediaCatalog(protocol);
   const videoTimeline = {
     instances: protocol.layers
@@ -117,6 +132,9 @@ export function compileProtocol(
     projectId: protocol.id,
     durationUs: 0,
     visual: visualProject,
+    ...(bakeVisualTimeline && hasVisualAnimation
+      ? { visualTimeline: compileVisualTimeline(protocol, visualProject, options) }
+      : {}),
     mediaCatalog,
     videoTimeline,
     audioTimeline,
@@ -141,7 +159,71 @@ export function compileProtocolAtTime(
   options: CompileProtocolV3Options = {},
 ): RuntimeProjectV3 {
   const protocol = parseMotionProtocol(input);
-  return compileProtocol(sampleMotionProtocolAtTime(protocol, timeSeconds), options);
+  return compileParsedProtocol(sampleMotionProtocolAtTime(protocol, timeSeconds), options, false);
+}
+
+function runtimeValueFingerprint(input: unknown): string {
+  return JSON.stringify(input, (_key, value: unknown) =>
+    value instanceof Float64Array ? Array.from(value) : value,
+  );
+}
+
+function nodeDelta(base: RuntimeNodeV3, candidate: RuntimeNodeV3): RuntimeVisualNodeDeltaV3 | null {
+  const delta: Record<string, unknown> = { id: candidate.id };
+  const keys: Array<Exclude<keyof RuntimeNodeV3, "id">> = [
+    "parentId",
+    "order",
+    "timing",
+    "opacity",
+    "blendMode",
+    "isolation",
+    "backfaceVisibility",
+    "backdropEffects",
+    "clipPath",
+    "mask",
+    "visible",
+    "localMatrix",
+    "worldMatrix",
+    "content",
+  ];
+  for (const key of keys) {
+    if (runtimeValueFingerprint(base[key]) !== runtimeValueFingerprint(candidate[key])) {
+      delta[key] = candidate[key];
+    }
+  }
+  return Object.keys(delta).length > 1 ? delta as RuntimeVisualNodeDeltaV3 : null;
+}
+
+/**
+ * Bake Protocol animation into discrete Runtime V3 frame deltas.
+ *
+ * Export is frame-based, so baking at the composition FPS is lossless for the
+ * rendered result and keeps Protocol authoring semantics out of the worker.
+ */
+function compileVisualTimeline(
+  protocol: MotionProtocolV2,
+  base: RuntimeVisualProjectV3,
+  options: CompileProtocolV3Options,
+): RuntimeVisualTimelineV3 {
+  const duration = base.composition.duration ?? 1;
+  const frameCount = Math.max(1, Math.ceil(duration * base.composition.fps));
+  const baseNodes = new Map(base.nodes.map((node) => [node.id, node]));
+  const frames: RuntimeVisualTimelineV3["frames"] = [{ nodes: [] }];
+
+  for (let frame = 1; frame < frameCount; frame += 1) {
+    const time = frame / base.composition.fps;
+    const sampled = sampleMotionProtocolAtTime(protocol, time);
+    const visual = compileVisualProject(sampled, options);
+    const nodes = visual.nodes.flatMap((node) => {
+      const baseNode = baseNodes.get(node.id);
+      if (!baseNode) return [];
+      const delta = nodeDelta(baseNode, node);
+      return delta ? [delta] : [];
+    });
+    frames.push({ nodes });
+  }
+
+  return { frames };
 }
 
 /** Compile one V3 visual frame into the backend-neutral paint contract. */

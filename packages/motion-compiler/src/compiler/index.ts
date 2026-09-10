@@ -1010,21 +1010,27 @@ function motionPathLocalMatrix(layer: MotionProtocolV2["layers"][number]): Matri
   const angle = motion.offsetRotate.mode === "fixed"
     ? motion.offsetRotate.angle
     : tangentAngle + motion.offsetRotate.angle + (motion.offsetRotate.mode === "auto-reverse" ? 180 : 0);
-  const motionMatrix = multiplyMatrix4(
+  // CSS motion paths use the element's static position as offset-position.
+  // The layout translation is added to the path point before rotation. If it
+  // is left inside composeLocalMatrix4(), the path rotation incorrectly
+  // rotates the element's absolute left/top vector around the path origin.
+  // Keep only authored CSS transforms in the path-local matrix.
+  const authoredTransform = {
+    ...layer.transform,
+    translate: { x: 0, y: 0, z: 0 },
+  };
+  const positionedMotionMatrix = multiplyMatrix4(
     multiplyMatrix4(
-      translationMatrix3D(sampled.point.x, sampled.point.y, 0),
+      translationMatrix3D(
+        sampled.point.x + layer.transform.translate.x,
+        sampled.point.y + layer.transform.translate.y,
+        layer.transform.translate.z,
+      ),
       rotationMatrixZ(angle),
     ),
     translationMatrix3D(-motion.offsetAnchor.x, -motion.offsetAnchor.y, 0),
   );
-  // CSS layout placement is replaced by the path position. Keep authored
-  // transform operations and their own transform-origin, but remove the
-  // layout translation so it is not applied a second time.
-  const authoredTransform = {
-    ...layer.transform,
-    translate: { ...layer.transform.translate, x: 0, y: 0 },
-  };
-  return multiplyMatrix4(motionMatrix, composeLocalMatrix4(authoredTransform));
+  return multiplyMatrix4(positionedMotionMatrix, composeLocalMatrix4(authoredTransform));
 }
 
 /** Options accepted by the canonical Protocol compiler. */

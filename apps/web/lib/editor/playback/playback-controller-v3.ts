@@ -38,6 +38,7 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
   let documentGeneration = 0;
   let seekRequestId = 0;
   let lastFrame: RuntimeFrameV3 | undefined;
+  let lastEmitKey: string | undefined;
   let previewRuntime: RuntimeProjectV3 | undefined;
   const videos = new Map<string, HTMLVideoElement>();
   const driftController = createDriftControllerV3();
@@ -52,6 +53,21 @@ export function createPlaybackControllerV3(): PlaybackControllerV3 {
     // The engine publishes the last renderable plan before entering `ended`.
     // Reuse that frame instead of reconstructing an end time in the web layer.
     const frameTime = snapshot.state === "ended" ? lastFrame?.time ?? time : time;
+    // A video-plan publish and the engine snapshot notification can describe
+    // the same tick. Do not evaluate and paint that exact frame twice: the
+    // second pass only adds main-thread work and makes Skia/browser preview
+    // playback look stuttery on complex compositions.
+    const emitKey = [
+      documentGeneration,
+      runtimeSession.generation(),
+      snapshot.generation,
+      seekRequestId,
+      frameTime,
+      playing,
+      previewRuntime ? "preview" : "canonical",
+    ].join(":");
+    if (emitKey === lastEmitKey) return;
+    lastEmitKey = emitKey;
     const frame = runtimeSession.evaluate(frameTime, previewRuntime ?? runtimeSession.current());
     if (!frame) return;
     lastFrame = frame;

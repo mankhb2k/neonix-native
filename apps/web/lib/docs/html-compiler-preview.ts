@@ -18,6 +18,7 @@ export type HtmlCompilerPreviewTopic =
 export type HtmlCompilerPreviewCategory =
   | "HTML tag lowering"
   | "Text compiler & layout"
+  | "Motion export samples"
   | "Layout primitives"
   | "Paint primitives"
   | "Effect primitives"
@@ -5250,7 +5251,11 @@ function categoryForCase(item: HtmlCompilerPreviewCase): HtmlCompilerPreviewCate
   return "Combined pipeline cases";
 }
 
-type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & { category: HtmlCompilerPreviewCategory };
+export type CategorizedHtmlCompilerPreviewCase = HtmlCompilerPreviewCase & {
+  category: HtmlCompilerPreviewCategory;
+  /** Optional explicit duration used by long-form export comparison fixtures. */
+  durationMs?: number;
+};
 
 function categorizedCase(item: HtmlCompilerPreviewCase): CategorizedHtmlCompilerPreviewCase {
   const category = categoryForCase(item);

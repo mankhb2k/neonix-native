@@ -1,5 +1,9 @@
 export type SkiaCanvasKit = {
   MakeSurface(width: number, height: number): SkiaSurface | null;
+  /** Browser presentation surface bound directly to an HTML/Offscreen canvas. */
+  MakeCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string): SkiaSurface | null;
+  /** Explicit WebGL presentation-surface variant exposed by CanvasKit 0.42+. */
+  MakeWebGLCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string): SkiaSurface | null;
   Color(r: number, g: number, b: number, a: number): unknown;
   TRANSPARENT: unknown;
   AlphaType: { Unpremul: unknown };

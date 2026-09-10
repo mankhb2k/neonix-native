@@ -101,7 +101,11 @@ export function computed(node: Node, rules: Rule[], parent: Style): Style {
     const s = specificity(selector);
     for (const declaration of rule.declarations) for (const [property, value] of expandShorthand(declaration.property, declaration.value)) consider(property, value, [declaration.important ? 1 : 0, s[0], s[1], s[2], rule.order, declaration.order]);
   }
-  for (const [property, value] of node.style) consider(property, value, [1, 1000, 0, 0, Number.MAX_SAFE_INTEGER, 0]);
+  for (const [property, value] of node.style) {
+    for (const [expandedProperty, expandedValue] of expandShorthand(property, value)) {
+      consider(expandedProperty, expandedValue, [1, 1000, 0, 0, Number.MAX_SAFE_INTEGER, 0]);
+    }
+  }
   const style = new Map<string, string>();
   for (const [property, value] of parent) if (INHERITED_PROPERTIES.has(property) || property.startsWith("--")) style.set(property, value);
   for (const [property, value] of Object.entries(TAG_DEFAULT_STYLES[node.tag] ?? {})) style.set(property, resolveCascadeValue(property, value, parent));

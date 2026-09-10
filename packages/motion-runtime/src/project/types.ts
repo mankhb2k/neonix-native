@@ -24,6 +24,20 @@ export type RuntimeMediaAssetV3 = { mediaId: string; video?: RuntimeMediaVideoSt
 export type RuntimeMediaCatalogV3 = { assets: RuntimeMediaAssetV3[] };
 export type RuntimeMediaSourceRefV3 = { mediaId: string; streamId: string };
 export type RuntimeVisualProjectV3 = { composition: RuntimeCompositionV3; view: RuntimeViewV3; nodes: RuntimeNodeV3[] };
+/**
+ * Discrete, compiler-baked visual state for one composition frame.
+ *
+ * Each entry contains only nodes that differ from `RuntimeProjectV3.visual`.
+ * The runtime overlays these nodes by id before evaluating the frame. This
+ * keeps Protocol V2 authoring data out of preview/export while preserving the
+ * exact animation sample chosen by the canonical compiler.
+ */
+export type RuntimeVisualNodeDeltaV3 = { id: string } & Partial<Omit<RuntimeNodeV3, "id">>;
+export type RuntimeVisualFrameDeltaV3 = { nodes: RuntimeVisualNodeDeltaV3[] };
+export type RuntimeVisualTimelineV3 = {
+  /** Must match the composition frame count: ceil(duration * fps). */
+  frames: RuntimeVisualFrameDeltaV3[];
+};
 export type RuntimeVideoFramePolicyV3 = "floor" | "round" | "ceil";
 export type RuntimeVideoInstanceV3 = { instanceId: string; nodeId: string; source: RuntimeMediaSourceRefV3; timelineStartUs: number; timelineDurationUs: number; sourceStartUs: number; sourceEndUs?: number; playbackRate: number; framePolicy: RuntimeVideoFramePolicyV3 };
 export type RuntimeVideoTimelinePlanV3 = { instances: RuntimeVideoInstanceV3[] };
@@ -52,7 +66,7 @@ export type RuntimeAudioMixInputV3 = { trackId: string; clipId: string; source: 
 export type RuntimeAudioMixPlanV3 = { sampleRate: 48000; startSample: number; endSample: number; inputs: RuntimeAudioMixInputV3[] };
 export type VideoRenderPlanV3 = { timelineTimeUs: number; framePolicy: RuntimeVideoFramePolicyV3; instances: Array<{ instanceId: string; nodeId: string; source: RuntimeMediaSourceRefV3; mediaTimeUs: number; framePolicy: RuntimeVideoFramePolicyV3 }> };
 export type RuntimeDiagnosticV3 = { severity: "error" | "warning"; code: string; message: string; path?: string };
-export type RuntimeProjectV3 = { format: "motion-runtime"; runtimeVersion: 3; projectId: string; durationUs: number; visual: RuntimeVisualProjectV3; mediaCatalog: RuntimeMediaCatalogV3; videoTimeline: RuntimeVideoTimelinePlanV3; audioTimeline: RuntimeAudioTimelinePlanV3; diagnostics?: RuntimeDiagnosticV3[] };
+export type RuntimeProjectV3 = { format: "motion-runtime"; runtimeVersion: 3; projectId: string; durationUs: number; visual: RuntimeVisualProjectV3; visualTimeline?: RuntimeVisualTimelineV3; mediaCatalog: RuntimeMediaCatalogV3; videoTimeline: RuntimeVideoTimelinePlanV3; audioTimeline: RuntimeAudioTimelinePlanV3; diagnostics?: RuntimeDiagnosticV3[] };
 export type RuntimeValidationV3 = { ok: boolean; diagnostics: RuntimeDiagnosticV3[] };
 /** A bounded composition-sample request. `sampleRate` belongs to the runtime timeline. */
 export type AudioSampleRangeV3 = { startSample: number; frameCount: number };

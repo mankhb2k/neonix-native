@@ -2,8 +2,9 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { compileDocument, type HtmlCompilerDiagnostic, type HtmlCompilerResult } from "@motionvideo/html-compiler";
+import { compileDocument, type HtmlCompilerDiagnostic, type HtmlCompilerOptions, type HtmlCompilerResult } from "@motionvideo/html-compiler";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
+import { HTML_COMPILER_FONT_ASSETS } from "./html-compiler-font-assets";
 
 type JsonObject = Record<string, unknown>;
 
@@ -110,8 +111,8 @@ function isEditor(role: string): boolean {
   return role === "owner" || role === "editor";
 }
 
-function compileHtml(html: string): HtmlCompilerResult {
-  return compileDocument({ html });
+function compileHtml(html: string, options: HtmlCompilerOptions = {}): HtmlCompilerResult {
+  return compileDocument({ html, fontAssets: HTML_COMPILER_FONT_ASSETS }, options);
 }
 
 function projectResponse(project: ProjectRow, revision: HtmlRevisionRow | null) {
@@ -316,8 +317,8 @@ export async function deleteHtmlProject(projectRef: string) {
   return { projectId: project.id, deleted: true };
 }
 
-export function compileHtmlDocument(html: string) {
-  return compileHtml(html);
+export function compileHtmlDocument(html: string, options: HtmlCompilerOptions = {}) {
+  return compileHtml(html, options);
 }
 
 export async function listHtmlRevisions(projectRef: string) {

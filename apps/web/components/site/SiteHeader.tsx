@@ -16,7 +16,7 @@ const headerOuterClass =
 export function SiteHeader({
   active,
 }: {
-  active?: "docs" | "home";
+  active?: "docs" | "home" | "playground";
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const isDevelopment = process.env.NODE_ENV !== "production";
@@ -77,6 +77,9 @@ export function SiteHeader({
           </SiteNavButton>
           <SiteNavButton href="/docs" active={active === "docs"}>
             Docs
+          </SiteNavButton>
+          <SiteNavButton href="/playground" active={active === "playground"}>
+            Playground
           </SiteNavButton>
         </nav>
         <div className="flex items-center justify-self-end gap-2">

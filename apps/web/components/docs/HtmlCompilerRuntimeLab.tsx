@@ -7,6 +7,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  memo,
   useRef,
   useState,
   type ReactNode,
@@ -19,28 +20,51 @@ import {
   HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
   htmlCompilerPreviewCaseById,
   htmlCompilerPreviewGroups,
+  type CategorizedHtmlCompilerPreviewCase,
 } from "@/lib/docs/html-compiler-preview";
 import { compileDocument, type HtmlCssSource } from "@motionvideo/html-compiler";
 
-export function HtmlCompilerRuntimeLab() {
+export function HtmlCompilerRuntimeLab({
+  additionalCases = [],
+}: {
+  additionalCases?: CategorizedHtmlCompilerPreviewCase[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const browserStageRef = useRef<HTMLDivElement>(null);
   const browserIframeRef = useRef<HTMLIFrameElement>(null);
+  const legacySidebarEnabledRef = useRef(false);
   const [browserScale, setBrowserScale] = useState(0.4);
   const [previewTime, setPreviewTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const animationFrameRef = useRef<number | null>(null);
-  const selected = htmlCompilerPreviewCaseById(searchParams.get("case"));
+  const previewCases = useMemo(
+    () => [...HTML_COMPILER_PREVIEW_CASES, ...additionalCases],
+    [additionalCases],
+  );
+  const selected = useMemo(
+    () =>
+      previewCases.find((item) => item.id === searchParams.get("case")) ??
+      htmlCompilerPreviewCaseById(searchParams.get("case")),
+    [previewCases, searchParams],
+  );
   const selectedHtml = useMemo(() => htmlCompilerPreviewHtml(selected), [selected]);
-  const groups = useMemo(() => htmlCompilerPreviewGroups(), []);
+  const groups = useMemo(() => {
+    const baseGroups = htmlCompilerPreviewGroups();
+    if (additionalCases.length === 0) return baseGroups;
+    return [
+      ...baseGroups,
+      { category: "Motion export samples" as const, cases: additionalCases },
+    ];
+  }, [additionalCases]);
   const compilation = useMemo(
     () =>
       compileDocument({ html: selectedHtml }, {
         fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS,
         mediaAssets: HTML_COMPILER_PREVIEW_MEDIA_ASSETS,
+        composition: selected.durationMs ? { durationMs: selected.durationMs, id: selected.id } : undefined,
       }),
-    [selectedHtml],
+    [selected.durationMs, selected.id, selectedHtml],
   );
   const sourceDocument = useMemo(
     () => htmlDocumentSrcDoc(selectedHtml, selected.source, HTML_COMPILER_PREVIEW_FONT_ASSETS),
@@ -70,7 +94,6 @@ export function HtmlCompilerRuntimeLab() {
       ...layers.map((layer) => (layer.timing.start + layer.timing.duration) / 1000),
     );
   }, [compilation.protocol]);
-
   useEffect(() => {
     setPreviewTime(0);
     setIsPlaying(false);
@@ -108,8 +131,7 @@ export function HtmlCompilerRuntimeLab() {
         rect.width / selected.source.composition.width,
         rect.height / selected.source.composition.height,
       );
-      if (Number.isFinite(nextScale) && nextScale > 0)
-        setBrowserScale(nextScale);
+      if (Number.isFinite(nextScale) && nextScale > 0) setBrowserScale(nextScale);
     };
     updateScale();
     const observer = new ResizeObserver(updateScale);
@@ -117,26 +139,34 @@ export function HtmlCompilerRuntimeLab() {
     return () => observer.disconnect();
   }, [selected.source]);
 
-  function selectCase(id: string) {
+  const selectCase = useCallback((id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("case", id);
     router.replace(`/docs/preview/html-compiler?${params.toString()}`, {
       scroll: false,
     });
-  }
+  }, [router, searchParams]);
 
   return (
     <>
+      <FixtureSidebar
+        groups={groups}
+        previewCount={previewCases.length}
+        selectedId={selected.id}
+        onSelect={selectCase}
+      />
+      {/* Legacy inline sidebar removed; keep the preview tree stable. */}
+      {legacySidebarEnabledRef.current && (
       <aside
         className="fixed top-16 bottom-0 left-0 z-20 flex min-h-0 w-[250px] flex-col overflow-y-auto border-r border-white/10 bg-[#0c1118]"
-        data-testid="html-compiler-sidebar"
+        data-testid="html-compiler-sidebar-legacy"
       >
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium">HTML compiler</h2>
             <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">
-              {HTML_COMPILER_PREVIEW_CASES.length}{" "}
-              {HTML_COMPILER_PREVIEW_CASES.length === 1 ? "case" : "cases"}
+              {previewCases.length}{" "}
+              {previewCases.length === 1 ? "case" : "cases"}
             </span>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
@@ -144,39 +174,9 @@ export function HtmlCompilerRuntimeLab() {
           </p>
         </div>
 
-        <nav className="space-y-4 p-3" aria-label="HTML compiler fixtures">
-          {groups.map((group) => (
-            <section key={group.category} aria-label={group.category}>
-              <div className="mb-1 flex items-center gap-2 px-1">
-                <p className="text-[10px] font-semibold tracking-[.12em] text-slate-300 uppercase">
-                  {group.category}
-                </p>
-              </div>
-              <ul className="space-y-1">
-                {group.cases.map((item) => {
-                  const active = item.id === selected.id;
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => selectCase(item.id)}
-                        aria-current={active ? "page" : undefined}
-                        className={
-                          active
-                            ? "w-full rounded-md border border-cyan-300/20 bg-cyan-400/10 px-2 py-2 text-left text-[12px] text-cyan-100"
-                            : "w-full rounded-md px-2 py-2 text-left text-[12px] text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                        }
-                      >
-                        <span className="block font-medium">{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </nav>
+        <nav className="hidden" aria-label="HTML compiler fixtures" />
       </aside>
+      )}
 
       <main
         className="ml-[250px] min-h-[calc(100vh-4rem)] bg-[#07080c] px-4 py-6 text-slate-100"
@@ -223,7 +223,10 @@ export function HtmlCompilerRuntimeLab() {
           <Panel title="Browser CSS reference" badge="Native HTML / CSS">
               <div
                 ref={browserStageRef}
-              className="relative aspect-video overflow-hidden bg-[#081018]"
+                className="relative w-full overflow-hidden bg-[#081018]"
+                style={{
+                  aspectRatio: `${selected.source.composition.width} / ${selected.source.composition.height}`,
+                }}
                 data-testid="html-compiler-browser-stage"
               >
                 <iframe
@@ -264,7 +267,12 @@ export function HtmlCompilerRuntimeLab() {
                 className="bg-[#101820]"
                 data-testid="html-compiler-runtime-stage"
               >
-                <div className="aspect-video overflow-hidden">
+                <div
+                  className="w-full overflow-hidden"
+                  style={{
+                    aspectRatio: `${selected.source.composition.width} / ${selected.source.composition.height}`,
+                  }}
+                >
                   <PreviewStage
                     key={selected.id}
                     project={compilation.protocol}
@@ -309,6 +317,73 @@ export function HtmlCompilerRuntimeLab() {
     </>
   );
 }
+
+type FixtureSidebarGroup = ReturnType<typeof htmlCompilerPreviewGroups>[number];
+
+const FixtureSidebar = memo(function FixtureSidebar({
+  groups,
+  previewCount,
+  selectedId,
+  onSelect,
+}: {
+  groups: FixtureSidebarGroup[];
+  previewCount: number;
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <aside
+      className="fixed top-16 bottom-0 left-0 z-20 flex min-h-0 w-[250px] flex-col overflow-y-auto border-r border-white/10 bg-[#0c1118]"
+      data-testid="html-compiler-sidebar"
+    >
+      <div className="border-b border-white/10 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium">HTML compiler</h2>
+          <span className="rounded bg-cyan-400/10 px-2 py-1 font-mono text-[10px] text-cyan-200">
+            {previewCount}{" "}
+            {previewCount === 1 ? "case" : "cases"}
+          </span>
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          Live fixtures for HTML to JSON V2 value normalization.
+        </p>
+      </div>
+
+      <nav className="space-y-4 p-3" aria-label="HTML compiler fixtures">
+        {groups.map((group) => (
+          <section key={group.category} aria-label={group.category}>
+            <div className="mb-1 flex items-center gap-2 px-1">
+              <p className="text-[10px] font-semibold tracking-[.12em] text-slate-300 uppercase">
+                {group.category}
+              </p>
+            </div>
+            <ul className="space-y-1">
+              {group.cases.map((item) => {
+                const active = item.id === selectedId;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(item.id)}
+                      aria-current={active ? "page" : undefined}
+                      className={
+                        active
+                          ? "w-full rounded-md border border-cyan-300/20 bg-cyan-400/10 px-2 py-2 text-left text-[12px] text-cyan-100"
+                          : "w-full rounded-md px-2 py-2 text-left text-[12px] text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                      }
+                    >
+                      <span className="block font-medium">{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </nav>
+    </aside>
+  );
+});
 
 function Panel({
   title,
@@ -494,7 +569,10 @@ function htmlDocumentSrcDoc(
   // document as CSS and leaves the reference iframe blank.
   const html = documentHtml;
   const { width, height, background } = source.composition;
-  const cssFamilies = source.css.toLocaleLowerCase();
+  // Final-document fixtures keep their bundled CSS inside <style> and leave
+  // source.css empty. Scan the complete document as well so the browser
+  // reference loads the same registered font assets as the compiler.
+  const cssFamilies = `${source.css}\n${documentHtml}`.toLocaleLowerCase();
   const fontFaces = fontAssets
     .filter((asset) => cssFamilies.includes(asset.family.toLocaleLowerCase()))
     .map(

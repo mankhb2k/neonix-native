@@ -17,6 +17,24 @@ describe("CSS animation lowering", () => {
     expect(tracks[0]?.animation).toMatchObject({ durationMs: 1000, delayMs: 100, iterations: 2, direction: "alternate", fillMode: "both" });
   });
 
+  it("expands animation shorthand into canonical Protocol tracks", () => {
+    const result = compileHtmlCss({ kind: "neonix-html-source", sourceSchemaVersion: 1, composition, html, css: `
+      @keyframes enter { from { opacity: 0; transform: translateX(-100px); } to { opacity: 1; transform: translateX(0px); } }
+      #box { width: 100px; height: 100px; animation: enter 2s linear 250ms 2 alternate both paused; }
+    ` });
+    expect(result.status).toBe("success");
+    const tracks = result.protocol?.layers.flatMap((layer) => layer.tracks ?? []) ?? [];
+    expect(tracks.map((track) => track.path)).toEqual(expect.arrayContaining(["opacity", "transform.translate.x"]));
+    expect(tracks.find((track) => track.path === "opacity")?.animation).toEqual({
+      durationMs: 2000,
+      delayMs: 250,
+      iterations: 2,
+      direction: "alternate",
+      fillMode: "both",
+      playState: "paused",
+    });
+  });
+
   it("lowers perspective distance into a group render3d track", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: "<div id=\"scene\"><div id=\"card\"></div></div>",
@@ -84,6 +102,20 @@ describe("CSS animation lowering", () => {
     expect(result.status).toBe("success");
     const track = result.protocol?.layers.flatMap((layer) => layer.tracks ?? []).find((candidate) => candidate.path === "opacity");
     expect(track?.keyframes[0]?.easing).toMatchObject({ type: "step", count: 4, position: "jump-start" });
+  });
+
+  it("keeps absolute layout placement as the motion path offset-position", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+        #box { position: absolute; left: 355px; top: 744px; width: 18px; height: 18px; offset-path: path("M 0 0 L 300 0"); animation: travel 1s linear both; }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "box");
+    expect(layer?.transform.translate).toMatchObject({ x: 355, y: 744 });
+    expect(layer?.motion?.offsetPath).toMatchObject({ coordinateSpace: "parent-local" });
   });
 
   it.each([
@@ -180,6 +212,43 @@ describe("CSS animation lowering", () => {
     expect(layer?.tracks?.find((track) => track.path === "transform.rotate.z")?.keyframes.map((keyframe) => keyframe.value)).toEqual([
       { type: "number", value: -20 },
       { type: "number", value: 20 },
+    ]);
+  });
+
+  it("resets transform functions omitted by explicit keyframes to identity", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes move { from { transform: translateX(0px); } to { transform: translateX(200px); } }
+        #box { position: absolute; left: 500px; top: 400px; width: 100px; height: 100px; transform: rotate(45deg); animation: move 1s linear both; }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "box");
+    expect(layer?.transform.operations).toEqual([{ type: "rotate", angle: 45 }]);
+    expect(layer?.tracks?.find((track) => track.path === "transform.rotate.z")?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "number", value: 0 },
+      { type: "number", value: 0 },
+    ]);
+  });
+
+  it("synthesizes a missing transform start from the complete underlying transform", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: "<div id=\"box\"></div>",
+      css: `
+        @keyframes move { to { transform: translateX(200px); } }
+        #box { position: absolute; left: 500px; top: 400px; width: 100px; height: 100px; transform: rotate(45deg) scale(1.5); animation: move 1s linear both; }
+      `,
+    }));
+    expect(result.status, JSON.stringify(result.diagnostics)).toBe("success");
+    const layer = result.protocol?.layers.find((candidate) => candidate.id === "box");
+    expect(layer?.tracks?.find((track) => track.path === "transform.rotate.z")?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "number", value: 45 },
+      { type: "number", value: 0 },
+    ]);
+    expect(layer?.tracks?.find((track) => track.path === "transform.scale.x")?.keyframes.map((keyframe) => keyframe.value)).toEqual([
+      { type: "number", value: 1.5 },
+      { type: "number", value: 1 },
     ]);
   });
 

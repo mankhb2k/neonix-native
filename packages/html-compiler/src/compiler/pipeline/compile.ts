@@ -517,7 +517,11 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
            const operations = cssOperations.length ? cssOperations : undefined;
            const hasOrderedTransform = cssOperations.length > 0;
            return {
-             translate: { x: (motion ? 0 : translateX) + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.x : 0), y: (motion ? 0 : translateY) + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.y : 0), z: includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.z : 0 },
+             // CSS motion paths use the element's static position as the
+             // path's offset-position. Keep left/top in the transform so a
+             // path authored from (0, 0) is translated from that position,
+             // matching the browser's absolute-positioned layout.
+             translate: { x: translateX + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.x : 0), y: translateY + (includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.y : 0), z: includeCssTransform && !hasOrderedTransform ? parsedTransform.translate.z : 0 },
              scale: includeCssTransform ? parsedTransform.scale : { x: 1, y: 1, z: 1 },
              rotate: includeCssTransform ? parsedTransform.rotate : { x: 0, y: 0, z: 0 },
              skew: includeCssTransform ? parsedTransform.skew : { x: 0, y: 0 },

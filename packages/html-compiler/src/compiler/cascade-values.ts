@@ -4,7 +4,60 @@ import { splitTopLevel } from "./utils";
 
 export { isPaintToken };
 
+function expandAnimation(value: string): Array<[string, string]> {
+  const entries = splitTopLevel(value, ",").map((entry) => {
+    const tokens = splitTopLevel(entry, " ");
+    let name = "none";
+    let duration = "0s";
+    let delay = "0s";
+    let timing = "ease";
+    let iterations = "1";
+    let direction = "normal";
+    let fill = "none";
+    let state = "running";
+    let timeCount = 0;
+    let nameCount = 0;
+    for (const token of tokens) {
+      const lower = token.toLowerCase();
+      if (/^-?(?:\d+\.?\d*|\.\d+)(?:ms|s)$/i.test(token)) {
+        if (timeCount === 0) duration = token;
+        else if (timeCount === 1) delay = token;
+        else fail("css-animation-shorthand-invalid", `animation accepts at most two time values: ${entry}`);
+        timeCount += 1;
+      } else if (["linear", "ease", "ease-in", "ease-out", "ease-in-out", "step-start", "step-end"].includes(lower) || /^(?:steps|cubic-bezier)\(/i.test(token)) {
+        timing = token;
+      } else if (lower === "infinite" || /^(?:\d+\.?\d*|\.\d+)$/.test(token)) {
+        iterations = token;
+      } else if (["normal", "reverse", "alternate", "alternate-reverse"].includes(lower)) {
+        direction = lower;
+      } else if (["forwards", "backwards", "both"].includes(lower)) {
+        fill = lower;
+      } else if (["running", "paused"].includes(lower)) {
+        state = lower;
+      } else {
+        if (nameCount > 0) fail("css-animation-shorthand-invalid", `animation has more than one name: ${entry}`);
+        name = token;
+        nameCount += 1;
+      }
+    }
+    return { name, duration, delay, timing, iterations, direction, fill, state };
+  });
+  const values = (key: keyof (typeof entries)[number]) => entries.map((entry) => entry[key]).join(", ");
+  return [
+    ["animation", value],
+    ["animation-name", values("name")],
+    ["animation-duration", values("duration")],
+    ["animation-delay", values("delay")],
+    ["animation-timing-function", values("timing")],
+    ["animation-iteration-count", values("iterations")],
+    ["animation-direction", values("direction")],
+    ["animation-fill-mode", values("fill")],
+    ["animation-play-state", values("state")],
+  ];
+}
+
 export function expandShorthand(property: string, value: string): Array<[string, string]> {
+  if (property === "animation") return expandAnimation(value);
   if (property === "background" && !value.includes(",") && !/^\w+-gradient\(/i.test(value.trim()) && isPaintToken(value.trim())) return [[property, value], ["background-color", value]];
   if (property === "border" || ["top", "right", "bottom", "left"].some((side) => property === `border-${side}`)) {
     const tokens = splitTopLevel(value, " ");
