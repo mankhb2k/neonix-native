@@ -111,6 +111,110 @@
         "open_world_justification": "Does not access external systems beyond Neonix storage for the user's export.",
         "destructive_justification": "Does not create, modify, or delete data."
       }
+    },
+    "list_html_revisions": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the saved HTML authoring revisions for an authenticated user's project.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "get_html_revision": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads one saved HTML authoring revision for an authenticated user's project.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "list_assets": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Only reads media assets the authenticated user can access in a workspace or project.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
+    },
+    "request_asset_upload": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Creates an upload session and a pending user-owned asset at the user's request.",
+        "open_world_justification": "Operates only inside the authenticated user's Neonix workspace and storage flow.",
+        "destructive_justification": "Creates a pending asset without modifying or deleting existing assets."
+      }
+    },
+    "complete_asset_upload": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Verifies a requested upload and changes that asset's state from uploading to ready.",
+        "open_world_justification": "Checks only the authenticated user's Neonix upload session and storage object.",
+        "destructive_justification": "Completes an existing upload and does not delete or replace user data."
+      }
+    },
+    "attach_asset_to_project": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Creates the requested link between an accessible asset and an authenticated user's project.",
+        "open_world_justification": "Operates only on the selected Neonix project and workspace asset.",
+        "destructive_justification": "Adds a project-asset link and does not delete the asset or project."
+      }
+    },
+    "delete_asset": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Deletes the user-requested asset and its associated stored objects.",
+        "open_world_justification": "Operates only on an asset owned by the authenticated user's Neonix workspace.",
+        "destructive_justification": "Removes an asset and may replace its project references only when explicitly requested."
+      }
+    },
+    "get_export": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the status and metadata of an export owned by the authenticated user.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, cancel, or delete an export."
+      }
+    },
+    "cancel_export": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Changes the state of an export only after the user requests cancellation.",
+        "open_world_justification": "Operates only on an export owned by the authenticated user in Neonix.",
+        "destructive_justification": "Cancels a queued or running export and prevents that render job from completing."
+      }
+    },
+    "update_project": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Updates the selected project only after the user requests a title or Protocol V2 document change.",
+        "open_world_justification": "Operates only on the authenticated user's selected Neonix project.",
+        "destructive_justification": "Appends a revision with optimistic concurrency checks and preserves prior revisions."
+      }
+    },
+    "delete_project": {
+      "annotations": { "readOnlyHint": false, "openWorldHint": false, "destructiveHint": true },
+      "justifications": {
+        "read_only_justification": "Requests deletion of the selected project after an explicit user instruction.",
+        "open_world_justification": "Operates only on a project accessible to the authenticated user.",
+        "destructive_justification": "Marks the project for deletion and starts the configured retention workflow."
+      }
+    },
+    "open_editor": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the authenticated user's project reference and returns its Neonix editor URL.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete project data."
+      }
+    },
+    "get_capabilities": {
+      "annotations": { "readOnlyHint": true, "openWorldHint": false, "destructiveHint": false },
+      "justifications": {
+        "read_only_justification": "Reads the static HTML, CSS, document, and Protocol V2 capabilities supported by Neonix.",
+        "open_world_justification": "Does not access external systems or public content.",
+        "destructive_justification": "Does not create, modify, or delete data."
+      }
     }
   },
   "test_cases": [
