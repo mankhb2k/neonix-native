@@ -6,7 +6,7 @@ import { createRemoteMcpServer, type RemoteMcpProjectApi } from "../src/remote";
 const empty = () => Promise.resolve({});
 
 const api: RemoteMcpProjectApi = {
-  listWorkspaces: empty,
+  listWorkspaces: () => Promise.resolve([]),
   createProject: empty,
   listProjects: empty,
   getProject: empty,
@@ -64,6 +64,7 @@ describe("hosted remote MCP contract", () => {
     ]));
 
     for (const tool of response.tools) {
+      expect(tool.outputSchema, `${tool.name} must publish outputSchema`).toBeDefined();
       expect(tool.annotations).toEqual(expect.objectContaining({
         readOnlyHint: expect.any(Boolean),
         openWorldHint: expect.any(Boolean),
@@ -88,6 +89,10 @@ describe("hosted remote MCP contract", () => {
       openWorldHint: false,
       destructiveHint: false,
     });
+
+    const workspaceResult = await client.callTool({ name: "list_workspaces", arguments: {} });
+    expect(workspaceResult.isError).not.toBe(true);
+    expect(workspaceResult.structuredContent).toEqual({ workspaces: [] });
 
     await client.close();
     await server.close();

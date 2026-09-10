@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
     "./remote": "./src/remote.ts",
-    "./annotations": "./src/annotations.ts"
+    "./annotations": "./src/annotations.ts",
+    "./output-schemas": "./src/output-schemas.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
