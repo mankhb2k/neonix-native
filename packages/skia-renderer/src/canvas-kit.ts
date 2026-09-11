@@ -1,9 +1,9 @@
 export type SkiaCanvasKit = {
   MakeSurface(width: number, height: number): SkiaSurface | null;
   /** Browser presentation surface bound directly to an HTML/Offscreen canvas. */
-  MakeCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string): SkiaSurface | null;
+  MakeCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string, colorSpace?: unknown): SkiaSurface | null;
   /** Explicit WebGL presentation-surface variant exposed by CanvasKit 0.42+. */
-  MakeWebGLCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string): SkiaSurface | null;
+  MakeWebGLCanvasSurface?(canvas: HTMLCanvasElement | OffscreenCanvas | string, colorSpace?: unknown, contextAttributes?: unknown): SkiaSurface | null;
   Color(r: number, g: number, b: number, a: number): unknown;
   TRANSPARENT: unknown;
   AlphaType: { Unpremul: unknown };
@@ -50,6 +50,8 @@ export type SkiaCanvasKit = {
     MakeSweepGradient(cx: number, cy: number, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number, startAngle?: number, endAngle?: number): SkiaShader | null;
     MakeTwoPointConicalGradient?(start: unknown, startRadius: number, end: unknown, endRadius: number, colors: unknown[], positions?: number[], tileMode?: unknown, localMatrix?: number[], flags?: number): SkiaShader | null;
   };
+  /** CanvasKit picture recording keeps generated CSS tiles vector-backed until final rasterization. */
+  PictureRecorder?: new () => SkiaPictureRecorder;
 };
 
 export type SkiaSurface = {
@@ -93,6 +95,15 @@ export type SkiaPaint = {
 };
 
 export type SkiaShader = { delete(): void };
+export type SkiaPicture = {
+  /** CanvasKit 0.42 Picture.makeShader(tx, ty, filterMode, localMatrix, tileRect). */
+  makeShader(tileModeX: unknown, tileModeY: unknown, filterMode?: unknown, localMatrix?: number[], tileRect?: number[]): SkiaShader | null;
+  delete(): void;
+};
+export type SkiaPictureRecorder = {
+  beginRecording(bounds: unknown): SkiaCanvas;
+  finishRecordingAsPicture(): SkiaPicture;
+};
 export type SkiaColorFilter = { delete(): void };
 export type SkiaImageFilter = { delete(): void };
 export type SkiaPathEffect = { delete(): void };

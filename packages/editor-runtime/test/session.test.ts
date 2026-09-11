@@ -47,4 +47,15 @@ describe("editor runtime session", () => {
 
     session.dispose();
   });
+
+  it("advances the generation when prepared runtime data replaces the source runtime", () => {
+    const session = createEditorRuntimeSession();
+    const runtime = session.load(document);
+
+    session.replaceRuntime({ ...runtime, projectId: "editor-runtime-prepared" });
+
+    expect(session.generation()).toBe(2);
+    expect(session.current()?.projectId).toBe("editor-runtime-prepared");
+    session.dispose();
+  });
 });

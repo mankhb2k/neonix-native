@@ -3,6 +3,41 @@ import { createSkiaPaint } from "../src/paint";
 import type { SkiaCanvasKit, SkiaPaint, SkiaShader } from "../src/canvas-kit";
 
 describe("Skia gradient paint", () => {
+  it("applies gradient stop alpha once instead of inheriting fallback color alpha", () => {
+    const alphaValues: number[] = [];
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf(value: number) { alphaValues.push(value); }
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+    }
+    const shader: SkiaShader = { delete() {} };
+    const kit = {
+      Color: () => 0,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      Shader: {
+        MakeLinearGradient: () => shader,
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#ffffff00", 0.5, kit.PaintStyle.Fill, {
+      type: "linear-gradient",
+      angle: 0,
+      stops: [
+        { offset: 0, color: "#ffffff80" },
+        { offset: 1, color: "#ffffff80" },
+      ],
+    }, 100, 100);
+
+    expect(alphaValues[0]).toBeCloseTo(0.5, 6);
+  });
+
   it("materializes a short repeat period for CanvasKit builds that clamp tile mode", () => {
     let positions: number[] | undefined;
     let mode: unknown;
@@ -13,6 +48,7 @@ describe("Skia gradient paint", () => {
       setColor() {}
       setAlphaf() {}
       setStyle() {}
+      setBlendMode() {}
       setShader() {}
     }
     const kit = {
@@ -47,6 +83,239 @@ describe("Skia gradient paint", () => {
     expect(positions?.filter((position) => position === 0.16).length).toBeGreaterThan(0);
   });
 
+  it("keeps the short repeat terminal edge on the preceding stop", () => {
+    let colors: unknown[] | undefined;
+    let positions: number[] | undefined;
+    let endPoint: [number, number] | undefined;
+    const shader: SkiaShader = { delete() {} };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+    }
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      Shader: {
+        MakeLinearGradient: (_start: [number, number], end: [number, number], nextColors: unknown[], nextPositions: number[]) => {
+          endPoint = end;
+          colors = nextColors;
+          positions = nextPositions;
+          return shader;
+        },
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#38bdf8", 1, kit.PaintStyle.Fill, {
+      type: "linear-gradient",
+      angle: -90,
+      spreadMethod: "repeat",
+      stops: [
+        { offset: 0, color: "#38bdf8" },
+        { offset: 0.01, color: "#38bdf8" },
+        { offset: 0.01, color: "#00000000" },
+        { offset: 0.25, color: "#00000000" },
+      ],
+    }, 960, 480);
+
+    expect(positions?.at(-1)).toBe(1);
+    expect(colors?.at(-1)).toMatchObject({ r: 0, g: 0, b: 0, a: 0 });
+    expect(positions?.at(-2)).toBeCloseTo(1 - 1 / 480, 6);
+    expect(endPoint?.[1]).toBeGreaterThan(0);
+    expect(endPoint?.[1]).toBeLessThan(1);
+  });
+
+  it("rasterizes a pattern tile once and repeats the resulting image shader", () => {
+    let surfaceSize: [number, number] | undefined;
+    let shaderModes: [unknown, unknown] | undefined;
+    let paintShader: unknown;
+    const shader: SkiaShader = { delete() {} };
+    const tileImage = {
+      makeShaderOptions: (x: unknown, y: unknown) => {
+        shaderModes = [x, y];
+        return shader;
+      },
+      delete() {},
+    };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader(value: unknown) { paintShader = value; }
+    }
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      drawRRect() {},
+      drawOval() {},
+    };
+    const surface = {
+      getCanvas: () => canvas,
+      makeImageSnapshot: () => tileImage,
+      flush() {},
+      dispose() {},
+    };
+    const kit = {
+      Color: () => 0,
+      TRANSPARENT: 0,
+      MakeSurface: (width: number, height: number) => {
+        surfaceSize = [width, height];
+        return surface;
+      },
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Nearest: 0, Linear: 1 },
+      MipmapMode: { None: 0 },
+      Shader: {
+        MakeLinearGradient: () => shader,
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#00000000", 1, kit.PaintStyle.Fill, {
+      type: "pattern",
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 120,
+      patternUnits: "userSpaceOnUse",
+      patternContentUnits: "userSpaceOnUse",
+      content: [{
+        type: "rect",
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 120,
+        fill: {
+          type: "linear-gradient",
+          gradientUnits: "userSpaceOnUse",
+          x1: 0,
+          y1: 60,
+          x2: 120,
+          y2: 60,
+          stops: [
+            { offset: 0, color: "#38bdf8" },
+            { offset: 0.08, color: "#38bdf8" },
+            { offset: 0.08, color: "#00000000" },
+            { offset: 1, color: "#00000000" },
+          ],
+        },
+      }],
+    }, 1680, 840);
+
+    expect(surfaceSize).toEqual([120, 120]);
+    expect(shaderModes).toEqual([kit.TileMode.Repeat, kit.TileMode.Repeat]);
+    expect(paintShader).toBe(shader);
+  });
+
+  it("keeps a repeated pattern vector-backed when CanvasKit exposes PictureRecorder", () => {
+    let recordingBounds: unknown;
+    let shaderArguments: unknown[] | undefined;
+    let linearGradientCalls = 0;
+    let paintShader: unknown;
+    const shader: SkiaShader = { delete() {} };
+    const picture = {
+      makeShader: (...args: unknown[]) => {
+        shaderArguments = args;
+        return shader;
+      },
+      delete() {},
+    };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader(value: unknown) { paintShader = value; }
+    }
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      drawRRect() {},
+      drawOval() {},
+    };
+    class PictureRecorder {
+      beginRecording(bounds: unknown) {
+        recordingBounds = bounds;
+        return canvas;
+      }
+      finishRecordingAsPicture() { return picture; }
+    }
+    const kit = {
+      Color: () => 0,
+      TRANSPARENT: 0,
+      MakeSurface: () => { throw new Error("pattern should not use a bitmap surface"); },
+      PictureRecorder,
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      FilterMode: { Nearest: 0, Linear: 1 },
+      MipmapMode: { None: 0 },
+      Shader: {
+        MakeLinearGradient: () => {
+          linearGradientCalls += 1;
+          return shader;
+        },
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#00000000", 1, kit.PaintStyle.Fill, {
+      type: "pattern",
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 120,
+      patternUnits: "userSpaceOnUse",
+      patternContentUnits: "userSpaceOnUse",
+      content: [{
+        type: "rect",
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 120,
+        fill: {
+          type: "linear-gradient",
+          gradientUnits: "userSpaceOnUse",
+          x1: 0,
+          y1: 60,
+          x2: 120,
+          y2: 60,
+          stops: [
+            { offset: 0, color: "#38bdf8" },
+            { offset: 0.08, color: "#38bdf8" },
+            { offset: 0.08, color: "#00000000" },
+            { offset: 1, color: "#00000000" },
+          ],
+        },
+      }],
+    }, 1680, 840);
+
+    expect(recordingBounds).toEqual([0, 0, 120, 120]);
+    expect(linearGradientCalls).toBe(1);
+    expect(shaderArguments?.slice(0, 3)).toEqual([kit.TileMode.Repeat, kit.TileMode.Repeat, kit.FilterMode.Linear]);
+    expect(shaderArguments?.[3]).toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+    expect(paintShader).toBe(shader);
+  });
+
   it("lowers CSS conic start angle into the sweep shader matrix", () => {
     let sweepCall: { center: [number, number]; matrix?: number[]; startAngle?: number; endAngle?: number } | undefined;
     const shader: SkiaShader = { delete() {} };
@@ -56,6 +325,7 @@ describe("Skia gradient paint", () => {
       setColor() {}
       setAlphaf() {}
       setStyle() {}
+      setBlendMode() {}
       setShader() {}
     }
     const kit = {

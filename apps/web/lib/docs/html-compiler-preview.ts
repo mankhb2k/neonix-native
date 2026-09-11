@@ -2460,6 +2460,141 @@ export const HTML_COMPILER_PAINT_PHASE2_0_CASES: HtmlCompilerPreviewCase[] = [
   },
 ];
 
+/**
+ * Focused opacity fixtures. These deliberately keep opacity isolated by
+ * primitive so Browser CSS, Runtime V3 and Skia can be compared without a
+ * larger animation or layout case hiding the compositing result.
+ */
+export const HTML_COMPILER_OPACITY_CASES: HtmlCompilerPreviewCase[] = [
+  {
+    id: "html-compiler.opacity.image",
+    phase: "P2.0",
+    category: "Paint primitives",
+    topic: "Paint",
+    label: "Opacity / image",
+    properties: ["img", "opacity: 0.48", "source-over", "image asset"],
+    hint: "A photographic image is composited over a solid card at fractional opacity so image alpha, sampling and source-over blending can be compared directly.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        "<body>\n  <div id=\"opacity-image-card\"></div>\n  <img id=\"opacity-image\" src=\"/preview/image/photo-landscape.jpg\">\n</body>",
+      ),
+      css: `body { margin: 0; background: #081018; }
+
+#opacity-image-card {
+  position: absolute;
+  left: 420px;
+  top: 270px;
+  width: 1080px;
+  height: 540px;
+  border: 18px solid #22d3ee;
+  background: #172554;
+}
+
+#opacity-image {
+  position: absolute;
+  left: 510px;
+  top: 360px;
+  width: 900px;
+  height: 360px;
+  object-fit: cover;
+  opacity: 0.48;
+}`,
+    }),
+  },
+  {
+    id: "html-compiler.opacity.grid",
+    phase: "P2.0",
+    category: "Paint primitives",
+    topic: "Paint",
+    label: "Opacity / grid",
+    properties: ["display: grid", "repeating-linear-gradient", "opacity: 0.42", "child compositing"],
+    hint: "A grid container and its child cells share one fractional opacity boundary, while thin repeating lines expose coverage and alpha differences.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        "<body>\n  <div id=\"opacity-grid\">\n    <div class=\"opacity-grid-cell cell-one\"></div>\n    <div class=\"opacity-grid-cell cell-two\"></div>\n    <div class=\"opacity-grid-cell cell-three\"></div>\n    <div class=\"opacity-grid-cell cell-four\"></div>\n  </div>\n</body>",
+      ),
+      css: `body { margin: 0; background: #081018; }
+
+#opacity-grid {
+  position: absolute;
+  left: 360px;
+  top: 220px;
+  width: 1200px;
+  height: 640px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 24px;
+  padding: 32px;
+  background-color: #0b1b2a;
+  background-image: repeating-linear-gradient(90deg, #164e63 0%, #164e63 0.08%, transparent 0.08%, transparent 8.3333%), repeating-linear-gradient(0deg, #164e63 0%, #164e63 0.1%, transparent 0.1%, transparent 14.8148%);
+  background-size: 160px 160px, 160px 160px;
+  opacity: 0.42;
+}
+
+.opacity-grid-cell { border: 2px solid #67e8f9; }
+.cell-one { background: #22d3ee; }
+.cell-two { background: #a78bfa; }
+.cell-three { background: #facc15; }
+.cell-four { background: #fb7185; }`,
+    }),
+  },
+  {
+    id: "html-compiler.opacity.shape",
+    phase: "P2.0",
+    category: "Paint primitives",
+    topic: "Paint",
+    label: "Opacity / shape",
+    properties: ["rectangle", "ellipse", "border-radius", "independent opacity"],
+    hint: "Overlapping rectangle and ellipse shapes use independent opacity values, making solid paint alpha and overlap compositing easy to inspect.",
+    source: createNewHtmlProject({
+      html: DEFAULT_NEONIX_HTML_DOCUMENT.replace(
+        "<body>\n</body>",
+        "<body>\n  <div id=\"opacity-shape-back\"></div>\n  <div id=\"opacity-shape-middle\"></div>\n  <div id=\"opacity-shape-front\"></div>\n</body>",
+      ),
+      css: `body { margin: 0; background: #081018; }
+
+#opacity-shape-back,
+#opacity-shape-middle,
+#opacity-shape-front {
+  position: absolute;
+}
+
+#opacity-shape-back {
+  left: 500px;
+  top: 300px;
+  width: 620px;
+  height: 360px;
+  border-radius: 48px;
+  background: #22d3ee;
+  opacity: 0.36;
+}
+
+#opacity-shape-middle {
+  left: 760px;
+  top: 380px;
+  width: 620px;
+  height: 360px;
+  border-radius: 50%;
+  background: #a78bfa;
+  opacity: 0.58;
+}
+
+#opacity-shape-front {
+  left: 940px;
+  top: 260px;
+  width: 380px;
+  height: 260px;
+  background: #facc15;
+  transform: rotate(-12deg);
+  opacity: 0.74;
+}`,
+    }),
+  },
+];
+
 export const HTML_COMPILER_PAINT_PHASE2_1_CASES: HtmlCompilerPreviewCase[] = [
   {
     id: "html-compiler.paint.repeating-linear-gradient",
@@ -5205,6 +5340,7 @@ const HTML_COMPILER_ALL_CASES: HtmlCompilerPreviewCase[] = [
   ...HTML_COMPILER_PHASE1_4_CASES,
   ...HTML_COMPILER_LAYOUT_TEXT_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_0_CASES,
+  ...HTML_COMPILER_OPACITY_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_1_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_2_CASES,
   ...HTML_COMPILER_PAINT_PHASE2_3_CASES,

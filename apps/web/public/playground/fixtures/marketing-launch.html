@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        position: relative;
+        overflow: hidden;
+        background: #081018;
+        color: #f8fafc;
+        font-family: Inter;
+      }
+
+      @keyframes ai-grid-breathe {
+        0% { opacity: 0.18; transform: scale(1); }
+        50% { opacity: 0.34; transform: scale(1.04); }
+        100% { opacity: 0.18; transform: scale(1); }
+      }
+
+      @keyframes ai-hero-reveal {
+        0% { opacity: 0; transform: scale(1.34) translateY(70px); }
+        10% { opacity: 1; transform: scale(1) translateY(0px); }
+        23% { opacity: 1; transform: scale(1) translateY(0px); }
+        29% { opacity: 0; transform: scale(0.96) translateY(-28px); }
+        100% { opacity: 0; transform: scale(0.96) translateY(-28px); }
+      }
+
+      @keyframes ai-merge-left {
+        0% { opacity: 0; transform: translateX(-480px); }
+        27% { opacity: 0; transform: translateX(-480px); }
+        38% { opacity: 1; transform: translateX(0px); }
+        67% { opacity: 1; transform: translateX(0px); }
+        75% { opacity: 0; transform: translateX(-40px); }
+        100% { opacity: 0; transform: translateX(-40px); }
+      }
+
+      @keyframes ai-merge-right {
+        0% { opacity: 0; transform: translateX(480px); }
+        27% { opacity: 0; transform: translateX(480px); }
+        38% { opacity: 1; transform: translateX(0px); }
+        67% { opacity: 1; transform: translateX(0px); }
+        75% { opacity: 0; transform: translateX(40px); }
+        100% { opacity: 0; transform: translateX(40px); }
+      }
+
+      @keyframes ai-keyword-one {
+        0%, 42% { opacity: 0; transform: translateY(56px) scale(0.72); }
+        50% { opacity: 1; transform: translateY(0px) scale(1); }
+        68% { opacity: 1; transform: translateY(0px) scale(1); }
+        75%, 100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+      }
+
+      @keyframes ai-keyword-two {
+        0%, 47% { opacity: 0; transform: translateY(56px) scale(0.72); }
+        55% { opacity: 1; transform: translateY(0px) scale(1); }
+        68% { opacity: 1; transform: translateY(0px) scale(1); }
+        75%, 100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+      }
+
+      @keyframes ai-keyword-three {
+        0%, 52% { opacity: 0; transform: translateY(56px) scale(0.72); }
+        60% { opacity: 1; transform: translateY(0px) scale(1); }
+        68% { opacity: 1; transform: translateY(0px) scale(1); }
+        75%, 100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+      }
+
+      @keyframes ai-final-card {
+        0%, 70% { opacity: 0; transform: scale(0.78) translateY(42px); }
+        82% { opacity: 1; transform: scale(1) translateY(0px); }
+        100% { opacity: 1; transform: scale(1) translateY(0px); }
+      }
+
+      @keyframes ai-camera-push {
+        0%, 72% { transform: scale(0.94); }
+        100% { transform: scale(1.08); }
+      }
+
+      #ai-grid {
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        width: 1920px;
+        height: 1080px;
+        background: #0b1b2a;
+        animation-name: ai-grid-breathe;
+        animation-duration: 10s;
+        animation-iteration-count: 1;
+        animation-fill-mode: both;
+      }
+
+      .ai-grid-line {
+        position: absolute;
+        background: #164e63;
+        opacity: 0.42;
+      }
+
+      .ai-grid-horizontal {
+        left: 0;
+        width: 1920px;
+        height: 1px;
+      }
+
+      .ai-grid-h-1 { top: 160px; }
+      .ai-grid-h-2 { top: 320px; }
+      .ai-grid-h-3 { top: 480px; }
+      .ai-grid-h-4 { top: 640px; }
+      .ai-grid-h-5 { top: 800px; }
+      .ai-grid-h-6 { top: 960px; }
+
+      .ai-grid-vertical {
+        top: 0;
+        width: 1px;
+        height: 1080px;
+      }
+
+      .ai-grid-v-1 { left: 160px; }
+      .ai-grid-v-2 { left: 480px; }
+      .ai-grid-v-3 { left: 800px; }
+      .ai-grid-v-4 { left: 1120px; }
+      .ai-grid-v-5 { left: 1440px; }
+      .ai-grid-v-6 { left: 1760px; }
+
+      #ai-glow {
+        position: absolute;
+        left: 1120px;
+        top: 160px;
+        width: 620px;
+        height: 620px;
+        border-radius: 310px;
+        background: radial-gradient(circle, #22d3ee 0%, #164e63 30%, #081018 72%);
+        opacity: 0.62;
+        animation-name: ai-camera-push;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      #ai-label {
+        position: absolute;
+        left: 150px;
+        top: 128px;
+        color: #67e8f9;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        animation-name: ai-hero-reveal;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      #ai-hero {
+        position: absolute;
+        left: 145px;
+        top: 270px;
+        width: 1260px;
+        height: 250px;
+        margin: 0;
+        color: #f8fafc;
+        font-size: 132px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -6px;
+        animation-name: ai-hero-reveal;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      #ai-left, #ai-right {
+        position: absolute;
+        top: 350px;
+        width: 640px;
+        height: 150px;
+        margin: 0;
+        font-size: 92px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -4px;
+        text-align: center;
+      }
+
+      #ai-left {
+        left: 110px;
+        color: #67e8f9;
+        animation-name: ai-merge-left;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      #ai-right {
+        left: 1170px;
+        color: #a7f3d0;
+        animation-name: ai-merge-right;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      #ai-cross {
+        position: absolute;
+        left: 890px;
+        top: 352px;
+        color: #f8fafc;
+        font-size: 88px;
+        font-weight: 400;
+        animation-name: ai-merge-left;
+        animation-duration: 10s;
+        animation-fill-mode: both;
+      }
+
+      .ai-keyword {
+        position: absolute;
+        top: 380px;
+        width: 510px;
+        height: 110px;
+        margin: 0;
+        color: #f8fafc;
+        font-size: 64px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -2px;
+        text-align: center;
+      }
+
+      #ai-keyword-one { left: 20px; animation: ai-keyword-one 10s linear both; }
+      #ai-keyword-two { left: 705px; color: #67e8f9; animation: ai-keyword-two 10s linear both; }
+      #ai-keyword-three { left: 1390px; color: #a7f3d0; animation: ai-keyword-three 10s linear both; }
+
+      .ai-icon {
+        position: absolute;
+        top: 550px;
+        width: 60px;
+        height: 60px;
+        border: 3px solid #67e8f9;
+        border-radius: 30px;
+        box-sizing: border-box;
+      }
+
+      #ai-icon-one { left: 244px; animation: ai-keyword-one 10s linear both; }
+      #ai-icon-two { left: 932px; border-radius: 10px; border-color: #67e8f9; animation: ai-keyword-two 10s linear both; }
+      #ai-icon-three { left: 1616px; border-color: #a7f3d0; animation: ai-keyword-three 10s linear both; }
+
+      #ai-final {
+        position: absolute;
+        left: 580px;
+        top: 230px;
+        width: 760px;
+        height: 540px;
+        box-sizing: border-box;
+        padding: 78px 70px;
+        border: 2px solid #22d3ee;
+        border-radius: 36px;
+        background: #0c1e2b;
+        box-shadow: 0 0 60px 0 #164e63;
+        text-align: center;
+        animation: ai-final-card 10s linear both;
+      }
+
+      #ai-final-mark {
+        margin: 0;
+        color: #67e8f9;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 8px;
+      }
+
+      #ai-final-title {
+        margin: 56px 0 0;
+        color: #f8fafc;
+        font-size: 72px;
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -3px;
+      }
+
+      #ai-final-cta {
+        display: block;
+        width: 300px;
+        box-sizing: border-box;
+        margin-top: 56px;
+        padding: 18px 38px;
+        border-radius: 40px;
+        background: #22d3ee;
+        color: #081018;
+        font-size: 26px;
+        font-weight: 700;
+      }
+
+      #ai-footer {
+        position: absolute;
+        left: 150px;
+        top: 950px;
+        color: #64748b;
+        font-size: 20px;
+        letter-spacing: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ai-grid"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-1"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-2"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-3"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-4"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-5"></div>
+    <div class="ai-grid-line ai-grid-horizontal ai-grid-h-6"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-1"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-2"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-3"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-4"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-5"></div>
+    <div class="ai-grid-line ai-grid-vertical ai-grid-v-6"></div>
+    <div id="ai-glow"></div>
+    <div id="ai-label">NEONIX / FUTURE SYSTEMS</div>
+    <h1 id="ai-hero">THE FUTURE<br>IS HERE</h1>
+    <p id="ai-left">AI</p>
+    <p id="ai-cross">×</p>
+    <p id="ai-right">Creativity</p>
+    <p id="ai-keyword-one" class="ai-keyword">Create.</p>
+    <p id="ai-keyword-two" class="ai-keyword">Animate.</p>
+    <p id="ai-keyword-three" class="ai-keyword">Automate.</p>
+    <div id="ai-icon-one" class="ai-icon"></div>
+    <div id="ai-icon-two" class="ai-icon"></div>
+    <div id="ai-icon-three" class="ai-icon"></div>
+    <section id="ai-final">
+      <p id="ai-final-mark">NEONIX AI</p>
+      <p id="ai-final-title">Build Faster<br>with AI</p>
+      <span id="ai-final-cta">START CREATING</span>
+    </section>
+    <small id="ai-footer">MOTION GRAPHIC / 001 / 10 SEC</small>
+  </body>
+</html>

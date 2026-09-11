@@ -22,6 +22,47 @@ function beginTransformedCommand(
   return transform?.alpha ?? 1;
 }
 
+function isInteger(value: number): boolean {
+  return Math.abs(value - Math.round(value)) < 1e-6;
+}
+
+/**
+ * CSS paints axis-aligned integer rectangles without geometry antialiasing.
+ *
+ * This matters for compiler-lowered background tiles: Skia's antialiased
+ * rectangle edge can add a full extra pixel at every tile boundary when the
+ * gradient itself is narrower than one device pixel. Transformed, rounded,
+ * and fractional geometry must continue to use antialiasing.
+ */
+function needsShapeAntialias(
+  command: Extract<PaintCommand, { op: "drawShape" }>,
+  transform: Extract<PaintCommand, { op: "setTransform" }> | null,
+): boolean {
+  if (command.shape !== "rectangle" || command.cornerRadius !== undefined) return true;
+  if (!transform) return !isInteger(command.width) || !isInteger(command.height);
+  const matrix = transform.matrix4;
+  return !(
+    Math.abs(matrix[0]! - 1) < 1e-6 &&
+    Math.abs(matrix[1]!) < 1e-6 &&
+    Math.abs(matrix[2]!) < 1e-6 &&
+    Math.abs(matrix[3]!) < 1e-6 &&
+    Math.abs(matrix[4]!) < 1e-6 &&
+    Math.abs(matrix[5]! - 1) < 1e-6 &&
+    Math.abs(matrix[6]!) < 1e-6 &&
+    Math.abs(matrix[7]!) < 1e-6 &&
+    Math.abs(matrix[8]!) < 1e-6 &&
+    Math.abs(matrix[9]!) < 1e-6 &&
+    Math.abs(matrix[10]! - 1) < 1e-6 &&
+    Math.abs(matrix[11]!) < 1e-6 &&
+    isInteger(matrix[12]!) &&
+    isInteger(matrix[13]!) &&
+    Math.abs(matrix[14]!) < 1e-6 &&
+    Math.abs(matrix[15]! - 1) < 1e-6 &&
+    isInteger(command.width) &&
+    isInteger(command.height)
+  );
+}
+
 function drawShapeGeometry(
   kit: SkiaCanvasKit,
   canvas: SkiaCanvas,
@@ -623,7 +664,7 @@ export function replaySkiaCommands(
       const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
       for (const paintType of paintOrder) {
         if (paintType === "fill") {
-          const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+          const fill = createSkiaPaint(kit, command.fill, commandAlpha * (command.fillOpacity ?? 1), kit.PaintStyle.Fill, command.fillPaint, command.width, command.height, needsShapeAntialias(command, activeTransform));
           drawShape(fill);
           fill.delete();
         } else if (paintType === "stroke" && command.stroke) {

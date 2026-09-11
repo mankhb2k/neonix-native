@@ -4,11 +4,13 @@ import { Pause, Play, RotateCcw, Upload } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
+import { fetchPlaygroundFixture } from "@/lib/api/playground";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-preview";
 import {
   createPlaybackControllerV3,
   type PlaybackControllerV3,
 } from "@/lib/editor/playback/playback-controller-v3";
+import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
 import { compileDocument, type HtmlCompilerResult } from "@motionvideo/html-compiler";
 import type { RuntimeProjectV3 } from "@motionvideo/motion-runtime";
 
@@ -51,9 +53,25 @@ type PlaybackState = {
 };
 
 const INITIAL_PLAYBACK: PlaybackState = { time: 0, duration: 1, playing: false };
+const SHOW_DEV_FIXTURE_PICKER = process.env.NODE_ENV !== "production";
+const PLAYGROUND_FONT_FACE_CSS = `
+@font-face {
+  font-family: "Inter";
+  src: url("/preview/font/Inter/Inter_18pt-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/preview/font/Inter/Inter_18pt-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}`;
 
 function browserDocument(html: string, background: string, width: number, height: number): string {
-  const stageCss = `<style id="neonix-playground-stage">html,body{width:${width}px;height:${height}px;margin:0;overflow:hidden;background:${background};}body{position:relative;}</style>`;
+  const stageCss = `<style id="neonix-playground-stage">${PLAYGROUND_FONT_FACE_CSS}html,body{width:${width}px;height:${height}px;margin:0;overflow:hidden;background:${background};}body{position:relative;}</style>`;
   if (/<\/head\s*>/i.test(html)) return html.replace(/<\/head\s*>/i, `${stageCss}</head>`);
   return `<!DOCTYPE html><html><head>${stageCss}</head><body>${html}</body></html>`;
 }
@@ -69,6 +87,7 @@ export function HtmlCompilerPlayground() {
   const browserStageRef = useRef<HTMLDivElement>(null);
   const browserIframeRef = useRef<HTMLIFrameElement>(null);
   const controllerRef = useRef<PlaybackControllerV3 | null>(null);
+  const fixtureRequestRef = useRef(0);
   const browserPlayingRef = useRef(false);
   const lastUiFrameRef = useRef(-1);
   const [html, setHtml] = useState(DEFAULT_HTML);
@@ -76,6 +95,10 @@ export function HtmlCompilerPlayground() {
   const [browserScale, setBrowserScale] = useState(0.4);
   const [playback, setPlayback] = useState(INITIAL_PLAYBACK);
   const [runtimeProject, setRuntimeProject] = useState<RuntimeProjectV3 | null>(null);
+  const [runtimeDocument, setRuntimeDocument] = useState<unknown>(null);
+  const [previewReady, setPreviewReady] = useState(false);
+  const [selectedFixtureId, setSelectedFixtureId] = useState("custom");
+  const [fixtureLoading, setFixtureLoading] = useState(false);
 
   const compilation = useMemo(
     () => compileDocument({ html }, { fontAssets: HTML_COMPILER_PREVIEW_FONT_ASSETS }),
@@ -83,6 +106,10 @@ export function HtmlCompilerPlayground() {
   );
   const protocol = compilation.protocol;
   const composition = compilation.source.composition;
+  const isPreviewPreparing = Boolean(protocol) && !previewReady;
+  const currentRuntimeProject = protocol && runtimeDocument === protocol
+    ? runtimeProject
+    : null;
   const sourceDocument = useMemo(
     () => browserDocument(html, composition.background, composition.width, composition.height),
     [composition.background, composition.height, composition.width, html],
@@ -109,6 +136,8 @@ export function HtmlCompilerPlayground() {
     previous?.dispose();
     controllerRef.current = null;
     setRuntimeProject(null);
+    setRuntimeDocument(null);
+    setPreviewReady(false);
     lastUiFrameRef.current = -1;
 
     if (!protocol) {
@@ -120,6 +149,7 @@ export function HtmlCompilerPlayground() {
     controllerRef.current = controller;
     const runtime = controller.loadDocument(protocol, 0);
     setRuntimeProject(runtime);
+    setRuntimeDocument(protocol);
     setPlayback({ time: 0, duration: controller.duration, playing: false });
     const releaseTimeSink = controller.registerTimeSink((event) => {
       const frame = Math.floor(event.time * composition.fps);
@@ -141,6 +171,12 @@ export function HtmlCompilerPlayground() {
     };
   }, [composition.fps, protocol, syncBrowser]);
 
+  const setPreparedRuntimeProject = useCallback((prepared: RuntimeProjectV3) => {
+    controllerRef.current?.setPreparedRuntimeProject(prepared);
+    setRuntimeProject(prepared);
+    setPreviewReady(true);
+  }, []);
+
   useLayoutEffect(() => {
     const stage = browserStageRef.current;
     if (!stage) return undefined;
@@ -158,10 +194,43 @@ export function HtmlCompilerPlayground() {
   const importFile = useCallback((file: File | undefined) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".html") && file.type !== "text/html") return;
+    const requestId = ++fixtureRequestRef.current;
+    setPreviewReady(false);
     void file.text().then((source) => {
+      if (requestId !== fixtureRequestRef.current) return;
+      setSelectedFixtureId("custom");
       setHtml(source);
       setPlayback(INITIAL_PLAYBACK);
     });
+  }, []);
+
+  const selectFixture = useCallback((fixtureId: string) => {
+    if (fixtureId === "custom") {
+      fixtureRequestRef.current += 1;
+      setSelectedFixtureId("custom");
+      setFixtureLoading(false);
+      setPreviewReady(false);
+      return;
+    }
+    const fixture = HTML_PLAYGROUND_CASES.find((candidate) => candidate.id === fixtureId);
+    if (!fixture) return;
+    const requestId = ++fixtureRequestRef.current;
+    setSelectedFixtureId(fixture.id);
+    setFixtureLoading(true);
+    setPreviewReady(false);
+    void fetchPlaygroundFixture(fixture.url)
+      .then((source) => {
+        if (requestId !== fixtureRequestRef.current) return;
+        setHtml(source);
+        setPlayback(INITIAL_PLAYBACK);
+      })
+      .catch(() => {
+        if (requestId !== fixtureRequestRef.current) return;
+        setSelectedFixtureId("custom");
+      })
+      .finally(() => {
+        if (requestId === fixtureRequestRef.current) setFixtureLoading(false);
+      });
   }, []);
 
   const onSeek = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,9 +242,9 @@ export function HtmlCompilerPlayground() {
 
   const togglePlayback = useCallback(() => {
     const controller = controllerRef.current;
-    if (!controller) return;
+    if (!controller || !previewReady) return;
     if (playback.playing) controller.pause(); else controller.play();
-  }, [playback.playing]);
+  }, [playback.playing, previewReady]);
 
   const reset = useCallback(() => {
     controllerRef.current?.pause();
@@ -195,6 +264,24 @@ export function HtmlCompilerPlayground() {
             <h1 className="text-2xl font-semibold">HTML → Protocol V2 playground</h1>
           </div>
           <div className="flex items-center gap-2">
+            {SHOW_DEV_FIXTURE_PICKER ? (
+              <label className="flex h-8 items-center gap-2 rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
+                <span className="sr-only">Test fixture</span>
+                <select
+                  className="max-w-72 bg-transparent font-medium outline-none"
+                  value={selectedFixtureId}
+                  onChange={(event) => selectFixture(event.target.value)}
+                  aria-label="Test fixture"
+                  data-testid="playground-fixture-picker"
+                  disabled={fixtureLoading}
+                >
+                  <option value="custom">Custom HTML</option>
+                  <optgroup label="Review / production motion fixtures">
+                    {HTML_PLAYGROUND_CASES.map((fixture) => <option key={fixture.id} value={fixture.id}>{fixture.label}</option>)}
+                  </optgroup>
+                </select>
+              </label>
+            ) : null}
             <input
               ref={fileInputRef}
               className="hidden"
@@ -212,7 +299,7 @@ export function HtmlCompilerPlayground() {
             >
               <Upload size={14} /> Import HTML
             </Button>
-            <Button type="button" variant="primary" size="md" className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e]" onClick={reset}>
+            <Button type="button" variant="outline" size="md" onClick={reset}>
               <RotateCcw size={14} /> Reset
             </Button>
           </div>
@@ -228,14 +315,14 @@ export function HtmlCompilerPlayground() {
 
         <Panel title="Compiler output" badge="HTML → JSON V2" titleSize="sm">
           <div className="relative w-full overflow-hidden bg-[#f5f5f5]" style={{ aspectRatio: `${composition.width} / ${composition.height}` }} data-testid="playground-runtime-stage">
-            {protocol && runtimeProject ? <PreviewStage project={protocol} runtimeProject={runtimeProject} externalPlayback registerPlaybackFrameSink={registerFrameSink} backend="skia" testId="playground-runtime-canvas" /> : <div className="flex h-full items-center justify-center p-6 text-center text-sm text-rose-700">{diagnosticText(compilation) || "Import a valid Neonix HTML document to compile."}</div>}
+            {protocol && currentRuntimeProject ? <PreviewStage project={protocol} runtimeProject={currentRuntimeProject} externalPlayback onPreparedRuntimeProject={setPreparedRuntimeProject} registerPlaybackFrameSink={registerFrameSink} backend="skia" testId="playground-runtime-canvas" /> : <div className="flex h-full items-center justify-center p-6 text-center text-sm text-rose-700">{diagnosticText(compilation) || "Import a valid Neonix HTML document to compile."}</div>}
           </div>
         </Panel>
       </section>
 
       <section className="mx-auto mt-5 flex max-w-[1600px] items-center gap-3 rounded border border-[var(--border-subtle)] bg-white px-4 py-3" data-testid="playground-transport">
-        <Button type="button" variant="primary" size="icon" aria-label={playback.playing ? "Pause preview" : "Play preview"} className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e] h-9 w-9 shrink-0 rounded-full" onClick={togglePlayback} disabled={!protocol} data-testid="playground-play-toggle">
-          {playback.playing ? <Pause size={15} /> : <Play size={15} />}
+        <Button type="button" variant="primary" size="icon" loading={isPreviewPreparing} aria-label={isPreviewPreparing ? "Preparing preview" : playback.playing ? "Pause preview" : "Play preview"} className="!bg-[#0d9488] !text-white hover:!bg-[#0f766e] h-9 w-9 shrink-0 rounded-full" onClick={togglePlayback} disabled={!protocol || !previewReady} data-testid="playground-play-toggle">
+          {previewReady ? (playback.playing ? <Pause size={15} /> : <Play size={15} />) : null}
         </Button>
         <input className="min-w-0 flex-1 accent-[#0d9488]" type="range" min="0" max={Math.max(0.1, playback.duration)} step={1 / composition.fps} value={Math.min(playback.time, playback.duration)} onChange={onSeek} disabled={!protocol} aria-label="Preview time" />
         <span className="shrink-0 font-mono text-[11px] text-[#0d9488]">{playback.time.toFixed(2)}s / {playback.duration.toFixed(2)}s</span>

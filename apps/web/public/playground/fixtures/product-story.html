@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#f8fafc","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        position: relative;
+        overflow: hidden;
+        background: #f8fafc;
+        color: #0f172a;
+        font-family: Inter;
+      }
+
+      @keyframes product-heading {
+        0% { opacity: 0; transform: translateY(58px); }
+        10% { opacity: 1; transform: translateY(0px); }
+        24% { opacity: 1; transform: translateY(0px); }
+        29% { opacity: 0; transform: translateY(-28px); }
+        100% { opacity: 0; transform: translateY(-28px); }
+      }
+
+      @keyframes product-phone {
+        0% { opacity: 0; transform: translateY(100px) rotateY(-28deg) rotateX(8deg) scale(0.82); }
+        12% { opacity: 1; transform: translateY(0px) rotateY(-18deg) rotateX(5deg) scale(1); }
+        48% { opacity: 1; transform: translateY(0px) rotateY(-18deg) rotateX(5deg) scale(1); }
+        68% { opacity: 1; transform: translateY(0px) rotateY(12deg) rotateX(-3deg) scale(1.04); }
+        76% { opacity: 0; transform: translateY(-18px) rotateY(20deg) rotateX(-4deg) scale(1.08); }
+        100% { opacity: 0; transform: translateY(-18px) rotateY(20deg) rotateX(-4deg) scale(1.08); }
+      }
+
+      @keyframes product-feature-one {
+        0%, 46% { opacity: 0; transform: translateX(-180px) translateY(50px) rotate(-8deg); }
+        56% { opacity: 1; transform: translateX(0px) translateY(0px) rotate(0deg); }
+        72% { opacity: 1; transform: translateX(0px) translateY(0px) rotate(0deg); }
+        80%, 100% { opacity: 0; transform: translateX(-40px) translateY(-20px) rotate(-4deg); }
+      }
+
+      @keyframes product-feature-two {
+        0%, 50% { opacity: 0; transform: translateX(180px) translateY(50px) rotate(8deg); }
+        60% { opacity: 1; transform: translateX(0px) translateY(0px) rotate(0deg); }
+        72% { opacity: 1; transform: translateX(0px) translateY(0px) rotate(0deg); }
+        80%, 100% { opacity: 0; transform: translateX(40px) translateY(-20px) rotate(4deg); }
+      }
+
+      @keyframes product-cta {
+        0%, 72% { opacity: 0; transform: scale(0.8) translateY(40px); }
+        84% { opacity: 1; transform: scale(1) translateY(0px); }
+        100% { opacity: 1; transform: scale(1) translateY(0px); }
+      }
+
+      @keyframes product-shine {
+        0%, 25% { opacity: 0; transform: translateX(-220px); }
+        42% { opacity: 0.7; transform: translateX(220px); }
+        50%, 100% { opacity: 0; transform: translateX(220px); }
+      }
+
+      #product-topline {
+        position: absolute;
+        left: 150px;
+        top: 120px;
+        color: #2563eb;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 7px;
+        animation: product-heading 10s linear both;
+      }
+
+      #product-title {
+        position: absolute;
+        left: 145px;
+        top: 250px;
+        width: 760px;
+        height: 220px;
+        margin: 0;
+        color: #0f172a;
+        font-size: 92px;
+        line-height: 1.04;
+        font-weight: 700;
+        letter-spacing: -4px;
+        animation: product-heading 10s linear both;
+      }
+
+      #product-copy {
+        position: absolute;
+        left: 155px;
+        top: 560px;
+        width: 570px;
+        height: 130px;
+        margin: 0;
+        color: #64748b;
+        font-size: 30px;
+        line-height: 1.35;
+        animation: product-heading 10s linear both;
+      }
+
+      #product-scene {
+        position: absolute;
+        left: 1030px;
+        top: 120px;
+        width: 720px;
+        height: 800px;
+        perspective: 1200px;
+        perspective-origin: 50% 48%;
+        transform-style: preserve-3d;
+      }
+
+      #product-phone {
+        position: absolute;
+        left: 220px;
+        top: 82px;
+        width: 290px;
+        height: 610px;
+        box-sizing: border-box;
+        border: 12px solid #111827;
+        border-radius: 48px;
+        background: linear-gradient(145deg, #334155, #0f172a 55%, #2563eb);
+        box-shadow: 22px 28px 50px 0 #94a3b8;
+        transform-origin: 50% 50%;
+        backface-visibility: hidden;
+        animation: product-phone 10s linear both;
+      }
+
+      #product-screen {
+        position: absolute;
+        left: 16px;
+        top: 18px;
+        width: 234px;
+        height: 550px;
+        box-sizing: border-box;
+        border-radius: 32px;
+        background: linear-gradient(160deg, #0f172a, #1d4ed8 48%, #38bdf8);
+        overflow: hidden;
+      }
+
+      #product-screen-light {
+        position: absolute;
+        left: -120px;
+        top: 30px;
+        width: 180px;
+        height: 520px;
+        background: #ffffff;
+        opacity: 0.35;
+        transform: rotate(18deg);
+        animation: product-shine 10s linear both;
+      }
+
+      #product-camera {
+        position: absolute;
+        left: 82px;
+        top: 11px;
+        width: 100px;
+        height: 22px;
+        border-radius: 14px;
+        background: #020617;
+      }
+
+      #product-float-label {
+        position: absolute;
+        left: 42px;
+        top: 330px;
+        color: #e0f2fe;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        transform: rotate(-90deg);
+      }
+
+      .product-feature {
+        position: absolute;
+        width: 330px;
+        height: 142px;
+        box-sizing: border-box;
+        padding: 26px;
+        border: 1px solid #cbd5e1;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 22px 42px 0 #cbd5e1;
+      }
+
+      #product-feature-one {
+        left: 40px;
+        top: 530px;
+        animation: product-feature-one 10s linear both;
+      }
+
+      #product-feature-two {
+        left: 440px;
+        top: 285px;
+        animation: product-feature-two 10s linear both;
+      }
+
+      .product-feature-label {
+        margin: 0;
+        color: #2563eb;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .product-feature-copy {
+        margin: 12px 0 0;
+        color: #475569;
+        font-size: 20px;
+      }
+
+      #product-cta {
+        position: absolute;
+        left: 530px;
+        top: 780px;
+        width: 860px;
+        height: 170px;
+        box-sizing: border-box;
+        padding: 35px;
+        border-radius: 30px;
+        background: #0f172a;
+        color: #f8fafc;
+        text-align: center;
+        animation: product-cta 10s linear both;
+      }
+
+      #product-cta-title {
+        margin: 0;
+        font-size: 42px;
+        font-weight: 700;
+      }
+
+      #product-cta-copy {
+        margin: 10px 0 0;
+        color: #93c5fd;
+        font-size: 22px;
+        letter-spacing: 4px;
+      }
+
+      #product-footer {
+        position: absolute;
+        left: 155px;
+        top: 950px;
+        color: #94a3b8;
+        font-size: 20px;
+        letter-spacing: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="product-topline">NEONIX / PRODUCT LAUNCH</div>
+    <h1 id="product-title">Meet the<br>next generation.</h1>
+    <p id="product-copy">A premium product story built around precision, depth, and a quiet sense of power.</p>
+    <section id="product-scene">
+      <div id="product-phone">
+        <div id="product-screen">
+          <div id="product-screen-light"></div>
+        </div>
+        <div id="product-camera"></div>
+        <div id="product-float-label">NEONIX ONE</div>
+      </div>
+      <article id="product-feature-one" class="product-feature">
+        <p class="product-feature-label">48H BATTERY</p>
+        <p class="product-feature-copy">Power that stays with you.</p>
+      </article>
+      <article id="product-feature-two" class="product-feature">
+        <p class="product-feature-label">200MP CAMERA</p>
+        <p class="product-feature-copy">Every detail, beautifully clear.</p>
+      </article>
+    </section>
+    <section id="product-cta">
+      <p id="product-cta-title">Designed for More.</p>
+      <p id="product-cta-copy">AVAILABLE NOW / NEONIX ONE</p>
+    </section>
+    <small id="product-footer">PRODUCT MOTION / 002 / 10 SEC</small>
+  </body>
+</html>
+

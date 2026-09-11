@@ -7,8 +7,8 @@ import {
   previewResourceKey,
   type PreviewResourceLease,
 } from "@/lib/editor/playback/preview-resource-registry";
-import { stageInteractionStore } from "@/lib/store/stage-interaction-store";
 import { systemAssetFallbackId, systemAssetFallbackUrl } from "@/lib/media/system-asset-fallback";
+import { stageInteractionStore } from "@/lib/store/stage-interaction-store";
 import { compileProtocol } from "@motionvideo/motion-compiler";
 import {
   MotionProtocolV2Schema,
@@ -1369,9 +1369,9 @@ function canvasRenderDpr(
   devicePixelRatio: number,
   backend: PreviewStageBackendKind,
 ): number {
-  // Skia renders the canonical composition surface once at 1920x1080. The
-  // host only controls the CSS display size, so the browser performs the
-  // final downsampling consistently with the native HTML reference.
+  // Keep Skia's canonical composition surface at full resolution. The CSS
+  // size is presentation-only; lowering the backing surface here makes text
+  // and vector edges blurry and hides compositing bugs instead of fixing them.
   if (backend === "skia") return 1;
   return canvasCssScale(host, width, height) * devicePixelRatio;
 }

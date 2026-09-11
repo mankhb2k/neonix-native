@@ -26,6 +26,20 @@ The fixture registry keeps the legacy `source` field only as a temporary test
 inspection aid; its `html` field is the contract consumed by the preview and
 the compiler.
 
+## Focused opacity fixtures
+
+The sidebar also includes three isolated opacity cases under **Paint
+primitives**. They are intentionally separate from the larger motion samples:
+
+| Fixture | What it checks |
+| --- | --- |
+| `opacity.image` | Fractional opacity on an `<img>` over a solid card |
+| `opacity.grid` | Opacity on a CSS grid container, child cells and thin grid lines |
+| `opacity.shape` | Independent opacity on overlapping rounded rectangle and ellipse shapes |
+
+All three use the same final HTML document for the native browser reference
+and the HTML → Protocol V2 → Runtime/Skia path.
+
 ## HTML compiler tag-lowering fixtures
 
 The live fixtures are registered in

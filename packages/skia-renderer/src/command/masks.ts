@@ -13,6 +13,48 @@ export type MaskSource = {
   transform: Extract<PaintCommand, { op: "setTransform" }> | null;
 };
 
+function isInteger(value: number): boolean {
+  return Math.abs(value - Math.round(value)) < 1e-6;
+}
+
+function isAxisAlignedIntegerRect(source: MaskSource): boolean {
+  if (source.command.op !== "drawPath") return false;
+  const contour = source.command.contours.length === 1 ? source.command.contours[0] : undefined;
+  if (!contour?.closed || contour.segments.length !== 3) return false;
+  const points = [contour.start, ...contour.segments.map((segment) => segment.kind === "line" ? segment.to : null)];
+  if (points.some((point) => point === null || !isInteger(point.x) || !isInteger(point.y))) return false;
+  for (let index = 0; index < points.length; index += 1) {
+    const from = points[index]!;
+    const to = points[index + 1] ?? points[0]!;
+    if (from.x !== to.x && from.y !== to.y) return false;
+  }
+  return true;
+}
+
+function shouldAntialiasClip(source: MaskSource, projective: boolean): boolean {
+  if (projective || !isAxisAlignedIntegerRect(source)) return true;
+  const matrix = source.transform?.matrix4;
+  if (!matrix) return false;
+  return !(
+    Math.abs(matrix[0]! - 1) < 1e-6 &&
+    Math.abs(matrix[1]!) < 1e-6 &&
+    Math.abs(matrix[2]!) < 1e-6 &&
+    Math.abs(matrix[3]!) < 1e-6 &&
+    Math.abs(matrix[4]!) < 1e-6 &&
+    Math.abs(matrix[5]! - 1) < 1e-6 &&
+    Math.abs(matrix[6]!) < 1e-6 &&
+    Math.abs(matrix[7]!) < 1e-6 &&
+    Math.abs(matrix[8]!) < 1e-6 &&
+    Math.abs(matrix[9]!) < 1e-6 &&
+    Math.abs(matrix[10]! - 1) < 1e-6 &&
+    Math.abs(matrix[11]!) < 1e-6 &&
+    isInteger(matrix[12]!) &&
+    isInteger(matrix[13]!) &&
+    Math.abs(matrix[14]!) < 1e-6 &&
+    Math.abs(matrix[15]! - 1) < 1e-6
+  );
+}
+
 export function maskColorAlpha(
   command: Extract<PaintCommand, { op: "drawPath" }>,
   mode: "alpha" | "luma",
@@ -178,7 +220,7 @@ export function applyClipPath(
     const builder = new kit.PathBuilder(projected);
     builder.transform(matrix4ToSkia3x3(transform!));
     const transformed = builder.snapshot();
-    canvas.clipPath(transformed, kit.ClipOp.Intersect, true);
+    canvas.clipPath(transformed, kit.ClipOp.Intersect, shouldAntialiasClip(source, true));
     transformed.delete();
     builder.delete();
     projected.delete();
@@ -192,11 +234,11 @@ export function applyClipPath(
     const builder = new kit.PathBuilder(path);
     builder.transform(matrix4ToSkia3x3(transform));
     const transformed = builder.snapshot();
-    canvas.clipPath(transformed, kit.ClipOp.Intersect, true);
+    canvas.clipPath(transformed, kit.ClipOp.Intersect, shouldAntialiasClip(source, false));
     transformed.delete();
     builder.delete();
   } else {
-    canvas.clipPath(path, kit.ClipOp.Intersect, true);
+    canvas.clipPath(path, kit.ClipOp.Intersect, shouldAntialiasClip(source, false));
   }
   path.delete();
   return true;

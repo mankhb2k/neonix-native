@@ -53,6 +53,10 @@ export function createEditorRuntimeSession(): EditorRuntimeSession {
     replaceRuntime(project) {
       if (disposed) throw new Error("Editor runtime session is disposed");
       runtime = project;
+      // Prepared text/glyph data changes the runtime snapshot even when the
+      // source document is unchanged. Consumers use this generation to avoid
+      // deduplicating a stale frame from before text preparation completed.
+      generation += 1;
     },
     sampleLayer: sampleMotionLayerAtTime,
     evaluate(timeSeconds, project = runtime) {

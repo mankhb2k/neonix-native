@@ -133,4 +133,19 @@ describe("HTML/CSS compiler P2.2 borders", () => {
     expect(uniform.protocol?.layers.find((layer) => layer.id === "box")?.type).toBe("shape");
     expect(corners.protocol?.layers.find((layer) => layer.id === "box::border")?.type).toBe("path");
   });
+
+  it("uses one rounded fill contour so element opacity is composited once", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="ellipse"></div>`,
+      css: `#ellipse { width: 620px; height: 360px; background: #a78bfa; border-radius: 50%; opacity: 0.58; }`,
+    }));
+    const fills = (result.protocol?.layers ?? []).filter((layer) => layer.id === "ellipse");
+    expect(fills).toHaveLength(1);
+    expect(fills[0]).toMatchObject({
+      type: "path",
+      opacity: 0.58,
+      payload: { fillRule: "nonzero", contours: [{ start: { x: 310, y: 0 } }] },
+      style: { fill: "#a78bfa" },
+    });
+  });
 });

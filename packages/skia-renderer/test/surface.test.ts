@@ -24,14 +24,17 @@ describe("CanvasKit presentation surface selection", () => {
     (globalThis as Record<string, unknown>).HTMLCanvasElement = FakeCanvas;
     const canvas = new FakeCanvas() as unknown as HTMLCanvasElement;
     const direct = surface();
+    let colorSpace: unknown;
     let fallbackCalls = 0;
     const selected = createSkiaSurface(kit({
-      MakeWebGLCanvasSurface: () => direct,
+      ColorSpace: { SRGB: "srgb" },
+      MakeWebGLCanvasSurface: (_canvas, selectedColorSpace) => { colorSpace = selectedColorSpace; return direct; },
       MakeSurface: () => { fallbackCalls += 1; return surface(); },
     }), canvas, 1920, 1080, true);
 
     expect(selected.surface).toBe(direct);
     expect(selected.directPresentation).toBe(true);
+    expect(colorSpace).toBe("srgb");
     expect(fallbackCalls).toBe(0);
   });
 

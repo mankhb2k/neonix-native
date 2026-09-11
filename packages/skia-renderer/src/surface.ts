@@ -26,7 +26,11 @@ export function createSkiaSurface(
       try {
         // CanvasKit's WebGL surface helpers call other kit methods through
         // `this`; keep the module object as their receiver.
-        const surface = createDirectSurface.call(kit, canvas);
+        // Explicitly select the same sRGB destination used by the readback
+        // path. Leaving this implicit makes CanvasKit choose a backend
+        // default, which can make semi-transparent colors look different
+        // between GPU presentation and exported/readback frames.
+        const surface = createDirectSurface.call(kit, canvas, kit.ColorSpace?.SRGB);
         if (surface) return { surface, directPresentation: true };
       } catch {
         // Try the next CanvasKit implementation, then use readback below.

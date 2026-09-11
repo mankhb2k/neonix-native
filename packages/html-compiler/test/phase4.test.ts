@@ -73,7 +73,11 @@ describe("HTML/CSS compiler Phase 4 paint", () => {
   it("lowers non-uniform radius into deterministic path geometry", () => {
     const result = compileHtmlCss(createHtmlCssSource({ html: `<div id="paint"></div>`, css: `#paint { width: 100px; height: 100px; background: #fff; border-radius: 8px 16px; }` }));
     expect(result.status).toBe("success");
-    expect(result.protocol?.layers.some((layer) => layer.id.startsWith("paint:fill:") && layer.type === "shape")).toBe(true);
+    expect(result.protocol?.layers.find((layer) => layer.id === "paint")).toMatchObject({
+      type: "path",
+      payload: { fillRule: "nonzero", contours: [{ id: "rounded-rectangle-contour" }] },
+      style: { fill: "#ffffff" },
+    });
   });
 
   it("preserves explicit SVG path fill none separately from the black default", () => {
