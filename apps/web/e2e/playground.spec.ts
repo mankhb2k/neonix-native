@@ -26,7 +26,7 @@ test.describe("HTML compiler playground", () => {
     const picker = page.getByTestId("playground-fixture-picker");
     const playToggle = page.getByTestId("playground-play-toggle");
     await expect(picker).toBeVisible();
-    await expect(picker.locator("option")).toHaveCount(14);
+    await expect(picker.locator("option")).toHaveCount(22);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     await page.route("**/playground/fixtures/marketing-launch.html", async (route) => {
@@ -156,7 +156,7 @@ test.describe("HTML compiler playground", () => {
   test("renders repeated radial and conic backgrounds as independent non-linear paint cases", async ({ page }) => {
     await page.goto("/playground", { waitUntil: "domcontentloaded" });
     const picker = page.getByTestId("playground-fixture-picker");
-    await expect(picker.locator("option")).toHaveCount(13);
+    await expect(picker.locator("option")).toHaveCount(22);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     for (const [fixtureId, selector, gradientName] of [
@@ -176,6 +176,34 @@ test.describe("HTML compiler playground", () => {
       expect(browserStyle).toMatchObject({ width: 1440, height: 480, backgroundSize: "120px 120px" });
       expect(browserStyle.backgroundImage).toContain(gradientName);
       await expect(page.getByTestId("playground-json")).toContainText("::tile:");
+    }
+  });
+
+  test("loads the Phase 2 paint primitive and overlap fixtures", async ({ page }) => {
+    await page.goto("/playground", { waitUntil: "domcontentloaded" });
+    const picker = page.getByTestId("playground-fixture-picker");
+    const source = page.getByTestId("playground-source");
+    const json = page.getByTestId("playground-json");
+    const canvas = page.getByTestId("playground-runtime-canvas");
+    await expect(picker.locator("option")).toHaveCount(22);
+    await expect(canvas).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
+
+    for (const [fixtureId, marker] of [
+      ["phase2-single-rect", "phase2-single-rect"],
+      ["phase2-single-opacity", "phase2-single-opacity"],
+      ["phase2-rounded-shape", "phase2-rounded-rect"],
+      ["phase2-two-shape-overlap", "phase2-overlap-rect"],
+      ["phase2-three-shape-order", "phase2-order-yellow"],
+      ["phase2-shape-text-image", "phase2-media-image"],
+      ["phase2-border-background", "phase2-border-background"],
+      ["phase2-multiple-backgrounds", "phase2-multiple-backgrounds"],
+    ] as const) {
+      await picker.selectOption(fixtureId);
+      await expect(picker).toHaveValue(fixtureId);
+      await expect(source).toContainText(marker);
+      await expect(json).toContainText('"formatVersion": 2');
+      await expect(canvas).toHaveAttribute("data-preview-state", "ready");
+      await expect(page.getByTestId("playground-play-toggle")).toHaveAttribute("aria-label", "Play preview");
     }
   });
 
