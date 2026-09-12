@@ -538,14 +538,36 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         const opacityValue = style.get("opacity"); const opacity = opacityValue === undefined ? 1 : Number(opacityValue); if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) fail("css-opacity-invalid", `opacity must be between 0 and 1: ${opacityValue}`);
         const parentId = parent?.tag === "body" ? null : (parent?.atomicId ?? null); const groupId = node.atomicId; const hasChildren = node.children.length > 0; const localX = parent?.children.length ? x - (origins.get(parent)?.x ?? parentX) : x; const localY = parent?.children.length ? y - (origins.get(parent)?.y ?? parentY) : y;
         const zIndexValue = style.get("z-index"); const zIndex = zIndexValue === undefined || zIndexValue === "auto" ? undefined : Number(zIndexValue); const layerOrder = Number.isFinite(zIndex) ? Math.max(0, 100000 + (zIndex as number)) : layers.length; const state = style.get("visibility") === "hidden" ? { enabled: false } : {};
+        const cornerRadius = parseCornerRadii(style, w, h, font, viewport);
+        const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
+        const backdropFilterEffects = parseFilter(style.get("backdrop-filter"), containingWidth, font, viewport, currentColor);
+        const backdropState = backdropFilterEffects.length ? { backdropEffects: backdropFilterEffects } : {};
+        const roundedBorderBoxClip = (): V2SvgDefinitionNode => {
+          if (cornerRadius === undefined) return { type: "rect", x: 0, y: 0, width: w, height: h };
+          if (typeof cornerRadius === "number") return { type: "rect", x: 0, y: 0, width: w, height: h, rx: cornerRadius, ry: cornerRadius };
+          return { type: "path", contours: [roundedRectContour(w, h, cornerRadius)], fillRule: "nonzero" };
+        };
         const clipBoxes: ClipReferenceBoxes = {
           borderBox: { x: 0, y: 0, width: w, height: h, viewport },
           paddingBox: { x: geometry.borderEdges[3], y: geometry.borderEdges[0], width: Math.max(0, w - geometry.borderEdges[1] - geometry.borderEdges[3]), height: Math.max(0, h - geometry.borderEdges[0] - geometry.borderEdges[2]), viewport },
           contentBox: { x: geometry.borderEdges[3] + geometry.padding[3], y: geometry.borderEdges[0] + geometry.padding[0], width: geometry.contentWidth, height: geometry.contentHeight, viewport },
         };
         const clipShape = parseClipPath(style.get("clip-path"), clipBoxes);
-        const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [{ type: "rect", x: 0, y: 0, width: w, height: h }] : [];
-        const baseClipChildren: V2SvgDefinitionNode[] = clipShape ? [clipShape, ...overflowClipChildren] : overflowClipChildren;
+        // CSS overflow clipping uses the element's rounded border box. This
+        // also keeps the emitted semantic clip precise enough for children
+        // of a rounded `overflow: hidden` container.
+        const overflowClipChildren: V2SvgDefinitionNode[] = hasChildren && style.get("overflow") === "hidden" ? [roundedBorderBoxClip()] : [];
+        // Backdrop-filter itself is clipped by the rounded border box. For a
+        // leaf element, attach that clip to the isolation group so Skia can
+        // install it before capturing the backdrop. Do not apply it to an
+        // arbitrary descendant subtree: border-radius alone does not make
+        // `overflow` clip child content in CSS.
+        const backdropClipChildren: V2SvgDefinitionNode[] = !hasChildren && backdropFilterEffects.length > 0 && cornerRadius !== undefined ? [roundedBorderBoxClip()] : [];
+        const baseClipChildren: V2SvgDefinitionNode[] = [
+          ...(clipShape ? [clipShape] : []),
+          ...overflowClipChildren,
+          ...backdropClipChildren,
+        ];
         const registerClipPath = (additional: V2SvgDefinitionNode[] = [], legacyPrefix?: string): string | undefined => {
           const children = [...baseClipChildren, ...additional];
           if (children.length === 0) return undefined;
@@ -556,7 +578,12 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
         let elementClipPathId: string | undefined;
         const elementClipPath = (): string | undefined => {
           if (elementClipPathId !== undefined) return elementClipPathId;
-          elementClipPathId = registerClipPath([], clipShape ? undefined : "html-overflow-clip");
+          const legacyPrefix = overflowClipChildren.length > 0
+            ? "html-overflow-clip"
+            : backdropClipChildren.length > 0
+              ? "html-backdrop-clip"
+              : undefined;
+          elementClipPathId = registerClipPath([], clipShape ? undefined : legacyPrefix);
           return elementClipPathId;
         };
          const motion = parseMotionPath(style, w, h, font, viewport);
@@ -599,9 +626,7 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
              ...(includeCssTransform && parsedTransform.extensions ? { extensions: parsedTransform.extensions } : {}),
            };
          };
-         const cornerRadius = parseCornerRadii(style, w, h, font, viewport);
          const outline = parseOutline(style, containingWidth, font, viewport);
-         const currentColor = style.get("color") ?? parentStyle.get("color") ?? "#000000";
          const animationTracks = lowerAnimationTracks(style, keyframes, {
            width: w,
            height: h,
@@ -625,8 +650,6 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
          const textShadows = parseShadows(style, "text-shadow", containingWidth, font, viewport, currentColor);
          const boxShadows = parseShadows(style, "box-shadow", containingWidth, font, viewport, currentColor);
          const filterEffects = parseFilter(style.get("filter"), containingWidth, font, viewport, currentColor);
-         const backdropFilterEffects = parseFilter(style.get("backdrop-filter"), containingWidth, font, viewport, currentColor);
-         const backdropState = backdropFilterEffects.length ? { backdropEffects: backdropFilterEffects } : {};
          const paintEffects = [...boxShadows, ...filterEffects];
          const composite = parseComposite(style);
          const compositeState = composite ? { composite } : {};

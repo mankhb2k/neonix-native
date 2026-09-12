@@ -26,7 +26,7 @@ test.describe("HTML compiler playground", () => {
     const picker = page.getByTestId("playground-fixture-picker");
     const playToggle = page.getByTestId("playground-play-toggle");
     await expect(picker).toBeVisible();
-    await expect(picker.locator("option")).toHaveCount(26);
+    await expect(picker.locator("option")).toHaveCount(31);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     await page.route("**/playground/fixtures/marketing-launch.html", async (route) => {
@@ -156,7 +156,7 @@ test.describe("HTML compiler playground", () => {
   test("renders repeated radial and conic backgrounds as independent non-linear paint cases", async ({ page }) => {
     await page.goto("/playground", { waitUntil: "domcontentloaded" });
     const picker = page.getByTestId("playground-fixture-picker");
-    await expect(picker.locator("option")).toHaveCount(26);
+    await expect(picker.locator("option")).toHaveCount(31);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     for (const [fixtureId, selector, gradientName] of [
@@ -185,7 +185,7 @@ test.describe("HTML compiler playground", () => {
     const source = page.getByTestId("playground-source");
     const json = page.getByTestId("playground-json");
     const canvas = page.getByTestId("playground-runtime-canvas");
-    await expect(picker.locator("option")).toHaveCount(26);
+    await expect(picker.locator("option")).toHaveCount(31);
     await expect(canvas).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     for (const [fixtureId, marker] of [

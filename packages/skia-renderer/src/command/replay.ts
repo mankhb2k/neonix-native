@@ -447,10 +447,26 @@ export function replaySkiaCommands(
         let saveBounds = boundsToRect(frameBounds);
         if (backdropEffectFilter.filter) {
           const clipBounds = contentBounds ? boundsToRect(contentBounds) : undefined;
-          if (clipBounds) {
+          // The backdrop is sampled while saveLayer is installed. Keep every
+          // owner clip active before that point: a rectangular bounds clip
+          // contains blur expansion, while a semantic rounded clip prevents
+          // the filtered backdrop from leaking into transparent corners.
+          if (clipBounds || command.clipPath) {
             canvas.save();
-            canvas.clipRect(clipBounds, kit.ClipOp.Intersect, false);
             layer.backdropClip = true;
+            if (clipBounds) canvas.clipRect(clipBounds, kit.ClipOp.Intersect, false);
+            if (command.clipPath) {
+              const sources = command.clipPath.sourceKeys ?? [command.clipPath.sourceKey];
+              let applied = true;
+              for (const sourceKey of sources) {
+                const source = semanticSources.get(sourceKey);
+                if (!source || !applyClipPath(kit, canvas, source, projectionContext)) {
+                  addDiagnostic(`skia_clip_path_unsupported:${command.key}:${sourceKey}`);
+                  applied = false;
+                }
+              }
+              layer.backdropClipPathApplied = applied;
+            }
           }
           const pad = clipBounds ? backdropFilterPadding(command.backdropEffectProgram) : 0;
           saveBounds = clipBounds
@@ -468,7 +484,7 @@ export function replaySkiaCommands(
         canvas.save();
       }
       layer.saved = true;
-      if (command.clipPath) {
+      if (command.clipPath && !layer.backdropClipPathApplied) {
         const sources = command.clipPath.sourceKeys ?? [command.clipPath.sourceKey];
         for (const sourceKey of sources) {
           const source = semanticSources.get(sourceKey);

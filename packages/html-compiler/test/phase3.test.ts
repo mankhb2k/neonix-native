@@ -95,7 +95,7 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
   it("lowers opacity, z-index, and overflow hidden to V2 contracts", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="hidden-overflow"><div id="overflowing-child"></div></div><div id="visible-overflow"><div id="visible-child"></div></div><div id="back"></div><div id="front"></div>`,
-      css: `#hidden-overflow, #visible-overflow { position: relative; width: 300px; height: 150px; } #hidden-overflow { overflow: hidden; opacity: 0.5; z-index: 2; } #visible-overflow { overflow: visible; } #overflowing-child, #visible-child { position: absolute; left: 220px; top: 20px; width: 160px; height: 60px; background: #f97316; } #back, #front { position: absolute; left: 800px; top: 100px; width: 100px; height: 100px; background: #38bdf8; } #back { z-index: 1; } #front { z-index: 3; opacity: 0.75; }`,
+      css: `#hidden-overflow, #visible-overflow { position: relative; width: 300px; height: 150px; } #hidden-overflow { overflow: hidden; border-radius: 24px; opacity: 0.5; z-index: 2; } #visible-overflow { overflow: visible; } #overflowing-child, #visible-child { position: absolute; left: 220px; top: 20px; width: 160px; height: 60px; background: #f97316; } #back, #front { position: absolute; left: 800px; top: 100px; width: 100px; height: 100px; background: #38bdf8; } #back { z-index: 1; } #front { z-index: 3; opacity: 0.75; }`,
     }));
     expect(result.status).toBe("success");
     expect(result.protocol?.layers.find((layer) => layer.id === "hidden-overflow")).toMatchObject({
@@ -108,7 +108,7 @@ describe("HTML/CSS compiler Phase 3A layout", () => {
     expect(result.protocol?.clipPaths?.[0]).toMatchObject({
       id: "html-overflow-clip-0",
       clipPathUnits: "userSpaceOnUse",
-      children: [{ type: "rect", x: 0, y: 0, width: 300, height: 150 }],
+      children: [{ type: "rect", x: 0, y: 0, width: 300, height: 150, rx: 24, ry: 24 }],
     });
   });
 

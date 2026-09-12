@@ -83,7 +83,7 @@ describe("Skia gradient paint", () => {
     expect(positions?.filter((position) => position === 0.16).length).toBeGreaterThan(0);
   });
 
-  it("keeps the short repeat terminal edge on the preceding stop", () => {
+  it("wraps the short repeat terminal edge to the next cycle's first stop", () => {
     let colors: unknown[] | undefined;
     let positions: number[] | undefined;
     let endPoint: [number, number] | undefined;
@@ -125,10 +125,58 @@ describe("Skia gradient paint", () => {
     }, 960, 480);
 
     expect(positions?.at(-1)).toBe(1);
-    expect(colors?.at(-1)).toMatchObject({ r: 0, g: 0, b: 0, a: 0 });
+    expect(colors?.at(-1)).toMatchObject({ r: 56, g: 189, b: 248, a: 1 });
     expect(positions?.at(-2)).toBeCloseTo(1 - 1 / 480, 6);
     expect(endPoint?.[1]).toBeGreaterThan(0);
     expect(endPoint?.[1]).toBeLessThan(1);
+  });
+
+  it("preserves the authored colour in a partial terminal repeat cycle", () => {
+    let colors: Array<{ r: number; g: number; b: number; a: number }> | undefined;
+    let positions: number[] | undefined;
+    const shader: SkiaShader = { delete() {} };
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setBlendMode() {}
+      setShader() {}
+    }
+    const kit = {
+      Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
+      Paint,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      Shader: {
+        MakeLinearGradient: (_start: unknown, _end: unknown, nextColors: Array<{ r: number; g: number; b: number; a: number }>, nextPositions: number[]) => {
+          colors = nextColors;
+          positions = nextPositions;
+          return shader;
+        },
+      },
+    } as unknown as SkiaCanvasKit;
+
+    createSkiaPaint(kit, "#f43f5e", 1, kit.PaintStyle.Fill, {
+      type: "linear-gradient",
+      angle: 0,
+      spreadMethod: "repeat",
+      stops: [
+        { offset: 0, color: "#f43f5e" },
+        { offset: 0.1, color: "#f43f5e" },
+        { offset: 0.1, color: "#facc15" },
+        { offset: 0.2, color: "#facc15" },
+        { offset: 0.2, color: "#22d3ee" },
+        { offset: 0.3, color: "#22d3ee" },
+      ],
+    }, 1000, 200);
+
+    expect(positions?.at(-2)).toBeCloseTo(1 - 1 / 1000, 6);
+    // 1 mod 0.3 ends at the red segment's 10% boundary. The pixel just
+    // before the endpoint must stay red, not jump to the prior cyan stop.
+    expect(colors?.at(-2)).toMatchObject({ r: 244, g: 63, b: 94, a: 1 });
   });
 
   it("rasterizes a pattern tile once and repeats the resulting image shader", () => {

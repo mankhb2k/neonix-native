@@ -134,6 +134,70 @@ describe("Skia backdrop-filter replay", () => {
     expect(restoreCount).toBe(saveCount + 1);
   });
 
+  it("installs a semantic rounded clip before capturing the backdrop", () => {
+    const backdrop = { delete() {} };
+    const timeline: string[] = [];
+    const path = { delete() {} };
+    class PathBuilder {
+      transform() { return this; }
+      snapshot() { return path; }
+      delete() {}
+    }
+    class Paint implements SkiaPaint {
+      delete() {}
+      setAntiAlias() {}
+      setColor() {}
+      setAlphaf() {}
+      setStyle() {}
+      setStrokeWidth() {}
+      setStrokeCap() {}
+      setStrokeJoin() {}
+      setBlendMode() {}
+      setShader() {}
+    }
+    const canvas = {
+      clear() {},
+      save: () => 1,
+      restore() {},
+      concat() {},
+      drawRect() {},
+      clipRect() { timeline.push("bounds-clip"); },
+      clipPath() { timeline.push("rounded-clip"); },
+      saveLayer() { timeline.push("save-layer"); return 1; },
+    } as unknown as SkiaCanvas;
+    const kit = {
+      Color: () => 0,
+      TRANSPARENT: 0,
+      Paint,
+      Path: { MakeFromSVGString: () => path },
+      PathBuilder,
+      PaintStyle: { Fill: 0, Stroke: 1 },
+      BlendMode: { SrcOver: 0 },
+      ClipOp: { Intersect: 0 },
+      StrokeCap: { Butt: 0, Square: 1, Round: 2 },
+      StrokeJoin: { Miter: 0, Bevel: 1, Round: 2 },
+      TileMode: { Clamp: 0, Repeat: 1, Mirror: 2, Decal: 3 },
+      ImageFilter: { MakeBlur: () => backdrop },
+    } as unknown as SkiaCanvasKit;
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const buffer = {
+      commands: [
+        { op: "beginFrame", width: 200, height: 120, background: "#081018", graphId: "backdrop-rounded-clip", frame: 0, time: 0 },
+        { op: "beginLayer", key: "card", isolation: true, offscreen: true, clipPath: { sourceKey: "card:clip" }, backdropEffectProgram: { input: "source", ops: [{ id: "blur", kind: "blur", input: "source", output: "effect:blur", radius: 12 }], output: "effect:blur", requiresOffscreen: true } },
+        { op: "setTransform", key: "card:clip", matrix4: identity, alpha: 1, visible: true, order: -1 },
+        { op: "drawPath", key: "card:clip", layerId: "card", fill: "#ffffff", fillRule: "nonzero", contours: [{ id: "rounded", start: { x: 12, y: 0 }, segments: [{ kind: "line", to: { x: 88, y: 0 } }, { kind: "line", to: { x: 100, y: 12 } }, { kind: "line", to: { x: 100, y: 60 } }, { kind: "line", to: { x: 0, y: 60 } }, { kind: "line", to: { x: 0, y: 12 } }], closed: true }] },
+        { op: "setTransform", key: "card::paint", matrix4: identity, alpha: 1, visible: true, order: 0 },
+        { op: "drawSolid", key: "card::paint", layerId: "card", fill: "#ffffff66", width: 100, height: 60 },
+        { op: "endLayer", key: "card" },
+        { op: "endFrame" },
+      ],
+    } as unknown as PaintCommandBuffer;
+
+    replaySkiaCommands(kit, canvas, buffer);
+    expect(timeline.indexOf("rounded-clip")).toBeGreaterThanOrEqual(0);
+    expect(timeline.indexOf("rounded-clip")).toBeLessThan(timeline.indexOf("save-layer"));
+  });
+
   it("does not clip ordinary filter saveLayers so drop-shadow can expand", () => {
     const filter = { delete() {} };
     let clipCalls = 0;

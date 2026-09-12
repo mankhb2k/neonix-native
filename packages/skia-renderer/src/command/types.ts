@@ -62,6 +62,11 @@ export type ReplayLayer = {
    * expansion cannot paint outside the CSS border box on restore.
    */
   backdropClip?: boolean;
+  /**
+   * A semantic clip installed before saveLayer so backdrop sampling and the
+   * restored output share the same rounded CSS boundary.
+   */
+  backdropClipPathApplied?: boolean;
 };
 
 export type SkiaTypefaceResolver = (fontAssetId: string | undefined) => SkiaTypeface | null;

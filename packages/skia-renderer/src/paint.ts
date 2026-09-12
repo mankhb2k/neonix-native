@@ -113,19 +113,24 @@ function resolveGradient(gradient: PaintFillGradient, width: number, height: num
       }
     }
   }
-  // The end of a repeat period is the beginning of the next period. Preserve
-  // the colour immediately before the terminal boundary and let the final
-  // stop clamp through the end of the shader. Do not add the wrapped first
-  // stop at offset 1: CSS paints the half-open interval before the boundary,
-  // so that extra sample becomes a false line at the right/bottom edge when a
-  // repeat period lands exactly on the composition boundary.
+  // The canvas endpoint can land inside a partial cycle (for example, a 30%
+  // CSS repeat leaves the final 10% of a cycle at offset 1). Resolve that
+  // phase first. Sampling `period - epsilon` unconditionally treats a
+  // partial terminal cycle as though it had completed and replaces its final
+  // authored colour with the preceding cycle's last colour.
+  const rawTerminalPhase = ((1 % period) + period) % period;
+  const terminalPhase = rawTerminalPhase < 1e-9 || period - rawTerminalPhase < 1e-9
+    ? 0
+    : rawTerminalPhase;
+  const phaseEpsilon = Math.min(1e-7, period * 1e-4);
+  const preTerminalPhase = terminalPhase === 0
+    ? Math.max(0, period - phaseEpsilon)
+    : Math.max(0, terminalPhase - phaseEpsilon);
   const interiorStops = stops.filter((stop) => stop.offset < terminalOffset - 1e-9);
-  const preBoundaryStop = sampleGradientStop(baseStops, Math.max(0, period - 1e-7));
-  interiorStops.push({ ...preBoundaryStop, offset: terminalOffset });
-  // Keep an explicit endpoint for CanvasKit, but use the same preceding
-  // colour rather than the wrapped first stop. This preserves the shader's
-  // valid [0, 1] range without painting a new line at the terminal edge.
-  interiorStops.push({ ...preBoundaryStop, offset: 1 });
+  const preTerminalStop = sampleGradientStop(baseStops, preTerminalPhase);
+  const terminalStop = sampleGradientStop(baseStops, terminalPhase);
+  interiorStops.push({ ...preTerminalStop, offset: terminalOffset });
+  interiorStops.push({ ...terminalStop, offset: 1 });
   return { gradient: { ...gradient, spreadMethod: "pad", stops: interiorStops }, tileMode: "pad", materialized: true };
 }
 
