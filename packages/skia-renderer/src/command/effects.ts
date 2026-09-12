@@ -81,6 +81,26 @@ export function cssBlurRadiusToSkiaSigma(radius: number): number {
   return radius === 0 ? 0.5 : 0.57735 * radius + 0.5;
 }
 
+/**
+ * Extra pixels a foreground image filter may paint outside the owner geometry.
+ * Blur kernels and drop-shadow offsets both expand the filtered output; padding
+ * is additive so a blurred offset shadow keeps room for both contributions.
+ */
+export function effectFilterExpansionPadding(program: EffectProgram): number {
+  if (!program) return 0;
+  let blurPad = 0;
+  let offsetPad = 0;
+  for (const op of program.ops) {
+    if (op.kind === "blur") {
+      const sigma = cssBlurRadiusToSkiaSigma(op.radius);
+      blurPad = Math.max(blurPad, Math.ceil(sigma * 3 + 1));
+    } else if (op.kind === "offset") {
+      offsetPad = Math.max(offsetPad, Math.ceil(Math.max(Math.abs(op.x), Math.abs(op.y))));
+    }
+  }
+  return blurPad + offsetPad;
+}
+
 function makeShadowFilter(
   kit: SkiaCanvasKit,
   offset: { x: number; y: number },

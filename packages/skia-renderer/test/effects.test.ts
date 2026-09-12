@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeEffectProgram } from "@motionvideo/motion-runtime";
-import { cssBlurRadiusToSkiaSigma, effectFilterFor } from "../src/command/effects";
+import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "../src/command/effects";
 import type { SkiaCanvasKit } from "../src/canvas-kit";
 
 function createKit() {
@@ -49,6 +49,26 @@ describe("Skia CSS effect lowering", () => {
   it("converts CSS blur radius to the Skia sigma contract", () => {
     expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(8.5829, 6);
     expect(cssBlurRadiusToSkiaSigma(0)).toBeCloseTo(0.5, 6);
+  });
+
+  it("expands filter padding for blur and drop-shadow offsets additively", () => {
+    const blurOnly = effectFilterExpansionPadding({
+      input: "source",
+      ops: [{ id: "blur", kind: "blur", input: "source", output: "effect:blur", radius: 12 }],
+      output: "effect:blur",
+      requiresOffscreen: true,
+    });
+    const withOffset = effectFilterExpansionPadding({
+      input: "source",
+      ops: [
+        { id: "blur", kind: "blur", input: "source", output: "effect:blur", radius: 12 },
+        { id: "offset", kind: "offset", input: "effect:blur", output: "effect:offset", x: 24, y: 18 },
+      ],
+      output: "effect:offset",
+      requiresOffscreen: true,
+    });
+    expect(blurOnly).toBe(Math.ceil(cssBlurRadiusToSkiaSigma(12) * 3 + 1));
+    expect(withOffset).toBe(blurOnly + 24);
   });
 
   it("creates a filter that can be installed in a backdrop saveLayer slot", () => {

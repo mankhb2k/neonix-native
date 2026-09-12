@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PaintCommandBuffer } from "@motionvideo/motion-runtime";
-import { cssBlurRadiusToSkiaSigma } from "../src/command/effects";
+import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding } from "../src/command/effects";
 import { replaySkiaCommands } from "../src/command/replay";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaPaint } from "../src/canvas-kit";
 
@@ -192,6 +192,15 @@ describe("Skia backdrop-filter replay", () => {
 
     replaySkiaCommands(kit, canvas, buffer);
     expect(clipCalls).toBe(0);
-    expect(savedBounds).toEqual([0, 0, 1920, 1080]);
+    // Foreground filters use filter-expanded content bounds, not the full
+    // composition rect, so shadows/blurs keep expansion room without always
+    // allocating the whole frame.
+    const pad = effectFilterExpansionPadding({
+      input: "source",
+      ops: [{ id: "blur", kind: "blur", input: "source", output: "effect:blur", radius: 12 }],
+      output: "effect:blur",
+      requiresOffscreen: true,
+    });
+    expect(savedBounds).toEqual([100 - pad, 80 - pad, 520 + pad, 340 + pad]);
   });
 });

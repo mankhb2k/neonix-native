@@ -592,6 +592,27 @@ export function unionBounds(current: DrawBounds | undefined, next: DrawBounds): 
   };
 }
 
+/** Expand drawable bounds uniformly; used for filter output that bleeds past the owner. */
+export function expandBounds(bounds: DrawBounds, padding: number): DrawBounds {
+  const pad = Math.max(0, padding);
+  return {
+    left: bounds.left - pad,
+    top: bounds.top - pad,
+    right: bounds.right + pad,
+    bottom: bounds.bottom + pad,
+  };
+}
+
+/** Convert DrawBounds to the LTRB tuple CanvasKit saveLayer/clipRect expect. */
+export function boundsToRect(bounds: DrawBounds): readonly [number, number, number, number] {
+  return [bounds.left, bounds.top, bounds.right, bounds.bottom];
+}
+
+/** Full-frame composition clip used when local content bounds are unavailable. */
+export function compositionBounds(width: number, height: number): DrawBounds {
+  return { left: 0, top: 0, right: width, bottom: height };
+}
+
 export function drawCommandBounds(command: PaintCommand, transform: Extract<PaintCommand, { op: "setTransform" }> | null): DrawBounds | undefined {
   let x = 0;
   let y = 0;

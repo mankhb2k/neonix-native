@@ -3,8 +3,8 @@ import { cssColorToRgba } from "../color";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaImage, SkiaImageFilter } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
-import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
-import { cssBlurRadiusToSkiaSigma, effectFilterFor } from "./effects";
+import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
+import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "./effects";
 import { applyClipPath, drawMaskSource, sourcePathCommands, type MaskSource } from "./masks";
 import { drawAsset } from "./images";
 import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
@@ -424,37 +424,42 @@ export function replaySkiaCommands(
         const paint = new kit.Paint();
         paint.setAntiAlias(true);
         paint.setStyle(kit.PaintStyle.Fill);
+        // compositeAlpha is applied exactly once here when the layer restores;
+        // drawable paints inside the layer keep alpha 1 for isolated groups.
         paint.setAlphaf(Math.max(0, Math.min(1, command.compositeAlpha ?? 1)));
         paint.setBlendMode(blendModeFor(kit, command.blendMode));
         // Non-projective layers keep the compact saveLayer path. Projective
-        // layers apply their filter after projection in the draw branches.
-        const layerFilter = effectFilter.filter;
+        // layers apply their filter after projection in the draw branches —
+        // never install the same filter on this parent saveLayer.
+        const layerFilter = projectiveFilter ? null : effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
-        // Image filters such as drop-shadow expand beyond the source
-        // geometry. Keep the full composition clip for ordinary filtered
-        // layers so shadows are not cropped. Backdrop filters instead bind to
-        // the element content region so the blurred backdrop cannot bleed
-        // outside the owner (CSS backdrop-filter paint containment).
-        //
-        // saveLayer bounds alone are only a size hint: Skia blur kernels still
-        // expand the filtered backdrop past that rect. Mirror CSS by clipping
-        // to the border-box content region before the backdrop layer, while
-        // expanding the layer bounds so the kernel can still sample outside.
-        const contentBounds = backdropEffectFilter.filter
+        // Bound kinds (Phase 5):
+        // - layer content bounds: union of drawable geometry inside the layer
+        // - filter-expanded bounds: content + blur/shadow expansion
+        // - composition bounds: full frame fallback / isolation without filter
+        // Backdrop filters clip to content and pad saveLayer for sampling.
+        // Foreground filters use filter-expanded bounds so shadows/blurs are
+        // not cropped, without always allocating the full composition.
+        const frameBounds = compositionBounds(frameWidth, frameHeight);
+        const contentBounds = (backdropEffectFilter.filter || layerFilter)
           ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
           : undefined;
-        const clipBounds = contentBounds
-          ? [contentBounds.left, contentBounds.top, contentBounds.right, contentBounds.bottom] as const
-          : undefined;
-        if (clipBounds) {
-          canvas.save();
-          canvas.clipRect(clipBounds, kit.ClipOp.Intersect, false);
-          layer.backdropClip = true;
+        let saveBounds = boundsToRect(frameBounds);
+        if (backdropEffectFilter.filter) {
+          const clipBounds = contentBounds ? boundsToRect(contentBounds) : undefined;
+          if (clipBounds) {
+            canvas.save();
+            canvas.clipRect(clipBounds, kit.ClipOp.Intersect, false);
+            layer.backdropClip = true;
+          }
+          const pad = clipBounds ? backdropFilterPadding(command.backdropEffectProgram) : 0;
+          saveBounds = clipBounds
+            ? [clipBounds[0] - pad, clipBounds[1] - pad, clipBounds[2] + pad, clipBounds[3] + pad]
+            : boundsToRect(frameBounds);
+        } else if (layerFilter && contentBounds) {
+          const pad = effectFilterExpansionPadding(command.effectProgram);
+          saveBounds = boundsToRect(expandBounds(contentBounds, pad));
         }
-        const pad = clipBounds ? backdropFilterPadding(command.backdropEffectProgram) : 0;
-        const saveBounds = clipBounds
-          ? [clipBounds[0] - pad, clipBounds[1] - pad, clipBounds[2] + pad, clipBounds[3] + pad]
-          : [0, 0, frameWidth, frameHeight];
         canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
         paint.delete();
         if (!resources && !projectiveFilter) effectFilter.filter?.delete();
