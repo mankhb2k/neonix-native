@@ -49,8 +49,8 @@ export function buildRuntimeEffectProgram(
   let previousEffectWasShadow = false;
   for (const effect of effects) {
     if (effect.type === "shadow" || effect.type === "outer-glow" || effect.type === "inner-glow") {
-      if (effect.type === "shadow" && (effect.spread !== 0 || effect.inset)) {
-        throw new Error(`Runtime shadow spread/inset is not lowered yet: ${effect.id}`);
+      if (effect.type === "shadow" && effect.spread !== 0) {
+        throw new Error(`Runtime shadow spread is not lowered yet: ${effect.id}`);
       }
       const alpha = `effect:${effect.id}:alpha`;
       const blurred = `effect:${effect.id}:blur`;
@@ -71,18 +71,19 @@ export function buildRuntimeEffectProgram(
           radius: effect.type === "shadow" ? effect.blur : effect.radius,
         },
       );
-      if (effect.type === "inner-glow") {
+      const isInnerGlow = effect.type === "inner-glow" || (effect.type === "shadow" && effect.inset);
+      if (isInnerGlow) {
         ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: alpha, blurred, output: inner });
       }
       ops.push({
         id: `${effect.id}:tint`,
         kind: "tint",
-        input: effect.type === "inner-glow" ? inner : blurred,
+        input: isInnerGlow ? inner : blurred,
         output: tinted,
         color: effect.color,
         opacity: effect.type === "shadow" ? 1 : effect.opacity,
       });
-      if (effect.type === "shadow") {
+      if (effect.type === "shadow" && !effect.inset) {
         const offset = `effect:${effect.id}:offset`;
         ops.push(
           { id: `${effect.id}:offset`, kind: "offset", input: tinted, output: offset, x: effect.offset.x, y: effect.offset.y },

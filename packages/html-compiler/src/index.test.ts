@@ -481,13 +481,24 @@ describe("HTML compiler Phase 1 vertical slice", () => {
     expect(result.protocol?.layers.find((layer) => layer.id === "combined")).toMatchObject({ clipPath: expect.any(String), transform: { operations: expect.any(Array) } });
   });
 
-  it("fails closed for box-shadow spread and inset until runtime morphology is available", () => {
+  it("fails closed for box-shadow spread until runtime morphology is available", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="shadow"></div>`,
-      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 8px 12px 6px #00000099 inset; }`,
+      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: 0 8px 12px 6px #00000099; }`,
     }));
     expect(result.status).toBe("error");
-    expect(result.diagnostics[0]?.code).toBe("css-box-shadow-spread-inset-unsupported");
+    expect(result.diagnostics[0]?.code).toBe("css-box-shadow-spread-unsupported");
+  });
+
+  it("lowers an inset box-shadow as an inner compositing effect", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<div id="shadow"></div>`,
+      css: `#shadow { position: absolute; width: 200px; height: 100px; background: #2563eb; box-shadow: inset 0 0 24px #22d3ee; }`,
+    }));
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers.find((layer) => layer.id === "shadow")).toMatchObject({
+      effects: [{ type: "shadow", source: "box", blur: 24, spread: 0, inset: true }],
+    });
   });
 
   it("lowers Gold Test 01 to valid Atomic Protocol V2", () => {

@@ -15,6 +15,10 @@ const FIXTURES = [
   "phase7-element-background-gradient",
   "phase7-foreground-solid-background",
   "phase7-nested-solid-background",
+  "phase8-blur-isolation",
+  "phase8-shadow-isolation",
+  "phase8-inner-glow",
+  "phase8-outer-glow",
 ] as const;
 const SAMPLE_FRAMES = [0, 0.5] as const;
 
@@ -72,6 +76,26 @@ const REGIONS: Record<(typeof FIXTURES)[number], readonly Region[]> = {
     { name: "nested-overlap", x: 620, y: 480, width: 180, height: 120 },
     { name: "outside-blend", x: 1240, y: 400, width: 180, height: 180 },
     { name: "clip-panel", x: 1320, y: 190, width: 160, height: 120 },
+  ],
+  "phase8-blur-isolation": [
+    { name: "blur-core", x: 760, y: 400, width: 400, height: 200 },
+    { name: "blur-edge", x: 600, y: 300, width: 120, height: 120 },
+    { name: "blur-expansion", x: 1240, y: 600, width: 160, height: 140 },
+  ],
+  "phase8-shadow-isolation": [
+    { name: "shadow-card", x: 760, y: 400, width: 400, height: 200 },
+    { name: "shadow-offset", x: 1240, y: 600, width: 180, height: 160 },
+    { name: "shadow-edge", x: 580, y: 300, width: 140, height: 140 },
+  ],
+  "phase8-inner-glow": [
+    { name: "inner-core", x: 760, y: 400, width: 400, height: 200 },
+    { name: "inner-edge", x: 620, y: 320, width: 160, height: 140 },
+    { name: "inner-corner", x: 620, y: 320, width: 100, height: 100 },
+  ],
+  "phase8-outer-glow": [
+    { name: "outer-core", x: 760, y: 400, width: 400, height: 200 },
+    { name: "outer-halo", x: 560, y: 260, width: 180, height: 180 },
+    { name: "outer-halo-corner", x: 1240, y: 600, width: 180, height: 180 },
   ],
 };
 
@@ -220,7 +244,7 @@ async function setNativeTime(page: Page, value: number): Promise<void> {
   await expect.poll(async () => Number(await page.getByTestId("radial-native-skia-canvas").getAttribute("data-runtime-time"))).toBeCloseTo(value, 5);
 }
 
-test("Phase 7 compares combined fixtures at fixed frames and records diagnostics", async ({ page }) => {
+test("Phase 7/8 compares combined fixtures at fixed frames and records diagnostics", async ({ page }) => {
   test.setTimeout(180_000);
   mkdirSync(REPORT_ROOT, { recursive: true });
   // Keep the composition at 1920x1080, but leave room for the page scrollbar

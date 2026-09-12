@@ -276,7 +276,7 @@ function parseShadow(value: string, property: "text-shadow" | "box-shadow", inde
   const blur = lengths[2] === undefined ? 0 : shadowLength(lengths[2], `${property}.blur`, relative, fontSize, viewport);
   const spread = lengths[3] === undefined ? 0 : shadowLength(lengths[3], `${property}.spread`, relative, fontSize, viewport);
   if (blur < 0) fail("css-shadow-blur-invalid", `${property} blur must be non-negative`);
-  if (property === "box-shadow" && (spread !== 0 || inset)) fail("css-box-shadow-spread-inset-unsupported", "box-shadow spread and inset require the runtime morphology contract");
+  if (property === "box-shadow" && spread !== 0) fail("css-box-shadow-spread-unsupported", "box-shadow spread requires the runtime morphology contract");
   const base: ShadowEffectBase = {
     id: `${property}:${index}`,
     type: "shadow",

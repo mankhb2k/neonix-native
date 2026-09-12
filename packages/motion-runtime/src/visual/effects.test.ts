@@ -46,6 +46,15 @@ describe("runtime shadow effects", () => {
     expect(program?.ops.at(-1)).toMatchObject({ kind: "composite", source: "effect:blur", output: "effect:drop-shadow" });
   });
 
+  it("lowers an inset box shadow through the inner-alpha path", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "inner-shadow", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 24, spread: 0, color: "#22d3ee", inset: true },
+    ]);
+
+    expect(program?.ops.map((op) => op.kind)).toEqual(["alpha-mask", "blur", "inner-alpha", "tint", "composite"]);
+    expect(program?.ops.at(-1)).toMatchObject({ kind: "composite", backdrop: "source", source: "effect:inner-shadow:tint" });
+  });
+
   it("builds backdrop filters as an independent ordered program", () => {
     const program = buildRuntimeEffectProgram([
       { id: "blur", type: "blur", radius: 12 },
