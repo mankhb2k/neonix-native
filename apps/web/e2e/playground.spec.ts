@@ -26,7 +26,7 @@ test.describe("HTML compiler playground", () => {
     const picker = page.getByTestId("playground-fixture-picker");
     const playToggle = page.getByTestId("playground-play-toggle");
     await expect(picker).toBeVisible();
-    await expect(picker.locator("option")).toHaveCount(22);
+    await expect(picker.locator("option")).toHaveCount(26);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     await page.route("**/playground/fixtures/marketing-launch.html", async (route) => {
@@ -156,7 +156,7 @@ test.describe("HTML compiler playground", () => {
   test("renders repeated radial and conic backgrounds as independent non-linear paint cases", async ({ page }) => {
     await page.goto("/playground", { waitUntil: "domcontentloaded" });
     const picker = page.getByTestId("playground-fixture-picker");
-    await expect(picker.locator("option")).toHaveCount(22);
+    await expect(picker.locator("option")).toHaveCount(26);
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     for (const [fixtureId, selector, gradientName] of [
@@ -185,7 +185,7 @@ test.describe("HTML compiler playground", () => {
     const source = page.getByTestId("playground-source");
     const json = page.getByTestId("playground-json");
     const canvas = page.getByTestId("playground-runtime-canvas");
-    await expect(picker.locator("option")).toHaveCount(22);
+    await expect(picker.locator("option")).toHaveCount(26);
     await expect(canvas).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
 
     for (const [fixtureId, marker] of [
@@ -218,5 +218,26 @@ test.describe("HTML compiler playground", () => {
     await expect(page.getByTestId("playground-json")).not.toContainText("::tile:");
     await expect(page.getByTestId("playground-runtime-canvas")).toHaveAttribute("data-preview-state", "ready");
     await expect(page.getByTestId("playground-runtime-canvas")).not.toHaveAttribute("data-diagnostics", /invalid matrix argument/);
+  });
+
+  test("loads Phase 4 effect fixtures with valid Runtime effect boundaries", async ({ page }) => {
+    await page.goto("/playground", { waitUntil: "domcontentloaded" });
+    const picker = page.getByTestId("playground-fixture-picker");
+    const canvas = page.getByTestId("playground-runtime-canvas");
+    await expect(canvas).toHaveAttribute("data-preview-state", "ready");
+    for (const [fixtureId, marker] of [
+      ["phase4-filter-chain", "filter-chain"],
+      ["phase4-filter-opacity-boundary", "opacity-boundary"],
+      ["phase4-backdrop-filter", "backdrop-card"],
+      ["phase4-sibling-effects", "sibling-left"],
+    ] as const) {
+      await picker.selectOption(fixtureId);
+      await expect(picker).toHaveValue(fixtureId);
+      await expect(page.getByTestId("playground-source")).toContainText(marker);
+      await expect(page.getByTestId("playground-json")).toContainText('"formatVersion": 2');
+      await expect(canvas).toHaveAttribute("data-preview-state", "ready");
+      await expect(canvas).not.toHaveAttribute("data-diagnostics", /invalid matrix argument|effect_program/);
+      await expect(page.getByTestId("playground-play-toggle")).toHaveAttribute("aria-label", "Play preview");
+    }
   });
 });

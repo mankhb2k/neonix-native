@@ -10,6 +10,7 @@
 
 import { PAINT_COMMAND_VERSION } from "./paint-buffer";
 import { validatePaintCommandBuffer } from "./validate-paint-command-buffer";
+import type { PaintCommand } from "./paint-command";
 import type { PaintCommandBuffer } from "./paint-buffer";
 import type { PaintValidateResult } from "./paint-display-list";
 
@@ -21,6 +22,50 @@ import type { PaintValidateResult } from "./paint-display-list";
  * required fields change.
  */
 export const paintContractVersion = PAINT_COMMAND_VERSION;
+
+/** Stable command-stream summary for runtime diagnostics and regression tests. */
+export type PaintCommandBufferSummary = {
+  commandCount: number;
+  operationCounts: Partial<Record<PaintCommand["op"], number>>;
+  drawKeys: string[];
+  transformKeys: string[];
+  layerScopes: string[];
+  groupScopes: string[];
+};
+
+export function summarizePaintCommandBuffer(
+  buffer: PaintCommandBuffer,
+): PaintCommandBufferSummary {
+  const operationCounts: Partial<Record<PaintCommand["op"], number>> = {};
+  const drawKeys: string[] = [];
+  const transformKeys: string[] = [];
+  const layerScopes: string[] = [];
+  const groupScopes: string[] = [];
+
+  for (const command of buffer.commands) {
+    operationCounts[command.op] = (operationCounts[command.op] ?? 0) + 1;
+    if (command.op === "setTransform") transformKeys.push(command.key);
+    if (
+      "key" in command &&
+      (command.op === "drawText" || command.op === "drawShape" || command.op === "drawSolid" ||
+        command.op === "drawImage" || command.op === "drawPath" || command.op === "drawVideo" ||
+        command.op === "unsupported")
+    ) {
+      drawKeys.push(command.key);
+    }
+    if (command.op === "beginLayer" || command.op === "endLayer") layerScopes.push(`${command.op}:${command.key}`);
+    if (command.op === "beginGroup" || command.op === "endGroup") groupScopes.push(`${command.op}:${command.key}`);
+  }
+
+  return {
+    commandCount: buffer.commands.length,
+    operationCounts,
+    drawKeys,
+    transformKeys,
+    layerScopes,
+    groupScopes,
+  };
+}
 
 // ── Validator ─────────────────────────────────────────────────────────
 
