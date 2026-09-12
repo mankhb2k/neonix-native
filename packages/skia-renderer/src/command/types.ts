@@ -57,6 +57,11 @@ export type ReplayLayer = {
   /** Filter applied to the backdrop captured by this layer's saveLayer. */
   backdropFilter?: SkiaImageFilter | null;
   backdropFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['backdropEffectProgram'];
+  /**
+   * Extra save/clipRect pushed around a backdrop saveLayer so Skia blur
+   * expansion cannot paint outside the CSS border box on restore.
+   */
+  backdropClip?: boolean;
 };
 
 export type SkiaTypefaceResolver = (fontAssetId: string | undefined) => SkiaTypeface | null;

@@ -4,7 +4,7 @@ import type { SkiaCanvas, SkiaCanvasKit, SkiaImage, SkiaImageFilter } from "../c
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
 import { drawCommandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
-import { effectFilterFor } from "./effects";
+import { cssBlurRadiusToSkiaSigma, effectFilterFor } from "./effects";
 import { applyClipPath, drawMaskSource, sourcePathCommands, type MaskSource } from "./masks";
 import { drawAsset } from "./images";
 import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
@@ -215,6 +215,68 @@ function maskCacheKey(
   return JSON.stringify({ graphId, width, height, deviceScale, layerKey, maskLayers, sourceData, projectionContext });
 }
 
+
+/**
+ * Extra pixels the backdrop saveLayer must capture so a CSS blur kernel can
+ * sample content just outside the owner. Output is still hard-clipped to the
+ * element bounds; this only widens the offscreen/input region.
+ */
+function backdropFilterPadding(
+  program: Extract<PaintCommand, { op: "beginLayer" }>['backdropEffectProgram'],
+): number {
+  if (!program) return 0;
+  let padding = 0;
+  for (const op of program.ops) {
+    if (op.kind === "blur") {
+      const sigma = cssBlurRadiusToSkiaSigma(op.radius);
+      padding = Math.max(padding, Math.ceil(sigma * 3 + 1));
+    }
+  }
+  return padding;
+}
+
+/**
+ * Union the drawable content bounds inside a beginLayer..endLayer scope.
+ * Backdrop filters must be clipped to this element region; using the full
+ * frame lets the blurred backdrop bleed outside the owner.
+ */
+function layerContentBounds(
+  commands: readonly PaintCommand[],
+  beginIndex: number,
+  layerKey: string,
+  projectionContext: SkiaProjectionContext | undefined,
+): { left: number; top: number; right: number; bottom: number } | undefined {
+  let depth = 0;
+  let pending: Extract<PaintCommand, { op: "setTransform" }> | null = null;
+  let bounds: { left: number; top: number; right: number; bottom: number } | undefined;
+  for (let index = beginIndex + 1; index < commands.length; index += 1) {
+    const command = commands[index]!;
+    if (command.op === "beginLayer" || command.op === "beginGroup") {
+      depth += 1;
+      continue;
+    }
+    if (command.op === "endLayer" || command.op === "endGroup") {
+      if (depth === 0) {
+        if (command.op === "endLayer" && command.key === layerKey) break;
+        break;
+      }
+      depth -= 1;
+      pending = null;
+      continue;
+    }
+    if (depth > 0) continue;
+    if (command.op === "setTransform") {
+      pending = projectionContext ? transformForSkiaCanvas(command, projectionContext) : command;
+      continue;
+    }
+    if (!["drawPath", "drawShape", "drawSolid", "drawText", "drawImage", "drawVideo"].includes(command.op)) continue;
+    const next = drawCommandBounds(command, pending);
+    pending = null;
+    if (next) bounds = unionBounds(bounds, next);
+  }
+  return bounds;
+}
+
 export function replaySkiaCommands(
   kit: SkiaCanvasKit,
   canvas: SkiaCanvas,
@@ -286,7 +348,8 @@ export function replaySkiaCommands(
     return created;
   };
 
-  for (const command of buffer.commands) {
+  for (let commandIndex = 0; commandIndex < buffer.commands.length; commandIndex += 1) {
+    const command = buffer.commands[commandIndex]!;
     if (command.op === "beginFrame") {
       frameWidth = command.width;
       frameHeight = command.height;
@@ -368,10 +431,31 @@ export function replaySkiaCommands(
         const layerFilter = effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
         // Image filters such as drop-shadow expand beyond the source
-        // geometry. Give the offscreen pass the complete composition clip so
-        // the filtered output is not cropped to the unfiltered source bounds,
-        // especially for projective surfaces near an edge.
-        canvas.saveLayer(paint, [0, 0, frameWidth, frameHeight], backdropEffectFilter.filter);
+        // geometry. Keep the full composition clip for ordinary filtered
+        // layers so shadows are not cropped. Backdrop filters instead bind to
+        // the element content region so the blurred backdrop cannot bleed
+        // outside the owner (CSS backdrop-filter paint containment).
+        //
+        // saveLayer bounds alone are only a size hint: Skia blur kernels still
+        // expand the filtered backdrop past that rect. Mirror CSS by clipping
+        // to the border-box content region before the backdrop layer, while
+        // expanding the layer bounds so the kernel can still sample outside.
+        const contentBounds = backdropEffectFilter.filter
+          ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
+          : undefined;
+        const clipBounds = contentBounds
+          ? [contentBounds.left, contentBounds.top, contentBounds.right, contentBounds.bottom] as const
+          : undefined;
+        if (clipBounds) {
+          canvas.save();
+          canvas.clipRect(clipBounds, kit.ClipOp.Intersect, false);
+          layer.backdropClip = true;
+        }
+        const pad = clipBounds ? backdropFilterPadding(command.backdropEffectProgram) : 0;
+        const saveBounds = clipBounds
+          ? [clipBounds[0] - pad, clipBounds[1] - pad, clipBounds[2] + pad, clipBounds[3] + pad]
+          : [0, 0, frameWidth, frameHeight];
+        canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
         paint.delete();
         if (!resources && !projectiveFilter) effectFilter.filter?.delete();
         if (!resources) backdropEffectFilter.filter?.delete();
@@ -507,7 +591,11 @@ export function replaySkiaCommands(
         }
       }
       if (layer?.noiseEffect && layer.noiseBounds) stats.noiseRegions.push({ effect: layer.noiseEffect, bounds: layer.noiseBounds });
-      if (layer?.saved) canvas.restore();
+      if (layer?.saved) {
+        canvas.restore();
+        // Pop the backdrop paint-containment clip pushed around saveLayer.
+        if (layer.backdropClip) canvas.restore();
+      }
       if (layer?.projectiveFilter && !resources) layer.projectiveFilter.delete();
       pendingTransform = null;
       continue;

@@ -114,6 +114,40 @@ function matchEffectGraph(program: NonNullable<EffectProgram>, kinds: string[]):
   return program.ops.length === kinds.length && program.ops.every((op, index) => op.kind === kinds[index]);
 }
 
+type LinearColorSpatialOp = Extract<RuntimeEffectOp, { kind: "blur" | "color-adjust" | "color-matrix" | "alpha" }>;
+
+function isLinearColorSpatialOp(op: RuntimeEffectOp): op is LinearColorSpatialOp {
+  return op.kind === "blur" || op.kind === "color-adjust" || op.kind === "color-matrix" || op.kind === "alpha";
+}
+
+/** Build a chained blur/color-adjust/color-matrix/alpha image filter. */
+function buildLinearColorSpatialFilter(
+  kit: SkiaCanvasKit,
+  ops: readonly LinearColorSpatialOp[],
+): SkiaImageFilter | null {
+  let filter: SkiaImageFilter | null = null;
+  for (const op of ops) {
+    let next: SkiaImageFilter | null;
+    if (op.kind === "blur") {
+      next = makeCssBlurFilter(kit, op.radius, filter);
+    } else if (kit.ColorFilter?.MakeMatrix && kit.ImageFilter.MakeColorFilter) {
+      const matrix = op.kind === "color-adjust" ? colorAdjustMatrix(op) : op.kind === "color-matrix" ? op.matrix : alphaMatrix(op);
+      const colorFilter = kit.ColorFilter.MakeMatrix(matrix);
+      next = colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, filter) : null;
+      colorFilter?.delete();
+    } else {
+      next = null;
+    }
+    if (!next) {
+      filter?.delete();
+      return null;
+    }
+    filter?.delete();
+    filter = next;
+  }
+  return filter;
+}
+
 function shadowBlocks(program: NonNullable<EffectProgram>): Array<{
   blur: Extract<RuntimeEffectOp, { kind: "blur" }>;
   tint: Extract<RuntimeEffectOp, { kind: "tint" }>;
@@ -182,37 +216,46 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     const filter = makeShadowFilter(kit, { x: 0, y: 0 }, blur.radius, tint.color, tint.opacity, false);
     return { filter, supported: Boolean(filter) };
   }
-  // CSS filter order: blur(...) drop-shadow(...). The shadow must receive
-  // the blurred source silhouette, while the owner and shadow remain one
-  // ordered image-filter program.
-  const leadingBlur = ops[0];
-  const shadowAlpha = ops[1];
-  const shadowBlur = ops[2];
-  const shadowTint = ops[3];
-  const shadowOffset = ops[4];
-  const shadowComposite = ops[5];
-  if (
-    leadingBlur?.kind === "blur" &&
-    shadowAlpha?.kind === "alpha-mask" && shadowAlpha.input === leadingBlur.output &&
-    shadowBlur?.kind === "blur" && shadowBlur.input === shadowAlpha.output &&
-    shadowTint?.kind === "tint" && shadowTint.input === shadowBlur.output &&
-    shadowOffset?.kind === "offset" && shadowOffset.input === shadowTint.output &&
-    shadowComposite?.kind === "composite" && shadowComposite.backdrop === shadowOffset.output && shadowComposite.source === leadingBlur.output &&
-    shadowComposite.output === program.output && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend
-  ) {
-    const blurredSource = makeCssBlurFilter(kit, leadingBlur.radius);
-    const shadowOnly = blurredSource
-      ? makeShadowFilter(kit, shadowOffset, shadowBlur.radius, shadowTint.color, shadowTint.opacity, true, blurredSource)
-      : null;
-    // MakeDropShadowOnly deliberately supplies only the shadow branch. Blend
-    // the blurred owner back above it so the ordered CSS program cannot lose
-    // the source while crossing a projective/near-plane boundary.
-    const filter = shadowOnly && blurredSource
-      ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, shadowOnly, blurredSource)
-      : null;
-    shadowOnly?.delete();
-    blurredSource?.delete();
-    return { filter, supported: Boolean(filter) };
+  // CSS filter order: blur/color*(...) drop-shadow(...). Prefix operators
+  // reshape the owner; the shadow then receives that filtered silhouette.
+  if (ops.length >= 6 && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend) {
+    const shadowStart = ops.length - 5;
+    const prefixOps = ops.slice(0, shadowStart);
+    const shadowAlpha = ops[shadowStart];
+    const shadowBlur = ops[shadowStart + 1];
+    const shadowTint = ops[shadowStart + 2];
+    const shadowOffset = ops[shadowStart + 3];
+    const shadowComposite = ops[shadowStart + 4];
+    const prefixValid = prefixOps.length > 0
+      && prefixOps.every(isLinearColorSpatialOp)
+      && prefixOps.every((op, index) => op.input === (index === 0 ? "source" : prefixOps[index - 1]!.output));
+    const prefixOutput = prefixOps.at(-1)?.output;
+    if (
+      prefixValid &&
+      prefixOutput !== undefined &&
+      shadowAlpha?.kind === "alpha-mask" && shadowAlpha.input === prefixOutput &&
+      shadowBlur?.kind === "blur" && shadowBlur.input === shadowAlpha.output &&
+      shadowTint?.kind === "tint" && shadowTint.input === shadowBlur.output &&
+      shadowOffset?.kind === "offset" && shadowOffset.input === shadowTint.output &&
+      shadowComposite?.kind === "composite" &&
+      shadowComposite.backdrop === shadowOffset.output &&
+      shadowComposite.source === prefixOutput &&
+      shadowComposite.output === program.output &&
+      shadowComposite.mode === "source-over"
+    ) {
+      const filteredSource = buildLinearColorSpatialFilter(kit, prefixOps as LinearColorSpatialOp[]);
+      const shadowOnly = filteredSource
+        ? makeShadowFilter(kit, shadowOffset, shadowBlur.radius, shadowTint.color, shadowTint.opacity, true, filteredSource)
+        : null;
+      // MakeDropShadowOnly supplies only the shadow branch. Blend the filtered
+      // owner back above it so ordered CSS programs keep the source.
+      const filter = shadowOnly && filteredSource
+        ? kit.ImageFilter.MakeBlend(kit.BlendMode.SrcOver, shadowOnly, filteredSource)
+        : null;
+      shadowOnly?.delete();
+      filteredSource?.delete();
+      return { filter, supported: Boolean(filter) };
+    }
   }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
     const blurred = kit.ImageFilter.MakeBlur(blur.radius, blur.radius, kit.TileMode.Decal, null);
@@ -226,27 +269,8 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     tinted?.delete();
     return { filter, supported: Boolean(filter) };
   }
-  if (ops.every((op) => op.kind === "blur" || op.kind === "color-adjust" || op.kind === "color-matrix" || op.kind === "alpha") && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
-    let filter: SkiaImageFilter | null = null;
-    for (const op of ops) {
-      let next: SkiaImageFilter | null;
-      if (op.kind === "blur") {
-        next = makeCssBlurFilter(kit, op.radius, filter);
-      } else if (kit.ColorFilter?.MakeMatrix && kit.ImageFilter.MakeColorFilter) {
-        const matrix = op.kind === "color-adjust" ? colorAdjustMatrix(op) : op.kind === "color-matrix" ? op.matrix : alphaMatrix(op);
-        const colorFilter = kit.ColorFilter.MakeMatrix(matrix);
-        next = colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, filter) : null;
-        colorFilter?.delete();
-      } else {
-        next = null;
-      }
-      if (!next) {
-        filter?.delete();
-        return { filter: null, supported: false };
-      }
-      filter?.delete();
-      filter = next;
-    }
+  if (ops.every(isLinearColorSpatialOp) && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
+    const filter = buildLinearColorSpatialFilter(kit, ops);
     return { filter, supported: Boolean(filter) };
   }
   return { filter: null, supported: false };
