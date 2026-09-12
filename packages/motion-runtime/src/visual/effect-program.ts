@@ -46,6 +46,8 @@ export type RuntimeAlphaMaskEffectOp = {
   kind: "alpha-mask";
   input: SurfaceRef;
   output: SurfaceRef;
+  /** Box shadows use the element geometry even when the source pixels are transparent. */
+  source?: "alpha" | "box";
 };
 
 /** Inside-only coverage from original alpha minus its blurred alpha. */

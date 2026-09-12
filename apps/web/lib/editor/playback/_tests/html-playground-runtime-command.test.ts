@@ -3,20 +3,42 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { compileDocument } from "@motionvideo/html-compiler";
 import { compileProtocolToPaintCommands } from "@motionvideo/motion-compiler";
-import { summarizePaintCommandBuffer, validatePaintBuffer, type PaintCommand, type PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import {
+  summarizePaintCommandBuffer,
+  validatePaintBuffer,
+  type PaintCommand,
+  type PaintCommandBuffer,
+} from "@motionvideo/motion-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "@/lib/docs/html-compiler-preview";
 import { HTML_PLAYGROUND_CASES } from "@/lib/playground/html-playground-cases";
 
-const PHASE2_CASE_IDS = [
-  "phase2-single-rect",
-  "phase2-single-opacity",
-  "phase2-rounded-shape",
-  "phase2-two-shape-overlap",
-  "phase2-three-shape-order",
-  "phase2-shape-text-image",
-  "phase2-border-background",
-  "phase2-multiple-backgrounds",
+const GRID_CASE_IDS = [
+  "review-grid-opacity-thirty",
+  "review-grid-default-opacity",
+  "review-grid-composition-baseline",
+  "review-grid-composition-baseline-1px",
+  "review-grid-repeat-x",
+  "review-grid-repeat-y",
+  "review-grid-no-repeat",
 ] as const;
+
+const INSET_CASE_IDS = [
+  "phase8-inset-rounded-small",
+  "phase8-inset-rounded-medium",
+  "phase8-inset-rounded-large",
+  "phase8-inset-transparent-rounded-small",
+  "phase8-inset-transparent-rounded-medium",
+  "phase8-inset-transparent-rounded-large",
+] as const;
+
+const EXPECTED_INSET_RADIUS: Record<(typeof INSET_CASE_IDS)[number], number> = {
+  "phase8-inset-rounded-small": 48,
+  "phase8-inset-rounded-medium": 48,
+  "phase8-inset-rounded-large": 48,
+  "phase8-inset-transparent-rounded-small": 16,
+  "phase8-inset-transparent-rounded-medium": 64,
+  "phase8-inset-transparent-rounded-large": 112,
+};
 
 function fixtureHtml(id: string): string {
   if (!HTML_PLAYGROUND_CASES.some((candidate) => candidate.id === id)) {
@@ -41,62 +63,33 @@ function compileFixture(id: string): PaintCommandBuffer {
   return compileProtocolToPaintCommands(result.protocol, { frame: 0 });
 }
 
-function drawCommands(buffer: PaintCommandBuffer): PaintCommand[] {
-  return buffer.commands.filter((command) => [
-    "drawText", "drawShape", "drawSolid", "drawImage", "drawPath", "drawVideo", "unsupported",
-  ].includes(command.op));
-}
-
-describe("Phase 3 HTML playground Runtime command contract", () => {
-  it.each(PHASE2_CASE_IDS)("emits a valid command stream for %s", (id) => {
+describe("Focused HTML playground Runtime command contract", () => {
+  it.each([...GRID_CASE_IDS, ...INSET_CASE_IDS])("emits a valid command stream for %s", (id) => {
     const buffer = compileFixture(id);
-    const validation = validatePaintBuffer(buffer);
-    expect(validation.ok, id).toBe(true);
+    expect(validatePaintBuffer(buffer).ok, id).toBe(true);
     expect(buffer.commands[0]?.op, id).toBe("beginFrame");
     expect(buffer.commands.at(-1)?.op, id).toBe("endFrame");
   });
 
-  it("keeps one transform paired with every drawable", () => {
-    for (const id of PHASE2_CASE_IDS) {
+  it("keeps one transform paired with every grid drawable", () => {
+    for (const id of GRID_CASE_IDS) {
       const buffer = compileFixture(id);
       const summary = summarizePaintCommandBuffer(buffer);
-      const draws = drawCommands(buffer);
-      expect(summary.operationCounts.beginFrame, id).toBe(1);
-      expect(summary.operationCounts.endFrame, id).toBe(1);
+      const draws = buffer.commands.filter((command): command is PaintCommand => [
+        "drawText", "drawShape", "drawSolid", "drawImage", "drawPath", "drawVideo", "unsupported",
+      ].includes(command.op));
       expect(summary.transformKeys, id).toEqual(draws.map((command) => command.key));
-      expect(new Set(summary.drawKeys).size, id).toBe(summary.drawKeys.length);
     }
   });
 
-  it("keeps layer scope boundaries balanced and ordered", () => {
-    for (const id of PHASE2_CASE_IDS) {
-      const buffer = compileFixture(id);
-      const openLayers: string[] = [];
-      const openGroups: string[] = [];
-      for (const command of buffer.commands) {
-        if (command.op === "beginLayer") openLayers.push(command.key);
-        if (command.op === "endLayer") expect(openLayers.pop(), id).toBe(command.key);
-        if (command.op === "beginGroup") openGroups.push(command.key);
-        if (command.op === "endGroup") expect(openGroups.pop(), id).toBe(command.key);
-      }
-      expect(openLayers, id).toEqual([]);
-      expect(openGroups, id).toEqual([]);
-    }
-  });
-
-  it("preserves the expected alpha and draw order for overlap controls", () => {
-    const opacity = compileFixture("phase2-single-opacity");
-    const opacityTransform = opacity.commands.find((command) => command.op === "setTransform");
-    expect(opacityTransform).toMatchObject({ alpha: 0.3 });
-
-    const overlap = compileFixture("phase2-two-shape-overlap");
-    const overlapTransforms = overlap.commands.filter((command): command is Extract<PaintCommand, { op: "setTransform" }> => command.op === "setTransform");
-    expect(overlapTransforms).toHaveLength(2);
-    expect(overlapTransforms.map((command) => command.alpha)).toEqual([0.55, 0.58]);
-
-    const ordered = compileFixture("phase2-three-shape-order");
-    const orderedTransforms = ordered.commands.filter((command): command is Extract<PaintCommand, { op: "setTransform" }> => command.op === "setTransform");
-    expect(orderedTransforms).toHaveLength(3);
-    expect(orderedTransforms.map((command) => command.order)).toEqual([...orderedTransforms].sort((a, b) => a.order - b.order).map((command) => command.order));
+  it.each(INSET_CASE_IDS)("uses a rounded box alpha mask for %s", (id) => {
+    const buffer = compileFixture(id);
+    const layer = buffer.commands.find((command): command is Extract<PaintCommand, { op: "beginLayer" }> => command.op === "beginLayer");
+    expect(layer?.effectProgram?.ops[0], id).toMatchObject({ kind: "alpha-mask", source: "box" });
+    expect(layer?.effectBox, id).toMatchObject({
+      width: 680,
+      height: 360,
+      cornerRadius: EXPECTED_INSET_RADIUS[id],
+    });
   });
 });

@@ -32,6 +32,8 @@ export type SkiaCanvasKit = {
   ClipOp: { Intersect: unknown };
   ImageFilter: {
     MakeBlur(sigmaX: number, sigmaY: number, tileMode: unknown, input?: unknown): SkiaImageFilter | null;
+    /** CanvasKit image-filter transform used for translated shadow masks. */
+    MakeMatrixTransform?(matrix: number[], options: { filter?: unknown; mipmap?: unknown }, input?: SkiaImageFilter | null): SkiaImageFilter | null;
     MakeColorFilter?(filter: SkiaColorFilter, input?: SkiaImageFilter | null): SkiaImageFilter | null;
     MakeCompose?(outer: SkiaImageFilter | null, inner: SkiaImageFilter | null): SkiaImageFilter | null;
     MakeDropShadow?(dx: number, dy: number, sigmaX: number, sigmaY: number, color: unknown, input?: SkiaImageFilter | null): SkiaImageFilter | null;

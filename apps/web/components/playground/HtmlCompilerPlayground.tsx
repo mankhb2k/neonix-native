@@ -1,6 +1,7 @@
 "use client";
 
 import { Pause, Play, RotateCcw, Upload } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 import { Button } from "@/components/ui";
@@ -83,6 +84,10 @@ function diagnosticText(result: HtmlCompilerResult): string {
 }
 
 export function HtmlCompilerPlayground() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedFixtureId = searchParams.get("fixture");
+  const requestedFixture = HTML_PLAYGROUND_CASES.find((fixture) => fixture.id === requestedFixtureId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const browserStageRef = useRef<HTMLDivElement>(null);
   const browserIframeRef = useRef<HTMLIFrameElement>(null);
@@ -90,6 +95,7 @@ export function HtmlCompilerPlayground() {
   const fixtureRequestRef = useRef(0);
   const browserPlayingRef = useRef(false);
   const lastUiFrameRef = useRef(-1);
+  const urlFixtureRef = useRef<string | null>(null);
   const [html, setHtml] = useState(DEFAULT_HTML);
   const [isDragging, setIsDragging] = useState(false);
   const [browserScale, setBrowserScale] = useState(0.4);
@@ -97,7 +103,7 @@ export function HtmlCompilerPlayground() {
   const [runtimeProject, setRuntimeProject] = useState<RuntimeProjectV3 | null>(null);
   const [runtimeDocument, setRuntimeDocument] = useState<unknown>(null);
   const [previewReady, setPreviewReady] = useState(false);
-  const [selectedFixtureId, setSelectedFixtureId] = useState("custom");
+  const [selectedFixtureId, setSelectedFixtureId] = useState(requestedFixture?.id ?? "custom");
   const [fixtureLoading, setFixtureLoading] = useState(false);
 
   const compilation = useMemo(
@@ -191,10 +197,20 @@ export function HtmlCompilerPlayground() {
     return () => observer.disconnect();
   }, [composition.height, composition.width]);
 
+  const syncFixtureUrl = useCallback((fixtureId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (fixtureId === "custom") params.delete("fixture");
+    else params.set("fixture", fixtureId);
+    const query = params.toString();
+    router.replace(query ? `/playground?${query}` : "/playground", { scroll: false });
+  }, [router, searchParams]);
+
   const importFile = useCallback((file: File | undefined) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".html") && file.type !== "text/html") return;
     const requestId = ++fixtureRequestRef.current;
+    urlFixtureRef.current = "custom";
+    syncFixtureUrl("custom");
     setPreviewReady(false);
     void file.text().then((source) => {
       if (requestId !== fixtureRequestRef.current) return;
@@ -202,9 +218,13 @@ export function HtmlCompilerPlayground() {
       setHtml(source);
       setPlayback(INITIAL_PLAYBACK);
     });
-  }, []);
+  }, [syncFixtureUrl]);
 
-  const selectFixture = useCallback((fixtureId: string) => {
+  const selectFixture = useCallback((fixtureId: string, persistUrl = true) => {
+    if (persistUrl) {
+      urlFixtureRef.current = fixtureId;
+      syncFixtureUrl(fixtureId);
+    }
     if (fixtureId === "custom") {
       fixtureRequestRef.current += 1;
       setSelectedFixtureId("custom");
@@ -226,12 +246,21 @@ export function HtmlCompilerPlayground() {
       })
       .catch(() => {
         if (requestId !== fixtureRequestRef.current) return;
+        urlFixtureRef.current = "custom";
+        syncFixtureUrl("custom");
         setSelectedFixtureId("custom");
       })
       .finally(() => {
         if (requestId === fixtureRequestRef.current) setFixtureLoading(false);
       });
-  }, []);
+  }, [syncFixtureUrl]);
+
+  useEffect(() => {
+    const nextFixtureId = requestedFixture?.id ?? "custom";
+    if (urlFixtureRef.current === nextFixtureId) return;
+    urlFixtureRef.current = nextFixtureId;
+    if (requestedFixture) selectFixture(requestedFixture.id, false);
+  }, [requestedFixture, selectFixture]);
 
   const onSeek = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const time = Number(event.target.value);

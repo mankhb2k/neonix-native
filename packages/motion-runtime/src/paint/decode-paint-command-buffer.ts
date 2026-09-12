@@ -121,6 +121,7 @@ export function decodePaintCommandBuffer(
           offscreen: Boolean(cmd.offscreen),
           ...(cmd.blendMode ? { blendMode: cmd.blendMode } : {}),
           ...(cmd.effectProgram ? { effectProgram: cmd.effectProgram } : {}),
+          ...(cmd.effectBox ? { effectBox: cmd.effectBox } : {}),
           ...(cmd.backdropEffectProgram ? { backdropEffectProgram: cmd.backdropEffectProgram } : {}),
           ...(cmd.clipPath ? { clipPath: cmd.clipPath } : {}),
           ...(cmd.mask ? { mask: cmd.mask } : {}),

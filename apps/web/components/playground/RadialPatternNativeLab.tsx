@@ -150,7 +150,7 @@ export function RadialPatternNativeLab() {
           </div>
           <div className="flex items-center gap-2">
             <label className="flex h-8 items-center rounded-md border border-[#b8dcd6] bg-white px-2 text-sm text-[#0f766e]">
-              <span className="sr-only">Repeat test case</span>
+              <span className="sr-only">Native debug fixture</span>
               <select
                 className="w-[230px] bg-transparent text-sm font-medium outline-none"
                 value={selectedCase}
@@ -159,7 +159,7 @@ export function RadialPatternNativeLab() {
                     event.target.value as (typeof REPEAT_CASES)[number]["id"],
                   )
                 }
-                aria-label="Repeat test case"
+                aria-label="Native debug fixture"
                 data-testid="radial-native-case-picker"
                 disabled={caseLoading}
               >

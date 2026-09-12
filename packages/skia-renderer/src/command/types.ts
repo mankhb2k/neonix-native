@@ -23,7 +23,7 @@ export type SkiaReplayStats = {
 
 export type SkiaReplayResources = {
   imageCache: Map<string, { identity: string; image: SkiaImage }>;
-  filterCache: Map<string, { filter: SkiaImageFilter | null; supported: boolean }>;
+  filterCache: Map<string, { filter: SkiaImageFilter | null; supported: boolean; sourceOnly?: boolean }>;
   maskCache: Map<string, SkiaImage>;
   projectiveMeshCache: Map<string, ProjectiveTextureMesh | null>;
   surfacePool: {
@@ -54,6 +54,9 @@ export type ReplayLayer = {
   projectiveFilterTransform?: Extract<PaintCommand, { op: "setTransform" }>;
   projectiveFilter?: SkiaImageFilter | null;
   projectiveFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
+  /** Effect filter that is applied to a synthetic box mask, not source pixels. */
+  boxEffectFilter?: SkiaImageFilter | null;
+  boxEffectSource?: Extract<PaintCommand, { op: "beginLayer" }>['effectBox'];
   /** Filter applied to the backdrop captured by this layer's saveLayer. */
   backdropFilter?: SkiaImageFilter | null;
   backdropFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['backdropEffectProgram'];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeEffectProgram } from "@motionvideo/motion-runtime";
-import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "../src/command/effects";
+import { cssBlurRadiusToSkiaSigma, cssOuterGlowRadiusToSkiaSigma, cssShadowBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "../src/command/effects";
 import type { SkiaCanvasKit } from "../src/canvas-kit";
 
 function createKit() {
@@ -18,15 +18,23 @@ function createKit() {
   const kit = {
     Color: (r: number, g: number, b: number, a: number) => ({ r, g, b, a }),
     TileMode: { Decal: 1 },
+    FilterMode: { Linear: 1 },
+    MipmapMode: { None: 0 },
     BlendMode: { SrcOver: 0 },
     ColorFilter: {
       MakeMatrix(matrix: number[]) {
         return { matrix, delete() {} };
       },
+      MakeBlend(color: unknown, mode: unknown) {
+        return { color, mode, delete() {} };
+      },
     },
     ImageFilter: {
       MakeBlur(sigmaX: number, _sigmaY: number, _tile: unknown, input?: unknown) {
         return makeFilter("blur", input, { sigmaX });
+      },
+      MakeMatrixTransform(matrix: number[], options: unknown, input?: unknown) {
+        return makeFilter("matrix-transform", input, { matrix, options: options as Record<string, unknown> });
       },
       MakeColorFilter(colorFilter: unknown, input?: unknown) {
         return makeFilter("color-filter", input, { colorFilter });
@@ -47,8 +55,12 @@ function createKit() {
 
 describe("Skia CSS effect lowering", () => {
   it("converts CSS blur radius to the Skia sigma contract", () => {
-    expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(8.5829, 6);
+    expect(cssBlurRadiusToSkiaSigma(14)).toBeCloseTo(14, 6);
     expect(cssBlurRadiusToSkiaSigma(0)).toBeCloseTo(0.5, 6);
+    expect(cssShadowBlurRadiusToSkiaSigma(14)).toBeCloseTo(7.5, 6);
+    expect(cssShadowBlurRadiusToSkiaSigma(0)).toBeCloseTo(0.5, 6);
+    expect(cssOuterGlowRadiusToSkiaSigma(14)).toBeCloseTo(14, 6);
+    expect(cssOuterGlowRadiusToSkiaSigma(0)).toBeCloseTo(0.5, 6);
   });
 
   it("expands filter padding for blur and drop-shadow offsets additively", () => {
@@ -142,6 +154,29 @@ describe("Skia CSS effect lowering", () => {
     expect(result.filter).toBeTruthy();
     expect(filters[0]?.kind).toBe("color-filter");
     expect(filters.some((filter) => filter.kind === "drop-shadow-only")).toBe(true);
+  });
+
+  it("supports an offset inset-alpha graph", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "inner:alpha", kind: "alpha-mask", input: "source", output: "effect:inner:alpha", source: "box" },
+        { id: "inner:offset", kind: "offset", input: "effect:inner:alpha", output: "effect:inner:offset", x: 18, y: 14 },
+        { id: "inner:blur", kind: "blur", input: "effect:inner:offset", output: "effect:inner:blur", radius: 24 },
+        { id: "inner:inner-alpha", kind: "inner-alpha", source: "effect:inner:alpha", blurred: "effect:inner:blur", output: "effect:inner:inner-alpha" },
+        { id: "inner:tint", kind: "tint", input: "effect:inner:inner-alpha", output: "effect:inner:tint", color: "#22d3ee", opacity: 1 },
+        { id: "inner:composite", kind: "composite", backdrop: "source", source: "effect:inner:tint", output: "effect:inner", mode: "source-over" },
+      ],
+      output: "effect:inner",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result.supported).toBe(true);
+    expect(filters.map((filter) => filter.kind)).toContain("matrix-transform");
+    expect(result.filter).toBeTruthy();
+    expect(result.sourceOnly).toBe(true);
   });
 
   it("keeps filter-opacity + contrast linear chains supported", () => {

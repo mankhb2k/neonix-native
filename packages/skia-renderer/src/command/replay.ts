@@ -83,6 +83,12 @@ function drawShapeGeometry(
   }
 }
 
+function roundedRectSvg(width: number, height: number, radius: number): string {
+  const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+  if (r === 0) return `M 0 0 H ${width} V ${height} H 0 Z`;
+  return `M ${r} 0 H ${width - r} A ${r} ${r} 0 0 1 ${width} ${r} V ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} H ${r} A ${r} ${r} 0 0 1 0 ${height - r} V ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+}
+
 function projectiveFilterPadding(
   program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'],
 ): number {
@@ -328,6 +334,75 @@ export function replaySkiaCommands(
     if (resources && value) resources.surfacePool.release(surfaceWidth, surfaceHeight, value);
     else value?.dispose();
   };
+  const drawBoxEffect = (layer: ReplayLayer): void => {
+    const filter = layer.boxEffectFilter;
+    const source = layer.boxEffectSource;
+    if (!filter || !source) {
+      if (filter && !source) addDiagnostic(`skia_box_effect_source_missing:${layer.key}`);
+      return;
+    }
+    const surfaceWidth = Math.max(1, Math.ceil(frameWidth * deviceScale));
+    const surfaceHeight = Math.max(1, Math.ceil(frameHeight * deviceScale));
+    const maskSurface = acquireSurface(surfaceWidth, surfaceHeight);
+    if (!maskSurface?.makeImageSnapshot) {
+      addDiagnostic(`skia_box_effect_mask_surface_unsupported:${layer.key}`);
+      if (maskSurface) releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+      return;
+    }
+    const maskCanvas = maskSurface.getCanvas();
+    maskCanvas.clear(kit.TRANSPARENT);
+    if (deviceScale !== 1) maskCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+    maskCanvas.save();
+    maskCanvas.concat(matrix4ToSkia3x3(source.matrix4));
+    const maskPaint = createSkiaPaint(kit, "#ffffff", 1, kit.PaintStyle.Fill, undefined, source.width, source.height, true);
+    if (source.cornerRadius && source.cornerRadius > 0) {
+      maskCanvas.drawRRect([0, 0, source.width, source.height, source.cornerRadius, source.cornerRadius], maskPaint);
+    } else {
+      maskCanvas.drawRect([0, 0, source.width, source.height], maskPaint);
+    }
+    maskPaint.delete();
+    maskCanvas.restore();
+    maskSurface.flush();
+    const snapshot = maskSurface.makeImageSnapshot();
+    if (!snapshot) {
+      addDiagnostic(`skia_box_effect_mask_snapshot_unsupported:${layer.key}`);
+      releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+      return;
+    }
+    const paint = new kit.Paint();
+    paint.setAntiAlias(true);
+    paint.setStyle(kit.PaintStyle.Fill);
+    paint.setAlphaf(1);
+    paint.setBlendMode(kit.BlendMode.SrcOver);
+    paint.setImageFilter?.(filter);
+    // An inset shadow is clipped by the owner's rounded border box. The
+    // synthetic mask above gives the blur the right silhouette, but Skia's
+    // image-filter bounds are rectangular; install the same transformed
+    // rounded clip around the final overlay so the blur cannot leak through
+    // transparent corners.
+    const clipPath = source.cornerRadius !== undefined && canvas.clipPath
+      ? kit.Path.MakeFromSVGString(roundedRectSvg(source.width, source.height, source.cornerRadius))
+      : null;
+    let transformedClip: ReturnType<SkiaCanvasKit["Path"]["MakeFromSVGString"]> | null = null;
+    let clipBuilder: InstanceType<SkiaCanvasKit["PathBuilder"]> | null = null;
+    if (clipPath && canvas.clipPath) {
+      clipBuilder = new kit.PathBuilder(clipPath);
+      clipBuilder.transform(matrix4ToSkia3x3(source.matrix4));
+      transformedClip = clipBuilder.snapshot();
+      canvas.save();
+      canvas.clipPath(transformedClip, kit.ClipOp.Intersect, false);
+    }
+    canvas.drawImageRect(snapshot, [0, 0, frameWidth * deviceScale, frameHeight * deviceScale], [0, 0, frameWidth, frameHeight], paint, false);
+    if (clipPath && canvas.clipPath) {
+      canvas.restore();
+      transformedClip?.delete();
+      clipBuilder?.delete();
+      clipPath.delete();
+    }
+    paint.delete();
+    snapshot.delete();
+    releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+  };
   const effectFilterForCached = (program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram']) => {
     if (!program || !resources) return effectFilterFor(kit, program);
     const key = JSON.stringify(program);
@@ -410,6 +485,8 @@ export function replaySkiaCommands(
         projectiveFilterTransform,
         projectiveFilter,
         projectiveFilterProgram: projectiveFilter ? command.effectProgram : undefined,
+        boxEffectFilter: effectFilter.sourceOnly && !projectiveFilter ? effectFilter.filter : undefined,
+        boxEffectSource: effectFilter.sourceOnly && !projectiveFilter ? command.effectBox : undefined,
         backdropFilter: backdropEffectFilter.filter,
         backdropFilterProgram: backdropEffectFilter.filter ? command.backdropEffectProgram : undefined,
       };
@@ -431,7 +508,7 @@ export function replaySkiaCommands(
         // Non-projective layers keep the compact saveLayer path. Projective
         // layers apply their filter after projection in the draw branches —
         // never install the same filter on this parent saveLayer.
-        const layerFilter = projectiveFilter ? null : effectFilter.filter;
+        const layerFilter = projectiveFilter || effectFilter.sourceOnly ? null : effectFilter.filter;
         if (layerFilter && paint.setImageFilter) paint.setImageFilter(layerFilter);
         // Bound kinds (Phase 5):
         // - layer content bounds: union of drawable geometry inside the layer
@@ -441,7 +518,8 @@ export function replaySkiaCommands(
         // Foreground filters use filter-expanded bounds so shadows/blurs are
         // not cropped, without always allocating the full composition.
         const frameBounds = compositionBounds(frameWidth, frameHeight);
-        const contentBounds = (backdropEffectFilter.filter || layerFilter)
+        const boxEffectFilter = effectFilter.sourceOnly && !projectiveFilter ? effectFilter.filter : null;
+        const contentBounds = (backdropEffectFilter.filter || layerFilter || boxEffectFilter)
           ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
           : undefined;
         let saveBounds = boundsToRect(frameBounds);
@@ -472,13 +550,13 @@ export function replaySkiaCommands(
           saveBounds = clipBounds
             ? [clipBounds[0] - pad, clipBounds[1] - pad, clipBounds[2] + pad, clipBounds[3] + pad]
             : boundsToRect(frameBounds);
-        } else if (layerFilter && contentBounds) {
+        } else if ((layerFilter || boxEffectFilter) && contentBounds) {
           const pad = effectFilterExpansionPadding(command.effectProgram);
           saveBounds = boundsToRect(expandBounds(contentBounds, pad));
         }
         canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
         paint.delete();
-        if (!resources && !projectiveFilter) effectFilter.filter?.delete();
+        if (!resources && !projectiveFilter && !effectFilter.sourceOnly) effectFilter.filter?.delete();
         if (!resources) backdropEffectFilter.filter?.delete();
       } else {
         canvas.save();
@@ -612,6 +690,10 @@ export function replaySkiaCommands(
         }
       }
       if (layer?.noiseEffect && layer.noiseBounds) stats.noiseRegions.push({ effect: layer.noiseEffect, bounds: layer.noiseBounds });
+      if (layer?.boxEffectFilter) {
+        drawBoxEffect(layer);
+        if (!resources) layer.boxEffectFilter.delete();
+      }
       if (layer?.saved) {
         canvas.restore();
         // Pop the backdrop paint-containment clip pushed around saveLayer.

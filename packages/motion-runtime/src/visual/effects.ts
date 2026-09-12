@@ -53,25 +53,39 @@ export function buildRuntimeEffectProgram(
         throw new Error(`Runtime shadow spread is not lowered yet: ${effect.id}`);
       }
       const alpha = `effect:${effect.id}:alpha`;
+      const offset = `effect:${effect.id}:offset`;
       const blurred = `effect:${effect.id}:blur`;
       const inner = `effect:${effect.id}:inner-alpha`;
       const tinted = `effect:${effect.id}:tint`;
       const output = outputSurfaceFor(effect.id);
       const alphaInput = previousEffectWasShadow ? RUNTIME_EFFECT_SOURCE_SURFACE : input;
+      const isInnerGlow = effect.type === "inner-glow" || (effect.type === "shadow" && effect.inset);
+      const hasInsetOffset = effect.type === "shadow" && effect.inset && (effect.offset.x !== 0 || effect.offset.y !== 0);
       ops.push(
         // Consecutive comma-separated shadows all use the owner's silhouette.
         // A shadow after another spatial/color filter instead uses that
         // filter's output, preserving CSS filter order without recursion.
-        { id: `${effect.id}:alpha`, kind: "alpha-mask", input: effect.type === "shadow" ? alphaInput : input, output: alpha },
         {
-          id: `${effect.id}:blur`,
-          kind: "blur",
-          input: alpha,
-          output: blurred,
-          radius: effect.type === "shadow" ? effect.blur : effect.radius,
+          id: `${effect.id}:alpha`,
+          kind: "alpha-mask",
+          input: effect.type === "shadow" ? alphaInput : input,
+          output: alpha,
+          ...(effect.type === "shadow" ? { source: effect.source } : {}),
         },
       );
-      const isInnerGlow = effect.type === "inner-glow" || (effect.type === "shadow" && effect.inset);
+      if (hasInsetOffset) {
+        // CSS translates the inset shadow silhouette before it is blurred.
+        // Keep the unshifted alpha as inner-alpha's clip boundary so the glow
+        // remains inside the original box.
+        ops.push({ id: `${effect.id}:offset`, kind: "offset", input: alpha, output: offset, x: effect.offset.x, y: effect.offset.y });
+      }
+      ops.push({
+        id: `${effect.id}:blur`,
+        kind: "blur",
+        input: hasInsetOffset ? offset : alpha,
+        output: blurred,
+        radius: effect.type === "shadow" ? effect.blur : effect.radius,
+      });
       if (isInnerGlow) {
         ops.push({ id: `${effect.id}:inner`, kind: "inner-alpha", source: alpha, blurred, output: inner });
       }

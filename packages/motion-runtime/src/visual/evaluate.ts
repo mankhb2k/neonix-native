@@ -310,6 +310,10 @@ export function evaluateVisualRuntimeProject(
         ...(blendIsolation ? { compositeAlpha: node.opacity } : {}),
         blendMode,
         ...(effectProgram ? { effectProgram } : {}),
+        ...(effectProgram ? (() => {
+          const effectBox = effectBoxFor(node);
+          return effectBox ? { effectBox } : {};
+        })() : {}),
         ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
       });
     }
@@ -545,6 +549,42 @@ export function evaluateVisualRuntimeProject(
     }
   };
 
+  const effectBoxFor = (node: VisualRuntimeNode, directChildren: VisualRuntimeNode[] = []) => {
+    const hasInsetBoxShadow = node.content.effects?.some(
+      (effect) => effect.type === "shadow" && effect.source === "box" && effect.inset,
+    );
+    if (!hasInsetBoxShadow || node.content.kind === "video") return undefined;
+    const cornerRadiusFor = (content: VisualRuntimeNode["content"]): number | undefined => {
+      if (content.kind === "shape" && content.shape === "rectangle") return content.cornerRadius;
+      // HTML border-radius is lowered to a path before Runtime V3. Recover
+      // the rounded-box geometry for inset shadows so the Skia-only effect
+      // path uses the same clip as the browser even when the fill is alpha 0.
+      if (content.kind !== "path" || content.contours.length !== 1) return undefined;
+      const segments = content.contours[0]?.segments ?? [];
+      const arcs = segments.filter((segment) => segment.kind === "arc");
+      if (arcs.length !== 4) return undefined;
+      const radius = arcs[0]?.kind === "arc" ? arcs[0].radii : undefined;
+      if (!radius || Math.abs(radius.x - radius.y) > 1e-6 || radius.x <= 0) return undefined;
+      if (!arcs.every((segment) => segment.kind === "arc" && Math.abs(segment.radii.x - radius.x) <= 1e-6 && Math.abs(segment.radii.y - radius.y) <= 1e-6)) return undefined;
+      return radius.x;
+    };
+    let cornerRadius: number | undefined = cornerRadiusFor(node.content);
+    if (node.content.kind === "group") {
+      const backgroundShape = directChildren.find(
+        (child) => (child.content.kind === "shape" || child.content.kind === "path") &&
+          Math.abs(child.content.width - node.content.width) <= 1e-6 &&
+          Math.abs(child.content.height - node.content.height) <= 1e-6,
+      );
+      if (backgroundShape) cornerRadius = cornerRadiusFor(backgroundShape.content);
+    }
+    return {
+      width: node.content.width,
+      height: node.content.height,
+      ...(cornerRadius !== undefined ? { cornerRadius } : {}),
+      matrix4: matrix4ToArray(node.worldMatrix),
+    };
+  };
+
   const canBatchBorderFragment = (
     node: VisualRuntimeNode,
     side: "top" | "right" | "bottom" | "left",
@@ -660,6 +700,7 @@ export function evaluateVisualRuntimeProject(
       return;
     }
     if (!subtreeHasActiveDrawable(node)) return;
+    const children = childrenOf(node.id);
     const effectProgram = buildRuntimeEffectProgram(node.content.effects);
     const backdropEffectProgram = buildRuntimeEffectProgram(node.backdropEffects);
     const needsIsolation =
@@ -680,6 +721,10 @@ export function evaluateVisualRuntimeProject(
         compositeAlpha: node.opacity,
         blendMode: node.blendMode,
         ...(effectProgram ? { effectProgram } : {}),
+        ...(effectProgram ? (() => {
+          const effectBox = effectBoxFor(node, children);
+          return effectBox ? { effectBox } : {};
+        })() : {}),
         ...(backdropEffectProgram ? { backdropEffectProgram } : {}),
         ...(node.clipPath
           ? {
@@ -704,7 +749,6 @@ export function evaluateVisualRuntimeProject(
     } else {
       commands.push({ op: "beginGroup", key: node.id, layerId: node.id });
     }
-    const children = childrenOf(node.id);
     for (let index = 0; index < children.length;) {
       const child = children[index]!;
       const side = borderFragmentSide(child);

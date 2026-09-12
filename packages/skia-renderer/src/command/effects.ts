@@ -2,7 +2,7 @@ import type { PaintCommand, RuntimeEffectOp } from "@motionvideo/motion-runtime"
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvasKit, SkiaColorFilter, SkiaImageFilter } from "../canvas-kit";
 
-export type EffectFilterResult = { filter: SkiaImageFilter | null; supported: boolean };
+export type EffectFilterResult = { filter: SkiaImageFilter | null; supported: boolean; sourceOnly?: boolean };
 type ColorMatrix = number[];
 type EffectProgram = Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
 
@@ -69,16 +69,33 @@ function tintColor(kit: SkiaCanvasKit, color: string, opacity: number): unknown 
 }
 
 /**
- * CSS shadow blur is a blur radius, while CanvasKit's image-filter API takes
- * a Gaussian sigma. Use one calibrated CSS-to-Skia conversion for text-shadow,
- * alpha drop-shadow and filter blur so spatial effects do not acquire
- * different visual profiles.
+ * CSS blur() is specified with a standard-deviation-like radius, while
+ * CanvasKit's image-filter API takes a Gaussian sigma. Browser-vs-Skia
+ * pixel probes at 4px, 18px and 48px show that the CSS radius maps directly
+ * to CanvasKit sigma; the old 0.57735 multiplier made every halo too narrow.
  */
 export function cssBlurRadiusToSkiaSigma(radius: number): number {
   // CanvasKit treats a zero-sigma drop shadow as an empty filter. CSS still
   // paints a zero-blur alpha silhouette, so use the smallest stable Skia
   // kernel for that valid CSS case without changing ordinary blur profiles.
-  return radius === 0 ? 0.5 : 0.57735 * radius + 0.5;
+  return radius === 0 ? 0.5 : radius;
+}
+
+/**
+ * CSS box-shadow uses a different blur construction from filter: blur().
+ * Keep its calibrated sigma separate so inset/outer shadow profiles do not
+ * change when the filter-blur contract is refined.
+ */
+export function cssShadowBlurRadiusToSkiaSigma(radius: number): number {
+  return radius === 0 ? 0.5 : 0.5 * radius + 0.5;
+}
+
+/** CSS filter: drop-shadow() follows the filter-blur profile, not the
+ * inset box-shadow profile. Keep this mapping explicit so shadow calibration
+ * does not make outer glow halos progressively too narrow or too wide.
+ */
+export function cssOuterGlowRadiusToSkiaSigma(radius: number): number {
+  return radius === 0 ? 0.5 : radius;
 }
 
 /**
@@ -90,9 +107,10 @@ export function effectFilterExpansionPadding(program: EffectProgram): number {
   if (!program) return 0;
   let blurPad = 0;
   let offsetPad = 0;
+  const usesInsetAlpha = program.ops.some((op) => op.kind === "inner-alpha");
   for (const op of program.ops) {
     if (op.kind === "blur") {
-      const sigma = cssBlurRadiusToSkiaSigma(op.radius);
+      const sigma = usesInsetAlpha ? cssShadowBlurRadiusToSkiaSigma(op.radius) : cssBlurRadiusToSkiaSigma(op.radius);
       blurPad = Math.max(blurPad, Math.ceil(sigma * 3 + 1));
     } else if (op.kind === "offset") {
       offsetPad = Math.max(offsetPad, Math.ceil(Math.max(Math.abs(op.x), Math.abs(op.y))));
@@ -109,8 +127,9 @@ function makeShadowFilter(
   opacity: number,
   only: boolean,
   input: SkiaImageFilter | null = null,
+  sigmaForRadius: (radius: number) => number = cssShadowBlurRadiusToSkiaSigma,
 ): SkiaImageFilter | null {
-  const sigma = cssBlurRadiusToSkiaSigma(blur);
+  const sigma = sigmaForRadius(blur);
   // CanvasKit drops a completely coincident zero-blur shadow. Keep the
   // fallback in this shared helper so every alpha-shadow path behaves alike.
   const x = blur === 0 && offset.x === 0 ? 0.5 : offset.x;
@@ -128,6 +147,23 @@ function makeCssBlurFilter(
 ): SkiaImageFilter | null {
   const sigma = cssBlurRadiusToSkiaSigma(radius);
   return kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, input);
+}
+
+function makeOffsetFilter(
+  kit: SkiaCanvasKit,
+  offset: Extract<RuntimeEffectOp, { kind: "offset" }>,
+): SkiaImageFilter | null {
+  if (!kit.ImageFilter.MakeMatrixTransform) return null;
+  // CSS inset shadows cast toward the opposite side of a positive offset:
+  // `inset 18px 14px` produces the strongest inner glow on the left/top.
+  // CanvasKit's image-filter transform is expressed in source-space, so the
+  // positive matrix translation gives that CSS-facing direction.
+  const matrix = [1, 0, offset.x, 0, 1, offset.y, 0, 0, 1];
+  return kit.ImageFilter.MakeMatrixTransform(
+    matrix,
+    { filter: kit.FilterMode?.Linear ?? 1, mipmap: kit.MipmapMode?.None ?? 0 },
+    null,
+  );
 }
 
 function matchEffectGraph(program: NonNullable<EffectProgram>, kinds: string[]): boolean {
@@ -196,7 +232,8 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
   // Noise is applied to the rasterized layer by the Skia backend after
   // readback; recognizing it here keeps it from being reported as unsupported.
   if (ops.length === 1 && ops[0]?.kind === "noise") return { filter: null, supported: true };
-  const blur = ops[1];
+  const blur = ops.find((op) => op.kind === "blur");
+  const alpha = ops.find((op) => op.kind === "alpha-mask");
   const tint = ops.find((op) => op.kind === "tint");
   const offset = ops.find((op) => op.kind === "offset");
   const shadows = shadowBlocks(program);
@@ -229,11 +266,29 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     return { filter, supported: Boolean(filter) };
   }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "offset", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeDropShadow) {
-    const filter = makeShadowFilter(kit, offset, blur.radius, tint.color, tint.opacity, false);
+    const filter = makeShadowFilter(
+      kit,
+      offset,
+      blur.radius,
+      tint.color,
+      tint.opacity,
+      false,
+      null,
+      alpha?.kind === "alpha-mask" && alpha.source === "alpha" ? cssOuterGlowRadiusToSkiaSigma : cssShadowBlurRadiusToSkiaSigma,
+    );
     return { filter, supported: Boolean(filter) };
   }
   if (matchEffectGraph(program, ["alpha-mask", "blur", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeDropShadow) {
-    const filter = makeShadowFilter(kit, { x: 0, y: 0 }, blur.radius, tint.color, tint.opacity, false);
+    const filter = makeShadowFilter(
+      kit,
+      { x: 0, y: 0 },
+      blur.radius,
+      tint.color,
+      tint.opacity,
+      false,
+      null,
+      alpha?.kind === "alpha-mask" && alpha.source === undefined ? cssOuterGlowRadiusToSkiaSigma : cssShadowBlurRadiusToSkiaSigma,
+    );
     return { filter, supported: Boolean(filter) };
   }
   // CSS filter order: blur/color*(...) drop-shadow(...). Prefix operators
@@ -277,8 +332,8 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
       return { filter, supported: Boolean(filter) };
     }
   }
-  if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
-    const sigma = cssBlurRadiusToSkiaSigma(blur.radius);
+  if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source !== "box" && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
+    const sigma = cssShadowBlurRadiusToSkiaSigma(blur.radius);
     const blurred = kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, null);
     const inside = blurred ? kit.ImageFilter.MakeBlend(kit.BlendMode.DstOut, null, blurred) : null;
     const colorFilter: SkiaColorFilter | null = inside ? kit.ColorFilter.MakeBlend(tintColor(kit, tint.color, tint.opacity), kit.BlendMode.SrcIn) : null;
@@ -289,6 +344,31 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
     inside?.delete();
     tinted?.delete();
     return { filter, supported: Boolean(filter) };
+  }
+  if (matchEffectGraph(program, ["alpha-mask", "offset", "blur", "inner-alpha", "tint", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && blur?.kind === "blur" && tint?.kind === "tint" && offset?.kind === "offset" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
+    const shiftedAlpha = makeOffsetFilter(kit, offset);
+    const sigma = cssShadowBlurRadiusToSkiaSigma(blur.radius);
+    const blurred = shiftedAlpha ? kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, shiftedAlpha) : null;
+    const inside = blurred ? kit.ImageFilter.MakeBlend(kit.BlendMode.DstOut, null, blurred) : null;
+    const colorFilter: SkiaColorFilter | null = inside ? kit.ColorFilter.MakeBlend(tintColor(kit, tint.color, tint.opacity), kit.BlendMode.SrcIn) : null;
+    const tinted = inside && colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, inside) : null;
+    const filter = tinted;
+    colorFilter?.delete();
+    shiftedAlpha?.delete();
+    blurred?.delete();
+    inside?.delete();
+    return { filter, supported: Boolean(filter), sourceOnly: true };
+  }
+  if (matchEffectGraph(program, ["alpha-mask", "blur", "inner-alpha", "tint", "composite"]) && alpha?.kind === "alpha-mask" && alpha.source === "box" && blur?.kind === "blur" && tint?.kind === "tint" && kit.ImageFilter.MakeBlend && kit.ImageFilter.MakeColorFilter && kit.ColorFilter?.MakeBlend) {
+    const sigma = cssShadowBlurRadiusToSkiaSigma(blur.radius);
+    const blurred = kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, null);
+    const inside = blurred ? kit.ImageFilter.MakeBlend(kit.BlendMode.DstOut, null, blurred) : null;
+    const colorFilter: SkiaColorFilter | null = inside ? kit.ColorFilter.MakeBlend(tintColor(kit, tint.color, tint.opacity), kit.BlendMode.SrcIn) : null;
+    const filter = inside && colorFilter ? kit.ImageFilter.MakeColorFilter(colorFilter, inside) : null;
+    colorFilter?.delete();
+    blurred?.delete();
+    inside?.delete();
+    return { filter, supported: Boolean(filter), sourceOnly: true };
   }
   if (ops.every(isLinearColorSpatialOp) && ops.every((op, index) => op.input === (index === 0 ? "source" : ops[index - 1]!.output)) && ops.at(-1)?.output === program.output) {
     const filter = buildLinearColorSpatialFilter(kit, ops);

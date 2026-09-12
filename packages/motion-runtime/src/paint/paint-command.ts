@@ -60,6 +60,13 @@ export type PaintCommand =
       blendMode?: PaintBlendMode;
       /** Runtime-only ordered effect graph for this compositing scope. */
       effectProgram?: RuntimeEffectProgram;
+      /** Runtime-only geometry source for box effects on transparent content. */
+      effectBox?: {
+        width: number;
+        height: number;
+        cornerRadius?: number;
+        matrix4: number[];
+      };
       /** Runtime-only ordered effect graph applied to the already-painted backdrop. */
       backdropEffectProgram?: RuntimeEffectProgram;
       clipPath?: {
