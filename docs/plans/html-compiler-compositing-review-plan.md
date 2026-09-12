@@ -327,11 +327,25 @@ Không dùng composition bounds cho mọi filter nếu không cần thiết.
 
 Tạo bộ fixture riêng cho scene tổng hợp, không lấy nguyên trạng từ primitive fixtures.
 
-Đề xuất thư mục:
+**Tất cả fixtures HTML (primitive lẫn combined) viết dưới `public`**, cùng convention với Phase 2/4 — không dùng `apps/web/lib/docs/fixtures/`.
+
+Thư mục bắt buộc:
 
 ```text
-apps/web/lib/docs/fixtures/html-compiler-combined/
+apps/web/public/playground/fixtures/
 ```
+
+Quy ước đặt tên (khớp Phase 2/4):
+
+```text
+phase6-alpha-overlap.html
+phase6-foreground-effects.html
+phase6-filter-chain.html
+phase6-backdrop-isolation.html
+phase6-nested-groups.html
+```
+
+URL phục vụ qua `/playground/fixtures/<file>` và đăng ký case trong `apps/web/lib/playground/html-playground-cases.ts` (dùng `fixtureUrl(...)`, gắn `nativeStage: true` khi cần so Browser/Skia trên native-stage).
 
 ### Fixture A — Alpha and overlap
 
