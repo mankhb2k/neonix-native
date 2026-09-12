@@ -1327,6 +1327,36 @@ function compileSource(source: HtmlCssSource, options: HtmlCompilerOptions = {},
       // on top of the element's content without affecting layout geometry.
     }
     const rootContainingBlock: ContainingBlock = compositionRect(width, height);
+    // CSS propagates a body background to the canvas when the document root is
+    // transparent. `composition.background` is intentionally only a solid
+    // clear color, so keep the body gradient as an explicit full-frame paint
+    // layer instead of silently dropping it with the non-painting body node.
+    // This preserves the existing V2 composition schema while making the
+    // browser canvas and Runtime/Skia see the same root background pixels.
+    if (body) {
+      const rootBackground = bodyStyle.get("background")?.trim();
+      const rootPaints = rootBackground && (/^(?:repeating-)?(?:linear|radial|conic)-gradient\(/i.test(rootBackground) || rootBackground.includes(","))
+        ? parsePaintLayers(rootBackground, "background", bodyStyle.get("color") ?? "#000000", { width, height })
+        : [];
+      rootPaints
+        .map((fill, index) => ({ fill, index }))
+        .filter(({ fill }) => typeof fill !== "string" || fill !== "#00000000")
+        .reverse()
+        .forEach(({ fill, index }) => {
+          layers.push({
+            id: `html-root-background:${index}`,
+            type: "shape",
+            parentLayerId: null,
+            order: layers.length,
+            frame: { width, height },
+            transform: { translate: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, rotate: { x: 0, y: 0, z: 0 }, skew: { x: 0, y: 0 }, anchor: { x: 0, y: 0, z: 0 } },
+            opacity: 1,
+            timing: { start: 0, duration },
+            payload: { shape: "rectangle" },
+            style: { fill },
+          });
+        });
+    }
     if (body) flowLayout(body.children, body, 0, 0, width, height, bodyStyle, rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false }); else flowLayout(root.children, null, 0, 0, width, height, new Map(), rootContainingBlock, { flowY: 0, previousBottomMargin: 0, hasFlowChild: false });
     const protocol = MotionProtocolV2Schema.parse({ format: "motion-protocol", formatVersion: 2, id: options.composition?.id ?? "gold-01-rectangle-solid-v1", composition: { width, height, fps, background: backgroundColor, colorSpace: composition.colorSpace, view: { projection: { kind: "orthographic", zoom: 1, near: 1, far: 4000 }, transform: { translate: { x: 0, y: 0, z: 0 }, rotate: { x: 0, y: 0, z: 0 } } } }, assets, layers, ...(clipPaths.length ? { clipPaths } : {}), ...(masks.length ? { masks } : {}), audio: { sampleRate: 48000, tracks: audioTracks } });
     return { status: "success", source, protocol, diagnostics: [] };

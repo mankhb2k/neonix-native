@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { compileHtmlCss, createHtmlCssSource } from "../src/index";
 
 describe("HTML/CSS compiler P2.0 background images", () => {
+  it("lowers a body gradient to a full-frame root background layer", () => {
+    const result = compileHtmlCss(createHtmlCssSource({
+      html: `<html><head></head><body><div id="control"></div></body></html>`,
+      css: `html, body { width: 1920px; height: 1080px; margin: 0; background: linear-gradient(160deg, #c8cdd3 0%, #9aa3ad 100%); } #control { position: absolute; left: 360px; top: 320px; width: 1200px; height: 360px; background: #22d3ee; }`,
+    }));
+
+    expect(result.status).toBe("success");
+    expect(result.protocol?.layers[0]).toMatchObject({
+      id: "html-root-background:0",
+      type: "shape",
+      parentLayerId: null,
+      frame: { width: 1920, height: 1080 },
+      transform: { translate: { x: 0, y: 0, z: 0 } },
+      payload: { shape: "rectangle" },
+      style: { fill: { type: "linear-gradient", angle: 70 } },
+    });
+    expect(result.protocol?.layers.find((layer) => layer.id === "control")).toBeDefined();
+  });
+
   it("clips solid backgrounds to background-clip and keeps the border inside the border box", () => {
     const result = compileHtmlCss(createHtmlCssSource({
       html: `<div id="card"></div>`,
