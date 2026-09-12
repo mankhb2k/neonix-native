@@ -1214,6 +1214,9 @@ function paintFrame(
   if (rendererCanvas instanceof HTMLCanvasElement) {
     const stats = renderer.getStats();
     rendererCanvas.dataset.drawCalls = String(stats.drawCalls);
+    rendererCanvas.dataset.runtimeCommandCount = String(evaluated.commands.length);
+    rendererCanvas.dataset.runtimeLayerCount = String(project.layers.length);
+    rendererCanvas.dataset.skippedCommands = String(stats.skippedCommands ?? 0);
     rendererCanvas.dataset.runtimeFrame = String(evaluated.frame);
     rendererCanvas.dataset.runtimeTime = String(evaluated.time);
     const textCommands = evaluated.commands.filter((command) => command.op === "drawText");
