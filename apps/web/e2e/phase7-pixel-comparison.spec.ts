@@ -11,6 +11,10 @@ const FIXTURES = [
   "phase6-filter-chain",
   "phase6-backdrop-isolation",
   "phase6-nested-groups",
+  "phase7-root-background-gradient",
+  "phase7-element-background-gradient",
+  "phase7-foreground-solid-background",
+  "phase7-nested-solid-background",
 ] as const;
 const SAMPLE_FRAMES = [0, 0.5] as const;
 
@@ -42,6 +46,28 @@ const REGIONS: Record<(typeof FIXTURES)[number], readonly Region[]> = {
     { name: "foreground-filter", x: 1160, y: 460, width: 180, height: 120 },
   ],
   "phase6-nested-groups": [
+    { name: "inner-group-edge", x: 300, y: 300, width: 80, height: 80 },
+    { name: "nested-overlap", x: 620, y: 480, width: 180, height: 120 },
+    { name: "outside-blend", x: 1240, y: 400, width: 180, height: 180 },
+    { name: "clip-panel", x: 1320, y: 190, width: 160, height: 120 },
+  ],
+  "phase7-root-background-gradient": [
+    { name: "root-gradient-top", x: 80, y: 80, width: 240, height: 160 },
+    { name: "root-gradient-bottom", x: 1400, y: 860, width: 240, height: 140 },
+    { name: "control-shape", x: 420, y: 380, width: 180, height: 120 },
+  ],
+  "phase7-element-background-gradient": [
+    { name: "surface-corner", x: 220, y: 200, width: 80, height: 80 },
+    { name: "surface-gradient", x: 500, y: 360, width: 220, height: 140 },
+    { name: "marker-overlap", x: 820, y: 500, width: 180, height: 100 },
+  ],
+  "phase7-foreground-solid-background": [
+    { name: "shadow-card", x: 240, y: 350, width: 160, height: 140 },
+    { name: "blur-card", x: 540, y: 400, width: 160, height: 140 },
+    { name: "bright-card", x: 900, y: 320, width: 160, height: 140 },
+    { name: "opacity-card", x: 1220, y: 440, width: 160, height: 140 },
+  ],
+  "phase7-nested-solid-background": [
     { name: "inner-group-edge", x: 300, y: 300, width: 80, height: 80 },
     { name: "nested-overlap", x: 620, y: 480, width: 180, height: 120 },
     { name: "outside-blend", x: 1240, y: 400, width: 180, height: 180 },

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#c8cdd3","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #c8cdd3;
+      }
+      .card {
+        position: absolute;
+        width: 420px;
+        height: 280px;
+        border-radius: 36px;
+      }
+      .shadow {
+        left: 220px;
+        top: 320px;
+        background: #38bdf8;
+        box-shadow: 28px 32px 40px #1e293b88;
+      }
+      .blur {
+        left: 520px;
+        top: 380px;
+        background: #a78bfa;
+        filter: blur(14px);
+      }
+      .bright {
+        left: 860px;
+        top: 300px;
+        background: #f97316;
+        filter: brightness(1.35) contrast(1.28);
+      }
+      .opacity {
+        left: 1180px;
+        top: 420px;
+        background: #22c55e;
+        opacity: 0.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card shadow"></div>
+    <div class="card blur"></div>
+    <div class="card bright"></div>
+    <div class="card opacity"></div>
+  </body>
+</html>
