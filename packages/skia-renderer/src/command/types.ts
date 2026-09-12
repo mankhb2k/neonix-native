@@ -56,6 +56,7 @@ export type ReplayLayer = {
   projectiveFilterProgram?: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
   /** Effect filter that is applied to a synthetic box mask, not source pixels. */
   boxEffectFilter?: SkiaImageFilter | null;
+  boxEffectProgram?: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'];
   boxEffectSource?: Extract<PaintCommand, { op: "beginLayer" }>['effectBox'];
   /** Filter applied to the backdrop captured by this layer's saveLayer. */
   backdropFilter?: SkiaImageFilter | null;

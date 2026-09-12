@@ -7,6 +7,24 @@ import {
 } from "@motionvideo/motion-runtime";
 import type { DrawBounds } from "./types";
 
+/** CanvasKit RRect arguments are bounds followed by x/y radii for all corners. */
+export function rRectArgs(
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+  radiusX: number,
+  radiusY = radiusX,
+): number[] {
+  return [
+    left, top, right, bottom,
+    radiusX, radiusY,
+    radiusX, radiusY,
+    radiusX, radiusY,
+    radiusX, radiusY,
+  ];
+}
+
 export type SkiaProjectionContext = {
   width: number;
   height: number;

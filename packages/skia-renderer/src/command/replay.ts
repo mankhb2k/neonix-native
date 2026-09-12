@@ -1,10 +1,10 @@
-import { hasPerspectiveTerms, type PaintCommandBuffer, type PaintCommand } from "@motionvideo/motion-runtime";
+import { hasPerspectiveTerms, type PaintCommandBuffer, type PaintCommand, type RuntimeEffectOp } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "../color";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaImage, SkiaImageFilter } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
-import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
-import { cssBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "./effects";
+import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, matrix4ToSkia3x3, pathSvg, polygonSvg, projectiveMeshSvg, projectiveShapeSvg, projectiveTextureMesh, projectiveTextureShaderMatrix, rRectArgs, transformForSkiaCanvas, unionBounds, type SkiaProjectionContext } from "./geometry";
+import { cssBlurRadiusToSkiaSigma, cssShadowBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "./effects";
 import { applyClipPath, drawMaskSource, sourcePathCommands, type MaskSource } from "./masks";
 import { drawAsset } from "./images";
 import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
@@ -70,7 +70,7 @@ function drawShapeGeometry(
   paint: Parameters<SkiaCanvas["drawRect"]>[1],
 ): void {
   if (command.shape === "rectangle") {
-    if (command.cornerRadius) canvas.drawRRect([0, 0, command.width, command.height, command.cornerRadius, command.cornerRadius], paint);
+    if (command.cornerRadius) canvas.drawRRect(rRectArgs(0, 0, command.width, command.height, command.cornerRadius), paint);
     else canvas.drawRect([0, 0, command.width, command.height], paint);
   } else if (command.shape === "ellipse") {
     canvas.drawOval([0, 0, command.width, command.height], paint);
@@ -83,10 +83,9 @@ function drawShapeGeometry(
   }
 }
 
-function roundedRectSvg(width: number, height: number, radius: number): string {
-  const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
-  if (r === 0) return `M 0 0 H ${width} V ${height} H 0 Z`;
-  return `M ${r} 0 H ${width - r} A ${r} ${r} 0 0 1 ${width} ${r} V ${height - r} A ${r} ${r} 0 0 1 ${width - r} ${height} H ${r} A ${r} ${r} 0 0 1 0 ${height - r} V ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+function tintEffectColor(kit: SkiaCanvasKit, color: string, opacity: number): unknown {
+  const [red, green, blue, alpha] = cssColorToRgba(color);
+  return kit.Color(red * 255, green * 255, blue * 255, Math.max(0, Math.min(1, alpha * opacity)));
 }
 
 function projectiveFilterPadding(
@@ -341,8 +340,133 @@ export function replaySkiaCommands(
       if (filter && !source) addDiagnostic(`skia_box_effect_source_missing:${layer.key}`);
       return;
     }
-    const surfaceWidth = Math.max(1, Math.ceil(frameWidth * deviceScale));
-    const surfaceHeight = Math.max(1, Math.ceil(frameHeight * deviceScale));
+    const program = layer.boxEffectProgram;
+    const blurOp = program?.ops.find((op): op is Extract<RuntimeEffectOp, { kind: "blur" }> => op.kind === "blur");
+    const tintOp = program?.ops.find((op): op is Extract<RuntimeEffectOp, { kind: "tint" }> => op.kind === "tint");
+    const hasOffset = program?.ops.some((op) => op.kind === "offset") ?? false;
+    const directInset = Boolean(
+      program &&
+      program.ops.map((op) => op.kind).join(",") === "alpha-mask,blur,inner-alpha,tint,composite" &&
+      blurOp &&
+      tintOp &&
+      !hasOffset,
+    );
+    if (directInset && blurOp && tintOp) {
+      const pad = Math.ceil(cssShadowBlurRadiusToSkiaSigma(blurOp.radius) * 3 + 1);
+      const localWidth = source.width + pad * 2;
+      const localHeight = source.height + pad * 2;
+      const surfaceWidth = Math.max(1, Math.ceil(localWidth * deviceScale));
+      const surfaceHeight = Math.max(1, Math.ceil(localHeight * deviceScale));
+      const maskSurface = acquireSurface(surfaceWidth, surfaceHeight);
+      const blurSurface = acquireSurface(surfaceWidth, surfaceHeight);
+      const innerSurface = acquireSurface(surfaceWidth, surfaceHeight);
+      if (!maskSurface || !blurSurface || !innerSurface) {
+        addDiagnostic(`skia_box_effect_surface_unavailable:${layer.key}`);
+        if (maskSurface) releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+        if (blurSurface) releaseSurface(surfaceWidth, surfaceHeight, blurSurface);
+        if (innerSurface) releaseSurface(surfaceWidth, surfaceHeight, innerSurface);
+        return;
+      }
+      const maskCanvas = maskSurface.getCanvas();
+      maskCanvas.clear(kit.TRANSPARENT);
+      if (deviceScale !== 1) maskCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+      const maskPaint = createSkiaPaint(kit, "#ffffff", 1, kit.PaintStyle.Fill, undefined, source.width, source.height, true);
+      const radius = Math.max(0, Math.min(source.cornerRadius ?? 0, Math.min(source.width, source.height) / 2));
+      if (radius > 0) maskCanvas.drawRRect(rRectArgs(pad, pad, pad + source.width, pad + source.height, radius), maskPaint);
+      else maskCanvas.drawRect([pad, pad, pad + source.width, pad + source.height], maskPaint);
+      maskPaint.delete();
+      maskSurface.flush();
+      const maskImage = maskSurface.makeImageSnapshot?.();
+      if (!maskImage) {
+        addDiagnostic(`skia_box_effect_mask_snapshot_unsupported:${layer.key}`);
+        releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, blurSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, innerSurface);
+        return;
+      }
+
+      const sigma = cssShadowBlurRadiusToSkiaSigma(blurOp.radius);
+      const blurFilter = kit.ImageFilter.MakeBlur(sigma, sigma, kit.TileMode.Decal, null);
+      const blurCanvas = blurSurface.getCanvas();
+      blurCanvas.clear(kit.TRANSPARENT);
+      const blurPaint = new kit.Paint();
+      blurPaint.setAntiAlias(true);
+      blurPaint.setStyle(kit.PaintStyle.Fill);
+      blurPaint.setAlphaf(1);
+      blurPaint.setBlendMode(kit.BlendMode.SrcOver);
+      blurPaint.setImageFilter?.(blurFilter);
+      blurCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], blurPaint, false);
+      blurPaint.delete();
+      blurFilter?.delete();
+      blurSurface.flush();
+      const blurImage = blurSurface.makeImageSnapshot?.();
+      if (!blurImage) {
+        addDiagnostic(`skia_box_effect_blur_snapshot_unsupported:${layer.key}`);
+        maskImage.delete();
+        releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, blurSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, innerSurface);
+        return;
+      }
+
+      const innerCanvas = innerSurface.getCanvas();
+      innerCanvas.clear(kit.TRANSPARENT);
+      const sourcePaint = new kit.Paint();
+      sourcePaint.setAntiAlias(true);
+      sourcePaint.setStyle(kit.PaintStyle.Fill);
+      sourcePaint.setAlphaf(1);
+      sourcePaint.setBlendMode(kit.BlendMode.SrcOver);
+      innerCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], sourcePaint, false);
+      sourcePaint.setBlendMode(kit.BlendMode.DstOut);
+      innerCanvas.drawImageRect(blurImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], sourcePaint, false);
+      sourcePaint.delete();
+      innerSurface.flush();
+      const innerImage = innerSurface.makeImageSnapshot?.();
+      if (!innerImage) {
+        addDiagnostic(`skia_box_effect_inner_snapshot_unsupported:${layer.key}`);
+        maskImage.delete();
+        blurImage.delete();
+        releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, blurSurface);
+        releaseSurface(surfaceWidth, surfaceHeight, innerSurface);
+        return;
+      }
+
+      const [tintRed, tintGreen, tintBlue, tintAlpha] = cssColorToRgba(tintOp.color);
+      const isWhiteTint = tintRed === 1 && tintGreen === 1 && tintBlue === 1 && tintAlpha * tintOp.opacity === 1;
+      const tintedFilter = isWhiteTint
+        ? null
+        : kit.ColorFilter?.MakeBlend?.(
+            tintEffectColor(kit, tintOp.color, tintOp.opacity),
+            kit.BlendMode.SrcIn,
+          );
+      const tintImageFilter = tintedFilter ? kit.ImageFilter.MakeColorFilter?.(tintedFilter, null) : null;
+      const paint = new kit.Paint();
+      paint.setAntiAlias(true);
+      paint.setStyle(kit.PaintStyle.Fill);
+      paint.setAlphaf(1);
+      paint.setBlendMode(kit.BlendMode.SrcOver);
+      if (tintImageFilter) paint.setImageFilter?.(tintImageFilter);
+      canvas.save();
+      canvas.concat(matrix4ToSkia3x3(source.matrix4));
+      canvas.drawImageRect(innerImage, [0, 0, surfaceWidth, surfaceHeight], [-pad, -pad, localWidth - pad, localHeight - pad], paint, false);
+      canvas.restore();
+      paint.delete();
+      tintImageFilter?.delete();
+      tintedFilter?.delete();
+      innerImage.delete();
+      maskImage.delete();
+      blurImage.delete();
+      releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
+      releaseSurface(surfaceWidth, surfaceHeight, blurSurface);
+      releaseSurface(surfaceWidth, surfaceHeight, innerSurface);
+      return;
+    }
+    const pad = effectFilterExpansionPadding(layer.boxEffectProgram);
+    const localWidth = source.width + pad * 2;
+    const localHeight = source.height + pad * 2;
+    const surfaceWidth = Math.max(1, Math.ceil(localWidth * deviceScale));
+    const surfaceHeight = Math.max(1, Math.ceil(localHeight * deviceScale));
     const maskSurface = acquireSurface(surfaceWidth, surfaceHeight);
     if (!maskSurface?.makeImageSnapshot) {
       addDiagnostic(`skia_box_effect_mask_surface_unsupported:${layer.key}`);
@@ -352,16 +476,14 @@ export function replaySkiaCommands(
     const maskCanvas = maskSurface.getCanvas();
     maskCanvas.clear(kit.TRANSPARENT);
     if (deviceScale !== 1) maskCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
-    maskCanvas.save();
-    maskCanvas.concat(matrix4ToSkia3x3(source.matrix4));
     const maskPaint = createSkiaPaint(kit, "#ffffff", 1, kit.PaintStyle.Fill, undefined, source.width, source.height, true);
+    const radius = Math.max(0, Math.min(source.cornerRadius ?? 0, Math.min(source.width, source.height) / 2));
     if (source.cornerRadius && source.cornerRadius > 0) {
-      maskCanvas.drawRRect([0, 0, source.width, source.height, source.cornerRadius, source.cornerRadius], maskPaint);
+      maskCanvas.drawRRect(rRectArgs(pad, pad, pad + source.width, pad + source.height, radius), maskPaint);
     } else {
-      maskCanvas.drawRect([0, 0, source.width, source.height], maskPaint);
+      maskCanvas.drawRect([pad, pad, pad + source.width, pad + source.height], maskPaint);
     }
     maskPaint.delete();
-    maskCanvas.restore();
     maskSurface.flush();
     const snapshot = maskSurface.makeImageSnapshot();
     if (!snapshot) {
@@ -369,37 +491,57 @@ export function replaySkiaCommands(
       releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
       return;
     }
+    // Keep the filtered overlay isolated from the owner's existing pixels.
+    // The previous implementation installed a transformed SVG clipPath here.
+    // That path was correct in local space but could clip three rounded
+    // corners after PathBuilder transformed it into composition space. A
+    // destination-in mask keeps the same owner geometry while avoiding a
+    // second transformed path representation.
+    const overlayLayerPaint = new kit.Paint();
+    overlayLayerPaint.setAntiAlias(true);
+    overlayLayerPaint.setStyle(kit.PaintStyle.Fill);
+    overlayLayerPaint.setAlphaf(1);
+    overlayLayerPaint.setBlendMode(kit.BlendMode.SrcOver);
+    canvas.saveLayer(overlayLayerPaint, boundsToRect(compositionBounds(frameWidth, frameHeight)));
+    overlayLayerPaint.delete();
+
     const paint = new kit.Paint();
     paint.setAntiAlias(true);
     paint.setStyle(kit.PaintStyle.Fill);
     paint.setAlphaf(1);
     paint.setBlendMode(kit.BlendMode.SrcOver);
     paint.setImageFilter?.(filter);
-    // An inset shadow is clipped by the owner's rounded border box. The
-    // synthetic mask above gives the blur the right silhouette, but Skia's
-    // image-filter bounds are rectangular; install the same transformed
-    // rounded clip around the final overlay so the blur cannot leak through
-    // transparent corners.
-    const clipPath = source.cornerRadius !== undefined && canvas.clipPath
-      ? kit.Path.MakeFromSVGString(roundedRectSvg(source.width, source.height, source.cornerRadius))
-      : null;
-    let transformedClip: ReturnType<SkiaCanvasKit["Path"]["MakeFromSVGString"]> | null = null;
-    let clipBuilder: InstanceType<SkiaCanvasKit["PathBuilder"]> | null = null;
-    if (clipPath && canvas.clipPath) {
-      clipBuilder = new kit.PathBuilder(clipPath);
-      clipBuilder.transform(matrix4ToSkia3x3(source.matrix4));
-      transformedClip = clipBuilder.snapshot();
-      canvas.save();
-      canvas.clipPath(transformedClip, kit.ClipOp.Intersect, false);
-    }
-    canvas.drawImageRect(snapshot, [0, 0, frameWidth * deviceScale, frameHeight * deviceScale], [0, 0, frameWidth, frameHeight], paint, false);
-    if (clipPath && canvas.clipPath) {
-      canvas.restore();
-      transformedClip?.delete();
-      clipBuilder?.delete();
-      clipPath.delete();
-    }
+    canvas.save();
+    canvas.concat(matrix4ToSkia3x3(source.matrix4));
+    canvas.drawImageRect(
+      snapshot,
+      [0, 0, surfaceWidth, surfaceHeight],
+      [-pad, -pad, localWidth - pad, localHeight - pad],
+      paint,
+      false,
+    );
+    canvas.restore();
     paint.delete();
+
+    // An inset shadow is clipped by the owner's rounded border box. Draw the
+    // mask as an RRect in the owner's local space and apply its transform
+    // through the canvas CTM, rather than transforming an SVG path through
+    // PathBuilder. DstIn preserves the filtered alpha only inside the owner.
+    const ownerMaskPaint = new kit.Paint();
+    ownerMaskPaint.setAntiAlias(true);
+    ownerMaskPaint.setStyle(kit.PaintStyle.Fill);
+    ownerMaskPaint.setAlphaf(1);
+    ownerMaskPaint.setBlendMode(kit.BlendMode.DstIn);
+    canvas.save();
+    canvas.concat(matrix4ToSkia3x3(source.matrix4));
+    if (radius > 0) {
+      canvas.drawRRect(rRectArgs(0, 0, source.width, source.height, radius), ownerMaskPaint);
+    } else {
+      canvas.drawRect([0, 0, source.width, source.height], ownerMaskPaint);
+    }
+    canvas.restore();
+    ownerMaskPaint.delete();
+    canvas.restore();
     snapshot.delete();
     releaseSurface(surfaceWidth, surfaceHeight, maskSurface);
   };
@@ -486,6 +628,7 @@ export function replaySkiaCommands(
         projectiveFilter,
         projectiveFilterProgram: projectiveFilter ? command.effectProgram : undefined,
         boxEffectFilter: effectFilter.sourceOnly && !projectiveFilter ? effectFilter.filter : undefined,
+        boxEffectProgram: effectFilter.sourceOnly && !projectiveFilter ? command.effectProgram : undefined,
         boxEffectSource: effectFilter.sourceOnly && !projectiveFilter ? command.effectBox : undefined,
         backdropFilter: backdropEffectFilter.filter,
         backdropFilterProgram: backdropEffectFilter.filter ? command.backdropEffectProgram : undefined,

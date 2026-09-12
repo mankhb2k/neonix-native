@@ -1,6 +1,7 @@
 import type { PaintFill, PaintFillGradient, PaintFillPattern, PaintPatternContent, PaintTransform } from "@motionvideo/motion-runtime";
 import { cssColorToRgba } from "./color";
 import type { SkiaCanvas, SkiaCanvasKit, SkiaPaint, SkiaShader } from "./canvas-kit";
+import { rRectArgs } from "./command/geometry";
 
 type Point = [number, number];
 type Matrix3 = [number, number, number, number, number, number, number, number, number];
@@ -263,8 +264,18 @@ function drawPatternNode(
       const width = sx(node.width);
       const height = sy(node.height);
       const rx = sx(node.rx ?? 0);
-      if (rx > 0) canvas.drawRRect([x, y, width, height, Math.min(rx, width / 2, height / 2), Math.min(sy(node.ry ?? node.rx ?? 0), height / 2)], paint);
-      else canvas.drawRect([x, y, width, height], paint);
+      const right = x + width;
+      const bottom = y + height;
+      if (rx > 0) {
+        canvas.drawRRect(rRectArgs(
+          x,
+          y,
+          right,
+          bottom,
+          Math.min(rx, width / 2, height / 2),
+          Math.min(sy(node.ry ?? node.rx ?? 0), height / 2),
+        ), paint);
+      } else canvas.drawRect([x, y, right, bottom], paint);
     } else if (node.type === "circle") {
       const radius = sx(node.radius);
       canvas.drawOval([sx(node.cx) - radius, sy(node.cy) - radius, sx(node.cx) + radius, sy(node.cy) + radius], paint);
