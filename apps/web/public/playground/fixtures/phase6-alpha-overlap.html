@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#c8cdd3","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: #c8cdd3;
+        color: #1e293b;
+        font-family: Inter, sans-serif;
+      }
+      /* Single opaque repeating gradient (one paint pass). Sibling z-index:5 on
+         both texts previously collided at order 100005 in native-stage. */
+      .grid {
+        position: absolute;
+        left: 120px;
+        top: 100px;
+        width: 1680px;
+        height: 880px;
+        opacity: 0.28;
+        background: repeating-linear-gradient(0deg, #64748b 0%, #64748b 2%, #c8cdd3 2%, #c8cdd3 100%);
+        background-size: 80px 80px;
+      }
+      .cyan-card {
+        position: absolute;
+        left: 340px;
+        top: 360px;
+        width: 640px;
+        height: 320px;
+        border-radius: 48px;
+        background: #22d3ee;
+        opacity: 0.55;
+      }
+      .purple-ellipse {
+        position: absolute;
+        left: 720px;
+        top: 280px;
+        width: 620px;
+        height: 420px;
+        border-radius: 50%;
+        background: #a78bfa;
+        opacity: 0.58;
+      }
+      .yellow-plate {
+        position: absolute;
+        left: 1120px;
+        top: 240px;
+        width: 300px;
+        height: 220px;
+        background: #facc15;
+        opacity: 0.72;
+        transform: rotate(-14deg);
+        transform-origin: center;
+      }
+      .image-block {
+        position: absolute;
+        left: 980px;
+        top: 520px;
+        width: 360px;
+        height: 280px;
+        border-radius: 36px;
+        opacity: 0.7;
+        background: linear-gradient(145deg, #f97316 0%, #fb7185 48%, #facc15 100%);
+        border: 6px solid #ffffffaa;
+      }
+      /* No z-index: compiler maps identical z-index to the same sibling order
+         (100000 + z), which native-stage rejects. DOM order still paints text last. */
+      .headline {
+        position: absolute;
+        left: 180px;
+        top: 160px;
+        margin: 0;
+        color: #0f172a;
+        font-size: 72px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+      .caption {
+        position: absolute;
+        left: 180px;
+        top: 250px;
+        margin: 0;
+        color: #334155;
+        font-size: 28px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid"></div>
+    <div class="cyan-card"></div>
+    <div class="purple-ellipse"></div>
+    <div class="yellow-plate"></div>
+    <div class="image-block"></div>
+    <h1 class="headline">Alpha overlap.</h1>
+    <p class="caption">Phase 6 / detect double-counted geometry</p>
+  </body>
+</html>

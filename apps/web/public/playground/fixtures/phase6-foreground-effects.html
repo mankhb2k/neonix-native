@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"durationMs":1000,"background":"#c8cdd3","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        overflow: hidden;
+        background: linear-gradient(160deg, #c8cdd3 0%, #9aa3ad 100%);
+        color: #0f172a;
+        font-family: Inter, sans-serif;
+      }
+      .label {
+        position: absolute;
+        left: 160px;
+        top: 120px;
+        margin: 0;
+        font-size: 48px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      .card {
+        position: absolute;
+        width: 420px;
+        height: 280px;
+        border-radius: 36px;
+      }
+      .card-shadow {
+        left: 220px;
+        top: 320px;
+        background: #38bdf8;
+        box-shadow: 28px 32px 40px #1e293b88;
+        z-index: 1;
+      }
+      .card-blur {
+        left: 520px;
+        top: 380px;
+        background: #a78bfa;
+        filter: blur(14px);
+        z-index: 2;
+      }
+      .card-bright {
+        left: 860px;
+        top: 300px;
+        background: #f97316;
+        filter: brightness(1.35) contrast(1.28);
+        z-index: 3;
+      }
+      .card-opacity {
+        left: 1180px;
+        top: 420px;
+        background: #22c55e;
+        opacity: 0.45;
+        z-index: 4;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="label">Foreground effects / owner-only filters</h1>
+    <div class="card card-shadow"></div>
+    <div class="card card-blur"></div>
+    <div class="card card-bright"></div>
+    <div class="card card-opacity"></div>
+  </body>
+</html>
