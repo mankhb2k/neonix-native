@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { HtmlCompilerPlayground } from "@/components/playground/HtmlCompilerPlayground";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import type { Metadata } from "next";
@@ -12,7 +13,15 @@ export default function PlaygroundPage() {
   return (
     <>
       <SiteHeader active="playground" />
-      <HtmlCompilerPlayground />
+      <Suspense
+        fallback={
+          <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center text-[13px] text-slate-400">
+            Loading HTML compiler playground...
+          </div>
+        }
+      >
+        <HtmlCompilerPlayground />
+      </Suspense>
     </>
   );
 }
