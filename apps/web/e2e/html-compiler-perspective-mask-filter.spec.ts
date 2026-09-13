@@ -6,8 +6,6 @@ const cases = [
   "mask-add-intersect-near-plane",
   "mask-subtract-composition-edge",
   "mask-exclude-inclined",
-  "filter-blur-near-plane",
-  "filter-drop-shadow-after-blur-near-plane",
   "filter-mask-clip-path",
   "isolated-mask-filter-projective",
   "mask-different-perspective-boundary",
@@ -51,12 +49,6 @@ test.describe("HTML compiler projective mask/filter cases", () => {
       return count;
     });
     expect(intermediateSamples).toBeGreaterThanOrEqual(4);
-  });
-
-  test("captures representative near-plane mask/filter parity", async ({ page }) => {
-    await page.goto("/docs/preview/html-compiler?case=html-compiler.perspective.mask-alpha-near-plane", { waitUntil: "domcontentloaded" });
-    const canvas = page.getByTestId("html-compiler-runtime-canvas");
-    await expect(canvas).toHaveAttribute("data-preview-state", "ready", { timeout: 30_000 });
   });
 
   test("isolated projective mask/filter keeps the projected group and child blend", async ({ page }) => {

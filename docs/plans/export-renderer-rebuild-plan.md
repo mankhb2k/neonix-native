@@ -234,6 +234,79 @@ GPU backend chỉ được bật khi:
 
 Không giả định WebGL/WebGPU trong Docker sẽ tự động dùng hardware acceleration.
 
+### 5.7 Preview và Export dùng chung frame semantics
+
+Preview và Export không bắt buộc dùng cùng raster backend, nhưng bắt buộc dùng chung:
+
+- frame clock và quy tắc đổi `frame ↔ time`;
+- animation evaluator;
+- media-time mapping;
+- text shaping/layout;
+- effect/compositing semantics;
+- `PaintCommandBuffer` contract;
+- deterministic seed và epsilon rules.
+
+Boundary mục tiêu:
+
+```text
+Prepared Runtime
+  → Shared Frame Evaluator
+  → PaintCommandBuffer
+       ├── Preview GPU backend
+       ├── Export Skia CPU golden backend
+       └── Export GPU backend optional
+```
+
+Không tạo một evaluator riêng cho GPU export. Mọi backend mới phải consume cùng command contract và được so với golden backend tại cùng frame/time.
+
+### 5.8 Tách logical composition khỏi physical output
+
+Runtime luôn evaluate trong logical coordinate space của composition. Resolution export chỉ thay physical backing size và pixel ratio:
+
+```text
+Logical composition: 1920 × 1080
+
+Physical output:
+  1280 × 720   → pixelRatio 0,667
+  1920 × 1080  → pixelRatio 1
+  2560 × 1440  → pixelRatio 1,333
+  3840 × 2160  → pixelRatio 2
+```
+
+Renderer chịu trách nhiệm scale geometry, stroke, blur, shadow, mask và text rasterization nhất quán. Encoder chỉ nhận physical dimensions đã được chuẩn hóa về số chẵn khi codec yêu cầu.
+
+### 5.9 Failure policy phải rõ ràng
+
+Mỗi output preset khai báo một trong hai policy:
+
+```text
+strict
+  → thiếu/lỗi video, image, font hoặc audio làm job failed
+
+best-effort
+  → chỉ tiếp tục với loại lỗi được preset cho phép
+  → bắt buộc có diagnostic và artifact metadata
+```
+
+Production preset mặc định là `strict`. Không silently bỏ audio, asset hoặc effect rồi vẫn đánh dấu artifact hoàn chỉnh.
+
+### 5.10 Browser renderer chỉ là backend tùy chọn
+
+Headless Chrome + WebGL/WebGPU + WebCodecs có thể dùng cho local development hoặc GPU spike, nhưng không phải production core mặc định. Nếu dùng browser worker phải đo và ghi rõ:
+
+- Chrome version;
+- requested backend và actual backend;
+- GPU adapter/driver;
+- hardware hay software renderer, bao gồm SwiftShader;
+- actual video/audio encoder implementation;
+- mọi fallback reason.
+
+Không được báo `webgpu` hoặc `webgl2` như một GPU result nếu implementation thực tế chạy software.
+
+### 5.11 Reference hygiene
+
+ClipKit được dùng làm architectural reference cho evaluator, cache, backpressure và backend abstraction. Không copy trực tiếp `@clipkit/runtime` vào Neonix; runtime trong reference hiện mang BSL 1.1. Neonix phải triển khai độc lập trên protocol/runtime contract của chính mình và giữ provenance rõ ràng cho mọi dependency hoặc đoạn code bên thứ ba.
+
 ---
 
 ## 6. Kiến trúc mục tiêu
@@ -261,6 +334,7 @@ Render Planner
 Frame Workers
     │
     ├── prepare runtime once
+    ├── prepare deterministic media providers
     ├── cache fonts/images/geometry
     ├── evaluate frame delta
     ├── render frame
@@ -333,6 +407,7 @@ Có số liệu độc lập cho từng stage trước khi tối ưu.
   - `totalMs`;
 - ghi p50/p95/max frame time và danh sách slowest frames;
 - ghi peak RSS, heap used, external buffer bytes và CPU utilization;
+- ghi requested/actual renderer, GPU adapter/driver, software fallback và actual encoder;
 - log progress mỗi 30 frame hoặc mỗi 1 giây;
 - output benchmark JSON có version để so sánh giữa commit;
 - không ghi URL ký, token hoặc credential vào benchmark artifact.
@@ -364,6 +439,7 @@ Mỗi case chạy:
 - biết được top 10 slowest frame và stage gây chậm;
 - full run luôn có progress và có thể phân biệt slow với stalled;
 - benchmark artifact chứa git commit, image digest và thông tin CPU/GPU.
+- benchmark không gộp kết quả SwiftShader/software WebGL vào nhóm hardware GPU.
 
 ### File dự kiến
 
@@ -460,12 +536,38 @@ Giảm công việc lặp lại trong mỗi frame.
 - giữ API thuần/deterministic để có thể render frame ranges độc lập;
 - không dùng mutable global state giữa các job.
 
+### Deterministic MediaFrameProvider
+
+Video layer không được seek/decode ad-hoc trong từng element renderer. Chuẩn hóa qua một interface riêng:
+
+```ts
+interface MediaFrameProvider {
+  prepare(asset: RuntimeMediaAsset): Promise<void>;
+  getFrame(assetId: string, mediaTimeUs: number): Promise<DecodedMediaFrame>;
+  dispose(): Promise<void>;
+}
+```
+
+Yêu cầu implementation:
+
+- demux và probe mỗi asset một lần/job hoặc lấy từ cache theo content hash;
+- resolve exact media timestamp từ timeline contract;
+- decode tuần tự và feed-ahead khi timeline tiến về phía trước;
+- reset decoder về keyframe gần nhất khi seek xa hoặc reverse;
+- cache một cửa sổ frame có giới hạn, không giữ toàn clip trong RAM/VRAM;
+- đóng `VideoFrame`, bitmap hoặc native surface ngay khi bị evict;
+- không dùng chung mutable decoder cho hai clip instance có timing khác nhau;
+- có FFmpeg/native fallback khi WebCodecs không hỗ trợ codec;
+- cùng một `mediaTimeUs` phải trả về cùng source frame giữa preview và export.
+
 ### Tiêu chí hoàn thành
 
 - validation chỉ chạy một lần/job;
 - evaluate p95 giảm ít nhất 70% trên fixture chuẩn;
 - random-access frame cho kết quả giống sequential frame;
 - render cùng project ở hai process tạo cùng golden frame hashes;
+- sequential và random-access media frames resolve cùng timestamp/frame;
+- reverse/loop/time-remap không làm decoder cache tăng không giới hạn;
 - không tăng memory theo số frame đã render.
 
 ### File dự kiến
@@ -473,6 +575,8 @@ Giảm công việc lặp lại trong mỗi frame.
 - `packages/motion-runtime/src/project/visual.ts`
 - `packages/motion-runtime/src/visual/evaluate.ts`
 - `packages/motion-runtime/src/paint/*`
+- `packages/motion-runtime/src/media/*`
+- `packages/export-renderer/src/media/*`
 - `packages/export-renderer/src/render/render.ts`
 - runtime/evaluator tests tương ứng.
 
@@ -491,6 +595,11 @@ Có một backend CPU đúng, ổn định và đủ nhanh trước khi thử GP
 - chỉ gọi `setAsset()` khi asset identity thay đổi;
 - xác nhận image/filter/mask/projective cache hit rate;
 - thêm geometry/path cache theo immutable fingerprint;
+- thêm resource fingerprints để chỉ raster/upload khi dependency thay đổi:
+  - image texture: asset content hash;
+  - SVG/path raster: geometry, trim, morph, dimensions và paint hash;
+  - text: content, font, size, shaping options và style hash;
+  - static subtree: descendants, effects và asset identities hash;
 - đo và giảm allocation trong `readPixels`/`Buffer.from`;
 - dùng buffer pool có giới hạn nếu CanvasKit API cho phép;
 - không giữ nhiều frame RGBA trong RAM;
@@ -510,6 +619,8 @@ Có một backend CPU đúng, ổn định và đủ nhanh trước khi thử GP
 
 - không có memory growth tuyến tính theo số frame;
 - cache metrics giải thích được hit/miss;
+- static resource không bị raster/upload lại khi fingerprint không đổi;
+- thay một dependency chỉ invalidate đúng resource/subtree liên quan;
 - 300-frame benchmark chạy ổn định ba lần liên tiếp;
 - golden pixel tests không regression;
 - unsupported command/effect luôn tạo diagnostic.
@@ -589,11 +700,35 @@ cancelled
 - render bundle và artifact lưu object storage;
 - worker không tải toàn bộ MP4 vào một `Buffer` nếu provider hỗ trợ stream upload.
 
+Production path không được dùng chuỗi copy toàn-file:
+
+```text
+MP4
+  → ArrayBuffer
+  → Blob
+  → base64
+  → Node Buffer
+```
+
+Output phải đi theo một trong hai đường:
+
+```text
+Encoder/Muxer → temporary file → verify → atomic upload/publish
+```
+
+hoặc:
+
+```text
+Encoder/Muxer → bounded multipart stream → finalize → verify metadata/checksum
+```
+
 ### Tiêu chí hoàn thành
 
 - create-job response dưới 2 giây, không phụ thuộc video duration;
 - restart web process không làm mất job;
 - worker crash không publish MP4 thiếu `moov`;
+- peak memory không phụ thuộc tuyến tính vào kích thước MP4 output;
+- production render không chuyển artifact qua base64;
 - cancel dừng frame production và encoder;
 - retry không tạo hai final artifacts;
 - progress tăng đơn điệu và kết thúc chính xác ở 1.
@@ -689,12 +824,20 @@ faststart
 ### Việc cần làm
 
 - đo pipe write và drain wait riêng;
+- giới hạn rõ `maxFramesInFlight` và encoder queue size;
+- khi queue vượt ngưỡng, frame producer phải chờ drain thay vì tiếp tục allocate frame;
+- progress tách thành `renderedFrames`, `submittedFrames`, `encodedFrames` và `muxedFrames`;
+- progress chỉ đạt 100% sau encoder flush và muxer finalize;
+- thêm `encoderDrainTimeout` và `encoderFlushTimeout` để phát hiện stall;
 - log FFmpeg progress machine-readable;
 - không giữ toàn bộ stderr vô hạn trong RAM;
 - dùng temporary output rồi atomic finalize;
 - kiểm tra frame count, duration, codec và audio streams bằng `ffprobe`;
 - định nghĩa presets theo contract thay vì hard-code `veryfast`;
 - thêm bitrate/CRF/GOP policy nhất quán giữa chunks;
+- chuẩn hóa physical width/height thành số chẵn khi codec/pixel format yêu cầu;
+- định nghĩa GOP/keyframe tại chunk boundaries để concat/remux không thiếu frame;
+- áp dụng `strict`/`best-effort` failure policy cho audio và media tracks;
 - xử lý encoder abort và child process cleanup;
 - benchmark `ultrafast`, `veryfast`, `faster` trên cùng chất lượng mục tiêu.
 
@@ -719,6 +862,9 @@ Hardware encoder chỉ được chọn khi:
 ### Tiêu chí hoàn thành
 
 - encoder metrics không chứa thời gian frame production;
+- encoder queue luôn nằm trong configured bound;
+- 100% progress đồng nghĩa output đã flush, mux và verify xong;
+- flush/drain stall trả về failure code cụ thể;
 - failed/cancelled job không để lại child process;
 - output pass `ffprobe` và playback E2E;
 - software fallback luôn hoạt động;
@@ -769,7 +915,26 @@ Unsupported effect phải fallback toàn frame hoặc toàn job về Skia golden
 - WebGPU `importExternalTexture()` hỗ trợ video frame làm input; không được coi là bằng chứng encode framebuffer zero-copy;
 - `VideoEncoder` availability và hardware acceleration phụ thuộc host/browser;
 - headless Docker có thể dùng software renderer;
+- `gpuFinish()` sau mọi frame đảm bảo correctness nhưng có thể serialize CPU/GPU; phải benchmark fence strategy thay vì mặc định chờ toàn GPU queue;
+- copy GPU canvas sang Canvas 2D trước `VideoFrame` vẫn là full-frame copy và không được gọi là zero-copy;
 - mọi tuyên bố zero-copy phải được xác nhận bằng tracing/metrics.
+
+### Backend identity bắt buộc
+
+Mỗi GPU benchmark/job phải lưu:
+
+```text
+requestedBackend
+actualBackend
+adapterName
+driverVersion
+softwareRenderer
+encoderName
+hardwareAcceleration
+fallbackReason
+```
+
+Kết quả chạy bằng SwiftShader được so với CPU renderer như một software backend riêng, không được dùng để chứng minh hiệu năng GPU.
 
 ### Gate để productionize
 
@@ -814,6 +979,31 @@ Với fixture 60 giây:
 ```
 
 Các frame sát chunk boundary phải luôn có trong regression suite.
+
+### Resolution matrix bắt buộc
+
+Mỗi backend phải test cùng logical composition tại:
+
+```text
+720p
+1080p
+1440p
+4K nếu backend khai báo hỗ trợ
+```
+
+Kiểm tra geometry, font, stroke, blur, shadow, mask, crop và effect radius theo physical pixel ratio. H.264 outputs phải có even dimensions.
+
+### Media timeline cases bắt buộc
+
+- forward sequential decode;
+- seek xa về phía trước;
+- seek ngược;
+- loop;
+- trim;
+- playback rate;
+- time remap/freeze/reverse;
+- hai clip instance dùng cùng asset nhưng timing khác nhau;
+- codec unsupported đi qua fallback đúng policy.
 
 ### Kiểm tra
 
@@ -874,6 +1064,19 @@ output checksum
 failure code
 ```
 
+Với browser/GPU backend phải bổ sung:
+
+```text
+requestedBackend
+actualBackend
+GPU adapter/driver
+softwareRenderer
+requestedEncoder
+actualEncoder
+hardwareAcceleration
+fallbackReason
+```
+
 Failure code phải phân biệt:
 
 - invalid runtime;
@@ -927,11 +1130,14 @@ Không dùng một message `render_failed` cho mọi trường hợp.
 - validate once;
 - prebuilt indexes;
 - evaluator không clone/map toàn scene không cần thiết;
+- shared Preview/Export evaluator contract;
+- deterministic `MediaFrameProvider` và bounded decode cache;
 - command buffer and frame determinism tests.
 
 ### PR 4 — Skia CPU lifecycle
 
 - CanvasKit/font/asset cache lifecycle;
+- resource fingerprints và precise invalidation;
 - allocation/readback metrics;
 - bounded pools và disposal tests.
 
@@ -940,6 +1146,8 @@ Không dùng một message `render_failed` cho mọi trường hợp.
 - `POST/GET/DELETE /v1/render-jobs`;
 - persistent job adapter;
 - heartbeat/progress/cancel;
+- streaming artifact, không full-buffer/base64;
+- strict/best-effort failure policy;
 - atomic artifact publish.
 
 ### PR 6 — Frame-range scheduler
@@ -952,6 +1160,8 @@ Không dùng một message `render_failed` cho mọi trường hợp.
 ### PR 7 — Encoder abstraction
 
 - FFmpeg adapter;
+- bounded backpressure và flush watchdog;
+- rendered/submitted/encoded/muxed progress;
 - software presets;
 - capability probe;
 - optional hardware encoder;
@@ -961,6 +1171,8 @@ Không dùng một message `render_failed` cho mọi trường hợp.
 
 - primitive subset;
 - explicit GPU health check;
+- requested/actual backend identity và SwiftShader detection;
+- logical/physical resolution parity;
 - parity benchmark;
 - feature flag và fallback.
 
@@ -1021,12 +1233,18 @@ Rebuild export renderer được xem là hoàn thành khi:
 - compile/runtime payload đạt performance gates;
 - timing từng stage không bị tính chồng;
 - validation không chạy trong mỗi frame;
+- Preview và Export dùng chung frame evaluator, media-time mapping và command semantics;
+- deterministic media provider pass forward/seek/reverse/loop tests;
 - worker API là async và không phụ thuộc request timeout;
 - progress, cancel, retry và idempotency hoạt động;
 - partial artifact không bao giờ được publish như output hoàn chỉnh;
+- production artifact không đi qua base64 hoặc full-file Node `Buffer`;
 - frame-range concurrency pass boundary tests;
+- encoder queue/backpressure có bound và flush stall có watchdog;
 - software FFmpeg path luôn là fallback hoạt động;
 - GPU/hardware path, nếu bật, có capability check và fallback;
+- metrics phân biệt requested backend với actual hardware/software backend;
+- logical composition render đúng tại mọi physical output resolution được hỗ trợ;
 - output pass golden command, pixel và A/V sync tests;
 - benchmark cold/warm 1/30/300/1.800 frame được lưu cùng thông tin môi trường;
 - production metrics cho biết rõ bottleneck nằm ở compile, evaluate, paint, readback, pipe, encode, mux hay storage.

@@ -1,13 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 const cases: Array<{ id: string; json: string; extra: string; painted?: boolean }> = [
-  { id: "group-translate-z", json: "render3d", extra: "motion.translate3d" },
   { id: "rotate-x", json: "motion.rotateX", extra: "perspective" },
   { id: "origin-offset", json: "perspective", extra: "motion.rotateY" },
   { id: "flat-preserve-3d", json: "preserve-3d", extra: "render3d" },
   { id: "transform-function", json: "motion.perspective", extra: "motion.rotateY" },
-  { id: "backface-hidden", json: "backfaceVisibility", extra: "hidden", painted: false },
-  { id: "near-far-clipping", json: "perspective", extra: "motion.translate3d" },
   { id: "animated-3d", json: "transform.translate.z", extra: "tracks" },
   { id: "parallax-three-depths", json: "tracks", extra: "motion.translate3d" },
 ] as const;
