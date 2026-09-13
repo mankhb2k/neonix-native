@@ -18,6 +18,8 @@ import type { ExportRenderOptions, ExportRenderStats, RenderedFrame, RuntimeFram
 const defaultEvaluator: RuntimeFrameEvaluator = (project, frame) => evaluateRuntimeProjectV3(project, frame);
 
 function defaultAssetRoot(): string {
+  const configured = process.env.EXPORT_RENDERER_ASSET_ROOT?.trim();
+  if (configured) return resolve(configured);
   const cwd = resolve(process.cwd());
   return basename(cwd).toLowerCase() === "web"
     ? join(cwd, "public")

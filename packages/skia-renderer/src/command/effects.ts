@@ -226,6 +226,120 @@ function shadowBlocks(program: NonNullable<EffectProgram>): Array<{
   return blocks;
 }
 
+type BoxShadowBranch = {
+  kind: "outer" | "inner";
+  blur: Extract<RuntimeEffectOp, { kind: "blur" }>;
+  tint: Extract<RuntimeEffectOp, { kind: "tint" }>;
+  offset?: Extract<RuntimeEffectOp, { kind: "offset" }>;
+};
+
+/**
+ * Parse the ordered box-shadow graphs emitted by Runtime V3. A single
+ * ImageFilter pattern is not enough for lists containing inset and outer
+ * shadows together: each branch must read the original box silhouette and
+ * then be composited in CSS list order.
+ */
+function boxShadowBranches(program: NonNullable<EffectProgram>): BoxShadowBranch[] | null {
+  const branches: BoxShadowBranch[] = [];
+  let index = 0;
+  while (index < program.ops.length) {
+    const alpha = program.ops[index];
+    if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") return null;
+
+    const maybeOffset = program.ops[index + 1];
+    const hasInnerOffset = maybeOffset?.kind === "offset";
+    const blur = program.ops[index + (hasInnerOffset ? 2 : 1)];
+    if (blur?.kind !== "blur") return null;
+
+    const maybeInner = program.ops[index + (hasInnerOffset ? 3 : 2)];
+    if (maybeInner?.kind === "inner-alpha") {
+      const tint = program.ops[index + (hasInnerOffset ? 4 : 3)];
+      const composite = program.ops[index + (hasInnerOffset ? 5 : 4)];
+      if (
+        maybeInner.source !== alpha.output ||
+        maybeInner.blurred !== blur.output ||
+        tint?.kind !== "tint" ||
+        composite?.kind !== "composite" ||
+        composite.source !== tint.output ||
+        composite.mode !== "source-over"
+      ) return null;
+      branches.push({
+        kind: "inner",
+        blur,
+        tint,
+        ...(hasInnerOffset ? { offset: maybeOffset } : {}),
+      });
+      index += hasInnerOffset ? 6 : 5;
+      continue;
+    }
+
+    const tint = maybeInner;
+    const offset = program.ops[index + 3];
+    const composite = program.ops[index + 4];
+    if (
+      tint?.kind !== "tint" ||
+      offset?.kind !== "offset" ||
+      composite?.kind !== "composite" ||
+      composite.backdrop !== offset.output ||
+      composite.mode !== "source-over"
+    ) return null;
+    branches.push({ kind: "outer", blur, tint, offset });
+    index += 5;
+  }
+  return branches.length > 1 ? branches : null;
+}
+
+function makeInnerShadowFilter(
+  kit: SkiaCanvasKit,
+  branch: BoxShadowBranch,
+): SkiaImageFilter | null {
+  const makeBlend = kit.ImageFilter.MakeBlend;
+  if (!makeBlend) return null;
+  const offsetFilter = branch.offset ? makeOffsetFilter(kit, branch.offset) : null;
+  const blurred = kit.ImageFilter.MakeBlur(
+    cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+    cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+    kit.TileMode.Decal,
+    offsetFilter,
+  );
+  const inside = blurred ? makeBlend(kit.BlendMode.DstOut, null, blurred) : null;
+  const colorFilter = inside && kit.ColorFilter?.MakeBlend
+    ? kit.ColorFilter.MakeBlend(tintColor(kit, branch.tint.color, branch.tint.opacity), kit.BlendMode.SrcIn)
+    : null;
+  const tinted = inside && colorFilter && kit.ImageFilter.MakeColorFilter
+    ? kit.ImageFilter.MakeColorFilter(colorFilter, inside)
+    : null;
+  const filter = tinted ? makeBlend(kit.BlendMode.SrcOver, null, tinted) : null;
+  colorFilter?.delete();
+  offsetFilter?.delete();
+  blurred?.delete();
+  inside?.delete();
+  tinted?.delete();
+  return filter;
+}
+
+function makeMixedBoxShadowFilter(
+  kit: SkiaCanvasKit,
+  branches: readonly BoxShadowBranch[],
+): SkiaImageFilter | null {
+  const first = branches[0];
+  if (!first) return null;
+  // Multi-branch box shadows are rendered by replay's isolated-mask
+  // compositor. Do not build a backend ImageFilter blend here: CanvasKit
+  // versions differ in support for blending DropShadow filters, and a failed
+  // activation filter would prevent the explicit compositor from running.
+  return first.kind === "inner"
+    ? makeInnerShadowFilter(kit, first)
+    : makeShadowFilter(
+        kit,
+        first.offset ?? { x: 0, y: 0 },
+        first.blur.radius,
+        first.tint.color,
+        first.tint.opacity,
+        false,
+      );
+}
+
 export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): EffectFilterResult {
   if (!program) return { filter: null, supported: true };
   const ops = program.ops;
@@ -237,6 +351,15 @@ export function effectFilterFor(kit: SkiaCanvasKit, program: EffectProgram): Eff
   const tint = ops.find((op) => op.kind === "tint");
   const offset = ops.find((op) => op.kind === "offset");
   const shadows = shadowBlocks(program);
+  const mixedBoxBranches = boxShadowBranches(program);
+  if (mixedBoxBranches) {
+    const filter = makeMixedBoxShadowFilter(kit, mixedBoxBranches);
+    // The replay compositor is the authoritative implementation for an
+    // ordered box-shadow list. The backend filter is only an optional
+    // activation token; CanvasKit builds may not expose a usable drop-shadow
+    // filter even though the primitive mask/blur APIs are available.
+    return { filter, supported: true, sourceOnly: true };
+  }
   if (shadows.length > 1 && shadows.length * 5 === ops.length && kit.ImageFilter.MakeDropShadow && kit.ImageFilter.MakeDropShadowOnly && kit.ImageFilter.MakeBlend) {
     // CSS paints the first listed shadow above later shadows. Keep the first
     // branch source-bearing and place later shadow-only branches behind it;

@@ -4,6 +4,7 @@ import {
   matrix4ToArray,
   multiplyMatrix4,
   projectPoint3D,
+  translationMatrix3D,
   type Matrix4,
   type Point3D,
 } from "../geometry/matrix4";
@@ -550,10 +551,15 @@ export function evaluateVisualRuntimeProject(
   };
 
   const effectBoxFor = (node: VisualRuntimeNode, directChildren: VisualRuntimeNode[] = []) => {
-    const hasInsetBoxShadow = node.content.effects?.some(
-      (effect) => effect.type === "shadow" && effect.source === "box" && effect.inset,
+    // Runtime V3 needs the owner's geometric box whenever the Skia backend
+    // must replay an ordered box-shadow list from isolated masks. This is not
+    // limited to inset shadows: a list containing multiple outer shadows may
+    // also need the explicit overlay compositor when CanvasKit cannot blend
+    // several DropShadow filters in one ImageFilter graph.
+    const hasBoxShadow = node.content.effects?.some(
+      (effect) => effect.type === "shadow" && effect.source === "box",
     );
-    if (!hasInsetBoxShadow || node.content.kind === "video") return undefined;
+    if (!hasBoxShadow || node.content.kind === "video") return undefined;
     const cornerRadiusFor = (content: VisualRuntimeNode["content"]): number | undefined => {
       if (content.kind === "shape" && content.shape === "rectangle") return content.cornerRadius;
       // HTML border-radius is lowered to a path before Runtime V3. Recover
@@ -577,11 +583,35 @@ export function evaluateVisualRuntimeProject(
       );
       if (backgroundShape) cornerRadius = cornerRadiusFor(backgroundShape.content);
     }
+
+    // CSS inset box-shadow is based on the padding box when a border exists:
+    // the blur starts at the border's inner edge, not at the outer border box.
+    // HTML compiler borders are lowered to an inner child with a stroke, so
+    // recover that uniform stroke here without changing Protocol V2 semantics.
+    const strokeWidthFor = (content: VisualRuntimeNode["content"]): number | undefined => {
+      if (content.kind !== "shape" && content.kind !== "path") return undefined;
+      return content.strokeWidth;
+    };
+    const borderChild = directChildren.find((child) => {
+      const strokeWidth = strokeWidthFor(child.content);
+      if (!strokeWidth || strokeWidth <= 0) return false;
+      return (
+        Math.abs(node.content.width - child.content.width - strokeWidth) <= 1e-6 &&
+        Math.abs(node.content.height - child.content.height - strokeWidth) <= 1e-6
+      );
+    });
+    const borderInset = borderChild ? strokeWidthFor(borderChild.content) ?? 0 : strokeWidthFor(node.content) ?? 0;
+    const effectWidth = Math.max(1, node.content.width - borderInset * 2);
+    const effectHeight = Math.max(1, node.content.height - borderInset * 2);
+    const effectRadius = cornerRadius === undefined ? undefined : Math.max(0, cornerRadius - borderInset);
+    const effectMatrix = borderInset > 0
+      ? multiplyMatrix4(node.worldMatrix, translationMatrix3D(borderInset, borderInset, 0))
+      : node.worldMatrix;
     return {
-      width: node.content.width,
-      height: node.content.height,
-      ...(cornerRadius !== undefined ? { cornerRadius } : {}),
-      matrix4: matrix4ToArray(node.worldMatrix),
+      width: effectWidth,
+      height: effectHeight,
+      ...(effectRadius !== undefined ? { cornerRadius: effectRadius } : {}),
+      matrix4: matrix4ToArray(effectMatrix),
     };
   };
 

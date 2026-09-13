@@ -71,6 +71,36 @@ const groupNode: VisualRuntimeNode = {
 };
 
 describe("Runtime V2 border fragment batching", () => {
+  it("uses the border inner edge as the inset shadow effect box", () => {
+    const group = {
+      ...groupNode,
+      id: "inset-group",
+      content: {
+        kind: "group" as const,
+        width: 100,
+        height: 60,
+        effects: [{ id: "inner", type: "shadow" as const, source: "box" as const, offset: { x: 0, y: 0 }, blur: 18, spread: 0, color: "#ffffff", inset: true }],
+      },
+    } satisfies VisualRuntimeNode;
+    const fill = {
+      ...pathNode("inset-fill", 1, "#000000", 0),
+      parentId: "inset-group",
+      content: { kind: "shape" as const, shape: "rectangle" as const, width: 100, height: 60, fill: "#000000", cornerRadius: 20 },
+    } satisfies VisualRuntimeNode;
+    const border = {
+      ...pathNode("inset-border", 2, "#00000000", 0),
+      parentId: "inset-group",
+      content: { kind: "shape" as const, shape: "rectangle" as const, width: 92, height: 52, fill: "#00000000", cornerRadius: 12, stroke: "#ffffff", strokeWidth: 8 },
+    } satisfies VisualRuntimeNode;
+    const frame = evaluateVisualRuntimeProject(projectWith([group, fill, border]), 0);
+    const begin = frame.commands.find((command) => command.op === "beginLayer" && command.key === "inset-group");
+    expect(begin).toMatchObject({ effectBox: { width: 84, height: 44, cornerRadius: 12 } });
+    if (begin?.op === "beginLayer") {
+      expect(begin.effectBox?.matrix4[12]).toBe(8);
+      expect(begin.effectBox?.matrix4[13]).toBe(8);
+    }
+  });
+
   it("keeps a flat 3D context marker compatible with affine rendering", () => {
     const frame = evaluateVisualRuntimeProject(
       projectWith([{

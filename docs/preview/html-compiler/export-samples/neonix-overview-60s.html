@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#07111f","colorSpace":"srgb"}}'>
+    <style data-neonix-bundle>
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        margin: 0;
+        position: relative;
+        overflow: hidden;
+        background: #07111f;
+        color: #f8fafc;
+        font-family: Inter;
+      }
+
+      @keyframes background-breathe {
+        0%, 100% { opacity: 0.34; }
+        50% { opacity: 0.6; }
+      }
+
+      @keyframes intro {
+        0%, 4% { opacity: 0; transform: translateY(60px) scale(0.94); }
+        9%, 18% { opacity: 1; transform: translateY(0px) scale(1); }
+        23%, 100% { opacity: 0; transform: translateY(-36px) scale(1.03); }
+      }
+
+      @keyframes intro-mark {
+        0%, 3% { opacity: 0; transform: rotate(-18deg) scale(0.5); }
+        9%, 18% { opacity: 1; transform: rotate(0deg) scale(1); }
+        23%, 100% { opacity: 0; transform: rotate(18deg) scale(0.8); }
+      }
+
+      @keyframes feature-one {
+        0%, 20% { opacity: 0; transform: translateX(-120px); }
+        25%, 38% { opacity: 1; transform: translateX(0px); }
+        43%, 100% { opacity: 0; transform: translateX(80px); }
+      }
+
+      @keyframes feature-two {
+        0%, 35% { opacity: 0; transform: translateX(-120px); }
+        40%, 53% { opacity: 1; transform: translateX(0px); }
+        58%, 100% { opacity: 0; transform: translateX(80px); }
+      }
+
+      @keyframes feature-three {
+        0%, 50% { opacity: 0; transform: translateX(-120px); }
+        55%, 68% { opacity: 1; transform: translateX(0px); }
+        73%, 100% { opacity: 0; transform: translateX(80px); }
+      }
+
+      @keyframes feature-four {
+        0%, 65% { opacity: 0; transform: translateX(-120px); }
+        70%, 82% { opacity: 1; transform: translateX(0px); }
+        87%, 100% { opacity: 0; transform: translateX(80px); }
+      }
+
+      @keyframes feature-orbit {
+        0%, 22% { opacity: 0; transform: translateY(180px) rotate(-20deg) scale(0.7); }
+        30% { opacity: 1; transform: translateY(0px) rotate(0deg) scale(1); }
+        75% { opacity: 1; transform: translateY(-20px) rotate(180deg) scale(1.08); }
+        88%, 100% { opacity: 0; transform: translateY(-100px) rotate(260deg) scale(0.7); }
+      }
+
+      @keyframes workflow-panel {
+        0%, 48% { opacity: 0; transform: scale(0.86) translateY(70px); }
+        56%, 76% { opacity: 1; transform: scale(1) translateY(0px); }
+        84%, 100% { opacity: 0; transform: scale(1.04) translateY(-40px); }
+      }
+
+      @keyframes workflow-line {
+        0%, 52% { opacity: 0; transform: scaleX(0); transform-origin: left; }
+        64%, 76% { opacity: 1; transform: scaleX(1); transform-origin: left; }
+        84%, 100% { opacity: 0; transform: scaleX(1); transform-origin: left; }
+      }
+
+      @keyframes design-card-one {
+        0%, 70% { opacity: 0; transform: translateX(-220px) rotate(-8deg); }
+        78%, 90% { opacity: 1; transform: translateX(0px) rotate(0deg); }
+        96%, 100% { opacity: 0; transform: translateX(-60px) rotate(-3deg); }
+      }
+
+      @keyframes design-card-two {
+        0%, 73% { opacity: 0; transform: translateY(180px) rotate(8deg); }
+        81%, 90% { opacity: 1; transform: translateY(0px) rotate(0deg); }
+        96%, 100% { opacity: 0; transform: translateY(-50px) rotate(3deg); }
+      }
+
+      @keyframes design-card-three {
+        0%, 76% { opacity: 0; transform: translateX(220px) rotate(8deg); }
+        84%, 90% { opacity: 1; transform: translateX(0px) rotate(0deg); }
+        96%, 100% { opacity: 0; transform: translateX(60px) rotate(3deg); }
+      }
+
+      @keyframes outro {
+        0%, 87% { opacity: 0; transform: scale(0.72); }
+        94%, 100% { opacity: 1; transform: scale(1); }
+      }
+
+      @keyframes outro-ring {
+        0%, 86% { opacity: 0; transform: scale(0.5) rotate(-30deg); }
+        94%, 100% { opacity: 0.75; transform: scale(1) rotate(0deg); }
+      }
+
+      #stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        background: #07111f;
+      }
+
+      #glow-a, #glow-b {
+        position: absolute;
+        border-radius: 450px;
+        animation: background-breathe 60s linear both;
+      }
+
+      #glow-a {
+        left: 1060px;
+        top: 40px;
+        width: 900px;
+        height: 900px;
+        background: #164e63;
+      }
+
+      #glow-b {
+        left: 20px;
+        top: 760px;
+        width: 720px;
+        height: 720px;
+        background: #312e81;
+        animation-delay: -14s;
+      }
+
+      .eyebrow {
+        position: absolute;
+        left: 150px;
+        top: 116px;
+        margin: 0;
+        color: #67e8f9;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 8px;
+      }
+
+      #intro-mark {
+        position: absolute;
+        left: 820px;
+        top: 245px;
+        width: 280px;
+        height: 280px;
+        box-sizing: border-box;
+        border: 8px solid #67e8f9;
+        border-radius: 64px;
+        box-shadow: 0 0 70px 0 #155e75;
+        animation: intro-mark 60s linear both;
+      }
+
+      #intro-mark-core {
+        position: absolute;
+        left: 70px;
+        top: 70px;
+        width: 124px;
+        height: 124px;
+        border-radius: 62px;
+        background: #a7f3d0;
+      }
+
+      #intro-title {
+        position: absolute;
+        left: 200px;
+        top: 565px;
+        width: 1520px;
+        margin: 0;
+        color: #f8fafc;
+        font-size: 144px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -7px;
+        text-align: center;
+        animation: intro 60s linear both;
+      }
+
+      .feature {
+        position: absolute;
+        left: 190px;
+        top: 250px;
+        width: 1540px;
+        height: 590px;
+        box-sizing: border-box;
+        padding: 70px 86px;
+        border: 2px solid #155e75;
+        border-radius: 34px;
+        background: #0b1b2a;
+        box-shadow: 0 24px 70px 0 #020617;
+        animation-duration: 60s;
+        animation-fill-mode: both;
+      }
+
+      #feature-one { animation-name: feature-one; }
+      #feature-two { animation-name: feature-two; }
+      #feature-three { animation-name: feature-three; }
+      #feature-four { animation-name: feature-four; }
+
+      .feature-index {
+        margin: 0;
+        color: #67e8f9;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 5px;
+      }
+
+      .feature-title {
+        margin: 76px 0 0;
+        color: #f8fafc;
+        font-size: 92px;
+        line-height: 1;
+        font-weight: 700;
+        letter-spacing: -4px;
+      }
+
+      .feature-copy {
+        width: 970px;
+        margin: 30px 0 0;
+        color: #bae6fd;
+        font-size: 34px;
+        line-height: 1.35;
+      }
+
+      .feature-dot {
+        position: absolute;
+        right: 150px;
+        top: 186px;
+        width: 190px;
+        height: 190px;
+        border-radius: 95px;
+        background: #67e8f9;
+        box-shadow: 0 0 90px 0 #22d3ee;
+        animation: feature-orbit 60s linear both;
+      }
+
+      .feature-dot-core {
+        position: absolute;
+        left: 64px;
+        top: 64px;
+        width: 62px;
+        height: 62px;
+        border-radius: 31px;
+        background: #07111f;
+      }
+
+      #workflow {
+        position: absolute;
+        left: 220px;
+        top: 190px;
+        width: 1480px;
+        height: 700px;
+        box-sizing: border-box;
+        padding: 62px 70px;
+        border: 2px solid #4f46e5;
+        border-radius: 38px;
+        background: #11153a;
+        text-align: center;
+        animation: workflow-panel 60s linear both;
+      }
+
+      #workflow-title {
+        margin: 0;
+        color: #e0e7ff;
+        font-size: 76px;
+        font-weight: 700;
+        letter-spacing: -3px;
+      }
+
+      .workflow-step {
+        position: absolute;
+        top: 260px;
+        width: 270px;
+        height: 190px;
+        padding-top: 38px;
+        box-sizing: border-box;
+        border: 2px solid #818cf8;
+        border-radius: 22px;
+        background: #1e1b4b;
+        color: #e0e7ff;
+        font-size: 30px;
+        font-weight: 700;
+      }
+
+      #step-one { left: 100px; }
+      #step-two { left: 605px; }
+      #step-three { left: 1110px; }
+
+      .workflow-number {
+        display: block;
+        margin-bottom: 18px;
+        color: #a5b4fc;
+        font-size: 22px;
+        letter-spacing: 4px;
+      }
+
+      .workflow-link {
+        position: absolute;
+        top: 350px;
+        width: 235px;
+        height: 5px;
+        background: #a5b4fc;
+        animation: workflow-line 60s linear both;
+      }
+
+      #workflow-link-one { left: 370px; }
+      #workflow-link-two { left: 875px; }
+
+      .design-card {
+        position: absolute;
+        top: 290px;
+        width: 390px;
+        height: 490px;
+        box-sizing: border-box;
+        padding: 46px;
+        border: 2px solid #a7f3d0;
+        border-radius: 30px;
+        background: #102a2a;
+        box-shadow: 0 26px 60px 0 #020617;
+        animation-duration: 60s;
+        animation-fill-mode: both;
+      }
+
+      #design-one { left: 250px; animation-name: design-card-one; }
+      #design-two { left: 765px; border-color: #67e8f9; animation-name: design-card-two; }
+      #design-three { left: 1280px; border-color: #c4b5fd; animation-name: design-card-three; }
+
+      .design-kicker {
+        margin: 0;
+        color: #a7f3d0;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 4px;
+      }
+
+      .design-title {
+        margin: 118px 0 0;
+        color: #f8fafc;
+        font-size: 48px;
+        line-height: 1.05;
+        font-weight: 700;
+      }
+
+      .design-copy {
+        margin: 24px 0 0;
+        color: #bae6fd;
+        font-size: 25px;
+        line-height: 1.3;
+      }
+
+      #outro-ring {
+        position: absolute;
+        left: 660px;
+        top: 150px;
+        width: 600px;
+        height: 600px;
+        box-sizing: border-box;
+        border: 3px solid #67e8f9;
+        border-radius: 300px;
+        box-shadow: 0 0 100px 0 #155e75;
+        animation: outro-ring 60s linear both;
+      }
+
+      #outro {
+        position: absolute;
+        left: 300px;
+        top: 330px;
+        width: 1320px;
+        margin: 0;
+        color: #f8fafc;
+        font-size: 104px;
+        line-height: 1.05;
+        font-weight: 700;
+        letter-spacing: -5px;
+        text-align: center;
+        animation: outro 60s linear both;
+      }
+
+      #outro-subtitle {
+        position: absolute;
+        left: 500px;
+        top: 590px;
+        width: 920px;
+        margin: 0;
+        color: #a7f3d0;
+        font-size: 34px;
+        text-align: center;
+        animation: outro 60s linear both;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="stage">
+      <div id="glow-a"></div>
+      <div id="glow-b"></div>
+
+      <p class="eyebrow">NEONIX / HTML COMPILER</p>
+
+      <div id="intro-mark"><div id="intro-mark-core"></div></div>
+      <h1 id="intro-title">Create motion. Ship ideas.</h1>
+
+      <section id="feature-one" class="feature">
+        <p class="feature-index">01 / AUTHOR</p>
+        <h2 class="feature-title">Design in HTML &amp; CSS</h2>
+        <p class="feature-copy">Turn familiar web primitives into a deterministic motion composition.</p>
+        <div class="feature-dot"><div class="feature-dot-core"></div></div>
+      </section>
+
+      <section id="feature-two" class="feature">
+        <p class="feature-index">02 / COMPOSE</p>
+        <h2 class="feature-title">Animate every detail</h2>
+        <p class="feature-copy">Use keyframes, transforms, opacity, shapes and typography to build a visual story.</p>
+        <div class="feature-dot"><div class="feature-dot-core"></div></div>
+      </section>
+
+      <section id="feature-three" class="feature">
+        <p class="feature-index">03 / COMPILE</p>
+        <h2 class="feature-title">One source of truth</h2>
+        <p class="feature-copy">The same authored document powers the browser preview and the export pipeline.</p>
+        <div class="feature-dot"><div class="feature-dot-core"></div></div>
+      </section>
+
+      <section id="feature-four" class="feature">
+        <p class="feature-index">04 / EXPORT</p>
+        <h2 class="feature-title">Render with confidence</h2>
+        <p class="feature-copy">Compile to Runtime V3, rasterize frames, encode MP4 and keep the result reproducible.</p>
+        <div class="feature-dot"><div class="feature-dot-core"></div></div>
+      </section>
+
+      <section id="workflow">
+        <h2 id="workflow-title">From idea to export</h2>
+        <div id="step-one" class="workflow-step"><span class="workflow-number">01</span>AUTHOR</div>
+        <div id="step-two" class="workflow-step"><span class="workflow-number">02</span>COMPILE</div>
+        <div id="step-three" class="workflow-step"><span class="workflow-number">03</span>RENDER</div>
+        <div id="workflow-link-one" class="workflow-link"></div>
+        <div id="workflow-link-two" class="workflow-link"></div>
+      </section>
+
+      <section id="design-one" class="design-card">
+        <p class="design-kicker">DESIGN</p>
+        <h2 class="design-title">Clear<br>structure</h2>
+        <p class="design-copy">Readable layouts with a strong visual rhythm.</p>
+      </section>
+      <section id="design-two" class="design-card">
+        <p class="design-kicker">MOTION</p>
+        <h2 class="design-title">Precise<br>timelines</h2>
+        <p class="design-copy">Choreograph entrances, reveals and transitions.</p>
+      </section>
+      <section id="design-three" class="design-card">
+        <p class="design-kicker">SYSTEM</p>
+        <h2 class="design-title">Built for<br>iteration</h2>
+        <p class="design-copy">Experiment quickly, then export the same scene.</p>
+      </section>
+
+      <div id="outro-ring"></div>
+      <h2 id="outro">Neonix makes motion tangible.</h2>
+      <p id="outro-subtitle">Build once. Preview clearly. Export reliably.</p>
+    </main>
+  </body>
+</html>

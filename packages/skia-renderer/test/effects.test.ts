@@ -179,6 +179,32 @@ describe("Skia CSS effect lowering", () => {
     expect(result.sourceOnly).toBe(true);
   });
 
+  it("supports ordered box-shadow lists containing inner and outer branches", () => {
+    const { kit, filters } = createKit();
+    const program: RuntimeEffectProgram = {
+      input: "source",
+      ops: [
+        { id: "outer:alpha", kind: "alpha-mask", input: "source", output: "effect:outer:alpha", source: "box" },
+        { id: "outer:blur", kind: "blur", input: "effect:outer:alpha", output: "effect:outer:blur", radius: 12 },
+        { id: "outer:tint", kind: "tint", input: "effect:outer:blur", output: "effect:outer:tint", color: "#ffffff", opacity: 1 },
+        { id: "outer:offset", kind: "offset", input: "effect:outer:tint", output: "effect:outer:offset", x: 0, y: 0 },
+        { id: "outer:composite", kind: "composite", backdrop: "effect:outer:offset", source: "source", output: "effect:outer", mode: "source-over" },
+        { id: "inner:alpha", kind: "alpha-mask", input: "source", output: "effect:inner:alpha", source: "box" },
+        { id: "inner:blur", kind: "blur", input: "effect:inner:alpha", output: "effect:inner:blur", radius: 32 },
+        { id: "inner:inner-alpha", kind: "inner-alpha", source: "effect:inner:alpha", blurred: "effect:inner:blur", output: "effect:inner:inner-alpha" },
+        { id: "inner:tint", kind: "tint", input: "effect:inner:inner-alpha", output: "effect:inner:tint", color: "#ffffff", opacity: 1 },
+        { id: "inner:composite", kind: "composite", backdrop: "effect:outer", source: "effect:inner:tint", output: "effect:inner", mode: "source-over" },
+      ],
+      output: "effect:inner",
+      requiresOffscreen: true,
+    };
+
+    const result = effectFilterFor(kit, program);
+    expect(result).toMatchObject({ supported: true, sourceOnly: true });
+    expect(result.filter).toBeTruthy();
+    expect(filters.some((filter) => filter.kind === "drop-shadow")).toBe(true);
+  });
+
   it("keeps filter-opacity + contrast linear chains supported", () => {
     const { kit, filters } = createKit();
     const program: RuntimeEffectProgram = {

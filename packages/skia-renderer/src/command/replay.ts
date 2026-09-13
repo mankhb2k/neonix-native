@@ -88,6 +88,65 @@ function tintEffectColor(kit: SkiaCanvasKit, color: string, opacity: number): un
   return kit.Color(red * 255, green * 255, blue * 255, Math.max(0, Math.min(1, alpha * opacity)));
 }
 
+type BoxShadowOverlayBranch = {
+  kind: "outer" | "inner";
+  blur: Extract<RuntimeEffectOp, { kind: "blur" }>;
+  tint: Extract<RuntimeEffectOp, { kind: "tint" }>;
+  offset?: Extract<RuntimeEffectOp, { kind: "offset" }>;
+};
+
+function boxShadowOverlayBranches(
+  program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'],
+): BoxShadowOverlayBranch[] | null {
+  if (!program) return null;
+  const branches: BoxShadowOverlayBranch[] = [];
+  let index = 0;
+  while (index < program.ops.length) {
+    const alpha = program.ops[index];
+    if (alpha?.kind !== "alpha-mask" || alpha.input !== "source" || alpha.source !== "box") return null;
+
+    const maybeOffset = program.ops[index + 1];
+    const hasOffset = maybeOffset?.kind === "offset";
+    const blur = program.ops[index + (hasOffset ? 2 : 1)];
+    if (blur?.kind !== "blur") return null;
+
+    const maybeInner = program.ops[index + (hasOffset ? 3 : 2)];
+    if (maybeInner?.kind === "inner-alpha") {
+      const tint = program.ops[index + (hasOffset ? 4 : 3)];
+      const composite = program.ops[index + (hasOffset ? 5 : 4)];
+      if (
+        maybeInner.source !== alpha.output ||
+        maybeInner.blurred !== blur.output ||
+        tint?.kind !== "tint" ||
+        composite?.kind !== "composite" ||
+        composite.source !== tint.output ||
+        composite.mode !== "source-over"
+      ) return null;
+      branches.push({
+        kind: "inner",
+        blur,
+        tint,
+        ...(hasOffset ? { offset: maybeOffset } : {}),
+      });
+      index += hasOffset ? 6 : 5;
+      continue;
+    }
+
+    const tint = program.ops[index + (hasOffset ? 3 : 2)];
+    const offset = program.ops[index + (hasOffset ? 4 : 3)];
+    const composite = program.ops[index + (hasOffset ? 5 : 4)];
+    if (
+      tint?.kind !== "tint" ||
+      offset?.kind !== "offset" ||
+      composite?.kind !== "composite" ||
+      composite.mode !== "source-over"
+    ) return null;
+    branches.push({ kind: "outer", blur, tint, offset });
+    index += 5;
+  }
+  return branches.length > 0 ? branches : null;
+}
+
 function projectiveFilterPadding(
   program: Extract<PaintCommand, { op: "beginLayer" }>['effectProgram'],
 ): number {
@@ -336,11 +395,190 @@ export function replaySkiaCommands(
   const drawBoxEffect = (layer: ReplayLayer): void => {
     const filter = layer.boxEffectFilter;
     const source = layer.boxEffectSource;
-    if (!filter || !source) {
+    const program = layer.boxEffectProgram;
+    const boxBranches = boxShadowOverlayBranches(program);
+    if ((!filter && !boxBranches) || !source) {
       if (filter && !source) addDiagnostic(`skia_box_effect_source_missing:${layer.key}`);
       return;
     }
-    const program = layer.boxEffectProgram;
+    if (boxBranches) {
+      // Box-shadow filters are overlays. The owner is already rendered by the
+      // normal layer path; feeding a white synthetic mask into a source-bearing
+      // ImageFilter makes black owners turn into opaque white rectangles. Build
+      // every branch from an isolated mask and composite only the resulting
+      // halo images, in reverse order because the first CSS shadow is on top.
+      const pad = effectFilterExpansionPadding(program);
+      const localWidth = source.width + pad * 2;
+      const localHeight = source.height + pad * 2;
+      const surfaceWidth = Math.max(1, Math.ceil(localWidth * deviceScale));
+      const surfaceHeight = Math.max(1, Math.ceil(localHeight * deviceScale));
+      // Keep these surfaces alive until every snapshot has been composited.
+      // A pooled surface can be reacquired by the next shadow branch while a
+      // previous makeImageSnapshot is still being used, which overwrites the
+      // first halo and makes an inner-first/multi-outer list look incomplete.
+      const maskSurface = kit.MakeSurface(surfaceWidth, surfaceHeight);
+      if (!maskSurface?.makeImageSnapshot) {
+        addDiagnostic(`skia_box_effect_mask_surface_unsupported:${layer.key}`);
+        if (maskSurface) maskSurface.dispose();
+        return;
+      }
+      const maskCanvas = maskSurface.getCanvas();
+      maskCanvas.clear(kit.TRANSPARENT);
+      if (deviceScale !== 1) maskCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+      const maskPaint = createSkiaPaint(kit, "#ffffff", 1, kit.PaintStyle.Fill, undefined, source.width, source.height, true);
+      const radius = Math.max(0, Math.min(source.cornerRadius ?? 0, Math.min(source.width, source.height) / 2));
+      if (radius > 0) maskCanvas.drawRRect(rRectArgs(pad, pad, pad + source.width, pad + source.height, radius), maskPaint);
+      else maskCanvas.drawRect([pad, pad, pad + source.width, pad + source.height], maskPaint);
+      maskPaint.delete();
+      maskSurface.flush();
+      const maskImage = maskSurface.makeImageSnapshot();
+      if (!maskImage) {
+        addDiagnostic(`skia_box_effect_mask_snapshot_unsupported:${layer.key}`);
+        maskSurface.dispose();
+        return;
+      }
+
+      try {
+        // CSS paints the first listed shadow on top of later shadows. Raster
+        // and composite one branch at a time in reverse list order so a
+        // CanvasKit snapshot can never be invalidated by the next branch.
+        for (let index = boxBranches.length - 1; index >= 0; index -= 1) {
+          const branch = boxBranches[index]!;
+          const blurSurface = kit.MakeSurface(surfaceWidth, surfaceHeight);
+          const branchSurface = kit.MakeSurface(surfaceWidth, surfaceHeight);
+          if (!blurSurface || !branchSurface?.makeImageSnapshot) {
+            addDiagnostic(`skia_box_effect_surface_unavailable:${layer.key}`);
+            blurSurface?.dispose();
+            branchSurface?.dispose();
+            return;
+          }
+
+          const blurCanvas = blurSurface.getCanvas();
+          blurCanvas.clear(kit.TRANSPARENT);
+          if (deviceScale !== 1) blurCanvas.concat([deviceScale, 0, 0, 0, deviceScale, 0, 0, 0, 1]);
+          const blurFilter = kit.ImageFilter.MakeBlur(
+            cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+            cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+            kit.TileMode.Decal,
+            null,
+          );
+          if (!blurFilter) {
+            addDiagnostic(`skia_box_effect_blur_unsupported:${layer.key}`);
+            return;
+          }
+          const blurPaint = new kit.Paint();
+          blurPaint.setAntiAlias(true);
+          blurPaint.setStyle(kit.PaintStyle.Fill);
+          blurPaint.setAlphaf(1);
+          blurPaint.setBlendMode(kit.BlendMode.SrcOver);
+          blurPaint.setImageFilter?.(blurFilter);
+          const offset = branch.offset;
+          blurCanvas.save();
+          if (offset && (offset.x !== 0 || offset.y !== 0)) {
+            blurCanvas.concat([1, 0, offset.x, 0, 1, offset.y, 0, 0, 1]);
+          }
+          blurCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], blurPaint, false);
+          blurCanvas.restore();
+          blurPaint.delete();
+          blurFilter.delete();
+          blurSurface.flush();
+          const blurImage = blurSurface.makeImageSnapshot?.();
+          if (!blurImage) {
+            addDiagnostic(`skia_box_effect_blur_snapshot_unsupported:${layer.key}`);
+            return;
+          }
+
+          const branchCanvas = branchSurface.getCanvas();
+          branchCanvas.clear(kit.TRANSPARENT);
+          const branchPaint = new kit.Paint();
+          branchPaint.setAntiAlias(true);
+          branchPaint.setStyle(kit.PaintStyle.Fill);
+          branchPaint.setAlphaf(1);
+          branchPaint.setBlendMode(kit.BlendMode.SrcOver);
+          if (branch.kind === "outer") {
+            // CanvasKit's DropShadowOnly uses the same edge construction as
+            // the single CSS box-shadow path. Prefer it for outer branches;
+            // blur(mask)-mask narrows the edge profile when several shadows
+            // are replayed from one synthetic mask.
+            const offset = branch.offset ?? { x: 0, y: 0 };
+            const outerFilter = kit.ImageFilter.MakeDropShadowOnly?.(
+              offset.x,
+              offset.y,
+              cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+              cssShadowBlurRadiusToSkiaSigma(branch.blur.radius),
+              tintEffectColor(kit, "#ffffff", 1),
+              null,
+            ) ?? null;
+            if (outerFilter) {
+              branchPaint.setImageFilter?.(outerFilter);
+              branchCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+              branchPaint.setImageFilter?.(null);
+              // DropShadowOnly follows the backend shadow profile but can
+              // retain coverage on the owner edge/interior. CSS outer shadow
+              // is overlay-only, so subtract the unblurred owner silhouette.
+              branchPaint.setBlendMode(kit.BlendMode.DstOut);
+              branchCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+              outerFilter.delete();
+            } else {
+              branchCanvas.drawImageRect(blurImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+              branchPaint.setBlendMode(kit.BlendMode.DstOut);
+              branchCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+            }
+          } else {
+            branchCanvas.drawImageRect(maskImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+            branchPaint.setBlendMode(kit.BlendMode.DstOut);
+            branchCanvas.drawImageRect(blurImage, [0, 0, surfaceWidth, surfaceHeight], [0, 0, localWidth, localHeight], branchPaint, false);
+          }
+          branchPaint.delete();
+          branchSurface.flush();
+          const branchImage = branchSurface.makeImageSnapshot();
+          blurImage.delete();
+          if (!branchImage) {
+            blurSurface.dispose();
+            branchSurface.dispose();
+            addDiagnostic(`skia_box_effect_branch_snapshot_unsupported:${layer.key}`);
+            return;
+          }
+          const [red, green, blue, alpha] = cssColorToRgba(branch.tint.color);
+          const isOpaqueWhite = red === 1 && green === 1 && blue === 1 && alpha * branch.tint.opacity === 1;
+          const colorFilter = !isOpaqueWhite && kit.ColorFilter?.MakeBlend
+            ? kit.ColorFilter.MakeBlend(
+                tintEffectColor(kit, branch.tint.color, branch.tint.opacity),
+                kit.BlendMode.SrcIn,
+              )
+            : null;
+          const tintFilter = colorFilter && kit.ImageFilter.MakeColorFilter
+            ? kit.ImageFilter.MakeColorFilter(colorFilter, null)
+            : null;
+          const paint = new kit.Paint();
+          paint.setAntiAlias(true);
+          paint.setStyle(kit.PaintStyle.Fill);
+          paint.setAlphaf(1);
+          paint.setBlendMode(kit.BlendMode.SrcOver);
+          paint.setImageFilter?.(tintFilter);
+          canvas.save();
+          canvas.concat(matrix4ToSkia3x3(source.matrix4));
+          canvas.drawImageRect(
+            branchImage,
+            [0, 0, surfaceWidth, surfaceHeight],
+            [-pad, -pad, localWidth - pad, localHeight - pad],
+            paint,
+            false,
+          );
+          canvas.restore();
+          paint.delete();
+          tintFilter?.delete();
+          colorFilter?.delete();
+          branchImage.delete();
+          blurSurface.dispose();
+          branchSurface.dispose();
+        }
+      } finally {
+        maskImage.delete();
+        maskSurface.dispose();
+      }
+      return;
+    }
     const blurOp = program?.ops.find((op): op is Extract<RuntimeEffectOp, { kind: "blur" }> => op.kind === "blur");
     const tintOp = program?.ops.find((op): op is Extract<RuntimeEffectOp, { kind: "tint" }> => op.kind === "tint");
     const hasOffset = program?.ops.some((op) => op.kind === "offset") ?? false;
@@ -510,7 +748,7 @@ export function replaySkiaCommands(
     paint.setStyle(kit.PaintStyle.Fill);
     paint.setAlphaf(1);
     paint.setBlendMode(kit.BlendMode.SrcOver);
-    paint.setImageFilter?.(filter);
+    paint.setImageFilter?.(filter ?? null);
     canvas.save();
     canvas.concat(matrix4ToSkia3x3(source.matrix4));
     canvas.drawImageRect(
@@ -523,10 +761,12 @@ export function replaySkiaCommands(
     canvas.restore();
     paint.delete();
 
-    // An inset shadow is clipped by the owner's rounded border box. Draw the
-    // mask as an RRect in the owner's local space and apply its transform
-    // through the canvas CTM, rather than transforming an SVG path through
-    // PathBuilder. DstIn preserves the filtered alpha only inside the owner.
+    // The runtime effect box is the owner's padding box when a border exists,
+    // so this mask starts at the inner stroke edge like browser inset
+    // box-shadow. Draw the mask as an RRect in the effect box's local space
+    // and apply its transform through the canvas CTM, rather than transforming
+    // an SVG path through PathBuilder. DstIn preserves the filtered alpha only
+    // inside the owner.
     const ownerMaskPaint = new kit.Paint();
     ownerMaskPaint.setAntiAlias(true);
     ownerMaskPaint.setStyle(kit.PaintStyle.Fill);
@@ -613,6 +853,7 @@ export function replaySkiaCommands(
       const projectiveFilter = projectiveFilterTransform && hasPerspectiveTerms(projectiveFilterTransform.matrix4)
         ? effectFilter.filter
         : undefined;
+      const boxEffectActive = effectFilter.sourceOnly && !projectiveFilter;
       const layer: ReplayLayer = {
         key: command.key,
         saved: false,
@@ -627,9 +868,9 @@ export function replaySkiaCommands(
         projectiveFilterTransform,
         projectiveFilter,
         projectiveFilterProgram: projectiveFilter ? command.effectProgram : undefined,
-        boxEffectFilter: effectFilter.sourceOnly && !projectiveFilter ? effectFilter.filter : undefined,
-        boxEffectProgram: effectFilter.sourceOnly && !projectiveFilter ? command.effectProgram : undefined,
-        boxEffectSource: effectFilter.sourceOnly && !projectiveFilter ? command.effectBox : undefined,
+        boxEffectFilter: boxEffectActive ? effectFilter.filter : undefined,
+        boxEffectProgram: boxEffectActive ? command.effectProgram : undefined,
+        boxEffectSource: boxEffectActive ? command.effectBox : undefined,
         backdropFilter: backdropEffectFilter.filter,
         backdropFilterProgram: backdropEffectFilter.filter ? command.backdropEffectProgram : undefined,
       };
@@ -639,7 +880,7 @@ export function replaySkiaCommands(
       // CSS masks are rendered into a separate coverage surface at endLayer.
       // Keeping this out of saveLayer alpha is important for gradients and
       // for subtract/exclude, which cannot be represented by one scalar.
-      const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter && !projectiveFilter) || Boolean(command.backdropEffectProgram) || (command.blendMode !== undefined && command.blendMode !== "normal");
+      const shouldSaveLayer = command.offscreen || command.isolation || command.compositeAlpha !== undefined || Boolean(effectFilter.filter && !projectiveFilter) || Boolean(effectFilter.sourceOnly && !projectiveFilter) || Boolean(command.backdropEffectProgram) || (command.blendMode !== undefined && command.blendMode !== "normal");
       if (shouldSaveLayer) {
         const paint = new kit.Paint();
         paint.setAntiAlias(true);
@@ -661,8 +902,9 @@ export function replaySkiaCommands(
         // Foreground filters use filter-expanded bounds so shadows/blurs are
         // not cropped, without always allocating the full composition.
         const frameBounds = compositionBounds(frameWidth, frameHeight);
-        const boxEffectFilter = effectFilter.sourceOnly && !projectiveFilter ? effectFilter.filter : null;
-        const contentBounds = (backdropEffectFilter.filter || layerFilter || boxEffectFilter)
+        const boxEffectActive = effectFilter.sourceOnly && !projectiveFilter;
+        const boxEffectFilter = boxEffectActive ? effectFilter.filter : null;
+        const contentBounds = (backdropEffectFilter.filter || layerFilter || boxEffectFilter || boxEffectActive)
           ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
           : undefined;
         let saveBounds = boundsToRect(frameBounds);
@@ -833,9 +1075,9 @@ export function replaySkiaCommands(
         }
       }
       if (layer?.noiseEffect && layer.noiseBounds) stats.noiseRegions.push({ effect: layer.noiseEffect, bounds: layer.noiseBounds });
-      if (layer?.boxEffectFilter) {
+      if (layer?.boxEffectProgram && layer.boxEffectSource) {
         drawBoxEffect(layer);
-        if (!resources) layer.boxEffectFilter.delete();
+        if (!resources) layer.boxEffectFilter?.delete();
       }
       if (layer?.saved) {
         canvas.restore();

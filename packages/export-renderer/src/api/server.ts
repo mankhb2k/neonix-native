@@ -47,7 +47,7 @@ export function createExportRendererServer(options: {
   mediaPrepare?: (input: MediaPrepareRequest) => Promise<unknown>;
 } = {}) {
   const mediaPrepare = options.mediaPrepare ?? prepareMediaJob;
-  return createServer(async (request, response) => {
+  return createServer({ requestTimeout: 0, headersTimeout: 0 }, async (request, response) => {
     try {
       if (request.method === "GET" && ["/health", "/healthz", "/readyz"].includes(request.url ?? "")) {
         json(response, 200, { ok: true, service: "export-renderer", renderer: "skia-wasm-ffmpeg" });

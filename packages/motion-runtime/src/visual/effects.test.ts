@@ -46,6 +46,42 @@ describe("runtime shadow effects", () => {
     expect(program?.ops.at(-1)).toMatchObject({ kind: "composite", source: "effect:blur", output: "effect:drop-shadow" });
   });
 
+  it("keeps mixed outer and inner shadows ordered while reusing the source silhouette", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "outer", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 12, spread: 0, color: "#ffffff", inset: false },
+      { id: "inner", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 32, spread: 0, color: "#ffffff", inset: true },
+    ]);
+
+    expect(program?.ops.map((op) => op.kind)).toEqual([
+      "alpha-mask", "blur", "tint", "offset", "composite",
+      "alpha-mask", "blur", "inner-alpha", "tint", "composite",
+    ]);
+    expect(program?.ops.filter((op) => op.kind === "alpha-mask")).toMatchObject([
+      { input: "source", source: "box" },
+      { input: "source", source: "box" },
+    ]);
+    expect(program?.ops.at(-1)).toMatchObject({
+      kind: "composite",
+      backdrop: "effect:outer",
+      source: "effect:inner:tint",
+      output: "effect:inner",
+    });
+  });
+
+  it("preserves reversed mixed-shadow order as a separate runtime graph", () => {
+    const program = buildRuntimeEffectProgram([
+      { id: "inner", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 32, spread: 0, color: "#ffffff", inset: true },
+      { id: "outer", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 12, spread: 0, color: "#ffffff", inset: false },
+    ]);
+
+    expect(program?.ops.at(-1)).toMatchObject({
+      kind: "composite",
+      backdrop: "effect:outer:offset",
+      source: "effect:inner",
+      output: "effect:outer",
+    });
+  });
+
   it("lowers an inset box shadow through the inner-alpha path", () => {
     const program = buildRuntimeEffectProgram([
       { id: "inner-shadow", type: "shadow", source: "box", offset: { x: 0, y: 0 }, blur: 24, spread: 0, color: "#22d3ee", inset: true },
