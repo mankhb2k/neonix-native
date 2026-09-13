@@ -1248,6 +1248,7 @@ Rebuild export renderer được xem là hoàn thành khi:
 - output pass golden command, pixel và A/V sync tests;
 - benchmark cold/warm 1/30/300/1.800 frame được lưu cùng thông tin môi trường;
 - production metrics cho biết rõ bottleneck nằm ở compile, evaluate, paint, readback, pipe, encode, mux hay storage.
+- Cloud Run validation chạy thành công từ image immutable theo digest, gồm cold/warm run, external artifact upload và retry/failure checks.
 
 ---
 
@@ -1267,3 +1268,184 @@ Trong 10,9 giây của probe 30 frame:
 ```
 
 Sau khi có breakdown này mới chốt ngân sách và phạm vi cho PR 2–8.
+
+---
+
+## 23. Phase 8 — Cloud Run validation sau khi rebuild
+
+Cloud Run là môi trường validation sau khi các phase sửa renderer đã qua
+correctness và performance gates. Phase này không được dùng để che giấu
+regression của local Docker hoặc để thay đổi semantics của Runtime.
+
+### Mục tiêu
+
+- build đúng image production từ repository root;
+- chạy cùng một image bằng Cloud Run Service và Cloud Run Job ở môi trường
+  Linux/amd64;
+- đo riêng cold start, preparation, rendering, encoding, mux/finalize,
+  upload và callback;
+- xác nhận fixture Neonix 60 giây hoạt động với artifact lifecycle hoàn chỉnh;
+- chứng minh output trên Cloud Run có cùng resolution, FPS, duration, frame
+  count và pixel/A-V correctness với local golden baseline.
+
+### Mô hình triển khai bắt buộc
+
+~~~text
+Web API / control plane
+        |
+        | tạo render job, theo dõi status
+        v
+Cloud Run Service
+        |
+        | trigger authenticated execution
+        v
+Cloud Run Job
+        |
+        +--> prepared runtime + Skia/CPU renderer
+        +--> FFmpeg encode/mux
+        +--> upload artifact lên R2 hoặc GCS
+        +--> callback cập nhật job status
+        v
+External artifact storage
+~~~
+
+Cloud Run Service chỉ giữ các endpoint control-plane như health, submit và
+status hoặc smoke render ngắn. Video export production phải chạy bằng Cloud
+Run Job: container đọc job manifest, render, upload/callback rồi exit '0' khi
+thành công hoặc exit khác '0' khi thất bại. Không chạy HTTP server trong Job.
+
+### Điều kiện đầu vào
+
+- Google Cloud CLI ('gcloud') và Docker đã cài;
+- GCP project và region đã chọn, mặc định benchmark dùng
+  'asia-southeast1';
+- Artifact Registry repository;
+- quyền deploy Cloud Run, push Artifact Registry và impersonate runtime
+  service account;
+- 'run.googleapis.com' và 'artifactregistry.googleapis.com' đã bật;
+- R2/GCS credentials, callback token và các secret khác được inject qua
+  Secret Manager hoặc runtime secret reference, không bake vào image;
+- image có Linux 'amd64' manifest; không dùng image chỉ build cho Windows.
+
+### Thay đổi bắt buộc trước khi deploy
+
+1. Server đọc port theo thứ tự 'PORT', rồi mới đến
+   'EXPORT_RENDERER_PORT', để tuân thủ Cloud Run container contract.
+2. 'OUTPUT_ROOT' chỉ là scratch space, ví dụ '/tmp/neonix-export'; MP4 hoàn
+   chỉnh phải được upload ra external storage trước khi job kết thúc.
+3. Thêm entrypoint/script 'render:job' cho Cloud Run Job; script phải nhận
+   manifest hoặc job ID, có idempotency key, callback kết quả và exit code
+   chính xác.
+4. Không coi '/v1/outputs/*' trên local filesystem là artifact production;
+   download URL phải trỏ đến storage artifact đã publish.
+5. Đặt 'concurrency=1' cho renderer benchmark ban đầu và giới hạn
+   'max-instances' để không trộn nhiều export nặng trong một instance.
+6. Ghi lại image digest, git SHA, preset, CPU, memory, region, actual backend,
+   actual encoder và fallback reason cho mỗi run.
+
+### Build và publish image
+
+Các lệnh dưới đây là skeleton validation; thay PROJECT_ID và repository theo
+môi trường thực tế:
+
+~~~powershell
+$env:GCP_PROJECT_ID = "PROJECT_ID"
+$env:GCP_REGION = "asia-southeast1"
+$env:GCP_REPOSITORY = "neonix"
+$env:GCP_IMAGE = "$env:GCP_REGION-docker.pkg.dev/$env:GCP_PROJECT_ID/$env:GCP_REPOSITORY/export-renderer"
+
+gcloud auth list
+gcloud config set project $env:GCP_PROJECT_ID
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+gcloud auth configure-docker "$env:GCP_REGION-docker.pkg.dev"
+
+docker build --platform linux/amd64 -f packages/export-renderer/Dockerfile -t "$env:GCP_IMAGE:$env:GIT_SHA" .
+docker push "$env:GCP_IMAGE:$env:GIT_SHA"
+docker inspect --format="{{index .RepoDigests 0}}" "$env:GCP_IMAGE:$env:GIT_SHA"
+~~~
+
+Tag phải gắn với git SHA hoặc release ID. Không benchmark bằng 'latest' vì
+không thể truy nguyên chính xác binary đã chạy.
+
+### Service smoke validation
+
+Deploy một Service riêng cho health check, authenticated API và smoke render
+ngắn. Cấu hình khởi đầu cần được ghi lại cùng benchmark:
+
+~~~text
+port: 8080 hoặc port được Cloud Run cấu hình
+CPU: 2 vCPU
+memory: 4 GiB, điều chỉnh theo peak RSS thực tế
+concurrency: 1
+request timeout: không vượt giới hạn của Cloud Run Service
+authentication: không public mặc định
+output root: /tmp/neonix-export
+~~~
+
+Smoke checks:
+
+- 'GET /health' trả renderer version và backend identity;
+- request không có credentials bị từ chối;
+- render ngắn trả job/result hợp lệ;
+- container không phụ thuộc working directory của local workspace;
+- output được upload và đọc lại từ external storage;
+- restart hoặc instance replacement không làm mất artifact đã publish.
+
+### Job validation cho fixture 60 giây
+
+Fixture chuẩn là 1.800 frames ở 30 FPS, cùng project và preset đã dùng trong
+local benchmark. Chạy tối thiểu:
+
+~~~text
+1 cold run
+3 warm runs
+1 retry sau simulated failure
+1 run với callback chậm hoặc storage upload chậm
+~~~
+
+Mỗi run phải lưu:
+
+~~~text
+job ID và Cloud Run execution ID
+image digest và git SHA
+queue/startup time
+prepare time
+evaluate time
+Skia paint time
+readback/copy time
+encoder pipe wait time
+FFmpeg encode time
+mux/finalize time
+artifact upload time
+callback time
+wall-clock duration
+peak RSS và scratch bytes
+frames in flight
+requested/actual renderer backend
+requested/actual encoder
+~~~
+
+Kết quả Cloud Run chỉ được pass khi:
+
+- MP4 có đúng duration, FPS, frame count và physical resolution;
+- golden frame và A/V sync pass theo tolerance đã công bố;
+- output không đi qua base64 hoặc full-file Node 'Buffer';
+- peak memory không tăng tuyến tính theo kích thước MP4;
+- encoder queue và temporary storage đều có bound;
+- retry không publish artifact trùng hoặc artifact chưa hoàn chỉnh;
+- timeout, SIGTERM, unsupported asset và callback failure chuyển job sang
+  trạng thái chẩn đoán được;
+- metrics xác định được bottleneck nằm ở render, encode, mux, storage hay
+  startup, không gộp tất cả thành một latency duy nhất.
+
+### Cloud Run-specific acceptance gate
+
+Không gọi phase này là hoàn thành nếu chỉ deploy được container. Phase chỉ
+đạt khi có report so sánh local Docker và Cloud Run cùng image digest, kèm
+log/metrics cho cold và warm run. Software CPU baseline của Cloud Run được
+đánh giá riêng; không dùng nó để kết luận về hiệu năng GPU. GPU benchmark chỉ
+được mở thành một track riêng sau khi GPU backend đã qua parity gate.
+
+Sau khi phase này pass, mới quyết định production topology, resource budget,
+autoscaling limit, retry policy và có cần Cloud Run Job song song theo
+frame-range hay không.
