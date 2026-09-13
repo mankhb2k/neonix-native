@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+@keyframes p7-distance-steps { from { perspective: 300px; } 25% { perspective: 500px; } 50% { perspective: 700px; } to { perspective: 1000px; } }
+#p7-distance-steps { position: absolute; left: 420px; top: 210px; width: 1080px; height: 620px; perspective: 300px; perspective-origin: 50% 50%; transform-style: preserve-3d; animation-name: p7-distance-steps; animation-duration: 1600ms; animation-timing-function: steps(4, jump-start); animation-fill-mode: both; }
+.p7-card { position: absolute; left: 360px; top: 180px; width: 360px; height: 240px; background: #facc15; transform: translateZ(160px) rotateY(-18deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="p7-distance-steps"><div class="p7-card"></div></div>
+</body>
+</html>

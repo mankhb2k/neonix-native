@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#transform-translate,
+#transform-translate-x,
+#transform-translate-y,
+#transform-scale,
+#transform-scale-x,
+#transform-rotate,
+#transform-rotate-z,
+#transform-skew,
+#transform-skew-x,
+#transform-skew-y {
+  position: absolute;
+  width: 220px;
+  height: 120px;
+}
+
+#transform-translate {
+  left: 120px;
+  top: 180px;
+  transform: translate(40px, 24px);
+  background: #38bdf8;
+}
+
+#transform-translate-x {
+  left: 420px;
+  top: 180px;
+  transform: translateX(48px);
+  background: #14b8a6;
+}
+
+#transform-translate-y {
+  left: 720px;
+  top: 180px;
+  transform: translateY(32px);
+  background: #a78bfa;
+}
+
+#transform-scale {
+  left: 1020px;
+  top: 180px;
+  transform-origin: center center;
+  transform: scale(1.2, 0.75);
+  background: #facc15;
+}
+
+#transform-scale-x {
+  left: 1340px;
+  top: 180px;
+  transform-origin: left top;
+  transform: scaleX(1.35);
+  background: #fb7185;
+}
+
+#transform-rotate {
+  left: 120px;
+  top: 520px;
+  transform-origin: left top;
+  transform: rotate(12deg);
+  background: #38bdf8;
+}
+
+#transform-rotate-z {
+  left: 420px;
+  top: 520px;
+  transform-origin: right bottom;
+  transform: rotateZ(-12deg);
+  background: #14b8a6;
+}
+
+#transform-skew {
+  left: 720px;
+  top: 520px;
+  transform: skew(10deg, -6deg);
+  background: #a78bfa;
+}
+
+#transform-skew-x {
+  left: 1020px;
+  top: 520px;
+  transform: skewX(-12deg);
+  background: #facc15;
+}
+
+#transform-skew-y {
+  left: 1320px;
+  top: 520px;
+  transform: skewY(10deg);
+  background: #fb7185;
+      }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="transform-translate"></div>
+  <div id="transform-translate-x"></div>
+  <div id="transform-translate-y"></div>
+  <div id="transform-scale"></div>
+  <div id="transform-scale-x"></div>
+  <div id="transform-rotate"></div>
+  <div id="transform-rotate-z"></div>
+  <div id="transform-skew"></div>
+  <div id="transform-skew-x"></div>
+  <div id="transform-skew-y"></div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+:root {
+  --surface: #172b3d;
+  --accent: #5eead4;
+  --card-width: 720px;
+}
+
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  background: #081018;
+}
+
+.card,
+.panel {
+  position: absolute;
+  left: 220px !important;
+  top: calc(50% - 180px);
+  width: var(--card-width);
+  height: clamp(240px, 30vh, 360px);
+  padding: 24px 32px;
+  box-sizing: border-box;
+  color: var(--accent);
+  background: var(--surface);
+  border: 4px solid currentColor;
+}
+
+#card {
+  left: calc(50% - 360px);
+  background: var(--surface);
+}
+
+#accent {
+  width: min(100%, 600px);
+  height: max(20px, 1vw);
+  background: currentColor;
+  color: var(--accent);
+}
+</style></head><body><div id="scene">
+  <div id="card" class="card panel">
+    <div id="accent" class="accent"></div>
+  </div>
+</div></body></html>

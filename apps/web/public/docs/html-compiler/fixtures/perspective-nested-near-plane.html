@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; overflow: hidden; }
+#nested-near-outer { position: absolute; left: 300px; top: 150px; width: 1320px; height: 760px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-near-inner { position: absolute; left: 230px; top: 130px; width: 820px; height: 500px; perspective: 170px; perspective-origin: 22% 78%; transform-style: preserve-3d; }
+#nested-near-visible, #nested-near-edge { position: absolute; left: 250px; top: 120px; width: 300px; height: 220px; background: #34d399; transform: rotateY(24deg); }
+#nested-near-visible { transform: translateZ(70px) rotateY(24deg); }
+#nested-near-edge { left: 570px; transform: translateZ(240px) rotateY(24deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="nested-near-outer"><div id="nested-near-inner"><div id="nested-near-visible"></div><div id="nested-near-edge"></div></div></div>
+</body>
+</html>

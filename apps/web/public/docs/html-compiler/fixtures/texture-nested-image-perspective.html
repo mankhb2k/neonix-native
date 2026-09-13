@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; overflow: hidden; }
+#texture-nested-outer { position: absolute; left: 300px; top: 150px; width: 1320px; height: 760px; perspective: 900px; transform-style: preserve-3d; }
+#texture-nested-inner { position: absolute; left: 220px; top: 120px; width: 880px; height: 520px; perspective: 430px; perspective-origin: 22% 78%; transform-style: preserve-3d; transform: rotateY(-12deg); }
+#texture-nested { position: absolute; left: 250px; top: 140px; width: 500px; height: 300px; object-fit: contain; transform: translateZ(170px) rotateX(14deg) rotateY(-28deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="texture-nested-outer"><div id="texture-nested-inner"><img id="texture-nested" src="/preview/image/photo-landscape.jpg"></div></div>
+</body>
+</html>

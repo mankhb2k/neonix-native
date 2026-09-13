@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#opacity-grid {
+  position: absolute;
+  left: 360px;
+  top: 220px;
+  width: 1200px;
+  height: 640px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 24px;
+  padding: 32px;
+  background-color: #0b1b2a;
+  background-image: repeating-linear-gradient(90deg, #164e63 0%, #164e63 0.08%, transparent 0.08%, transparent 8.3333%), repeating-linear-gradient(0deg, #164e63 0%, #164e63 0.1%, transparent 0.1%, transparent 14.8148%);
+  background-size: 160px 160px, 160px 160px;
+  opacity: 0.42;
+}
+
+.opacity-grid-cell { border: 2px solid #67e8f9; }
+.cell-one { background: #22d3ee; }
+.cell-two { background: #a78bfa; }
+.cell-three { background: #facc15; }
+.cell-four { background: #fb7185; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="opacity-grid">
+    <div class="opacity-grid-cell cell-one"></div>
+    <div class="opacity-grid-cell cell-two"></div>
+    <div class="opacity-grid-cell cell-three"></div>
+    <div class="opacity-grid-cell cell-four"></div>
+  </div>
+</body>
+</html>

@@ -7,7 +7,7 @@ import { evaluateRuntimeProjectV3 } from "@motionvideo/motion-runtime";
 import { HTML_COMPILER_PREVIEW_FONT_ASSETS } from "../lib/docs/html-compiler-preview";
 
 const repoRoot = resolve(__dirname, "../../..");
-const sampleRoot = join(repoRoot, "docs", "preview", "html-compiler", "export-samples");
+const sampleRoot = join(repoRoot, "apps", "web", "public", "docs", "html-compiler", "fixtures");
 
 const samples = [
   { id: "marketing-launch", file: "marketing-launch.html", background: "rgb(8, 16, 24)" },

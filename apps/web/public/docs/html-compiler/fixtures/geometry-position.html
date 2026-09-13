@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#position-demo {
+  position: relative;
+  left: 240px;
+  top: 160px;
+  width: 1440px;
+  height: 760px;
+}
+
+#position-static,
+#position-relative,
+#position-absolute {
+  width: 280px;
+  height: 120px;
+}
+
+#position-static {
+  position: static;
+  margin: 60px 0 0 80px;
+  left: 900px;
+  top: 900px;
+  background: #38bdf8;
+}
+
+#position-relative {
+  position: relative;
+  margin: 20px 0 0 80px;
+  left: 320px;
+  top: 24px;
+  background: #a78bfa;
+}
+
+#position-absolute {
+  position: absolute;
+  left: 980px;
+  top: 220px;
+  background: #f97316;
+      }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="position-demo">
+    <div id="position-static"></div>
+    <div id="position-relative"></div>
+    <div id="position-absolute"></div>
+  </div>
+</body>
+</html>

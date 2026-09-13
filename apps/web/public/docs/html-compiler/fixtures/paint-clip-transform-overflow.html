@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #111827; }
+
+#clip-transform-overflow {
+  position: absolute;
+  left: 560px;
+  top: 360px;
+  width: 800px;
+  height: 360px;
+  overflow: hidden;
+  transform: rotate(-6deg);
+  background: #1e3a8a;
+  clip-path: inset(24px round 64px);
+}
+
+#clip-transform-overflow-child {
+  position: absolute;
+  left: -100px;
+  top: -80px;
+  width: 1000px;
+  height: 520px;
+  background: linear-gradient(90deg, #f97316, #38bdf8);
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="clip-transform-overflow">
+    <div id="clip-transform-overflow-child"></div>
+  </div>
+</body>
+</html>

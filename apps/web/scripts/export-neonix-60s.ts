@@ -69,11 +69,14 @@ function requiredProtocol(result: ReturnType<typeof compileDocument>): NonNullab
 
 async function main(): Promise<void> {
   const root = repoRoot();
-  const sourceFile = join(root, "docs", "preview", "html-compiler", "export-samples", "neonix-overview-60s.html");
+  const sourceFile = join(root, "apps", "web", "public", "docs", "html-compiler", "fixtures", "neonix-overview-60s.html");
   const outputRoot = join(root, "tmp");
   const runtimeFile = join(outputRoot, "neonix-overview-60s.runtime.json");
   const benchmarkFile = join(outputRoot, "neonix-overview-60s.benchmark.json");
   const outputName = process.env.NEONIX_RENDER_OUTPUT ?? "neonix-overview-60s.mp4";
+  const requestedFrameCount = process.env.NEONIX_RENDER_FRAME_COUNT
+    ? Math.max(1, Math.floor(Number(process.env.NEONIX_RENDER_FRAME_COUNT)))
+    : undefined;
   const rendererUrl = (process.env.NEONIX_RENDERER_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
 
   await mkdir(outputRoot, { recursive: true });
@@ -89,7 +92,11 @@ async function main(): Promise<void> {
   await writeFile(runtimeFile, `${JSON.stringify(runtime, null, 2)}\n`, "utf8");
 
   const renderStarted = performance.now();
-  const response = await postJsonWithoutTimeout(`${rendererUrl}/v1/renders`, { project: runtime, outputName });
+  const response = await postJsonWithoutTimeout(`${rendererUrl}/v1/renders`, {
+    project: runtime,
+    outputName,
+    ...(requestedFrameCount ? { frameCount: requestedFrameCount } : {}),
+  });
   const payload = response.payload;
   if (response.statusCode < 200 || response.statusCode >= 300 || !payload.ok || !payload.stats || !payload.downloadUrl) {
     throw new Error(`Renderer failed (${response.statusCode}): ${payload.error ?? JSON.stringify(payload)}`);
@@ -112,6 +119,7 @@ async function main(): Promise<void> {
     artifactFile,
     rendererUrl,
     requestedDurationSeconds: 60,
+    requestedFrameCount: requestedFrameCount ?? "full",
     expectedFrames: Math.ceil((runtime.visual.composition.duration ?? 0) * runtime.visual.composition.fps),
     composition: runtime.visual.composition,
     compileDiagnostics: compiled.diagnostics,

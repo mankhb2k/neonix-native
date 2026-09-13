@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+#flat-scene, #preserve-scene { position: absolute; top: 260px; width: 620px; height: 400px; perspective: 760px; }
+#flat-scene { left: 220px; transform-style: flat; }
+#preserve-scene { left: 1080px; transform-style: preserve-3d; }
+#flat-card, #preserve-card { position: absolute; left: 170px; top: 110px; width: 280px; height: 180px; background: #38bdf8; transform: rotateY(30deg) translateZ(120px); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="flat-scene"><div id="flat-card"></div></div><div id="preserve-scene"><div id="preserve-card"></div></div>
+</body>
+</html>

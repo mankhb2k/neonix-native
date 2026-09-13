@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#opacity-shape-back,
+#opacity-shape-middle,
+#opacity-shape-front {
+  position: absolute;
+}
+
+#opacity-shape-back {
+  left: 500px;
+  top: 300px;
+  width: 620px;
+  height: 360px;
+  border-radius: 48px;
+  background: #22d3ee;
+  opacity: 0.36;
+}
+
+#opacity-shape-middle {
+  left: 760px;
+  top: 380px;
+  width: 620px;
+  height: 360px;
+  border-radius: 50%;
+  background: #a78bfa;
+  opacity: 0.58;
+}
+
+#opacity-shape-front {
+  left: 940px;
+  top: 260px;
+  width: 380px;
+  height: 260px;
+  background: #facc15;
+  transform: rotate(-12deg);
+  opacity: 0.74;
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="opacity-shape-back"></div>
+  <div id="opacity-shape-middle"></div>
+  <div id="opacity-shape-front"></div>
+</body>
+</html>

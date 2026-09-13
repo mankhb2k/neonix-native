@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+#nested-flat-outer { position: absolute; left: 300px; top: 180px; width: 1320px; height: 700px; perspective: 760px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#nested-flat-inner { position: absolute; left: 260px; top: 110px; width: 800px; height: 500px; perspective: 400px; perspective-origin: 35% 65%; transform-style: flat; }
+#nested-flat-card { position: absolute; left: 250px; top: 120px; width: 300px; height: 240px; transform: translateZ(150px) rotateY(-26deg); background: #a78bfa; }
+#nested-flat-face { position: absolute; left: 50px; top: 45px; width: 200px; height: 150px; background: #facc15; transform: translateZ(120px) rotateX(26deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="nested-flat-outer"><div id="nested-flat-inner"><div id="nested-flat-card"><div id="nested-flat-face"></div></div></div></div>
+</body>
+</html>

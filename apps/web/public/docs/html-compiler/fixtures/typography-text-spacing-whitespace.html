@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#spacing-letter,
+#spacing-word,
+#whitespace-normal,
+#whitespace-nowrap,
+#whitespace-pre,
+#whitespace-pre-wrap,
+#whitespace-pre-line,
+#whitespace-break-spaces {
+  position: absolute;
+  left: 180px;
+  width: 1560px;
+  height: 90px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#spacing-letter { top: 80px; letter-spacing: 8px; }
+#spacing-word { top: 180px; word-spacing: 28px; }
+#whitespace-normal { top: 280px; white-space: normal; }
+#whitespace-nowrap { top: 380px; white-space: nowrap; }
+#whitespace-pre { top: 480px; white-space: pre; }
+#whitespace-pre-wrap { top: 580px; white-space: pre-wrap; }
+#whitespace-pre-line { top: 680px; white-space: pre-line; }
+#whitespace-break-spaces { top: 780px; white-space: break-spaces; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="spacing-letter">letter spacing: A   B   C</div>
+  <div id="spacing-word">word spacing: A B C</div>
+  <div id="whitespace-normal">normal: A   B
+    C</div>
+  <div id="whitespace-nowrap">nowrap: A   B   C</div>
+  <div id="whitespace-pre">pre: A   B
+    C</div>
+  <div id="whitespace-pre-wrap">pre-wrap: A   B
+    C</div>
+  <div id="whitespace-pre-line">pre-line: A   B
+    C</div>
+  <div id="whitespace-break-spaces">break-spaces: A   B   C</div>
+</body>
+</html>

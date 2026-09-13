@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#display-demo {
+  position: relative;
+  left: 260px;
+  top: 140px;
+  width: 1400px;
+  height: 800px;
+}
+
+#display-block {
+  display: block;
+  margin: 60px 0 20px 80px;
+  width: 360px;
+  height: 100px;
+  background: #38bdf8;
+}
+
+#display-contents {
+  display: contents;
+}
+
+#contents-cyan,
+#contents-purple {
+  display: block;
+  margin: 12px 0 12px 80px;
+  width: 300px;
+  height: 80px;
+}
+
+#contents-cyan {
+  background: #14b8a6;
+}
+
+#contents-purple {
+  background: #a78bfa;
+}
+
+#display-none {
+  display: none;
+  width: 360px;
+  height: 100px;
+  background: #fb7185;
+}
+
+#visibility-hidden,
+#visibility-visible {
+  position: absolute;
+  right: 100px;
+  width: 280px;
+  height: 100px;
+}
+
+#visibility-hidden {
+  top: 160px;
+  visibility: hidden;
+  background: #facc15;
+}
+
+#visibility-visible {
+  top: 300px;
+  visibility: visible;
+  background: #f97316;
+      }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="display-demo">
+    <div id="display-block"></div>
+    <div id="display-contents">
+      <div id="contents-cyan"></div>
+      <div id="contents-purple"></div>
+    </div>
+    <div id="display-none"></div>
+    <div id="visibility-hidden"></div>
+    <div id="visibility-visible"></div>
+  </div>
+</body>
+</html>

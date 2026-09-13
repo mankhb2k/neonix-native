@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #17324d; }
+@keyframes motion-combo-isolated-child { from { opacity: 0.25; transform: translateX(0px); } to { opacity: 0.9; transform: translateX(160px); } }
+#motion-combo-isolated { position: absolute; left: 480px; top: 300px; width: 760px; height: 360px; background: #facc15; isolation: isolate; }
+#motion-combo-isolated-child { position: absolute; left: 160px; top: 70px; width: 420px; height: 220px; background: #ef4444; mix-blend-mode: multiply; animation-name: motion-combo-isolated-child; animation-duration: 1000ms; animation-fill-mode: both; animation-timing-function: linear; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="motion-combo-isolated"><div id="motion-combo-isolated-child"></div></div>
+</body>
+</html>

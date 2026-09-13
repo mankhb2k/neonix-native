@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+#animated-scene { position: absolute; left: 560px; top: 250px; width: 800px; height: 480px; perspective: 820px; perspective-origin: 35% 60%; transform-style: preserve-3d; }
+@keyframes animated-3d { from { transform: translateZ(0px) rotateY(-30deg); } to { transform: translateZ(180px) rotateY(30deg); } }
+#animated-card { position: absolute; left: 270px; top: 120px; width: 260px; height: 220px; background: #f472b6; animation-name: animated-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="animated-scene"><div id="animated-card"></div></div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+@keyframes p7-inner-origin { from { perspective-origin: 15% 80%; } to { perspective-origin: 85% 20%; } }
+#p7-nested-outer { position: absolute; left: 300px; top: 140px; width: 1320px; height: 760px; perspective: 900px; perspective-origin: 50% 50%; transform-style: preserve-3d; }
+#p7-nested-inner { position: absolute; left: 220px; top: 120px; width: 880px; height: 520px; perspective: 430px; perspective-origin: 15% 80%; transform-style: preserve-3d; animation-name: p7-inner-origin; animation-duration: 1400ms; animation-fill-mode: both; animation-timing-function: linear; }
+.p7-card { position: absolute; left: 260px; top: 150px; width: 360px; height: 240px; background: #fb7185; transform: translateZ(180px) rotateX(12deg) rotateY(-24deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="p7-nested-outer"><div id="p7-nested-inner"><div class="p7-card"></div></div></div>
+</body>
+</html>

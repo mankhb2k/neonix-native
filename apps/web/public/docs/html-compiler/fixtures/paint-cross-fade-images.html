@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#paint-cross-fade {
+  position: absolute;
+  left: 420px;
+  top: 300px;
+  width: 1080px;
+  height: 480px;
+  background-color: #172554;
+  background-image: cross-fade(url("/preview/image/photo-landscape.jpg"), url("/preview/image/photo-portrait.jpg"), 50%);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="paint-cross-fade"></div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#align-start,
+#align-end,
+#align-left,
+#align-right,
+#align-center,
+#align-justify,
+#align-match-parent,
+#align-justify-all {
+  position: absolute;
+  left: 240px;
+  width: 1440px;
+  height: 80px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#align-start { top: 120px; text-align: start; }
+#align-end { top: 220px; text-align: end; }
+#align-left { top: 320px; text-align: left; }
+#align-right { top: 420px; text-align: right; }
+#align-center { top: 520px; text-align: center; }
+#align-justify { top: 620px; text-align: justify; }
+#align-match-parent { top: 720px; text-align: match-parent; }
+#align-justify-all { top: 820px; text-align: justify-all; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="align-start">start — logical inline start</div>
+  <div id="align-end">end — logical inline end</div>
+  <div id="align-left">left — physical left edge</div>
+  <div id="align-right">right — physical right edge</div>
+  <div id="align-center">center — centered in the line box</div>
+  <div id="align-justify">justify — expanded line spacing</div>
+  <div id="align-match-parent">match-parent — resolved against the parent</div>
+  <div id="align-justify-all">justify-all — all lines justified</div>
+</body>
+</html>

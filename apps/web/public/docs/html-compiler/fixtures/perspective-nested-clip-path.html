@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; overflow: hidden; }
+#nested-clip-outer { position: absolute; left: 220px; top: 130px; width: 1500px; height: 820px; perspective: 860px; perspective-origin: 50% 50%; transform-style: preserve-3d; overflow: hidden; }
+#nested-clip-inner { position: absolute; left: 780px; top: 160px; width: 620px; height: 440px; perspective: 360px; perspective-origin: 20% 75%; transform-style: preserve-3d; overflow: hidden; }
+#nested-clip-card { position: absolute; left: 90px; top: 70px; width: 480px; height: 340px; background: #a855f7; transform: translateZ(210px) rotateY(-34deg) rotateX(9deg); clip-path: polygon(8% 0, 100% 12%, 88% 100%, 0 84%); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="nested-clip-outer"><div id="nested-clip-inner"><div id="nested-clip-card"></div></div></div>
+</body>
+</html>

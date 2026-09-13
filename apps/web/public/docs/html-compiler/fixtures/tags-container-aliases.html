@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+#main { position: absolute; left: 120px; top: 100px; width: 1680px; height: 860px; }
+#header, #nav, #aside, #figure, #footer { position: absolute; width: 360px; height: 220px; }
+#header { left: 0; top: 0; }
+#nav { left: 440px; top: 0; }
+#aside { left: 880px; top: 0; }
+#figure { left: 1320px; top: 0; }
+#footer { left: 440px; top: 480px; }
+#header-fill, #nav-fill, #aside-fill, #figure-fill, #footer-fill { width: 360px; height: 160px; background: #2563eb; }
+#nav-fill { background: #22c55e; }
+#aside-fill { background: #f97316; }
+#figure-fill { background: #a78bfa; }
+#footer-fill { background: #ec4899; }
+#figcaption { width: 360px; height: 60px; color: #ffffff; font-family: Inter; font-size: 24px; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <main id="main">
+    <header id="header"><div id="header-fill"></div></header>
+    <nav id="nav"><div id="nav-fill"></div></nav>
+    <aside id="aside"><div id="aside-fill"></div></aside>
+    <figure id="figure"><div id="figure-fill"></div><figcaption id="figcaption">Frame</figcaption></figure>
+    <footer id="footer"><div id="footer-fill"></div></footer>
+  </main>
+</body>
+</html>

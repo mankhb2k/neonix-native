@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+@keyframes p7-sibling-left { from { perspective: 380px; perspective-origin: 15% 50%; } to { perspective: 820px; perspective-origin: 85% 50%; } }
+@keyframes p7-sibling-right { from { perspective: 820px; perspective-origin: 85% 50%; } to { perspective: 380px; perspective-origin: 15% 50%; } }
+#p7-sibling-left, #p7-sibling-right { position: absolute; top: 260px; width: 520px; height: 360px; transform-style: preserve-3d; animation-duration: 1200ms; animation-fill-mode: both; animation-timing-function: linear; }
+#p7-sibling-left { left: 260px; perspective: 380px; perspective-origin: 15% 50%; animation-name: p7-sibling-left; }
+#p7-sibling-right { left: 1140px; perspective: 820px; perspective-origin: 85% 50%; animation-name: p7-sibling-right; }
+.p7-sibling-card { position: absolute; left: 110px; top: 90px; width: 300px; height: 180px; transform: translateZ(120px) rotateY(-18deg); }
+.p7-sibling-card.left { background: #22d3ee; }
+.p7-sibling-card.right { background: #a78bfa; transform: translateZ(180px) rotateY(18deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="p7-sibling-left"><div class="p7-sibling-card left"></div></div><div id="p7-sibling-right"><div class="p7-sibling-card right"></div></div>
+</body>
+</html>

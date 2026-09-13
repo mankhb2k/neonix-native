@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#edge-flex { position: absolute; left: 220px; top: 360px; width: 1440px; height: 220px; display: flex; gap: 24px; align-items: center; }
+#edge-flex-first, #edge-flex-second, #edge-flex-third { height: 120px; }
+#edge-flex-first { order: 3; flex: 1; min-width: 280px; max-width: 360px; background: #38bdf8; }
+#edge-flex-second { order: 1; flex: 2; background: #a78bfa; }
+#edge-flex-third { order: 2; flex: 1; background: #fb7185; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="edge-flex">
+    <div id="edge-flex-first"></div>
+    <div id="edge-flex-second"></div>
+    <div id="edge-flex-third"></div>
+  </div>
+</body>
+</html>

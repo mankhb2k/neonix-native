@@ -1,8 +1,8 @@
-import { Suspense } from "react";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { Suspense } from "react";
 import { HtmlCompilerRuntimeLab } from "@/components/docs/HtmlCompilerRuntimeLab";
-import type { CategorizedHtmlCompilerPreviewCase } from "@/lib/docs/html-compiler-preview";
+import { HTML_COMPILER_FIXTURE_ROOT, type CategorizedHtmlCompilerPreviewCase } from "@/lib/docs/html-compiler-preview";
 import type { HtmlCssComposition } from "@motionvideo/html-compiler";
 import type { Metadata } from "next";
 
@@ -33,7 +33,7 @@ function compositionFromDocument(html: string) {
 async function loadExportSamples(): Promise<CategorizedHtmlCompilerPreviewCase[]> {
   return Promise.all(exportSamples.map(async (sample) => {
     const html = await readFile(
-      path.join(repoRoot(), "docs/preview/html-compiler/export-samples", sample.file),
+      path.join(repoRoot(), "apps/web/public/docs/html-compiler/fixtures", sample.file),
       "utf8",
     );
     return {
@@ -47,14 +47,8 @@ async function loadExportSamples(): Promise<CategorizedHtmlCompilerPreviewCase[]
       properties: ["10 seconds", "30 fps", "HTML/CSS", "JSON V2", "Skia export"],
       hint: sample.hint,
       durationMs: 10_000,
-      source: {
-        kind: "neonix-html-source" as const,
-        sourceSchemaVersion: 1 as const,
-        composition: compositionFromDocument(html),
-        html,
-        css: "",
-      },
-      html,
+      composition: compositionFromDocument(html),
+      fixtureUrl: `${HTML_COMPILER_FIXTURE_ROOT}/${sample.file}`,
     };
   }));
 }

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; overflow: hidden; }
+#parallax-viewport { position: absolute; left: 260px; top: 150px; width: 1400px; height: 780px; perspective: 680px; perspective-origin: 50% 50%; overflow: hidden; }
+#parallax-world { position: absolute; inset: 0; transform-style: preserve-3d; transform-origin: 50% 50%; animation-name: parallax-camera; animation-duration: 12000ms; animation-iteration-count: infinite; animation-fill-mode: both; animation-timing-function: linear; }
+@keyframes parallax-camera {
+  0% { transform: translateZ(-80px); }
+  30% { transform: translateZ(80px); }
+  55% { transform: translateZ(150px); }
+  68% { transform: translateZ(180px); }
+  76% { transform: translateZ(180px); }
+  100% { transform: translateZ(-80px); }
+}
+#parallax-rectangle, #parallax-triangle, #parallax-circle { position: absolute; transform-origin: 50% 50%; }
+#parallax-rectangle { left: 100px; top: 65px; width: 1200px; height: 650px; background: transparent; border: 12px solid #38bdf8; transform: translateZ(-380px); }
+#parallax-triangle { display: block; left: 300px; top: 110px; width: 800px; height: 560px; overflow: visible; transform: translateZ(-90px); }
+#parallax-triangle-path { fill: none; stroke: #facc15; stroke-width: 24px; stroke-linejoin: miter; }
+#parallax-circle { left: 490px; top: 180px; width: 420px; height: 420px; background: transparent; border: 14px solid #fb7185; border-radius: 50%; transform: translateZ(140px); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="parallax-viewport"><div id="parallax-world"><div id="parallax-rectangle"></div><svg id="parallax-triangle" viewBox="0 0 800 560" width="800" height="560" aria-hidden="true"><path id="parallax-triangle-path" d="M 400 12 L 788 548 L 12 548 Z"></path></svg><div id="parallax-circle"></div></div></div>
+</body>
+</html>

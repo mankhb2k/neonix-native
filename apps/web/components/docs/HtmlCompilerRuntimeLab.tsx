@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { PreviewStage } from "@/components/preview/PreviewStage";
-import { htmlCompilerPreviewHtml } from "@/lib/docs/html-compiler-document";
+import { fetchPlaygroundFixture } from "@/lib/api/playground";
 import {
   HTML_COMPILER_PREVIEW_CASES,
   HTML_COMPILER_PREVIEW_FONT_ASSETS,
@@ -22,7 +22,7 @@ import {
   htmlCompilerPreviewGroups,
   type CategorizedHtmlCompilerPreviewCase,
 } from "@/lib/docs/html-compiler-preview";
-import { compileDocument, type HtmlCssSource } from "@motionvideo/html-compiler";
+import { compileDocument, type HtmlCssComposition } from "@motionvideo/html-compiler";
 
 export function HtmlCompilerRuntimeLab({
   additionalCases = [],
@@ -48,7 +48,23 @@ export function HtmlCompilerRuntimeLab({
       htmlCompilerPreviewCaseById(searchParams.get("case")),
     [previewCases, searchParams],
   );
-  const selectedHtml = useMemo(() => htmlCompilerPreviewHtml(selected), [selected]);
+  const [selectedHtml, setSelectedHtml] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    setSelectedHtml("");
+    void fetchPlaygroundFixture(selected.fixtureUrl, controller.signal)
+      .then((html) => {
+        if (!cancelled) setSelectedHtml(html);
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedHtml("");
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [selected]);
   const groups = useMemo(() => {
     const baseGroups = htmlCompilerPreviewGroups();
     if (additionalCases.length === 0) return baseGroups;
@@ -67,8 +83,8 @@ export function HtmlCompilerRuntimeLab({
     [selected.durationMs, selected.id, selectedHtml],
   );
   const sourceDocument = useMemo(
-    () => htmlDocumentSrcDoc(selectedHtml, selected.source, HTML_COMPILER_PREVIEW_FONT_ASSETS),
-    [selected.source, selectedHtml],
+    () => htmlDocumentSrcDoc(selectedHtml, selected.composition, HTML_COMPILER_PREVIEW_FONT_ASSETS),
+    [selected.composition, selectedHtml],
   );
   const syncBrowserPlayback = useCallback((time: number, playing: boolean) => {
     const document = browserIframeRef.current?.contentDocument;
@@ -128,8 +144,8 @@ export function HtmlCompilerRuntimeLab({
     const updateScale = () => {
       const rect = stage.getBoundingClientRect();
       const nextScale = Math.min(
-        rect.width / selected.source.composition.width,
-        rect.height / selected.source.composition.height,
+        rect.width / selected.composition.width,
+        rect.height / selected.composition.height,
       );
       if (Number.isFinite(nextScale) && nextScale > 0) setBrowserScale(nextScale);
     };
@@ -137,7 +153,7 @@ export function HtmlCompilerRuntimeLab({
     const observer = new ResizeObserver(updateScale);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [selected.source]);
+  }, [selected.composition]);
 
   const selectCase = useCallback((id: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -208,11 +224,11 @@ export function HtmlCompilerRuntimeLab({
             className="mt-3 inline-flex rounded border border-cyan-300/20 bg-cyan-400/5 px-2 py-1 font-mono text-[10px] text-cyan-200"
             data-testid="html-compiler-composition"
           >
-            Composition {selected.source.composition.width}x
-            {selected.source.composition.height} ·{" "}
-            {selected.source.composition.fps} fps ·{" "}
-            {selected.source.composition.background} ·{" "}
-            {selected.source.composition.colorSpace}
+            Composition {selected.composition.width}x
+            {selected.composition.height} ·{" "}
+            {selected.composition.fps} fps ·{" "}
+            {selected.composition.background} ·{" "}
+            {selected.composition.colorSpace}
           </div>
         </header>
 
@@ -225,7 +241,7 @@ export function HtmlCompilerRuntimeLab({
                 ref={browserStageRef}
                 className="relative w-full overflow-hidden bg-[#081018]"
                 style={{
-                  aspectRatio: `${selected.source.composition.width} / ${selected.source.composition.height}`,
+                  aspectRatio: `${selected.composition.width} / ${selected.composition.height}`,
                 }}
                 data-testid="html-compiler-browser-stage"
               >
@@ -234,8 +250,8 @@ export function HtmlCompilerRuntimeLab({
                   title={`Native browser HTML CSS reference: ${selected.label}`}
                 className="absolute left-0 top-0 border-0"
                 style={{
-                  width: `${selected.source.composition.width}px`,
-                  height: `${selected.source.composition.height}px`,
+                  width: `${selected.composition.width}px`,
+                  height: `${selected.composition.height}px`,
                   transform: `scale(${browserScale})`,
                   transformOrigin: "top left",
                 }}
@@ -270,7 +286,7 @@ export function HtmlCompilerRuntimeLab({
                 <div
                   className="w-full overflow-hidden"
                   style={{
-                    aspectRatio: `${selected.source.composition.width} / ${selected.source.composition.height}`,
+                    aspectRatio: `${selected.composition.width} / ${selected.composition.height}`,
                   }}
                 >
                   <PreviewStage
@@ -303,7 +319,7 @@ export function HtmlCompilerRuntimeLab({
         </div>
 
         <section className="mt-5 grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
-          <SourceCanvas source={selected.source} html={selectedHtml} />
+          <SourceCanvas composition={selected.composition} html={selectedHtml} />
           <SourcePanel
             title="Normalized Protocol V2"
             value={JSON.stringify(
@@ -479,13 +495,13 @@ function SourcePanel({ title, value }: { title: string; value: string }) {
 
 type SourceCanvasTab = "composition" | "html" | "css";
 
-function SourceCanvas({ source, html }: { source: HtmlCssSource; html: string }) {
+function SourceCanvas({ composition, html }: { composition: HtmlCssComposition; html: string }) {
   const [tab, setTab] = useState<SourceCanvasTab>("html");
   const tabs: Array<{ id: SourceCanvasTab; label: string; value: string }> = [
     {
       id: "composition",
       label: "Composition",
-      value: JSON.stringify(source.composition, null, 2),
+      value: JSON.stringify(composition, null, 2),
     },
     { id: "html", label: "HTML document", value: html },
   ];
@@ -561,18 +577,17 @@ function DiagnosticStage({
 
 function htmlDocumentSrcDoc(
   documentHtml: string,
-  source: HtmlCssSource,
+  composition: HtmlCssComposition,
   fontAssets: typeof HTML_COMPILER_PREVIEW_FONT_ASSETS,
 ): string {
   // `documentHtml` is already a complete HTML document. Do not escape its
   // closing style tags: doing so makes the browser treat the rest of the
   // document as CSS and leaves the reference iframe blank.
   const html = documentHtml;
-  const { width, height, background } = source.composition;
-  // Final-document fixtures keep their bundled CSS inside <style> and leave
-  // source.css empty. Scan the complete document as well so the browser
-  // reference loads the same registered font assets as the compiler.
-  const cssFamilies = `${source.css}\n${documentHtml}`.toLocaleLowerCase();
+  const { width, height, background } = composition;
+  // Scan the complete document so the browser reference loads the same
+  // registered font assets as the compiler.
+  const cssFamilies = documentHtml.toLocaleLowerCase();
   const fontFaces = fontAssets
     .filter((asset) => cssFamilies.includes(asset.family.toLocaleLowerCase()))
     .map(

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#outline-positive,
+#outline-negative {
+  position: absolute;
+  top: 360px;
+  width: 360px;
+  height: 180px;
+  background: #172554;
+  border: 8px solid #334155;
+  outline: 14px solid #38bdf8;
+}
+
+#outline-positive {
+  left: 420px;
+  outline-offset: 22px;
+}
+
+#outline-negative {
+  left: 1140px;
+  outline-color: #f97316;
+  outline-offset: -10px;
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="outline-positive"></div>
+  <div id="outline-negative"></div>
+</body>
+</html>

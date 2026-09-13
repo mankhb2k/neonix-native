@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+@keyframes motion-fade { from { opacity: 0.1; } to { opacity: 1; } }
+@keyframes motion-tint { from { background-color: #22d3ee; } to { background-color: #f97316; } }
+#motion-fade { position: absolute; left: 430px; top: 360px; width: 320px; height: 160px; background: #22d3ee; animation-name: motion-fade; animation-duration: 1000ms; }
+#motion-tint { position: absolute; left: 850px; top: 360px; width: 320px; height: 160px; animation-name: motion-tint; animation-duration: 1000ms; animation-timing-function: linear; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="motion-fade"></div>
+  <div id="motion-tint"></div>
+</body>
+</html>

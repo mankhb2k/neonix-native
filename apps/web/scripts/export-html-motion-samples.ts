@@ -45,7 +45,7 @@ function requiredProtocol(result: ReturnType<typeof compileDocument>, sourceFile
 
 async function main(): Promise<void> {
   const root = repoRoot();
-  const sourceRoot = join(root, "docs", "preview", "html-compiler", "export-samples");
+  const sourceRoot = join(root, "apps", "web", "public", "docs", "html-compiler", "fixtures");
   const outputRoot = join(root, "tmp", "html-motion-exports");
   const publicRoot = join(root, "apps", "web", "public");
   const requestedFrameCount = process.env.HTML_MOTION_FRAME_COUNT

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+
+#outline-layout {
+  position: absolute;
+  left: 300px;
+  top: 300px;
+  width: 1320px;
+  height: 300px;
+  display: flex;
+  gap: 180px;
+  align-items: center;
+  background: #172554;
+}
+
+#outline-target,
+#outline-sibling {
+  width: 360px;
+  height: 160px;
+  background: #38bdf8;
+}
+
+#outline-target {
+  margin-left: 180px;
+  outline: 14px solid #facc15;
+  outline-offset: 18px;
+}
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="outline-layout">
+    <div id="outline-target"></div>
+    <div id="outline-sibling"></div>
+  </div>
+</body>
+</html>

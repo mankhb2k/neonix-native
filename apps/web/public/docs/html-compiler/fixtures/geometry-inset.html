@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#inset-demo {
+  position: relative;
+  left: 240px;
+  top: 160px;
+  width: 1440px;
+  height: 760px;
+}
+
+#inset-frame {
+  position: absolute;
+  inset: 80px 120px 100px 160px;
+  width: auto;
+  height: auto;
+  background: #0e7490;
+}
+
+#right-bottom-box {
+  position: absolute;
+  right: 160px;
+  bottom: 120px;
+  width: 300px;
+  height: 160px;
+  background: #f97316;
+      }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="inset-demo">
+    <div id="inset-frame"></div>
+    <div id="right-bottom-box"></div>
+  </div>
+</body>
+</html>

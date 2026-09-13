@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body { margin: 0; background: #081018; }
+#nested-origin-outer { position: absolute; left: 360px; top: 160px; width: 1200px; height: 760px; perspective: 820px; perspective-origin: 15% 80%; transform-style: preserve-3d; }
+#nested-origin-inner { position: absolute; left: 220px; top: 130px; width: 760px; height: 500px; perspective: 460px; perspective-origin: 85% 20%; transform-style: preserve-3d; }
+#nested-origin-card { position: absolute; left: 220px; top: 120px; width: 320px; height: 230px; background: #f97316; transform: translateZ(130px) rotateY(-28deg) rotateX(12deg); }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="nested-origin-outer"><div id="nested-origin-inner"><div id="nested-origin-card"></div></div></div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="neonix-document" content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1920,"height":1080,"fps":30,"background":"#081018","colorSpace":"srgb"}}'>
+<style data-neonix-bundle>
+body {
+  margin: 0;
+  background: #081018;
+}
+
+#direction-ltr,
+#direction-rtl,
+#writing-horizontal,
+#writing-vertical-rl,
+#writing-vertical-lr,
+#decoration-all {
+  position: absolute;
+  left: 180px;
+  width: 1560px;
+  height: 90px;
+  color: #f8fafc;
+  font-family: "Inter";
+  font-size: 32px;
+}
+
+#direction-ltr { top: 80px; direction: ltr; text-align: start; }
+#direction-rtl { top: 180px; direction: rtl; text-align: start; }
+#writing-horizontal { top: 280px; writing-mode: horizontal-tb; }
+#writing-vertical-rl { top: 380px; left: 720px; width: 480px; height: 560px; writing-mode: vertical-rl; }
+#writing-vertical-lr { top: 380px; left: 1260px; width: 480px; height: 560px; writing-mode: vertical-lr; }
+#decoration-all { top: 980px; text-decoration: underline 3px #f97316 overline line-through; }
+</style>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <div id="direction-ltr">LTR direction — logical start</div>
+  <div id="direction-rtl">RTL direction — بداية النص</div>
+  <div id="writing-horizontal">horizontal-tb writing mode</div>
+  <div id="writing-vertical-rl">VERTICAL-RL</div>
+  <div id="writing-vertical-lr">VERTICAL-LR</div>
+  <div id="decoration-all">underline overline and line-through</div>
+</body>
+</html>
