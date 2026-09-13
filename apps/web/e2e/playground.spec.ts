@@ -6,6 +6,19 @@ const FOCUSED_FIXTURES = [
   "review-grid-default-opacity",
   "review-grid-composition-baseline",
   "review-grid-composition-baseline-1px",
+  "review-grid-subpixel-01-horizontal",
+  "review-grid-subpixel-01-vertical",
+  "review-grid-subpixel-025-horizontal",
+  "review-grid-subpixel-025-vertical",
+  "review-grid-subpixel-05-horizontal",
+  "review-grid-subpixel-05-vertical",
+  "review-grid-subpixel-1-horizontal",
+  "review-grid-subpixel-1-vertical",
+  "review-grid-short-period-01-horizontal",
+  "review-grid-short-period-01-vertical",
+  "review-grid-long-period-01-both",
+  "review-grid-short-period-1-horizontal",
+  "review-grid-short-period-1-vertical",
   "review-grid-repeat-x",
   "review-grid-repeat-y",
   "review-grid-no-repeat",
@@ -58,7 +71,7 @@ test.describe("HTML compiler playground", () => {
     const canvas = page.getByTestId("playground-runtime-canvas");
     await expect(canvas).toHaveAttribute("data-preview-state", /ready|preparing-text|loading-resources/);
     await expect(picker).toBeVisible();
-    await expect(picker.locator("option")).toHaveCount(14);
+    await expect(picker.locator("option")).toHaveCount(27);
     const values = await picker.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
     expect(values).toEqual([
       "custom",

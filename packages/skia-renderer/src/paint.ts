@@ -92,18 +92,12 @@ function resolveGradient(gradient: PaintFillGradient, width: number, height: num
   const baseStops = gradient.stops.map((stop) => ({ ...stop, offset: stop.offset - start }));
   const stops: PaintFillGradient["stops"] = [];
   const cycles = Math.ceil(1 / period);
-  // A CSS gradient boundary is rasterized as part of the edge pixel. A
-  // zero-width wrapped stop is easy for Skia to miss because its sample is
-  // taken at the pixel centre. Reserve one logical pixel at the terminal
-  // edge so the wrapped colour survives rasterization at the composition
-  // resolution (and remains sub-period for very short repeats).
-  const gradientLength = gradient.type === "linear-gradient"
-    ? (() => {
-      const points = linearPoints(gradient, width, height);
-      return Math.hypot(points.end[0] - points.start[0], points.end[1] - points.start[1]);
-    })()
-    : Math.max(width, height);
-  const terminalEpsilon = Math.min(period * 0.5, 1 / Math.max(1, gradientLength));
+  // Keep the terminal correction numerical only. Reserving one logical pixel
+  // here expands the final transparent-to-colour transition across a real
+  // tile seam, which turns a 0.1px CSS stop into a visible 7-8px band. The
+  // wrapped stop must survive the endpoint without changing its authored
+  // coverage width.
+  const terminalEpsilon = Math.min(period * 0.5, 1e-7);
   const terminalOffset = 1 - terminalEpsilon;
   for (let cycle = 0; cycle <= cycles; cycle += 1) {
     for (const stop of baseStops) {
@@ -120,7 +114,12 @@ function resolveGradient(gradient: PaintFillGradient, width: number, height: num
   // partial terminal cycle as though it had completed and replaces its final
   // authored colour with the preceding cycle's last colour.
   const rawTerminalPhase = ((1 % period) + period) % period;
-  const terminalPhase = rawTerminalPhase < 1e-9 || period - rawTerminalPhase < 1e-9
+  // Percent-authored CSS periods are commonly decimal approximations (for
+  // example 8.3333333% for a 10px period in a 120px tile). Treat the tiny
+  // floating-point remainder of an exact cycle as zero; otherwise the final
+  // endpoint is sampled as a partial cycle and creates a false seam.
+  const phaseTolerance = Math.min(1e-5, period * 1e-3);
+  const terminalPhase = rawTerminalPhase < phaseTolerance || period - rawTerminalPhase < phaseTolerance
     ? 0
     : rawTerminalPhase;
   const phaseEpsilon = Math.min(1e-7, period * 1e-4);

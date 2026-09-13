@@ -126,7 +126,9 @@ describe("Skia gradient paint", () => {
 
     expect(positions?.at(-1)).toBe(1);
     expect(colors?.at(-1)).toMatchObject({ r: 56, g: 189, b: 248, a: 1 });
-    expect(positions?.at(-2)).toBeCloseTo(1 - 1 / 480, 6);
+    // The terminal correction is numerical only; it must not reserve a
+    // visible logical pixel at the tile seam.
+    expect(positions?.at(-2)).toBeCloseTo(1 - 1e-7, 7);
     expect(endPoint?.[1]).toBeGreaterThan(0);
     expect(endPoint?.[1]).toBeLessThan(1);
   });
@@ -173,9 +175,9 @@ describe("Skia gradient paint", () => {
       ],
     }, 1000, 200);
 
-    expect(positions?.at(-2)).toBeCloseTo(1 - 1 / 1000, 6);
-    // 1 mod 0.3 ends at the red segment's 10% boundary. The pixel just
-    // before the endpoint must stay red, not jump to the prior cyan stop.
+    expect(positions?.at(-2)).toBeCloseTo(1 - 1e-7, 7);
+    // 1 mod 0.3 ends at the red segment's 10% boundary. The terminal sample
+    // must preserve that authored colour without adding a one-pixel ramp.
     expect(colors?.at(-2)).toMatchObject({ r: 244, g: 63, b: 94, a: 1 });
   });
 
