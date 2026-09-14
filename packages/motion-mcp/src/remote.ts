@@ -8,6 +8,11 @@ import {
 } from "./annotations";
 import { REMOTE_TOOL_OUTPUT_SCHEMAS } from "./output-schemas";
 import { registerNeonixGuidance } from "./guidance";
+import {
+  MCP_APP_RESOURCE_MIME_TYPE,
+  VIDEO_PREVIEW_RESOURCE_URI,
+  VIDEO_PREVIEW_UI_HTML,
+} from "./video-preview-ui";
 
 /** The identity is validated by the hosting application's OAuth adapter. */
 export type RemoteMcpPrincipal = {
@@ -141,6 +146,34 @@ export function createRemoteMcpServer(options: {
     },
   );
   registerNeonixGuidance(server);
+
+  server.registerResource(
+    "Neonix video preview",
+    VIDEO_PREVIEW_RESOURCE_URI,
+    {
+      mimeType: MCP_APP_RESOURCE_MIME_TYPE,
+      description: "Inline video preview and export controls for Neonix render jobs.",
+    },
+    async () => ({
+      contents: [{
+        uri: VIDEO_PREVIEW_RESOURCE_URI,
+        mimeType: MCP_APP_RESOURCE_MIME_TYPE,
+        text: VIDEO_PREVIEW_UI_HTML,
+        _meta: {
+          ui: {
+            prefersBorder: true,
+            csp: {
+              connectDomains: [],
+              resourceDomains: [
+                "https://*.r2.cloudflarestorage.com",
+                "https://media.neonix.video",
+              ],
+            },
+          },
+        },
+      }],
+    }),
+  );
 
   const uuid = z.string().uuid();
   const documentSchema = z.record(z.string(), z.unknown());
@@ -370,6 +403,12 @@ export function createRemoteMcpServer(options: {
       inputSchema: { ...projectLocator, protocol_revision_no: z.number().int().min(1).optional(), preset: z.string().optional(), idempotency_key: z.string().trim().min(1).max(200).optional() },
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_export,
+      _meta: {
+        ui: {
+          resourceUri: VIDEO_PREVIEW_RESOURCE_URI,
+        },
+        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
+      },
     },
     (input) => safely(async () => {
       requireProjectLocator(input);

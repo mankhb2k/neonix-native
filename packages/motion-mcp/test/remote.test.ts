@@ -96,7 +96,20 @@ describe("hosted remote MCP contract", () => {
     expect(resources.resources.map((resource) => resource.uri)).toEqual(expect.arrayContaining([
       "neonix://docs/workflows",
       "neonix://docs/html-authoring",
+      "ui://neonix/video-preview/v1.html",
     ]));
+
+    expect(response.tools.find((tool) => tool.name === "create_export")?._meta).toEqual(expect.objectContaining({
+      ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
+    }));
+
+    const preview = await client.readResource({ uri: "ui://neonix/video-preview/v1.html" });
+    expect(preview.contents[0]).toEqual(expect.objectContaining({
+      uri: "ui://neonix/video-preview/v1.html",
+      mimeType: "text/html;profile=mcp-app",
+    }));
+    expect((preview.contents[0] as { text?: string }).text).toContain("Open editor");
+    expect((preview.contents[0] as { text?: string }).text).toContain("ui/initialize");
 
     const prompts = await client.listPrompts();
     expect(prompts.prompts.map((prompt) => prompt.name)).toEqual(expect.arrayContaining([
