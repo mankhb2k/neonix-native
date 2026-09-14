@@ -71,6 +71,15 @@ export const NEONIX_OPENAPI = {
         responses: { "201": { description: "Created project" }, "401": { $ref: "#/components/responses/Unauthorized" }, "422": { $ref: "#/components/responses/CompilerError" } },
       },
     },
+    "/api/v1/projects/html": {
+      post: {
+        tags: ["Projects"],
+        summary: "Create an HTML-authored project",
+        description: "Compiles HTML and atomically creates the project, canonical Protocol V2 revision, and linked HTML authoring revision.",
+        requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/CreateHtmlProjectRequest" } } } },
+        responses: { "201": { description: "Created HTML project" }, "401": { $ref: "#/components/responses/Unauthorized" }, "422": { $ref: "#/components/responses/CompilerError" } },
+      },
+    },
     "/api/v1/projects/{projectId}": {
       get: {
         tags: ["Projects"],
@@ -352,6 +361,7 @@ export const NEONIX_OPENAPI = {
         properties: { html: { type: "string", description: "One complete Neonix HTML document with inline style blocks and meta[name=neonix-document]", example: "<!doctype html><html><head><meta name=\"neonix-document\" content=\'{\"kind\":\"neonix-html-document\",\"schemaVersion\":2,\"composition\":{\"width\":1920,\"height\":1080,\"fps\":30,\"background\":\"#081018\",\"colorSpace\":\"srgb\"}}\'><style>body{margin:0}</style></head><body><div></div></body></html>" } },
       },
       CreateProjectRequest: { type: "object", required: ["document"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, document: { type: "object", additionalProperties: true, description: "Protocol V2 JSON document" } } },
+      CreateHtmlProjectRequest: { type: "object", required: ["html"], properties: { title: { type: "string", default: "Untitled project" }, workspaceId: { type: "string", format: "uuid" }, html: { type: "string", description: "Complete Neonix HTML document including inline style blocks and meta[name=neonix-document]" }, idempotencyKey: { type: "string", maxLength: 200, description: "Retry key that returns the original project instead of creating a duplicate" } } },
       UpdateProjectRequest: { type: "object", properties: { title: { type: "string" }, document: { type: "object", additionalProperties: true }, expectedRevisionNo: { type: "integer", minimum: 0 } } },
       UpdateHtmlProjectRequest: { type: "object", required: ["html"], properties: { html: { type: "string" }, expectedHtmlRevisionNo: { type: "integer", minimum: 0 }, expectedProtocolRevisionNo: { type: "integer", minimum: 0 } } },
       JsonPatchRequest: { type: "object", required: ["expectedProtocolRevisionNo", "patch"], properties: { expectedProtocolRevisionNo: { type: "integer", minimum: 1 }, patch: { type: "object", additionalProperties: true } } },

@@ -8,6 +8,10 @@ and returns `RuntimeProjectV3`; it never converts or executes an older project
 format.
 
 ```text
+create_project_html(HTML + CSS)
+        |
+validate + compile → create project + linked revisions
+        |
 create_project(Protocol V2 JSON)
         |
 get_project_html → edit HTML → validate_html
@@ -19,10 +23,17 @@ project_html_revision + linked project_revision
 Protocol V2 JSON → compileProtocol → RuntimeProjectV3
 ```
 
-HTML is an authoring source attached to an existing JSON project. The hosted
-MCP flow never converts JSON back to HTML. `get_project_json` is read-only and
-`apply_json_patch` is an explicit escape hatch for small changes that HTML
-cannot express.
+`create_project_html` is the preferred HTML-first flow: it compiles the supplied
+source and atomically creates the project, canonical Protocol V2 revision, and
+linked HTML authoring revision. HTML remains an authoring source attached to
+the project; the hosted MCP flow never converts JSON back to HTML.
+`get_project_json` is read-only and `apply_json_patch` is an explicit escape
+hatch for small changes that HTML cannot express.
+
+The Codex companion skill is available at
+`skills/neonix-html-authoring/SKILL.md`. Claude and other MCP clients receive
+the equivalent guidance through the `neonix://docs/workflows` resource and
+the `create_html_project` / `edit_html_project` prompts.
 
 The hosted adapter also exposes project-scoped media and export operations:
 
@@ -77,3 +88,20 @@ These hints are shared by ChatGPT, Claude, Cursor, and other MCP clients:
 The OpenAI submission manifest may repeat the first three fields and add
 review justifications, but those justifications are not part of the runtime
 MCP protocol.
+
+## Optional OAuth operation scopes
+
+The hosted adapter supports least-privilege operation scopes when
+`MCP_ENFORCE_OPERATION_SCOPES=true`:
+
+```text
+projects:read    projects:write    projects:delete
+assets:read      assets:write      assets:delete
+exports:read     exports:write     exports:delete
+```
+
+The default is disabled so existing OAuth clients remain compatible. When
+enabled, the authorization server must issue the requested custom scopes (or
+`neonix:admin`); otherwise the MCP server returns a structured `FORBIDDEN`
+error. The protected-resource metadata advertises these scopes only when the
+feature flag is enabled.

@@ -8,6 +8,7 @@ const empty = () => Promise.resolve({});
 const api: RemoteMcpProjectApi = {
   listWorkspaces: () => Promise.resolve([]),
   createProject: empty,
+  createProjectHtml: empty,
   listProjects: empty,
   getProject: empty,
   updateProject: empty,
@@ -49,6 +50,7 @@ describe("hosted remote MCP contract", () => {
 
     expect([...names]).toEqual(expect.arrayContaining([
       "create_project",
+      "create_project_html",
       "get_project_html",
       "update_project_html",
       "apply_json_patch",
@@ -90,9 +92,31 @@ describe("hosted remote MCP contract", () => {
       destructiveHint: false,
     });
 
+    const resources = await client.listResources();
+    expect(resources.resources.map((resource) => resource.uri)).toEqual(expect.arrayContaining([
+      "neonix://docs/workflows",
+      "neonix://docs/html-authoring",
+    ]));
+
+    const prompts = await client.listPrompts();
+    expect(prompts.prompts.map((prompt) => prompt.name)).toEqual(expect.arrayContaining([
+      "create_html_project",
+      "edit_html_project",
+    ]));
+
     const workspaceResult = await client.callTool({ name: "list_workspaces", arguments: {} });
     expect(workspaceResult.isError).not.toBe(true);
     expect(workspaceResult.structuredContent).toEqual({ workspaces: [] });
+
+    const invalidLocator = await client.callTool({ name: "get_project", arguments: {} });
+    expect(invalidLocator.isError).toBe(true);
+    expect(invalidLocator.structuredContent).toEqual({
+      error: {
+        code: "INVALID_INPUT",
+        message: "Provide exactly one of project_id or public_ref",
+        retryable: false,
+      },
+    });
 
     await client.close();
     await server.close();

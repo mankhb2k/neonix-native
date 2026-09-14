@@ -7,6 +7,7 @@ import {
   READ_ONLY_TOOL_ANNOTATIONS,
 } from "./annotations";
 import { REMOTE_TOOL_OUTPUT_SCHEMAS } from "./output-schemas";
+import { registerNeonixGuidance } from "./guidance";
 
 /** The identity is validated by the hosting application's OAuth adapter. */
 export type RemoteMcpPrincipal = {
@@ -23,6 +24,12 @@ export type RemoteMcpProjectApi = {
     workspaceId?: string;
     title?: string;
     document?: Record<string, unknown>;
+  }) => Promise<unknown>;
+  createProjectHtml: (input: {
+    workspaceId?: string;
+    title?: string;
+    html: string;
+    idempotencyKey?: string;
   }) => Promise<unknown>;
   listProjects: (input: { workspaceId?: string; limit?: number }) => Promise<unknown>;
   getProject: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
@@ -87,9 +94,25 @@ function result(value: unknown): ToolResult {
 
 function toolError(error: unknown): ToolResult {
   const message = error instanceof Error ? error.message : "The operation failed";
+  const details = error && typeof error === "object" && "details" in error
+    ? (error as { details?: unknown }).details
+    : undefined;
+  const code = error && typeof error === "object" && "code" in error
+    ? String((error as { code?: unknown }).code ?? "TOOL_ERROR")
+    : "TOOL_ERROR";
+  const retryable = code === "REVISION_CONFLICT" || code === "RATE_LIMITED" || code === "TEMPORARY_ERROR";
+  const payload = {
+    error: {
+      code,
+      message,
+      ...(details === undefined ? {} : { details }),
+      retryable,
+    },
+  };
   return {
     isError: true,
-    content: [{ type: "text", text: JSON.stringify({ error: message }) }],
+    content: [{ type: "text", text: JSON.stringify(payload) }],
+    structuredContent: payload,
   };
 }
 
@@ -114,9 +137,10 @@ export function createRemoteMcpServer(options: {
     { name: "Neonix MCP", version: "0.1.0" },
     {
       instructions:
-        "Create projects with Protocol V2 JSON. For authoring, read the attached HTML with get_project_html, edit that HTML, validate_html, then save it with update_project_html. The save creates a linked Protocol V2 revision. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
+        "For HTML-first projects, call create_project_html with complete HTML/CSS; it compiles the source and atomically creates the project with linked HTML and Protocol V2 revisions. For existing projects, read the attached HTML with get_project_html, edit it, validate_html, then save it with update_project_html. Use get_project_json only for inspection. Use apply_json_patch only for small changes that HTML cannot express; it creates a JSON revision and may make the HTML source stale. Never convert JSON back to HTML.",
     },
   );
+  registerNeonixGuidance(server);
 
   const uuid = z.string().uuid();
   const documentSchema = z.record(z.string(), z.unknown());
@@ -124,6 +148,14 @@ export function createRemoteMcpServer(options: {
     project_id: uuid.optional().describe("Project UUID."),
     public_ref: z.string().min(1).max(80).optional().describe("Stable project reference such as prj_..."),
   };
+
+  function requireProjectLocator(input: { project_id?: string; public_ref?: string }) {
+    if ((input.project_id ? 1 : 0) + (input.public_ref ? 1 : 0) !== 1) {
+      const error = new Error("Provide exactly one of project_id or public_ref");
+      Object.assign(error, { code: "INVALID_INPUT" });
+      throw error;
+    }
+  }
 
   server.registerTool(
     "list_workspaces",
@@ -146,7 +178,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project_json,
     },
-    (input) => safely(() => api.getProjectJson({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.getProjectJson({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   server.registerTool(
@@ -162,12 +197,15 @@ export function createRemoteMcpServer(options: {
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.apply_json_patch,
     },
-    (input) => safely(() => api.applyJsonPatch({
-      projectId: input.project_id,
-      publicRef: input.public_ref,
-      expectedProtocolRevisionNo: input.expected_protocol_revision_no,
-      patch: input.patch,
-    })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.applyJsonPatch({
+        projectId: input.project_id,
+        publicRef: input.public_ref,
+        expectedProtocolRevisionNo: input.expected_protocol_revision_no,
+        patch: input.patch,
+      });
+    }),
   );
 
   server.registerTool(
@@ -179,7 +217,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project_html,
     },
-    (input) => safely(() => api.getProjectHtml({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.getProjectHtml({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   server.registerTool(
@@ -196,13 +237,16 @@ export function createRemoteMcpServer(options: {
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.update_project_html,
     },
-    (input) => safely(() => api.updateProjectHtml({
-      projectId: input.project_id,
-      publicRef: input.public_ref,
-      html: input.html,
-      expectedHtmlRevisionNo: input.expected_html_revision_no,
-      expectedProtocolRevisionNo: input.expected_protocol_revision_no,
-    })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.updateProjectHtml({
+        projectId: input.project_id,
+        publicRef: input.public_ref,
+        html: input.html,
+        expectedHtmlRevisionNo: input.expected_html_revision_no,
+        expectedProtocolRevisionNo: input.expected_protocol_revision_no,
+      });
+    }),
   );
 
   server.registerTool(
@@ -214,7 +258,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.list_html_revisions,
     },
-    (input) => safely(() => api.listHtmlRevisions({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.listHtmlRevisions({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   server.registerTool(
@@ -229,7 +276,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_html_revision,
     },
-    (input) => safely(() => api.getHtmlRevision({ projectId: input.project_id, publicRef: input.public_ref, revisionNo: input.revision_no })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.getHtmlRevision({ projectId: input.project_id, publicRef: input.public_ref, revisionNo: input.revision_no });
+    }),
   );
 
   server.registerTool(
@@ -294,7 +344,10 @@ export function createRemoteMcpServer(options: {
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.attach_asset_to_project,
     },
-    (input) => safely(() => api.attachAssetToProject({ projectId: input.project_id, publicRef: input.public_ref, assetId: input.asset_id })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.attachAssetToProject({ projectId: input.project_id, publicRef: input.public_ref, assetId: input.asset_id });
+    }),
   );
 
   server.registerTool(
@@ -318,7 +371,10 @@ export function createRemoteMcpServer(options: {
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_export,
     },
-    (input) => safely(() => api.createExport({ projectId: input.project_id, publicRef: input.public_ref, protocolRevisionNo: input.protocol_revision_no, preset: input.preset, idempotencyKey: input.idempotency_key })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.createExport({ projectId: input.project_id, publicRef: input.public_ref, protocolRevisionNo: input.protocol_revision_no, preset: input.preset, idempotencyKey: input.idempotency_key });
+    }),
   );
 
   server.registerTool(
@@ -358,6 +414,31 @@ export function createRemoteMcpServer(options: {
   );
 
   server.registerTool(
+    "create_project_html",
+    {
+      title: "Create HTML project",
+      description: "Compile HTML and atomically create a Neonix project with linked HTML and Protocol V2 revisions.",
+      inputSchema: {
+        workspace_id: uuid.optional().describe("Workspace id; omit to use the first accessible workspace or create a personal workspace."),
+        title: z.string().trim().min(1).max(200).optional(),
+        html: z.string().min(1).describe("Complete neonix-document HTML source, including CSS in the document."),
+        idempotency_key: z.string().trim().min(1).max(200).optional(),
+      },
+      annotations: ADDITIVE_TOOL_ANNOTATIONS,
+      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project_html,
+    },
+    (input) =>
+      safely(() =>
+        api.createProjectHtml({
+          workspaceId: input.workspace_id,
+          title: input.title,
+          html: input.html,
+          idempotencyKey: input.idempotency_key,
+        }),
+      ),
+  );
+
+  server.registerTool(
     "create_project",
     {
       title: "Create project",
@@ -365,7 +446,7 @@ export function createRemoteMcpServer(options: {
       inputSchema: {
         workspace_id: uuid.optional().describe("Workspace id; omit to use the first accessible workspace or create a personal workspace."),
         title: z.string().trim().min(1).max(200).optional(),
-        document: documentSchema.optional().describe("Initial editor document as a JSON object."),
+        document: documentSchema.describe("Initial editor document as a JSON object."),
       },
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project,
@@ -404,7 +485,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.get_project,
     },
-    (input) => safely(() => api.getProject({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.getProject({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   server.registerTool(
@@ -422,15 +506,16 @@ export function createRemoteMcpServer(options: {
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.update_project,
     },
     (input) =>
-      safely(() =>
-        api.updateProject({
+      safely(async () => {
+        requireProjectLocator(input);
+        return api.updateProject({
           projectId: input.project_id,
           publicRef: input.public_ref,
           title: input.title,
           document: input.document,
           expectedRevisionNo: input.expected_revision_no,
-        }),
-      ),
+        });
+      }),
   );
 
   server.registerTool(
@@ -442,7 +527,10 @@ export function createRemoteMcpServer(options: {
       annotations: DESTRUCTIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.delete_project,
     },
-    (input) => safely(() => api.deleteProject({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.deleteProject({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   server.registerTool(
@@ -454,7 +542,10 @@ export function createRemoteMcpServer(options: {
       annotations: READ_ONLY_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.open_editor,
     },
-    (input) => safely(() => api.openEditor({ projectId: input.project_id, publicRef: input.public_ref })),
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.openEditor({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
   );
 
   if (api.documentApi) {

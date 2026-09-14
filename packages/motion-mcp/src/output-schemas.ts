@@ -86,6 +86,7 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     htmlRevision: revision,
     protocolRevision: revision,
     diagnostics: z.array(diagnostic),
+    alreadyCreated: z.boolean().optional(),
   },
   list_html_revisions: {
     projectId: z.string(),
@@ -142,6 +143,13 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     project: project,
     revision: revision.nullable().optional(),
     workspace: workspace,
+  },
+  create_project_html: {
+    project: jsonObject,
+    workspace: jsonObject,
+    htmlRevision: revision,
+    protocolRevision: revision,
+    diagnostics: z.array(diagnostic),
   },
   list_projects: {
     workspace: workspace,
