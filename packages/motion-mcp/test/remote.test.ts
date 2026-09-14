@@ -102,6 +102,12 @@ describe("hosted remote MCP contract", () => {
     expect(response.tools.find((tool) => tool.name === "create_export")?._meta).toEqual(expect.objectContaining({
       ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
     }));
+    expect(response.tools.find((tool) => tool.name === "create_project")?._meta).toEqual(expect.objectContaining({
+      ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
+    }));
+    expect(response.tools.find((tool) => tool.name === "create_project_html")?._meta).toEqual(expect.objectContaining({
+      ui: { resourceUri: "ui://neonix/video-preview/v1.html" },
+    }));
 
     const preview = await client.readResource({ uri: "ui://neonix/video-preview/v1.html" });
     expect(preview.contents[0]).toEqual(expect.objectContaining({
@@ -109,6 +115,8 @@ describe("hosted remote MCP contract", () => {
       mimeType: "text/html;profile=mcp-app",
     }));
     expect((preview.contents[0] as { text?: string }).text).toContain("Open editor");
+    expect((preview.contents[0] as { text?: string }).text).toContain("Exporting...");
+    expect((preview.contents[0] as { text?: string }).text).toContain("Download");
     expect((preview.contents[0] as { text?: string }).text).toContain("ui/initialize");
 
     const prompts = await client.listPrompts();

@@ -465,6 +465,10 @@ export function createRemoteMcpServer(options: {
       },
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project_html,
+      _meta: {
+        ui: { resourceUri: VIDEO_PREVIEW_RESOURCE_URI },
+        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
+      },
     },
     (input) =>
       safely(() =>
@@ -489,6 +493,10 @@ export function createRemoteMcpServer(options: {
       },
       annotations: ADDITIVE_TOOL_ANNOTATIONS,
       outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.create_project,
+      _meta: {
+        ui: { resourceUri: VIDEO_PREVIEW_RESOURCE_URI },
+        "openai/outputTemplate": VIDEO_PREVIEW_RESOURCE_URI,
+      },
     },
     (input) =>
       safely(() =>
