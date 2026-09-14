@@ -3,12 +3,10 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseEnv } from "@/lib/supabase/env";
-import { parseMotionProtocol } from "@motionvideo/motion-protocol";
-import type { McpPrincipal } from "./auth";
 import {
   applyJsonPatch as applySharedJsonPatch,
   createProject as createSharedProject,
+  createProjectHtml as createSharedProjectHtml,
   deleteProject as deleteSharedProject,
   getProject as getSharedProject,
   getProjectHtml as getSharedProjectHtml,
@@ -19,6 +17,9 @@ import {
   updateProjectHtml as updateSharedProjectHtml,
   type ProjectRepositoryError,
 } from "@/lib/server/projects/repository";
+import { getSupabaseEnv } from "@/lib/supabase/env";
+import { parseMotionProtocol } from "@motionvideo/motion-protocol";
+import type { McpPrincipal } from "./auth";
 
 type JsonObject = Record<string, unknown>;
 type WorkspaceRole = "owner" | "editor" | "viewer";
@@ -506,6 +507,21 @@ export async function createProject(
     metadata: { revision_no: 1 },
   });
   return { project: { ...project, current_revision_no: 1 }, revision, workspace };
+}
+
+export async function createProjectHtml(
+  principal: McpPrincipal,
+  input: { workspaceId?: string; title?: string; html: string; idempotencyKey?: string },
+) {
+  try {
+    return await createSharedProjectHtml(
+      getClient(principal),
+      { userId: principal.userId, clientId: principal.clientId },
+      input,
+    );
+  } catch (error) {
+    return rethrowRepositoryError(error);
+  }
 }
 
 export async function updateProject(

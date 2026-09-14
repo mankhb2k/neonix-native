@@ -42,6 +42,7 @@ Protocol V2 document when there are no compiler errors.
 
 ```text
 POST /api/v1/projects                     (Protocol V2 JSON)
+POST /api/v1/projects/html                 (HTML-first: compile + create)
 GET  /api/v1/projects
 GET  /api/v1/projects/:projectId
 PATCH /api/v1/projects/:projectId         (Protocol V2 JSON)
@@ -57,9 +58,10 @@ GET  /api/v1/projects/:projectId/revisions/:revisionNo/json
 POST /api/v1/projects/:projectId/renders
 ```
 
-Creating a project stores the initial Protocol V2 JSON revision. Updating the
-HTML subresource compiles the HTML and atomically stores both an immutable HTML
-revision and its linked Protocol V2 revision. JSON and HTML updates use
+The HTML-first create endpoint accepts `{ "html": "...", "title": "...", "workspaceId": "...", "idempotencyKey": "..." }`,
+compiles the HTML before writing, and atomically stores the project, its initial
+Protocol V2 revision, and the linked immutable HTML revision. Updating the HTML
+subresource follows the same linked-revision model. JSON and HTML updates use
 optimistic revision checks and return `409` on a conflict.
 
 ## Shared response errors

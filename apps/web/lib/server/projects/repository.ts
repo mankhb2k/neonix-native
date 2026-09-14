@@ -124,12 +124,16 @@ function parseProtocol(value: unknown): MotionProtocolV2 {
   return parsed.data;
 }
 
-async function attachDocumentAssets(client: ProjectClient, actor: ProjectActor, project: ProjectRow, document: MotionProtocolV2) {
-  const assetIds = [...new Set(
+function documentAssetIds(document: MotionProtocolV2): string[] {
+  return [...new Set(
     document.assets
       .map((asset) => asset.id.startsWith("asset-") ? asset.id.slice("asset-".length) : asset.id)
       .filter(isUuid),
   )];
+}
+
+async function attachDocumentAssets(client: ProjectClient, actor: ProjectActor, project: ProjectRow, document: MotionProtocolV2) {
+  const assetIds = documentAssetIds(document);
   if (assetIds.length === 0) return;
 
   const assets = await client
@@ -427,6 +431,83 @@ export async function createProject(
   return {
     project: projectOutput({ ...project, current_revision_no: 1 }, revision.data as unknown as ProtocolRevisionRow),
     workspace,
+  };
+}
+
+export async function createProjectHtml(
+  client: ProjectClient,
+  actor: ProjectActor,
+  input: { workspaceId?: string; title?: string; html: string; idempotencyKey?: string },
+) {
+  if (!input.html.trim()) throw new ProjectRepositoryError("html is required", "INVALID_DOCUMENT");
+
+  const compiled = compileDocument({ html: input.html });
+  const errors = compiled.diagnostics.filter((item) => item.severity === "error");
+  if (compiled.status !== "success" || !compiled.protocol || errors.length > 0) {
+    throw new ProjectRepositoryError(
+      errors[0]?.message ?? "HTML document could not be compiled",
+      "INVALID_DOCUMENT",
+      compiled.diagnostics,
+    );
+  }
+
+  const workspace = await resolveWorkspace(client, actor, input.workspaceId);
+  const title = input.title?.trim() || "Untitled project";
+  const document = compiled.protocol as unknown as JsonObject;
+  const committed = await client.rpc("create_html_project", {
+    p_workspace_id: workspace.id,
+    p_title: title,
+    p_document_html: input.html,
+    p_document_json: document,
+    p_composition_json: compiled.source.composition,
+    p_diagnostics_json: compiled.diagnostics,
+    p_html_content_hash: hash(input.html),
+    p_html_byte_size: Buffer.byteLength(input.html, "utf8"),
+    p_json_content_hash: hash(JSON.stringify(document)),
+    p_json_byte_size: jsonSize(document),
+    p_document_schema_version: compiled.protocol.formatVersion,
+    p_asset_ids: documentAssetIds(compiled.protocol),
+    p_idempotency_key: input.idempotencyKey?.trim() || null,
+    p_idempotency_hash: hash(JSON.stringify({ title, html: input.html })),
+  });
+  if (committed.error || !committed.data) {
+    if (committed.error?.code === "P0002") throw new ProjectRepositoryError("Project revision conflict", "REVISION_CONFLICT");
+    throwDatabase("Unable to create HTML project", committed.error);
+  }
+
+  const commit = committed.data as unknown as {
+    projectId: string;
+    protocolRevisionId: string;
+    htmlRevisionId: string;
+    alreadyCreated?: boolean;
+  };
+  const [createdProject, protocolRevision, htmlRevision] = await Promise.all([
+    client.from("projects").select(PROJECT_COLUMNS).eq("id", commit.projectId).single(),
+    client.from("project_revisions").select(REVISION_COLUMNS).eq("id", commit.protocolRevisionId).single(),
+    client.from("project_html_revisions").select(HTML_REVISION_COLUMNS).eq("id", commit.htmlRevisionId).single(),
+  ]);
+  if (createdProject.error || !createdProject.data) throwDatabase("Unable to read created HTML project", createdProject.error);
+  if (protocolRevision.error || !protocolRevision.data) throwDatabase("Unable to read created Protocol V2 revision", protocolRevision.error);
+  if (htmlRevision.error || !htmlRevision.data) throwDatabase("Unable to read created HTML revision", htmlRevision.error);
+
+  const project = createdProject.data as unknown as ProjectRow;
+  const revision = protocolRevision.data as unknown as ProtocolRevisionRow;
+  if (!commit.alreadyCreated) {
+    await audit(client, actor, {
+      workspaceId: project.workspace_id,
+      action: "project.create",
+      targetId: project.id,
+      metadata: { revisionNo: revision.revision_no, source: "html" },
+    });
+  }
+
+  return {
+    project: projectOutput(project, revision),
+    workspace,
+    htmlRevision: htmlRevision.data,
+    protocolRevision: protocolRevision.data,
+    diagnostics: compiled.diagnostics,
+    alreadyCreated: commit.alreadyCreated ?? false,
   };
 }
 
