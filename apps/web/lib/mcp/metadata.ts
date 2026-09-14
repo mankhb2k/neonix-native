@@ -2,6 +2,7 @@ import "server-only";
 
 import { operationScopesEnabled } from "./auth";
 import { getMcpConfig } from "./config";
+import { MCP_OPERATION_SCOPES, MCP_STANDARD_SCOPES } from "./permissions";
 
 export function getProtectedResourceMetadata(request: Request) {
   const config = getMcpConfig(request.url);
@@ -12,21 +13,8 @@ export function getProtectedResourceMetadata(request: Request) {
     authorization_servers: [config.issuer],
     bearer_methods_supported: ["header"],
     scopes_supported: [
-      "openid",
-      "email",
-      "profile",
-      "offline_access",
-      ...(operationScopesEnabled() ? [
-        "projects:read",
-        "projects:write",
-        "projects:delete",
-        "assets:read",
-        "assets:write",
-        "assets:delete",
-        "exports:read",
-        "exports:write",
-        "exports:delete",
-      ] : []),
+      ...MCP_STANDARD_SCOPES,
+      ...(operationScopesEnabled() ? MCP_OPERATION_SCOPES : []),
     ],
     resource_documentation: "https://neonix.video/docs",
   };

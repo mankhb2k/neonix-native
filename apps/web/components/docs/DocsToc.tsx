@@ -34,10 +34,10 @@ export function DocsToc({
   if (items.length === 0) return null;
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[var(--fg-muted)] uppercase">
+      <p className="mb-2 text-sm font-semibold tracking-[0.12em] text-[var(--fg-muted)] uppercase">
         On this page
       </p>
-      <ul className="flex flex-col gap-1 text-[13px] leading-5">
+      <ul className="flex flex-col gap-1 text-sm leading-5">
         {items.map((item) => {
           const isActive = item.id === active;
           return (

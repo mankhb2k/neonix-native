@@ -1,7 +1,9 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { SiteHeader } from "@/components/site/SiteHeader";
 
 export function DocsChromeHeader() {
-  return <SiteHeader active="docs" />;
+  const pathname = usePathname();
+  return <SiteHeader active={pathname.startsWith("/docs/mcp") ? "mcp" : "docs"} />;
 }

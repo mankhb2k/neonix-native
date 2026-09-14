@@ -1079,11 +1079,25 @@ export const DOCS_NAV: DocsNavGroup[] = [
   { id: "visual", label: "Visual semantics", description: "Paint, masks and effects", items: [] },
   { id: "runtime", label: "Compiler & runtime", description: "Validate, lower and render", items: [] },
   { id: "examples", label: "Examples", description: "Put the pieces together", items: [] },
+  {
+    id: "mcp",
+    label: "MCP",
+    description: "Connect your AI clients",
+    items: [
+      { href: "/docs/mcp", label: "Overview" },
+      { href: "/docs/mcp/chatgpt", label: "ChatGPT" },
+      { href: "/docs/mcp/claude", label: "Claude" },
+      { href: "/docs/mcp/grok", label: "Grok" },
+    ],
+  },
 ].map((group) => ({
   ...group,
-  items: DOCS_ENTRIES
-    .filter((entry) => entry.status === "published" && entry.group === group.id)
-    .map((entry) => ({ href: docsHref(entry.slug), label: entry.label })),
+  items:
+    group.id === "mcp"
+      ? group.items
+      : DOCS_ENTRIES
+          .filter((entry) => entry.status === "published" && entry.group === group.id)
+          .map((entry) => ({ href: docsHref(entry.slug), label: entry.label })),
 }));
 
 export const DOCS_PAGE_SLUGS = DOCS_ENTRIES
