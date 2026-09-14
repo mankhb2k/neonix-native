@@ -11,7 +11,8 @@
     "./remote": "./src/remote.ts",
     "./guidance": "./src/guidance.ts",
     "./annotations": "./src/annotations.ts",
-    "./output-schemas": "./src/output-schemas.ts"
+    "./output-schemas": "./src/output-schemas.ts",
+    "./video-preview-ui": "./src/video-preview-ui.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
