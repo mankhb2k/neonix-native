@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, KeyRound, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, KeyRound, Loader2, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -17,6 +17,8 @@ export function SettingsWorkspace() {
   const [accountError, setAccountError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -90,6 +92,11 @@ export function SettingsWorkspace() {
       if (error) throw error;
       setNewPassword("");
       setConfirmPassword("");
+      setAccount((current) =>
+        current && !current.providers.includes("email")
+          ? { ...current, providers: [...current.providers, "email"] }
+          : current,
+      );
       setPasswordMessage("Your password has been updated.");
     } catch (error) {
       setPasswordError(error instanceof Error ? error.message : "Unable to update your password.");
@@ -170,35 +177,57 @@ export function SettingsWorkspace() {
                 <label htmlFor="settings-new-password" className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
                   {hasPasswordProvider ? "New password" : "Password"}
                 </label>
-                <input
-                  id="settings-new-password"
-                  name="newPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  placeholder="At least 8 characters"
-                  className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
-                />
+                <div className="relative">
+                  <input
+                    id="settings-new-password"
+                    name="newPassword"
+                    type={showNewPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="At least 8 characters"
+                    className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 pr-11 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showNewPassword}
+                    onClick={() => setShowNewPassword((visible) => !visible)}
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--fg-muted)] transition hover:text-[var(--fg-primary)]"
+                  >
+                    {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="settings-confirm-password" className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
                   Confirm password
                 </label>
-                <input
-                  id="settings-confirm-password"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Repeat your password"
-                  className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
-                />
+                <div className="relative">
+                  <input
+                    id="settings-confirm-password"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repeat your password"
+                    className="h-11 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--bg-editor)] px-3 pr-11 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}
+                    aria-pressed={showConfirmPassword}
+                    onClick={() => setShowConfirmPassword((visible) => !visible)}
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--fg-muted)] transition hover:text-[var(--fg-primary)]"
+                  >
+                    {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
 
               {passwordError ? <p role="alert" className="text-sm text-rose-300">{passwordError}</p> : null}
