@@ -1,6 +1,5 @@
 import {
-  compileHtmlCss,
-  createHtmlCssSource,
+  compileDocument,
 } from "@motionvideo/html-compiler";
 
 const NEONIX_DEMO_FONT_ASSETS = [
@@ -26,7 +25,7 @@ const NEONIX_DEMO_FONT_ASSETS = [
   },
 ] as const;
 
-export const NEONIX_DEMO_HTML = `<main id="hero-card">
+const NEONIX_DEMO_BODY = `<main id="hero-card">
   <div id="scene-hook" class="neonix-scene">
     <div id="portal-outer"></div>
     <div id="portal-inner"></div>
@@ -320,20 +319,31 @@ export const NEONIX_DEMO_CSS = `#hero-card {
   animation-timing-function: linear;
 }`;
 
-export const NEONIX_DEMO_SOURCE = createHtmlCssSource({
-  html: NEONIX_DEMO_HTML,
-  css: NEONIX_DEMO_CSS,
-});
+export const NEONIX_DEMO_HTML = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="neonix-document"
+      content='{"kind":"neonix-html-document","schemaVersion":2,"composition":{"width":1080,"height":1920,"fps":30,"background":"#050810","colorSpace":"srgb"}}'
+    />
+    <style data-neonix-bundle>
+${NEONIX_DEMO_CSS}
+    </style>
+  </head>
+  <body>
+${NEONIX_DEMO_BODY}
+  </body>
+</html>`;
 
-export const NEONIX_DEMO_COMPILED = compileHtmlCss(NEONIX_DEMO_SOURCE, {
+export const NEONIX_DEMO_COMPILED = compileDocument({
+  html: NEONIX_DEMO_HTML,
+  fontAssets: NEONIX_DEMO_FONT_ASSETS,
+}, {
   composition: {
-    width: 1080,
-    height: 1920,
-    fps: 30,
     durationMs: 20000,
     id: "neonix-demo-hero",
   },
-  fontAssets: NEONIX_DEMO_FONT_ASSETS,
 });
 
 export const NEONIX_DEMO_JSON = JSON.stringify(

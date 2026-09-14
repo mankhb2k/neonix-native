@@ -80,10 +80,11 @@
   --font-mono:
     var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  /* Type — caption / ui / body đang dùng */
-  --fs-caption: 11px;
-  --fs-ui: 12px;
-  --fs-body: 13px;
+  /* Type — one shared text scale for app and docs */
+  --fs-text: 13px;
+  --fs-caption: 12px;
+  --fs-ui: var(--fs-text);
+  --fs-body: var(--fs-text);
 
   color-scheme: light;
 }
@@ -118,6 +119,8 @@
 }
 
 @theme inline {
+  --text-text: var(--fs-text);
+  --text-text--line-height: 1.4;
   --text-caption: var(--fs-caption);
   --text-caption--line-height: 1.25;
   --text-ui: var(--fs-ui);

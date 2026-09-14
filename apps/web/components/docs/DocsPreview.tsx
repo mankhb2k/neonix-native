@@ -46,7 +46,7 @@ export function DocsPreview({
   }, [error, play, project]);
 
   const stage = error ? (
-    <pre className="h-[240px] overflow-auto p-3 text-[12px] text-red-700 whitespace-pre-wrap">
+    <pre className="h-[240px] overflow-auto whitespace-pre-wrap p-3 text-sm text-red-700">
       {error}
     </pre>
   ) : (
@@ -59,7 +59,7 @@ export function DocsPreview({
 
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--border-subtle,#e4e4e7)] bg-[var(--bg-surface)]">
-      <p className="border-b border-[var(--border-subtle,#e4e4e7)] px-3 py-2 text-[11px] text-[var(--fg-muted)]">
+      <p className="border-b border-[var(--border-subtle,#e4e4e7)] px-3 py-2 text-sm text-[var(--fg-muted)]">
         Protocol V2 atom preview
       </p>
       {stage}

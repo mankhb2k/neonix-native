@@ -2,6 +2,7 @@
 
 import {
   Braces,
+  ArrowRight,
   Check,
   Code2,
   Layers3,
@@ -15,7 +16,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  NEONIX_DEMO_CSS,
   NEONIX_DEMO_HTML,
   NEONIX_DEMO_JSON,
 } from "./neonix-demo-fixture";
@@ -131,10 +131,9 @@ function Button({
 }
 
 function CompilerShowcase() {
-  const [tab, setTab] = useState<"html" | "css" | "json">("html");
+  const [tab, setTab] = useState<"html" | "json">("html");
   const code = {
     html: NEONIX_DEMO_HTML,
-    css: NEONIX_DEMO_CSS,
     json: NEONIX_DEMO_JSON,
   } as const;
   return (
@@ -159,7 +158,7 @@ function CompilerShowcase() {
               Source
             </span>
             <div className="flex gap-1">
-              {(["html", "css", "json"] as const).map((item) => (
+              {(["html", "json"] as const).map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -180,7 +179,7 @@ function CompilerShowcase() {
         </div>
       </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--border-subtle)] px-4 py-3 font-mono text-[10px] text-[var(--fg-muted)]">
-        <span>HTML + CSS</span>
+        <span>single-file HTML</span>
         <span>→</span>
         <span>semantic JSON</span>
         <span>→</span>
@@ -217,7 +216,6 @@ function McpConnection() {
   const providers = [
     ["/logo/claude-logo.svg", "Claude"],
     ["/logo/openai-logo.svg", "ChatGPT"],
-    ["/logo/openclaw-logo.svg", "OpenClaw"],
     ["/logo/grok-logo.svg", "Grok"],
   ] as const;
 
@@ -247,7 +245,7 @@ function McpConnection() {
           className="h-10 border-l border-[var(--border-strong)]"
           aria-hidden
         />
-        <div className="relative grid w-full grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+        <div className="relative grid w-full grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
           <span
             className="absolute left-1/2 top-0 hidden h-px w-3/4 -translate-x-1/2 bg-[var(--border-strong)] sm:block"
             aria-hidden
@@ -274,7 +272,7 @@ function McpConnection() {
         </div>
       </div>
       <p className="mx-auto mt-4 max-w-xl text-center text-xs leading-relaxed text-[var(--fg-muted)]">
-        Neonix gives Claude, ChatGPT, OpenClaw and Grok one MCP connection for
+        Neonix gives Claude, ChatGPT and Grok one MCP connection for
         creating and updating motion projects.
       </p>
     </div>
@@ -286,14 +284,23 @@ function Hero() {
     <section className="relative overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-site)]">
       <div className="relative mx-auto max-w-[1200px] px-6 pb-20 pt-28 text-center sm:pb-32 sm:pt-36">
         <div className="mx-auto max-w-5xl">
-          <Eyebrow>HTML/CSS compiler for motion</Eyebrow>
+          <Link
+            href="/docs/mcp"
+            className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-2 py-1.5 text-sm text-[var(--fg-secondary)] no-underline shadow-sm transition hover:border-[var(--accent)] hover:text-[var(--fg-primary)]"
+          >
+            <span className="rounded-full border border-[var(--border-subtle)] px-2 py-0.5 text-xs font-medium text-[var(--fg-primary)]">
+              new
+            </span>
+            <span>MCP server for Claude, Grok &amp; ChatGPT</span>
+            <ArrowRight className="h-4 w-4 text-[var(--accent-text)]" />
+          </Link>
           <h1 className="mx-auto mt-5 max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-[var(--fg-primary)] sm:text-7xl lg:text-[5.5rem]">
             The motion layer
             <br />
             <span className="text-[var(--accent-text)]">for AI agents.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[var(--fg-secondary)]">
-            Neonix connects Claude and ChatGPT through MCP, turning familiar
+            Neonix connects Claude, ChatGPT, and Grok through MCP, turning familiar
             HTML/CSS into structured motion projects you can preview, edit and
             export.
           </p>
@@ -457,7 +464,7 @@ function AgentWorkflow() {
               MCP in one click
             </h3>
             <p className={`mt-2 leading-relaxed text-[var(--fg-muted)] ${LANDING_TYPOGRAPHY.body}`}>
-              Connect Claude, ChatGPT, OpenClaw or Grok directly to a Neonix
+              Connect Claude, ChatGPT or Grok directly to a Neonix
               workspace without a local render setup.
             </p>
           </article>

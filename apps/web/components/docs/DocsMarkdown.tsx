@@ -107,7 +107,7 @@ const MARKDOWN_COMPONENTS: Components = {
   ),
   pre: ({ node: _node, children, ...props }) => (
     <pre
-      className="mb-6 overflow-x-auto rounded-2xl border border-[#1f2937] bg-[var(--code-block-bg)] p-5 text-[13px] leading-[1.7] text-[var(--code-block-fg)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[inherit]"
+      className="mb-6 overflow-x-auto rounded-2xl border border-[#1f2937] bg-[var(--code-block-bg)] p-5 text-sm leading-[1.7] text-[var(--code-block-fg)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[inherit]"
       {...props}
     >
       {children}
