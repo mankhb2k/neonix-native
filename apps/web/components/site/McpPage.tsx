@@ -2,53 +2,15 @@
 
 import {
   ArrowRight,
-  Bot,
   Check,
   Copy,
-  MessageCircle,
-  Sparkles,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { MCP_CLIENTS, MCP_ENDPOINT, type McpClient, type McpClientSlug } from "@/lib/mcp/clients";
 
-export type McpClientSlug = "chatgpt" | "claude" | "grok";
-
-export type McpClient = {
-  slug: McpClientSlug;
-  name: string;
-  description: string;
-  clientId: string;
-  Icon: LucideIcon;
-  accent: string;
-};
-
-export const MCP_CLIENTS: McpClient[] = [
-  {
-    slug: "claude",
-    name: "Claude",
-    description: "Create and refine motion projects from a conversation.",
-    clientId: "5c365b60-7190-4e77-90c7-52af523b1d27",
-    Icon: Sparkles,
-    accent: "#f97316",
-  },
-  {
-    slug: "grok",
-    name: "Grok",
-    description: "Give Grok a secure connection to your Neonix workspace.",
-    clientId: "ec4a6d6d-8b36-4c8b-897f-9a3b7982ae10",
-    Icon: Bot,
-    accent: "#171717",
-  },
-  {
-    slug: "chatgpt",
-    name: "ChatGPT",
-    description: "Turn structured intent into editable motion and exports.",
-    clientId: "51923cdd-fcac-4cac-adf7-fbfa414361a0",
-    Icon: MessageCircle,
-    accent: "#0d9488",
-  },
-];
+export { MCP_CLIENTS } from "@/lib/mcp/clients";
+export type { McpClient, McpClientSlug } from "@/lib/mcp/clients";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -149,7 +111,7 @@ const TOOL_GROUPS = [
 ] as const;
 
 export function McpPage() {
-  const endpoint = "https://www.neonix.video/api/mcp";
+  const endpoint = MCP_ENDPOINT;
 
   return (
     <main className="min-h-screen bg-[var(--bg-site)] text-[var(--fg-primary)]">
@@ -365,9 +327,9 @@ export function McpClientPage({ slug }: { slug: McpClientSlug }) {
                 </p>
                 <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-site)] px-3 py-2">
                   <code className="min-w-0 truncate text-sm text-[var(--fg-secondary)]">
-                    https://www.neonix.video/api/mcp
+                    {MCP_ENDPOINT}
                   </code>
-                  <CopyButton value="https://www.neonix.video/api/mcp" label="MCP endpoint" />
+                  <CopyButton value={MCP_ENDPOINT} label="MCP endpoint" />
                 </div>
               </div>
               <div>

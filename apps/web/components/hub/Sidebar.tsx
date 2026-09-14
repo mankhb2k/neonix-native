@@ -3,6 +3,7 @@
 import {
   Boxes,
   Download,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Plug,
@@ -21,8 +22,7 @@ const navItems = [
   { label: "Assets", href: "/assets", icon: Boxes },
   { label: "Exports", href: "/exports", icon: Download },
   { label: "MCP", href: "/mcp", icon: Plug },
-  // Temporarily hidden from the dashboard navigation:
-  // { label: "API Keys", href: "/api-keys", icon: KeyRound },
+  { label: "API", href: "/api", icon: KeyRound },
   // { label: "Usage", href: "/usage", icon: Gauge },
   // { label: "Billing", href: "/billing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
@@ -138,7 +138,7 @@ export function Sidebar() {
           <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
             Connect
           </p>
-          {navItems.slice(3, 4).map((item) => (
+          {navItems.slice(3, 5).map((item) => (
             <NavItem key={item.label} item={item} pathname={pathname} />
           ))}
         </div>
@@ -146,7 +146,7 @@ export function Sidebar() {
         <p className="mb-2 px-3 text-caption font-semibold tracking-[0.14em] text-[var(--fg-disabled)] uppercase">
           Account
         </p>
-        {navItems.slice(4).map((item) => (
+        {navItems.slice(5).map((item) => (
           <NavItem key={item.label} item={item} pathname={pathname} />
         ))}
       </nav>

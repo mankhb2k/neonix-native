@@ -247,6 +247,30 @@ export const NEONIX_OPENAPI = {
     "/api/v1/account/storage": {
       get: { tags: ["System"], summary: "Get storage usage", responses: { "200": { description: "Storage usage" } } },
     },
+    "/api/v1/account/avatar": {
+      post: {
+        tags: ["System"],
+        summary: "Upload or replace the current user's avatar",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                required: ["file"],
+                properties: { file: { type: "string", format: "binary" } },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "Avatar metadata and public URL" }, "401": { $ref: "#/components/responses/Unauthorized" } },
+      },
+      delete: {
+        tags: ["System"],
+        summary: "Remove the current user's custom avatar",
+        responses: { "200": { description: "Avatar removed" }, "401": { $ref: "#/components/responses/Unauthorized" } },
+      },
+    },
     "/api/v1/system-assets/{systemAssetId}": {
       get: { tags: ["System"], summary: "Get a system asset", parameters: [{ name: "systemAssetId", in: "path", required: true, schema: { type: "string" } }], responses: { "200": { description: "System asset" } } },
     },

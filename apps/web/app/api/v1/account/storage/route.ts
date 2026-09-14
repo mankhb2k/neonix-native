@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEVELOPMENT_STORAGE_QUOTA_BYTES = 2 * 1024 ** 3;
+const DEVELOPMENT_STORAGE_QUOTA_BYTES = 1 * 1024 ** 3;
 
 function developmentFallback() {
   return Response.json({
