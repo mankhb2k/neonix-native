@@ -146,7 +146,7 @@ export async function HubShell() {
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-4">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {projects.map((project) => (
                 <ProjectCard key={project.title} project={project} />
               ))}
