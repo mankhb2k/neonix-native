@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { APP_NAME } from "@/lib/app-config";
@@ -105,57 +106,53 @@ export function LoginForm({
     : switchHref;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-site)] px-5 py-10 text-[var(--fg-primary)]">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f4fbfd] px-5 py-10 text-[#111827]">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 12% 10%, rgba(34,211,238,0.16), transparent 32%), radial-gradient(circle at 88% 90%, rgba(192,132,252,0.14), transparent 34%)",
+            "radial-gradient(circle at 12% 10%, rgba(61,213,238,0.22), transparent 32%), radial-gradient(circle at 88% 90%, rgba(192,132,252,0.15), transparent 34%)",
         }}
       />
 
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--bg-surface)_82%,transparent)] shadow-[0_24px_100px_rgba(0,0,0,0.38)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="hidden flex-col justify-between border-r border-[var(--border-subtle)] bg-[linear-gradient(145deg,rgba(34,211,238,0.12),transparent_48%,rgba(192,132,252,0.1))] p-10 lg:flex">
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[22px] border border-[#dbe7eb] bg-white/85 shadow-[0_24px_80px_rgba(15,41,54,0.18)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="hidden flex-col justify-between border-r border-[#dbe7eb] bg-[linear-gradient(145deg,rgba(89,216,239,0.13),transparent_48%,rgba(192,132,252,0.09))] p-10 lg:flex">
           <Link href="/" className="flex items-center gap-3 no-underline">
-            <span className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-lg font-bold text-cyan-200">
-              N
-            </span>
-            <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
+            <Image src="/neonix-logo.svg" alt="" width={38} height={28} priority className="h-7 w-auto" />
+            <span className="text-lg font-semibold tracking-tight text-[#1685c9]">{APP_NAME}</span>
           </Link>
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#52cfe8]">
               Claude-connected motion studio
             </p>
-            <h2 className="max-w-sm text-3xl font-semibold leading-tight tracking-tight">
+            <h2 className="max-w-sm text-3xl font-semibold leading-tight tracking-tight text-[#111827]">
               Turn an idea into a video you can keep editing.
             </h2>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--fg-muted)]">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-[#6b7280]">
               Connect your workspace with Claude, shape the story, and open the
               editor whenever you want to refine the details.
             </p>
           </div>
-          <p className="text-xs text-[var(--fg-disabled)]">Built for editable motion.</p>
+          <p className="text-xs text-[#9ca3af]">Built for editable motion.</p>
         </section>
 
-        <section className="flex min-h-[560px] flex-col justify-center p-6 sm:p-10">
+        <section className="flex min-h-[560px] flex-col justify-center bg-white/75 p-6 sm:p-10">
           <div className="mx-auto w-full max-w-sm">
             <Link
               href="/"
-              className="mb-10 inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[var(--fg-primary)] no-underline lg:hidden"
+              className="mb-10 inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-[#1685c9] no-underline lg:hidden"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-300/30 bg-cyan-300/10 text-sm text-cyan-200">
-                N
-              </span>
+              <Image src="/neonix-logo.svg" alt="" width={32} height={24} priority className="h-6 w-auto" />
               {APP_NAME}
             </Link>
 
             <div className="mb-8">
-              <p className="mb-3 text-sm font-medium text-cyan-200">Welcome to {APP_NAME}</p>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              <p className="mb-3 text-sm font-medium text-[#5ed8ef]">Welcome to {APP_NAME}</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-[#111827] sm:text-4xl">
                 {isRegister ? "Create your account" : "Welcome back"}
               </h1>
-              <p className="mt-3 text-sm leading-6 text-[var(--fg-muted)]">
+              <p className="mt-3 text-sm leading-6 text-[#6b7280]">
                 {isRegister
                   ? "Start creating editable motion videos with Claude."
                   : "Sign in to continue to your workspace and projects."}
@@ -164,7 +161,7 @@ export function LoginForm({
 
             <form onSubmit={submitEmailAuth} className="space-y-4">
               <div>
-                <label htmlFor="auth-email" className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+                <label htmlFor="auth-email" className="mb-2 block text-sm font-medium text-[#4b5563]">
                   Email address
                 </label>
                 <input
@@ -176,12 +173,12 @@ export function LoginForm({
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="h-12 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-editor)] px-4 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+                  className="h-12 w-full rounded-xl border border-[#cbd5dc] bg-[#fbfcfd] px-4 text-sm text-[#111827] outline-none transition hover:border-[#65c4ed] hover:bg-[#f1fbff] placeholder:text-[#9ca3af] focus:border-[#19a6d8] focus:bg-white focus:ring-2 focus:ring-[#19a6d8]/20"
                 />
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <label htmlFor="auth-password" className="block text-sm font-medium text-[var(--fg-secondary)]">
+                  <label htmlFor="auth-password" className="block text-sm font-medium text-[#4b5563]">
                     Password
                   </label>
                 </div>
@@ -195,12 +192,12 @@ export function LoginForm({
                   placeholder="At least 8 characters"
                   minLength={8}
                   required
-                  className="h-12 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-editor)] px-4 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+                  className="h-12 w-full rounded-xl border border-[#cbd5dc] bg-[#fbfcfd] px-4 text-sm text-[#111827] outline-none transition hover:border-[#65c4ed] hover:bg-[#f1fbff] placeholder:text-[#9ca3af] focus:border-[#19a6d8] focus:bg-white focus:ring-2 focus:ring-[#19a6d8]/20"
                 />
               </div>
               {isRegister ? (
                 <div>
-                  <label htmlFor="auth-confirm-password" className="mb-2 block text-sm font-medium text-[var(--fg-secondary)]">
+                  <label htmlFor="auth-confirm-password" className="mb-2 block text-sm font-medium text-[#4b5563]">
                     Confirm password
                   </label>
                   <input
@@ -213,7 +210,7 @@ export function LoginForm({
                     placeholder="Repeat your password"
                     minLength={8}
                     required
-                    className="h-12 w-full rounded-xl border border-[var(--border-strong)] bg-[var(--bg-editor)] px-4 text-sm text-[var(--fg-primary)] outline-none transition placeholder:text-[var(--fg-disabled)] focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+                    className="h-12 w-full rounded-xl border border-[#cbd5dc] bg-[#fbfcfd] px-4 text-sm text-[#111827] outline-none transition hover:border-[#65c4ed] hover:bg-[#f1fbff] placeholder:text-[#9ca3af] focus:border-[#19a6d8] focus:bg-white focus:ring-2 focus:ring-[#19a6d8]/20"
                   />
                 </div>
               ) : null}
@@ -221,7 +218,7 @@ export function LoginForm({
                 type="submit"
                 disabled={loading}
                 aria-busy={loading}
-                className="h-12 w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-on)] shadow-[0_8px_24px_rgba(34,211,238,0.2)] transition hover:bg-[var(--accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-wait disabled:opacity-60"
+                className="h-12 w-full rounded-xl bg-[#109e96] px-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(16,158,150,0.2)] transition hover:bg-[#0c8c85] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#19a6d8] disabled:cursor-wait disabled:opacity-60"
               >
                 {loading
                   ? "Please wait…"
@@ -231,10 +228,10 @@ export function LoginForm({
               </button>
             </form>
 
-            <div className="my-6 flex items-center gap-3 text-xs text-[var(--fg-disabled)]">
-              <span className="h-px flex-1 bg-[var(--border-subtle)]" />
+            <div className="my-6 flex items-center gap-3 text-xs text-[#9ca3af]">
+              <span className="h-px flex-1 bg-[#dbe3e7]" />
               <span>or continue with</span>
-              <span className="h-px flex-1 bg-[var(--border-subtle)]" />
+              <span className="h-px flex-1 bg-[#dbe3e7]" />
             </div>
 
             <button
@@ -242,7 +239,7 @@ export function LoginForm({
               onClick={signInWithGoogle}
               disabled={loading}
               aria-busy={loading}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[var(--border-strong)] bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-wait disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#cbd5dc] bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-[#65c4ed] hover:bg-[#f3fbff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#19a6d8] disabled:cursor-wait disabled:opacity-60"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
                 <path fill="#4285F4" d="M21.35 12.2c0-.72-.06-1.42-.18-2.1H12v3.98h5.24a4.5 4.5 0 0 1-1.94 2.95v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.28Z" />
@@ -260,33 +257,33 @@ export function LoginForm({
             {error ? (
               <p
                 role="alert"
-                className="mt-4 rounded-xl border border-rose-300/25 bg-rose-300/10 px-4 py-3 text-sm leading-5 text-rose-200"
+                className="mt-4 rounded-xl border border-rose-300/40 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-700"
               >
                 {error}
               </p>
             ) : null}
 
             {message ? (
-              <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm leading-5 text-emerald-200">
+              <p className="mt-4 rounded-xl border border-emerald-300/40 bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-700">
                 {message}
               </p>
             ) : null}
 
-            <p className="mt-5 text-center text-xs text-[var(--fg-disabled)]">
+            <p className="mt-5 text-center text-xs text-[#9ca3af]">
               Secure authentication powered by Supabase Auth.
             </p>
 
-            <p className="text-center text-sm text-[var(--fg-muted)]">
+            <p className="text-center text-sm text-[#6b7280]">
               {isRegister ? "Already have an account?" : "New to Neonix?"}{" "}
               <Link
                 href={switchUrl}
-                className="font-semibold text-cyan-200 underline decoration-cyan-200/30 underline-offset-4 hover:text-cyan-100"
+                className="font-semibold text-[#25b9ed] underline decoration-[#25b9ed]/30 underline-offset-4 hover:text-[#1685c9]"
               >
                 {isRegister ? "Log in" : "Create an account"}
               </Link>
             </p>
 
-            <p className="mt-8 text-center text-xs leading-5 text-[var(--fg-disabled)]">
+            <p className="mt-8 text-center text-xs leading-5 text-[#9ca3af]">
               By continuing, you agree to our Terms of Service and Privacy Policy.
             </p>
           </div>
