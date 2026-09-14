@@ -116,7 +116,7 @@ export function LoginForm({
         }}
       />
 
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-[22px] border border-[#dbe7eb] bg-white/85 shadow-[0_24px_80px_rgba(15,41,54,0.18)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
+      <div data-testid="auth-card" className="relative grid w-full max-w-[1120px] overflow-hidden rounded-[22px] border border-[#dbe7eb] bg-white/85 shadow-[0_24px_80px_rgba(15,41,54,0.18)] backdrop-blur-xl lg:grid-cols-[0.9fr_1.1fr]">
         <section className="hidden flex-col justify-between border-r border-[#dbe7eb] bg-[linear-gradient(145deg,rgba(89,216,239,0.13),transparent_48%,rgba(192,132,252,0.09))] p-10 lg:flex">
           <Link href="/" className="flex items-center gap-3 no-underline">
             <Image src="/neonix-logo.svg" alt="" width={38} height={28} priority className="h-7 w-auto" />
@@ -221,7 +221,7 @@ export function LoginForm({
                 className="h-12 w-full rounded-xl bg-[#109e96] px-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(16,158,150,0.2)] transition hover:bg-[#0c8c85] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#19a6d8] disabled:cursor-wait disabled:opacity-60"
               >
                 {loading
-                  ? "Please wait…"
+                  ? "Please waitâ€¦"
                   : isRegister
                     ? "Create account"
                     : "Log in"}
@@ -248,7 +248,7 @@ export function LoginForm({
                 <path fill="#EA4335" d="M12 6.2c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.3 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.71 5.4l3.24 2.53C7.3 7.92 9.46 6.2 12 6.2Z" />
               </svg>
               {loading
-                ? "Redirecting to Google…"
+                ? "Redirecting to Googleâ€¦"
                 : isRegister
                   ? "Sign up with Google"
                   : "Continue with Google"}
@@ -292,3 +292,5 @@ export function LoginForm({
     </main>
   );
 }
+
+

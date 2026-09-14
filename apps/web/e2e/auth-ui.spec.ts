@@ -8,6 +8,9 @@ test.describe("auth UI", () => {
     test(`${path} uses the Neonix auth design`, async ({ page }) => {
       await page.goto(path);
 
+      const authCard = page.getByTestId("auth-card");
+      await expect(authCard).toBeVisible();
+      expect((await authCard.boundingBox())?.width ?? 0).toBeGreaterThan(1000);
       await expect(page.locator('img[src="/neonix-logo.svg"]').first()).toBeVisible();
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
       await expect(page.locator("#auth-email")).toBeVisible();
