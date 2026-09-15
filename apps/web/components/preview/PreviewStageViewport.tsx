@@ -4,6 +4,7 @@ import { Hand, Minus, MousePointer2, Pause, Play, Plus } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { PreviewSelectionOverlay } from "@/components/preview/PreviewSelectionOverlay";
+import { PreviewSeekBar } from "@/components/preview/PreviewSeekBar";
 import { PreviewStage } from "@/components/preview/PreviewStage";
 
 type PreviewStageViewportProps = {
@@ -28,7 +29,7 @@ function formatTimecode(seconds: number): string {
 }
 
 const PREVIEW_ZOOM_MIN = 0.5;
-const PREVIEW_ZOOM_MAX = 2;
+const PREVIEW_ZOOM_MAX = 2.5;
 const PREVIEW_ZOOM_STEP = 0.1;
 const PREVIEW_ZOOM_DEFAULT = 0.9;
 
@@ -64,7 +65,9 @@ export function PreviewStageViewport({
     const frame = stageFrameRef.current;
     if (!frame) return;
     const { x, y } = panOffsetRef.current;
-    frame.style.transform = `translate(${x}px, ${y}px) scale(${fitScaleRef.current * previewZoomRef.current})`;
+    // The viewport is the fixed canvas workspace. The frame already has its
+    // fit-sized composition dimensions; zoom and pan are presentation-only.
+    frame.style.transform = `translate(${x}px, ${y}px) scale(${previewZoomRef.current})`;
   }, []);
 
   const scheduleStageTransform = useCallback(() => {
@@ -114,9 +117,19 @@ export function PreviewStageViewport({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space") return;
       const target = event.target as HTMLElement | null;
-      if (target?.tagName === "INPUT" || target?.tagName === "BUTTON") return;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.tagName === "SELECT" || target?.isContentEditable) return;
+      if (event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        setPreviewTool("pan");
+        return;
+      }
+      if (event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        setPreviewTool("select");
+        return;
+      }
+      if (event.code !== "Space") return;
       event.preventDefault();
       setSpaceHeld(true);
     };
@@ -300,8 +313,11 @@ export function PreviewStageViewport({
         ref={stageFrameRef}
         className="relative shrink-0 overflow-hidden"
         style={{
-          width: Math.max(1, project.composition.width),
-          height: Math.max(1, project.composition.height),
+          // Keep the workspace fixed and fit the composition inside it. This
+          // matches the editor presentation path while keeping pan/zoom local
+          // to this stage component.
+          width: Math.max(1, project.composition.width * fitScale),
+          height: Math.max(1, project.composition.height * fitScale),
           transformOrigin: "center center",
           willChange: "transform",
         }}
@@ -318,7 +334,7 @@ export function PreviewStageViewport({
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-4">
-        <div className="pointer-events-auto flex w-[min(100%,360px)] items-center gap-3 rounded-full border border-white/10 bg-black/65 px-3 py-1.5 text-white shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-auto flex w-[min(100%,600px)] items-center gap-3 rounded-full border border-white/10 bg-black/65 px-2 py-1.5 text-white shadow-lg backdrop-blur-sm">
           <button
             type="button"
             aria-label={isPlaying ? "Pause preview" : "Play preview"}
@@ -331,19 +347,14 @@ export function PreviewStageViewport({
           >
             {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
           </button>
-          <input
-            type="range"
-            min={0}
-            max={duration}
+          <PreviewSeekBar
+            time={time}
+            duration={duration}
             step={1 / project.composition.fps}
-            value={Math.min(time, duration)}
-            aria-label="Preview timeline"
-            onClick={(event) => event.stopPropagation()}
-            onChange={(event) => {
+            onChange={(nextTime) => {
               setIsPlaying(false);
-              setTime(Number(event.target.value));
+              setTime(nextTime);
             }}
-            className="h-[6px] min-w-0 flex-1 cursor-pointer accent-[var(--accent)]"
           />
           <span className="whitespace-nowrap pr-2 font-mono text-[10px] text-white/75">{formatTimecode(time)}/{formatTimecode(duration)}</span>
         </div>

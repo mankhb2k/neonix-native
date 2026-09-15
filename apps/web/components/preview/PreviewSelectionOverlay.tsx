@@ -97,8 +97,12 @@ export function PreviewSelectionOverlay({
         <div
           aria-hidden="true"
           data-selected-layer={selectedLayer.id}
-          className="pointer-events-none rounded-[3px] border-2 border-[var(--accent)] shadow-[0_0_0_1px_var(--accent-on),0_0_0_4px_var(--accent-soft)]"
-          style={boundsStyle(selectedLayer, project.composition.width, project.composition.height)}
+          className="pointer-events-none rounded-[3px]"
+          style={{
+            ...boundsStyle(selectedLayer, project.composition.width, project.composition.height),
+            outline: "2px solid var(--accent)",
+            outlineOffset: "0px",
+          }}
         />
       ) : null}
     </div>

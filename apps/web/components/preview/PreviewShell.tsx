@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useState } from "react";
 import type { MotionProtocolV2 } from "@motionvideo/motion-protocol/v2";
 import { PreviewLayerSidebar } from "@/components/preview/PreviewLayerSidebar";
@@ -36,19 +36,25 @@ export function PreviewShell({
 
   return (
     <main className="min-h-screen bg-[var(--bg-site)] text-[var(--fg-primary)]" data-testid="preview-shell">
-      <header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3 shadow-sm">
+      <header className="flex min-h-14 w-full flex-wrap items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <a href="/dashboard" aria-label="Back to dashboard" className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--fg-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent-text)]">
-            <ArrowLeft size={15} />
+          <a href="/" aria-label="Open Neonix home" className="flex shrink-0 items-center gap-2 border-r border-[var(--border-subtle)] pr-3 no-underline">
+            <Image src="/neonix-logo.svg" alt="" width={95} height={70} priority className="h-6 w-auto" />
+            <span className="text-sm font-semibold tracking-tight text-[var(--fg-primary)]">Neonix</span>
           </a>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">{title}</h1>
-            <p className="mt-0.5 text-[11px] text-[var(--fg-muted)]">Preview Â· read-only{revisionNo ? ` Â· revision ${revisionNo}` : ""}</p>
+            <p className="mt-0.5 text-[11px] text-[var(--fg-muted)]">Preview · read-only{revisionNo ? ` · revision ${revisionNo}` : ""}</p>
           </div>
         </div>
-        <a href={editorHref} className="inline-flex min-h-8 items-center rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 text-xs font-medium text-[var(--fg-primary)] hover:border-[var(--accent)] hover:text-[var(--accent-text)]">
-          Open editor (BETA)
-        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <a href={editorHref} className="inline-flex min-h-8 items-center rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 text-xs font-medium text-[var(--fg-primary)] hover:border-[var(--accent)] hover:text-[var(--accent-text)]">
+            Open Editor <span className="ml-1 text-[10px] text-[var(--fg-muted)]">(BETA)</span>
+          </a>
+          <button type="button" className="inline-flex min-h-8 items-center rounded-md bg-[var(--accent)] px-3 text-xs font-semibold text-[var(--accent-on)] hover:bg-[var(--accent-hover)]">
+            Export
+          </button>
+        </div>
       </header>
 
       <section className="mx-auto flex h-[calc(100vh-56px)] min-h-[760px] max-w-[1480px] p-4 sm:p-6 lg:min-h-0">
@@ -58,7 +64,7 @@ export function PreviewShell({
             data-testid="preview-frame"
           >
             <div className="flex h-10 shrink-0 items-center border-b border-[var(--border-subtle)] px-4 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--fg-muted)]">
-              Preview Â· {project.composition.width} Ã— {project.composition.height}
+              Preview · {project.composition.width} × {project.composition.height}
             </div>
             <PreviewStageViewport
               project={project}

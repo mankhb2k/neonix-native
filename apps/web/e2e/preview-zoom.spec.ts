@@ -69,6 +69,19 @@ test.describe("readonly preview composition zoom", () => {
       const element = document.elementFromPoint(x, y);
       return element ? getComputedStyle(element).cursor : null;
     }, { x: layerBox.x + layerBox.width / 2, y: layerBox.y + layerBox.height / 2 })).toBe("default");
+
+    await page.keyboard.press("h");
+    await expect(pan).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("v");
+    await expect(select).toHaveAttribute("aria-pressed", "true");
+
+    await layerHitbox.click();
+    const selection = page.locator('[data-selected-layer="shape"]');
+    await expect(selection).toBeVisible();
+    await expect(selection).toHaveCSS("border-top-width", "0px");
+    await expect(selection).toHaveCSS("outline-width", "2px");
+    await expect(selection).toHaveCSS("outline-style", "solid");
+    await expect(selection).toHaveCSS("box-shadow", "none");
   });
 
   test("scales the composition once without desynchronizing the Skia canvas", async ({ page }) => {
@@ -86,9 +99,12 @@ test.describe("readonly preview composition zoom", () => {
       return {
         stage: rectSnapshot(stageElement.getBoundingClientRect()),
         canvas: rectSnapshot(canvasElement.getBoundingClientRect()),
-        logicalWidth: canvasElement.clientWidth,
-        logicalHeight: canvasElement.clientHeight,
+        logicalWidth: canvasElement.dataset.logicalWidth,
+        logicalHeight: canvasElement.dataset.logicalHeight,
+        backingWidth: canvasElement.width,
+        backingHeight: canvasElement.height,
         cssScale: canvasElement.dataset.cssScale,
+        fitScale: document.querySelector<HTMLElement>('[data-testid="preview-viewport"]')?.dataset.fitScale,
       };
     });
 
@@ -98,9 +114,11 @@ test.describe("readonly preview composition zoom", () => {
       expect(geometry.canvas.y).toBeCloseTo(geometry.stage.y, 1);
       expect(geometry.canvas.width).toBeCloseTo(geometry.stage.width, 1);
       expect(geometry.canvas.height).toBeCloseTo(geometry.stage.height, 1);
-      expect(geometry.logicalWidth).toBe(1920);
-      expect(geometry.logicalHeight).toBe(1080);
-      expect(geometry.cssScale).toBe("1");
+      expect(geometry.logicalWidth).toBe("1920");
+      expect(geometry.logicalHeight).toBe("1080");
+      expect(geometry.backingWidth).toBe(1920);
+      expect(geometry.backingHeight).toBe(1080);
+      expect(Number(geometry.cssScale)).toBeCloseTo(Number(geometry.fitScale), 5);
     };
 
     await expect.poll(async () => Number(await page.getByTestId("preview-viewport").getAttribute("data-zoom"))).toBeCloseTo(0.9, 5);
