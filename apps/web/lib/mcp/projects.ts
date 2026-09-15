@@ -3,6 +3,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { previewUrl } from "@/lib/hosts";
 import {
   applyJsonPatch as applySharedJsonPatch,
   createProject as createSharedProject,
@@ -597,4 +598,13 @@ export async function openEditor(
   // app.neonix.video exposes clean editor URLs; middleware maps them to /app/editor.
   const editorUrl = new URL(`/editor/${project.id}`, appUrl).toString();
   return { project_id: project.id, public_ref: project.public_ref, editor_url: editorUrl };
+}
+
+export async function openPreview(
+  principal: McpPrincipal,
+  input: { projectId?: string; publicRef?: string },
+) {
+  const project = await getProject(principal, input);
+  const projectPreviewUrl = new URL(`/preview/${project.id}`, previewUrl()).toString();
+  return { project_id: project.id, public_ref: project.public_ref, preview_url: projectPreviewUrl };
 }

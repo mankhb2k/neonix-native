@@ -169,6 +169,11 @@ export const REMOTE_TOOL_OUTPUT_SCHEMAS = {
     public_ref: z.string(),
     editor_url: z.string().url(),
   },
+  open_preview: {
+    project_id: z.string(),
+    public_ref: z.string(),
+    preview_url: z.string().url(),
+  },
   get_capabilities: {
     apiVersion: z.number(),
     protocolVersion: z.number(),

@@ -85,7 +85,8 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
         </div>
       </div>
       <nav class="actions" aria-label="Video actions">
-        <button id="editor" type="button">Open editor</button>
+        <button id="preview" type="button" disabled>Open Preview</button>
+        <button id="editor" type="button">Open editor (BETA)</button>
         <button id="export" class="primary" type="button" disabled>Export</button>
       </nav>
     </section>
@@ -95,6 +96,7 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
         const projectNameEl = document.getElementById("project-name");
         const durationEl = document.getElementById("duration");
         const statusEl = document.getElementById("status");
+        const previewButton = document.getElementById("preview");
         const editorButton = document.getElementById("editor");
         const exportButton = document.getElementById("export");
         const pending = new Map();
@@ -159,6 +161,39 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
           send("ui/open-link", { url }).catch(() => window.open(url, "_blank", "noopener,noreferrer"));
         }
 
+        function disablePreviewButton() {
+          previewButton.disabled = true;
+          previewButton.onclick = null;
+        }
+
+        function enablePreviewButton() {
+          const locator = projectLocator(latest || toolInput);
+          if (!locator.projectId && !locator.publicRef) {
+            disablePreviewButton();
+            return;
+          }
+          previewButton.disabled = false;
+          previewButton.onclick = () => void openPreview();
+        }
+
+        async function openPreview() {
+          try {
+            const locator = projectLocator(latest || toolInput);
+            const args = locator.projectId
+              ? { project_id: locator.projectId }
+              : { public_ref: locator.publicRef };
+            const result = structured(await send("tools/call", {
+              name: "open_preview",
+              arguments: args,
+            }));
+            const url = result?.preview_url || result?.previewUrl;
+            if (!url) throw new Error("Preview URL is unavailable");
+            openLink(url);
+          } catch (error) {
+            setStatus(error instanceof Error ? error.message : "Could not open preview", true);
+          }
+        }
+
         function showError(message) {
           setStatus(message, true);
           exportButton.disabled = false;
@@ -191,8 +226,9 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
             setStatus("Video ready");
             exportButton.disabled = false;
             exportButton.textContent = "Download";
-            if (exportData.downloadUrl || exportData.download_url) {
-              exportButton.onclick = () => openLink(exportData.downloadUrl || exportData.download_url);
+            const downloadUrl = exportData.downloadUrl || exportData.download_url;
+            if (downloadUrl) {
+              exportButton.onclick = () => openLink(downloadUrl);
             } else if (exportJobId(exportData)) {
               void loadDownloadUrl(exportJobId(exportData));
             }
@@ -211,6 +247,7 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
           latest = projectData;
           setProjectMetadata(projectData);
           setStatus("Ready");
+          enablePreviewButton();
           exportButton.disabled = false;
           exportButton.textContent = "Export";
           exportButton.onclick = () => void startExport(false);
@@ -293,6 +330,7 @@ export const VIDEO_PREVIEW_UI_HTML = String.raw`<!doctype html>
           if (message.method === "ui/notifications/tool-input") {
             toolInput = message.params?.arguments || {};
             setProjectMetadata(toolInput);
+            enablePreviewButton();
             exportButton.disabled = false;
           }
           if (message.method === "ui/notifications/tool-result") {

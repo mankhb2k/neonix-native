@@ -7,7 +7,7 @@ export const NEONIX_WORKFLOW_GUIDE = `# Neonix MCP workflows
 1. If the supported HTML/CSS surface is unknown, call get_capabilities.
 2. Prepare one complete neonix-document HTML string, including style blocks.
 3. Call create_project_html. Do not call create_project for an HTML-first request.
-4. Use the returned project id to call open_editor.
+4. Use the returned project id to call open_preview. Call open_editor only when the user wants to edit manually.
 5. Call create_export only when the user explicitly asks for an export.
 
 ## Edit an existing project

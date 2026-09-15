@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
 
 export default function AppRootLayout({ children }: { children: ReactNode }) {
-  // The editor workspace keeps its focused dark surface while the public
-  // control plane and docs use the light root theme by default.
-  return (
-    <div data-theme="dark" className="min-h-screen">
-      {children}
-    </div>
-  );
+  // Keep the app route on the light root theme. The editor adds its focused
+  // dark surface in its own nested layout so preview pages stay light.
+  return <div className="min-h-screen">{children}</div>;
 }
