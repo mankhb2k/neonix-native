@@ -74,6 +74,7 @@ export type RemoteMcpProjectApi = {
   getExportDownloadUrl: (input: { jobId: string }) => Promise<unknown>;
   cancelExport: (input: { jobId: string }) => Promise<unknown>;
   openEditor: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
+  openPreview: (input: { projectId?: string; publicRef?: string }) => Promise<unknown>;
   documentApi?: {
     getCapabilities: () => Promise<unknown>;
     validateDocument: (input: { html: string }) => Promise<unknown>;
@@ -592,6 +593,21 @@ export function createRemoteMcpServer(options: {
     (input) => safely(async () => {
       requireProjectLocator(input);
       return api.openEditor({ projectId: input.project_id, publicRef: input.public_ref });
+    }),
+  );
+
+  server.registerTool(
+    "open_preview",
+    {
+      title: "Open Neonix preview",
+      description: "Return the read-only Neonix preview URL for a project. Provide project_id or public_ref and show the URL to the user.",
+      inputSchema: projectLocator,
+      annotations: READ_ONLY_TOOL_ANNOTATIONS,
+      outputSchema: REMOTE_TOOL_OUTPUT_SCHEMAS.open_preview,
+    },
+    (input) => safely(async () => {
+      requireProjectLocator(input);
+      return api.openPreview({ projectId: input.project_id, publicRef: input.public_ref });
     }),
   );
 

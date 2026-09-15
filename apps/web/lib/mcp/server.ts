@@ -29,6 +29,7 @@ import {
   listProjects,
   listWorkspaces,
   openEditor,
+  openPreview,
   createProtocolProject,
   createProjectHtml,
   getProtocolProject,
@@ -64,6 +65,7 @@ export function createMcpServer(principal: McpPrincipal) {
       updateProject: (input) => guarded("projects:write", () => updateProtocolProject(principal, input)),
       deleteProject: (input) => guarded("projects:delete", () => deleteProtocolProject(principal, input)),
       openEditor: (input) => guarded("projects:read", () => openEditor(principal, input)),
+      openPreview: (input) => guarded("projects:read", () => openPreview(principal, input)),
       documentApi: {
         getCapabilities: () => guarded("projects:read", () => Promise.resolve({
             apiVersion: 1,

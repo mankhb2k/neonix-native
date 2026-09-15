@@ -749,7 +749,7 @@ export function PreviewStage({
   return (
     <div
       ref={hostRef}
-      className="relative h-full w-full overflow-hidden bg-black"
+      className="relative h-full w-full overflow-hidden bg-[var(--preview-bg)]"
       data-testid="preview-v2-stage"
     >
       {error ? (

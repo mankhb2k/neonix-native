@@ -85,6 +85,10 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isWorkspaceRoute(pathname)) {
+      if (pathname.startsWith("/preview/")) {
+        response = NextResponse.next();
+        return updateSupabaseSession(request, response);
+      }
       const url = request.nextUrl.clone();
       url.pathname = `${APP_ROUTE_PREFIX}${pathname}`;
       response = NextResponse.rewrite(url);

@@ -61,3 +61,13 @@ export function appUrl(path = "/"): string {
   if (p === "/") return base;
   return `${base}${p}`;
 }
+
+/** URL for the read-only project preview on the root route. */
+export function previewUrl(path = "/"): string {
+  const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const base = (configuredBase ?? "http://localhost:3000/app")
+    .replace(/\/app\/?$/, "")
+    .replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return p === "/" ? base : `${base}${p}`;
+}

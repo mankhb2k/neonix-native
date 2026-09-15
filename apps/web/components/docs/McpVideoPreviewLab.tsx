@@ -277,6 +277,19 @@ export function McpVideoPreviewLab() {
           });
           return;
         }
+        if (name === "open_preview") {
+          postToFrame({
+            id: message.id,
+            result: {
+              structuredContent: {
+                project_id: DEMO_PROJECT_ID,
+                public_ref: "prj_mcp_preview_demo",
+                preview_url: `/preview/${DEMO_PROJECT_ID}`,
+              },
+            },
+          });
+          return;
+        }
         if (name === "create_export") {
           setState("rendering");
           postToFrame({ id: message.id, result: { structuredContent: { export: exportForState("rendering") } } });
