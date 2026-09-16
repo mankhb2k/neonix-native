@@ -35,6 +35,11 @@ export type SkiaRenderStats = {
   /** The active presentation path for the last painted frame. */
   readonly presentationMode: "direct" | "readback";
   readonly drawCalls: number;
+  readonly textTimeMs: number;
+  readonly layerTimeMs: number;
+  readonly endLayerTimeMs: number;
+  readonly pathTimeMs: number;
+  readonly shapeTimeMs: number;
   readonly skippedCommands: number;
   /** Glyphs replayed with CanvasKit Font.drawGlyphs from Runtime glyph IDs. */
   readonly nativeTextGlyphs: number;
@@ -45,6 +50,9 @@ export type SkiaRenderStats = {
   /** Color glyphs replayed as layers or decoded image resources. */
   readonly colorTextGlyphs: number;
   readonly frameTimeMs: number;
+  readonly replayTimeMs: number;
+  readonly flushTimeMs: number;
+  readonly readbackTimeMs: number;
   readonly textureUploads: number;
   readonly videoTextureUploads: number;
   readonly imageCacheHits: number;

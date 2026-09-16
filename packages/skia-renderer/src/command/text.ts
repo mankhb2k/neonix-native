@@ -1,5 +1,5 @@
 import type { PaintCommand, PaintTextColorLayer, PaintTextGlyph } from "@motionvideo/motion-runtime";
-import type { SkiaCanvas, SkiaCanvasKit, SkiaPaint, SkiaTypeface } from "../canvas-kit";
+import type { SkiaCanvas, SkiaCanvasKit, SkiaFont, SkiaPaint } from "../canvas-kit";
 import type { SkiaAsset } from "../types";
 import { createSkiaPaint } from "../paint";
 
@@ -116,7 +116,7 @@ function drawNativeTextGlyph(
   command: Extract<PaintCommand, { op: "drawText" }>,
   glyph: PaintTextGlyph,
   paint: SkiaPaint,
-  typefaceFor: (fontAssetId: string | undefined) => SkiaTypeface | null,
+  fontFor: (fontAssetId: string | undefined, fontSize: number) => SkiaFont | null,
   allowColorGlyph = false,
 ): boolean {
   // Runtime owns shaping and placement. Native Skia only receives the exact
@@ -132,26 +132,69 @@ function drawNativeTextGlyph(
     glyph.glyphId > 0xffff
   ) return false;
   const fontAssetId = glyph.fontAssetId ?? command.fontAssetId;
-  const typeface = typefaceFor(fontAssetId);
   const fontSize = glyph.fontSize ?? command.fontSize;
-  if (!typeface || !Number.isFinite(fontSize) || fontSize <= 0) return false;
-  const font = new kit.Font(typeface, fontSize);
-  try {
-    font.setSubpixel(true);
-    const baselineX = glyph.x - glyph.outline.x * glyph.pathScale;
-    const baselineY = glyph.y + glyph.outline.y * glyph.pathScale;
-    canvas.drawGlyphs(
-      new Uint16Array([glyph.glyphId]),
-      new Float32Array([baselineX, baselineY]),
-      0,
-      0,
-      font,
-      paint,
-    );
-    return true;
-  } finally {
-    font.delete();
-  }
+  if (!Number.isFinite(fontSize) || fontSize <= 0) return false;
+  const resolvedFont = fontFor(fontAssetId, fontSize);
+  if (!resolvedFont) return false;
+  // Keep replaySkiaCommands backward compatible with callers that supplied
+  // the legacy typeface resolver in this slot. The backend now supplies a
+  // cached Font directly, while tests/third-party callers may still return a
+  // Typeface-like object.
+  const cachedFont = typeof resolvedFont.setSubpixel === "function";
+  const font = cachedFont ? resolvedFont : new kit.Font(resolvedFont as never, fontSize);
+  font.setSubpixel(true);
+  const baselineX = glyph.x - glyph.outline.x * glyph.pathScale;
+  const baselineY = glyph.y + glyph.outline.y * glyph.pathScale;
+  canvas.drawGlyphs(
+    new Uint16Array([glyph.glyphId]),
+    new Float32Array([baselineX, baselineY]),
+    0,
+    0,
+    font,
+    paint,
+  );
+  if (!cachedFont) font.delete();
+  return true;
+}
+
+export function canDrawNativeTextGlyph(glyph: PaintTextGlyph, allowColorGlyph = false): boolean {
+  return !(
+    (!allowColorGlyph && glyph.colorGlyph) ||
+    glyph.variationKey ||
+    (glyph.rotation !== undefined && glyph.rotation !== 0) ||
+    (glyph.scaleX !== undefined && glyph.scaleX !== 1) ||
+    !Number.isInteger(glyph.glyphId) ||
+    glyph.glyphId < 0 ||
+    glyph.glyphId > 0xffff
+  );
+}
+
+export function drawNativeTextGlyphRun(
+  kit: SkiaCanvasKit,
+  canvas: SkiaCanvas,
+  command: Extract<PaintCommand, { op: "drawText" }>,
+  glyphs: PaintTextGlyph[],
+  paint: SkiaPaint,
+  fontFor: (fontAssetId: string | undefined, fontSize: number) => SkiaFont | null,
+): boolean {
+  if (glyphs.length === 0 || !glyphs.every((glyph) => canDrawNativeTextGlyph(glyph))) return false;
+  const first = glyphs[0]!;
+  const fontAssetId = first.fontAssetId ?? command.fontAssetId;
+  const fontSize = first.fontSize ?? command.fontSize;
+  if (!Number.isFinite(fontSize) || fontSize <= 0) return false;
+  if (!glyphs.every((glyph) => (glyph.fontAssetId ?? command.fontAssetId) === fontAssetId && (glyph.fontSize ?? command.fontSize) === fontSize)) return false;
+  const font = fontFor(fontAssetId, fontSize);
+  if (!font) return false;
+  font.setSubpixel(true);
+  const ids = new Uint16Array(glyphs.length);
+  const positions = new Float32Array(glyphs.length * 2);
+  glyphs.forEach((glyph, index) => {
+    ids[index] = glyph.glyphId;
+    positions[index * 2] = glyph.x - glyph.outline.x * glyph.pathScale;
+    positions[index * 2 + 1] = glyph.y + glyph.outline.y * glyph.pathScale;
+  });
+  canvas.drawGlyphs(ids, positions, 0, 0, font, paint);
+  return true;
 }
 
 export function drawTextGlyph(
@@ -162,7 +205,8 @@ export function drawTextGlyph(
   glyphIndex: number,
   alpha: number,
   assets: ReadonlyMap<string, SkiaAsset>,
-  typefaceFor: (fontAssetId: string | undefined) => SkiaTypeface | null,
+  fontFor: (fontAssetId: string | undefined, fontSize: number) => SkiaFont | null,
+  sharedPaint?: SkiaPaint,
 ): { drawn: boolean; fallback: boolean; mode: "native" | "native-color" | "outline" | "color" | "missing" } {
   const color = glyph.fill ?? command.fill;
   if (glyph.colorGlyph) {
@@ -170,21 +214,22 @@ export function drawTextGlyph(
     // first so the glyph remains vector-backed at the final device scale.
     if (glyph.colorGlyph.kind === "paint-graph") {
       const nativePaint = createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
-      const native = drawNativeTextGlyph(kit, canvas, command, glyph, nativePaint, typefaceFor, true);
+      const native = drawNativeTextGlyph(kit, canvas, command, glyph, nativePaint, fontFor, true);
       nativePaint.delete();
       if (native) return { drawn: true, fallback: false, mode: "native-color" };
     }
     const colored = drawColorGlyph(kit, canvas, glyph, glyphIndex, alpha, command.width, command.height, command.key, assets);
     if (colored.drawn) return { ...colored, mode: "color" };
   }
-  const paint = createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
-  const native = drawNativeTextGlyph(kit, canvas, command, glyph, paint, typefaceFor);
+  const paint = sharedPaint ?? createSkiaPaint(kit, color, alpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+  const ownsPaint = !sharedPaint;
+  const native = drawNativeTextGlyph(kit, canvas, command, glyph, paint, fontFor);
   if (native) {
-    paint.delete();
+    if (ownsPaint) paint.delete();
     return { drawn: true, fallback: false, mode: "native" };
   }
   const drawn = drawGlyphPath(kit, canvas, glyph, glyph.path, paint);
-  paint.delete();
+  if (ownsPaint) paint.delete();
   return { drawn, fallback: Boolean(glyph.colorGlyph), mode: drawn ? "outline" : "missing" };
 }
 

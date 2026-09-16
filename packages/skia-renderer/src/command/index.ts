@@ -12,4 +12,4 @@ export {
   transformForSkiaCanvas,
 } from "./geometry";
 export { skiaTextGlyphAssetId } from "./text";
-export type { ReplayLayer, SkiaReplayResources, SkiaReplayStats, SkiaTypefaceResolver } from "./types";
+export type { ReplayLayer, SkiaReplayResources, SkiaReplayStats, SkiaTypefaceResolver, SkiaFontResolver } from "./types";

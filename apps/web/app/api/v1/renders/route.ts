@@ -3,13 +3,16 @@ import { buildStubRuntimeProjectV3 } from "@/lib/server/render/build-manifest";
 import { startRenderOnWorker, syncRenderJob } from "@/lib/server/render/export-worker";
 import {
   createRenderJob,
+  getRenderJob,
   listRenderJobs,
+  updateRenderJob,
 } from "@/lib/server/render/job-store";
 import {
   buildIdempotencyKey,
   resolveRequestUserId,
 } from "@/lib/server/render/ownership";
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
+import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
 import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
 import {
   CreateRenderJobRequestSchema,
@@ -18,6 +21,10 @@ import {
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
 
 export const runtime = "nodejs";
+
+function productionQueueIsMisconfigured(): boolean {
+  return process.env.NODE_ENV === "production" && !isRenderQueueEnabled();
+}
 
 function responseJob(job: Awaited<ReturnType<typeof listRenderJobs>>[number]) {
   return {
@@ -45,6 +52,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (productionQueueIsMisconfigured()) {
+    return NextResponse.json({ error: "render_queue_required", detail: "Production render entrypoints require Supabase PGMQ." }, { status: 503 });
+  }
   const userId = resolveRequestUserId(request);
   const body = CreateRenderJobRequestSchema.parse(await request.json());
   const presetRaw = body.preset ?? "export-1080p";
@@ -64,13 +74,19 @@ export async function POST(request: Request) {
   const idempotencyKey = buildIdempotencyKey({ userId, projectId: body.projectId, projectRevision, preset: presetRaw, clientKey: body.idempotencyKey });
   const { job, created } = await createRenderJob({ userId, projectId: body.projectId, projectRevision, idempotencyKey });
   if (created) {
-    try { await startRenderOnWorker({ job, runtime }); }
-    catch (error) {
+    try {
+      if (isRenderQueueEnabled()) {
+        await enqueueRenderJob({ jobId: job.jobId });
+        await updateRenderJob(job.jobId, { status: "queued", progress: 0.01, stage: "queued" });
+      } else {
+        await startRenderOnWorker({ job, runtime });
+      }
+    } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
+      await updateRenderJob(job.jobId, { status: "failed", stage: "failed", error: detail });
       return NextResponse.json({ error: "worker_dispatch_failed", detail, jobId: job.jobId }, { status: 502 });
     }
   }
-  return NextResponse.json({ jobId: job.jobId, status: job.status, created }, { status: created ? 201 : 200 });
+  const current = (await getRenderJob(job.jobId)) ?? job;
+  return NextResponse.json({ jobId: current.jobId, status: current.status, created }, { status: created ? 202 : 200 });
 }
-
-

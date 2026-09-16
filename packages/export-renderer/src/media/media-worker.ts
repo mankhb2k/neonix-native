@@ -15,6 +15,8 @@ export type MediaPrepareRequest = {
   assetId: string;
   sourceKey: string;
   sourceMimeType: string;
+  mediaKind?: "audio" | "video";
+  derivativePrefix?: string;
   sourceIntegrity: string;
   callbackUrl: string;
   pipelineVersion?: number;
@@ -55,9 +57,11 @@ function safeAssetId(assetId: string): string {
   return assetId;
 }
 
-function derivativeKey(assetId: string, kind: "poster" | "audio"): string {
+function derivativeKey(assetId: string, kind: "poster" | "audio", prefix?: string): string {
   const id = safeAssetId(assetId);
-  return kind === "poster" ? `${id}/poster.webp` : `${id}/audio.m4a`;
+  const base = prefix?.trim().replace(/\/+$/, "") || id;
+  if (base.includes("..") || base.startsWith("/")) throw new Error("Invalid derivative prefix");
+  return kind === "poster" ? `${base}/poster.webp` : `${base}/audio.m4a`;
 }
 
 function hashBuffer(body: Buffer): string {
@@ -100,11 +104,12 @@ function outputDerivative(input: {
   path: string;
   mimeType: string;
   pipelineVersion: number;
+  derivativePrefix?: string;
 }): Promise<MediaDerivativeV3> {
   return hashFile(input.path).then(({ integrity, byteSize }) => ({
     derivativeId: `${safeAssetId(input.assetId)}:${input.kind}:v${input.pipelineVersion}`,
     kind: input.kind === "poster" ? "poster" : "audio",
-    uri: derivativeKey(input.assetId, input.kind),
+    uri: derivativeKey(input.assetId, input.kind, input.derivativePrefix),
     mimeType: input.mimeType,
     integrity,
     byteSize,
@@ -159,29 +164,41 @@ export async function prepareMediaJob(
     const probe = await deps.probe(sourcePath, input.assetId);
     const streams = probe.streams;
     console.log("[media-worker] probe complete", { jobId: input.jobId, assetId: input.assetId, streams: streams.map((stream) => stream.kind) });
-    if (!streams.some((stream) => stream.kind === "video")) throw new Error("origin has no video stream");
+    const hasVideo = streams.some((stream) => stream.kind === "video");
     const hasAudio = streams.some((stream) => stream.kind === "audio");
+    const expectedKind = input.mediaKind ?? (hasVideo ? "video" : hasAudio ? "audio" : undefined);
+    if (!expectedKind || (expectedKind === "video" && !hasVideo) || (expectedKind === "audio" && !hasAudio)) {
+      throw new Error(`origin does not contain the expected ${expectedKind ?? "media"} stream`);
+    }
     const errors: string[] = [];
 
-    try {
-      const posterKey = derivativeKey(input.assetId, "poster");
-      const existingPoster = await deps.store.getObject(posterKey);
-      if (!existingPoster || existingPoster.byteLength === 0) {
-        throw new Error("browser poster object not found");
+    if (hasVideo) {
+      try {
+        const posterKey = derivativeKey(input.assetId, "poster", input.derivativePrefix);
+        const existingPoster = await deps.store.getObject(posterKey);
+        if (existingPoster && existingPoster.byteLength > 0) {
+          await writeFile(posterPath, existingPoster);
+          console.log("[media-worker] poster reused", { jobId: input.jobId, assetId: input.assetId, key: posterKey });
+        } else {
+          await deps.runFfmpeg([
+            "-y", "-hide_banner", "-loglevel", "error", "-i", sourcePath,
+            "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-c:v", "libwebp", posterPath,
+          ]);
+          console.log("[media-worker] poster generated", { jobId: input.jobId, assetId: input.assetId, key: posterKey });
+        }
+        const derivative = await outputDerivative({ assetId: input.assetId, kind: "poster", path: posterPath, mimeType: "image/webp", pipelineVersion, derivativePrefix: input.derivativePrefix });
+        await deps.store.putObject({ key: derivative.uri, body: await readFile(posterPath), contentType: derivative.mimeType });
+        base.derivatives.push(derivative);
+      } catch (error) {
+        errors.push(`poster: ${error instanceof Error ? error.message : String(error)}`);
+        console.error("[media-worker] poster failed", { jobId: input.jobId, assetId: input.assetId, error });
       }
-      await writeFile(posterPath, existingPoster);
-      console.log("[media-worker] poster verified", { jobId: input.jobId, assetId: input.assetId, key: posterKey });
-      const derivative = await outputDerivative({ assetId: input.assetId, kind: "poster", path: posterPath, mimeType: "image/webp", pipelineVersion });
-      base.derivatives.push(derivative);
-    } catch (error) {
-      errors.push(`poster: ${error instanceof Error ? error.message : String(error)}`);
-      console.error("[media-worker] poster failed", { jobId: input.jobId, assetId: input.assetId, error });
     }
 
     if (hasAudio) {
       try {
         await deps.runFfmpeg(["-y", "-hide_banner", "-loglevel", "error", "-i", sourcePath, "-map", "0:a:0", "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", audioPath]);
-        const derivative = await outputDerivative({ assetId: input.assetId, kind: "audio", path: audioPath, mimeType: "audio/mp4", pipelineVersion });
+        const derivative = await outputDerivative({ assetId: input.assetId, kind: "audio", path: audioPath, mimeType: "audio/mp4", pipelineVersion, derivativePrefix: input.derivativePrefix });
         await deps.store.putObject({ key: derivative.uri, body: await readFile(audioPath), contentType: derivative.mimeType });
         base.derivatives.push(derivative);
         console.log("[media-worker] audio uploaded", { jobId: input.jobId, assetId: input.assetId, key: derivative.uri, bytes: derivative.byteSize });
@@ -191,7 +208,7 @@ export async function prepareMediaJob(
       }
     }
 
-    const requiredCount = hasAudio ? 2 : 1;
+    const requiredCount = (hasVideo ? 1 : 0) + (hasAudio ? 1 : 0);
     const status: MediaPrepareResult["status"] = base.derivatives.length === requiredCount
       ? "ready"
       : base.derivatives.length > 0

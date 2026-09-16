@@ -9,8 +9,9 @@ COPY . .
 RUN corepack enable && pnpm install --frozen-lockfile
 
 ENV NODE_ENV=production
-ENV EXPORT_RENDERER_PORT=8787
-ENV EXPORT_RENDERER_OUTPUT_ROOT=/app/tmp/export-renderer
+ENV PORT=8080
+ENV EXPORT_RENDERER_PORT=8080
+ENV EXPORT_RENDERER_OUTPUT_ROOT=/tmp/neonix-export
 ENV EXPORT_RENDERER_ASSET_ROOT=/app/apps/web/public
-EXPOSE 8787
+EXPOSE 8080
 CMD ["pnpm", "--filter", "@motionvideo/export-renderer", "start"]

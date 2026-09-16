@@ -7,9 +7,9 @@ import { boundsToRect, compositionBounds, drawCommandBounds, expandBounds, matri
 import { cssBlurRadiusToSkiaSigma, cssShadowBlurRadiusToSkiaSigma, effectFilterExpansionPadding, effectFilterFor } from "./effects";
 import { applyClipPath, drawMaskSource, sourcePathCommands, type MaskSource } from "./masks";
 import { drawAsset } from "./images";
-import { drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
+import { canDrawNativeTextGlyph, drawNativeTextGlyphRun, drawTextDecoration, drawTextGlyph, drawTextStroke } from "./text";
 import { blendModeFor, configureStroke } from "./paint";
-import type { ReplayLayer, SkiaReplayResources, SkiaReplayStats, SkiaTypefaceResolver } from "./types";
+import type { ReplayLayer, SkiaFontResolver, SkiaReplayResources, SkiaReplayStats } from "./types";
 
 function beginTransformedCommand(
   canvas: SkiaCanvas,
@@ -81,6 +81,21 @@ function drawShapeGeometry(
       polygon.delete();
     }
   }
+}
+
+function cachedPathFor(
+  kit: SkiaCanvasKit,
+  command: Extract<PaintCommand, { op: "drawPath" }>,
+  cache: SkiaReplayResources["pathCache"],
+): import("../canvas-kit").SkiaPath | null {
+  const signature = JSON.stringify(command.contours);
+  const cached = cache.get(command.key);
+  if (cached?.signature === signature) return cached.path;
+  cached?.path.delete();
+  const path = kit.Path.MakeFromSVGString(pathSvg(command));
+  if (!path) return null;
+  cache.set(command.key, { signature, path });
+  return path;
 }
 
 function tintEffectColor(kit: SkiaCanvasKit, color: string, opacity: number): unknown {
@@ -347,12 +362,17 @@ export function replaySkiaCommands(
   buffer: PaintCommandBuffer,
   assets: ReadonlyMap<string, SkiaAsset> = new Map(),
   defaultBackground = "#000000",
-  typefaceFor: SkiaTypefaceResolver = () => null,
+  fontFor: SkiaFontResolver = () => null,
   deviceScale = 1,
   resources?: SkiaReplayResources,
 ): SkiaReplayStats {
   const stats: SkiaReplayStats = {
     drawCalls: 0,
+    textTimeMs: 0,
+    layerTimeMs: 0,
+    endLayerTimeMs: 0,
+    pathTimeMs: 0,
+    shapeTimeMs: 0,
     skippedCommands: 0,
     textureUploads: 0,
     videoTextureUploads: 0,
@@ -835,6 +855,7 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "beginLayer") {
+      const layerStartedAt = performance.now();
       const clipSourceKeys = new Set(command.clipPath?.sourceKeys ?? (command.clipPath ? [command.clipPath.sourceKey] : []));
       const maskSourceKeys = new Set([
         ...(command.mask?.sourceKeys ?? (command.mask ? [command.mask.sourceKey] : [])),
@@ -904,7 +925,8 @@ export function replaySkiaCommands(
         const frameBounds = compositionBounds(frameWidth, frameHeight);
         const boxEffectActive = effectFilter.sourceOnly && !projectiveFilter;
         const boxEffectFilter = boxEffectActive ? effectFilter.filter : null;
-        const contentBounds = (backdropEffectFilter.filter || layerFilter || boxEffectFilter || boxEffectActive)
+        const contentBounds = (command.offscreen || command.isolation || command.compositeAlpha !== undefined
+          || backdropEffectFilter.filter || layerFilter || boxEffectFilter || boxEffectActive)
           ? layerContentBounds(buffer.commands, commandIndex, command.key, projectionContext)
           : undefined;
         let saveBounds = boundsToRect(frameBounds);
@@ -935,8 +957,14 @@ export function replaySkiaCommands(
           saveBounds = clipBounds
             ? [clipBounds[0] - pad, clipBounds[1] - pad, clipBounds[2] + pad, clipBounds[3] + pad]
             : boundsToRect(frameBounds);
-        } else if ((layerFilter || boxEffectFilter) && contentBounds) {
-          const pad = effectFilterExpansionPadding(command.effectProgram);
+        } else if (contentBounds && (!command.backdropEffectProgram || backdropEffectFilter.filter)) {
+          // Group opacity/isolation still needs a saveLayer, but it does not
+          // need a full-composition offscreen surface. Restricting the layer
+          // to its authored draw bounds avoids allocating and restoring a
+          // 1920x1080 surface for small cards, glows, and text groups.
+          const pad = layerFilter || boxEffectFilter
+            ? effectFilterExpansionPadding(command.effectProgram)
+            : 0;
           saveBounds = boundsToRect(expandBounds(contentBounds, pad));
         }
         canvas.saveLayer(paint, saveBounds, backdropEffectFilter.filter);
@@ -954,9 +982,11 @@ export function replaySkiaCommands(
           if (!source || !applyClipPath(kit, canvas, source, projectionContext)) addDiagnostic(`skia_clip_path_unsupported:${command.key}:${sourceKey}`);
         }
       }
+      stats.layerTimeMs += performance.now() - layerStartedAt;
       continue;
     }
     if (command.op === "endLayer") {
+      const endLayerStartedAt = performance.now();
       const layer = layers.pop();
       if (layer?.saved && layer.maskSourceKeys.size > 0) {
         const maskLayers = layer.maskLayers ?? [{ mode: layer.maskMode ?? "alpha", sourceKeys: [...layer.maskSourceKeys], composite: "intersect" as const }];
@@ -1086,6 +1116,7 @@ export function replaySkiaCommands(
       }
       if (layer?.projectiveFilter && !resources) layer.projectiveFilter.delete();
       pendingTransform = null;
+      stats.endLayerTimeMs += performance.now() - endLayerStartedAt;
       continue;
     }
     if (command.op === "setTransform") {
@@ -1164,6 +1195,7 @@ export function replaySkiaCommands(
       continue;
     }
     if (command.op === "drawShape") {
+      const shapeStartedAt = performance.now();
       const activeTransform = pendingTransform;
       const projectiveFilterLayer = layers.at(-1);
       if (activeTransform && projectiveFilterLayer?.projectiveFilter && projectiveFilterLayer.projectiveFilterTransform?.key === activeTransform.key) {
@@ -1253,9 +1285,11 @@ export function replaySkiaCommands(
       }
       canvas.restore();
       stats.drawCalls++;
+      stats.shapeTimeMs += performance.now() - shapeStartedAt;
       continue;
     }
     if (command.op === "drawPath") {
+      const pathStartedAt = performance.now();
       const activeTransform = pendingTransform;
       const projective = activeTransform && projectionContext && hasPerspectiveTerms(activeTransform.matrix4);
       const projectiveFilterLayer = layers.at(-1);
@@ -1263,7 +1297,7 @@ export function replaySkiaCommands(
         const commandAlpha = activeTransform.visible && activeTransform.alpha > 0 ? activeTransform.alpha : null;
         pendingTransform = null;
         if (commandAlpha === null) continue;
-        const path = kit.Path.MakeFromSVGString(pathSvg(command));
+        const path = cachedPathFor(kit, command, resources?.pathCache ?? new Map());
         if (!path) {
           stats.skippedCommands++;
           addDiagnostic(`path:${command.key}`);
@@ -1315,7 +1349,6 @@ export function replaySkiaCommands(
              snapshot.delete();
           }
         }
-        path.delete();
         if (surface) releaseSurface(surfaceWidth, surfaceHeight, surface);
         if (projected) {
           stats.drawCalls++;
@@ -1326,7 +1359,7 @@ export function replaySkiaCommands(
       const commandAlpha = beginTransformedCommand(canvas, activeTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
-      const path = kit.Path.MakeFromSVGString(pathSvg(command));
+      const path = cachedPathFor(kit, command, resources?.pathCache ?? new Map());
       if (!path) {
         stats.skippedCommands++;
         stats.diagnostics.push(`path:${command.key}`);
@@ -1373,22 +1406,65 @@ export function replaySkiaCommands(
           stroke.delete();
         }
       }
-      path.delete();
       canvas.restore();
+      stats.pathTimeMs += performance.now() - pathStartedAt;
       stats.drawCalls++;
       continue;
     }
     if (command.op === "drawText") {
+      const textStartedAt = performance.now();
       const commandAlpha = beginTransformedCommand(canvas, pendingTransform);
       pendingTransform = null;
       if (commandAlpha === null) continue;
       let drawn = 0;
       let colorFallbacks = 0;
+      const fillPaints = new Map<string, ReturnType<typeof createSkiaPaint>>();
+      const batchedFillGlyphs = new Set<number>();
       const paintOrder = command.paintOrder ?? ["fill", "stroke", "markers"];
+      if (paintOrder[0] === "fill") {
+        const glyphs = command.glyphs ?? [];
+        for (let start = 0; start < glyphs.length;) {
+          const first = glyphs[start]!;
+          const color = first.fill ?? command.fill ?? "#000000";
+          const fontAssetId = first.fontAssetId ?? command.fontAssetId;
+          const fontSize = first.fontSize ?? command.fontSize;
+          let end = start + 1;
+          while (end < glyphs.length) {
+            const candidate = glyphs[end]!;
+            if (!canDrawNativeTextGlyph(candidate)
+              || (candidate.fill ?? command.fill ?? "#000000") !== color
+              || (candidate.fontAssetId ?? command.fontAssetId) !== fontAssetId
+              || (candidate.fontSize ?? command.fontSize) !== fontSize) break;
+            end += 1;
+          }
+          if (end - start >= 2 && canDrawNativeTextGlyph(first)) {
+            const paintKey = `${color}\0${commandAlpha}`;
+            let sharedPaint = fillPaints.get(paintKey);
+            if (!sharedPaint) {
+              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+              fillPaints.set(paintKey, sharedPaint);
+            }
+            if (drawNativeTextGlyphRun(kit, canvas, command, glyphs.slice(start, end), sharedPaint, fontFor)) {
+              for (let index = start; index < end; index += 1) batchedFillGlyphs.add(index);
+              drawn += end - start;
+              stats.nativeTextGlyphs += end - start;
+            }
+          }
+          start = end;
+        }
+      }
       for (const [glyphIndex, glyph] of (command.glyphs ?? []).entries()) {
         for (const paintType of paintOrder) {
           if (paintType === "fill") {
-            const result = drawTextGlyph(kit, canvas, command, glyph, glyphIndex, commandAlpha, assets, typefaceFor);
+            if (batchedFillGlyphs.has(glyphIndex)) continue;
+            const color = glyph.fill ?? command.fill ?? "#000000";
+            const paintKey = `${color}\0${commandAlpha}`;
+            let sharedPaint = fillPaints.get(paintKey);
+            if (!sharedPaint) {
+              sharedPaint = createSkiaPaint(kit, color, commandAlpha, kit.PaintStyle.Fill, command.fillPaint, command.width, command.height);
+              fillPaints.set(paintKey, sharedPaint);
+            }
+            const result = drawTextGlyph(kit, canvas, command, glyph, glyphIndex, commandAlpha, assets, fontFor, sharedPaint);
             if (result.drawn) drawn++;
             if (result.fallback) colorFallbacks++;
             if (result.mode === "native") stats.nativeTextGlyphs++;
@@ -1400,6 +1476,7 @@ export function replaySkiaCommands(
           }
         }
       }
+      for (const paint of fillPaints.values()) paint.delete();
       for (const decoration of command.decorations ?? []) {
         drawTextDecoration(kit, canvas, command, decoration, commandAlpha);
         drawn++;
@@ -1411,6 +1488,7 @@ export function replaySkiaCommands(
         stats.diagnostics.push(`text:${command.key}`);
       }
       canvas.restore();
+      stats.textTimeMs += performance.now() - textStartedAt;
       continue;
     }
     if (command.op === "drawImage" || command.op === "drawVideo") {

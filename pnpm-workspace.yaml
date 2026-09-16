@@ -1,7 +1,19 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "infra/cloud-run/*"
 
 onlyBuiltDependencies:
   - electron
   - sharp
+
+# Keep the native sharp runtime available in both the Windows development
+# workspace and Linux Cloud Run/Cloud Build images. Without the Linux target,
+# pnpm can produce a frozen install whose sharp optional binary is absent from
+# the Next.js production build.
+supportedArchitectures:
+  os:
+    - win32
+    - linux
+  cpu:
+    - x64

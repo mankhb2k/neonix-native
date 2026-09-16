@@ -1,5 +1,5 @@
 import { getAssetRequestContext, jsonError } from "@/lib/server/asset-context";
-import { dispatchMediaJob, MEDIA_PIPELINE_VERSION } from "@/lib/server/media/worker";
+import { MEDIA_PIPELINE_VERSION } from "@/lib/server/media/worker";
 import { getUserAssetsProvider } from "@/lib/server/r2";
 
 export const runtime = "nodejs";
@@ -13,6 +13,7 @@ type UploadAssetRow = {
   original_filename: string | null;
   preview_key: string | null;
   preview_status: string | null;
+  media_status: string | null;
   preview_version: number | null;
 };
 
@@ -35,17 +36,6 @@ function asUploadAssetRow(value: unknown): UploadAssetRow | null {
     : null;
 }
 
-function asMediaJobRow(value: unknown): MediaJobRow | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  return typeof record.id === "string"
-    && typeof record.status === "string"
-    && (record.started_at === null || typeof record.started_at === "string")
-    && typeof record.attempt_count === "number"
-    ? value as MediaJobRow
-    : null;
-}
-
 export async function POST(request: Request) {
   const result = await getAssetRequestContext();
   if (!result.ok) return jsonError(result.message, result.status);
@@ -63,7 +53,7 @@ export async function POST(request: Request) {
   const { supabase, user, workspaceId } = result.context;
   const { data: asset, error: assetError } = await supabase
     .from("assets")
-    .select("id, r2_key, mime_type, byte_size, status, original_filename, preview_key, preview_status, preview_version")
+    .select("id, r2_key, mime_type, byte_size, status, original_filename, preview_key, preview_status, media_status, preview_version")
     .eq("id", assetId)
     .eq("workspace_id", workspaceId)
     .eq("created_by", user.id)
@@ -101,6 +91,7 @@ export async function POST(request: Request) {
   let previewError: string | null = null;
   const previewKey = typeof assetRow.preview_key === "string" ? assetRow.preview_key : null;
   const isVideo = assetRow.mime_type.startsWith("video/");
+  const isAudio = assetRow.mime_type.startsWith("audio/");
   const browserPreviewExpected = Number(uploadSession?.expected_preview_byte_size) > 0;
   if (previewKey) {
     if (browserPreviewExpected) {
@@ -128,13 +119,14 @@ export async function POST(request: Request) {
     .from("assets")
     .update({
       status: "ready",
-      content_hash: `r2:${head.sizeBytes}:${storageKey}`,
+      media_status: isVideo || isAudio ? "queued" : "not_required",
+      content_hash: `r2:${head.eTag ?? head.sizeBytes}:${storageKey}`,
       preview_status: previewReady ? "ready" : previewKey ? (isVideo && !browserPreviewExpected ? "pending" : "failed") : "unsupported",
       preview_error: previewError,
     })
     .eq("id", assetId)
     .eq("workspace_id", workspaceId)
-    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, preview_version, source_duration_ms, source_width, source_height, has_audio")
+    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, media_status, preview_version, source_duration_ms, source_width, source_height, has_audio")
     .single();
 
   if (updateError) return jsonError(updateError.message, 400);
@@ -159,8 +151,8 @@ export async function POST(request: Request) {
   if (sessionError) return jsonError(sessionError.message, 500);
 
   let mediaJob: MediaJobRow | null = null;
-  if (isVideo) {
-    const sourceIntegrity = `r2:${head.sizeBytes}:${storageKey}`;
+  if (isVideo || isAudio) {
+    const sourceIntegrity = `r2:${head.eTag ?? head.sizeBytes}:${storageKey}`;
     const idempotencyKey = `${assetId}:${sourceIntegrity}:v${MEDIA_PIPELINE_VERSION}`;
     const { data: createdJob, error: mediaJobError } = await supabase
       .from("media_jobs")
@@ -168,6 +160,7 @@ export async function POST(request: Request) {
         workspace_id: workspaceId,
         asset_id: assetId,
         status: "queued",
+        media_kind: isVideo ? "video" : "audio",
         idempotency_key: idempotencyKey,
         source_integrity: sourceIntegrity,
         pipeline_version: MEDIA_PIPELINE_VERSION,
@@ -187,55 +180,7 @@ export async function POST(request: Request) {
       mediaJob = createdJob;
     }
 
-    let claimedForDispatch = false;
-    if (mediaJob.status === "queued") {
-      const { data: claimedJob, error: claimError } = await supabase
-        .rpc("claim_media_job", { p_job_id: mediaJob.id })
-        .maybeSingle();
-      if (claimError) return jsonError(claimError.message, 500);
-
-      const claimedJobRow = asMediaJobRow(claimedJob);
-      if (!claimedJobRow) {
-        const { data: currentJob, error: currentJobError } = await supabase
-          .from("media_jobs")
-          .select("id, status, started_at, attempt_count")
-          .eq("id", mediaJob.id)
-          .maybeSingle();
-        if (currentJobError || !currentJob) {
-          return jsonError(currentJobError?.message ?? "Media job not found", 500);
-        }
-        const currentJobRow = asMediaJobRow(currentJob);
-        if (!currentJobRow) return jsonError("Media job has an invalid lifecycle state", 500);
-        mediaJob = currentJobRow;
-      } else {
-        mediaJob = claimedJobRow;
-        claimedForDispatch = true;
-      }
-    }
-
-    const jobToDispatch = mediaJob;
-    if (claimedForDispatch && jobToDispatch) {
-      try {
-        await dispatchMediaJob({
-          jobId: jobToDispatch.id,
-          assetId,
-          sourceKey: storageKey,
-          sourceMimeType: assetRow.mime_type,
-          sourceIntegrity,
-        });
-      } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error);
-        await supabase.from("media_jobs").update({
-          status: "failed",
-          last_error: detail,
-          completed_at: new Date().toISOString(),
-        }).eq("id", jobToDispatch.id);
-        await supabase.from("assets").update({ preview_status: "failed", preview_error: `media_worker_dispatch_failed: ${detail}` }).eq("id", assetId).eq("workspace_id", workspaceId);
-        mediaJob = { ...jobToDispatch, status: "failed" };
-      }
-    }
   }
 
   return Response.json({ asset: updated, ...(mediaJob ? { mediaJob } : {}) });
 }
-

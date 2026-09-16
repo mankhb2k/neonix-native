@@ -1,0 +1,30 @@
+{
+  "apiVersion": "run.googleapis.com/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "neonix-skia-command-cpu-bench-r4"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "parallelism": 1,
+        "taskCount": 1,
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "image": "asia-southeast1-docker.pkg.dev/neonix-506607/neonix/skia-command-cpu-bench@sha256:930460b2600a31e2744911f73a0a3e4102855bc4a4dd846ec6261269e416e9d5",
+                "resources": {
+                  "limits": { "cpu": "4", "memory": "16Gi" }
+                }
+              }
+            ],
+            "maxRetries": 0,
+            "timeoutSeconds": "3600",
+            "serviceAccountName": "540893712425-compute@developer.gserviceaccount.com"
+          }
+        }
+      }
+    }
+  }
+}

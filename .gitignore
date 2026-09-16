@@ -13,6 +13,7 @@ out
 .env
 .env.*
 !.env.example
+**/.dev.vars
 coverage
 .vercel
 supabase/.temp

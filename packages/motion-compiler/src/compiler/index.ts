@@ -1034,7 +1034,10 @@ function motionPathLocalMatrix(layer: MotionProtocolV2["layers"][number]): Matri
 }
 
 /** Options accepted by the canonical Protocol compiler. */
-export type CompileProtocolOptions = Record<string, never>;
+export type CompileProtocolOptions = {
+  /** Attach compiler workload statistics to the RuntimeProjectV3 result. */
+  collectStats?: boolean;
+};
 /** Internal certified visual lowering used by the Runtime V3 compiler. */
 function compileVisualRuntimeInternal(
   input: unknown,

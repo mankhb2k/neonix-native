@@ -240,16 +240,26 @@ rendering differences.
 
 ```ts
 import {
+  evaluatePreparedRuntimeProjectV3,
   evaluateRuntimeProjectV3,
+  prepareRuntimeProjectV3,
   resolveAudioWindow,
   resolveVideoAt,
   type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 
 const frame = evaluateRuntimeProjectV3(project, frameNumber, { time });
+const prepared = prepareRuntimeProjectV3(project);
+const preparedFrame = evaluatePreparedRuntimeProjectV3(prepared, frameNumber, { time });
 const video = resolveVideoAt(project, timelineTimeUs);
 const audio = resolveAudioWindow(project, { startSample, frameCount });
 ```
+
+For an export job, prepare the project once and evaluate every frame through
+`evaluatePreparedRuntimeProjectV3`. The prepared boundary validates and
+normalizes the project once, indexes nodes/assets/text/effects, and overlays
+only the current frame's delta nodes. `evaluateRuntimeProjectV3` remains the
+convenience API for one-off preview evaluation.
 
 These functions resolve semantics only. Rendering, media decoding, FFmpeg
 encoding, storage, and export job orchestration belong to the layers above the

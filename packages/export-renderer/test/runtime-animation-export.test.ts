@@ -67,4 +67,18 @@ describe("Runtime V3 animated export", () => {
       await rm(outputRoot, { recursive: true, force: true });
     }
   }, 30_000);
+
+  (ffmpegAvailable ? it : it.skip)("keeps repeated single-thread H.264 exports byte-stable", async () => {
+    const project = await fixture();
+    const outputRoot = await mkdtemp(join(tmpdir(), "neonix-runtime-determinism-"));
+    const firstPath = join(outputRoot, "first.mp4");
+    const secondPath = join(outputRoot, "second.mp4");
+    try {
+      await renderRuntimeProjectV3(project, { outputPath: firstPath, ffmpegLogLevel: "error", ffmpegThreads: 1 });
+      await renderRuntimeProjectV3(project, { outputPath: secondPath, ffmpegLogLevel: "error", ffmpegThreads: 1 });
+      expect(await readFile(secondPath)).toEqual(await readFile(firstPath));
+    } finally {
+      await rm(outputRoot, { recursive: true, force: true });
+    }
+  }, 30_000);
 });

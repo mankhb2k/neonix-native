@@ -8,6 +8,7 @@ export class ExportRendererError extends Error {
       | "ASSET_NOT_FOUND"
       | "ASSET_DECODE_FAILED"
       | "FFMPEG_FAILED"
+      | "CANCELLED"
       | "OUTPUT_FAILED",
     readonly details?: Record<string, unknown>,
   ) {

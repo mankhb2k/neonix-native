@@ -400,8 +400,15 @@ describe("canonical compiler V3 projection", () => {
     const runtime = compileProtocolAtTime(project, 0.5);
     expect(runtime.visual.nodes.find((node) => node.id === "filtered-path")?.opacity).toBeCloseTo(0.5);
 
-    const animatedRuntime = compileProtocol(project);
+    const animatedRuntime = compileProtocol(project, { collectStats: true });
     expect(animatedRuntime.visualTimeline?.frames).toHaveLength(90);
+    expect(animatedRuntime.compileStats).toMatchObject({
+      animatedNodeCount: 1,
+      optimizedFrameCount: 89,
+      fallbackFrameCount: 0,
+    });
+    expect(animatedRuntime.compileStats?.totalDeltaNodeCount).toBeGreaterThan(0);
+    expect(animatedRuntime.compileStats?.averageDeltaPayloadBytesPerFrame).toBeGreaterThan(0);
     const middleDelta = animatedRuntime.visualTimeline?.frames[15]?.nodes.find((node) => node.id === "filtered-path");
     expect(middleDelta).toMatchObject({ id: "filtered-path", opacity: 0.5 });
     expect(middleDelta).not.toHaveProperty("content");
@@ -443,6 +450,45 @@ describe("canonical compiler V3 projection", () => {
     expect(Math.abs(beforeNode?.localMatrix[1] ?? 0)).toBeGreaterThan(0.5);
     expect(activeNode?.localMatrix[1]).toBeCloseTo(0, 8);
     expect(activeNode?.localMatrix[4]).toBeCloseTo(0, 8);
+  });
+
+  it("bakes simple 2D group transforms without recompiling the visual tree", () => {
+    const source = filterProject({ id: "simple-transform", primitives: [] }) as any;
+    source.filters = [];
+    const { payload: _payload, style: _style, ...groupBase } = source.layers[0];
+    const project = {
+      ...source,
+      layers: [{
+        ...groupBase,
+        id: "animated-group",
+        type: "group",
+        parentLayerId: null,
+        filter: undefined,
+        frame: { width: 960, height: 540 },
+        tracks: [{
+          id: "group-translate",
+          path: "transform.translate.x",
+          keyframes: [
+            { time: 0, value: { type: "number", value: 0 } },
+            { time: 1000, value: { type: "number", value: 120 } },
+          ],
+          animation: { durationMs: 1000, delayMs: 0, iterations: 1, direction: "normal", fillMode: "both", playState: "running" },
+        }],
+      }, {
+        ...source.layers[0],
+        id: "child-path",
+        parentLayerId: "animated-group",
+        filter: undefined,
+      }],
+    };
+
+    const runtime = compileProtocol(project, { collectStats: true });
+    expect(runtime.compileStats).toMatchObject({ optimizedFrameCount: 89, fallbackFrameCount: 0 });
+    expect(runtime.visualTimeline?.frames[15]?.nodes.find((node) => node.id === "child-path")).not.toHaveProperty("content");
+
+    const optimized = evaluateRuntimeProjectV3(runtime, 15);
+    const canonical = evaluateRuntimeProjectV3(compileProtocolAtTime(project, 0.5), 15, { time: 0.5 });
+    expect(optimized).toEqual(canonical);
   });
 
   it("culls a reversed layer when backface-visibility is hidden", () => {

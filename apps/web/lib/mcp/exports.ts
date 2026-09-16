@@ -6,6 +6,7 @@ import { startRenderOnWorker, syncRenderJob, cancelRenderOnWorker } from "@/lib/
 import { assertJobOwner, createRenderJob, getRenderJob, type PersistentRenderJob } from "@/lib/server/render/job-store";
 import { buildIdempotencyKey } from "@/lib/server/render/ownership";
 import { compileAndPrepareRuntimeProjectV3 } from "@/lib/server/render/project-runtime";
+import { enqueueRenderJob, isRenderQueueEnabled } from "@/lib/server/render/render-queue";
 import { validateProjectVideoDurations } from "@/lib/server/render/source-duration";
 import { isRenderPresetId } from "@motionvideo/export-renderer/contracts";
 import { MotionProtocolV2Schema } from "@motionvideo/motion-protocol/v2";
@@ -35,7 +36,7 @@ function output(job: PersistentRenderJob) {
   };
 }
 
-async function mirrorJobToDatabase(principal: McpPrincipal, job: PersistentRenderJob, revisionId: string, workspaceId: string, preset: string) {
+async function mirrorJobToDatabase(principal: McpPrincipal, job: PersistentRenderJob, revisionId: string, workspaceId: string, preset: string, runtime?: unknown) {
   const client = getMcpSupabaseClient(principal);
   const state = await client.from("render_jobs").upsert({
     public_ref: job.jobId,
@@ -43,7 +44,8 @@ async function mirrorJobToDatabase(principal: McpPrincipal, job: PersistentRende
     project_id: job.projectId,
     revision_id: revisionId,
     status: job.status,
-    preset_json: { preset },
+    preset_json: { preset, projectRevision: job.projectRevision },
+    ...(runtime ? { runtime_json: runtime } : {}),
     idempotency_key: job.idempotencyKey,
     provider_render_id: job.jobId,
     output_key: job.outputKey ?? null,
@@ -91,6 +93,9 @@ export async function createExport(principal: McpPrincipal, input: {
   preset?: string;
   idempotencyKey?: string;
 }) {
+  if (process.env.NODE_ENV === "production" && !isRenderQueueEnabled()) {
+    throw new McpExportError("Production render entrypoints require Supabase PGMQ", "RENDER_QUEUE_REQUIRED");
+  }
   const preset = input.preset ?? "export-1080p";
   if (!isRenderPresetId(preset)) throw new McpExportError("Invalid export preset", "INVALID_PRESET");
   const { access, revision, runtime } = await readAndCompileRevision(principal, input);
@@ -107,19 +112,34 @@ export async function createExport(principal: McpPrincipal, input: {
     const existing = await getRenderJob(String(existingDb.data.public_ref));
     if (existing) return { export: output(await syncRenderJob(existing)), created: false };
   }
-  const created = await createRenderJob({ userId: principal.userId, projectId: access.project.id, projectRevision: revision.revision.revision_no, idempotencyKey });
-  await mirrorJobToDatabase(principal, created.job, revision.revision.id, access.project.workspaceId, preset);
+  const created = await createRenderJob({
+    userId: principal.userId,
+    projectId: access.project.id,
+    projectRevision: revision.revision.revision_no,
+    idempotencyKey,
+    database: {
+      workspaceId: access.project.workspaceId,
+      revisionId: revision.revision.id,
+      preset,
+      runtime,
+    },
+  });
+  await mirrorJobToDatabase(principal, created.job, revision.revision.id, access.project.workspaceId, preset, runtime);
   if (created.created) {
     try {
-      await startRenderOnWorker({ job: created.job, runtime });
+      if (isRenderQueueEnabled()) {
+        await enqueueRenderJob({ jobId: created.job.jobId });
+      } else {
+        await startRenderOnWorker({ job: created.job, runtime });
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      await mirrorJobToDatabase(principal, (await getRenderJob(created.job.jobId)) ?? { ...created.job, status: "failed", error: detail, updatedAt: Date.now() }, revision.revision.id, access.project.workspaceId, preset);
+      await mirrorJobToDatabase(principal, (await getRenderJob(created.job.jobId)) ?? { ...created.job, status: "failed", error: detail, updatedAt: Date.now() }, revision.revision.id, access.project.workspaceId, preset, runtime);
       throw new McpExportError(detail, "WORKER_DISPATCH_FAILED");
     }
   }
   const refreshed = (await getRenderJob(created.job.jobId)) ?? created.job;
-  await mirrorJobToDatabase(principal, refreshed, revision.revision.id, access.project.workspaceId, preset);
+  await mirrorJobToDatabase(principal, refreshed, revision.revision.id, access.project.workspaceId, preset, runtime);
   return { export: output(refreshed), created: created.created };
 }
 

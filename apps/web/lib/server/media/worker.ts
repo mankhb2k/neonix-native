@@ -7,6 +7,8 @@ export type MediaJobDispatchInput = {
   assetId: string;
   sourceKey: string;
   sourceMimeType: string;
+  mediaKind: "audio" | "video";
+  derivativePrefix: string;
   sourceIntegrity: string;
 };
 

@@ -20,6 +20,7 @@ type AssetRow = {
   created_at: string;
   preview_key: string | null;
   preview_status: "pending" | "ready" | "failed" | "unsupported" | null;
+  media_status: "not_required" | "queued" | "processing" | "ready" | "partial" | "failed";
   preview_version: number | null;
   source_duration_ms: number | null;
   source_width: number | null;
@@ -35,7 +36,7 @@ export async function GET() {
   const { supabase, workspaceId } = result.context;
   const { data, error } = await supabase
     .from("assets")
-    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, preview_version, source_duration_ms, source_width, source_height, has_audio, preview_error")
+    .select("id, original_filename, mime_type, byte_size, status, storage_bucket, r2_key, created_at, preview_key, preview_status, media_status, preview_version, source_duration_ms, source_width, source_height, has_audio, preview_error")
     .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
     .neq("kind", "font")
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
   const provider = getUserAssetsProvider();
   const storageKey = provider.createObjectKey(workspaceId, assetId, mimeType);
   const isVideo = mimeType.startsWith("video/");
+  const isAudio = mimeType.startsWith("audio/");
   const previewKey = hasPreview || isVideo ? derivativeObjectKey(workspaceId, assetId, "poster", "poster.webp") : null;
   const bucket = userAssetsBucketName();
   const now = new Date().toISOString();
@@ -137,6 +139,7 @@ export async function POST(request: Request) {
     created_by: user.id,
     kind: assetKindForMime(mimeType),
     status: "uploading",
+    media_status: isVideo || isAudio ? "queued" : "not_required",
     storage_bucket: bucket,
     original_filename: name,
     metadata_json: {},
@@ -191,4 +194,3 @@ export async function POST(request: Request) {
     return jsonError(error instanceof Error ? error.message : "Unable to connect to R2", 500);
   }
 }
-

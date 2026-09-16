@@ -77,6 +77,16 @@ async function main(): Promise<void> {
   const requestedFrameCount = process.env.NEONIX_RENDER_FRAME_COUNT
     ? Math.max(1, Math.floor(Number(process.env.NEONIX_RENDER_FRAME_COUNT)))
     : undefined;
+  const requestedParallelism = process.env.NEONIX_RENDER_PARALLELISM
+    ? Math.max(1, Math.floor(Number(process.env.NEONIX_RENDER_PARALLELISM)))
+    : undefined;
+  const requestedChunkSize = process.env.NEONIX_RENDER_CHUNK_SIZE
+    ? Math.max(1, Math.floor(Number(process.env.NEONIX_RENDER_CHUNK_SIZE)))
+    : undefined;
+  const requestedFfmpegPreset = process.env.NEONIX_RENDER_FFMPEG_PRESET?.trim() || undefined;
+  const requestedFfmpegCrf = process.env.NEONIX_RENDER_FFMPEG_CRF
+    ? Number(process.env.NEONIX_RENDER_FFMPEG_CRF)
+    : undefined;
   const rendererUrl = (process.env.NEONIX_RENDERER_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
 
   await mkdir(outputRoot, { recursive: true });
@@ -96,6 +106,10 @@ async function main(): Promise<void> {
     project: runtime,
     outputName,
     ...(requestedFrameCount ? { frameCount: requestedFrameCount } : {}),
+    ...(requestedParallelism ? { parallelism: requestedParallelism } : {}),
+    ...(requestedChunkSize ? { chunkSize: requestedChunkSize } : {}),
+    ...(requestedFfmpegPreset ? { ffmpegPreset: requestedFfmpegPreset } : {}),
+    ...(requestedFfmpegCrf !== undefined ? { ffmpegCrf: requestedFfmpegCrf } : {}),
   });
   const payload = response.payload;
   if (response.statusCode < 200 || response.statusCode >= 300 || !payload.ok || !payload.stats || !payload.downloadUrl) {

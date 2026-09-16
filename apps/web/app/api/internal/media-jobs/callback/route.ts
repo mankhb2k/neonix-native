@@ -143,8 +143,9 @@ export async function POST(request: Request) {
     .from("assets")
     .update({
       ...(poster ? { preview_key: poster.r2_key } : {}),
-      preview_status: poster ? "ready" : "failed",
-      preview_error: finalError,
+      ...(poster ? { preview_status: "ready" } : video ? { preview_status: "failed" } : {}),
+      preview_error: video && !poster ? finalError : null,
+      media_status: finalStatus,
       source_duration_ms: video?.durationUs ? Math.round(video.durationUs / 1000) : null,
       source_width: video?.width ?? null,
       source_height: video?.height ?? null,
@@ -167,7 +168,11 @@ export async function POST(request: Request) {
       status: finalStatus,
       streams_json: payload.streams,
       derivatives_json: verifiedDerivatives,
+      source_content_hash: payload.sourceContentHash ?? null,
       last_error: finalError,
+      last_error_code: finalError ? "media_prepare_failed" : null,
+      lease_owner: null,
+      lease_expires_at: null,
       completed_at: new Date().toISOString(),
     })
     .eq("id", payload.jobId);

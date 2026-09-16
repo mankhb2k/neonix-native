@@ -1,0 +1,14 @@
+{
+  "name": "@neonix/cloud-run-media-preparer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.23.1",
+    "typescript": "^5.8.2"
+  }
+}

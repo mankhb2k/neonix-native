@@ -5,6 +5,7 @@ import {
   type RuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import { ExportRendererError } from "../errors";
+import { createAudioSourceMaterializer } from "./audio-source";
 import { resolveLocalPreviewAssetPath } from "./skia-assets";
 
 export type FfmpegAudioInput = {
@@ -14,6 +15,7 @@ export type FfmpegAudioInput = {
 export type ResolvedAudioMix = {
   inputs: FfmpegAudioInput[];
   filterComplex: string;
+  cleanup?: () => Promise<void>;
 };
 
 function number(value: number): string {
@@ -79,18 +81,16 @@ function audioUri(project: RuntimeProjectV3, input: RuntimeAudioMixInputV3): str
 }
 
 /** Builds a deterministic FFmpeg graph from the canonical Runtime audio plan. */
-export function resolveFfmpegAudioMix(
+function buildFfmpegAudioMix(
   project: RuntimeProjectV3,
   plan: RuntimeAudioMixPlanV3,
-  assetRoot: string,
+  paths: string[],
 ): ResolvedAudioMix | null {
   if (plan.inputs.length === 0) return null;
-  const inputs: FfmpegAudioInput[] = [];
+  const inputs: FfmpegAudioInput[] = paths.map((path) => ({ path }));
   const labels: string[] = [];
   const chains: string[] = [];
   for (const [index, input] of plan.inputs.entries()) {
-    const uri = audioUri(project, input);
-    inputs.push({ path: resolveLocalPreviewAssetPath(uri, assetRoot) });
     const segment = input.segments[0];
     if (!segment) continue;
     const sourceStart = segment.sourceStartSample / input.sourceSampleRate;
@@ -117,8 +117,30 @@ export function resolveFfmpegAudioMix(
   return { inputs, filterComplex: chains.join(";") };
 }
 
-export function resolveProjectAudioMix(project: RuntimeProjectV3, frameCount: number, fps: number, assetRoot: string): ResolvedAudioMix | null {
+export function resolveFfmpegAudioMix(
+  project: RuntimeProjectV3,
+  plan: RuntimeAudioMixPlanV3,
+  assetRoot: string,
+): ResolvedAudioMix | null {
+  const paths = plan.inputs.map((input) => resolveLocalPreviewAssetPath(audioUri(project, input), assetRoot));
+  return buildFfmpegAudioMix(project, plan, paths);
+}
+
+export async function resolveProjectAudioMix(project: RuntimeProjectV3, frameCount: number, fps: number, assetRoot: string): Promise<ResolvedAudioMix | null> {
   const frameDurationSamples = Math.ceil((frameCount / fps) * project.audioTimeline.sampleRate);
   const plan = resolveAudioWindow(project, { startSample: 0, frameCount: frameDurationSamples });
-  return resolveFfmpegAudioMix(project, plan, assetRoot);
+  if (plan.inputs.length === 0) return null;
+  const materializer = createAudioSourceMaterializer(assetRoot);
+  try {
+    const paths = await Promise.all(plan.inputs.map((input) => materializer.resolve(audioUri(project, input))));
+    const resolved = buildFfmpegAudioMix(project, plan, paths);
+    if (!resolved) {
+      await materializer.cleanup();
+      return null;
+    }
+    return { ...resolved, cleanup: materializer.cleanup };
+  } catch (error) {
+    await materializer.cleanup();
+    throw error;
+  }
 }

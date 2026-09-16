@@ -1,0 +1,30 @@
+{
+  "apiVersion": "run.googleapis.com/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "neonix-canvaskit-cpu-bench-r7"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "parallelism": 1,
+        "taskCount": 1,
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "image": "asia-southeast1-docker.pkg.dev/neonix-506607/neonix/canvaskit-cpu-bench@sha256:a882c55a48cf20fb1b5f2c538fefa9bd1a92707e3e5aa2e506b3bb20fca0ffe5",
+                "resources": {
+                  "limits": { "cpu": "4", "memory": "16Gi" }
+                }
+              }
+            ],
+            "maxRetries": 0,
+            "timeoutSeconds": "3600",
+            "serviceAccountName": "540893712425-compute@developer.gserviceaccount.com"
+          }
+        }
+      }
+    }
+  }
+}

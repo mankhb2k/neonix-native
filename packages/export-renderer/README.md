@@ -44,7 +44,7 @@ PaintCommandBuffer
         +--------------------+----------------------+
         |                    |                      |
         v                    v                      v
-Preview GPU backend   Skia CPU golden backend   Optional GPU backend
+CanvasKit preview      Native Skia raster golden  Native Skia Vulkan GPU
         |                    |                      |
         +--------------------+----------------------+
                              v
@@ -61,8 +61,9 @@ Preview GPU backend   Skia CPU golden backend   Optional GPU backend
 ```
 
 Preview and export must use the same frame semantics. Only the backend that
-replays the `PaintCommandBuffer` changes. A GPU backend is an optimization;
-the Skia CPU backend is the deterministic correctness reference.
+replays the `PaintCommandBuffer` changes. CanvasKit is the browser preview
+backend; native Skia raster is the deterministic correctness reference and
+native Skia Vulkan is the GPU export candidate.
 
 FFmpeg is an encoder/muxer in this architecture. It must not be responsible
 for evaluating the scene, rasterizing HTML, or taking browser screenshots.
@@ -74,7 +75,8 @@ architecture:
 
 ```text
 RuntimeProjectV3
-  -> evaluateRuntimeProjectV3
+  -> prepareRuntimeProjectV3 (once per job)
+  -> evaluatePreparedRuntimeProjectV3 (per frame)
   -> PaintCommandBuffer
   -> SVG frame rasterization (sharp/libvips)
   -> raw RGBA stream
@@ -198,6 +200,24 @@ Required behavior:
   decoder;
 - produce the same media-time result for preview and export.
 
+### Phase 3 local implementation
+
+The Skia asset boundary currently implements the first optimization slice of
+this provider contract:
+
+- input-side FFmpeg seek is used for non-sequential requests;
+- a decoder session is started only after two adjacent timestamps prove that
+  access is sequential, then it feeds subsequent PNG frames from one process;
+- resized output frames are cached separately from decoded source frames, so a
+  loop hit does not invoke Sharp again;
+- raw and resized video caches use a bounded LRU policy (48 entries by
+  default); `SkiaFrameAssetResolver.getStats()` exposes hit, miss, decode,
+  resize, session, and eviction counters for benchmark runs.
+
+The session is reset for random seek, reverse playback, asset changes, or
+non-adjacent timestamps. Exact timestamp parity remains the acceptance gate
+before replacing this fallback with a native decoder.
+
 The original MP4 video stream is the visual source. If the compiled project
 contains a detached audio derivative, the original embedded audio must be
 disabled for final mixing so audio cannot be included twice.
@@ -297,17 +317,17 @@ MP4 size. Temporary artifacts must have ownership, cleanup, and retry rules.
 
 The backend order is deliberate:
 
-1. Skia CPU golden backend for correctness and deterministic output.
+1. Native Skia raster backend for correctness and deterministic output.
 2. Resource caches and isolated-surface reuse.
 3. Batching and specialized native passes.
-4. Optional GPU renderer behind a feature flag.
+4. Native Skia Ganesh + Vulkan behind a feature flag.
 5. Optional hardware encoding after visual parity is stable.
 
-Browser rendering through headless Chrome, WebGPU, WebGL, or WebCodecs may be
-used for local investigation or a compatibility fallback. It is not the
-production rendering core because browser startup, DOM/layout work, GPU
-readbacks, version drift, and screenshot capture make performance and
-determinism difficult to control.
+CanvasKit/WASM/WebGL remains the browser preview backend and may be used for
+semantic investigation. Cloud Run GPU export uses native Skia Ganesh + Vulkan;
+headless Chrome, WebGPU, WebGL, and screenshots are not part of that
+production path because browser startup, host drift, and extra readbacks make
+performance and determinism difficult to control.
 
 Every benchmark records the actual backend, not only the requested one:
 
@@ -414,7 +434,27 @@ Endpoints:
 
 - `GET /health` (also `/healthz` and `/readyz`)
 - `POST /v1/renders`
+- `POST /v1/render-jobs` → `202` with `statusUrl`
+- `GET /v1/render-jobs/:jobId` → persisted progress and artifact state
+- `DELETE /v1/render-jobs/:jobId` → cancellation and FFmpeg abort
 - `POST /v1/media/prepare` (requires `x-internal-worker-token`)
+
+The asynchronous render-job endpoints also require
+`x-internal-worker-token` when `INTERNAL_WORKER_TOKEN` is configured. Jobs are
+persisted by the local file-backed renderer store, render into an
+attempt-scoped temporary MP4, run `ffprobe` and SHA-256 verification, and are
+atomically renamed to the final output only after verification succeeds. The
+web BFF dispatches without waiting for the render, polls status, then streams
+the verified artifact to a temporary `__tmp__/render/` R2 object and copies it
+to the final key. Configure an R2 lifecycle rule for that prefix as a second
+line of defense against abandoned uploads.
+The transfer never materializes the complete MP4 as a Node `Buffer`.
+
+The production queue source of truth is Supabase `render_jobs`; the PGMQ
+message contains only `{ jobId }`. The queue consumer claims a database lease,
+renews its heartbeat while polling the renderer, retries transient failures,
+recovers stale leases, and checks cancellation before dispatch. Local file
+jobs remain only for development and renderer tests.
 
 Render request:
 
@@ -425,6 +465,69 @@ Render request:
   "frameCount": 30
 }
 ```
+
+For video-only exports, Phase 5 can render isolated frame ranges in parallel
+processes and concatenate the encoded segments without re-encoding:
+
+```json
+{
+  "project": "<RuntimeProjectV3>",
+  "outputName": "local-parallel-test.mp4",
+  "frameCount": 1800,
+  "parallelism": 4,
+  "chunkSize": 300,
+  "chunkRetries": 1
+}
+```
+
+Each chunk has absolute frame boundaries, an attempt number, and a SHA-256
+checksum. The scheduler retries only the failed chunk. Audio-bearing projects
+and the legacy SVG renderer deliberately fall back to sequential rendering
+until the centralized audio/encoder phase is complete.
+
+H.264 encoding defaults to one FFmpeg encoder thread for byte-stable output
+within the same runtime and preset. A caller may set `ffmpegThreads` explicitly
+when throughput is more important than byte-for-byte repeatability; decoded
+frame verification remains the image-quality contract.
+
+### Neonix fixture benchmark after Skia layer-bounds optimization
+
+The current bottleneck is Skia replay, specifically `saveLayer` restore/compositing;
+FFmpeg is not the limiting stage for this fixture. Restricting isolation-only
+layers to their drawable content bounds avoids full-composition offscreen
+surfaces for small layers.
+
+Measured on the local software CanvasKit backend at 1920x1080, 30 FPS:
+
+| Run | Render time | Encode time | Result |
+| --- | ---: | ---: | --- |
+| 30 frames, before | ~9.4 s | ~0.2 s | 30 frames |
+| 30 frames, after | 2.30 s | 0.19 s | 30 frames |
+| 300 frames, before | ~137.8 s | ~0.5 s | 300 frames |
+| 300 frames, after | 61.89 s | 0.46 s | 300 frames |
+| 1,800 frames, parallelism 4, after | 540.16 s | 0.25 s | 1,800 frames / 60 s |
+
+The full run produced a valid 1920x1080 H.264 MP4 with exactly 1,800 frames
+and 60 seconds. The 30-frame output has identical per-frame checksums to the
+pre-optimization baseline. Four isolated workers used roughly 0.5 GiB RSS each
+on this machine, so concurrency must be bounded by the Cloud Run memory budget.
+The command profiler is available at
+`apps/web/scripts/profile-neonix-commands.ts`.
+
+Phase 6 also resolves `r2://...` audio resources through the worker's
+S3-compatible R2 credentials. It materializes each source into a bounded
+temporary directory, builds the canonical Runtime audio mix with FFmpeg
+`atrim`/`atempo`/`volume`/`pan`/`afade`/`adelay`/`amix`, and removes the staged
+files after encode or failure. The E2E fixture
+`apps/web/scripts/export-r2-audio-fixture.ts` mixes one R2 MP3 with the audio
+stream from one R2 MP4 and records source download, audio preparation,
+backpressure, and finalize timings.
+
+The latest real run rendered 300 frames / 10 seconds in 80.33 s after the
+source download: R2 download 15.73 s, audio preparation 15.52 s, Skia render
+63.95 s, and encode/mux 0.51 s. The output was verified with 300 H.264 video
+frames, one AAC audio stream, and 10.000 s duration. The encoder submitted all
+300 frames; pipe backpressure was 100 ms and finalization was 91 ms.
 
 `outputName` is restricted to a relative `.mp4` path under
 `tmp/export-renderer` by default. Media preparation reads the origin from the

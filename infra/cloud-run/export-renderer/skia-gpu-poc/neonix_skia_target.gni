@@ -1,0 +1,32 @@
+if (skia_use_vulkan && skia_enable_ganesh) {
+  test_app("neonix_skia_gpu_backend") {
+    # Keep this target aligned with Skia's VulkanBasic example. The helper is
+    # deliberately used only to bootstrap the POC; production will own the
+    # Vulkan instance/device lifecycle in the Neonix native host.
+    all_dependent_configs = [
+      ":use_skia_vulkan_headers",
+      ":vulkan_memory_allocator",
+    ]
+    sources = [ "neonix/skia_gpu_backend.cpp" ]
+    sources += [
+      "tools/gpu/vk/VkTestMemoryAllocator.h",
+      "tools/gpu/vk/VkTestMemoryAllocator.cpp",
+      "tools/gpu/vk/VkTestUtils.h",
+      "tools/gpu/vk/VkTestUtils.cpp",
+    ]
+    deps = [
+      ":load_dynamic_library",
+      ":skia",
+    ]
+  }
+}
+
+test_app("neonix_skia_cpu_backend") {
+  sources = [ "neonix/skia_cpu_backend.cpp" ]
+  deps = [ ":skia" ]
+}
+
+test_app("neonix_skia_command_cpu_backend") {
+  sources = [ "neonix/skia_command_cpu_backend.cpp" ]
+  deps = [ ":skia" ]
+}

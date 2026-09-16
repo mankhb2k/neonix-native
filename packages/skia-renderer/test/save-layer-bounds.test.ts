@@ -185,7 +185,7 @@ describe("Phase 5 — saveLayer bounds and filter lifecycle", () => {
     expect(trace.clipRects).toHaveLength(0);
   });
 
-  it("keeps isolation-only layers on composition bounds without a filter", () => {
+  it("bounds isolation-only layers to their drawable content without a filter", () => {
     const { kit, trace } = makeTraceKit();
     replaySkiaCommands(kit, trace.canvas, {
       commands: [
@@ -201,7 +201,7 @@ describe("Phase 5 — saveLayer bounds and filter lifecycle", () => {
     expect(trace.saveLayers).toHaveLength(1);
     expect(trace.saveLayers[0]?.paint.imageFilter).toBeUndefined();
     expect(trace.saveLayers[0]?.paint.alpha).toBeCloseTo(0.5, 6);
-    expect(trace.saveLayers[0]?.bounds).toEqual([0, 0, 400, 300]);
+    expect(trace.saveLayers[0]?.bounds).toEqual([0, 0, 20, 20]);
   });
 
   it("applies compositeAlpha once on the layer paint and balances save/restore", () => {

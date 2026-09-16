@@ -1,8 +1,10 @@
 import { parseMotionProtocol, type MotionProtocolV2 } from "@motionvideo/motion-protocol";
 import {
+  composeLocalMatrix4,
   evaluateRuntimeProjectV3,
   deriveRuntimeProjectDurationUs,
   frameIndexAtTime,
+  multiplyMatrix4,
   secondsToSamples,
   type PaintCommandBuffer,
   type RuntimeAudioFadeV3,
@@ -14,13 +16,14 @@ import {
   type RuntimeVisualProjectV3,
   type RuntimeVisualNodeDeltaV3,
   type RuntimeVisualTimelineV3,
+  type RuntimeVisualCompileStatsV3,
   validateRuntimeProjectV3,
 } from "@motionvideo/motion-runtime";
 import {
   compileVisualProject,
   type CompileProtocolOptions,
 } from "./compiler";
-import { sampleMotionProtocolAtTime } from "./animation/sampler";
+import { sampleMotionLayerAtTime, sampleMotionProtocolAtTime } from "./animation/sampler";
 
 const RATE = 48000 as const;
 /** Protocol V2 stores all authoring time values in milliseconds. */
@@ -126,15 +129,17 @@ function compileParsedProtocol(
     nodes: visual.nodes,
   };
 
+  const compiledTimeline = bakeVisualTimeline && hasVisualAnimation
+    ? compileVisualTimeline(protocol, visualProject, options)
+    : undefined;
   const runtime: RuntimeProjectV3 = {
     format: "motion-runtime",
     runtimeVersion: 3,
     projectId: protocol.id,
     durationUs: 0,
     visual: visualProject,
-    ...(bakeVisualTimeline && hasVisualAnimation
-      ? { visualTimeline: compileVisualTimeline(protocol, visualProject, options) }
-      : {}),
+    ...(compiledTimeline ? { visualTimeline: compiledTimeline.timeline } : {}),
+    ...(compiledTimeline && options.collectStats ? { compileStats: compiledTimeline.stats } : {}),
     mediaCatalog,
     videoTimeline,
     audioTimeline,
@@ -162,10 +167,23 @@ export function compileProtocolAtTime(
   return compileParsedProtocol(sampleMotionProtocolAtTime(protocol, timeSeconds), options, false);
 }
 
-function runtimeValueFingerprint(input: unknown): string {
-  return JSON.stringify(input, (_key, value: unknown) =>
-    value instanceof Float64Array ? Array.from(value) : value,
-  );
+function runtimeValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (left instanceof Float64Array || right instanceof Float64Array) {
+    if (!(left instanceof Float64Array) || !(right instanceof Float64Array) || left.length !== right.length) return false;
+    return left.every((value, index) => Object.is(value, right[index]));
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((value, index) => runtimeValuesEqual(value, right[index]));
+  }
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const leftKeys = Object.keys(leftRecord);
+  const rightKeys = Object.keys(rightRecord);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => Object.hasOwn(rightRecord, key) && runtimeValuesEqual(leftRecord[key], rightRecord[key]));
 }
 
 function nodeDelta(base: RuntimeNodeV3, candidate: RuntimeNodeV3): RuntimeVisualNodeDeltaV3 | null {
@@ -187,7 +205,7 @@ function nodeDelta(base: RuntimeNodeV3, candidate: RuntimeNodeV3): RuntimeVisual
     "content",
   ];
   for (const key of keys) {
-    if (runtimeValueFingerprint(base[key]) !== runtimeValueFingerprint(candidate[key])) {
+    if (!runtimeValuesEqual(base[key], candidate[key])) {
       delta[key] = candidate[key];
     }
   }
@@ -204,26 +222,177 @@ function compileVisualTimeline(
   protocol: MotionProtocolV2,
   base: RuntimeVisualProjectV3,
   options: CompileProtocolV3Options,
-): RuntimeVisualTimelineV3 {
+): { timeline: RuntimeVisualTimelineV3; stats: RuntimeVisualCompileStatsV3 } {
   const duration = base.composition.duration ?? 1;
   const frameCount = Math.max(1, Math.ceil(duration * base.composition.fps));
   const baseNodes = new Map(base.nodes.map((node) => [node.id, node]));
   const frames: RuntimeVisualTimelineV3["frames"] = [{ nodes: [] }];
+  const animatedLayers = protocol.layers.filter((layer) => (layer.tracks?.length ?? 0) > 0);
+  const animatedLayerIds = new Set(animatedLayers.map((layer) => layer.id));
+  const opacityOnly = animatedLayers.every((layer) => layer.tracks?.every((track) => track.path === "opacity") ?? false);
+  const simpleTransformAnimation = isSimpleTransformAnimation(protocol, animatedLayers);
+  const staticVisual = opacityOnly || simpleTransformAnimation
+    ? new Map(
+        compileVisualProject(
+          {
+            ...protocol,
+            layers: protocol.layers.map((layer) => layer.tracks?.length ? { ...layer, tracks: undefined } : layer),
+          },
+          options,
+        ).nodes.map((node) => [node.id, node]),
+      )
+    : undefined;
+  let totalDeltaNodeCount = 0;
+  let totalDeltaPayloadBytes = 0;
+  let optimizedFrameCount = 0;
+  let fallbackFrameCount = 0;
 
   for (let frame = 1; frame < frameCount; frame += 1) {
     const time = frame / base.composition.fps;
-    const sampled = sampleMotionProtocolAtTime(protocol, time);
-    const visual = compileVisualProject(sampled, options);
-    const nodes = visual.nodes.flatMap((node) => {
-      const baseNode = baseNodes.get(node.id);
-      if (!baseNode) return [];
-      const delta = nodeDelta(baseNode, node);
-      return delta ? [delta] : [];
-    });
+    let nodes: RuntimeVisualNodeDeltaV3[];
+    if (simpleTransformAnimation) {
+      optimizedFrameCount += 1;
+      nodes = compileSimpleTransformFrame(
+        protocol,
+        animatedLayerIds,
+        staticVisual!,
+        base,
+        time,
+      );
+    } else if (opacityOnly) {
+      optimizedFrameCount += 1;
+      nodes = animatedLayers.flatMap((layer) => {
+        const baseNode = baseNodes.get(layer.id);
+        if (!baseNode) return [];
+        const sampledLayer = sampleMotionLayerAtTime(layer, time);
+        const staticNode = staticVisual?.get(layer.id);
+        const visible = staticNode ? staticNode.visible && sampledLayer.opacity > 0 : baseNode.visible;
+        if (sampledLayer.opacity === baseNode.opacity && visible === baseNode.visible) return [];
+        return [{
+          id: layer.id,
+          opacity: sampledLayer.opacity,
+          ...(visible === baseNode.visible ? {} : { visible }),
+        }];
+      });
+    } else {
+      fallbackFrameCount += 1;
+      const sampled = sampleMotionProtocolAtTime(protocol, time);
+      const visual = compileVisualProject(sampled, options);
+      nodes = visual.nodes.flatMap((node) => {
+        const baseNode = baseNodes.get(node.id);
+        if (!baseNode) return [];
+        const delta = nodeDelta(baseNode, node);
+        return delta ? [delta] : [];
+      });
+    }
     frames.push({ nodes });
+    totalDeltaNodeCount += nodes.length;
+    totalDeltaPayloadBytes += nodes.reduce((total, node) => total + estimateRuntimeValueBytes(node), 0);
   }
 
-  return { frames };
+  const divisor = Math.max(1, frames.length);
+  return {
+    timeline: { frames },
+    stats: {
+      staticNodeCount: Math.max(0, base.nodes.length - animatedLayerIds.size),
+      animatedNodeCount: animatedLayerIds.size,
+      frameCount: frames.length,
+      totalDeltaNodeCount,
+      averageDeltaNodesPerFrame: totalDeltaNodeCount / divisor,
+      totalDeltaPayloadBytes,
+      averageDeltaPayloadBytesPerFrame: totalDeltaPayloadBytes / divisor,
+      optimizedFrameCount,
+      fallbackFrameCount,
+    },
+  };
+}
+
+const SIMPLE_TRANSFORM_PATH = /^transform\.(translate|scale|rotate|skew)\.(x|y|z)$/;
+
+function isSimpleTransformAnimation(
+  protocol: MotionProtocolV2,
+  animatedLayers: MotionProtocolV2["layers"],
+): boolean {
+  if (animatedLayers.length === 0) return false;
+  if ((protocol.clipPaths?.length ?? 0) > 0 || (protocol.masks?.length ?? 0) > 0) return false;
+  return protocol.layers.every((layer) => !layer.motion && (layer.type !== "group" || !layer.render3d)) && animatedLayers.every((layer) =>
+    layer.type === "group" &&
+    layer.tracks?.every((track) => track.path === "opacity" || SIMPLE_TRANSFORM_PATH.test(track.path)) === true,
+  );
+}
+
+function compileSimpleTransformFrame(
+  protocol: MotionProtocolV2,
+  animatedLayerIds: ReadonlySet<string>,
+  staticNodes: ReadonlyMap<string, RuntimeNodeV3>,
+  base: RuntimeVisualProjectV3,
+  time: number,
+): RuntimeVisualNodeDeltaV3[] {
+  const layerById = new Map(protocol.layers.map((layer) => [layer.id, layer]));
+  const sampledById = new Map(protocol.layers.map((layer) => [
+    layer.id,
+    animatedLayerIds.has(layer.id) ? sampleMotionLayerAtTime(layer, time) : layer,
+  ]));
+  const baseById = new Map(base.nodes.map((node) => [node.id, node]));
+  const candidates = new Map<string, RuntimeNodeV3>();
+  const visiting = new Set<string>();
+
+  const visit = (node: RuntimeNodeV3): RuntimeNodeV3 => {
+    const cached = candidates.get(node.id);
+    if (cached) return cached;
+    if (visiting.has(node.id)) return node;
+    visiting.add(node.id);
+    const parentNode = node.parentId ? staticNodes.get(node.parentId) : undefined;
+    const parent = parentNode ? visit(parentNode) : undefined;
+    const layer = layerById.get(node.id);
+    const sampledLayer = layer ? sampledById.get(node.id) : undefined;
+    const localMatrix = sampledLayer && animatedLayerIds.has(node.id)
+      ? composeLocalMatrix4(sampledLayer.transform)
+      : node.localMatrix;
+    const worldMatrix = parent
+      ? multiplyMatrix4(parent.worldMatrix, localMatrix)
+      : localMatrix;
+    const parentVisible = parent?.visible ?? true;
+    const visible = layer
+      ? parentVisible &&
+        layer.enabled !== false &&
+        (layer.visibility ?? "visible") === "visible" &&
+        (sampledLayer?.opacity ?? layer.opacity) > 0 &&
+        node.timing.duration > 0
+      : node.visible && parentVisible;
+    const candidate = {
+      ...node,
+      ...(sampledLayer && animatedLayerIds.has(node.id) ? { opacity: sampledLayer.opacity } : {}),
+      localMatrix,
+      worldMatrix,
+      visible,
+    };
+    candidates.set(node.id, candidate);
+    visiting.delete(node.id);
+    return candidate;
+  };
+
+  for (const node of staticNodes.values()) visit(node);
+  return Array.from(candidates.values()).flatMap((candidate) => {
+    const baseNode = baseById.get(candidate.id);
+    if (!baseNode) return [];
+    const delta = nodeDelta(baseNode, candidate);
+    return delta ? [delta] : [];
+  });
+}
+
+function estimateRuntimeValueBytes(value: unknown): number {
+  if (value === null || value === undefined) return 1;
+  if (typeof value === "boolean") return 4;
+  if (typeof value === "number") return 8;
+  if (typeof value === "string") return value.length * 2 + 2;
+  if (value instanceof Float64Array) return value.length * 8;
+  if (Array.isArray(value)) return 2 + value.reduce((total, item) => total + estimateRuntimeValueBytes(item), 0);
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .reduce((total, [key, item]) => total + key.length * 2 + 2 + estimateRuntimeValueBytes(item), 2);
+  }
+  return 0;
 }
 
 /** Compile one V3 visual frame into the backend-neutral paint contract. */

@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -12,8 +13,9 @@ export type UserBucket = "assets" | "exports" | "system";
 
 export type PutObjectInput = {
   key: string;
-  body: Buffer;
+  body: Buffer | Readable;
   contentType: string;
+  contentLength?: number;
 };
 
 export type PresignPutResult = {
@@ -142,7 +144,22 @@ export class R2StorageProvider {
       Key: input.key,
       Body: input.body,
       ContentType: input.contentType,
+      ...(input.contentLength !== undefined ? { ContentLength: input.contentLength } : {}),
     }));
+  }
+
+  async putObjectFromWebStream(input: {
+    key: string;
+    body: globalThis.ReadableStream<Uint8Array>;
+    contentType: string;
+    contentLength?: number;
+  }): Promise<void> {
+    await this.putObject({
+      key: input.key,
+      body: Readable.fromWeb(input.body as Parameters<typeof Readable.fromWeb>[0]),
+      contentType: input.contentType,
+      ...(input.contentLength !== undefined ? { contentLength: input.contentLength } : {}),
+    });
   }
 
   async getObject(key: string): Promise<Buffer | null> {
@@ -163,10 +180,14 @@ export class R2StorageProvider {
     }));
   }
 
-  async headObject(key: string): Promise<{ sizeBytes: number; contentType?: string } | null> {
+  async headObject(key: string): Promise<{ sizeBytes: number; contentType?: string; eTag?: string } | null> {
     try {
       const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
-      return { sizeBytes: result.ContentLength ?? 0, contentType: result.ContentType };
+      return {
+        sizeBytes: result.ContentLength ?? 0,
+        contentType: result.ContentType,
+        eTag: result.ETag?.replace(/^"|"$/g, "") || undefined,
+      };
     } catch {
       return null;
     }

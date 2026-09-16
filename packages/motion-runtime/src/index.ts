@@ -58,7 +58,15 @@ export * from "./project/identity";
 export * from "./audio/offline-audio";
 export * from "./audio/audio-mixing";
 
-export { evaluateVisualRuntimeProject } from "./visual/evaluate";
+export {
+  evaluateVisualRuntimeProject,
+  evaluatePreparedVisualRuntimeProject,
+  prepareVisualRuntimeProject,
+} from "./visual/evaluate";
+export type {
+  PreparedVisualRuntimeProject,
+  VisualRuntimeNodeOverride,
+} from "./visual/evaluate";
 export {
   assertVisualRuntimeFrame,
   assertVisualRuntimeProject,

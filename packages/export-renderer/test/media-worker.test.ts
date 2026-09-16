@@ -91,7 +91,7 @@ describe("media worker", () => {
     expect(result.derivatives[0]?.kind).toBe("poster");
   });
 
-  it("does not create a poster when the browser poster is missing", async () => {
+  it("generates a poster when no browser poster exists", async () => {
     const { store, objects } = fakeStore(Buffer.from("origin-video"));
     const ffmpegArgs: string[][] = [];
     const result = await prepareMediaJob({
@@ -108,12 +108,42 @@ describe("media worker", () => {
       callback: async () => undefined,
     });
 
-    expect(result.status).toBe("partial");
-    expect(result.error).toContain("browser poster object not found");
-    expect(result.derivatives.map((item) => item.kind)).toEqual(["audio"]);
+    expect(result.status).toBe("ready");
+    expect(result.error).toBeUndefined();
+    expect(result.derivatives.map((item) => item.kind)).toEqual(["poster", "audio"]);
+    expect(ffmpegArgs).toHaveLength(2);
+    expect(ffmpegArgs[0]?.some((argument) => argument.endsWith("poster.webp"))).toBe(true);
+    expect(ffmpegArgs[1]).toContain("0:a:0");
+    expect(objects.has("asset-missing-poster/poster.webp")).toBe(true);
+  });
+
+  it("prepares audio-only assets without requiring a video or poster", async () => {
+    const { store, objects } = fakeStore(Buffer.from("origin-audio"));
+    const ffmpegArgs: string[][] = [];
+    const result = await prepareMediaJob({
+      jobId: "job-audio-only",
+      assetId: "asset-audio-only",
+      sourceKey: "audio/origin.mp3",
+      sourceMimeType: "audio/mpeg",
+      mediaKind: "audio",
+      derivativePrefix: "audio",
+      sourceIntegrity: "r2:12:audio/origin.mp3",
+      callbackUrl: "https://web.example.test/api/internal/media-jobs/callback",
+    }, {
+      store: {
+        async getObject(key) { return key === "audio/origin.mp3" ? Buffer.from("origin-audio") : objects.get(key) ?? null; },
+        async putObject(input) { objects.set(input.key, input.body); },
+      },
+      probe: async () => ({ assetId: "asset-audio-only", status: "processing", streams: [{ streamId: "audio", kind: "audio", sampleRate: 48000, channels: 2, durationSamples: 96000 }], derivatives: [], updatedAt: "", version: 0 }),
+      runFfmpeg: async (args) => { ffmpegArgs.push([...args]); await writeFile(String(args.at(-1)), Buffer.from("audio")); },
+      callback: async () => undefined,
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.derivatives.map((item) => item.uri)).toEqual(["audio/audio.m4a"]);
     expect(ffmpegArgs).toHaveLength(1);
     expect(ffmpegArgs[0]).toContain("0:a:0");
-    expect(objects.has("asset-missing-poster/poster.webp")).toBe(false);
+    expect(objects.has("audio/poster.webp")).toBe(false);
   });
 
   it("reports failed when the origin cannot be probed", async () => {

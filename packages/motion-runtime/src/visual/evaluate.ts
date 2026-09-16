@@ -21,7 +21,7 @@ function assertFrame(frame: number): void {
   }
 }
 
-function stableNodeOrder(nodes: VisualRuntimeNode[]): VisualRuntimeNode[] {
+function stableNodeOrder(nodes: readonly VisualRuntimeNode[]): VisualRuntimeNode[] {
   return [...nodes].sort(
     (left, right) =>
       left.order - right.order ||
@@ -153,17 +153,20 @@ function resolveVideoMedia(
  * calculation belongs to Compiler B; this evaluator only resolves active
  * windows, stable order, and the already-resolved runtime matrices.
  */
-export function evaluateVisualRuntimeProject(
-  project: VisualRuntimeProject,
-  frame: number,
-  options: { time?: number; outputScale?: number } = {},
-): VisualRuntimeFrame {
-  // Native VPS export inputProps cross a JSON boundary. Rehydrate Matrix4 values before
+export type VisualRuntimeNodeOverride = Partial<Omit<VisualRuntimeNode, "id">>;
+
+export type PreparedVisualRuntimeProject = {
+  project: VisualRuntimeProject;
+  childrenByParent: ReadonlyMap<string | null, readonly VisualRuntimeNode[]>;
+};
+
+/** Normalize, validate and index a visual project once before frame evaluation. */
+export function prepareVisualRuntimeProject(project: VisualRuntimeProject): PreparedVisualRuntimeProject {
+  // Native VPS inputProps cross a JSON boundary. Rehydrate Matrix4 values before
   // validation and arithmetic; otherwise serialized typed arrays are plain
   // objects without a numeric length and matrix operations produce NaN.
-  project = normalizeVisualRuntimeProject(project);
-  assertFrame(frame);
-  const validation = validateVisualRuntimeProject(project);
+  const normalized = normalizeVisualRuntimeProject(project);
+  const validation = validateVisualRuntimeProject(normalized);
   if (!validation.ok) {
     throw new Error(
       `Runtime V2 validation failed: ${validation.diagnostics
@@ -172,6 +175,35 @@ export function evaluateVisualRuntimeProject(
         .join(" | ")}`,
     );
   }
+  const childrenByParent = new Map<string | null, VisualRuntimeNode[]>();
+  for (const node of normalized.nodes) {
+    const siblings = childrenByParent.get(node.parentId) ?? [];
+    siblings.push(node);
+    childrenByParent.set(node.parentId, siblings);
+  }
+  for (const [parentId, children] of childrenByParent) {
+    childrenByParent.set(parentId, stableNodeOrder(children));
+  }
+  return { project: normalized, childrenByParent };
+}
+
+export function evaluateVisualRuntimeProject(
+  project: VisualRuntimeProject,
+  frame: number,
+  options: { time?: number; outputScale?: number } = {},
+): VisualRuntimeFrame {
+  return evaluatePreparedVisualRuntimeProject(prepareVisualRuntimeProject(project), frame, options);
+}
+
+/** Evaluate an indexed visual project without repeating normalization or validation. */
+export function evaluatePreparedVisualRuntimeProject(
+  prepared: PreparedVisualRuntimeProject,
+  frame: number,
+  options: { time?: number; outputScale?: number } = {},
+  overrides?: ReadonlyMap<string, VisualRuntimeNodeOverride>,
+): VisualRuntimeFrame {
+  const project = prepared.project;
+  assertFrame(frame);
   if (!Number.isFinite(project.composition.fps) || project.composition.fps <= 0) {
     throw new Error("Runtime V2 composition fps must be finite and positive");
   }
@@ -200,14 +232,38 @@ export function evaluateVisualRuntimeProject(
   ];
   const diagnostics = [] as NonNullable<VisualRuntimeFrame["diagnostics"]>;
 
-  const childrenByParent = new Map<string | null, VisualRuntimeNode[]>();
-  for (const node of project.nodes) {
-    const siblings = childrenByParent.get(node.parentId) ?? [];
-    siblings.push(node);
-    childrenByParent.set(node.parentId, siblings);
-  }
-  const childrenOf = (parentId: string | null) =>
-    stableNodeOrder(childrenByParent.get(parentId) ?? []);
+  const overrideMap = overrides ?? new Map<string, VisualRuntimeNodeOverride>();
+  const resolvedNodes = new Map<string, VisualRuntimeNode>();
+  const resolveNode = (node: VisualRuntimeNode): VisualRuntimeNode => {
+    const cached = resolvedNodes.get(node.id);
+    if (cached) return cached;
+    const override = overrideMap.get(node.id);
+    const resolved = override ? { ...node, ...override, id: node.id } : node;
+    resolvedNodes.set(node.id, resolved);
+    return resolved;
+  };
+  const hasStructuralOverrides = Array.from(overrideMap.values()).some(
+    (override) => override.parentId !== undefined || override.order !== undefined,
+  );
+  const childrenByParent = hasStructuralOverrides
+    ? (() => {
+        const indexed = new Map<string | null, VisualRuntimeNode[]>();
+        for (const node of project.nodes) {
+          const resolved = resolveNode(node);
+          const siblings = indexed.get(resolved.parentId) ?? [];
+          siblings.push(resolved);
+          indexed.set(resolved.parentId, siblings);
+        }
+        for (const [parentId, children] of indexed) indexed.set(parentId, stableNodeOrder(children));
+        return indexed;
+      })()
+    : prepared.childrenByParent;
+  const childrenOf = (parentId: string | null) => {
+    const children = childrenByParent.get(parentId) ?? [];
+    if (hasStructuralOverrides) return children;
+    if (overrideMap.size === 0) return children;
+    return children.map(resolveNode);
+  };
   const subtreeHasActiveDrawable = (node: VisualRuntimeNode): boolean => {
     if (!nodeIsActive(node, time)) return false;
     if (node.content.kind === "group") return childrenOf(node.id).some(subtreeHasActiveDrawable);
@@ -550,7 +606,7 @@ export function evaluateVisualRuntimeProject(
     }
   };
 
-  const effectBoxFor = (node: VisualRuntimeNode, directChildren: VisualRuntimeNode[] = []) => {
+  const effectBoxFor = (node: VisualRuntimeNode, directChildren: readonly VisualRuntimeNode[] = []) => {
     // Runtime V3 needs the owner's geometric box whenever the Skia backend
     // must replay an ordered box-shadow list from isolated masks. This is not
     // limited to inset shadows: a list containing multiple outer shadows may

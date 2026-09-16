@@ -5,6 +5,8 @@ export const RenderJobStatusSchema = z.enum([
   "planning",
   "rendering",
   "encoding",
+  "muxing",
+  "publishing",
   "done",
   "failed",
   "cancelled",

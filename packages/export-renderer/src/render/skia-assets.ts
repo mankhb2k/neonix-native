@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { performance } from "node:perf_hooks";
+import type { Readable } from "node:stream";
 import sharp from "sharp";
 import type {
   PaintCommand,
@@ -16,6 +18,32 @@ export type SkiaAssetResolverOptions = {
   /** The app's `public` directory, for example `apps/web/public`. */
   assetRoot: string;
   ffmpegPath: string;
+  /** Input-side seek is substantially faster for non-sequential access. */
+  videoSeekMode?: "fast" | "accurate";
+  /** Maximum number of raw and resized video frames retained per resolver. */
+  maxVideoCacheEntries?: number;
+};
+
+export type SkiaAssetResolverStats = {
+  imageCacheHits: number;
+  imageCacheMisses: number;
+  videoCacheHits: number;
+  videoCacheMisses: number;
+  videoDecodeCount: number;
+  videoDecodeMilliseconds: number;
+  videoResizeCount: number;
+  videoResizeMilliseconds: number;
+  resolveCount: number;
+  resolveMilliseconds: number;
+  resolveSamplesMilliseconds: number[];
+  videoCacheEntries: number;
+  videoOutputCacheHits: number;
+  videoOutputCacheMisses: number;
+  videoOutputCacheEntries: number;
+  videoDecoderSessionStarts: number;
+  videoDecoderSessionResets: number;
+  videoCacheEvictions: number;
+  videoOutputCacheEvictions: number;
 };
 
 type DecodedImage = {
@@ -99,9 +127,17 @@ async function decodeImage(bytes: Uint8Array, uri: string, fallbackWidth: number
   }
 }
 
-async function extractVideoFrame(ffmpegPath: string, filePath: string, mediaTime: number): Promise<Uint8Array> {
+async function extractVideoFrame(
+  ffmpegPath: string,
+  filePath: string,
+  mediaTime: number,
+  seekMode: "fast" | "accurate",
+): Promise<Uint8Array> {
+  const seekArgs = seekMode === "fast"
+    ? ["-accurate_seek", "-ss", String(Math.max(0, mediaTime)), "-i", filePath]
+    : ["-i", filePath, "-ss", String(Math.max(0, mediaTime))];
   const args = [
-    "-hide_banner", "-loglevel", "error", "-i", filePath, "-ss", String(Math.max(0, mediaTime)),
+    "-hide_banner", "-loglevel", "error", ...seekArgs,
     "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
   ];
   const child = spawn(ffmpegPath, args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -124,6 +160,74 @@ async function extractVideoFrame(ffmpegPath: string, filePath: string, mediaTime
   return bytes;
 }
 
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_IEND = Buffer.from("IEND", "ascii");
+
+/** Reads one complete PNG from FFmpeg's concatenated image2pipe stream. */
+class PngStreamReader {
+  private buffer = Buffer.alloc(0);
+  private readonly iterator: AsyncIterator<Buffer>;
+
+  constructor(private readonly stdout: NodeJS.ReadableStream) {
+    this.iterator = stdout[Symbol.asyncIterator]() as AsyncIterator<Buffer>;
+  }
+
+  async next(): Promise<Uint8Array> {
+    for (;;) {
+      const frame = this.takeFrame();
+      if (frame) return frame;
+      const chunk = await this.iterator.next();
+      if (chunk.done) throw new Error("FFmpeg ended before producing the requested sequential frame.");
+      this.buffer = Buffer.concat([this.buffer, Buffer.from(chunk.value)]);
+    }
+  }
+
+  private takeFrame(): Uint8Array | undefined {
+    const signatureAt = this.buffer.indexOf(PNG_SIGNATURE);
+    if (signatureAt < 0) {
+      this.buffer = this.buffer.subarray(Math.max(0, this.buffer.length - PNG_SIGNATURE.length + 1));
+      return undefined;
+    }
+    if (signatureAt > 0) this.buffer = this.buffer.subarray(signatureAt);
+    let offset = PNG_SIGNATURE.length;
+    while (offset + 12 <= this.buffer.length) {
+      const length = this.buffer.readUInt32BE(offset);
+      const end = offset + 12 + length;
+      if (end > this.buffer.length) return undefined;
+      if (this.buffer.subarray(offset + 4, offset + 8).equals(PNG_IEND)) {
+        const frame = this.buffer.subarray(0, end);
+        this.buffer = this.buffer.subarray(end);
+        return frame;
+      }
+      offset = end;
+    }
+    return undefined;
+  }
+}
+
+class FfmpegSequentialFrameDecoder {
+  private readonly child: ChildProcessByStdio<null, Readable, Readable>;
+  private readonly reader: PngStreamReader;
+
+  constructor(ffmpegPath: string, filePath: string, mediaTime: number) {
+    this.child = spawn(ffmpegPath, [
+      "-hide_banner", "-loglevel", "error", "-accurate_seek", "-ss", String(Math.max(0, mediaTime)),
+      "-i", filePath, "-an", "-vsync", "0", "-f", "image2pipe", "-vcodec", "png", "pipe:1",
+    ], { stdio: ["ignore", "pipe", "pipe"] });
+    this.reader = new PngStreamReader(this.child.stdout);
+  }
+
+  next(): Promise<Uint8Array> {
+    return this.reader.next();
+  }
+
+  dispose(): void {
+    this.child.stdout.destroy();
+    this.child.stderr.destroy();
+    this.child.kill();
+  }
+}
+
 async function resizeVideoFrame(bytes: Uint8Array, width: number, height: number): Promise<Uint8Array> {
   try {
     // PreviewStage intentionally rasterizes HTMLVideoElement frames to the
@@ -142,48 +246,213 @@ async function resizeVideoFrame(bytes: Uint8Array, width: number, height: number
 export class SkiaFrameAssetResolver {
   private readonly imageCache = new Map<string, Promise<DecodedImage>>();
   private readonly videoFrameCache = new Map<string, Promise<Uint8Array>>();
+  private readonly videoOutputCache = new Map<string, Promise<Uint8Array>>();
+  private readonly maxVideoCacheEntries: number;
+  private sequentialDecoder: {
+    filePath: string;
+    nextMediaTime: number;
+    frameStep: number;
+    decoder: FfmpegSequentialFrameDecoder;
+  } | null = null;
+  private sequentialCandidate: { filePath: string; lastMediaTime: number; frameStep: number } | null = null;
+  private readonly stats: Omit<SkiaAssetResolverStats, "videoCacheEntries" | "videoOutputCacheEntries"> = {
+    imageCacheHits: 0,
+    imageCacheMisses: 0,
+    videoCacheHits: 0,
+    videoCacheMisses: 0,
+    videoDecodeCount: 0,
+    videoDecodeMilliseconds: 0,
+    videoResizeCount: 0,
+    videoResizeMilliseconds: 0,
+    resolveCount: 0,
+    resolveMilliseconds: 0,
+    resolveSamplesMilliseconds: [],
+    videoOutputCacheHits: 0,
+    videoOutputCacheMisses: 0,
+    videoDecoderSessionStarts: 0,
+    videoDecoderSessionResets: 0,
+    videoCacheEvictions: 0,
+    videoOutputCacheEvictions: 0,
+  };
 
-  constructor(private readonly options: SkiaAssetResolverOptions) {}
+  constructor(private readonly options: SkiaAssetResolverOptions) {
+    const configured = options.maxVideoCacheEntries;
+    this.maxVideoCacheEntries = Number.isFinite(configured) && configured !== undefined
+      ? Math.max(1, Math.floor(configured))
+      : 48;
+  }
+
+  getStats(): SkiaAssetResolverStats {
+    return {
+      ...this.stats,
+      resolveSamplesMilliseconds: [...this.stats.resolveSamplesMilliseconds],
+      videoCacheEntries: this.videoFrameCache.size,
+      videoOutputCacheEntries: this.videoOutputCache.size,
+    };
+  }
+
+  dispose(): void {
+    this.sequentialDecoder?.decoder.dispose();
+    this.sequentialDecoder = null;
+    this.sequentialCandidate = null;
+  }
 
   async resolveFrameAssets(project: RuntimeProjectV3, buffer: PaintCommandBuffer): Promise<ReadonlyMap<string, SkiaAsset>> {
+    const startedAt = performance.now();
     const assets = new Map<string, SkiaAsset>();
-    for (const command of buffer.commands) {
-      if (command.op === "drawImage") {
-        if (assets.has(command.assetId)) continue;
-        const uri = mediaResourceUri(project, command);
-        if (!uri) {
-          throw new ExportRendererError(`Image asset '${command.assetId}' has no URI.`, "ASSET_NOT_FOUND", { assetId: command.assetId });
+    try {
+      for (const command of buffer.commands) {
+        if (command.op === "drawImage") {
+          if (assets.has(command.assetId)) continue;
+          const uri = mediaResourceUri(project, command);
+          if (!uri) {
+            throw new ExportRendererError(`Image asset '${command.assetId}' has no URI.`, "ASSET_NOT_FOUND", { assetId: command.assetId });
+          }
+          const filePath = resolveLocalPreviewAssetPath(uri, this.options.assetRoot);
+          const hadImage = this.imageCache.has(filePath);
+          if (hadImage) this.stats.imageCacheHits += 1;
+          else this.stats.imageCacheMisses += 1;
+          const image = await this.loadImage(filePath, uri, command.width, command.height);
+          assets.set(command.assetId, {
+            encoded: image.bytes,
+            width: image.width,
+            height: image.height,
+            kind: "image",
+          });
+        } else if (command.op === "drawVideo") {
+          const uri = mediaResourceUri(project, command);
+          if (!uri) {
+            throw new ExportRendererError(`Video asset '${command.assetId}' has no URI.`, "ASSET_NOT_FOUND", { assetId: command.assetId });
+          }
+          const filePath = resolveLocalPreviewAssetPath(uri, this.options.assetRoot);
+          const key = `${filePath}\0${Math.max(0, command.mediaTime).toFixed(6)}`;
+          let frame = this.getVideoCacheEntry(this.videoFrameCache, key);
+          if (frame) {
+            this.stats.videoCacheHits += 1;
+          } else {
+            this.stats.videoCacheMisses += 1;
+            this.stats.videoDecodeCount += 1;
+            const decodeStartedAt = performance.now();
+            frame = this.loadVideoFrame(project, filePath, command.mediaTime).then(
+              (bytes) => {
+                this.stats.videoDecodeMilliseconds += performance.now() - decodeStartedAt;
+                return bytes;
+              },
+              (error) => {
+                this.stats.videoDecodeMilliseconds += performance.now() - decodeStartedAt;
+                throw error;
+              },
+            );
+            this.setVideoCacheEntry(this.videoFrameCache, key, frame, false);
+          }
+          const dimensions = mediaVideoDimensions(project, command);
+          const outputKey = `${key}\0${dimensions.width}x${dimensions.height}`;
+          let encoded = this.getVideoCacheEntry(this.videoOutputCache, outputKey);
+          if (encoded) {
+            this.stats.videoOutputCacheHits += 1;
+          } else {
+            this.stats.videoOutputCacheMisses += 1;
+            encoded = frame.then(async (decodedFrame) => {
+              const resizeStartedAt = performance.now();
+              const resized = await resizeVideoFrame(decodedFrame, dimensions.width, dimensions.height);
+              this.stats.videoResizeCount += 1;
+              this.stats.videoResizeMilliseconds += performance.now() - resizeStartedAt;
+              return resized;
+            });
+            this.setVideoCacheEntry(this.videoOutputCache, outputKey, encoded, true);
+          }
+          const encodedBytes = await encoded;
+          assets.set(command.assetId, {
+            encoded: encodedBytes,
+            width: dimensions.width,
+            height: dimensions.height,
+            kind: "video",
+          });
         }
-        const filePath = resolveLocalPreviewAssetPath(uri, this.options.assetRoot);
-        const image = await this.loadImage(filePath, uri, command.width, command.height);
-        assets.set(command.assetId, {
-          encoded: image.bytes,
-          width: image.width,
-          height: image.height,
-          kind: "image",
-        });
-      } else if (command.op === "drawVideo") {
-        const uri = mediaResourceUri(project, command);
-        if (!uri) {
-          throw new ExportRendererError(`Video asset '${command.assetId}' has no URI.`, "ASSET_NOT_FOUND", { assetId: command.assetId });
-        }
-        const filePath = resolveLocalPreviewAssetPath(uri, this.options.assetRoot);
-        const key = `${filePath}\0${Math.max(0, command.mediaTime).toFixed(6)}`;
-        let frame = this.videoFrameCache.get(key);
-        if (!frame) {
-          frame = extractVideoFrame(this.options.ffmpegPath, filePath, command.mediaTime);
-          this.videoFrameCache.set(key, frame);
-        }
-        const dimensions = mediaVideoDimensions(project, command);
-        assets.set(command.assetId, {
-          encoded: await resizeVideoFrame(await frame, dimensions.width, dimensions.height),
-          width: dimensions.width,
-          height: dimensions.height,
-          kind: "video",
-        });
       }
+      return assets;
+    } finally {
+      const elapsed = performance.now() - startedAt;
+      this.stats.resolveCount += 1;
+      this.stats.resolveMilliseconds += elapsed;
+      this.stats.resolveSamplesMilliseconds.push(elapsed);
     }
-    return assets;
+  }
+
+  private async loadVideoFrame(project: RuntimeProjectV3, filePath: string, mediaTime: number): Promise<Uint8Array> {
+    const seekMode = this.options.videoSeekMode ?? "fast";
+    const stream = project.mediaCatalog.assets
+      .find((asset) => asset.video?.some((candidate) => candidate.resource.uri))
+      ?.video?.[0];
+    const frameStep = stream && Number.isFinite(stream.frameRate) && stream.frameRate > 0
+      ? 1 / stream.frameRate
+      : 1 / 30;
+    const canContinue = seekMode === "fast"
+      && this.sequentialDecoder
+      && this.sequentialDecoder.filePath === filePath
+      && Math.abs(mediaTime - this.sequentialDecoder.nextMediaTime) <= Math.max(1e-4, frameStep / 10);
+    const canStartSession = seekMode === "fast"
+      && !this.sequentialDecoder
+      && this.sequentialCandidate
+      && this.sequentialCandidate.filePath === filePath
+      && Math.abs(mediaTime - (this.sequentialCandidate.lastMediaTime + this.sequentialCandidate.frameStep))
+        <= Math.max(1e-4, frameStep / 10);
+
+    if (!canContinue) {
+      if (this.sequentialDecoder) {
+        this.stats.videoDecoderSessionResets += 1;
+        this.sequentialDecoder.decoder.dispose();
+        this.sequentialDecoder = null;
+      }
+      if (canStartSession) {
+        const decoder = new FfmpegSequentialFrameDecoder(this.options.ffmpegPath, filePath, mediaTime);
+        this.stats.videoDecoderSessionStarts += 1;
+        this.sequentialDecoder = { filePath, nextMediaTime: mediaTime + frameStep, frameStep, decoder };
+        this.sequentialCandidate = null;
+        try {
+          return await decoder.next();
+        } catch (error) {
+          decoder.dispose();
+          this.sequentialDecoder = null;
+          throw new ExportRendererError(
+            `FFmpeg could not extract video frame at ${mediaTime}s from '${filePath}': ${String(error)}`,
+            "ASSET_DECODE_FAILED",
+            { filePath, mediaTime },
+          );
+        }
+      }
+      const frame = await extractVideoFrame(this.options.ffmpegPath, filePath, mediaTime, seekMode);
+      this.sequentialCandidate = { filePath, lastMediaTime: mediaTime, frameStep };
+      return frame;
+    }
+
+    const session = this.sequentialDecoder;
+    if (!session) throw new Error("Sequential decoder session was lost.");
+    const frame = await session.decoder.next();
+    session.nextMediaTime = mediaTime + session.frameStep;
+    this.sequentialCandidate = { filePath, lastMediaTime: mediaTime, frameStep: session.frameStep };
+    return frame;
+  }
+
+  private getVideoCacheEntry<T>(cache: Map<string, T>, key: string): T | undefined {
+    const value = cache.get(key);
+    if (value !== undefined) {
+      cache.delete(key);
+      cache.set(key, value);
+    }
+    return value;
+  }
+
+  private setVideoCacheEntry<T>(cache: Map<string, T>, key: string, value: T, output: boolean): void {
+    cache.delete(key);
+    cache.set(key, value);
+    while (cache.size > this.maxVideoCacheEntries) {
+      const oldest = cache.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      cache.delete(oldest);
+      if (output) this.stats.videoOutputCacheEvictions += 1;
+      else this.stats.videoCacheEvictions += 1;
+    }
   }
 
   private loadImage(filePath: string, uri: string, fallbackWidth: number, fallbackHeight: number): Promise<DecodedImage> {

@@ -78,12 +78,20 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     backend: "skia",
     presentationMode: usingDirectPresentation ? "direct" : "readback",
     drawCalls: 0,
+    textTimeMs: 0,
+    layerTimeMs: 0,
+    endLayerTimeMs: 0,
+    pathTimeMs: 0,
+    shapeTimeMs: 0,
     skippedCommands: 0,
     nativeTextGlyphs: 0,
     nativeColorTextGlyphs: 0,
     outlineTextGlyphs: 0,
     colorTextGlyphs: 0,
     frameTimeMs: 0,
+    replayTimeMs: 0,
+    flushTimeMs: 0,
+    readbackTimeMs: 0,
     textureUploads: 0,
     videoTextureUploads: 0,
     imageCacheHits: 0,
@@ -103,10 +111,12 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
   const assets = new Map<string, SkiaAsset>(options.assets ?? []);
   const fonts = new Map<string, SkiaFontAsset>(options.fonts ?? []);
   const typefaces = new Map<string, { source: SkiaFontAsset; typeface: SkiaTypeface }>();
+  const fontCache = new Map<string, { source: SkiaFontAsset; font: import("./canvas-kit").SkiaFont }>();
   const imageCache = new Map<string, { identity: string; image: import("./canvas-kit").SkiaImage }>();
   const filterCache = new Map<string, { filter: import("./canvas-kit").SkiaImageFilter | null; supported: boolean }>();
   const maskCache = new Map<string, import("./canvas-kit").SkiaImage>();
   const projectiveMeshCache = new Map<string, import("./command/geometry").ProjectiveTextureMesh | null>();
+  const pathCache = new Map<string, { signature: string; path: import("./canvas-kit").SkiaPath }>();
   const pooledSurfaces = new Map<string, SkiaSurface[]>();
   const maxPooledSurfaces = 8;
   const replayResources: SkiaReplayResources = {
@@ -114,6 +124,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     filterCache,
     maskCache,
     projectiveMeshCache,
+    pathCache,
     surfacePool: {
       acquire(surfaceWidth, surfaceHeight) {
         const key = `${surfaceWidth}x${surfaceHeight}`;
@@ -137,6 +148,11 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     },
   };
   const releaseTypeface = (fontAssetId: string) => {
+    for (const [key, cachedFont] of fontCache) {
+      if (!key.startsWith(`${fontAssetId}\0`)) continue;
+      cachedFont.font.delete();
+      fontCache.delete(key);
+    }
     const cached = typefaces.get(fontAssetId);
     cached?.typeface.delete();
     typefaces.delete(fontAssetId);
@@ -152,6 +168,20 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     if (!typeface) return null;
     typefaces.set(fontAssetId, { source, typeface });
     return typeface;
+  };
+  const fontFor = (fontAssetId: string | undefined, fontSize: number): import("./canvas-kit").SkiaFont | null => {
+    if (!fontAssetId || !Number.isFinite(fontSize) || fontSize <= 0) return null;
+    const source = fonts.get(fontAssetId);
+    const typeface = typefaceFor(fontAssetId);
+    if (!source || !typeface) return null;
+    const key = `${fontAssetId}\0${fontSize}`;
+    const cached = fontCache.get(key);
+    if (cached?.source === source) return cached.font;
+    cached?.font.delete();
+    const font = new kit.Font(typeface, fontSize);
+    font.setSubpixel(true);
+    fontCache.set(key, { source, font });
+    return font;
   };
   const cacheMetrics = () => {
     const pooledSurfaceCount = [...pooledSurfaces.values()].reduce((total, bucket) => total + bucket.length, 0);
@@ -194,7 +224,9 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
     // to physical scale used by the GPU preview backends.
     canvas.save();
     if (dpr !== 1) canvas.concat([dpr, 0, 0, 0, dpr, 0, 0, 0, 1]);
-    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, typefaceFor, dpr, replayResources);
+    const replayStarted = performance.now();
+    const replay = replaySkiaCommands(kit, canvas, buffer, assets, options.background, fontFor, dpr, replayResources);
+    const replayTimeMs = performance.now() - replayStarted;
     canvas.restore();
     if (replay.skippedCommands) {
       add({ severity: "warning", code: "skia_command_unsupported", message: `Skia skipped ${replay.skippedCommands} command(s)`, key: "skia" });
@@ -221,7 +253,9 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
               : "skia_replay_diagnostic";
       add({ severity: "warning", code, message: replayDiagnostic, key: "skia" });
     }
+    const flushStarted = performance.now();
     activeSurface.flush();
+    const flushTimeMs = performance.now() - flushStarted;
     // A live browser preview should stay on the GPU presentation path. The
     // readback bridge is intentionally retained for export, pixel tests and
     // CPU post-processing callers that explicitly need RGBA bytes.
@@ -230,6 +264,11 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
         ...stats,
         presentationMode: "direct",
         drawCalls: replay.drawCalls,
+        textTimeMs: replay.textTimeMs,
+        layerTimeMs: replay.layerTimeMs,
+        endLayerTimeMs: replay.endLayerTimeMs,
+        pathTimeMs: replay.pathTimeMs,
+        shapeTimeMs: replay.shapeTimeMs,
         skippedCommands: replay.skippedCommands,
         textureUploads: replay.textureUploads,
         videoTextureUploads: replay.videoTextureUploads,
@@ -248,6 +287,7 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       };
       return stats;
     }
+    const readbackStarted = performance.now();
     const pixels = canvas.readPixels(0, 0, {
       width: backingWidth,
       height: backingHeight,
@@ -265,10 +305,16 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
         target.putImageData(new ImageData(new Uint8ClampedArray(pixels), backingWidth, backingHeight), 0, 0);
       }
     }
+    const readbackTimeMs = performance.now() - readbackStarted;
     stats = {
       ...stats,
       presentationMode: "readback",
       drawCalls: replay.drawCalls,
+      textTimeMs: replay.textTimeMs,
+      layerTimeMs: replay.layerTimeMs,
+      endLayerTimeMs: replay.endLayerTimeMs,
+      pathTimeMs: replay.pathTimeMs,
+      shapeTimeMs: replay.shapeTimeMs,
       skippedCommands: replay.skippedCommands,
       textureUploads: replay.textureUploads,
       videoTextureUploads: replay.videoTextureUploads,
@@ -284,6 +330,9 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       offscreenSurfaceReuses: replay.offscreenSurfaceReuses,
       ...cacheMetrics(),
       frameTimeMs: performance.now() - started,
+      replayTimeMs,
+      flushTimeMs,
+      readbackTimeMs,
     };
     return stats;
   };
@@ -330,11 +379,15 @@ export async function createSkiaRenderer(options: SkiaRendererOptions): Promise<
       surface = null;
       for (const entry of imageCache.values()) entry.image.delete();
       imageCache.clear();
+      for (const entry of fontCache.values()) entry.font.delete();
+      fontCache.clear();
       for (const entry of filterCache.values()) entry.filter?.delete();
       filterCache.clear();
       for (const image of maskCache.values()) image.delete();
       maskCache.clear();
       projectiveMeshCache.clear();
+      for (const entry of pathCache.values()) entry.path.delete();
+      pathCache.clear();
       replayResources.surfacePool.dispose();
       assets.clear();
       for (const fontAssetId of [...typefaces.keys()]) releaseTypeface(fontAssetId);

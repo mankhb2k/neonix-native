@@ -15,7 +15,7 @@ async function loadFont(uri: string): Promise<Buffer | null> {
 }
 
 export async function compileAndPrepareRuntimeProjectV3(document: MotionProtocolV2): Promise<RuntimeProjectV3> {
-  const compiled = compileProtocol(document);
+  const compiled = compileProtocol(document, { collectStats: true });
   if (!compiled.visual.nodes.some((node) => node.content.kind === "text")) return compiled;
   const moduleUrl = pathToFileURL(path.join(repoRoot(), "apps/web/public/vendor/harfbuzz/index.mjs")).href;
   const harfbuzz = await import(moduleUrl) as typeof import("harfbuzzjs");

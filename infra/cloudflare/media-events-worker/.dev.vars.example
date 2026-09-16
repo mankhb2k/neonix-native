@@ -1,0 +1,2 @@
+MEDIA_EVENT_HMAC_SECRET=local-media-event-secret
+MEDIA_EVENTS_ENDPOINT=http://127.0.0.1:3000/api/internal/media-events

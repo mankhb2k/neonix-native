@@ -1,9 +1,14 @@
 import type { PaintCommand, RuntimeNoiseEffectOp } from "@motionvideo/motion-runtime";
-import type { SkiaImage, SkiaImageFilter, SkiaSurface, SkiaTypeface } from "../canvas-kit";
+import type { SkiaFont, SkiaImage, SkiaImageFilter, SkiaPath, SkiaSurface, SkiaTypeface } from "../canvas-kit";
 import type { ProjectiveTextureMesh } from "./geometry";
 
 export type SkiaReplayStats = {
   drawCalls: number;
+  textTimeMs: number;
+  layerTimeMs: number;
+  endLayerTimeMs: number;
+  pathTimeMs: number;
+  shapeTimeMs: number;
   skippedCommands: number;
   textureUploads: number;
   videoTextureUploads: number;
@@ -26,6 +31,7 @@ export type SkiaReplayResources = {
   filterCache: Map<string, { filter: SkiaImageFilter | null; supported: boolean; sourceOnly?: boolean }>;
   maskCache: Map<string, SkiaImage>;
   projectiveMeshCache: Map<string, ProjectiveTextureMesh | null>;
+  pathCache: Map<string, { signature: string; path: SkiaPath }>;
   surfacePool: {
     acquire(width: number, height: number): { surface: SkiaSurface | null; reused: boolean };
     release(width: number, height: number, surface: SkiaSurface): void;
@@ -74,3 +80,4 @@ export type ReplayLayer = {
 };
 
 export type SkiaTypefaceResolver = (fontAssetId: string | undefined) => SkiaTypeface | null;
+export type SkiaFontResolver = (fontAssetId: string | undefined, fontSize: number) => SkiaFont | null;

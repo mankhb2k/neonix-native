@@ -1,11 +1,15 @@
 import { frameIndexAtTime } from "../foundation/clock";
-import { evaluateVisualRuntimeProject } from "../visual/evaluate";
+import {
+  evaluatePreparedVisualRuntimeProject,
+  prepareVisualRuntimeProject,
+  type PreparedVisualRuntimeProject,
+  type VisualRuntimeNodeOverride,
+} from "../visual/evaluate";
 import { normalizeVisualRuntimeProject } from "../visual/validate";
-import type { VisualRuntimeProject } from "../visual/types";
 import { assertVisualRuntimeFrame } from "../visual/validate";
 import { prepareVisualRuntimeProjectText, type VisualRuntimeTextFontResolver, type VisualRuntimeTextShaperLoader } from "../visual/text-layout";
-import { validateRuntimeVisualProjectV3 } from "./validate";
-import type { RuntimeFrameV3, RuntimeProjectV3 } from "./types";
+import { validateRuntimeProjectV3 } from "./validate";
+import type { RuntimeFrameV3, RuntimeNodeV3, RuntimeProjectV3, RuntimeVisualNodeDeltaV3 } from "./types";
 
 function normalizedDeltaMatrix(value: unknown): unknown {
   if (value instanceof Float64Array) return value;
@@ -53,26 +57,77 @@ export function normalizeRuntimeProjectV3(project: RuntimeProjectV3): RuntimePro
   };
 }
 
-function visualAtFrame(
-  project: RuntimeProjectV3,
-  frame: number,
-  time: number | undefined,
-): RuntimeProjectV3["visual"] {
-  const timeline = project.visualTimeline;
-  if (!timeline?.frames.length) return project.visual;
-  const requestedFrame = time === undefined
-    ? frame
-    : frameIndexAtTime(time, project.visual.composition.fps);
-  const frameIndex = Math.max(0, Math.min(timeline.frames.length - 1, requestedFrame));
-  const delta = timeline.frames[frameIndex];
-  if (!delta?.nodes.length) return project.visual;
-  const replacements = new Map(delta.nodes.map((node) => [node.id, node]));
+export type PreparedRuntimeProjectV3 = {
+  project: RuntimeProjectV3;
+  visual: PreparedVisualRuntimeProject;
+  nodeById: ReadonlyMap<string, RuntimeNodeV3>;
+  orderedNodes: readonly RuntimeNodeV3[];
+  animatedNodeIds: ReadonlySet<string>;
+  assetReferences: ReadonlyMap<string, readonly string[]>;
+  textNodeIds: ReadonlySet<string>;
+  effectNodeIds: ReadonlySet<string>;
+  timelineFrames: readonly ReadonlyMap<string, RuntimeVisualNodeDeltaV3>[];
+};
+
+function stableRuntimeNodeOrder(nodes: readonly RuntimeNodeV3[]): RuntimeNodeV3[] {
+  return [...nodes].sort(
+    (left, right) =>
+      left.order - right.order ||
+      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+  );
+}
+
+/** Validate, normalize and index a Runtime V3 project once per render job. */
+export function prepareRuntimeProjectV3(project: RuntimeProjectV3): PreparedRuntimeProjectV3 {
+  const normalized = normalizeRuntimeProjectV3(project);
+  const validation = validateRuntimeProjectV3(normalized);
+  if (!validation.ok) {
+    throw new Error(
+      `Runtime V3 validation failed: ${validation.diagnostics
+        .filter((diagnostic) => diagnostic.severity === "error")
+        .map((diagnostic) => diagnostic.message)
+        .join(" | ")}`,
+    );
+  }
+  const nodeById = new Map(normalized.visual.nodes.map((node) => [node.id, node]));
+  const orderedNodes = stableRuntimeNodeOrder(normalized.visual.nodes);
+  const assetReferences = new Map<string, string[]>();
+  const textNodeIds = new Set<string>();
+  const effectNodeIds = new Set<string>();
+  for (const node of normalized.visual.nodes) {
+    if (node.content.kind === "text") textNodeIds.add(node.id);
+    const assetId = node.content.kind === "image" || node.content.kind === "video" ? node.content.assetId : undefined;
+    if (assetId) assetReferences.set(assetId, [...(assetReferences.get(assetId) ?? []), node.id]);
+    if (
+      node.content.effects !== undefined ||
+      node.backdropEffects !== undefined ||
+      node.clipPath !== undefined ||
+      node.mask !== undefined
+    ) effectNodeIds.add(node.id);
+  }
+  const timelineFrames = normalized.visualTimeline?.frames.map((frame) =>
+    new Map<string, RuntimeVisualNodeDeltaV3>(frame.nodes.map((node) => [node.id, node])),
+  ) ?? [];
+  const animatedNodeIds = new Set<string>();
+  for (const frame of timelineFrames) for (const id of frame.keys()) animatedNodeIds.add(id);
+  const visual = prepareVisualRuntimeProject({
+    format: "motion-runtime",
+    formatVersion: 2,
+    id: normalized.projectId,
+    composition: normalized.visual.composition,
+    view: normalized.visual.view,
+    nodes: normalized.visual.nodes,
+  });
   return {
-    ...project.visual,
-    nodes: project.visual.nodes.map((node) => {
-      const replacement = replacements.get(node.id);
-      return replacement ? { ...node, ...replacement, id: node.id } : node;
-    }),
+    project: normalized,
+    visual,
+    nodeById,
+    orderedNodes,
+    animatedNodeIds,
+    assetReferences,
+    textNodeIds,
+    effectNodeIds,
+    timelineFrames,
   };
 }
 
@@ -90,26 +145,24 @@ export function evaluateRuntimeProjectV3(
   frame: number,
   options: { time?: number; outputScale?: number } = {},
 ): RuntimeFrameV3 {
-  const validation = validateRuntimeVisualProjectV3(project);
-  if (!validation.ok) {
-    throw new Error(
-      `Runtime V3 validation failed: ${validation.diagnostics
-        .filter((diagnostic) => diagnostic.severity === "error")
-        .map((diagnostic) => diagnostic.message)
-        .join(" | ")}`,
-    );
-  }
+  return evaluatePreparedRuntimeProjectV3(prepareRuntimeProjectV3(project), frame, options);
+}
 
-  const visual = visualAtFrame(project, frame, options.time);
-  const visualProject: VisualRuntimeProject = {
-    format: "motion-runtime",
-    formatVersion: 2,
-    id: project.projectId,
-    composition: visual.composition,
-    view: visual.view,
-    nodes: visual.nodes,
-  };
-  const frameV2 = evaluateVisualRuntimeProject(visualProject, frame, options);
+/** Evaluate a prepared V3 project without per-frame validation or scene cloning. */
+export function evaluatePreparedRuntimeProjectV3(
+  prepared: PreparedRuntimeProjectV3,
+  frame: number,
+  options: { time?: number; outputScale?: number } = {},
+): RuntimeFrameV3 {
+  const timeline = prepared.timelineFrames;
+  const requestedFrame = options.time === undefined
+    ? frame
+    : frameIndexAtTime(options.time, prepared.project.visual.composition.fps);
+  const frameIndex = timeline.length === 0
+    ? 0
+    : Math.max(0, Math.min(timeline.length - 1, requestedFrame));
+  const overrides = timeline[frameIndex] as ReadonlyMap<string, VisualRuntimeNodeOverride> | undefined;
+  const frameV2 = evaluatePreparedVisualRuntimeProject(prepared.visual, frame, options, overrides);
   return { ...frameV2, runtimeVersion: 3 };
 }
 
